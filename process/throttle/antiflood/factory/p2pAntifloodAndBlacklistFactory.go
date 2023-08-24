@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
+	antifloodDebug "github.com/multiversx/mx-chain-go/debug/antiflood"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
@@ -128,6 +129,18 @@ func initP2PAntiFloodComponents(
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	if mainConfig.Debug.Antiflood.Enabled {
+		debugger, errDebugger := antifloodDebug.NewAntifloodDebugger(mainConfig.Debug.Antiflood)
+		if errDebugger != nil {
+			return nil, errDebugger
+		}
+
+		err = p2pAntiflood.SetDebugger(debugger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, topicMaxMessages)

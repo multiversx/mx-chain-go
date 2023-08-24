@@ -1,6 +1,7 @@
 package processing_test
 
 import (
+	"errors"
 	"sync"
 	"testing"
 
@@ -16,12 +17,14 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -60,6 +63,45 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	require.NotNil(t, bp)
 }
 
+func Test_newBlockProcessorCreatorForShard_Failed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("failed to get epoch start static unit storer", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+
+		processCompArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+
+		processCompMockArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+
+		expectedErr := errors.New("expected err")
+		dataComponents := &mock.DataComponentsMock{
+			Blkc: &testscommon.ChainHandlerStub{},
+			Storage: &storageMock.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					if unitType != dataRetriever.EpochStartStaticUnit {
+						return &storageMock.StorerStub{}, nil
+					}
+
+					return nil, expectedErr
+				},
+			},
+			DataPool:          dataRetrieverTests.NewPoolsHolderMock(),
+			MiniBlockProvider: &mock.MiniBlocksProviderStub{},
+		}
+		_ = dataComponents.SetBlockchain(processCompArgs.Data.Blockchain())
+		processCompMockArgs.Data = dataComponents
+
+		pcf, err := processComp.NewProcessComponentsFactory(processCompMockArgs)
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
+
+		_, err = pcf.Create()
+		require.Equal(t, expectedErr, err)
+	})
+}
+
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
 
@@ -85,14 +127,14 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
-	storageManagerArgs := storage.GetStorageManagerArgs()
+	storageManagerArgs := storageMock.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
 	storageManagerArgs.Hasher = coreComponents.Hasher()
-	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
 	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
-	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser

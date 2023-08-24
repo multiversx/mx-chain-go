@@ -785,7 +785,9 @@ func TestTrigger_SaveEpochStartInfoToStaticStorage(t *testing.T) {
 						return headerBytes, nil
 					},
 				}, nil
-			} else if unitType == dataRetriever.EpochStartStaticUnit {
+			}
+
+			if unitType == dataRetriever.EpochStartStaticUnit {
 				return &storageStubs.StorerStub{
 					PutCalled: func(key, data []byte) error {
 						switch putCalls {

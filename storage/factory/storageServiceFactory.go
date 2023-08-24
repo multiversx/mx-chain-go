@@ -348,7 +348,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	err = psf.setUpStaticCrossSharsStorageUnits(store)
+	err = psf.setUpStaticCrossShardStorageUnits(store)
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +413,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	err = psf.setUpStaticCrossSharsStorageUnits(store)
+	err = psf.setUpStaticCrossShardStorageUnits(store)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +448,7 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	return psf.createTriePruningPersister(pruningStorageArgs)
 }
 
-func (psf *StorageServiceFactory) setUpStaticCrossSharsStorageUnits(store dataRetriever.StorageService) error {
+func (psf *StorageServiceFactory) setUpStaticCrossShardStorageUnits(store dataRetriever.StorageService) error {
 	epochStartStaticConfig := psf.generalConfig.EpochStartStaticStorage
 	epochStartStaticDbConfig := GetDBFromConfig(epochStartStaticConfig.DB)
 	epochStartStaticDbConfig.FilePath = psf.pathManager.PathForStaticCrossData(epochStartStaticConfig.DB.FilePath)

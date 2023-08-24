@@ -1191,7 +1191,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	marshalizedHeader, err := mp.marshalizer.Marshal(header)
+	marshalledHeader, err := mp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
@@ -1205,9 +1205,9 @@ func (mp *metaProcessor) CommitBlock(
 	// must be called before commitEpochStart
 	rewardsTxs := mp.getRewardsTxs(header, body)
 
-	mp.commitEpochStart(header, marshalizedHeader, body)
-	headerHash := mp.hasher.Compute(string(marshalizedHeader))
-	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
+	mp.commitEpochStart(header, marshalledHeader, body)
+	headerHash := mp.hasher.Compute(string(marshalledHeader))
+	mp.saveMetaHeader(header, headerHash, marshalledHeader)
 	mp.saveBody(body, header, headerHash)
 
 	err = mp.commitAll(headerHandler)
@@ -1443,8 +1443,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 			"rootHash", lastMetaBlock.GetRootHash(),
 			"prevRootHash", prevMetaBlock.GetRootHash(),
 			"validatorStatsRootHash", lastMetaBlock.GetValidatorStatsRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), lastMetaBlock.GetEpoch())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), lastMetaBlock.GetEpoch())
 		go func() {
 			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
 			if !ok {
@@ -1559,9 +1559,9 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 	return rewardsTx
 }
 
-func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, marshalizedHeader []byte, body *block.Body) {
+func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, marshalledHeader []byte, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
-		mp.saveEpochStartInfoToStaticStorage(header, marshalizedHeader, body)
+		mp.saveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)

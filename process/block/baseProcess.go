@@ -1289,29 +1289,34 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 }
 
 func (bp *baseProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHandler, marshalledHeader []byte, body *block.Body) {
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(header.GetEpoch()))...)
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(header.GetEpoch()))...)
 	err := bp.store.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
 	if err != nil {
 		log.Warn("saveEpochStartInfoToStaticStorage.Put header", "error", err.Error())
+		return
 	}
+
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", header.GetEpoch())
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		if body.MiniBlocks[i].Type != block.PeerBlock {
 			continue
 		}
 
-		marshalizedMiniBlock, err := bp.marshalizer.Marshal(body.MiniBlocks[i])
+		marshalledMiniBlock, err := bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if err != nil {
 			log.Warn("saveEpochStartInfoToStaticStorage.Marshal", "error", err.Error())
+			continue
 		}
 
-		miniBlockHash := bp.hasher.Compute(string(marshalizedMiniBlock))
-		err = bp.store.Put(dataRetriever.EpochStartStaticUnit, miniBlockHash, marshalizedMiniBlock)
+		miniBlockHash := bp.hasher.Compute(string(marshalledMiniBlock))
+		err = bp.store.Put(dataRetriever.EpochStartStaticUnit, miniBlockHash, marshalledMiniBlock)
 		if err != nil {
 			log.Warn("saveEpochStartInfoToStaticStorage.Put miniblock", "error", err.Error())
+			continue
 		}
 
-		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblocks", "hash", miniBlockHash)
+		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblock", "miniBlockHash", miniBlockHash)
 	}
 }
 
@@ -1421,7 +1426,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
 
-	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{HeaderHash: hdrHash})
+	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{ShardID: bp.shardCoordinator.SelfId(), HeaderHash: hdrHash})
 }
 
 func (bp *baseProcessor) updateStateStorage(

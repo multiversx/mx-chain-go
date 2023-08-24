@@ -169,6 +169,19 @@ func TestPathManager_PathForStatic(t *testing.T) {
 	}
 }
 
+func TestPathManager_PathForStaticCrossData(t *testing.T) {
+	t.Parallel()
+
+	dbPath := "db"
+	pm, _ := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", dbPath)
+
+	identifier := "id"
+	expectedStaticPath := dbPath + "/Static/" + identifier
+
+	staticPath := pm.PathForStaticCrossData(identifier)
+	assert.Equal(t, expectedStaticPath, staticPath)
+}
+
 func TestPathManager_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 

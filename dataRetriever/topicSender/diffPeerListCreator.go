@@ -73,11 +73,6 @@ func (dplc *diffPeerListCreator) IntraShardPeerList() []core.PeerID {
 	return dplc.messenger.ConnectedPeersOnTopic(dplc.intraShardTopic)
 }
 
-// FullHistoryList returns the full history peers list
-func (dplc *diffPeerListCreator) FullHistoryList() []core.PeerID {
-	return dplc.messenger.ConnectedFullHistoryPeersOnTopic(dplc.intraShardTopic)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (dplc *diffPeerListCreator) IsInterfaceNil() bool {
 	return dplc == nil

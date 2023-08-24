@@ -89,12 +89,12 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	for _, n := range nodes {
 		for _, sn := range syncNodesSlice {
-			_ = sn.ConnectTo(n)
+			_ = sn.ConnectOnMain(n)
 		}
 	}
 	integrationTests.BootstrapDelay()
 
-	require.True(t, len(syncMetaNode.Messenger.ConnectedPeers()) > 1, "not enough peers connected to this node."+
+	require.True(t, len(syncMetaNode.MainMessenger.ConnectedPeers()) > 1, "not enough peers connected to this node."+
 		" Check that the peer discovery mechanism works properly.")
 
 	integrationTests.StartSyncingBlocks(syncNodesSlice)

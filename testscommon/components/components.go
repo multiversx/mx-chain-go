@@ -243,6 +243,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -261,9 +266,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			MaxCrossShardObservers:  10,
 			MaxSeeders:              2,
 			Type:                    "NilListSharder",
-			AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
-				MaxFullHistoryObservers: 10,
-			},
 		},
 	}
 
@@ -295,10 +297,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	cryptoCompMock := GetDefaultCryptoComponents()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		P2pConfig:     p2pCfg,
-		MainConfig:    mainConfig,
-		StatusHandler: appStatusHandler,
-		Marshalizer:   &mock.MarshalizerMock{},
+		MainP2pConfig:     p2pCfg,
+		NodeOperationMode: common.NormalOperation,
+		MainConfig:        mainConfig,
+		StatusHandler:     appStatusHandler,
+		Marshalizer:       &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -312,9 +315,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:            &p2pFactory.LocalSyncTimer{},
-		NodeOperationMode: p2p.NormalOperation,
-		CryptoComponents:  cryptoCompMock,
+		Syncer:           &p2pFactory.LocalSyncTimer{},
+		CryptoComponents: cryptoCompMock,
 	}
 }
 
@@ -365,7 +367,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	return processArgs
 }
 
-//GetBootStrapFactoryArgs -
+// GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)

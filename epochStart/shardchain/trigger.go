@@ -1125,13 +1125,13 @@ func (t *trigger) saveEpochStartBlockToStaticStorer(epoch uint32) (data.HeaderHa
 		return nil, err
 	}
 
-	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBootstrapKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
 	err = t.epochStartStaticStorage.Put(epochStartBootstrapKey, marshalledMetaBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("saveEpochStartInfoToStaticStorage put metaBlock into epochStartStaticStorage", "epoch", epoch) // TODO: remove log
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", epoch)
 
 	return epochStartMetablock, nil
 }
@@ -1151,17 +1151,17 @@ func (t *trigger) fetchAndSavePeerMiniBlockToStaticStorer(
 		return nil, errors.ErrWrongTypeAssertion
 	}
 
-	marshalizedMiniBlock, err := t.marshaller.Marshal(miniBlock)
+	marshalledMiniBlock, err := t.marshaller.Marshal(miniBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	err = t.epochStartStaticStorage.Put(miniBlockHash, marshalizedMiniBlock)
+	err = t.epochStartStaticStorage.Put(miniBlockHash, marshalledMiniBlock)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("saveEpochStartInfoToStaticStorage put miniBlock into epochStartStaticStorage", "miniBlock hash", miniBlockHash) // TODO: remove log?
+	log.Debug("saveEpochStartInfoToStaticStorage: put miniBlock into epochStartStaticStorage", "miniBlockHash", miniBlockHash)
 
 	return miniBlock, nil
 }
@@ -1182,7 +1182,7 @@ func (t *trigger) fetchAndSaveValidatorInfoToStaticStorer(validatorInfoHash []by
 		return err
 	}
 
-	log.Debug("saveEpochStartInfoToStaticStorage put validatorInfo into epochStartStaticStorage", "validatorInfo hash", validatorInfoHash)
+	log.Trace("saveEpochStartInfoToStaticStorage: put validatorInfo into epochStartStaticStorage", "validatorInfo hash", validatorInfoHash)
 
 	return nil
 }
