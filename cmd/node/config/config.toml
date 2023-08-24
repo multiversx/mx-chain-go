@@ -692,7 +692,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 2, Version = "v1.5" },
+            { StartEpoch = 3, Version = "v1.5" },
         ]
 
     [VirtualMachine.Querying]
@@ -702,7 +702,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 2, Version = "v1.5" },
+            { StartEpoch = 3, Version = "v1.5" },
         ]
 
     [VirtualMachine.GasConfig]
