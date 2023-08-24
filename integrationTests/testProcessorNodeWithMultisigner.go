@@ -232,10 +232,11 @@ func CreateNodesWithNodesCoordinatorFactory(
 	}
 
 	epochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		StakingV2EnableEpoch:                            UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                  UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
