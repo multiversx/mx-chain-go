@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -718,7 +719,8 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig: &roundsConfig,
+		RoundConfig:       &roundsConfig,
+		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -822,6 +824,7 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
