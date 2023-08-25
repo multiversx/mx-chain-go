@@ -1,8 +1,6 @@
 package processing
 
 import (
-	"errors"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
@@ -22,12 +20,12 @@ func (gmbc *genesisMetaBlockChecker) CheckGenesisMetaBlock(
 ) error {
 	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
 	if !ok {
-		return errors.New("genesis meta block does not exist")
+		return errGenesisMetaBlockDoesNotExist
 	}
 
 	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
 	if !ok {
-		return errors.New("genesis meta block invalid")
+		return errInvalidGenesisMetaBlock
 	}
 
 	return genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
