@@ -589,6 +589,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	}
 
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
+		log.Debug("REMOVE_ME: trigger.receivedMetaBlock - early return", " !t.newEpochHdrReceived", !t.newEpochHdrReceived, "!metaHdr.IsStartOfEpochBlock()", !metaHdr.IsStartOfEpochBlock())
 		return
 	}
 
@@ -619,6 +620,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 
 	t.mapHashHdr[string(metaBlockHash)] = metaHdr
 	t.mapNonceHashes[metaHdr.Nonce] = append(t.mapNonceHashes[metaHdr.Nonce], string(metaBlockHash))
+	log.Debug("REMOVE_ME: added new meta to mapNonceHashes", "epoch", metaHdr.GetEpoch(), "nonce", metaHdr.GetNonce())
 
 	t.updateTriggerFromMeta()
 }
@@ -767,7 +769,7 @@ func (t *trigger) isMetaBlockFinal(_ string, metaHdr data.HeaderHandler) (bool, 
 	}
 
 	if nextBlocksVerified < finality {
-		log.Debug("isMetaBlockFinal", "nextBlocksVerified", nextBlocksVerified, "finality", finality)
+		log.Debug("isMetaBlockFinal", "nextBlocksVerified", nextBlocksVerified, "finality", finality, "epoch", metaHdr.GetEpoch(), "nonce", metaHdr.GetNonce())
 		for nonce := currHdr.GetNonce() + 1; nonce <= currHdr.GetNonce()+finality; nonce++ {
 			go t.requestHandler.RequestMetaHeaderByNonce(nonce)
 		}
