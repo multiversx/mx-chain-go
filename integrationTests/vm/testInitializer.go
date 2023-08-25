@@ -267,6 +267,7 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 		StorageService:           &storageStubs.ChainStorerStub{},
 		Marshaller:               integrationTests.TestMarshalizer,
 		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
+		Hasher:                   integrationtests.TestHasher,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
