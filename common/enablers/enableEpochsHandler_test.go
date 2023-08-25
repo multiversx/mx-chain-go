@@ -523,6 +523,7 @@ func TestEnableEpochsHandler_IsFlagEnabledInEpoch(t *testing.T) {
 	require.True(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch))
 	require.True(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch+1))
 	require.False(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch-1))
+	require.False(t, handler.IsFlagEnabledInEpoch("new flag", 0))
 }
 
 func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
