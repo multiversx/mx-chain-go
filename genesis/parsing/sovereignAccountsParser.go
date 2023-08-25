@@ -1,7 +1,6 @@
 package parsing
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -17,7 +16,7 @@ type sovereignAccountsParser struct {
 // NewSovereignAccountsParser creates an account parser for sovereign shard
 func NewSovereignAccountsParser(accParser *accountsParser) (*sovereignAccountsParser, error) {
 	if check.IfNil(accParser) {
-		return nil, errNilAccountsParser
+		return nil, genesis.ErrNilAccountsParser
 	}
 
 	return &sovereignAccountsParser{
@@ -35,7 +34,7 @@ func (ap *sovereignAccountsParser) GenerateInitialTransactions(
 	}
 
 	shardIDs := make([]uint32, 1)
-	shardIDs[0] = core.SovereignChainShardId
+	shardIDs[0] = shardCoordinator.SelfId()
 	txsPoolPerShard := ap.createIndexerPools(shardIDs)
 
 	mintTxs := ap.createMintTransactions()

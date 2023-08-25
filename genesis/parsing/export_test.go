@@ -101,5 +101,3 @@ func CreateMiniBlocks(shardIDs []uint32, blockType block.Type) []*block.MiniBloc
 func GetShardIDs(shardCoordinator sharding.Coordinator) []uint32 {
 	return getShardIDs(shardCoordinator)
 }
-
-var ErrNilAccountsParser = errNilAccountsParser
