@@ -1,11 +1,12 @@
 package state
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"time"
 )
 
 // LastSnapshotStarted -
@@ -104,4 +105,9 @@ func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
 // WaitForStorageEpochChange
 func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
 	return sm.waitForStorageEpochChange(args)
+}
+
+// NewNilSnapshotsManager -
+func NewNilSnapshotsManager() *snapshotsManager {
+	return nil
 }
