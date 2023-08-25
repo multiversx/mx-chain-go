@@ -27,7 +27,7 @@ func TestNewSovereignAccountsParser(t *testing.T) {
 
 	t.Run("nil accounts parser, should return error", func(t *testing.T) {
 		sovAccParser, err := parsing.NewSovereignAccountsParser(nil)
-		require.Equal(t, parsing.ErrNilAccountsParser, err)
+		require.Equal(t, genesis.ErrNilAccountsParser, err)
 		require.Nil(t, sovAccParser)
 	})
 }
