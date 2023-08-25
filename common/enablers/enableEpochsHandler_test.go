@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -499,6 +500,146 @@ func TestNewEnableEpochsHandler_Getters(t *testing.T) {
 	require.Equal(t, cfg.MiniBlockPartialExecutionEnableEpoch, handler.MiniBlockPartialExecutionEnableEpoch())
 	require.Equal(t, cfg.RefactorPeersMiniBlocksEnableEpoch, handler.RefactorPeersMiniBlocksEnableEpoch())
 	require.Equal(t, cfg.RelayedNonceFixEnableEpoch, handler.RelayedNonceFixEnableEpoch())
+}
+
+func TestEnableEpochsHandler_IsFlagDefined(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NotNil(t, handler)
+
+	require.True(t, handler.IsFlagDefined(common.SCDeployFlag))
+	require.False(t, handler.IsFlagDefined("new flag"))
+}
+
+func TestEnableEpochsHandler_IsFlagEnabledInEpoch(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NotNil(t, handler)
+
+	require.True(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch+1))
+	require.False(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch-1))
+	require.False(t, handler.IsFlagEnabledInEpoch("new flag", 0))
+}
+
+func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NotNil(t, handler)
+
+	require.False(t, handler.IsFlagEnabled(common.SetGuardianFlag))
+	handler.EpochConfirmed(cfg.SetGuardianEnableEpoch, 0)
+	require.True(t, handler.IsFlagEnabled(common.SetGuardianFlag))
+	handler.EpochConfirmed(cfg.SetGuardianEnableEpoch+1, 0)
+	require.True(t, handler.IsFlagEnabled(common.SetGuardianFlag))
+
+	handler.EpochConfirmed(math.MaxUint32, 0)
+	require.True(t, handler.IsFlagEnabled(common.SCDeployFlag))
+	require.True(t, handler.IsFlagEnabled(common.BuiltInFunctionsFlag))
+	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsFlag))
+	require.True(t, handler.IsFlagEnabled(common.PenalizedTooMuchGasFlag))
+	require.True(t, handler.IsFlagEnabled(common.SwitchJailWaitingFlag))
+	require.True(t, handler.IsFlagEnabled(common.BelowSignedThresholdFlag))
+	require.False(t, handler.IsFlagEnabled(common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.TransactionSignedWithTxHashFlag))
+	require.True(t, handler.IsFlagEnabled(common.MetaProtectionFlag))
+	require.True(t, handler.IsFlagEnabled(common.AheadOfTimeGasUsageFlag))
+	require.True(t, handler.IsFlagEnabled(common.GasPriceModifierFlag))
+	require.True(t, handler.IsFlagEnabled(common.RepairCallbackFlag))
+	require.True(t, handler.IsFlagEnabled(common.ReturnDataToLastTransferFlagAfterEpoch))
+	require.True(t, handler.IsFlagEnabled(common.SenderInOutTransferFlag))
+	require.True(t, handler.IsFlagEnabled(common.StakeFlag))
+	require.True(t, handler.IsFlagEnabled(common.StakingV2Flag))
+	require.False(t, handler.IsFlagEnabled(common.StakingV2OwnerFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.StakingV2FlagAfterEpoch))
+	require.True(t, handler.IsFlagEnabled(common.DoubleKeyProtectionFlag))
+	require.True(t, handler.IsFlagEnabled(common.ESDTFlag))
+	require.False(t, handler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceFlag))
+	require.False(t, handler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.DelegationManagerFlag))
+	require.True(t, handler.IsFlagEnabled(common.DelegationSmartContractFlag))
+	require.False(t, handler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly)) // ==
+	require.False(t, handler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly))     // ==
+	require.True(t, handler.IsFlagEnabled(common.CorrectLastUnJailedFlag))
+	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV2Flag))
+	require.True(t, handler.IsFlagEnabled(common.UnBondTokensV2Flag))
+	require.True(t, handler.IsFlagEnabled(common.SaveJailedAlwaysFlag))
+	require.True(t, handler.IsFlagEnabled(common.ReDelegateBelowMinCheckFlag))
+	require.True(t, handler.IsFlagEnabled(common.ValidatorToDelegationFlag))
+	require.True(t, handler.IsFlagEnabled(common.IncrementSCRNonceInMultiTransferFlag))
+	require.True(t, handler.IsFlagEnabled(common.ESDTMultiTransferFlag))
+	require.False(t, handler.IsFlagEnabled(common.GlobalMintBurnFlag)) // <
+	require.True(t, handler.IsFlagEnabled(common.ESDTTransferRoleFlag))
+	require.True(t, handler.IsFlagEnabled(common.BuiltInFunctionOnMetaFlag))
+	require.True(t, handler.IsFlagEnabled(common.ComputeRewardCheckpointFlag))
+	require.True(t, handler.IsFlagEnabled(common.SCRSizeInvariantCheckFlag))
+	require.False(t, handler.IsFlagEnabled(common.BackwardCompSaveKeyValueFlag)) // <
+	require.True(t, handler.IsFlagEnabled(common.ESDTNFTCreateOnMultiShardFlag))
+	require.True(t, handler.IsFlagEnabled(common.MetaESDTSetFlag))
+	require.True(t, handler.IsFlagEnabled(common.AddTokensToDelegationFlag))
+	require.True(t, handler.IsFlagEnabled(common.MultiESDTTransferFixOnCallBackFlag))
+	require.True(t, handler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag))
+	require.True(t, handler.IsFlagEnabled(common.CorrectFirstQueuedFlag))
+	require.True(t, handler.IsFlagEnabled(common.DeleteDelegatorAfterClaimRewardsFlag))
+	require.True(t, handler.IsFlagEnabled(common.RemoveNonUpdatedStorageFlag))
+	require.True(t, handler.IsFlagEnabled(common.OptimizeNFTStoreFlag))
+	require.True(t, handler.IsFlagEnabled(common.CreateNFTThroughExecByCallerFlag))
+	require.True(t, handler.IsFlagEnabled(common.StopDecreasingValidatorRatingWhenStuckFlag))
+	require.True(t, handler.IsFlagEnabled(common.FrontRunningProtectionFlag))
+	require.True(t, handler.IsFlagEnabled(common.PayableBySCFlag))
+	require.True(t, handler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag))
+	require.True(t, handler.IsFlagEnabled(common.StorageAPICostOptimizationFlag))
+	require.True(t, handler.IsFlagEnabled(common.ESDTRegisterAndSetAllRolesFlag))
+	require.True(t, handler.IsFlagEnabled(common.ScheduledMiniBlocksFlag))
+	require.True(t, handler.IsFlagEnabled(common.CorrectJailedNotUnStakedEmptyQueueFlag))
+	require.True(t, handler.IsFlagEnabled(common.DoNotReturnOldBlockInBlockchainHookFlag))
+	require.False(t, handler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag)) // <
+	require.True(t, handler.IsFlagEnabled(common.SCRSizeInvariantOnBuiltInResultFlag))
+	require.True(t, handler.IsFlagEnabled(common.CheckCorrectTokenIDForTransferRoleFlag))
+	require.True(t, handler.IsFlagEnabled(common.FailExecutionOnEveryAPIErrorFlag))
+	require.True(t, handler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag))
+	require.True(t, handler.IsFlagEnabled(common.ManagedCryptoAPIsFlag))
+	require.True(t, handler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag))
+	require.True(t, handler.IsFlagEnabled(common.DisableExecByCallerFlag))
+	require.True(t, handler.IsFlagEnabled(common.RefactorContextFlag))
+	require.True(t, handler.IsFlagEnabled(common.CheckFunctionArgumentFlag))
+	require.True(t, handler.IsFlagEnabled(common.CheckExecuteOnReadOnlyFlag))
+	require.True(t, handler.IsFlagEnabled(common.SetSenderInEeiOutputTransferFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixAsyncCallbackCheckFlag))
+	require.True(t, handler.IsFlagEnabled(common.SaveToSystemAccountFlag))
+	require.True(t, handler.IsFlagEnabled(common.CheckFrozenCollectionFlag))
+	require.True(t, handler.IsFlagEnabled(common.SendAlwaysFlag))
+	require.True(t, handler.IsFlagEnabled(common.ValueLengthCheckFlag))
+	require.True(t, handler.IsFlagEnabled(common.CheckTransferFlag))
+	require.True(t, handler.IsFlagEnabled(common.TransferToMetaFlag))
+	require.True(t, handler.IsFlagEnabled(common.ESDTNFTImprovementV1Flag))
+	require.True(t, handler.IsFlagEnabled(common.ChangeDelegationOwnerFlag))
+	require.True(t, handler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag))
+	require.True(t, handler.IsFlagEnabled(common.SCProcessorV2Flag))
+	require.True(t, handler.IsFlagEnabled(common.FixAsyncCallBackArgsListFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixOldTokenLiquidityFlag))
+	require.True(t, handler.IsFlagEnabled(common.RuntimeMemStoreLimitFlag))
+	require.True(t, handler.IsFlagEnabled(common.RuntimeCodeSizeFixFlag))
+	require.True(t, handler.IsFlagEnabled(common.MaxBlockchainHookCountersFlag))
+	require.True(t, handler.IsFlagEnabled(common.WipeSingleNFTLiquidityDecreaseFlag))
+	require.True(t, handler.IsFlagEnabled(common.AlwaysSaveTokenMetaDataFlag))
+	require.True(t, handler.IsFlagEnabled(common.SetGuardianFlag))
+	require.True(t, handler.IsFlagEnabled(common.RelayedNonceFixFlag))
+	require.True(t, handler.IsFlagEnabled(common.ConsistentTokensValuesLengthCheckFlag))
+	require.True(t, handler.IsFlagEnabled(common.KeepExecOrderOnCreatedSCRsFlag))
+	require.True(t, handler.IsFlagEnabled(common.MultiClaimOnDelegationFlag))
+	require.True(t, handler.IsFlagEnabled(common.ChangeUsernameFlag))
+	require.True(t, handler.IsFlagEnabled(common.AutoBalanceDataTriesFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixOOGReturnCodeFlag))
+	require.True(t, handler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

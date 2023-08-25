@@ -1,9 +1,12 @@
 package enablers
 
 import (
+	"runtime/debug"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -11,7 +14,11 @@ import (
 
 var log = logger.GetOrCreate("common/enablers")
 
+type flagEnabledInEpoch = func(epoch uint32) bool
+
+// TODO[Sorin]: call core.CheckHandlerCompatibility on each subcomponent
 type enableEpochsHandler struct {
+	allFlagsDefined    map[core.EnableEpochFlag]flagEnabledInEpoch
 	enableEpochsConfig config.EnableEpochs
 	currentEpoch       uint32
 	epochMut           sync.RWMutex
@@ -27,9 +34,316 @@ func NewEnableEpochsHandler(enableEpochsConfig config.EnableEpochs, epochNotifie
 		enableEpochsConfig: enableEpochsConfig,
 	}
 
+	handler.createAllFlagsMap()
+
 	epochNotifier.RegisterNotifyHandler(handler)
 
 	return handler, nil
+}
+
+func (handler *enableEpochsHandler) createAllFlagsMap() {
+	handler.allFlagsDefined = map[core.EnableEpochFlag]flagEnabledInEpoch{
+		common.SCDeployFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SCDeployEnableEpoch
+		},
+		common.BuiltInFunctionsFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.BuiltInFunctionsEnableEpoch
+		},
+		common.RelayedTransactionsFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RelayedTransactionsEnableEpoch
+		},
+		common.PenalizedTooMuchGasFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.PenalizedTooMuchGasEnableEpoch
+		},
+		common.SwitchJailWaitingFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SwitchJailWaitingEnableEpoch
+		},
+		common.BelowSignedThresholdFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.BelowSignedThresholdEnableEpoch
+		},
+		common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly: func(epoch uint32) bool {
+			return epoch == handler.enableEpochsConfig.SwitchHysteresisForMinNodesEnableEpoch
+		},
+		common.TransactionSignedWithTxHashFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.TransactionSignedWithTxHashEnableEpoch
+		},
+		common.MetaProtectionFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.MetaProtectionEnableEpoch
+		},
+		common.AheadOfTimeGasUsageFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.AheadOfTimeGasUsageEnableEpoch
+		},
+		common.GasPriceModifierFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.GasPriceModifierEnableEpoch
+		},
+		common.RepairCallbackFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RepairCallbackEnableEpoch
+		},
+		common.ReturnDataToLastTransferFlagAfterEpoch: func(epoch uint32) bool {
+			return epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch
+		},
+		common.SenderInOutTransferFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SenderInOutTransferEnableEpoch
+		},
+		common.StakeFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.StakeEnableEpoch
+		},
+		common.StakingV2Flag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch
+		},
+		common.StakingV2OwnerFlagInSpecificEpochOnly: func(epoch uint32) bool {
+			return epoch == handler.enableEpochsConfig.StakingV2EnableEpoch
+		},
+		common.StakingV2FlagAfterEpoch: func(epoch uint32) bool {
+			return epoch > handler.enableEpochsConfig.StakingV2EnableEpoch
+		},
+		common.DoubleKeyProtectionFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DoubleKeyProtectionEnableEpoch
+		},
+		common.ESDTFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTEnableEpoch
+		},
+		common.ESDTFlagInSpecificEpochOnly: func(epoch uint32) bool {
+			return epoch == handler.enableEpochsConfig.ESDTEnableEpoch
+		},
+		common.GovernanceFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.GovernanceEnableEpoch
+		},
+		common.GovernanceFlagInSpecificEpochOnly: func(epoch uint32) bool {
+			return epoch == handler.enableEpochsConfig.GovernanceEnableEpoch
+		},
+		common.DelegationManagerFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch
+		},
+		common.DelegationSmartContractFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DelegationSmartContractEnableEpoch
+		},
+		common.DelegationSmartContractFlagInSpecificEpochOnly: func(epoch uint32) bool {
+			return epoch == handler.enableEpochsConfig.DelegationSmartContractEnableEpoch
+		},
+		common.CorrectLastUnJailedFlagInSpecificEpochOnly: func(epoch uint32) bool {
+			return epoch == handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
+		},
+		common.CorrectLastUnJailedFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CorrectLastUnjailedEnableEpoch
+		},
+		common.RelayedTransactionsV2Flag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RelayedTransactionsV2EnableEpoch
+		},
+		common.UnBondTokensV2Flag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.UnbondTokensV2EnableEpoch
+		},
+		common.SaveJailedAlwaysFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SaveJailedAlwaysEnableEpoch
+		},
+		common.ReDelegateBelowMinCheckFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ReDelegateBelowMinCheckEnableEpoch
+		},
+		common.ValidatorToDelegationFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ValidatorToDelegationEnableEpoch
+		},
+		common.IncrementSCRNonceInMultiTransferFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.IncrementSCRNonceInMultiTransferEnableEpoch
+		},
+		common.ESDTMultiTransferFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch
+		},
+		common.ESDTNFTImprovementV1Flag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTMultiTransferEnableEpoch
+		},
+		common.GlobalMintBurnFlag: func(epoch uint32) bool {
+			return epoch < handler.enableEpochsConfig.GlobalMintBurnDisableEpoch
+		},
+		common.ESDTTransferRoleFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch
+		},
+		common.BuiltInFunctionOnMetaFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
+		},
+		common.TransferToMetaFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
+		},
+		common.ComputeRewardCheckpointFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch
+		},
+		common.SCRSizeInvariantCheckFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SCRSizeInvariantCheckEnableEpoch
+		},
+		common.BackwardCompSaveKeyValueFlag: func(epoch uint32) bool {
+			return epoch < handler.enableEpochsConfig.BackwardCompSaveKeyValueEnableEpoch
+		},
+		common.ESDTNFTCreateOnMultiShardFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTNFTCreateOnMultiShardEnableEpoch
+		},
+		common.MetaESDTSetFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.MetaESDTSetEnableEpoch
+		},
+		common.AddTokensToDelegationFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.AddTokensToDelegationEnableEpoch
+		},
+		common.MultiESDTTransferFixOnCallBackFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.MultiESDTTransferFixOnCallBackOnEnableEpoch
+		},
+		common.OptimizeGasUsedInCrossMiniBlocksFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.OptimizeGasUsedInCrossMiniBlocksEnableEpoch
+		},
+		common.CorrectFirstQueuedFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CorrectFirstQueuedEpoch
+		},
+		common.DeleteDelegatorAfterClaimRewardsFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DeleteDelegatorAfterClaimRewardsEnableEpoch
+		},
+		common.RemoveNonUpdatedStorageFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RemoveNonUpdatedStorageEnableEpoch
+		},
+		common.OptimizeNFTStoreFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+		},
+		common.SaveToSystemAccountFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+		},
+		common.CheckFrozenCollectionFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+		},
+		common.ValueLengthCheckFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+		},
+		common.CheckTransferFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.OptimizeNFTStoreEnableEpoch
+		},
+		common.CreateNFTThroughExecByCallerFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CreateNFTThroughExecByCallerEnableEpoch
+		},
+		common.StopDecreasingValidatorRatingWhenStuckFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.StopDecreasingValidatorRatingWhenStuckEnableEpoch
+		},
+		common.FrontRunningProtectionFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.FrontRunningProtectionEnableEpoch
+		},
+		common.PayableBySCFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.IsPayableBySCEnableEpoch
+		},
+		common.CleanUpInformativeSCRsFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CleanUpInformativeSCRsEnableEpoch
+		},
+		common.StorageAPICostOptimizationFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.StorageAPICostOptimizationEnableEpoch
+		},
+		common.ESDTRegisterAndSetAllRolesFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTRegisterAndSetAllRolesEnableEpoch
+		},
+		common.ScheduledMiniBlocksFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ScheduledMiniBlocksEnableEpoch
+		},
+		common.CorrectJailedNotUnStakedEmptyQueueFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CorrectJailedNotUnstakedEmptyQueueEpoch
+		},
+		common.DoNotReturnOldBlockInBlockchainHookFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DoNotReturnOldBlockInBlockchainHookEnableEpoch
+		},
+		common.AddFailedRelayedTxToInvalidMBsFlag: func(epoch uint32) bool {
+			return epoch < handler.enableEpochsConfig.AddFailedRelayedTxToInvalidMBsDisableEpoch
+		},
+		common.SCRSizeInvariantOnBuiltInResultFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SCRSizeInvariantOnBuiltInResultEnableEpoch
+		},
+		common.CheckCorrectTokenIDForTransferRoleFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CheckCorrectTokenIDForTransferRoleEnableEpoch
+		},
+		common.FailExecutionOnEveryAPIErrorFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.FailExecutionOnEveryAPIErrorEnableEpoch
+		},
+		common.MiniBlockPartialExecutionFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.MiniBlockPartialExecutionEnableEpoch
+		},
+		common.ManagedCryptoAPIsFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ManagedCryptoAPIsEnableEpoch
+		},
+		common.ESDTMetadataContinuousCleanupFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch
+		},
+		common.FixAsyncCallbackCheckFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch
+		},
+		common.SendAlwaysFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch
+		},
+		common.ChangeDelegationOwnerFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ESDTMetadataContinuousCleanupEnableEpoch
+		},
+		common.DisableExecByCallerFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DisableExecByCallerEnableEpoch
+		},
+		common.RefactorContextFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RefactorContextEnableEpoch
+		},
+		common.CheckFunctionArgumentFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CheckFunctionArgumentEnableEpoch
+		},
+		common.CheckExecuteOnReadOnlyFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.CheckExecuteOnReadOnlyEnableEpoch
+		},
+		common.SetSenderInEeiOutputTransferFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SetSenderInEeiOutputTransferEnableEpoch
+		},
+		common.RefactorPeersMiniBlocksFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RefactorPeersMiniBlocksEnableEpoch
+		},
+		common.SCProcessorV2Flag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SCProcessorV2EnableEpoch
+		},
+		common.FixAsyncCallBackArgsListFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.FixAsyncCallBackArgsListEnableEpoch
+		},
+		common.FixOldTokenLiquidityFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.FixOldTokenLiquidityEnableEpoch
+		},
+		common.RuntimeMemStoreLimitFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RuntimeMemStoreLimitEnableEpoch
+		},
+		common.RuntimeCodeSizeFixFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RuntimeCodeSizeFixEnableEpoch
+		},
+		common.MaxBlockchainHookCountersFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.MaxBlockchainHookCountersEnableEpoch
+		},
+		common.WipeSingleNFTLiquidityDecreaseFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.WipeSingleNFTLiquidityDecreaseEnableEpoch
+		},
+		common.AlwaysSaveTokenMetaDataFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.AlwaysSaveTokenMetaDataEnableEpoch
+		},
+		common.SetGuardianFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.SetGuardianEnableEpoch
+		},
+		common.RelayedNonceFixFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.RelayedNonceFixEnableEpoch
+		},
+		common.ConsistentTokensValuesLengthCheckFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ConsistentTokensValuesLengthCheckEnableEpoch
+		},
+		common.KeepExecOrderOnCreatedSCRsFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.KeepExecOrderOnCreatedSCRsEnableEpoch
+		},
+		common.MultiClaimOnDelegationFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch
+		},
+		common.ChangeUsernameFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.ChangeUsernameEnableEpoch
+		},
+		common.AutoBalanceDataTriesFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch
+		},
+		common.FixDelegationChangeOwnerOnAccountFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
+		},
+		common.FixOOGReturnCodeFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
+		},
+		common.DeterministicSortOnValidatorsInfoFixFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
+		},
+	}
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
@@ -37,6 +351,48 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.epochMut.Lock()
 	handler.currentEpoch = epoch
 	handler.epochMut.Unlock()
+}
+
+// IsFlagDefined checks if a specific flag is supported by the current version of mx-chain-core-go
+func (handler *enableEpochsHandler) IsFlagDefined(flag core.EnableEpochFlag) bool {
+	_, found := handler.allFlagsDefined[flag]
+	if found {
+		return true
+	}
+
+	log.Error("programming error, flag is not defined",
+		"flag", flag,
+		"stack trace", string(debug.Stack()))
+	return false
+}
+
+// IsFlagEnabled returns true if the provided flag is enabled in the current epoch
+func (handler *enableEpochsHandler) IsFlagEnabled(flag core.EnableEpochFlag) bool {
+	handler.epochMut.RLock()
+	currentEpoch := handler.currentEpoch
+	handler.epochMut.RUnlock()
+
+	return handler.IsFlagEnabledInEpoch(flag, currentEpoch)
+}
+
+// IsFlagEnabledInEpoch returns true if the provided flag is enabled in the provided epoch
+func (handler *enableEpochsHandler) IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool {
+	flagHandler, found := handler.allFlagsDefined[flag]
+	if !found {
+		log.Warn("programming error, got unknown flag",
+			"flag", flag,
+			"epoch", epoch,
+			"stack trace", string(debug.Stack()))
+		return false
+	}
+
+	return flagHandler(epoch)
+}
+
+// GetActivationEpoch returns the activation epoch of the provided flag
+func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag) uint32 {
+	// TODO[Sorin]: implement this
+	return 0
 }
 
 // ScheduledMiniBlocksEnableEpoch returns the epoch when scheduled mini blocks becomes active

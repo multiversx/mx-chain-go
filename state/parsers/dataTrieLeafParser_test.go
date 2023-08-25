@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -14,8 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
-
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func TestNewDataTrieLeafParser(t *testing.T) {
 	t.Parallel()
@@ -71,7 +70,9 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		address := []byte("address")
 		suffix := append(key, address...)
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tlp, _ := NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 
@@ -96,7 +97,9 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		}
 		serializedLeafData, _ := marshaller.Marshal(leafData)
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tlp, _ := NewDataTrieLeafParser(address, marshaller, enableEpochsHandler)
 
@@ -120,7 +123,9 @@ func TestTrieLeafParser_ParseLeaf(t *testing.T) {
 		valWithAppendedData = append(valWithAppendedData, addrBytes...)
 
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledInEpochCalled: flagActiveTrueHandler,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tlp, _ := NewDataTrieLeafParser(addrBytes, marshaller, enableEpochsHandler)
 
