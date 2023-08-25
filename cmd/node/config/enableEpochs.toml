@@ -249,7 +249,7 @@
     SetGuardianEnableEpoch = 1
 
     # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
-    DeterministicSortOnValidatorsInfoEnableEpoch = 2
+    DeterministicSortOnValidatorsInfoEnableEpoch = 1
 
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
     SCProcessorV2EnableEpoch = 6
