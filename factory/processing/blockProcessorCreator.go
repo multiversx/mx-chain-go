@@ -168,14 +168,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
-		Store:               pcf.data.StorageService(),
-		PoolsHolder:         pcf.data.Datapool(),
-		EconomicsFee:        pcf.coreData.EconomicsData(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		PubkeyConverter:         pcf.coreData.AddressPubKeyConverter(),
+		Store:                   pcf.data.StorageService(),
+		PoolsHolder:             pcf.data.Datapool(),
+		EconomicsFee:            pcf.coreData.EconomicsData(),
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -491,14 +492,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
-		Store:               pcf.data.StorageService(),
-		PoolsHolder:         pcf.data.Datapool(),
-		EconomicsFee:        pcf.coreData.EconomicsData(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		PubkeyConverter:         pcf.coreData.AddressPubKeyConverter(),
+		Store:                   pcf.data.StorageService(),
+		PoolsHolder:             pcf.data.Datapool(),
+		EconomicsFee:            pcf.coreData.EconomicsData(),
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)

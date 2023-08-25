@@ -104,6 +104,7 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	userAccount.SetCodeHash(address)
 	err = node.AccntState.SaveAccount(userAccount)
 	require.Nil(t, err)
+	_, _ = node.AccntState.Commit()
 
 	return address, userAccount
 }

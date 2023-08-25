@@ -1502,28 +1502,30 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Marshalizer:         TestMarshalizer,
-		Hasher:              TestHasher,
-		PubkeyConverter:     TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		PoolsHolder:         tpn.DataPool,
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:        tpn.ShardCoordinator,
+		Marshalizer:             TestMarshalizer,
+		Hasher:                  TestHasher,
+		PubkeyConverter:         TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		PoolsHolder:             tpn.DataPool,
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	argsNewIntermediateResultsProc := postprocess.ArgsNewIntermediateResultsProcessor{
-		Hasher:              TestHasher,
-		Marshalizer:         TestMarshalizer,
-		Coordinator:         tpn.ShardCoordinator,
-		PubkeyConv:          TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		BlockType:           dataBlock.SmartContractResultBlock,
-		CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		Hasher:                  TestHasher,
+		Marshalizer:             TestMarshalizer,
+		Coordinator:             tpn.ShardCoordinator,
+		PubkeyConv:              TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		BlockType:               dataBlock.SmartContractResultBlock,
+		CurrTxs:                 tpn.DataPool.CurrentBlockTxs(),
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(argsNewIntermediateResultsProc)
 
@@ -1747,28 +1749,30 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[string]uint64) {
 	argsFactory := metaProcess.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Marshalizer:         TestMarshalizer,
-		Hasher:              TestHasher,
-		PubkeyConverter:     TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		PoolsHolder:         tpn.DataPool,
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:        tpn.ShardCoordinator,
+		Marshalizer:             TestMarshalizer,
+		Hasher:                  TestHasher,
+		PubkeyConverter:         TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		PoolsHolder:             tpn.DataPool,
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	interimProcFactory, _ := metaProcess.NewIntermediateProcessorsContainerFactory(argsFactory)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	argsNewIntermediateResultsProc := postprocess.ArgsNewIntermediateResultsProcessor{
-		Hasher:              TestHasher,
-		Marshalizer:         TestMarshalizer,
-		Coordinator:         tpn.ShardCoordinator,
-		PubkeyConv:          TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		BlockType:           dataBlock.SmartContractResultBlock,
-		CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		Hasher:                  TestHasher,
+		Marshalizer:             TestMarshalizer,
+		Coordinator:             tpn.ShardCoordinator,
+		PubkeyConv:              TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		BlockType:               dataBlock.SmartContractResultBlock,
+		CurrTxs:                 tpn.DataPool.CurrentBlockTxs(),
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(argsNewIntermediateResultsProc)
 

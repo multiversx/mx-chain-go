@@ -1,6 +1,7 @@
 package metachain_test
 
 import (
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,14 +22,15 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockArgsNewIntermediateProcessorsFactory() metachain.ArgsNewIntermediateProcessorsContainerFactory {
 	args := metachain.ArgsNewIntermediateProcessorsContainerFactory{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConverter:     createMockPubkeyConverter(),
-		Store:               &storageStubs.ChainStorerStub{},
-		PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		Hasher:                  &hashingMocks.HasherMock{},
+		Marshalizer:             &mock.MarshalizerMock{},
+		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConverter:         createMockPubkeyConverter(),
+		Store:                   &storageStubs.ChainStorerStub{},
+		PoolsHolder:             dataRetrieverMock.NewPoolsHolderMock(),
+		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 	return args
 }
