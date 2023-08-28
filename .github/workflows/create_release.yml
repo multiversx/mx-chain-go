@@ -19,10 +19,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.20.5
+      - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20.5
+          go-version: 1.20.7
         id: go
 
       - name: Check out code into the Go module directory
@@ -59,10 +59,10 @@ jobs:
       - name: Build
         run: |
           mkdir -p ${BUILD_DIR}
-          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -ldflags="-X main.appVersion=${APP_VER}"
 
       - name: Package
         run: |

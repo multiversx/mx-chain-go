@@ -183,6 +183,8 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	GetSnapshotDuration() int64
+	GetSnapshotNumNodes() uint64
 	IsInterfaceNil() bool
 }
 
