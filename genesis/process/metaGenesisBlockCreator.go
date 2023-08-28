@@ -16,10 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -552,14 +554,26 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
+	apiBlockchain, err := blockchain.NewMetaChain(disabledCommon.NewAppStatusHandler())
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmContainer,
 		EconomicsFee:             arg.Economics,
 		BlockChainHook:           virtualMachineFactory.BlockChainHookImpl(),
-		BlockChain:               arg.Data.Blockchain(),
+		MainBlockChain:           arg.Data.Blockchain(),
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        arg.HistoryRepository,
+		ShardCoordinator:         arg.ShardCoordinator,
+		StorageService:           arg.Data.StorageService(),
+		Marshaller:               arg.Core.InternalMarshalizer(),
+		Hasher:                   arg.Core.Hasher(),
+		Uint64ByteSliceConverter: arg.Core.Uint64ByteSliceConverter(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -665,7 +679,7 @@ func setStakedData(
 		}
 
 		scQueryBlsKeys.Arguments = [][]byte{nodeInfo.PubKeyBytes()}
-		vmOutput, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
+		vmOutput, _, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
 		if err != nil {
 			return nil, err
 		}

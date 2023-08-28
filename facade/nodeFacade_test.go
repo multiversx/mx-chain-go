@@ -513,15 +513,15 @@ func TestNodeFacade_GetDataValue(t *testing.T) {
 	wasCalled := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			wasCalled = true
-			return &vmcommon.VMOutput{}, nil
+			return &vmcommon.VMOutput{}, nil, nil
 		},
 	}
 	nf, err := NewNodeFacade(arg)
 	require.NoError(t, err)
 
-	_, _ = nf.ExecuteSCQuery(nil)
+	_, _, _ = nf.ExecuteSCQuery(nil)
 	require.True(t, wasCalled)
 }
 
@@ -1240,14 +1240,14 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.ApiResolver = &mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
-				return nil, expectedErr
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+				return nil, nil, expectedErr
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
 
-		_, err := nf.ExecuteSCQuery(&process.SCQuery{})
+		_, _, err := nf.ExecuteSCQuery(&process.SCQuery{})
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1269,15 +1269,15 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 			},
 		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				executeScQueryHandlerWasCalled = true
-				return expectedVmOutput, nil
+				return expectedVmOutput, nil, nil
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
 
-		apiVmOutput, err := nf.ExecuteSCQuery(&process.SCQuery{})
+		apiVmOutput, _, err := nf.ExecuteSCQuery(&process.SCQuery{})
 		require.NoError(t, err)
 		require.True(t, executeScQueryHandlerWasCalled)
 		require.Equal(t, expectedVmOutput.ReturnData, apiVmOutput.ReturnData)
@@ -1470,7 +1470,31 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 	require.Equal(t, ret, blk)
 }
 
-func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
+func TestFacade_convertVmOutputToApiResponseNilLogData(t *testing.T) {
+	testConvertVmOutput(t, nil, nil, nil)
+}
+
+func TestFacade_convertVmOutputToApiResponseEmptyLogData(t *testing.T) {
+	logData := [][]byte{}
+	expectedAdditionalLogData := [][]byte{}
+	testConvertVmOutput(t, logData, nil, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseSingleLogData(t *testing.T) {
+	logData := [][]byte{[]byte("log_data")}
+	expectedLogData := []byte("log_data")
+	expectedAdditionalLogData := [][]byte{[]byte("log_data")}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseMultiLogData(t *testing.T) {
+	logData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
+	expectedLogData := []byte("log_data1")
+	expectedAdditionalLogData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func testConvertVmOutput(t *testing.T, logData [][]byte, expectedLogData []byte, expectedAdditionalLogData [][]byte) {
 	arg := createMockArguments()
 	nf, _ := NewNodeFacade(arg)
 
@@ -1482,7 +1506,7 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 	retData := [][]byte{[]byte("ret_data_0")}
 	outAcc, outAccStorageKey, outAccOffset := []byte("addr0"), []byte("out_acc_storage_key"), []byte("offset")
 	outAccTransferSndrAddr := []byte("addr1")
-	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, []byte("log_data")
+	logId, logAddr, logTopics := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}
 	vmInput := vmcommon.VMOutput{
 		ReturnData: retData,
 		OutputAccounts: map[string]*vmcommon.OutputAccount{
@@ -1528,10 +1552,11 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 
 	expectedLogs := []*vm.LogEntryApi{
 		{
-			Identifier: logId,
-			Address:    convertAddressFunc(logAddr),
-			Topics:     logTopics,
-			Data:       logData,
+			Identifier:     logId,
+			Address:        convertAddressFunc(logAddr),
+			Topics:         logTopics,
+			Data:           expectedLogData,
+			AdditionalData: expectedAdditionalLogData,
 		},
 	}
 

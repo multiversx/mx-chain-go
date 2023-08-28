@@ -1220,3 +1220,6 @@ var ErrBuiltinFunctionNotExecutable = errors.New("builtin function not executabl
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrNilStorageService signals that a nil storage service has been provided
+var ErrNilStorageService = errors.New("nil storage service")
