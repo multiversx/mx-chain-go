@@ -16,7 +16,7 @@ import (
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
@@ -96,12 +96,12 @@ func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAcc
 }
 
 // ExecuteSCQuery -
-func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	if ars.ExecuteSCQueryHandler != nil {
 		return ars.ExecuteSCQueryHandler(query)
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 // StatusMetrics -
