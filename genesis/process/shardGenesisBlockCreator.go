@@ -148,6 +148,7 @@ func createGenesisConfig() config.EnableEpochs {
 		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 		SetGuardianEnableEpoch:                            unreachableEpoch,
+		ScToScLogEventEnableEpoch:                         unreachableEpoch,
 	}
 }
 

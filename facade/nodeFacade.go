@@ -667,10 +667,11 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		}
 
 		logs = append(logs, &vm.LogEntryApi{
-			Identifier: originalLog.Identifier,
-			Address:    logAddress,
-			Topics:     originalLog.Topics,
-			Data:       originalLog.Data,
+			Identifier:     originalLog.Identifier,
+			Address:        logAddress,
+			Topics:         originalLog.Topics,
+			Data:           originalLog.GetFirstDataItem(),
+			AdditionalData: originalLog.Data,
 		})
 	}
 
