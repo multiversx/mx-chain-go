@@ -286,6 +286,8 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixOOGReturnCodeFlag))
 	require.True(t, handler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicGasCostForDataTrieStorageLoadFlag))
+	require.True(t, handler.IsFlagEnabled(common.ScToScLogEventFlag))
 	require.True(t, handler.IsFlagEnabled(common.BlockGasAndFeesReCheckFlag))
 	require.True(t, handler.IsFlagEnabled(common.BalanceWaitingListsFlag))
 	require.True(t, handler.IsFlagEnabled(common.WaitingListFixFlag))
@@ -391,11 +393,11 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.GetActivationEpoch(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.Equal(t, cfg.FixOOGReturnCodeEnableEpoch, handler.GetActivationEpoch(common.FixOOGReturnCodeFlag))
 	require.Equal(t, cfg.DeterministicSortOnValidatorsInfoEnableEpoch, handler.GetActivationEpoch(common.DeterministicSortOnValidatorsInfoFixFlag))
+	require.Equal(t, cfg.DynamicGasCostForDataTrieStorageLoadEnableEpoch, handler.GetActivationEpoch(common.DynamicGasCostForDataTrieStorageLoadFlag))
+	require.Equal(t, cfg.ScToScLogEventEnableEpoch, handler.GetActivationEpoch(common.ScToScLogEventFlag))
 	require.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag))
 	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.GetActivationEpoch(common.BalanceWaitingListsFlag))
 	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.GetActivationEpoch(common.WaitingListFixFlag))
-	require.True(t, handler.IsFlagEnabled(common.DynamicGasCostForDataTrieStorageLoadFlag))
-	require.True(t, handler.IsFlagEnabled(common.ScToScLogEventFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

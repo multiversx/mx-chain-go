@@ -349,7 +349,7 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 		common.ScToScLogEventFlag: func(epoch uint32) bool {
 			return epoch >= handler.enableEpochsConfig.ScToScLogEventEnableEpoch
 		},
-    common.BlockGasAndFeesReCheckFlag: func(epoch uint32) bool {
+		common.BlockGasAndFeesReCheckFlag: func(epoch uint32) bool {
 			return epoch >= handler.enableEpochsConfig.BlockGasAndFeesReCheckEnableEpoch
 		},
 		common.BalanceWaitingListsFlag: func(epoch uint32) bool {
@@ -357,7 +357,8 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 		},
 		common.WaitingListFixFlag: func(epoch uint32) bool {
 			return epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch
-	  },
+		},
+	}
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
@@ -580,7 +581,7 @@ func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag
 	case common.FixOOGReturnCodeFlag:
 		return handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch
 	case common.DeterministicSortOnValidatorsInfoFixFlag:
-		return handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch  
+		return handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
 	case common.DynamicGasCostForDataTrieStorageLoadFlag:
 		return handler.enableEpochsConfig.DynamicGasCostForDataTrieStorageLoadEnableEpoch
 	case common.ScToScLogEventFlag:
