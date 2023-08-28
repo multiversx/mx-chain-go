@@ -2730,8 +2730,10 @@ func GenerateTrieKeysForMaxLevel(numTrieLevels int, numChildrenPerBranch int) []
 
 func generateRandHexString(size int) string {
 	buff := make([]string, size)
+	lenCharsPoolBig := big.NewInt(int64(len(charsPool)))
 	for i := 0; i < size; i++ {
-		buff[i] = charsPool[mathRand.Intn(len(charsPool))]
+		randomIndexBig, _ := rand.Int(rand.Reader, lenCharsPoolBig)
+		buff[i] = charsPool[randomIndexBig.Int64()]
 	}
 
 	return strings.Join(buff, "")

@@ -355,6 +355,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.coreData.InternalMarshalizer(),
 		pcf.coreData.Hasher(),
 		pcf.bootstrapComponents.ShardCoordinator(),
+		pcf.txExecutionOrderHandler,
 	)
 	if err != nil {
 		return nil, err
