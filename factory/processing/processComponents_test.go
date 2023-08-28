@@ -242,6 +242,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ChainRunType:               common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -589,6 +590,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.GenesisBlockCreatorFactory = nil
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisBlockFactory))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil meta genesis block checker, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.GenesisMetaBlockChecker = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

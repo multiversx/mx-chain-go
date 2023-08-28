@@ -1212,6 +1212,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ChainRunType:               common.ChainRunTypeSovereign,
 		ShardCoordinatorFactory:    sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewSovereignGenesisMetaBlockChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

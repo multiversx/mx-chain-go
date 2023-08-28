@@ -616,3 +616,15 @@ var ErrNilNodesSetupFactory = errors.New("nil nodes setup factory provided")
 
 // ErrNilRatingsDataFactory signals that a nil ratings data factory has been provided
 var ErrNilRatingsDataFactory = errors.New("nil ratings data factory provided")
+
+// ErrNilGenesisMetaBlockChecker signals that a nil genesis meta block checker has been provided
+var ErrNilGenesisMetaBlockChecker = errors.New("nil genesis meta block checker has been provided")
+
+// ErrGenesisMetaBlockDoesNotExist signals that genesis meta block does not exist
+var ErrGenesisMetaBlockDoesNotExist = errors.New("genesis meta block does not exist")
+
+// ErrInvalidGenesisMetaBlock signals that genesis meta block should be of type meta header handler
+var ErrInvalidGenesisMetaBlock = errors.New("genesis meta block invalid, should be of type meta header handler")
+
+// ErrGenesisMetaBlockOnSovereign signals that genesis meta block was found on sovereign chain
+var ErrGenesisMetaBlockOnSovereign = errors.New("genesis meta block was found on sovereign chain")

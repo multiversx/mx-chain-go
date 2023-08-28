@@ -165,6 +165,7 @@ type ProcessComponentsFactoryArgs struct {
 
 	ShardCoordinatorFactory    sharding.ShardCoordinatorFactory
 	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker    GenesisMetaBlockChecker
 }
 
 type processComponentsFactory struct {
@@ -202,6 +203,7 @@ type processComponentsFactory struct {
 
 	shardCoordinatorFactory    sharding.ShardCoordinatorFactory
 	genesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker    GenesisMetaBlockChecker
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -240,6 +242,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		chainRunType:               args.ChainRunType,
 		shardCoordinatorFactory:    args.ShardCoordinatorFactory,
 		genesisBlockCreatorFactory: args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:    args.GenesisMetaBlockChecker,
 	}, nil
 }
 
@@ -356,16 +359,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
-	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
-	if !ok {
-		return nil, errors.New("genesis meta block does not exist")
-	}
-
-	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
-	if !ok {
-		return nil, errors.New("genesis meta block invalid")
-	}
-
 	err = pcf.setGenesisHeader(genesisBlocks)
 	if err != nil {
 		return nil, err
@@ -381,7 +374,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	err = pcf.genesisMetaBlockChecker.SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -2076,6 +2069,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.GenesisBlockCreatorFactory) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
+	}
+	if check.IfNil(args.GenesisMetaBlockChecker) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
 
 	return nil
