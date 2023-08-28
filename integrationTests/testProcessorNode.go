@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -787,14 +788,27 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initInnerProcessors(gasMap, vmConfig)
 
 	if check.IfNil(args.TrieStore) {
+		var apiBlockchain data.ChainHandler
+		if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+			apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+		} else {
+			apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+		}
 		argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 			VmContainer:              tpn.VMContainer,
 			EconomicsFee:             tpn.EconomicsData,
 			BlockChainHook:           tpn.BlockchainHook,
-			BlockChain:               tpn.BlockChain,
+			MainBlockChain:           tpn.BlockChain,
+			APIBlockChain:            apiBlockchain,
 			WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 			Bootstrapper:             tpn.Bootstrapper,
 			AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+			HistoryRepository:        tpn.HistoryRepository,
+			ShardCoordinator:         tpn.ShardCoordinator,
+			StorageService:           tpn.Storage,
+			Marshaller:               TestMarshaller,
+			Hasher:                   TestHasher,
+			Uint64ByteSliceConverter: TestUint64Converter,
 		}
 		tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	} else {
@@ -864,7 +878,6 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		Accounts:                 tpn.AccntState,
 		PubkeyConv:               TestAddressPubkeyConverter,
 		StorageService:           tpn.Storage,
-		BlockChain:               tpn.BlockChain,
 		ShardCoordinator:         tpn.ShardCoordinator,
 		Marshalizer:              TestMarshalizer,
 		Uint64Converter:          TestUint64Converter,
@@ -881,7 +894,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
+	var apiBlockchain data.ChainHandler
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+		argsHook.BlockChain = apiBlockchain
+
 		tpn.EnableEpochs = config.EnableEpochs{}
 		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
@@ -952,6 +969,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		})
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
+		apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+		argsHook.BlockChain = apiBlockchain
+
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -976,10 +996,17 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		VmContainer:              vmContainer,
 		EconomicsFee:             tpn.EconomicsData,
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
-		BlockChain:               tpn.BlockChain,
+		MainBlockChain:           tpn.BlockChain,
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        tpn.HistoryRepository,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		StorageService:           tpn.Storage,
+		Marshaller:               TestMarshaller,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -989,14 +1016,27 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap, getDefaultVMConfig())
+	var apiBlockchain data.ChainHandler
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+	} else {
+		apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+	}
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,
 		EconomicsFee:             tpn.EconomicsData,
 		BlockChainHook:           tpn.BlockchainHook,
-		BlockChain:               tpn.BlockChain,
+		MainBlockChain:           tpn.BlockChain,
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        tpn.HistoryRepository,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		StorageService:           tpn.Storage,
+		Marshaller:               TestMarshaller,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
