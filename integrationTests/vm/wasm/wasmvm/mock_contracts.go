@@ -129,7 +129,7 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountWithVM(t, net, node, net.DefaultVM)
 }
 
-// GetAddressForNewAccountWithVM
+// GetAddressForNewAccountWithVM -
 func GetAddressForNewAccountWithVM(
 	t *testing.T,
 	net *integrationTests.TestNetwork,

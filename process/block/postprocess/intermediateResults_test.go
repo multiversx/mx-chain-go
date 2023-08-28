@@ -2,11 +2,12 @@ package postprocess
 
 import (
 	"bytes"
-	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"math/big"
 	"sort"
 	"strconv"
 	"testing"
+
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -134,6 +135,17 @@ func TestNewIntermediateResultsProcessor_NilEpochHandler(t *testing.T) {
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewIntermediateResultsProcessor_NilTxExecutionOrderHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.TxExecutionOrderHandler = nil
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 }
 
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
