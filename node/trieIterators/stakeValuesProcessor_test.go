@@ -332,32 +332,32 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		},
 	}
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch string(query.Arguments[0]) {
 			case leafKey3:
 				return &vmcommon.VMOutput{
 					ReturnCode: vmcommon.UserError,
-				}, nil
+				}, nil, nil
 
 			case leafKey4:
-				return &vmcommon.VMOutput{}, nil
+				return &vmcommon.VMOutput{}, nil, nil
 
 			case leafKey5:
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{
 						big.NewInt(50).Bytes(), big.NewInt(100).Bytes(), big.NewInt(0).Bytes(),
 					},
-				}, nil
+				}, nil, nil
 
 			case leafKey6:
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{
 						big.NewInt(60).Bytes(), big.NewInt(500).Bytes(), big.NewInt(0).Bytes(),
 					},
-				}, nil
+				}, nil, nil
 
 			default:
-				return nil, expectedErr
+				return nil, nil, expectedErr
 			}
 		},
 	}
