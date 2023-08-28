@@ -8,17 +8,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDisabledGenesisMetaBlockChecker(t *testing.T) {
+func TestNewSovereignGenesisMetaBlockChecker(t *testing.T) {
 	t.Parallel()
 
-	checker := NewDisabledGenesisMetaBlockChecker()
+	checker := NewSovereignGenesisMetaBlockChecker()
 	require.False(t, checker.IsInterfaceNil())
 }
 
-func TestDisabledGenesisMetaBlockChecker_CheckGenesisMetaBlock(t *testing.T) {
+func TestSovereignGenesisMetaBlockChecker_CheckGenesisMetaBlock(t *testing.T) {
 	t.Parallel()
 
-	checker := NewDisabledGenesisMetaBlockChecker()
+	checker := NewSovereignGenesisMetaBlockChecker()
 	err := checker.SetValidatorRootHashOnGenesisMetaBlock(nil, nil)
 	require.Nil(t, err)
 

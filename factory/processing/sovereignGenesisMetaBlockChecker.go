@@ -6,16 +6,16 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
-type disabledGenesisMetaBlockChecker struct {
+type sovereignGenesisMetaBlockChecker struct {
 }
 
-// NewDisabledGenesisMetaBlockChecker creates a disabled meta block genesis checker
-func NewDisabledGenesisMetaBlockChecker() *disabledGenesisMetaBlockChecker {
-	return &disabledGenesisMetaBlockChecker{}
+// NewSovereignGenesisMetaBlockChecker creates a sovereign meta block genesis checker
+func NewSovereignGenesisMetaBlockChecker() *sovereignGenesisMetaBlockChecker {
+	return &sovereignGenesisMetaBlockChecker{}
 }
 
 // SetValidatorRootHashOnGenesisMetaBlock checks that the genesis meta block does not exist
-func (gmbc *disabledGenesisMetaBlockChecker) SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, _ []byte) error {
+func (gmbc *sovereignGenesisMetaBlockChecker) SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, _ []byte) error {
 	if !check.IfNil(genesisMetaBlock) {
 		return errors.ErrGenesisMetaBlockOnSovereign
 	}
@@ -24,6 +24,6 @@ func (gmbc *disabledGenesisMetaBlockChecker) SetValidatorRootHashOnGenesisMetaBl
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (gmbc *disabledGenesisMetaBlockChecker) IsInterfaceNil() bool {
+func (gmbc *sovereignGenesisMetaBlockChecker) IsInterfaceNil() bool {
 	return gmbc == nil
 }
