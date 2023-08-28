@@ -3,9 +3,8 @@ package processing
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,22 +19,16 @@ func TestGenesisMetaBlockChecker_CheckGenesisMetaBlock(t *testing.T) {
 	t.Parallel()
 
 	checker := NewGenesisMetaBlockChecker()
+	hash := []byte("hash")
 
-	genesisBlocks := map[uint32]data.HeaderHandler{
-		0: &block.HeaderV2{},
-	}
-	err := checker.CheckGenesisMetaBlock(genesisBlocks, []byte("hash"))
-	require.Equal(t, errGenesisMetaBlockDoesNotExist, err)
+	err := checker.SetValidatorRootHashOnGenesisMetaBlock(nil, hash)
+	require.Equal(t, errors.ErrGenesisMetaBlockDoesNotExist, err)
 
-	genesisBlocks = map[uint32]data.HeaderHandler{
-		core.MetachainShardId: &block.HeaderV2{},
-	}
-	err = checker.CheckGenesisMetaBlock(genesisBlocks, []byte("hash"))
-	require.Equal(t, errInvalidGenesisMetaBlock, err)
+	err = checker.SetValidatorRootHashOnGenesisMetaBlock(&block.HeaderV2{}, hash)
+	require.Equal(t, errors.ErrInvalidGenesisMetaBlock, err)
 
-	genesisBlocks = map[uint32]data.HeaderHandler{
-		core.MetachainShardId: &block.MetaBlock{},
-	}
-	err = checker.CheckGenesisMetaBlock(genesisBlocks, []byte("hash"))
+	metaBlock := &block.MetaBlock{}
+	err = checker.SetValidatorRootHashOnGenesisMetaBlock(metaBlock, hash)
 	require.Nil(t, err)
+	require.Equal(t, &block.MetaBlock{ValidatorStatsRootHash: hash}, metaBlock)
 }

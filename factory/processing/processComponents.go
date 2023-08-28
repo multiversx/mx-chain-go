@@ -374,7 +374,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = pcf.genesisMetaBlockChecker.CheckGenesisMetaBlock(genesisBlocks, validatorStatsRootHash)
+	err = pcf.genesisMetaBlockChecker.SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,9 @@
 package processing
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type disabledGenesisMetaBlockChecker struct {
@@ -12,8 +14,12 @@ func NewDisabledGenesisMetaBlockChecker() *disabledGenesisMetaBlockChecker {
 	return &disabledGenesisMetaBlockChecker{}
 }
 
-// CheckGenesisMetaBlock does nothing
-func (gmbc *disabledGenesisMetaBlockChecker) CheckGenesisMetaBlock(_ map[uint32]data.HeaderHandler, _ []byte) error {
+// SetValidatorRootHashOnGenesisMetaBlock checks that the genesis meta block does not exist
+func (gmbc *disabledGenesisMetaBlockChecker) SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, _ []byte) error {
+	if !check.IfNil(genesisMetaBlock) {
+		return errors.ErrGenesisMetaBlockOnSovereign
+	}
+
 	return nil
 }
 

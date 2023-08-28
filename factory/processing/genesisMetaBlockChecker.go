@@ -1,8 +1,9 @@
 package processing
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type genesisMetaBlockChecker struct {
@@ -13,22 +14,18 @@ func NewGenesisMetaBlockChecker() *genesisMetaBlockChecker {
 	return &genesisMetaBlockChecker{}
 }
 
-// CheckGenesisMetaBlock checks if the genesis blocks contain the meta block and sets the corresponding validator root hash
-func (gmbc *genesisMetaBlockChecker) CheckGenesisMetaBlock(
-	genesisBlocks map[uint32]data.HeaderHandler,
-	validatorStatsRootHash []byte,
-) error {
-	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
-	if !ok {
-		return errGenesisMetaBlockDoesNotExist
+// SetValidatorRootHashOnGenesisMetaBlock checks if the genesis meta block exists and sets the corresponding validator root hash
+func (gmbc *genesisMetaBlockChecker) SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, validatorStatsRootHash []byte) error {
+	if check.IfNil(genesisMetaBlock) {
+		return errors.ErrGenesisMetaBlockDoesNotExist
 	}
 
-	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
+	genesisMetaBlockHeader, ok := genesisMetaBlock.(data.MetaHeaderHandler)
 	if !ok {
-		return errInvalidGenesisMetaBlock
+		return errors.ErrInvalidGenesisMetaBlock
 	}
 
-	return genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	return genesisMetaBlockHeader.SetValidatorStatsRootHash(validatorStatsRootHash)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
