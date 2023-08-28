@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -37,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -792,6 +794,39 @@ func GetProcessComponents(
 		return nil
 	}
 	return managedProcessComponents
+}
+
+func GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	runTypeFactoryArgs := GetRunTypeFactoryArgs()
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(runTypeFactoryArgs)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
+// GetRunTypeFactoryArgs -
+func GetRunTypeFactoryArgs() runType.RunTypeComponentsFactoryArgs {
+	return runType.RunTypeComponentsFactoryArgs{
+		BlockChainHookHandlerCreator:        factory2.NewBlockChainHookHandlerFactoryStub(),
+		EpochStartBootstrapperCreator:       factory2.NewEpochStartBootstrapperFactoryStub(),
+		BootstrapperFromStorageCreator:      factory2.NewBootstrapperFromStorageFactoryStub(),
+		BlockProcessorCreator:               factory2.NewBlockProcessorFactoryStub(),
+		ForkDetectorCreator:                 factory2.NewForkDetectorFactoryStub(),
+		BlockTrackerCreator:                 factory2.NewBlockTrackerFactoryStub(),
+		RequestHandlerCreator:               factory2.NewRequestHandlerFactoryStub(),
+		HeaderValidatorCreator:              factory2.NewHeaderValidatorFactoryStub(),
+		ScheduledTxsExecutionCreator:        factory2.NewScheduledTxsExecutionFactoryStub(),
+		TransactionCoordinatorCreator:       factory2.NewTransactionCoordinatorFactoryStub(),
+		ValidatorStatisticsProcessorCreator: factory2.NewValidatorStatisticsProcessorFactoryStub(),
+	}
 }
 
 // DummyLoadSkPkFromPemFile -

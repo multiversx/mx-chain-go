@@ -570,65 +570,17 @@ type RunTypeComponentsHandler interface {
 // RunTypeComponentsHolder holds the run type components
 type RunTypeComponentsHolder interface {
 	BlockChainHookHandlerCreator() BlockChainHookHandlerCreator
-	EpochStartBootstrapperCreator() EpochStartBootstrapperCreator
-	BootstrapperFromStorageCreator() BootstrapperFromStorageCreator
 	BlockProcessorCreator() BlockProcessorCreator
-	ForkDetectorCreator() ForkDetectorCreator
 	BlockTrackerCreator() BlockTrackerCreator
-	RequestHandlerCreator() RequestHandlerCreator
+	BootstrapperFromStorageCreator() BootstrapperFromStorageCreator
+	EpochStartBootstrapperCreator() EpochStartBootstrapperCreator
+	ForkDetectorCreator() ForkDetectorCreator
 	HeaderValidatorCreator() HeaderValidatorCreator
+	RequestHandlerCreator() RequestHandlerCreator
 	ScheduledTxsExecutionCreator() ScheduledTxsExecutionCreator
 	TransactionCoordinatorCreator() TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorCreator() ValidatorStatisticsProcessorCreator
 	Close() error
-	IsInterfaceNil() bool
-}
-
-// TransactionCoordinatorCreator defines the transaction coordinator factory creator
-type TransactionCoordinatorCreator interface {
-	CreateTransactionCoordinator(argsTransactionCoordinator coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
-	IsInterfaceNil() bool
-}
-
-// BlockProcessorCreator defines the block processor factory handler
-type BlockProcessorCreator interface {
-	CreateBlockProcessor(argumentsBaseProcessor processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
-	IsInterfaceNil() bool
-}
-
-// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
-type ScheduledTxsExecutionCreator interface {
-	CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
-	IsInterfaceNil() bool
-}
-
-// ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
-type ValidatorStatisticsProcessorCreator interface {
-	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
-	IsInterfaceNil() bool
-}
-
-// HeaderValidatorCreator is an interface for creating header validators
-type HeaderValidatorCreator interface {
-	CreateHeaderValidator(args processBlock.ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
-	IsInterfaceNil() bool
-}
-
-// BlockTrackerCreator is an interface for creating block trackers
-type BlockTrackerCreator interface {
-	CreateBlockTracker(argBaseTracker track.ArgShardTracker) (process.BlockTracker, error)
-	IsInterfaceNil() bool
-}
-
-// ForkDetectorCreator is the interface needed by base fork detector to create fork detector
-type ForkDetectorCreator interface {
-	CreateForkDetector(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error)
-	IsInterfaceNil() bool
-}
-
-// RequestHandlerCreator defines the resolver requester factory handler
-type RequestHandlerCreator interface {
-	CreateRequestHandler(resolverRequestArgs requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -638,14 +590,62 @@ type BlockChainHookHandlerCreator interface {
 	IsInterfaceNil() bool
 }
 
-// EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
-type EpochStartBootstrapperCreator interface {
-	CreateEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
+// BlockProcessorCreator defines the block processor factory handler
+type BlockProcessorCreator interface {
+	CreateBlockProcessor(args processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// BlockTrackerCreator is an interface for creating block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker(args track.ArgShardTracker) (process.BlockTracker, error)
 	IsInterfaceNil() bool
 }
 
 // BootstrapperFromStorageCreator defines the operations supported by a shard storage bootstrapper factory
 type BootstrapperFromStorageCreator interface {
 	CreateBootstrapperFromStorage(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
+	IsInterfaceNil() bool
+}
+
+// EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
+type EpochStartBootstrapperCreator interface {
+	CreateEpochStartBootstrapper(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error)
+	IsInterfaceNil() bool
+}
+
+// ForkDetectorCreator is the interface needed by base fork detector to create fork detector
+type ForkDetectorCreator interface {
+	CreateForkDetector(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error)
+	IsInterfaceNil() bool
+}
+
+// HeaderValidatorCreator is an interface for creating header validators
+type HeaderValidatorCreator interface {
+	CreateHeaderValidator(args processBlock.ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
+	IsInterfaceNil() bool
+}
+
+// RequestHandlerCreator defines the resolver requester factory handler
+type RequestHandlerCreator interface {
+	CreateRequestHandler(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
+type ScheduledTxsExecutionCreator interface {
+	CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
+	IsInterfaceNil() bool
+}
+
+// TransactionCoordinatorCreator defines the transaction coordinator factory creator
+type TransactionCoordinatorCreator interface {
+	CreateTransactionCoordinator(args coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
+	IsInterfaceNil() bool
+}
+
+// ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
+type ValidatorStatisticsProcessorCreator interface {
+	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
 	IsInterfaceNil() bool
 }
