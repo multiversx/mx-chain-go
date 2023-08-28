@@ -105,6 +105,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 		SCProcessorV2EnableEpoch:                          88,
 		DeterministicSortOnValidatorsInfoEnableEpoch:      89,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch:   90,
 	}
 }
 
@@ -640,6 +641,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixOOGReturnCodeFlag))
 	require.True(t, handler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicGasCostForDataTrieStorageLoadFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

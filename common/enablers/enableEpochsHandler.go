@@ -343,6 +343,9 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 		common.DeterministicSortOnValidatorsInfoFixFlag: func(epoch uint32) bool {
 			return epoch >= handler.enableEpochsConfig.DeterministicSortOnValidatorsInfoEnableEpoch
 		},
+		common.DynamicGasCostForDataTrieStorageLoadFlag: func(epoch uint32) bool {
+			return epoch >= handler.enableEpochsConfig.DynamicGasCostForDataTrieStorageLoadEnableEpoch
+		},
 	}
 }
 

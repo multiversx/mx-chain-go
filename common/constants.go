@@ -982,6 +982,6 @@ const (
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"
-	// TODO[Sorin]: add new flag + check for DynamicGasCostForDataTrieStorageLoadEnableEpoch after merge from rc/v1.6.0
+	DynamicGasCostForDataTrieStorageLoadFlag           core.EnableEpochFlag = "DynamicGasCostForDataTrieStorageLoadFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
