@@ -69,7 +69,7 @@ func (dlp *delegatedListProcessor) getAllDelegationContractAddresses() ([][]byte
 		Arguments:  make([][]byte, 0),
 	}
 
-	vmOutput, err := dlp.queryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := dlp.queryService.ExecuteQuery(scQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (dlp *delegatedListProcessor) getActiveFund(delegationSC []byte, delegator 
 		Arguments:  [][]byte{delegator},
 	}
 
-	vmOutput, err := dlp.queryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := dlp.queryService.ExecuteQuery(scQuery)
 	if err != nil {
 		return nil, err
 	}

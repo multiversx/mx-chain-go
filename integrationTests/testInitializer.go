@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -718,7 +719,8 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig: &roundsConfig,
+		RoundConfig:             &roundsConfig,
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
@@ -823,6 +825,7 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
@@ -2696,4 +2699,40 @@ func PrepareRelayedTxDataV2(innerTx *transaction.Transaction) []byte {
 		Bytes(innerTx.Signature)
 
 	return txData.ToBytes()
+}
+
+var charsPool = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
+
+// GenerateTrieKeysForMaxLevel generates a list of keys that will fill a trie until the given level is reached
+func GenerateTrieKeysForMaxLevel(numTrieLevels int, numChildrenPerBranch int) [][]byte {
+	keys := make([][]byte, 0)
+
+	keyLength := 32
+	hexKeyLength := keyLength * 2
+	if numTrieLevels == 1 {
+		hexKey := generateRandHexString(hexKeyLength)
+		key, _ := hex.DecodeString(hexKey)
+		keys = append(keys, key)
+
+		return keys
+	}
+
+	for i := 0; i < numTrieLevels-1; i++ {
+		for j := 0; j < numChildrenPerBranch-1; j++ {
+			hexKey := generateRandHexString(hexKeyLength-numTrieLevels) + strings.Repeat(charsPool[j], numTrieLevels-i) + strings.Repeat("F", i)
+			key, _ := hex.DecodeString(hexKey)
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
+}
+
+func generateRandHexString(size int) string {
+	buff := make([]string, size)
+	for i := 0; i < size; i++ {
+		buff[i] = charsPool[mathRand.Intn(len(charsPool))]
+	}
+
+	return strings.Join(buff, "")
 }
