@@ -95,6 +95,7 @@ type EnableEpochs struct {
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	SetGuardianEnableEpoch                            uint32
+	ScToScLogEventEnableEpoch                         uint32
 	RelayedNonceFixEnableEpoch                        uint32
 	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
@@ -103,6 +104,7 @@ type EnableEpochs struct {
 	AutoBalanceDataTriesEnableEpoch                   uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
+	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

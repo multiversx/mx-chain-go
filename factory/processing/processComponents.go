@@ -343,6 +343,24 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
+		&disabled.TxProcessor{},
+		&disabled.TxCoordinator{},
+		scheduledSCRSStorer,
+		pcf.coreData.InternalMarshalizer(),
+		pcf.coreData.Hasher(),
+		pcf.bootstrapComponents.ShardCoordinator(),
+		pcf.txExecutionOrderHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	pcf.txLogsProcessor = txLogsProcessor
 	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
@@ -556,24 +574,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	forkDetector, err := pcf.newForkDetector(blackListHandler, blockTracker)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
-		&disabled.TxProcessor{},
-		&disabled.TxCoordinator{},
-		scheduledSCRSStorer,
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.txExecutionOrderHandler,
-	)
 	if err != nil {
 		return nil, err
 	}
@@ -854,28 +854,29 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
-		Core:                    pcf.coreData,
-		Data:                    pcf.data,
 		GenesisTime:             uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
 		StartEpochNum:           pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+		Data:                    pcf.data,
+		Core:                    pcf.coreData,
 		Accounts:                pcf.state.AccountsAdapter(),
+		ValidatorAccounts:       pcf.state.PeerAccounts(),
 		InitialNodesSetup:       pcf.coreData.GenesisNodesSetup(),
 		Economics:               pcf.coreData.EconomicsData(),
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 		AccountsParser:          pcf.accountsParser,
 		SmartContractParser:     pcf.smartContractParser,
-		ValidatorAccounts:       pcf.state.PeerAccounts(),
 		GasSchedule:             pcf.gasSchedule,
-		VirtualMachineConfig:    genesisVmConfig,
 		TxLogsProcessor:         pcf.txLogsProcessor,
+		VirtualMachineConfig:    genesisVmConfig,
 		HardForkConfig:          pcf.config.Hardfork,
 		TrieStorageManagers:     pcf.state.TrieStorageManagers(),
 		SystemSCConfig:          *pcf.systemSCConfig,
-		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
-		GenesisString:           pcf.config.GeneralSettings.GenesisString,
-		GenesisNodePrice:        genesisNodePrice,
 		RoundConfig:             &pcf.roundConfig,
 		EpochConfig:             &pcf.epochConfig,
+		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
+		HistoryRepository:       pcf.historyRepo,
+		GenesisNodePrice:        genesisNodePrice,
+		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 

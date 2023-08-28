@@ -273,7 +273,7 @@ func TestDelegationChangeConfig(t *testing.T) {
 		CallValue:  big.NewInt(0),
 		Arguments:  make([][]byte, 0),
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(scQuery)
 	require.Nil(t, err)
 	assert.Equal(t, newMinDelegationAmount.Bytes(), vmOutput.ReturnData[5])
 
@@ -1159,7 +1159,7 @@ func verifyUserUndelegatedList(
 		Arguments:  [][]byte{delegator},
 		CallValue:  big.NewInt(0),
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assert.Equal(t, len(values)*2, len(vmOutput.ReturnData))
@@ -1192,7 +1192,7 @@ func verifyValidatorSCStake(
 		CallValue:  big.NewInt(0),
 		Arguments:  [][]byte{delegationAddr},
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assert.Equal(t, string(vmOutput.ReturnData[0]), expectedRes.String())
@@ -1291,7 +1291,7 @@ func verifyDelegatorIsDeleted(
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{address},
 		}
-		vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+		vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 		assert.Nil(t, err)
 		assert.Equal(t, vmOutput.ReturnMessage, "view function works only for existing delegators")
 		assert.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
@@ -1375,7 +1375,7 @@ func getReturnDataFromQuery(
 		CallValue:  big.NewInt(0),
 		Arguments:  arguments,
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 

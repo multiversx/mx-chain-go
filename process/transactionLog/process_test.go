@@ -129,6 +129,8 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	buffExpected := []byte("marshaled log")
 	buffActual := []byte("currently wrong value")
+	expectedLogData := [][]byte{[]byte("data1"), []byte("data2")}
+
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
 			PutCalled: func(key, data []byte) error {
@@ -138,6 +140,9 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 		},
 		Marshalizer: &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
+				log, _ := obj.(*transaction.Log)
+				require.Equal(t, expectedLogData[0], log.Events[0].Data)
+				require.Equal(t, expectedLogData, log.Events[0].AdditionalData)
 				return buffExpected, nil
 			},
 		},
@@ -145,7 +150,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	})
 
 	logs := []*vmcommon.LogEntry{
-		{Address: []byte("first log")},
+		{Address: []byte("first log"), Data: expectedLogData},
 	}
 	_ = txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
 
