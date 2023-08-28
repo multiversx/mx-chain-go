@@ -21,6 +21,7 @@ import (
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -488,7 +489,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig: &roundConfig,
+			RoundConfig:       &roundConfig,
+			HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

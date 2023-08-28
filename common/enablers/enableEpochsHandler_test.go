@@ -105,6 +105,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 		SCProcessorV2EnableEpoch:                          88,
 		DeterministicSortOnValidatorsInfoEnableEpoch:      89,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch:   90,
+		ScToScLogEventEnableEpoch:                         91,
 	}
 }
 
@@ -392,6 +394,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag))
 	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.GetActivationEpoch(common.BalanceWaitingListsFlag))
 	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.GetActivationEpoch(common.WaitingListFixFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicGasCostForDataTrieStorageLoadFlag))
+	require.True(t, handler.IsFlagEnabled(common.ScToScLogEventFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

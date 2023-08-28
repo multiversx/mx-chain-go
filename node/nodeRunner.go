@@ -708,6 +708,7 @@ func (nr *nodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		StatusComponents:     currentNode.statusComponents,
+		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

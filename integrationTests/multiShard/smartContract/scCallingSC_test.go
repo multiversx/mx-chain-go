@@ -679,7 +679,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
@@ -770,7 +770,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "version",
 		Arguments: [][]byte{},
 	}
-	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
+	vmOutputVersion, _, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
 	assert.NotNil(t, vmOutputVersion)
 	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
@@ -818,7 +818,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getNumNodes",
 		Arguments: [][]byte{},
 	}
-	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
+	vmOutput1, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
 	require.NotNil(t, vmOutput1)
 	require.Equal(t, len(vmOutput1.ReturnData), 1)
 	require.True(t, bytes.Equal(vmOutput1.ReturnData[0], []byte{1}))
@@ -829,7 +829,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getNodeSignature",
 		Arguments: [][]byte{stakerBLSKey},
 	}
-	vmOutput2, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
+	vmOutput2, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
 	require.NotNil(t, vmOutput2)
 	require.Equal(t, len(vmOutput2.ReturnData), 1)
 	require.True(t, bytes.Equal(stakerBLSSignature, vmOutput2.ReturnData[0]))
@@ -840,7 +840,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
-	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
+	vmOutput3, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
 	require.NotNil(t, vmOutput3)
 	require.Equal(t, len(vmOutput3.ReturnData), 1)
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
@@ -851,7 +851,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserActiveStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
-	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
+	vmOutput4, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
 	require.NotNil(t, vmOutput4)
 	require.Equal(t, len(vmOutput4.ReturnData), 1)
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
@@ -866,7 +866,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
