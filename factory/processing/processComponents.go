@@ -1646,7 +1646,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
-			ChainRunType:                  pcf.chainRunType,
+			//ChainRunType:                  pcf.chainRunType,
 		},
 	)
 	if err != nil {

@@ -206,7 +206,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		//ChainRunType:         common.ChainRunTypeRegular,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)

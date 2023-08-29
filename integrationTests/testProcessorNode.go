@@ -529,7 +529,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
-		ChainRunType:             chainRunType,
+		ChainRunType:               chainRunType,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -3394,6 +3394,24 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 		VersionedHdrFactory:        versionedHeaderFactory,
 		HdrIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
 		GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
+	}
+}
+
+// GetDefaultRunTypeComponents -
+func GetDefaultRunTypeComponents() *mainFactoryMocks.RunTypeComponentsMock {
+	return &mainFactoryMocks.RunTypeComponentsMock{
+		BlockChainHookHandlerFactory:        testFactory.NewBlockChainHookHandlerFactoryStub(),
+		BlockProcessorFactory:               testFactory.NewBlockProcessorFactoryStub(),
+		BlockTrackerFactory:                 testFactory.NewBlockTrackerFactoryStub(),
+		BootstrapperFromStorageFactory:      testFactory.NewBootstrapperFromStorageFactoryStub(),
+		EpochStartBootstrapperFactory:       testFactory.NewEpochStartBootstrapperFactoryStub(),
+		ForkDetectorFactory:                 testFactory.NewForkDetectorFactoryStub(),
+		HeaderValidatorFactory:              testFactory.NewHeaderValidatorFactoryStub(),
+		RequestHandlerFactory:               testFactory.NewRequestHandlerFactoryStub(),
+		ScheduledTxsExecutionFactory:        testFactory.NewScheduledTxsExecutionFactoryStub(),
+		TransactionCoordinatorFactory:       testFactory.NewTransactionCoordinatorFactoryStub(),
+		ValidatorStatisticsProcessorFactory: testFactory.NewValidatorStatisticsProcessorFactoryStub(),
+		AdditionalStorageServiceFactory:     testFactory.NewAdditionalStorageServiceFactoryStub(),
 	}
 }
 

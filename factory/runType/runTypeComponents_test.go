@@ -122,6 +122,16 @@ func TestNewRunTypeComponentsFactory(t *testing.T) {
 		require.Nil(t, scf)
 		require.Equal(t, errors.ErrNilValidatorStatisticsProcessorCreator, err)
 	})
+	t.Run("nil AdditionalStorageServiceCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetRunTypeFactoryArgs()
+		args.AdditionalStorageServiceCreator = nil
+
+		scf, err := runType.NewRunTypeComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, errors.ErrNilAdditionalStorageServiceCreator, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

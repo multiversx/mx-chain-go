@@ -2,7 +2,6 @@ package api
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -17,6 +16,7 @@ type SCQueryElementArgs struct {
 	StateComponents       factory.StateComponentsHolder
 	DataComponents        factory.DataComponentsHolder
 	ProcessComponents     factory.ProcessComponentsHolder
+	RunTypeComponents     factory.RunTypeComponentsHolder
 	GasScheduleNotifier   core.GasScheduleNotifier
 	MessageSigVerifier    vm.MessageSignVerifier
 	SystemSCConfig        *config.SystemSmartContractsConfig
@@ -25,7 +25,6 @@ type SCQueryElementArgs struct {
 	WorkingDir            string
 	Index                 int
 	GuardedAccountHandler process.GuardedAccountHandler
-	ChainRunType          common.ChainRunType
 }
 
 // CreateScQueryElement -
@@ -37,6 +36,7 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 		stateComponents:       args.StateComponents,
 		dataComponents:        args.DataComponents,
 		processComponents:     args.ProcessComponents,
+		runTypeComponents:     args.RunTypeComponents,
 		gasScheduleNotifier:   args.GasScheduleNotifier,
 		messageSigVerifier:    args.MessageSigVerifier,
 		systemSCConfig:        args.SystemSCConfig,
@@ -45,6 +45,5 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 		workingDir:            args.WorkingDir,
 		index:                 args.Index,
 		guardedAccountHandler: args.GuardedAccountHandler,
-		chainRunType:          args.ChainRunType,
 	})
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -37,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -224,6 +226,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
 		FlagsConfigs:                  config.ContextFlagsConfig{},
+		RunType:                       GetRunTypeComponents(),
 	}
 }
 
@@ -398,7 +401,20 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		EpochStartBootstrapperFactory: &factory2.EpochStartBootstrapperFactoryStub{
+			CreateEpochStartBootstrapperCalled: func(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error) {
+				return &bootstrapMocks.EpochStartBootstrapperStub{
+					BootstrapCalled: func() (bootstrap.Parameters, error) {
+						return bootstrap.Parameters{
+							Epoch:       0,
+							SelfShardId: 0,
+							NumOfShards: 2,
+							NodesConfig: nil,
+						}, nil
+					},
+				}, nil
+			},
+		},
 	}
 }
 
@@ -826,6 +842,7 @@ func GetRunTypeFactoryArgs() runType.RunTypeComponentsFactoryArgs {
 		ScheduledTxsExecutionCreator:        factory2.NewScheduledTxsExecutionFactoryStub(),
 		TransactionCoordinatorCreator:       factory2.NewTransactionCoordinatorFactoryStub(),
 		ValidatorStatisticsProcessorCreator: factory2.NewValidatorStatisticsProcessorFactoryStub(),
+		AdditionalStorageServiceCreator:     factory2.NewAdditionalStorageServiceFactoryStub(),
 	}
 }
 

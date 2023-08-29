@@ -104,7 +104,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.validatorStatisticsProcessorCreator) {
 		return errors.ErrNilValidatorStatisticsProcessorCreator
 	}
-
+	if check.IfNil(mrc.additionalStorageServiceCreator) {
+		return errors.ErrNilAdditionalStorageServiceCreator
+	}
 	return nil
 }
 
@@ -238,6 +240,18 @@ func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() facto
 	}
 
 	return mrc.runTypeComponents.validatorStatisticsProcessorCreator
+}
+
+// AdditionalStorageServiceCreator returns the additional storage service creator
+func (mrc *managedRunTypeComponents) AdditionalStorageServiceCreator() factory.AdditionalStorageServiceCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if mrc.runTypeComponents == nil {
+		return nil
+	}
+
+	return mrc.runTypeComponents.additionalStorageServiceCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

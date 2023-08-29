@@ -730,7 +730,6 @@ func (nr *nodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		StatusComponents:     currentNode.statusComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1386,7 +1385,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		//ChainRunType:         common.ChainRunTypeRegular,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

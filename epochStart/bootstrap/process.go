@@ -93,6 +93,7 @@ type epochStartBootstrap struct {
 	destinationShardAsObserver uint32
 	coreComponentsHolder       process.CoreComponentsHolder
 	cryptoComponentsHolder     process.CryptoComponentsHolder
+	runTypeComponentsHolder    process.RunTypeComponentsHolder
 	mainMessenger              p2p.Messenger
 	fullArchiveMessenger       p2p.Messenger
 	generalConfig              config.Config
@@ -149,8 +150,6 @@ type epochStartBootstrap struct {
 	startEpoch          uint32
 	shuffledOut         bool
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
-
-	chainRunType common.ChainRunType
 }
 
 type baseDataInStorage struct {
@@ -166,6 +165,7 @@ type baseDataInStorage struct {
 type ArgsEpochStartBootstrap struct {
 	CoreComponentsHolder       process.CoreComponentsHolder
 	CryptoComponentsHolder     process.CryptoComponentsHolder
+	RunTypeComponentsHolder    process.RunTypeComponentsHolder
 	DestinationShardAsObserver uint32
 	MainMessenger              p2p.Messenger
 	FullArchiveMessenger       p2p.Messenger
@@ -187,7 +187,6 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	NodeProcessingMode         common.NodeProcessingMode
-	ChainRunType               common.ChainRunType
 }
 
 type dataToSync struct {
@@ -208,6 +207,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	epochStartProvider := &epochStartBootstrap{
 		coreComponentsHolder:       args.CoreComponentsHolder,
 		cryptoComponentsHolder:     args.CryptoComponentsHolder,
+		runTypeComponentsHolder:    args.RunTypeComponentsHolder,
 		mainMessenger:              args.MainMessenger,
 		fullArchiveMessenger:       args.FullArchiveMessenger,
 		generalConfig:              args.GeneralConfig,
@@ -236,7 +236,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:         args.NodeProcessingMode,
-		chainRunType:               args.ChainRunType,
 		nodeOperationMode:          common.NormalOperation,
 	}
 
@@ -966,7 +965,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
-		e.chainRunType,
+		e.runTypeComponentsHolder.AdditionalStorageServiceCreator(),
 	)
 	if err != nil {
 		return err
@@ -1139,19 +1138,19 @@ func (e *epochStartBootstrap) createStorageService(
 ) (dataRetriever.StorageService, error) {
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        e.generalConfig,
-			PrefsConfig:                   e.prefsConfig,
-			ShardCoordinator:              shardCoordinator,
-			PathManager:                   pathManager,
-			EpochStartNotifier:            epochStartNotifier,
-			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
-			CurrentEpoch:                  startEpoch,
-			StorageType:                   storageFactory.BootstrapStorageService,
-			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
-			NodeProcessingMode:            e.nodeProcessingMode,
-			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
-			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
-			ChainRunType:                  e.chainRunType,
+			Config:                          e.generalConfig,
+			PrefsConfig:                     e.prefsConfig,
+			ShardCoordinator:                shardCoordinator,
+			PathManager:                     pathManager,
+			EpochStartNotifier:              epochStartNotifier,
+			NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+			CurrentEpoch:                    startEpoch,
+			StorageType:                     storageFactory.BootstrapStorageService,
+			CreateTrieEpochRootHashStorer:   createTrieEpochRootHashStorer,
+			NodeProcessingMode:              e.nodeProcessingMode,
+			RepopulateTokensSupplies:        e.flagsConfig.RepopulateTokensSupplies,
+			ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
+			AdditionalStorageServiceCreator: e.runTypeComponentsHolder.AdditionalStorageServiceCreator(),
 		})
 	if err != nil {
 		return nil, err

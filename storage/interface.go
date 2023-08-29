@@ -207,3 +207,39 @@ type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
 }
+
+// UnitType is the type for Storage unit identifiers
+type UnitType uint8
+
+// StorageService is the interface for data storage unit provided services
+type StorageService interface {
+	// GetStorer returns the storer from the chain map
+	// If the unit is missing, it returns an error
+	GetStorer(unitType UnitType) (Storer, error)
+	// AddStorer will add a new storer to the chain map
+	AddStorer(key UnitType, s Storer)
+	// Has returns true if the key is found in the selected Unit or false otherwise
+	Has(unitType UnitType, key []byte) error
+	// Get returns the value for the given key if found in the selected storage unit, nil otherwise
+	Get(unitType UnitType, key []byte) ([]byte, error)
+	// Put stores the key, value pair in the selected storage unit
+	Put(unitType UnitType, key []byte, value []byte) error
+	// SetEpochForPutOperation will set the epoch which will be used for the put operation
+	SetEpochForPutOperation(epoch uint32)
+	// GetAll gets all the elements with keys in the keys array, from the selected storage unit
+	// If there is a missing key in the unit, it returns an error
+	GetAll(unitType UnitType, keys [][]byte) (map[string][]byte, error)
+	// GetAllStorers returns all the storers
+	GetAllStorers() map[UnitType]Storer
+	// Destroy removes the underlying files/resources used by the storage service
+	Destroy() error
+	// CloseAll will close all the units
+	CloseAll() error
+	// IsInterfaceNil returns true if there is no value under the interface
+	IsInterfaceNil() bool
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageService(func(store StorageService, shardID string) error, StorageService, string) error
+}

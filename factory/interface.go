@@ -580,6 +580,7 @@ type RunTypeComponentsHolder interface {
 	ScheduledTxsExecutionCreator() ScheduledTxsExecutionCreator
 	TransactionCoordinatorCreator() TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorCreator() ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceCreator() AdditionalStorageServiceCreator
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -647,5 +648,11 @@ type TransactionCoordinatorCreator interface {
 // ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
 type ValidatorStatisticsProcessorCreator interface {
 	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageService(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
 	IsInterfaceNil() bool
 }

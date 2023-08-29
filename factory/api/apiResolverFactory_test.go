@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -65,6 +67,7 @@ func (fs *failingSteps) reset() {
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	runTypeComponents := componentsMock.GetRunTypeComponents()
 	coreComponents := componentsMock.GetCoreComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
@@ -107,7 +110,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType:       common.ChainRunTypeRegular,
+		RunTypeComponents: runTypeComponents,
 	}
 }
 
@@ -342,7 +345,20 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents: &mock.RunTypeComponentsMock{
+			BlockChainHookHandlerFactory:        &factory.BlockChainHookHandlerFactoryStub{},
+			BlockProcessorFactory:               &factory.BlockProcessorFactoryStub{},
+			BlockTrackerFactory:                 &factory.BlockTrackerFactoryStub{},
+			BootstrapperFromStorageFactory:      &factory.BootstrapperFromStorageFactoryStub{},
+			EpochStartBootstrapperFactory:       &factory.EpochStartBootstrapperFactoryStub{},
+			ForkDetectorFactory:                 &factory.ForkDetectorFactoryStub{},
+			HeaderValidatorFactory:              &factory.HeaderValidatorFactoryStub{},
+			RequestHandlerFactory:               &factory.RequestHandlerFactoryStub{},
+			ScheduledTxsExecutionFactory:        &factory.ScheduledTxsExecutionFactoryStub{},
+			TransactionCoordinatorFactory:       &factory.TransactionCoordinatorFactoryStub{},
+			ValidatorStatisticsProcessorFactory: &factory.ValidatorStatisticsProcessorFactoryStub{},
+			AdditionalStorageServiceFactory:     &factory.AdditionalStorageServiceFactoryStub{},
+		},
 	}
 }
 
@@ -397,19 +413,16 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("metachain - NewBlockChainHookImpl fails", func(t *testing.T) {
 		t.Parallel()
 
+		expectedError := errors.New("metachain - NewBlockChainHookImpl fails")
 		args := createMockSCQueryElementArgs()
-		args.ProcessComponents = &mock.ProcessComponentsMock{
-			ShardCoord: &testscommon.ShardsCoordinatorMock{
-				SelfIDCalled: func() uint32 {
-					return common.MetachainShardId
-				},
-			},
-		}
-		dataCompMock := args.DataComponents.(*mock.DataComponentsMock)
-		dataCompMock.Storage = nil
+		rtCompMock := args.RunTypeComponents.(*mock.RunTypeComponentsMock)
+		rtCompMock.BlockChainHookHandlerFactory = &factory.BlockChainHookHandlerFactoryStub{
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+				return nil, expectedError
+			}}
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "storage"))
+		require.ErrorIs(t, expectedError, err)
 		require.Nil(t, scQueryService)
 	})
 	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
@@ -453,12 +466,16 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("shard - NewBlockChainHookImpl fails", func(t *testing.T) {
 		t.Parallel()
 
+		expectedError := errors.New("shard - NewBlockChainHookImpl fails")
 		args := createMockSCQueryElementArgs()
-		dataCompMock := args.DataComponents.(*mock.DataComponentsMock)
-		dataCompMock.Storage = nil
+		rtCompMock := args.RunTypeComponents.(*mock.RunTypeComponentsMock)
+		rtCompMock.BlockChainHookHandlerFactory = &factory.BlockChainHookHandlerFactoryStub{
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+				return nil, expectedError
+			}}
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "storage"))
+		require.ErrorIs(t, expectedError, err)
 		require.Nil(t, scQueryService)
 	})
 	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {

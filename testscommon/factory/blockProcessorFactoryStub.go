@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // BlockProcessorFactoryStub -
@@ -20,7 +21,7 @@ func (b *BlockProcessorFactoryStub) CreateBlockProcessor(args processBlock.ArgBa
 	if b.CreateBlockProcessorCalled != nil {
 		return b.CreateBlockProcessorCalled(args)
 	}
-	return nil, nil
+	return &testscommon.BlockProcessorStub{}, nil
 }
 
 // IsInterfaceNil -

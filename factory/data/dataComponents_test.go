@@ -64,6 +64,18 @@ func TestNewDataComponentsFactory(t *testing.T) {
 		require.Nil(t, dcf)
 		require.Equal(t, errorsMx.ErrNilCryptoComponents, err)
 	})
+	t.Run("nil runTypeComponents components should error", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		coreComponents := componentsMock.GetCoreComponents()
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+		args.RunType = nil
+
+		dcf, err := dataComp.NewDataComponentsFactory(args)
+		require.Nil(t, dcf)
+		require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
@@ -466,7 +465,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		//args.ChainRunType = common.ChainRunTypeSovereign
 		args.Config.SovereignConfig.ExtendedShardHeaderStorage.Cache.Type = ""
 
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
@@ -479,7 +478,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		//args.ChainRunType = common.ChainRunTypeSovereign
 		args.Config.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache.Type = ""
 
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
@@ -492,7 +491,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		//args.ChainRunType = common.ChainRunTypeSovereign
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 
 		storageService, err := storageServiceFactory.CreateForShard()

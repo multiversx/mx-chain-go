@@ -664,3 +664,6 @@ var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinato
 
 // ErrNilValidatorStatisticsProcessorCreator signals that a nil validator statistics processor creator has been provided
 var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statistics processor creator")
+
+// ErrNilAdditionalStorageServiceCreator signals that a nil additional storage service creator has been provided
+var ErrNilAdditionalStorageServiceCreator = errors.New("nil additional storage service creator")

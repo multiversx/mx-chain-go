@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -42,24 +43,24 @@ func NewShardStorageHandler(
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	nodeProcessingMode common.NodeProcessingMode,
 	managedPeersHolder common.ManagedPeersHolder,
-	chainRunType common.ChainRunType,
+	creator process.AdditionalStorageServiceCreator,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        generalConfig,
-			PrefsConfig:                   prefsConfig,
-			ShardCoordinator:              shardCoordinator,
-			PathManager:                   pathManagerHandler,
-			EpochStartNotifier:            epochStartNotifier,
-			NodeTypeProvider:              nodeTypeProvider,
-			CurrentEpoch:                  currentEpoch,
-			StorageType:                   factory.BootstrapStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            nodeProcessingMode,
-			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
-			ManagedPeersHolder:            managedPeersHolder,
-			ChainRunType:                  chainRunType,
+			Config:                          generalConfig,
+			PrefsConfig:                     prefsConfig,
+			ShardCoordinator:                shardCoordinator,
+			PathManager:                     pathManagerHandler,
+			EpochStartNotifier:              epochStartNotifier,
+			NodeTypeProvider:                nodeTypeProvider,
+			CurrentEpoch:                    currentEpoch,
+			StorageType:                     factory.BootstrapStorageService,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              nodeProcessingMode,
+			RepopulateTokensSupplies:        false, // tokens supplies cannot be repopulated at this time
+			ManagedPeersHolder:              managedPeersHolder,
+			AdditionalStorageServiceCreator: creator,
 		},
 	)
 	if err != nil {

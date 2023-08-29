@@ -21,6 +21,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -1189,6 +1190,18 @@ type CryptoComponentsHolder interface {
 	PrivateKey() crypto.PrivateKey
 	Clone() interface{}
 	ManagedPeersHolder() common.ManagedPeersHolder
+	IsInterfaceNil() bool
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageService(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	IsInterfaceNil() bool
+}
+
+// RunTypeComponentsHolder holds the runType components needed by the interceptors
+type RunTypeComponentsHolder interface {
+	AdditionalStorageServiceCreator() AdditionalStorageServiceCreator
 	IsInterfaceNil() bool
 }
 

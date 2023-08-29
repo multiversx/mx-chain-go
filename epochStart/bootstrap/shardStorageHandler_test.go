@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -53,7 +54,7 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 
 	assert.False(t, check.IfNil(shardStorage))
 	assert.Nil(t, err)
@@ -77,7 +78,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Epoch: 1},
@@ -107,7 +108,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{
@@ -160,7 +161,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 			args.nodeTypeProvider,
 			args.nodeProcessingMode,
 			args.managedPeersHolder,
-			common.ChainRunTypeRegular)
+			args.additionalStorageServiceCreator)
 		shardStorage.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				counter++
@@ -214,7 +215,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 
 	hash1 := []byte("hash1")
 	hdr1 := block.MetaBlock{
@@ -325,7 +326,7 @@ func TestShardStorageHandler_getCrossProcessedMiniBlockHeadersDestMe(t *testing.
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shardHeader := &block.Header{
 		Nonce:            100,
 		MiniBlockHeaders: mbs,
@@ -357,7 +358,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledErrorG
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	meta := &block.MetaBlock{
 		Nonce:      100,
 		EpochStart: block.EpochStart{},
@@ -387,7 +388,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledNoSche
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 
 	processedMiniBlocks, pendingMiniBlocks, err := shardStorage.getProcessedAndPendingMiniBlocksWithScheduled(scenario.metaBlock, scenario.headers, scenario.shardHeader, false)
@@ -414,7 +415,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledWrongH
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 
 	wrongShardHeader := &block.MetaBlock{}
@@ -448,7 +449,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduled(t *te
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 	processedMiniBlocks, pendingMiniBlocks, err := shardStorage.getProcessedAndPendingMiniBlocksWithScheduled(scenario.metaBlock, scenario.headers, scenario.shardHeader, true)
 
@@ -628,7 +629,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksErrorGettingEpochSt
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	meta := &block.MetaBlock{
 		Nonce:      100,
 		EpochStart: block.EpochStart{},
@@ -663,7 +664,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksMissingHeader(t *te
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	meta := &block.MetaBlock{
 		Nonce: 100,
 		EpochStart: block.EpochStart{
@@ -701,7 +702,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWrongHeader(t *test
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
 	meta := &block.MetaBlock{
@@ -744,7 +745,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNilMetaBlock(t *tes
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
 	meta := &block.MetaBlock{
@@ -789,7 +790,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNoProcessedNoPendin
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
 	lastFinishedHeaders[0].PendingMiniBlockHeaders = nil
@@ -830,7 +831,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithProcessedAndPen
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 	processedMiniBlocks, pendingMiniBlocks, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(scenario.metaBlock, scenario.headers)
 
@@ -860,7 +861,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledGetSha
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 
 	headers := map[string]data.HeaderHandler{}
 	meta := &block.MetaBlock{
@@ -893,7 +894,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledMissin
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
 
@@ -934,7 +935,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongT
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
 
@@ -982,7 +983,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
 
@@ -1025,7 +1026,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduled(t *te
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
 
@@ -1073,7 +1074,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduledErrorUpda
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
 
@@ -1115,7 +1116,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduled(t *testi
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
-		common.ChainRunTypeRegular)
+		args.additionalStorageServiceCreator)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
 	prevMetaHash := "prev metaHlock hash"
@@ -1328,32 +1329,34 @@ func Test_getShardHeaderAndMetaHashes(t *testing.T) {
 }
 
 type shardStorageArgs struct {
-	generalConfig      config.Config
-	prefsConfig        config.PreferencesConfig
-	shardCoordinator   sharding.Coordinator
-	pathManagerHandler storage.PathManagerHandler
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	currentEpoch       uint32
-	uint64Converter    typeConverters.Uint64ByteSliceConverter
-	nodeTypeProvider   core.NodeTypeProviderHandler
-	nodeProcessingMode common.NodeProcessingMode
-	managedPeersHolder common.ManagedPeersHolder
+	generalConfig                   config.Config
+	prefsConfig                     config.PreferencesConfig
+	shardCoordinator                sharding.Coordinator
+	pathManagerHandler              storage.PathManagerHandler
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	currentEpoch                    uint32
+	uint64Converter                 typeConverters.Uint64ByteSliceConverter
+	nodeTypeProvider                core.NodeTypeProviderHandler
+	nodeProcessingMode              common.NodeProcessingMode
+	managedPeersHolder              common.ManagedPeersHolder
+	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 func createDefaultShardStorageArgs() shardStorageArgs {
 	return shardStorageArgs{
-		generalConfig:      testscommon.GetGeneralConfig(),
-		prefsConfig:        config.PreferencesConfig{},
-		shardCoordinator:   &mock.ShardCoordinatorStub{},
-		pathManagerHandler: &testscommon.PathManagerStub{},
-		marshalizer:        &mock.MarshalizerMock{},
-		hasher:             &hashingMocks.HasherMock{},
-		currentEpoch:       0,
-		uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		nodeTypeProvider:   &nodeTypeProviderMock.NodeTypeProviderStub{},
-		nodeProcessingMode: common.Normal,
-		managedPeersHolder: &testscommon.ManagedPeersHolderStub{},
+		generalConfig:                   testscommon.GetGeneralConfig(),
+		prefsConfig:                     config.PreferencesConfig{},
+		shardCoordinator:                &mock.ShardCoordinatorStub{},
+		pathManagerHandler:              &testscommon.PathManagerStub{},
+		marshalizer:                     &mock.MarshalizerMock{},
+		hasher:                          &hashingMocks.HasherMock{},
+		currentEpoch:                    0,
+		uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
+		nodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		nodeProcessingMode:              common.Normal,
+		managedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		additionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
 

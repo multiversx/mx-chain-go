@@ -19,6 +19,7 @@ type RunTypeComponentsFactoryArgs struct {
 	ScheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
 	TransactionCoordinatorCreator       factory.TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceCreator     factory.AdditionalStorageServiceCreator
 }
 
 type runTypeComponentsFactory struct {
@@ -33,6 +34,7 @@ type runTypeComponentsFactory struct {
 	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
 	transactionCoordinatorCreator       factory.TransactionCoordinatorCreator
 	validatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
+	additionalStorageServiceCreator     factory.AdditionalStorageServiceCreator
 }
 
 // runTypeComponents struct holds the components needed for a run type
@@ -48,6 +50,7 @@ type runTypeComponents struct {
 	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
 	transactionCoordinatorCreator       factory.TransactionCoordinatorCreator
 	validatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
+	additionalStorageServiceCreator     factory.AdditionalStorageServiceCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -85,7 +88,9 @@ func NewRunTypeComponentsFactory(args RunTypeComponentsFactoryArgs) (*runTypeCom
 	if check.IfNil(args.ValidatorStatisticsProcessorCreator) {
 		return nil, errors.ErrNilValidatorStatisticsProcessorCreator
 	}
-
+	if check.IfNil(args.AdditionalStorageServiceCreator) {
+		return nil, errors.ErrNilAdditionalStorageServiceCreator
+	}
 	return &runTypeComponentsFactory{
 		blockChainHookHandlerCreator:        args.BlockChainHookHandlerCreator,
 		epochStartBootstrapperCreator:       args.EpochStartBootstrapperCreator,
@@ -98,6 +103,7 @@ func NewRunTypeComponentsFactory(args RunTypeComponentsFactoryArgs) (*runTypeCom
 		scheduledTxsExecutionCreator:        args.ScheduledTxsExecutionCreator,
 		transactionCoordinatorCreator:       args.TransactionCoordinatorCreator,
 		validatorStatisticsProcessorCreator: args.ValidatorStatisticsProcessorCreator,
+		additionalStorageServiceCreator:     args.AdditionalStorageServiceCreator,
 	}, nil
 }
 
@@ -115,6 +121,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		scheduledTxsExecutionCreator:        rcf.scheduledTxsExecutionCreator,
 		transactionCoordinatorCreator:       rcf.transactionCoordinatorCreator,
 		validatorStatisticsProcessorCreator: rcf.validatorStatisticsProcessorCreator,
+		additionalStorageServiceCreator:     rcf.additionalStorageServiceCreator,
 	}, nil
 }
 
