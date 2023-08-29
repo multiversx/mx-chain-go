@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -72,6 +73,28 @@ func TestNewTxTypeHandler_NilArgParser(t *testing.T) {
 
 	assert.Nil(t, tth)
 	assert.Equal(t, process.ErrNilArgumentParser, err)
+}
+
+func TestNewTxTypeHandler_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.EnableEpochsHandler = nil
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewTxTypeHandler_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.Nil(t, tth)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewTxTypeHandler_NilBuiltInFuncs(t *testing.T) {

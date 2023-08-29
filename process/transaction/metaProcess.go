@@ -63,6 +63,14 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PenalizedTooMuchGasFlag,
+		common.BuiltInFunctionOnMetaFlag,
+		common.ESDTFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.TxVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}

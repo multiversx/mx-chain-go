@@ -219,6 +219,13 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(arguments.ValidatorInfoCacher) {
 		return ErrNilValidatorInfoCacher
 	}

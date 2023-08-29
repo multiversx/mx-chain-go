@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -172,6 +173,18 @@ func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
+}
+
+func TestBaseRewardsCreator_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestBaseRewardsCreator_clean(t *testing.T) {

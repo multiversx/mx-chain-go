@@ -117,6 +117,21 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.AddTokensToDelegationFlag,
+		common.DelegationSmartContractFlag,
+		common.ChangeDelegationOwnerFlag,
+		common.ReDelegateBelowMinCheckFlag,
+		common.ValidatorToDelegationFlag,
+		common.DeleteDelegatorAfterClaimRewardsFlag,
+		common.ComputeRewardCheckpointFlag,
+		common.StakingV2FlagAfterEpoch,
+		common.FixDelegationChangeOwnerOnAccountFlag,
+		common.MultiClaimOnDelegationFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	d := &delegation{
 		eei:                    args.Eei,

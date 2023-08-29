@@ -2,6 +2,7 @@ package transaction_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -116,6 +117,28 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewMetaTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNewMetaTxArgs()
+	args.EnableEpochsHandler = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewMetaTxProcessor_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNewMetaTxArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	txProc, err := txproc.NewMetaTxProcessor(args)
+
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	assert.Nil(t, txProc)
 }
 

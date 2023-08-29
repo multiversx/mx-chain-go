@@ -56,6 +56,12 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	bpp := &basePreProcess{
 		hasher:               hasher,

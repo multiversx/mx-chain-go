@@ -96,6 +96,14 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.OptimizeGasUsedInCrossMiniBlocksFlag,
+		common.ScheduledMiniBlocksFlag,
+		common.FrontRunningProtectionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,

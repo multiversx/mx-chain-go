@@ -122,6 +122,15 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StopDecreasingValidatorRatingWhenStuckFlag,
+		common.SwitchJailWaitingFlag,
+		common.StakingV2FlagAfterEpoch,
+		common.BelowSignedThresholdFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:                          arguments.PeerAdapter,
@@ -140,7 +149,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		enableEpochsHandler:                  arguments.EnableEpochsHandler,
 	}
 
-	err := vs.saveInitialState(arguments.NodesSetup)
+	err = vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
 		return nil, err
 	}

@@ -194,6 +194,12 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	metaHdrStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {

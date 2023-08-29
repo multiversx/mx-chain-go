@@ -403,6 +403,17 @@ func TestTxsPreprocessor_NewTransactionPreprocessorNilEnableEpochsHandler(t *tes
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestTxsPreprocessor_NewTransactionPreprocessorInvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	txs, err := NewTransactionPreprocessor(args)
+	assert.Nil(t, txs)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestTxsPreprocessor_NewTransactionPreprocessorNilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 

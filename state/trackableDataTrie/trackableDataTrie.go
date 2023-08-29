@@ -49,6 +49,12 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.AutoBalanceDataTriesFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &trackableDataTrie{
 		tr:                  nil,

@@ -86,6 +86,23 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ESDTMetadataContinuousCleanupFlag,
+		common.GlobalMintBurnFlag,
+		common.MultiClaimOnDelegationFlag,
+		common.MetaESDTSetFlag,
+		common.ESDTMetadataContinuousCleanupFlag,
+		common.ManagedCryptoAPIsFlag,
+		common.ESDTFlag,
+		common.ESDTTransferRoleFlag,
+		common.GlobalMintBurnFlag,
+		common.ESDTRegisterAndSetAllRolesFlag,
+		common.MetaESDTSetFlag,
+		common.ESDTNFTCreateOnMultiShardFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}

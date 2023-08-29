@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -428,6 +429,33 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEnableEpochsHandl
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorInvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	txs, err := NewSmartContractResultPreprocessor(
+		tdp.UnsignedTransactions(),
+		&storageStubs.ChainStorerStub{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.TxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		requestTransaction,
+		&mock.GasHandlerMock{},
+		feeHandlerMock(),
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+	)
+
+	assert.Nil(t, txs)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilProcessedMiniBlocksTracker(t *testing.T) {

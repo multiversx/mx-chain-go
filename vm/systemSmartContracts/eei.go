@@ -72,6 +72,13 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.MultiClaimOnDelegationFlag,
+		common.SetSenderInEeiOutputTransferFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	vmc := &vmContext{
 		blockChainHook:      args.BlockChainHook,

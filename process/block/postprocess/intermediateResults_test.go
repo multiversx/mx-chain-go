@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"sort"
 	"strconv"
@@ -137,6 +138,17 @@ func TestNewIntermediateResultsProcessor_NilEpochHandler(t *testing.T) {
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewIntermediateResultsProcessor_InvalidEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {

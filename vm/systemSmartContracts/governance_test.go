@@ -179,6 +179,17 @@ func TestNewGovernanceContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	require.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewGovernanceContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockGovernanceArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	gsc, err := NewGovernanceContract(args)
+	require.Nil(t, gsc)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewGovernanceContract_ZeroBaseProposerCostShouldErr(t *testing.T) {
 	t.Parallel()
 

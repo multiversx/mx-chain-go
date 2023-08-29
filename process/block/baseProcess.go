@@ -509,8 +509,16 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EpochNotifier()) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
+	enableEpochsHandler := arguments.CoreComponents.EnableEpochsHandler()
+	if check.IfNil(enableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.ScheduledMiniBlocksFlag,
+		common.StakingV2Flag,
+	})
+	if err != nil {
+		return err
 	}
 	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
 		return process.ErrNilRoundNotifier

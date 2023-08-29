@@ -61,8 +61,15 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.GasPriceModifierFlag,
+		common.PenalizedTooMuchGasFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	err := checkEconomicsConfig(args.Economics)
+	err = checkEconomicsConfig(args.Economics)
 	if err != nil {
 		return nil, err
 	}

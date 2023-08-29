@@ -273,6 +273,17 @@ func TestNewTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Nil(t, txProc)
 }
 
+func TestNewTxProcessor_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+	assert.Nil(t, txProc)
+}
+
 func TestNewTxProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 

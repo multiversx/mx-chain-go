@@ -435,6 +435,17 @@ func TestNewTransactionCoordinator_NilEnableEpochsHandler(t *testing.T) {
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewTransactionCoordinator_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+	assert.Nil(t, tc)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewTransactionCoordinator_NilScheduledTxsExecutionHandler(t *testing.T) {
 	t.Parallel()
 

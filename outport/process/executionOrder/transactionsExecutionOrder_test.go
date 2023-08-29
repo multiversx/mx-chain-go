@@ -2,6 +2,7 @@ package executionOrder
 
 import (
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -12,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	processOut "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -27,8 +29,8 @@ func newArgStorer() ArgSorter {
 		Marshaller: marshallerMock.MarshalizerMock{},
 		MbsStorer:  testscommon.CreateMemUnit(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFrontRunningProtectionFlagEnabledInEpochCalled: func(_ uint32) bool {
-				return true
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.FrontRunningProtectionFlag
 			},
 		},
 	}
@@ -59,6 +61,12 @@ func TestNewSorter(t *testing.T) {
 	arg.EnableEpochsHandler = nil
 	s, err = NewSorter(arg)
 	require.Equal(t, processOut.ErrNilEnableEpochsHandler, err)
+	require.Nil(t, s)
+
+	arg = newArgStorer()
+	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	s, err = NewSorter(arg)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	require.Nil(t, s)
 
 	arg = newArgStorer()

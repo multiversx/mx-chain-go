@@ -785,6 +785,12 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		err := blproc.CheckProcessorNilParameters(test.args())
 		require.Equal(t, test.expectedErr, err)
 	}
+
+	coreCompCopy := *coreComponents
+	coreCompCopy.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+	err := blproc.CheckProcessorNilParameters(args)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {

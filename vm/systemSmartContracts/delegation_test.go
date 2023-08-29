@@ -239,6 +239,17 @@ func TestNewDelegationSystemSC_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewDelegationSystemSC_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	d, err := NewDelegationSystemSC(args)
+	assert.Nil(t, d)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewDelegationSystemSC_NilSigVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 

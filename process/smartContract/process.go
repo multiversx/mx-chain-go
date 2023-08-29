@@ -163,6 +163,31 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StakingV2FlagAfterEpoch,
+		common.SenderInOutTransferFlag,
+		common.SCDeployFlag,
+		common.RepairCallbackFlag,
+		common.SCRSizeInvariantCheckFlag,
+		common.CleanUpInformativeSCRsFlag,
+		common.ESDTMetadataContinuousCleanupFlag,
+		common.ManagedCryptoAPIsFlag,
+		common.PenalizedTooMuchGasFlag,
+		common.MultiESDTTransferFixOnCallBackFlag,
+		common.BuiltInFunctionsFlag,
+		common.SCRSizeInvariantOnBuiltInResultFlag,
+		common.IncrementSCRNonceInMultiTransferFlag,
+		common.OptimizeGasUsedInCrossMiniBlocksFlag,
+		common.OptimizeNFTStoreFlag,
+		common.RemoveNonUpdatedStorageFlag,
+		common.BuiltInFunctionOnMetaFlag,
+		common.BackwardCompSaveKeyValueFlag,
+		common.ReturnDataToLastTransferFlagAfterEpoch,
+		common.FixAsyncCallBackArgsListFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
@@ -206,7 +231,6 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
-	var err error
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
 	if err != nil {
 		return nil, err

@@ -282,6 +282,17 @@ func TestNewStakingValidatorSmartContract_NilEnableEpochsHandler(t *testing.T) {
 	assert.True(t, errors.Is(err, vm.ErrNilEnableEpochsHandler))
 }
 
+func TestNewStakingValidatorSmartContract_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsForValidatorSC()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	asc, err := NewValidatorSmartContract(arguments)
+	require.Nil(t, asc)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewStakingValidatorSmartContract_EmptyEndOfEpochAddress(t *testing.T) {
 	t.Parallel()
 

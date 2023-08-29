@@ -1,6 +1,7 @@
 package coordinator
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -54,6 +55,16 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 		detector, err := NewPrintDoubleTransactionsDetector(args)
 		assert.True(t, check.IfNil(detector))
 		assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("invalid enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsPrintDoubleTransactionsDetector()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+		detector, err := NewPrintDoubleTransactionsDetector(args)
+		assert.True(t, check.IfNil(detector))
+		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

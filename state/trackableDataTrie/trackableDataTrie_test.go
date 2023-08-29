@@ -48,6 +48,18 @@ func TestNewTrackableDataTrie(t *testing.T) {
 		assert.True(t, check.IfNil(tdt))
 	})
 
+	t.Run("create with invalid enableEpochsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		tdt, err := trackableDataTrie.NewTrackableDataTrie(
+			[]byte("identifier"),
+			&hashingMocks.HasherMock{},
+			&marshallerMock.MarshalizerMock{},
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined())
+		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+		assert.True(t, check.IfNil(tdt))
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

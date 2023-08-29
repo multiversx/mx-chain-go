@@ -1,6 +1,7 @@
 package preprocess_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -50,6 +51,19 @@ func TestNewGasComputation_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, gc)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewGasComputation_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	gc, err := preprocess.NewGasComputation(
+		&economicsmocks.EconomicsHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+	)
+
+	assert.Nil(t, gc)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewGasComputation_ShouldWork(t *testing.T) {
