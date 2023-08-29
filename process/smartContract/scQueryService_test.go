@@ -962,7 +962,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
-				GasRemaining: uint64(math.MaxUint64) - consumedGas,
+				GasRemaining: uint64(MaxGasLimitPerQuery) - consumedGas,
 				ReturnCode:   vmcommon.Ok,
 			}, nil
 		},
@@ -976,7 +976,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	}
 	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
-			return uint64(math.MaxUint64)
+			return uint64(MaxGasLimitPerQuery)
 		},
 	}
 	target, _ := NewSCQueryService(argsNewSCQuery)
