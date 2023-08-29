@@ -599,13 +599,13 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no gas defined, should use max uint64", func(t *testing.T) {
+	t.Run("no gas defined, should use max gas limit", func(t *testing.T) {
 		t.Parallel()
 
 		runSCWasCalled := false
 		mockVM := &mock.VMExecutionHandlerStub{
 			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				require.Equal(t, uint64(math.MaxUint64), input.GasProvided)
+				require.Equal(t, uint64(MaxGasLimitPerQuery), input.GasProvided)
 				runSCWasCalled = true
 				return &vmcommon.VMOutput{}, nil
 			},
@@ -976,7 +976,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	}
 	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
-			return uint64(MaxGasLimitPerQuery)
+			return uint64(math.MaxUint64)
 		},
 	}
 	target, _ := NewSCQueryService(argsNewSCQuery)
