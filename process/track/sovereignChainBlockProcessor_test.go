@@ -308,7 +308,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardH
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
-	shardID := uint32(0)
+	shardID := core.MainChainShardId
 	fromNonce := uint64(1)
 
 	scbp.RequestHeaders(shardID, fromNonce)
