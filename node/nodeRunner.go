@@ -31,7 +31,9 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
@@ -44,6 +46,7 @@ import (
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -53,7 +56,15 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -275,6 +286,16 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
+	if err != nil {
+		return true, err
+	}
+	// TODO: remove this
+	if managedRunTypeComponents != nil {
+		return true, err
+	}
 
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
@@ -1532,6 +1553,85 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeComponents is the managed runType components factory
+func (nr *nodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
+	blockChainHookHandlerFactory, err := hooks.NewBlockChainHookFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewBlockChainHookFactory failed: %w", err)
+	}
+	epochStartBootstrapperFactory, err := bootstrap.NewEpochStartBootstrapperFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewEpochStartBootstrapperFactory failed: %w", err)
+	}
+	bootstrapperFromStorageFactory, err := storageBootstrap.NewShardStorageBootstrapperFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardStorageBootstrapperFactory failed: %w", err)
+	}
+	blockProcessorFactory, err := block.NewShardBlockProcessorFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardBlockProcessorFactory failed: %w", err)
+	}
+	forkDetectorFactory, err := sync.NewShardForkDetectorFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardForkDetectorFactory failed: %w", err)
+	}
+	blockTrackerFactory, err := track.NewShardBlockTrackerFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardBlockTrackerFactory failed: %w", err)
+	}
+	requestHandlerFactory, err := requestHandlers.NewResolverRequestHandlerFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewResolverRequestHandlerFactory failed: %w", err)
+	}
+	headerValidatorFactory, err := block.NewShardHeaderValidatorFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardHeaderValidatorFactory failed: %w", err)
+	}
+	scheduledTxsExecutionFactory, err := preprocess.NewShardScheduledTxsExecutionFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardScheduledTxsExecutionFactory failed: %w", err)
+	}
+	transactionCoordinatorFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardTransactionCoordinatorFactory failed: %w", err)
+	}
+	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
+	if err != nil {
+		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardBlockProcessorFactory failed: %w", err)
+	}
+
+	runTypeArgs := runType.RunTypeComponentsFactoryArgs{
+		BlockChainHookHandlerCreator:        blockChainHookHandlerFactory,
+		EpochStartBootstrapperCreator:       epochStartBootstrapperFactory,
+		BootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
+		BlockProcessorCreator:               blockProcessorFactory,
+		ForkDetectorCreator:                 forkDetectorFactory,
+		BlockTrackerCreator:                 blockTrackerFactory,
+		RequestHandlerCreator:               requestHandlerFactory,
+		HeaderValidatorCreator:              headerValidatorFactory,
+		ScheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
+		TransactionCoordinatorCreator:       transactionCoordinatorFactory,
+		ValidatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
+	}
+
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(runTypeArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func closeAllComponents(
