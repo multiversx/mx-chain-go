@@ -29,9 +29,11 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -99,6 +101,8 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				},
 			},
 		},
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewRatingsDataFactory(),
 	}
 }
 
@@ -396,7 +400,9 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 
@@ -563,7 +569,10 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:               common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
 	}
 }
 

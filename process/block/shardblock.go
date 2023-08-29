@@ -74,6 +74,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
+	notarizer := &multiShardCrossNotarizer{
+		shardCoordinator: arguments.BootstrapComponents.ShardCoordinator(),
+		baseBlockNotarizer: &baseBlockNotarizer{
+			blockTracker: arguments.BlockTracker,
+		},
+	}
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -120,6 +126,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		crossNotarizer:                notarizer,
 	}
 
 	sp := shardProcessor{

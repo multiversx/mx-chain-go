@@ -54,11 +54,14 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -381,6 +384,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
 		return true, err
@@ -1129,6 +1133,10 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	if err != nil {
 		return nil, err
 	}
+	sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
+	if err != nil {
+		return nil, err
+	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		configurationPaths.SmartContracts,
@@ -1177,31 +1185,34 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                 *configs.GeneralConfig,
-		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            *configs.PreferencesConfig,
-		ImportDBConfig:         *configs.ImportDbConfig,
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nodesCoordinator,
-		Data:                   dataComponents,
-		CoreData:               coreComponents,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		BootstrapComponents:    bootstrapComponents,
-		StatusComponents:       statusComponents,
-		StatusCoreComponents:   statusCoreComponents,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         configs.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		FlagsConfig:            *configs.FlagsConfig,
-		ChainRunType:           common.ChainRunTypeSovereign,
+		Config:                     *configs.GeneralConfig,
+		EpochConfig:                *configs.EpochConfig,
+		PrefConfigs:                *configs.PreferencesConfig,
+		ImportDBConfig:             *configs.ImportDbConfig,
+		AccountsParser:             sovereignAccountsParser,
+		SmartContractParser:        smartContractParser,
+		GasSchedule:                gasScheduleNotifier,
+		NodesCoordinator:           nodesCoordinator,
+		Data:                       dataComponents,
+		CoreData:                   coreComponents,
+		Crypto:                     cryptoComponents,
+		State:                      stateComponents,
+		Network:                    networkComponents,
+		BootstrapComponents:        bootstrapComponents,
+		StatusComponents:           statusComponents,
+		StatusCoreComponents:       statusCoreComponents,
+		RequestedItemsHandler:      requestedItemsHandler,
+		WhiteListHandler:           whiteListRequest,
+		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
+		MaxRating:                  configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:             configs.SystemSCConfig,
+		ImportStartHandler:         importStartHandler,
+		HistoryRepo:                historyRepository,
+		FlagsConfig:                *configs.FlagsConfig,
+		ChainRunType:               common.ChainRunTypeSovereign,
+		ShardCoordinatorFactory:    sharding.NewSovereignShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewSovereignGenesisMetaBlockChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1319,16 +1330,18 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *snr.configs.GeneralConfig,
-		PrefConfig:           *snr.configs.PreferencesConfig,
-		ImportDbConfig:       *snr.configs.ImportDbConfig,
-		FlagsConfig:          *snr.configs.FlagsConfig,
-		WorkingDir:           snr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeSovereign,
+		Config:                           *snr.configs.GeneralConfig,
+		PrefConfig:                       *snr.configs.PreferencesConfig,
+		ImportDbConfig:                   *snr.configs.ImportDbConfig,
+		FlagsConfig:                      *snr.configs.FlagsConfig,
+		WorkingDir:                       snr.configs.FlagsConfig.DbDir,
+		CoreComponents:                   coreComponents,
+		CryptoComponents:                 cryptoComponents,
+		NetworkComponents:                networkComponents,
+		StatusCoreComponents:             statusCoreComponents,
+		ChainRunType:                     common.ChainRunTypeSovereign,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1397,16 +1410,18 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *snr.configs.GeneralConfig,
-		ConfigPathsHolder:   *snr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *snr.configs.EpochConfig,
-		RoundConfig:         *snr.configs.RoundConfig,
-		ImportDbConfig:      *snr.configs.ImportDbConfig,
-		RatingsConfig:       *snr.configs.RatingsConfig,
-		EconomicsConfig:     *snr.configs.EconomicsConfig,
-		NodesFilename:       snr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    snr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                   *snr.configs.GeneralConfig,
+		ConfigPathsHolder:        *snr.configs.ConfigurationPathsHolder,
+		EpochConfig:              *snr.configs.EpochConfig,
+		RoundConfig:              *snr.configs.RoundConfig,
+		ImportDbConfig:           *snr.configs.ImportDbConfig,
+		RatingsConfig:            *snr.configs.RatingsConfig,
+		EconomicsConfig:          *snr.configs.EconomicsConfig,
+		NodesFilename:            snr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:      chanStopNodeProcess,
+		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewSovereignRatingsDataFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

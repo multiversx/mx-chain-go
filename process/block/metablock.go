@@ -90,6 +90,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
+	notarizer := &multiShardCrossNotarizer{
+		shardCoordinator: arguments.BootstrapComponents.ShardCoordinator(),
+		baseBlockNotarizer: &baseBlockNotarizer{
+			blockTracker: arguments.BlockTracker,
+		},
+	}
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -136,6 +142,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		crossNotarizer:                notarizer,
 	}
 
 	mp := metaProcessor{

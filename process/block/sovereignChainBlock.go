@@ -80,6 +80,11 @@ func NewSovereignChainBlockProcessor(
 	scbp.requestMissingHeadersFunc = scbp.requestMissingHeaders
 	scbp.cleanupPoolsForCrossShardFunc = scbp.cleanupPoolsForCrossShard
 	scbp.cleanupBlockTrackerPoolsForShardFunc = scbp.cleanupBlockTrackerPoolsForShard
+	scbp.crossNotarizer = &sovereignShardCrossNotarizer{
+		baseBlockNotarizer: &baseBlockNotarizer{
+			blockTracker: scbp.blockTracker,
+		},
+	}
 
 	return scbp, nil
 }

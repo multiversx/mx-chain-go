@@ -30,9 +30,12 @@ import (
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -84,16 +87,18 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 	argsCore := factoryCore.CoreComponentsFactoryArgs{
-		Config:              *pr.Config.GeneralConfig,
-		ConfigPathsHolder:   *pr.Config.ConfigurationPathsHolder,
-		EpochConfig:         *pr.Config.EpochConfig,
-		RoundConfig:         *pr.Config.RoundConfig,
-		RatingsConfig:       *pr.Config.RatingsConfig,
-		EconomicsConfig:     *pr.Config.EconomicsConfig,
-		ImportDbConfig:      *pr.Config.ImportDbConfig,
-		NodesFilename:       pr.Config.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    pr.Config.FlagsConfig.WorkingDir,
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
+		Config:                   *pr.Config.GeneralConfig,
+		ConfigPathsHolder:        *pr.Config.ConfigurationPathsHolder,
+		EpochConfig:              *pr.Config.EpochConfig,
+		RoundConfig:              *pr.Config.RoundConfig,
+		RatingsConfig:            *pr.Config.RatingsConfig,
+		EconomicsConfig:          *pr.Config.EconomicsConfig,
+		ImportDbConfig:           *pr.Config.ImportDbConfig,
+		NodesFilename:            pr.Config.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         pr.Config.FlagsConfig.WorkingDir,
+		ChanStopNodeProcess:      make(chan endProcess.ArgEndProcess),
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewRatingsDataFactory(),
 	}
 	coreFactory, err := factoryCore.NewCoreComponentsFactory(argsCore)
 	require.Nil(tb, err)
@@ -196,17 +201,19 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 	argsBootstrap := factoryBootstrap.BootstrapComponentsFactoryArgs{
-		Config:               *pr.Config.GeneralConfig,
-		RoundConfig:          *pr.Config.RoundConfig,
-		PrefConfig:           *pr.Config.PreferencesConfig,
-		ImportDbConfig:       *pr.Config.ImportDbConfig,
-		FlagsConfig:          *pr.Config.FlagsConfig,
-		WorkingDir:           pr.Config.FlagsConfig.WorkingDir,
-		CoreComponents:       pr.CoreComponents,
-		CryptoComponents:     pr.CryptoComponents,
-		NetworkComponents:    pr.NetworkComponents,
-		StatusCoreComponents: pr.StatusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		Config:                           *pr.Config.GeneralConfig,
+		RoundConfig:                      *pr.Config.RoundConfig,
+		PrefConfig:                       *pr.Config.PreferencesConfig,
+		ImportDbConfig:                   *pr.Config.ImportDbConfig,
+		FlagsConfig:                      *pr.Config.FlagsConfig,
+		WorkingDir:                       pr.Config.FlagsConfig.WorkingDir,
+		CoreComponents:                   pr.CoreComponents,
+		CryptoComponents:                 pr.CryptoComponents,
+		NetworkComponents:                pr.NetworkComponents,
+		StatusCoreComponents:             pr.StatusCoreComponents,
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -305,6 +312,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	require.Nil(tb, err)
 
@@ -411,26 +419,29 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       pr.NodesCoordinator,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         pr.Config.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		Data:                   pr.DataComponents,
-		CoreData:               pr.CoreComponents,
-		Crypto:                 pr.CryptoComponents,
-		State:                  pr.StateComponents,
-		Network:                pr.NetworkComponents,
-		BootstrapComponents:    pr.BootstrapComponents,
-		StatusComponents:       pr.StatusComponents,
-		StatusCoreComponents:   pr.StatusCoreComponents,
-		ChainRunType:           common.ChainRunTypeRegular,
+		AccountsParser:             accountsParser,
+		SmartContractParser:        smartContractParser,
+		GasSchedule:                gasScheduleNotifier,
+		NodesCoordinator:           pr.NodesCoordinator,
+		RequestedItemsHandler:      requestedItemsHandler,
+		WhiteListHandler:           whiteListRequest,
+		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
+		MaxRating:                  pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:             pr.Config.SystemSCConfig,
+		ImportStartHandler:         importStartHandler,
+		HistoryRepo:                historyRepository,
+		Data:                       pr.DataComponents,
+		CoreData:                   pr.CoreComponents,
+		Crypto:                     pr.CryptoComponents,
+		State:                      pr.StateComponents,
+		Network:                    pr.NetworkComponents,
+		BootstrapComponents:        pr.BootstrapComponents,
+		StatusComponents:           pr.StatusComponents,
+		StatusCoreComponents:       pr.StatusCoreComponents,
+		ChainRunType:               common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    factoryProcessing.NewGenesisMetaBlockChecker(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

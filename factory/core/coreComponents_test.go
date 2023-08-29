@@ -12,13 +12,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
+func TestNewCoreComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs()
-	ccf, _ := coreComp.NewCoreComponentsFactory(args)
-
-	require.NotNil(t, ccf)
+	t.Run("should work", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.NotNil(t, ccf)
+		require.Nil(t, err)
+	})
+	t.Run("nil genesis nodes setup factory, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		args.GenesisNodesSetupFactory = nil
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilNodesSetupFactory, err)
+	})
+	t.Run("nil ratings data factory, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		args.RatingsDataFactory = nil
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilRatingsDataFactory, err)
+	})
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *testing.T) {

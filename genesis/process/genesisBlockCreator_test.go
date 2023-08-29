@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -179,7 +180,8 @@ func createMockArgument(
 				},
 			},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -435,6 +437,16 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.True(t, errors.Is(err, genesis.ErrNilEpochConfig))
 		require.Nil(t, gbc)
 	})
+	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.ShardCoordinatorFactory = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+		require.Nil(t, gbc)
+	})
 	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -503,7 +515,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = hardForkGbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)

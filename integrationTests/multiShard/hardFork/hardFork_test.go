@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -489,8 +490,9 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig: &roundConfig,
-			ChainRunType: common.ChainRunTypeRegular,
+			RoundConfig:             &roundConfig,
+			ChainRunType:            common.ChainRunTypeRegular,
+			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -641,6 +643,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			CheckNodesOnDisk:          false,
 			NodeOperationMode:         node.NodeOperationMode,
+			ShardCoordinatorFactory:   sharding.NewMultiShardCoordinatorFactory(),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

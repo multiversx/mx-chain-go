@@ -55,6 +55,10 @@ export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 #if set to 1, each observer will turn off the antiflooding capability, allowing spam in our network
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
+# If set to true, this will deploy nodes in a sovereign shard.
+# All variables from metashard structure(validators, observers, consensus) should be set to zero and SHARDCOUNT to 1
+export SOVEREIGN_DEPLOY=true
+
 # Shard structure
 export SHARDCOUNT=2
 export SHARD_VALIDATORCOUNT=3
