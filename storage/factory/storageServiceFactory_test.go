@@ -77,10 +77,11 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 				return core.NodeTypeObserver
 			},
 		},
-		StorageType:                   ProcessStorageService,
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: true,
-		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
+		StorageType:                     ProcessStorageService,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   true,
+		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
+	epochStartBootstrap "github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -224,9 +225,11 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := componentsMock.GetBootStrapFactoryArgs()
-		coreComponents := componentsMock.GetDefaultCoreComponents()
-		args.CoreComponents = coreComponents
-		coreComponents.RatingHandler = nil
+		args.EpochStartBootstrapperFactory = &factory.EpochStartBootstrapperFactoryStub{
+			CreateEpochStartBootstrapperCalled: func(args epochStartBootstrap.ArgsEpochStartBootstrap) (epochStartBootstrap.EpochStartBootstrapper, error) {
+				return nil, errors.New("newStorageEpochStartBootstrap error")
+			},
+		}
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		require.NotNil(t, bcf)
 

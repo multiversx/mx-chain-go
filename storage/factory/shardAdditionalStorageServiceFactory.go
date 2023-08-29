@@ -2,16 +2,19 @@ package factory
 
 import "github.com/multiversx/mx-chain-go/dataRetriever"
 
-// ShardAdditionalStorageServiceFactory is the factory for creating additional storage service for shards
-type ShardAdditionalStorageServiceFactory struct {
+type shardAdditionalStorageServiceFactory struct {
 }
 
-// CreateAdditionalStorageService creates an additional storage service for a shard
-func (s *ShardAdditionalStorageServiceFactory) CreateAdditionalStorageService(_ func(store dataRetriever.StorageService, shardID string) error, _ dataRetriever.StorageService, _ string) error {
+func NewShardAdditionalStorageServiceFactory() (*shardAdditionalStorageServiceFactory, error) {
+	return &shardAdditionalStorageServiceFactory{}, nil
+}
+
+// CreateAdditionalStorageService creates an additional storage service for a normal shard
+func (s *shardAdditionalStorageServiceFactory) CreateAdditionalStorageService(_ func(store dataRetriever.StorageService, shardID string) error, _ dataRetriever.StorageService, _ string) error {
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *ShardAdditionalStorageServiceFactory) IsInterfaceNil() bool {
+func (s *shardAdditionalStorageServiceFactory) IsInterfaceNil() bool {
 	return s == nil
 }

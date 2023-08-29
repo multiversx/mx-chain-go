@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
@@ -95,18 +96,19 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 	}
 
 	return &StorageServiceFactory{
-		generalConfig:                 args.Config,
-		prefsConfig:                   args.PrefsConfig,
-		shardCoordinator:              args.ShardCoordinator,
-		pathManager:                   args.PathManager,
-		epochStartNotifier:            args.EpochStartNotifier,
-		currentEpoch:                  args.CurrentEpoch,
-		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		oldDataCleanerProvider:        oldDataCleanProvider,
-		storageType:                   args.StorageType,
-		nodeProcessingMode:            args.NodeProcessingMode,
-		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
-		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
+		generalConfig:                   args.Config,
+		prefsConfig:                     args.PrefsConfig,
+		shardCoordinator:                args.ShardCoordinator,
+		pathManager:                     args.PathManager,
+		epochStartNotifier:              args.EpochStartNotifier,
+		currentEpoch:                    args.CurrentEpoch,
+		createTrieEpochRootHashStorer:   args.CreateTrieEpochRootHashStorer,
+		oldDataCleanerProvider:          oldDataCleanProvider,
+		storageType:                     args.StorageType,
+		nodeProcessingMode:              args.NodeProcessingMode,
+		snapshotsEnabled:                args.Config.StateTriesConfig.SnapshotsEnabled,
+		repopulateTokensSupplies:        args.RepopulateTokensSupplies,
+		additionalStorageServiceFactory: args.AdditionalStorageServiceCreator,
 	}, nil
 }
 
@@ -123,7 +125,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
 	}
-
+	if check.IfNil(args.AdditionalStorageServiceCreator) {
+		return errors.ErrNilAdditionalStorageServiceCreator
+	}
 	return nil
 }
 
