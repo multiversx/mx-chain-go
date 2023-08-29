@@ -3,14 +3,9 @@ package runType_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-	stateComp "github.com/multiversx/mx-chain-go/factory/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/stretchr/testify/require"
 )
 
@@ -137,105 +132,35 @@ func TestNewRunTypeComponentsFactory(t *testing.T) {
 	})
 }
 
-func TestStateComponentsFactory_Create(t *testing.T) {
+func TestRunTypeComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	t.Run("CreateTriesComponentsForShardId fails should error", func(t *testing.T) {
+	t.Run("Create should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.Core)
-		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
-			return nil
-		}
-		args.Core = coreCompStub
-		scf, _ := stateComp.NewStateComponentsFactory(args)
-
-		sc, err := scf.Create()
-		require.Error(t, err)
-		require.Nil(t, sc)
-	})
-	t.Run("NewMemoryEvictionWaitingList fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-		args.Config.EvictionWaitingList.RootHashesSize = 0
-		scf, _ := stateComp.NewStateComponentsFactory(args)
-
-		sc, err := scf.Create()
-		require.Error(t, err)
-		require.Nil(t, sc)
-	})
-	t.Run("NewAccountsDB fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-
-		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.Core)
-		cnt := 0
-		coreCompStub.HasherCalled = func() hashing.Hasher {
-			cnt++
-			if cnt > 1 {
-				return nil
-			}
-			return &testscommon.HasherStub{}
-		}
-		args.Core = coreCompStub
-		scf, _ := stateComp.NewStateComponentsFactory(args)
-
-		sc, err := scf.Create()
-		require.Error(t, err)
-		require.Nil(t, sc)
-	})
-	t.Run("CreateAccountsAdapterAPIOnFinal fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-
-		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.Core)
-		cnt := 0
-		coreCompStub.HasherCalled = func() hashing.Hasher {
-			cnt++
-			if cnt > 2 {
-				return nil
-			}
-			return &testscommon.HasherStub{}
-		}
-		args.Core = coreCompStub
-		scf, _ := stateComp.NewStateComponentsFactory(args)
-
-		sc, err := scf.Create()
-		require.Error(t, err)
-		require.Nil(t, sc)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-		scf, _ := stateComp.NewStateComponentsFactory(args)
-
-		sc, err := scf.Create()
+		args := componentsMock.GetRunTypeFactoryArgs()
+		rcf, err := runType.NewRunTypeComponentsFactory(args)
 		require.NoError(t, err)
-		require.NotNil(t, sc)
-		require.NoError(t, sc.Close())
+		require.NotNil(t, rcf)
+
+		rc, err := rcf.Create()
+
+		require.NoError(t, err)
+		require.NotNil(t, rc)
 	})
 }
 
-func TestStateComponents_Close(t *testing.T) {
+func TestRunTypeComponentsFactory_Close(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
-	scf, _ := stateComp.NewStateComponentsFactory(args)
-
-	sc, err := scf.Create()
+	args := componentsMock.GetRunTypeFactoryArgs()
+	rcf, err := runType.NewRunTypeComponentsFactory(args)
 	require.NoError(t, err)
-	require.NotNil(t, sc)
+	require.NotNil(t, rcf)
 
-	require.NoError(t, sc.Close())
+	rc, err := rcf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, rc)
+
+	require.NoError(t, rc.Close())
 }

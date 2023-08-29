@@ -20,14 +20,14 @@ type managedRunTypeComponents struct {
 }
 
 // NewManagedRunTypeComponents returns a news instance of managedRunTypeComponents
-func NewManagedRunTypeComponents(scf *runTypeComponentsFactory) (*managedRunTypeComponents, error) {
-	if scf == nil {
-		return nil, errors.ErrNilStateComponentsFactory
+func NewManagedRunTypeComponents(rcf *runTypeComponentsFactory) (*managedRunTypeComponents, error) {
+	if rcf == nil {
+		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 
 	return &managedRunTypeComponents{
 		runTypeComponents: nil,
-		factory:           scf,
+		factory:           rcf,
 	}, nil
 }
 

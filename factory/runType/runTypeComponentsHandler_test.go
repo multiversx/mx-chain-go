@@ -3,158 +3,118 @@ package runType_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewManagedStateComponents(t *testing.T) {
+func TestNewManagedRunTypeComponents(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil factory should error", func(t *testing.T) {
 		t.Parallel()
 
-		managedStateComponents, err := stateComp.NewManagedStateComponents(nil)
-		require.Equal(t, errorsMx.ErrNilStateComponentsFactory, err)
-		require.Nil(t, managedStateComponents)
+		managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(nil)
+		require.Equal(t, errorsMx.ErrNilRunTypeComponentsFactory, err)
+		require.Nil(t, managedRunTypeComponents)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
+		args := componentsMock.GetRunTypeFactoryArgs()
+		rcf, _ := runType.NewRunTypeComponentsFactory(args)
+
+		managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(rcf)
 		require.NoError(t, err)
-		require.NotNil(t, managedStateComponents)
+		require.NotNil(t, managedRunTypeComponents)
 	})
 }
 
-func TestManagedStateComponents_Create(t *testing.T) {
+func TestManagedRunTypeComponents_Create(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid config should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
-		require.NoError(t, err)
-		_ = args.Core.SetInternalMarshalizer(nil)
-		err = managedStateComponents.Create()
-		require.Error(t, err)
-		require.Nil(t, managedStateComponents.AccountsAdapter())
-		require.NoError(t, managedStateComponents.Close())
-	})
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
-		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
-		require.NoError(t, err)
-		require.Nil(t, managedStateComponents.AccountsAdapter())
-		require.Nil(t, managedStateComponents.PeerAccounts())
-		require.Nil(t, managedStateComponents.TriesContainer())
-		require.Nil(t, managedStateComponents.TrieStorageManagers())
-		require.Nil(t, managedStateComponents.AccountsAdapterAPI())
-		require.Nil(t, managedStateComponents.AccountsRepository())
-		require.Nil(t, managedStateComponents.MissingTrieNodesNotifier())
+		args := componentsMock.GetRunTypeFactoryArgs()
+		rcf, _ := runType.NewRunTypeComponentsFactory(args)
 
-		err = managedStateComponents.Create()
+		managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(rcf)
 		require.NoError(t, err)
-		require.NotNil(t, managedStateComponents.AccountsAdapter())
-		require.NotNil(t, managedStateComponents.PeerAccounts())
-		require.NotNil(t, managedStateComponents.TriesContainer())
-		require.NotNil(t, managedStateComponents.TrieStorageManagers())
-		require.NotNil(t, managedStateComponents.AccountsAdapterAPI())
-		require.NotNil(t, managedStateComponents.AccountsRepository())
-		require.NotNil(t, managedStateComponents.MissingTrieNodesNotifier())
 
-		require.Equal(t, factory.StateComponentsName, managedStateComponents.String())
-		require.NoError(t, managedStateComponents.Close())
+		require.Nil(t, managedRunTypeComponents.BlockChainHookHandlerCreator())
+		require.Nil(t, managedRunTypeComponents.EpochStartBootstrapperCreator())
+		require.Nil(t, managedRunTypeComponents.BootstrapperFromStorageCreator())
+		require.Nil(t, managedRunTypeComponents.BlockProcessorCreator())
+		require.Nil(t, managedRunTypeComponents.ForkDetectorCreator())
+		require.Nil(t, managedRunTypeComponents.BlockTrackerCreator())
+		require.Nil(t, managedRunTypeComponents.RequestHandlerCreator())
+		require.Nil(t, managedRunTypeComponents.HeaderValidatorCreator())
+		require.Nil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
+		require.Nil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
+		require.Nil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+
+		err = managedRunTypeComponents.Create()
+		require.NoError(t, err)
+		require.NotNil(t, managedRunTypeComponents.BlockChainHookHandlerCreator())
+		require.NotNil(t, managedRunTypeComponents.EpochStartBootstrapperCreator())
+		require.NotNil(t, managedRunTypeComponents.BootstrapperFromStorageCreator())
+		require.NotNil(t, managedRunTypeComponents.BlockProcessorCreator())
+		require.NotNil(t, managedRunTypeComponents.ForkDetectorCreator())
+		require.NotNil(t, managedRunTypeComponents.BlockTrackerCreator())
+		require.NotNil(t, managedRunTypeComponents.RequestHandlerCreator())
+		require.NotNil(t, managedRunTypeComponents.HeaderValidatorCreator())
+		require.NotNil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
+		require.NotNil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
+		require.NotNil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+
+		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
+		require.NoError(t, managedRunTypeComponents.Close())
 	})
 }
 
-func TestManagedStateComponents_Close(t *testing.T) {
+func TestManagedRunTypeComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
-	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
-	require.NoError(t, managedStateComponents.Close())
-	err := managedStateComponents.Create()
+	args := componentsMock.GetRunTypeFactoryArgs()
+	rcf, _ := runType.NewRunTypeComponentsFactory(args)
+	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(rcf)
+	require.NoError(t, managedRunTypeComponents.Close())
+	err := managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
-	require.NoError(t, managedStateComponents.Close())
-	require.Nil(t, managedStateComponents.AccountsAdapter())
+	require.NoError(t, managedRunTypeComponents.Close())
+	require.Nil(t, managedRunTypeComponents.BlockChainHookHandlerCreator())
 }
 
-func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
+func TestManagedRunTypeComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
-	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
-	err := managedStateComponents.CheckSubcomponents()
-	require.Equal(t, errorsMx.ErrNilStateComponents, err)
+	args := componentsMock.GetRunTypeFactoryArgs()
+	rcf, _ := runType.NewRunTypeComponentsFactory(args)
+	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(rcf)
+	err := managedRunTypeComponents.CheckSubcomponents()
+	require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
 
-	err = managedStateComponents.Create()
+	err = managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
-	err = managedStateComponents.CheckSubcomponents()
+	err = managedRunTypeComponents.CheckSubcomponents()
 	require.NoError(t, err)
 
-	require.NoError(t, managedStateComponents.Close())
+	require.NoError(t, managedRunTypeComponents.Close())
 }
 
-func TestManagedStateComponents_Setters(t *testing.T) {
+func TestManagedRunTypeComponents_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
-	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
-	err := managedStateComponents.Create()
-	require.NoError(t, err)
+	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(nil)
+	require.True(t, managedRunTypeComponents.IsInterfaceNil())
 
-	triesContainer := &trieMock.TriesHolderStub{}
-	triesStorageManagers := map[string]common.StorageManager{"a": &storageManager.StorageManagerStub{}}
-
-	err = managedStateComponents.SetTriesContainer(nil)
-	require.Equal(t, errorsMx.ErrNilTriesContainer, err)
-	err = managedStateComponents.SetTriesContainer(triesContainer)
-	require.NoError(t, err)
-
-	err = managedStateComponents.SetTriesStorageManagers(nil)
-	require.Equal(t, errorsMx.ErrNilTriesStorageManagers, err)
-	err = managedStateComponents.SetTriesStorageManagers(triesStorageManagers)
-	require.NoError(t, err)
-
-	require.Equal(t, triesContainer, managedStateComponents.TriesContainer())
-	require.Equal(t, triesStorageManagers, managedStateComponents.TrieStorageManagers())
-
-	require.NoError(t, managedStateComponents.Close())
-}
-
-func TestManagedStateComponents_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	managedStateComponents, _ := stateComp.NewManagedStateComponents(nil)
-	require.True(t, managedStateComponents.IsInterfaceNil())
-
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
-	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
-	managedStateComponents, _ = stateComp.NewManagedStateComponents(stateComponentsFactory)
-	require.False(t, managedStateComponents.IsInterfaceNil())
+	args := componentsMock.GetRunTypeFactoryArgs()
+	rcf, _ := runType.NewRunTypeComponentsFactory(args)
+	managedRunTypeComponents, _ = runType.NewManagedRunTypeComponents(rcf)
+	require.False(t, managedRunTypeComponents.IsInterfaceNil())
 }
