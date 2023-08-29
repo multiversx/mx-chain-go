@@ -88,8 +88,12 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	indexingData := sgbc.GetIndexingData()
 	require.Len(t, indexingData, 1)
 
+	numDNSTypeScTxs := 2 * 256 // there are 2 contracts in testdata/smartcontracts.json
+	numDefaultTypeScTxs := 1
+	reqNumDeployInitialScTxs := numDNSTypeScTxs + numDefaultTypeScTxs
+
 	sovereignIdxData := indexingData[core.SovereignChainShardId]
-	require.Len(t, sovereignIdxData.DeployInitialScTxs, 1)
+	require.Len(t, sovereignIdxData.DeployInitialScTxs, reqNumDeployInitialScTxs)
 	require.Len(t, sovereignIdxData.DeploySystemScTxs, 4)
 	require.Len(t, sovereignIdxData.DelegationTxs, 3)
 	require.Len(t, sovereignIdxData.StakingTxs, 0)
