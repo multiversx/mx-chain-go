@@ -21,7 +21,6 @@ type flagHandler struct {
 	activationEpoch uint32
 }
 
-// TODO[Sorin]: call core.CheckHandlerCompatibility on each subcomponent
 type enableEpochsHandler struct {
 	allFlagsDefined    map[core.EnableEpochFlag]flagHandler
 	enableEpochsConfig config.EnableEpochs
