@@ -549,7 +549,7 @@ func printPool(pool *outportcore.TransactionPool) {
 	}
 	if len(pool.InvalidTxs) > 0 {
 		log.Warn("############### INVALID ####################")
-		for hash, tx := range pool.Transactions {
+		for hash, tx := range pool.InvalidTxs {
 			log.Warn(hash, "order", tx.GetExecutionOrder())
 		}
 	}

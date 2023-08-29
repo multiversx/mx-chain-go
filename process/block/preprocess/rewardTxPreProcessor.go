@@ -276,6 +276,8 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 				return err
 			}
 
+			// TODO remove this after system test
+			log.Warn("executing transaction", "txHash", txHash)
 			rtp.txExecutionOrderHandler.Add(txHash)
 			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
