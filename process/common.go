@@ -710,6 +710,7 @@ func DisplayProcessTxDetails(
 		"sender", senderAddress,
 		"receiver", receiverAddress)
 
+	// TODO remove after system test
 	log.Warn("executing transaction", "txHash", txHash)
 }
 
