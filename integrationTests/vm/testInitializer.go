@@ -56,6 +56,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -256,15 +257,22 @@ func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, 
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmTestContext.VMContainer,
 		EconomicsFee:             feeHandler,
-		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookHandler),
-		BlockChain:               &testscommon.ChainHandlerStub{},
+		BlockChainHook:           vmTestContext.BlockchainHook.(process.BlockChainHookWithAccountsAdapter),
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
+		Hasher:                   integrationtests.TestHasher,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: args,
@@ -1635,7 +1643,12 @@ func GetStringValueFromSC(
 }
 
 // GetVmOutput -
-func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.AccountsAdapter, scAddressBytes []byte, funcName string, args ...[]byte) *vmcommon.VMOutput {
+func GetVmOutput(
+	gasSchedule map[string]map[string]uint64,
+	accnts state.AccountsAdapter,
+	scAddressBytes []byte,
+	funcName string,
+	args ...[]byte) *vmcommon.VMOutput {
 	vmConfig := createDefaultVMConfig()
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
@@ -1671,14 +1684,21 @@ func GetVmOutput(gasSchedule map[string]map[string]uint64, accnts state.Accounts
 		VmContainer:              vmContainer,
 		EconomicsFee:             feeHandler,
 		BlockChainHook:           blockChainHook,
-		BlockChain:               &testscommon.ChainHandlerStub{},
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Hasher:                   integrationtests.TestHasher,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	vmOutput, err := scQueryService.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddressBytes,
 		FuncName:  funcName,
 		Arguments: args,
@@ -1715,16 +1735,27 @@ func ComputeGasLimit(gasSchedule map[string]map[string]uint64, testContext *VMTe
 		VmContainer:    vmContainer,
 		EconomicsFee:   testContext.EconomicsData,
 		BlockChainHook: blockChainHook,
-		BlockChain: &testscommon.ChainHandlerStub{
+		MainBlockChain: &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					ShardID: testContext.ShardCoordinator.SelfId(),
 				}
 			},
 		},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testContext.ShardCoordinator,
+		StorageService: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Hasher:                   integrationtests.TestHasher,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
 	}
 	scQueryService, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 

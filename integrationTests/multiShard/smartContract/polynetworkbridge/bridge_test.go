@@ -118,7 +118,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		FuncName:   "getWrappedEgldTokenIdentifier",
 		Arguments:  [][]byte{},
 	}
-	vmOutput, err := ownerNode.SCQueryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := ownerNode.SCQueryService.ExecuteQuery(scQuery)
 	require.Nil(t, err)
 	require.NotNil(t, vmOutput)
 	require.NotZero(t, len(vmOutput.ReturnData[0]))

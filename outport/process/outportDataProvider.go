@@ -534,6 +534,7 @@ func (odp *outportDataProvider) filterOutDuplicatedMiniBlocks(miniBlocksFromBody
 	return filteredMiniBlocks, nil
 }
 
+// TODO remove after system test
 func printPool(pool *outportcore.TransactionPool) {
 	total := len(pool.Transactions) + len(pool.InvalidTxs) + len(pool.SmartContractResults) + len(pool.Rewards)
 	if total > 0 {
@@ -548,7 +549,7 @@ func printPool(pool *outportcore.TransactionPool) {
 	}
 	if len(pool.InvalidTxs) > 0 {
 		log.Warn("############### INVALID ####################")
-		for hash, tx := range pool.Transactions {
+		for hash, tx := range pool.InvalidTxs {
 			log.Warn(hash, "order", tx.GetExecutionOrder())
 		}
 	}

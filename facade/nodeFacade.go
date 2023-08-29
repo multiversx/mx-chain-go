@@ -412,13 +412,13 @@ func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
-	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
+func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, apiData.BlockInfo, error) {
+	vmOutput, blockInfo, err := nf.apiResolver.ExecuteSCQuery(query)
 	if err != nil {
-		return nil, err
+		return nil, apiData.BlockInfo{}, err
 	}
 
-	return nf.convertVmOutputToApiResponse(vmOutput), nil
+	return nf.convertVmOutputToApiResponse(vmOutput), queryBlockInfoToApiResource(blockInfo), nil
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application
@@ -667,10 +667,11 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		}
 
 		logs = append(logs, &vm.LogEntryApi{
-			Identifier: originalLog.Identifier,
-			Address:    logAddress,
-			Topics:     originalLog.Topics,
-			Data:       originalLog.Data,
+			Identifier:     originalLog.Identifier,
+			Address:        logAddress,
+			Topics:         originalLog.Topics,
+			Data:           originalLog.GetFirstDataItem(),
+			AdditionalData: originalLog.Data,
 		})
 	}
 
@@ -684,6 +685,18 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		DeletedAccounts: input.DeletedAccounts,
 		TouchedAccounts: input.TouchedAccounts,
 		Logs:            logs,
+	}
+}
+
+func queryBlockInfoToApiResource(info common.BlockInfo) apiData.BlockInfo {
+	if check.IfNil(info) {
+		return apiData.BlockInfo{}
+	}
+
+	return apiData.BlockInfo{
+		Nonce:    info.GetNonce(),
+		Hash:     hex.EncodeToString(info.GetHash()),
+		RootHash: hex.EncodeToString(info.GetRootHash()),
 	}
 }
 
