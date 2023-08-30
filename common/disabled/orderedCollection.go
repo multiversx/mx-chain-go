@@ -7,46 +7,46 @@ import (
 type orderedCollection struct {
 }
 
-var errDisabledComponent = errors.New("")
+var errDisabledComponent = errors.New("disabled component")
 
 // NewOrderedCollection creates a new ordered collection
 func NewOrderedCollection() *orderedCollection {
 	return &orderedCollection{}
 }
 
-// Add adds a new item to the order collector
+// Add does nothing
 func (oc *orderedCollection) Add(_ []byte) {}
 
-// GetItemAtIndex returns the item at the given index
+// GetItemAtIndex does nothing
 func (oc *orderedCollection) GetItemAtIndex(_ uint32) ([]byte, error) {
 	return nil, errDisabledComponent
 }
 
-// GetOrder returns the order of the item in the ordered collection
+// GetOrder does nothing
 func (oc *orderedCollection) GetOrder(_ []byte) (int, error) {
 	return 0, errDisabledComponent
 }
 
-// Remove removes an item from the order collector if it exists, adapting the order of the remaining items
+// Remove does nothing
 func (oc *orderedCollection) Remove(_ []byte) {}
 
-// RemoveMultiple removes multiple items from the order collector if they exist, adapting the order of the remaining items
+// RemoveMultiple does nothing
 func (oc *orderedCollection) RemoveMultiple(_ [][]byte) {}
 
-// GetItems returns the items in the order they were added
+// GetItems does nothing
 func (oc *orderedCollection) GetItems() [][]byte {
 	return make([][]byte, 0)
 }
 
-// Contains returns true if the item is in the ordered collection
+// Contains does nothing
 func (oc *orderedCollection) Contains(_ []byte) bool {
 	return false
 }
 
-// Clear clears the ordered collection
+// Clear does nothing
 func (oc *orderedCollection) Clear() {}
 
-// Len returns the number of items in the ordered collection
+// Len does nothing
 func (oc *orderedCollection) Len() int {
 	return 0
 }

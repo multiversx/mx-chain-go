@@ -1,10 +1,11 @@
 package disabled
 
 import (
+	"testing"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestOrderedCollection_MethodsShouldNotPanic(t *testing.T) {
