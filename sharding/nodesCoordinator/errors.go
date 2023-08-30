@@ -120,3 +120,6 @@ var ErrInvalidNumberOfStoredEpochs = errors.New("invalid number of stored epochs
 
 // ErrNilNodesConfigCacher signals that a nil value for the nodes config cacher has been provided
 var ErrNilNodesConfigCacher = errors.New("nodes config cacher is nil")
+
+// ErrInvalidEpochStartEpoch signals that the provided epoch is not valid
+var ErrInvalidEpochStartEpoch = errors.New("epoch start epoch does not match")

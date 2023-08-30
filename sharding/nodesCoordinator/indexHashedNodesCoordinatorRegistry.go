@@ -2,9 +2,7 @@ package nodesCoordinator
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -82,8 +80,6 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
 	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 
 	allValidatorInfo := make([]*state.ShardValidatorInfo, 0)
-
-	debug.PrintStack() // TODO: remove print
 
 	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
@@ -232,7 +228,7 @@ func (ihnc *indexHashedNodesCoordinator) metaBlockFromStaticStorer(
 	}
 
 	if metaBlock.GetEpoch() != epoch {
-		return nil, errors.New("epoch start epoch does not match")
+		return nil, ErrInvalidEpochStartEpoch
 	}
 
 	return metaBlock, nil
