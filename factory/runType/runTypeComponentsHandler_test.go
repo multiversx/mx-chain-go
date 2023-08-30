@@ -83,6 +83,7 @@ func TestManagedRunTypeComponents_Close(t *testing.T) {
 	rcf, _ := runType.NewRunTypeComponentsFactory(args)
 	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(rcf)
 	require.NoError(t, managedRunTypeComponents.Close())
+	
 	err := managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
