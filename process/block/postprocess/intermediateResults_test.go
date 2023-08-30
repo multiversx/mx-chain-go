@@ -362,6 +362,13 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+
+	calledCount := 0
+	args.TxExecutionOrderHandler = &txExecOrderStub.TxExecutionOrderHandlerStub{
+		AddCalled: func(txHash []byte) {
+			calledCount++
+		},
+	}
 	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
@@ -382,6 +389,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(txs), calledCount)
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)

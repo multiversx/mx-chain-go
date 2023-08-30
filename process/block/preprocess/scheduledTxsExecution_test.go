@@ -296,6 +296,7 @@ func TestScheduledTxsExecution_ExecuteShouldWorkOnErrFailedTransaction(t *testin
 func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 	t.Parallel()
 
+	calledCount := 0
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
@@ -307,12 +308,17 @@ func TestScheduledTxsExecution_ExecuteShouldWork(t *testing.T) {
 		&marshal.GogoProtoMarshalizer{},
 		&hashingMocks.HasherMock{},
 		&mock.ShardCoordinatorStub{},
-		&common.TxExecutionOrderHandlerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	scheduledTxsExec.AddScheduledTx([]byte("txHash1"), &transaction.Transaction{Nonce: 0})
 	err := scheduledTxsExec.Execute([]byte("txHash1"))
 	assert.Nil(t, err)
+	assert.Equal(t, 1, calledCount)
 }
 
 func TestScheduledTxsExecution_ExecuteAllShouldErrNilHaveTimeHandler(t *testing.T) {

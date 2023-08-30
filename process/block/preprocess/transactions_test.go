@@ -1129,6 +1129,12 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 			return 0, nil
 		},
 	}
+	calledCount := 0
+	args.TxExecutionOrderHandler = &commonMocks.TxExecutionOrderHandlerStub{
+		AddCalled: func(txHash []byte) {
+			calledCount++
+		},
+	}
 	preprocessor, _ := NewTransactionPreprocessor(args)
 
 	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
@@ -1155,6 +1161,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
 	assert.Equal(t, uint32(2), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
+	assert.Equal(t, 1, calledCount)
 }
 
 func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {

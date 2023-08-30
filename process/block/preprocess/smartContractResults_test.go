@@ -1322,6 +1322,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) 
 func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockInSelfShardIsReached(t *testing.T) {
 	t.Parallel()
 
+	calledCount := 0
 	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	enableEpochsHandler := enableEpochsHandlerStub
 	tdp := initDataPool()
@@ -1350,7 +1351,11 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 		&testscommon.BalanceComputationStub{},
 		enableEpochsHandler,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&common.TxExecutionOrderHandlerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	body := &block.Body{}
@@ -1380,6 +1385,7 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, calledCount)
 
 	enableEpochsHandlerStub.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabledField = true
 	err = scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
