@@ -180,7 +180,7 @@ func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.
 
 	senderBalance := big.NewInt(0).SetUint64(math.MaxUint64)
 	gasPriceLocal := uint64(1)
-	gasLimit := uint64(math.MaxInt64)
+	gasLimit := uint64(math.MaxUint64)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	tx := vm.CreateTransaction(0, big.NewInt(500), sndAddr, rcvAddr, gasPriceLocal, gasLimit, []byte("aaaa"))
