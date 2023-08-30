@@ -91,7 +91,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
 		mbBytes, err := ihnc.epochStartStaticStorer.Get(mbHeader.GetHash())
 		if err != nil {
 			log.Error("createValidatorInfoFromStatic: ", "key", mbHeader.GetHash(), "error", err)
-			continue
+			return nil, err
 		}
 		mb := &block.MiniBlock{}
 		err = ihnc.marshalizer.Unmarshal(mb, mbBytes)
@@ -418,7 +418,7 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
-		epochNodesData, ok := ihnc.nodesConfig[epoch]
+		epochNodesData, ok := ihnc.getNodesConfig(epoch)
 		if !ok {
 			continue
 		}
