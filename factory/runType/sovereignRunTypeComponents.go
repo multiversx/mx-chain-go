@@ -54,7 +54,7 @@ func NewSovereignRunTypeComponentsFactory(args SovereignRunTypeComponentsFactory
 }
 
 // Create creates the runType components
-func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, error) {
+func (rcf *sovereignRunTypeComponentsFactory) Create() (*sovereignRunTypeComponents, error) {
 	rtc, err := rcf.runTypeComponentsFactory.Create()
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignValidatorStatisticsProcessorFactory failed: %w", err)
 	}
 
-	return &runTypeComponents{
+	return &sovereignRunTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
 		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,

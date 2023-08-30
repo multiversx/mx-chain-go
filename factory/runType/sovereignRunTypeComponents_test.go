@@ -17,7 +17,7 @@ func TestNewSovereignRunTypeComponentsFactory(t *testing.T) {
 	require.Nil(t, srcf)
 	require.Error(t, errors.ErrNilRunTypeComponentsFactory, err)
 
-	rcf, err := runType.NewRunTypeComponentsFactory()
+	rcf, _ := runType.NewRunTypeComponentsFactory()
 	srcf, err = runType.NewSovereignRunTypeComponentsFactory(runType.SovereignRunTypeComponentsFactoryArgs{
 		RunTypeComponentsFactory: rcf,
 	})
