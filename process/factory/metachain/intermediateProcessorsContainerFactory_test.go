@@ -1,13 +1,13 @@
 package metachain_test
 
 import (
-	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"

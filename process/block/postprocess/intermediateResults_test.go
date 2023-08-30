@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"testing"
 
-	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -18,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
