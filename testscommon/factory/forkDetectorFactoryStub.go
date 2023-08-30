@@ -10,11 +10,6 @@ type ForkDetectorFactoryStub struct {
 	CreateForkDetectorCalled func(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error)
 }
 
-// NewForkDetectorFactoryStub -
-func NewForkDetectorFactoryStub() *ForkDetectorFactoryStub {
-	return &ForkDetectorFactoryStub{}
-}
-
 // CreateForkDetector -
 func (f *ForkDetectorFactoryStub) CreateForkDetector(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error) {
 	if f.CreateForkDetectorCalled != nil {
@@ -25,5 +20,5 @@ func (f *ForkDetectorFactoryStub) CreateForkDetector(args sync.ForkDetectorFacto
 
 // IsInterfaceNil -
 func (f *ForkDetectorFactoryStub) IsInterfaceNil() bool {
-	return false
+	return f == nil
 }

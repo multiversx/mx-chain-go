@@ -38,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -796,9 +795,9 @@ func GetProcessComponents(
 	return managedProcessComponents
 }
 
+// GetRunTypeComponents -
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeFactoryArgs := GetRunTypeFactoryArgs()
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(runTypeFactoryArgs)
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -810,23 +809,6 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 		return nil
 	}
 	return managedRunTypeComponents
-}
-
-// GetRunTypeFactoryArgs -
-func GetRunTypeFactoryArgs() runType.RunTypeComponentsFactoryArgs {
-	return runType.RunTypeComponentsFactoryArgs{
-		BlockChainHookHandlerCreator:        factory2.NewBlockChainHookHandlerFactoryStub(),
-		EpochStartBootstrapperCreator:       factory2.NewEpochStartBootstrapperFactoryStub(),
-		BootstrapperFromStorageCreator:      factory2.NewBootstrapperFromStorageFactoryStub(),
-		BlockProcessorCreator:               factory2.NewBlockProcessorFactoryStub(),
-		ForkDetectorCreator:                 factory2.NewForkDetectorFactoryStub(),
-		BlockTrackerCreator:                 factory2.NewBlockTrackerFactoryStub(),
-		RequestHandlerCreator:               factory2.NewRequestHandlerFactoryStub(),
-		HeaderValidatorCreator:              factory2.NewHeaderValidatorFactoryStub(),
-		ScheduledTxsExecutionCreator:        factory2.NewScheduledTxsExecutionFactoryStub(),
-		TransactionCoordinatorCreator:       factory2.NewTransactionCoordinatorFactoryStub(),
-		ValidatorStatisticsProcessorCreator: factory2.NewValidatorStatisticsProcessorFactoryStub(),
-	}
 }
 
 // DummyLoadSkPkFromPemFile -

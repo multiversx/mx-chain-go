@@ -10,11 +10,6 @@ type TransactionCoordinatorFactoryStub struct {
 	CreateTransactionCoordinatorCalled func(args coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
 }
 
-// NewTransactionCoordinatorFactoryStub -
-func NewTransactionCoordinatorFactoryStub() *TransactionCoordinatorFactoryStub {
-	return &TransactionCoordinatorFactoryStub{}
-}
-
 // CreateTransactionCoordinator -
 func (t *TransactionCoordinatorFactoryStub) CreateTransactionCoordinator(args coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error) {
 	if t.CreateTransactionCoordinatorCalled != nil {
@@ -25,5 +20,5 @@ func (t *TransactionCoordinatorFactoryStub) CreateTransactionCoordinator(args co
 
 // IsInterfaceNil -
 func (t *TransactionCoordinatorFactoryStub) IsInterfaceNil() bool {
-	return false
+	return t == nil
 }

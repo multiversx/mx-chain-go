@@ -10,11 +10,6 @@ type BlockProcessorFactoryStub struct {
 	CreateBlockProcessorCalled func(argumentsBaseProcessor processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
 }
 
-// NewBlockProcessorFactoryStub -
-func NewBlockProcessorFactoryStub() *BlockProcessorFactoryStub {
-	return &BlockProcessorFactoryStub{}
-}
-
 // CreateBlockProcessor -
 func (b *BlockProcessorFactoryStub) CreateBlockProcessor(args processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
 	if b.CreateBlockProcessorCalled != nil {
@@ -25,5 +20,5 @@ func (b *BlockProcessorFactoryStub) CreateBlockProcessor(args processBlock.ArgBa
 
 // IsInterfaceNil -
 func (b *BlockProcessorFactoryStub) IsInterfaceNil() bool {
-	return false
+	return b == nil
 }

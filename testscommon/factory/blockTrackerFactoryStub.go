@@ -10,11 +10,6 @@ type BlockTrackerFactoryStub struct {
 	CreateBlockTrackerCalled func(args track.ArgShardTracker) (process.BlockTracker, error)
 }
 
-// NewBlockTrackerFactoryStub -
-func NewBlockTrackerFactoryStub() *BlockTrackerFactoryStub {
-	return &BlockTrackerFactoryStub{}
-}
-
 // CreateBlockTracker -
 func (b *BlockTrackerFactoryStub) CreateBlockTracker(args track.ArgShardTracker) (process.BlockTracker, error) {
 	if b.CreateBlockTrackerCalled != nil {
@@ -25,5 +20,5 @@ func (b *BlockTrackerFactoryStub) CreateBlockTracker(args track.ArgShardTracker)
 
 // IsInterfaceNil -
 func (b *BlockTrackerFactoryStub) IsInterfaceNil() bool {
-	return false
+	return b == nil
 }

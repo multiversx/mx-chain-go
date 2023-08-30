@@ -10,11 +10,6 @@ type RequestHandlerFactoryStub struct {
 	CreateRequestHandlerCalled func(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
 }
 
-// NewRequestHandlerFactoryStub -
-func NewRequestHandlerFactoryStub() *RequestHandlerFactoryStub {
-	return &RequestHandlerFactoryStub{}
-}
-
 // CreateRequestHandler -
 func (r *RequestHandlerFactoryStub) CreateRequestHandler(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error) {
 	if r.CreateRequestHandlerCalled != nil {
@@ -25,5 +20,5 @@ func (r *RequestHandlerFactoryStub) CreateRequestHandler(args requestHandlers.Re
 
 // IsInterfaceNil -
 func (r *RequestHandlerFactoryStub) IsInterfaceNil() bool {
-	return false
+	return r == nil
 }

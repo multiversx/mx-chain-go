@@ -10,11 +10,6 @@ type BlockChainHookHandlerFactoryStub struct {
 	CreateBlockChainHookHandlerCalled func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error)
 }
 
-// NewBlockChainHookHandlerFactoryStub -
-func NewBlockChainHookHandlerFactoryStub() *BlockChainHookHandlerFactoryStub {
-	return &BlockChainHookHandlerFactoryStub{}
-}
-
 // CreateBlockChainHookHandler -
 func (b *BlockChainHookHandlerFactoryStub) CreateBlockChainHookHandler(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
 	if b.CreateBlockChainHookHandlerCalled != nil {
@@ -25,5 +20,5 @@ func (b *BlockChainHookHandlerFactoryStub) CreateBlockChainHookHandler(args hook
 
 // IsInterfaceNil -
 func (b *BlockChainHookHandlerFactoryStub) IsInterfaceNil() bool {
-	return false
+	return b == nil
 }

@@ -10,11 +10,6 @@ type HeaderValidatorFactoryStub struct {
 	CreateHeaderValidatorCalled func(args processBlock.ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
 }
 
-// NewHeaderValidatorFactoryStub -
-func NewHeaderValidatorFactoryStub() *HeaderValidatorFactoryStub {
-	return &HeaderValidatorFactoryStub{}
-}
-
 // CreateHeaderValidator -
 func (h *HeaderValidatorFactoryStub) CreateHeaderValidator(args processBlock.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
 	if h.CreateHeaderValidatorCalled != nil {
@@ -25,5 +20,5 @@ func (h *HeaderValidatorFactoryStub) CreateHeaderValidator(args processBlock.Arg
 
 // IsInterfaceNil -
 func (h *HeaderValidatorFactoryStub) IsInterfaceNil() bool {
-	return false
+	return h == nil
 }
