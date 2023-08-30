@@ -78,7 +78,7 @@ func NewSCQueryService(
 		return nil, err
 	}
 
-	gasForQuery := uint64(math.MaxUint64)
+	gasForQuery := uint64(math.MaxInt64)
 	if args.MaxGasLimitPerQuery > 0 {
 		gasForQuery = args.MaxGasLimitPerQuery
 	}
