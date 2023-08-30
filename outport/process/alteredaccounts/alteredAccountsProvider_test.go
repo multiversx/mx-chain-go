@@ -94,6 +94,11 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 		Owner:            []byte("owner"),
 		UserName:         []byte("contract"),
 		Address:          []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		CodeHash:         []byte("hash"),
+		CodeMetadata:     []byte("metadata"),
+		GetRootHashCalled: func() []byte {
+			return []byte("rootHash")
+		},
 	}
 
 	res := &alteredAccount.AlteredAccount{
@@ -109,6 +114,9 @@ func TestGetAlteredAccountFromUserAccount(t *testing.T) {
 			DeveloperRewards: "100",
 			CurrentOwner:     "6f776e6572",
 			UserName:         "contract",
+			CodeHash:         []byte("hash"),
+			CodeMetadata:     []byte("metadata"),
+			RootHash:         []byte("rootHash"),
 		},
 	}, res)
 
