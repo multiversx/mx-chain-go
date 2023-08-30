@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
 	"github.com/multiversx/mx-chain-go/storage/databaseremover/disabled"
@@ -41,19 +42,20 @@ const (
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
-	generalConfig                 config.Config
-	prefsConfig                   config.PreferencesConfig
-	shardCoordinator              storage.ShardCoordinator
-	pathManager                   storage.PathManagerHandler
-	epochStartNotifier            epochStart.EpochStartNotifier
-	oldDataCleanerProvider        clean.OldDataCleanerProvider
-	createTrieEpochRootHashStorer bool
-	currentEpoch                  uint32
-	storageType                   StorageServiceType
-	nodeProcessingMode            common.NodeProcessingMode
-	snapshotsEnabled              bool
-	repopulateTokensSupplies      bool
-	chainRunType                  common.ChainRunType
+	generalConfig                   config.Config
+	prefsConfig                     config.PreferencesConfig
+	shardCoordinator                storage.ShardCoordinator
+	pathManager                     storage.PathManagerHandler
+	epochStartNotifier              epochStart.EpochStartNotifier
+	oldDataCleanerProvider          clean.OldDataCleanerProvider
+	createTrieEpochRootHashStorer   bool
+	currentEpoch                    uint32
+	storageType                     StorageServiceType
+	nodeProcessingMode              common.NodeProcessingMode
+	snapshotsEnabled                bool
+	repopulateTokensSupplies        bool
+	additionalStorageServiceFactory process.AdditionalStorageServiceCreator
+	chainRunType                    common.ChainRunType
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -343,14 +345,23 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	// TODO: (RaduChis) we should have a StorageServiceFactory interface that has only one method: Create
-	// For now, we have CreateForShard and CreateForMeta. We should split this file in multiple files like:
-	// shardStorageServiceFactory.go, sovereignStorageServiceFactory.go, metaStorageServiceFactory.go
+	// TODO: this should be removed when the additionalStorageServiceFactory will be injected
 	if psf.chainRunType == common.ChainRunTypeSovereign {
-		err = psf.createAndAddStorageUnitsForSovereign(store, shardID)
+		psf.additionalStorageServiceFactory, err = NewSovereignAdditionalStorageServiceFactory()
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		psf.additionalStorageServiceFactory, err = NewShardAdditionalStorageServiceFactory()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// TODO: this should be refactored to not get a function as a parameter
+	err = psf.additionalStorageServiceFactory.CreateAdditionalStorageUnits(psf.createAndAddStorageUnitsForSovereign, store, shardID)
+	if err != nil {
+		return nil, err
 	}
 
 	peerAccountsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
