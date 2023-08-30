@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
@@ -42,28 +43,28 @@ type dataComponentsHandler interface {
 
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
-	GenesisTime          uint64
-	StartEpochNum        uint32
-	Data                 dataComponentsHandler
-	Core                 coreComponentsHandler
-	Accounts             state.AccountsAdapter
-	ValidatorAccounts    state.AccountsAdapter
-	InitialNodesSetup    genesis.InitialNodesHandler
-	Economics            process.EconomicsDataHandler
-	ShardCoordinator     sharding.Coordinator
-	AccountsParser       genesis.AccountsParser
-	SmartContractParser  genesis.InitialSmartContractParser
-	GasSchedule          core.GasScheduleNotifier
-	TxLogsProcessor      process.TransactionLogProcessor
-	VirtualMachineConfig config.VirtualMachineConfig
-	HardForkConfig       config.HardforkConfig
-	TrieStorageManagers  map[string]common.StorageManager
-	SystemSCConfig       config.SystemSmartContractsConfig
-	RoundConfig          *config.RoundConfig
-	EpochConfig          *config.EpochConfig
-	WorkingDir           string
-	BlockSignKeyGen      crypto.KeyGenerator
-	ChainRunType         common.ChainRunType
+	GenesisTime                  uint64
+	StartEpochNum                uint32
+	Data                         dataComponentsHandler
+	Core                         coreComponentsHandler
+	Accounts                     state.AccountsAdapter
+	ValidatorAccounts            state.AccountsAdapter
+	InitialNodesSetup            genesis.InitialNodesHandler
+	Economics                    process.EconomicsDataHandler
+	ShardCoordinator             sharding.Coordinator
+	AccountsParser               genesis.AccountsParser
+	SmartContractParser          genesis.InitialSmartContractParser
+	GasSchedule                  core.GasScheduleNotifier
+	TxLogsProcessor              process.TransactionLogProcessor
+	VirtualMachineConfig         config.VirtualMachineConfig
+	HardForkConfig               config.HardforkConfig
+	TrieStorageManagers          map[string]common.StorageManager
+	SystemSCConfig               config.SystemSmartContractsConfig
+	RoundConfig                  *config.RoundConfig
+	EpochConfig                  *config.EpochConfig
+	WorkingDir                   string
+	BlockSignKeyGen              crypto.KeyGenerator
+	BlockChainHookHandlerFactory hooks.BlockChainHookHandlerCreator
 
 	GenesisNodePrice *big.Int
 	GenesisString    string

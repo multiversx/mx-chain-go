@@ -62,7 +62,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	"github.com/multiversx/mx-chain-go/sovereignnode/helpers"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -1511,17 +1510,21 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeComponents is the managed runType components factory
 func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeArgs, err := helpers.NewRunTypeComponentsFactoryArgs()
-	if err != nil {
-		return nil, fmt.Errorf("newRunTypeComponentsFactory - NewRunTypeComponentsFactoryArgs failed: %w", err)
-	}
 
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(runTypeArgs)
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
 	if err != nil {
 		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
 	}
 
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
+		runType.SovereignRunTypeComponentsFactoryArgs{
+			RunTypeComponentsFactory: runTypeComponentsFactory,
+		})
+	if err != nil {
+		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignRunTypeComponentsFactory)
 	if err != nil {
 		return nil, err
 	}

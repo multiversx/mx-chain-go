@@ -27,7 +27,7 @@ type DataComponentsFactoryArgs struct {
 	Core                          factory.CoreComponentsHolder
 	StatusCore                    factory.StatusCoreComponentsHolder
 	Crypto                        factory.CryptoComponentsHolder
-	RunType                       factory.RunTypeComponentsHolder
+	RunTypeComponents             factory.RunTypeComponentsHolder
 	FlagsConfigs                  config.ContextFlagsConfig
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
@@ -42,7 +42,7 @@ type dataComponentsFactory struct {
 	core                          factory.CoreComponentsHolder
 	statusCore                    factory.StatusCoreComponentsHolder
 	crypto                        factory.CryptoComponentsHolder
-	runType                       factory.RunTypeComponentsHolder
+	runTypeComponents             factory.RunTypeComponentsHolder
 	flagsConfig                   config.ContextFlagsConfig
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
@@ -74,7 +74,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Crypto) {
 		return nil, errors.ErrNilCryptoComponents
 	}
-	if check.IfNil(args.RunType) {
+	if check.IfNil(args.RunTypeComponents) {
 		return nil, errors.ErrNilRunTypeComponents
 	}
 	return &dataComponentsFactory{
@@ -88,7 +88,7 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		flagsConfig:                   args.FlagsConfigs,
 		nodeProcessingMode:            args.NodeProcessingMode,
 		crypto:                        args.Crypto,
-		runType:                       args.RunType,
+		runTypeComponents:             args.RunTypeComponents,
 	}, nil
 }
 
@@ -180,7 +180,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			NodeProcessingMode:              dcf.nodeProcessingMode,
 			RepopulateTokensSupplies:        dcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:              dcf.crypto.ManagedPeersHolder(),
-			AdditionalStorageServiceCreator: dcf.runType.AdditionalStorageServiceCreator(),
+			AdditionalStorageServiceCreator: dcf.runTypeComponents.AdditionalStorageServiceCreator(),
 		})
 	if err != nil {
 		return nil, err

@@ -31,9 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
@@ -56,15 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/peer"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/sync"
-	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
-	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -292,10 +282,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	if err != nil {
 		return true, err
 	}
-	// TODO: remove this
-	if managedRunTypeComponents != nil {
-		return true, err
-	}
 
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
@@ -330,7 +316,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -338,7 +324,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -437,6 +423,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 	)
@@ -1154,6 +1141,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
@@ -1258,7 +1246,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:     importStartHandler,
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
-		ChainRunType:           common.ChainRunTypeRegular,
+		RunTypeComponents:      runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1284,6 +1272,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := nr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1305,6 +1294,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		FlagsConfigs:                  *configs.FlagsConfig,
 		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ChainRunType:                  common.ChainRunTypeRegular,
+		RunTypeComponents:             runTypeComponents,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1373,6 +1363,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1385,7 +1376,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		//ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1556,66 +1547,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeComponents is the managed runType components factory
 func (nr *nodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-	blockChainHookHandlerFactory, err := hooks.NewBlockChainHookFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewBlockChainHookFactory failed: %w", err)
-	}
-	epochStartBootstrapperFactory, err := bootstrap.NewEpochStartBootstrapperFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewEpochStartBootstrapperFactory failed: %w", err)
-	}
-	bootstrapperFromStorageFactory, err := storageBootstrap.NewShardStorageBootstrapperFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardStorageBootstrapperFactory failed: %w", err)
-	}
-	blockProcessorFactory, err := block.NewShardBlockProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardBlockProcessorFactory failed: %w", err)
-	}
-	forkDetectorFactory, err := sync.NewShardForkDetectorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardForkDetectorFactory failed: %w", err)
-	}
-	blockTrackerFactory, err := track.NewShardBlockTrackerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardBlockTrackerFactory failed: %w", err)
-	}
-	requestHandlerFactory, err := requestHandlers.NewResolverRequestHandlerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewResolverRequestHandlerFactory failed: %w", err)
-	}
-	headerValidatorFactory, err := block.NewShardHeaderValidatorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardHeaderValidatorFactory failed: %w", err)
-	}
-	scheduledTxsExecutionFactory, err := preprocess.NewShardScheduledTxsExecutionFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardScheduledTxsExecutionFactory failed: %w", err)
-	}
-	transactionCoordinatorFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardTransactionCoordinatorFactory failed: %w", err)
-	}
-	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewShardBlockProcessorFactory failed: %w", err)
-	}
-
-	runTypeArgs := runType.RunTypeComponentsFactoryArgs{
-		BlockChainHookHandlerCreator:        blockChainHookHandlerFactory,
-		EpochStartBootstrapperCreator:       epochStartBootstrapperFactory,
-		BootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
-		BlockProcessorCreator:               blockProcessorFactory,
-		ForkDetectorCreator:                 forkDetectorFactory,
-		BlockTrackerCreator:                 blockTrackerFactory,
-		RequestHandlerCreator:               requestHandlerFactory,
-		HeaderValidatorCreator:              headerValidatorFactory,
-		ScheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
-		TransactionCoordinatorCreator:       transactionCoordinatorFactory,
-		ValidatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
-	}
-
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(runTypeArgs)
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}

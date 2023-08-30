@@ -4,7 +4,7 @@ import "github.com/multiversx/mx-chain-go/dataRetriever"
 
 // AdditionalStorageServiceFactoryStub -
 type AdditionalStorageServiceFactoryStub struct {
-	CreateAdditionalStorageServiceCalled func(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	CreateAdditionalStorageUnitsCalled func(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
 }
 
 // NewAdditionalStorageServiceFactoryStub -
@@ -12,8 +12,8 @@ func NewAdditionalStorageServiceFactoryStub() *AdditionalStorageServiceFactorySt
 	return &AdditionalStorageServiceFactoryStub{}
 }
 
-// CreateAdditionalStorageService -
-func (a *AdditionalStorageServiceFactoryStub) CreateAdditionalStorageService(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error {
+// CreateAdditionalStorageUnits -
+func (a *AdditionalStorageServiceFactoryStub) CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error {
 	return nil
 }
 

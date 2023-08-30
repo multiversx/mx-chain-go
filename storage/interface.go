@@ -241,5 +241,5 @@ type StorageService interface {
 
 // AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
 type AdditionalStorageServiceCreator interface {
-	CreateAdditionalStorageService(func(store StorageService, shardID string) error, StorageService, string) error
+	CreateAdditionalStorageUnits(func(store StorageService, shardID string) error, StorageService, string) error
 }

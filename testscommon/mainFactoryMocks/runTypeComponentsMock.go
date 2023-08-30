@@ -2,7 +2,6 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 // RunTypeComponentsMock -
@@ -97,7 +96,7 @@ func (r *RunTypeComponentsMock) ValidatorStatisticsProcessorCreator() factory.Va
 }
 
 // AdditionalStorageServiceCreator -
-func (r *RunTypeComponentsMock) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
+func (r *RunTypeComponentsMock) AdditionalStorageServiceCreator() factory.AdditionalStorageServiceCreator {
 	return r.AdditionalStorageServiceFactory
 }
 

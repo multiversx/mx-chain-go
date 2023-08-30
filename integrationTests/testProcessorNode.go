@@ -3400,18 +3400,18 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 // GetDefaultRunTypeComponents -
 func GetDefaultRunTypeComponents() *mainFactoryMocks.RunTypeComponentsMock {
 	return &mainFactoryMocks.RunTypeComponentsMock{
-		BlockChainHookHandlerFactory:        testFactory.NewBlockChainHookHandlerFactoryStub(),
-		BlockProcessorFactory:               testFactory.NewBlockProcessorFactoryStub(),
-		BlockTrackerFactory:                 testFactory.NewBlockTrackerFactoryStub(),
-		BootstrapperFromStorageFactory:      testFactory.NewBootstrapperFromStorageFactoryStub(),
-		EpochStartBootstrapperFactory:       testFactory.NewEpochStartBootstrapperFactoryStub(),
-		ForkDetectorFactory:                 testFactory.NewForkDetectorFactoryStub(),
-		HeaderValidatorFactory:              testFactory.NewHeaderValidatorFactoryStub(),
-		RequestHandlerFactory:               testFactory.NewRequestHandlerFactoryStub(),
-		ScheduledTxsExecutionFactory:        testFactory.NewScheduledTxsExecutionFactoryStub(),
-		TransactionCoordinatorFactory:       testFactory.NewTransactionCoordinatorFactoryStub(),
-		ValidatorStatisticsProcessorFactory: testFactory.NewValidatorStatisticsProcessorFactoryStub(),
-		AdditionalStorageServiceFactory:     testFactory.NewAdditionalStorageServiceFactoryStub(),
+		BlockChainHookHandlerFactory:        &testFactory.BlockChainHookHandlerFactoryStub{},
+		BlockProcessorFactory:               &testFactory.BlockProcessorFactoryStub{},
+		BlockTrackerFactory:                 &testFactory.BlockTrackerFactoryStub{},
+		BootstrapperFromStorageFactory:      &testFactory.BootstrapperFromStorageFactoryStub{},
+		EpochStartBootstrapperFactory:       &testFactory.EpochStartBootstrapperFactoryStub{},
+		ForkDetectorFactory:                 &testFactory.ForkDetectorFactoryStub{},
+		HeaderValidatorFactory:              &testFactory.HeaderValidatorFactoryStub{},
+		RequestHandlerFactory:               &testFactory.RequestHandlerFactoryStub{},
+		ScheduledTxsExecutionFactory:        &testFactory.ScheduledTxsExecutionFactoryStub{},
+		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryStub{},
+		ValidatorStatisticsProcessorFactory: &testFactory.ValidatorStatisticsProcessorFactoryStub{},
+		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryStub{},
 	}
 }
 

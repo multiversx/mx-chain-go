@@ -7,8 +7,8 @@ type AdditionalStorageServiceFactoryMock struct {
 	ExecuteFunction bool
 }
 
-// CreateAdditionalStorageService creates an additional storage service for a shard
-func (psf *AdditionalStorageServiceFactoryMock) CreateAdditionalStorageService(f func(store dataRetriever.StorageService, shardID string) error, store dataRetriever.StorageService, shardID string) error {
+// CreateAdditionalStorageUnits creates an additional storage units for a shard
+func (psf *AdditionalStorageServiceFactoryMock) CreateAdditionalStorageUnits(f func(store dataRetriever.StorageService, shardID string) error, store dataRetriever.StorageService, shardID string) error {
 	if psf.ExecuteFunction {
 		return f(store, shardID)
 	}

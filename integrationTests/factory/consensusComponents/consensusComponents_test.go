@@ -39,9 +39,11 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	manangedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, manangedRunTypeComponents)
+	require.Nil(t, err)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, manangedRunTypeComponents)
 	require.Nil(t, err)
 	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
@@ -99,6 +101,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedDataComponents,
 		managedStatusComponents,
 		managedStatusCoreComponents,
+		manangedRunTypeComponents,
 		gasScheduleNotifier,
 		nodesCoordinator,
 	)

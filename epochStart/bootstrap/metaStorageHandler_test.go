@@ -34,6 +34,7 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
 
 	mtStrHandler, err := NewMetaStorageHandler(
 		gCfg,
@@ -47,6 +48,7 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		additionalStorageCreator,
 	)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
@@ -66,6 +68,8 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
+
 	mtStrHandler, err := NewMetaStorageHandler(
 		gCfg,
 		prefsConfig,
@@ -78,6 +82,7 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		additionalStorageCreator,
 	)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
@@ -97,6 +102,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
 
 	mtStrHandler, _ := NewMetaStorageHandler(
 		gCfg,
@@ -110,6 +116,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		additionalStorageCreator,
 	)
 
 	header := &block.MetaBlock{Nonce: 0}
@@ -138,6 +145,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
 
 	mtStrHandler, _ := NewMetaStorageHandler(
 		gCfg,
@@ -151,6 +159,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		additionalStorageCreator,
 	)
 
 	hdr1 := &block.Header{Nonce: 1}
@@ -185,6 +194,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
 
 	mtStrHandler, _ := NewMetaStorageHandler(
 		gCfg,
@@ -198,6 +208,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		additionalStorageCreator,
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -223,6 +234,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+	additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
 
 	mtStrHandler, _ := NewMetaStorageHandler(
 		gCfg,
@@ -236,6 +248,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		additionalStorageCreator,
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -278,6 +291,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
 		nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
 		managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+		additionalStorageCreator := &testscommon.AdditionalStorageServiceFactoryMock{}
 
 		mtStrHandler, _ := NewMetaStorageHandler(
 			gCfg,
@@ -291,6 +305,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			nodeTypeProvider,
 			common.Normal,
 			managedPeersHolder,
+			additionalStorageCreator,
 		)
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{

@@ -70,7 +70,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
 		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
-		args.RunType = nil
+		args.RunTypeComponents = nil
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.Nil(t, dcf)

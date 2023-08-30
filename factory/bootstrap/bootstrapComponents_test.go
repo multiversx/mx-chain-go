@@ -12,6 +12,7 @@ import (
 	epochStartBootstrap "github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -89,14 +90,14 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAppStatusHandler, err)
 	})
-	t.Run("nil epoch start bootstraper factory should error", func(t *testing.T) {
+	t.Run("nil runTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.EpochStartBootstrapperFactory = nil
+		argsCopy.RunTypeComponents = nil
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
-		require.Equal(t, errorsMx.ErrNilEpochStartBootstrapperFactory, err)
+		require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
 	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
@@ -225,10 +226,13 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := componentsMock.GetBootStrapFactoryArgs()
-		args.EpochStartBootstrapperFactory = &factory.EpochStartBootstrapperFactoryStub{
-			CreateEpochStartBootstrapperCalled: func(args epochStartBootstrap.ArgsEpochStartBootstrap) (epochStartBootstrap.EpochStartBootstrapper, error) {
-				return nil, errors.New("newStorageEpochStartBootstrap error")
+		args.RunTypeComponents = &mock.RunTypeComponentsMock{
+			EpochStartBootstrapperFactory: &factory.EpochStartBootstrapperFactoryStub{
+				CreateEpochStartBootstrapperCalled: func(args epochStartBootstrap.ArgsEpochStartBootstrap) (epochStartBootstrap.EpochStartBootstrapper, error) {
+					return nil, errors.New("newStorageEpochStartBootstrap error")
+				},
 			},
+			AdditionalStorageServiceFactory: &testscommon.AdditionalStorageServiceFactoryMock{},
 		}
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		require.NotNil(t, bcf)

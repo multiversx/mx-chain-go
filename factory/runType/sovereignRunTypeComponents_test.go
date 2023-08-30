@@ -52,3 +52,14 @@ func TestSovereignRunTypeComponentsFactory_Close(t *testing.T) {
 
 	require.NoError(t, rc.Close())
 }
+
+func TestSovereignRunTypeComponentsFactory_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	rcf, _ := runType.NewRunTypeComponentsFactory()
+	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(runType.SovereignRunTypeComponentsFactoryArgs{
+		RunTypeComponentsFactory: rcf,
+	})
+
+	require.False(t, srcf.IsInterfaceNil())
+}

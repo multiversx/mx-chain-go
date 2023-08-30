@@ -120,3 +120,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
 	}, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rc *sovereignRunTypeComponentsFactory) IsInterfaceNil() bool {
+	return rc == nil
+}

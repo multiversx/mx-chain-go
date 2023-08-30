@@ -1193,18 +1193,6 @@ type CryptoComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
-type AdditionalStorageServiceCreator interface {
-	CreateAdditionalStorageService(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
-	IsInterfaceNil() bool
-}
-
-// RunTypeComponentsHolder holds the runType components needed by the interceptors
-type RunTypeComponentsHolder interface {
-	AdditionalStorageServiceCreator() AdditionalStorageServiceCreator
-	IsInterfaceNil() bool
-}
-
 // StatusCoreComponentsHolder holds the status core components
 type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler

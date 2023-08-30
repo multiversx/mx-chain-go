@@ -267,8 +267,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		RunTypeComponentsHolder:    integrationTests.GetDefaultRunTypeComponents(),
+		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
+		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -283,17 +283,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        generalConfig,
-			PrefsConfig:                   prefsConfig,
-			ShardCoordinator:              shardC,
-			PathManager:                   &testscommon.PathManagerStub{},
-			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
-			NodeTypeProvider:              &nodeTypeProviderMock.NodeTypeProviderStub{},
-			CurrentEpoch:                  0,
-			StorageType:                   factory.ProcessStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            common.Normal,
-			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
+			Config:                          generalConfig,
+			PrefsConfig:                     prefsConfig,
+			ShardCoordinator:                shardC,
+			PathManager:                     &testscommon.PathManagerStub{},
+			EpochStartNotifier:              notifier.NewEpochStartSubscriptionHandler(),
+			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+			CurrentEpoch:                    0,
+			StorageType:                     factory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              common.Normal,
+			ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+			AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 		},
 	)
 	assert.NoError(t, err)

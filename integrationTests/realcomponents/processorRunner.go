@@ -17,9 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryBootstrap "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	factoryCore "github.com/multiversx/mx-chain-go/factory/core"
@@ -35,15 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	processBlock "github.com/multiversx/mx-chain-go/process/block"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/peer"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/sync"
-	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
-	"github.com/multiversx/mx-chain-go/process/track"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -83,6 +73,7 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
+	pr.createRunTypeComponents(tb)
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createStatusCoreComponents(tb)
@@ -95,58 +86,7 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
-	bhf, err := hooks.NewBlockChainHookFactory()
-	require.Nil(tb, err)
-
-	esbf, err := bootstrap.NewEpochStartBootstrapperFactory()
-	require.Nil(tb, err)
-
-	ssbf, err := storageBootstrap.NewShardStorageBootstrapperFactory()
-	require.Nil(tb, err)
-
-	shvf, err := processBlock.NewShardHeaderValidatorFactory()
-	require.Nil(tb, err)
-
-	sbpf, err := processBlock.NewShardBlockProcessorFactory()
-	require.Nil(tb, err)
-
-	fdf, err := sync.NewShardForkDetectorFactory()
-	require.Nil(tb, err)
-
-	sbtf, err := track.NewShardBlockTrackerFactory()
-	require.Nil(tb, err)
-
-	rhf, err := requestHandlers.NewResolverRequestHandlerFactory()
-	require.Nil(tb, err)
-
-	sstef, err := preprocess.NewShardScheduledTxsExecutionFactory()
-	require.Nil(tb, err)
-
-	stcf, err := coordinator.NewShardTransactionCoordinatorFactory()
-	require.Nil(tb, err)
-
-	vspf, err := peer.NewValidatorStatisticsProcessorFactory()
-	require.Nil(tb, err)
-
-	sassf, err := storageFactory.NewShardAdditionalStorageServiceFactory()
-	require.Nil(tb, err)
-
-	argsRunType := factoryRunType.RunTypeComponentsFactoryArgs{
-		BlockChainHookHandlerCreator:        bhf,
-		EpochStartBootstrapperCreator:       esbf,
-		BootstrapperFromStorageCreator:      ssbf,
-		BlockProcessorCreator:               sbpf,
-		ForkDetectorCreator:                 fdf,
-		BlockTrackerCreator:                 sbtf,
-		RequestHandlerCreator:               rhf,
-		HeaderValidatorCreator:              shvf,
-		ScheduledTxsExecutionCreator:        sstef,
-		TransactionCoordinatorCreator:       stcf,
-		ValidatorStatisticsProcessorCreator: vspf,
-		AdditionalStorageServiceCreator:     sassf,
-	}
-
-	runTypeComponentsFactory, err := factoryRunType.NewRunTypeComponentsFactory(argsRunType)
+	runTypeComponentsFactory, err := factoryRunType.NewRunTypeComponentsFactory()
 	require.Nil(tb, err)
 
 	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeComponentsFactory)
@@ -284,7 +224,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
-		//ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents:    pr.RunTypeComponents,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -313,6 +253,7 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
 		FlagsConfigs:                  config.ContextFlagsConfig{},
+		RunTypeComponents:             pr.RunTypeComponents,
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -508,7 +449,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		BootstrapComponents:    pr.BootstrapComponents,
 		StatusComponents:       pr.StatusComponents,
 		StatusCoreComponents:   pr.StatusCoreComponents,
-		ChainRunType:           common.ChainRunTypeRegular,
+		//ChainRunType:           common.ChainRunTypeRegular,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

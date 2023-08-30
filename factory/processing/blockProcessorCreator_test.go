@@ -72,7 +72,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
+
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
@@ -107,7 +107,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		//args.ChainRunType = common.ChainRunTypeSovereign
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)

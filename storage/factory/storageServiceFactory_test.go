@@ -466,7 +466,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		//args.ChainRunType = common.ChainRunTypeSovereign
+		args.AdditionalStorageServiceCreator = &testscommon.AdditionalStorageServiceFactoryMock{ExecuteFunction: true}
 		args.Config.SovereignConfig.ExtendedShardHeaderStorage.Cache.Type = ""
 
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
@@ -479,7 +479,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		//args.ChainRunType = common.ChainRunTypeSovereign
+		args.AdditionalStorageServiceCreator = &testscommon.AdditionalStorageServiceFactoryMock{ExecuteFunction: true}
 		args.Config.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache.Type = ""
 
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
@@ -492,7 +492,7 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		//args.ChainRunType = common.ChainRunTypeSovereign
+		args.AdditionalStorageServiceCreator = &testscommon.AdditionalStorageServiceFactoryMock{ExecuteFunction: true}
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 
 		storageService, err := storageServiceFactory.CreateForShard()

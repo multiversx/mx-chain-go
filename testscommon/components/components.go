@@ -40,6 +40,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -225,7 +227,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
 		FlagsConfigs:                  config.ContextFlagsConfig{},
-		RunType:                       GetRunTypeComponents(),
+		RunTypeComponents:             GetRunTypeComponents(),
 	}
 }
 
@@ -400,19 +402,22 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		EpochStartBootstrapperFactory: &factory2.EpochStartBootstrapperFactoryStub{
-			CreateEpochStartBootstrapperCalled: func(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error) {
-				return &bootstrapMocks.EpochStartBootstrapperStub{
-					BootstrapCalled: func() (bootstrap.Parameters, error) {
-						return bootstrap.Parameters{
-							Epoch:       0,
-							SelfShardId: 0,
-							NumOfShards: 2,
-							NodesConfig: nil,
-						}, nil
-					},
-				}, nil
+		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsMock{
+			EpochStartBootstrapperFactory: &testFactory.EpochStartBootstrapperFactoryStub{
+				CreateEpochStartBootstrapperCalled: func(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error) {
+					return &bootstrapMocks.EpochStartBootstrapperStub{
+						BootstrapCalled: func() (bootstrap.Parameters, error) {
+							return bootstrap.Parameters{
+								Epoch:       0,
+								SelfShardId: 0,
+								NumOfShards: 2,
+								NodesConfig: nil,
+							}, nil
+						},
+					}, nil
+				},
 			},
+			AdditionalStorageServiceFactory: &testFactory.AdditionalStorageServiceFactoryStub{},
 		},
 	}
 }
@@ -580,7 +585,7 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -825,24 +830,6 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 		return nil
 	}
 	return managedRunTypeComponents
-}
-
-// GetRunTypeFactoryArgs -
-func GetRunTypeFactoryArgs() runType.RunTypeComponentsFactoryArgs {
-	return runType.RunTypeComponentsFactoryArgs{
-		BlockChainHookHandlerCreator:        factory2.NewBlockChainHookHandlerFactoryStub(),
-		EpochStartBootstrapperCreator:       factory2.NewEpochStartBootstrapperFactoryStub(),
-		BootstrapperFromStorageCreator:      factory2.NewBootstrapperFromStorageFactoryStub(),
-		BlockProcessorCreator:               factory2.NewBlockProcessorFactoryStub(),
-		ForkDetectorCreator:                 factory2.NewForkDetectorFactoryStub(),
-		BlockTrackerCreator:                 factory2.NewBlockTrackerFactoryStub(),
-		RequestHandlerCreator:               factory2.NewRequestHandlerFactoryStub(),
-		HeaderValidatorCreator:              factory2.NewHeaderValidatorFactoryStub(),
-		ScheduledTxsExecutionCreator:        factory2.NewScheduledTxsExecutionFactoryStub(),
-		TransactionCoordinatorCreator:       factory2.NewTransactionCoordinatorFactoryStub(),
-		ValidatorStatisticsProcessorCreator: factory2.NewValidatorStatisticsProcessorFactoryStub(),
-		AdditionalStorageServiceCreator:     factory2.NewAdditionalStorageServiceFactoryStub(),
-	}
 }
 
 // DummyLoadSkPkFromPemFile -

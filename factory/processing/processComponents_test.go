@@ -238,7 +238,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		RunTypeComponents: components.GetRunTypeComponents(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
