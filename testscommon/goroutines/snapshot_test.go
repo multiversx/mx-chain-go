@@ -1,7 +1,7 @@
 package goroutines
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +11,7 @@ import (
 func TestNewSnapshot(t *testing.T) {
 	t.Parallel()
 
-	buff, err := ioutil.ReadFile("testdata/test1.data")
+	buff, err := os.ReadFile("testdata/test1.data")
 	require.Nil(t, err)
 	s, err := newSnapshot(string(buff), AllPassFilter)
 	assert.Nil(t, err)
@@ -21,7 +21,7 @@ func TestNewSnapshot(t *testing.T) {
 func TestNewSnapshot_WithFilter(t *testing.T) {
 	t.Parallel()
 
-	buff, err := ioutil.ReadFile("testdata/test1.data")
+	buff, err := os.ReadFile("testdata/test1.data")
 	require.Nil(t, err)
 	s, err := newSnapshot(string(buff), TestsRelevantGoRoutines)
 	assert.Nil(t, err)
@@ -31,12 +31,12 @@ func TestNewSnapshot_WithFilter(t *testing.T) {
 func TestSnapshot_Diff(t *testing.T) {
 	t.Parallel()
 
-	buffFile2, err := ioutil.ReadFile("testdata/test2.data")
+	buffFile2, err := os.ReadFile("testdata/test2.data")
 	require.Nil(t, err)
 	snapshot2, err := newSnapshot(string(buffFile2), AllPassFilter)
 	require.Nil(t, err)
 
-	buffFile3, err := ioutil.ReadFile("testdata/test3.data")
+	buffFile3, err := os.ReadFile("testdata/test3.data")
 	require.Nil(t, err)
 	snapshot3, err := newSnapshot(string(buffFile3), AllPassFilter)
 	require.Nil(t, err)

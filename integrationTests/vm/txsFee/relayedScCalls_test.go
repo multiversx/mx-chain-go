@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -266,7 +265,6 @@ func testRelayedDeployInvalidContractShouldIncrementNonceOnSender(
 	require.Nil(t, err)
 
 	relayerAddr := []byte("12345678901234567890123456789033")
-	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, senderAddr, 0, big.NewInt(0))

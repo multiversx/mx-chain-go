@@ -2,8 +2,8 @@ package softfork
 
 import (
 	"encoding/hex"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -121,7 +121,7 @@ func TestScDeploy(t *testing.T) {
 }
 
 func deploySc(t *testing.T, nodes []*integrationTests.TestProcessorNode) []byte {
-	scCode, err := ioutil.ReadFile("./testdata/answer.wasm")
+	scCode, err := os.ReadFile("./testdata/answer.wasm")
 	require.Nil(t, err)
 
 	node := nodes[0]

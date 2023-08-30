@@ -1,7 +1,7 @@
 package node
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -13,7 +13,7 @@ import (
 func TestMemoryConfig(t *testing.T) {
 	nodeConfig := config.Config{}
 
-	tomlBytes, err := ioutil.ReadFile("../cmd/node/config/config.toml")
+	tomlBytes, err := os.ReadFile("../cmd/node/config/config.toml")
 	require.Nil(t, err)
 	err = toml.Unmarshal(tomlBytes, &nodeConfig)
 	require.Nil(t, err)

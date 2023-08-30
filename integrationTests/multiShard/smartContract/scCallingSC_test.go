@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -984,7 +984,7 @@ func putDeploySCToDataPool(
 	nodes []*integrationTests.TestProcessorNode,
 	gasLimit uint64,
 ) []byte {
-	scCode, err := ioutil.ReadFile(fileName)
+	scCode, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
 	}
