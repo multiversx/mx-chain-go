@@ -44,5 +44,5 @@ func TestESDTLocalMintAndBurnFromSC_MockContracts(t *testing.T) {
 				LocalBurnMock),
 	)
 
-	ESDTLocalMintAndBurnFromSC_RunTestsAndAsserts(t, net.Nodes, ownerWallet, scAddress, net.Proposers, nonce, round)
+	esdtLocalMintAndBurnFromSCRunTestsAndAsserts(t, net.Nodes, ownerWallet, scAddress, net.Proposers, nonce, round)
 }

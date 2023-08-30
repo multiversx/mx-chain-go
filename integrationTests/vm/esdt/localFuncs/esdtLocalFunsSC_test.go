@@ -37,10 +37,10 @@ func TestESDTLocalMintAndBurnFromSC(t *testing.T) {
 
 	scAddress := esdtCommon.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/local-esdt-and-nft.wasm")
 
-	ESDTLocalMintAndBurnFromSC_RunTestsAndAsserts(t, nodes, nodes[0].OwnAccount, scAddress, idxProposers, nonce, round)
+	esdtLocalMintAndBurnFromSCRunTestsAndAsserts(t, nodes, nodes[0].OwnAccount, scAddress, idxProposers, nonce, round)
 }
 
-func ESDTLocalMintAndBurnFromSC_RunTestsAndAsserts(
+func esdtLocalMintAndBurnFromSCRunTestsAndAsserts(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	ownerWallet *integrationTests.TestWalletAccount,
