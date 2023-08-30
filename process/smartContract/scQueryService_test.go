@@ -605,7 +605,7 @@ func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 		runSCWasCalled := false
 		mockVM := &mock.VMExecutionHandlerStub{
 			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				require.Equal(t, uint64(math.MaxUint64), input.GasProvided)
+				require.Equal(t, uint64(math.MaxInt64), input.GasProvided)
 				runSCWasCalled = true
 				return &vmcommon.VMOutput{}, nil
 			},
@@ -962,7 +962,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
-				GasRemaining: uint64(math.MaxUint64) - consumedGas,
+				GasRemaining: uint64(math.MaxInt64) - consumedGas,
 				ReturnCode:   vmcommon.Ok,
 			}, nil
 		},
@@ -998,7 +998,7 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
-				GasRemaining:  uint64(math.MaxUint64) - consumedGas,
+				GasRemaining:  uint64(math.MaxInt64) - consumedGas,
 				ReturnCode:    vmcommon.FunctionNotFound,
 				ReturnMessage: message,
 			}, nil
