@@ -20,11 +20,11 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.13
 	github.com/multiversx/mx-chain-scenario-go v1.2.1
 	github.com/multiversx/mx-chain-storage-go v1.0.12
-	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230830121852-1c74ac928f9b
-	github.com/multiversx/mx-chain-vm-go v1.5.8-0.20230830122720-f48d424f7110
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.62-0.20230830122555-77908bae55b5
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.63-0.20230830122626-9b2b8bc95690
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.89-0.20230830122649-aaa088cccb01
+	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230830135826-410ecb5e9303
+	github.com/multiversx/mx-chain-vm-go v1.5.8-0.20230830142134-8fc0f039f62c
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.62-0.20230830142031-a3fbf841fa7c
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.63-0.20230830142056-17765d501cec
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.89-0.20230830142116-9261657c681a
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
