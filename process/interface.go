@@ -21,6 +21,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -1343,4 +1344,10 @@ type ProcessDebuggerSetter interface {
 type DebuggerBlockProcessor interface {
 	BlockProcessor
 	ProcessDebuggerSetter
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	IsInterfaceNil() bool
 }

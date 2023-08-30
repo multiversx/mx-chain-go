@@ -664,3 +664,6 @@ var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinato
 
 // ErrNilValidatorStatisticsProcessorCreator signals that a nil validator statistics processor creator has been provided
 var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statistics processor creator")
+
+// ErrNilFunction signals that a nil function has been provided
+var ErrNilFunction = errors.New("nil function")
