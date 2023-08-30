@@ -77,7 +77,7 @@ func TestBaseFullHistoryResolver_GetFromStorage(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(val))
 	})
-	t.Run("get from epoch returned error and will default to search first", func(t *testing.T) {
+	t.Run("get from epoch returned error will fallback to search first", func(t *testing.T) {
 		resolver := &baseFullHistoryResolver{
 			storer: &storage.StorerStub{
 				SearchFirstCalled: func(key []byte) ([]byte, error) {
