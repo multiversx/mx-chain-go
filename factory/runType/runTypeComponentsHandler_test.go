@@ -64,7 +64,6 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
-		require.Equal(t, "managedRunTypeComponents", managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())
 	})
 }
