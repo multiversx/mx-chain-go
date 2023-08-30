@@ -10,11 +10,6 @@ type BootstrapperFromStorageFactoryStub struct {
 	CreateBootstrapperFromStorageCalled func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
 }
 
-// NewBootstrapperFromStorageFactoryStub -
-func NewBootstrapperFromStorageFactoryStub() *BootstrapperFromStorageFactoryStub {
-	return &BootstrapperFromStorageFactoryStub{}
-}
-
 // CreateBootstrapperFromStorage -
 func (b *BootstrapperFromStorageFactoryStub) CreateBootstrapperFromStorage(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 	if b.CreateBootstrapperFromStorageCalled != nil {
@@ -25,5 +20,5 @@ func (b *BootstrapperFromStorageFactoryStub) CreateBootstrapperFromStorage(args 
 
 // IsInterfaceNil -
 func (b *BootstrapperFromStorageFactoryStub) IsInterfaceNil() bool {
-	return false
+	return b == nil
 }

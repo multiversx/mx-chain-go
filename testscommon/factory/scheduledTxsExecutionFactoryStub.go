@@ -10,11 +10,6 @@ type ScheduledTxsExecutionFactoryStub struct {
 	CreateScheduledTxsExecutionHandlerCalled func(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
 }
 
-// NewScheduledTxsExecutionFactoryStub -
-func NewScheduledTxsExecutionFactoryStub() *ScheduledTxsExecutionFactoryStub {
-	return &ScheduledTxsExecutionFactoryStub{}
-}
-
 // CreateScheduledTxsExecutionHandler -
 func (s *ScheduledTxsExecutionFactoryStub) CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error) {
 	if s.CreateScheduledTxsExecutionHandlerCalled != nil {
@@ -25,5 +20,5 @@ func (s *ScheduledTxsExecutionFactoryStub) CreateScheduledTxsExecutionHandler(ar
 
 // IsInterfaceNil -
 func (s *ScheduledTxsExecutionFactoryStub) IsInterfaceNil() bool {
-	return false
+	return s == nil
 }

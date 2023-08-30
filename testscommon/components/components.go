@@ -40,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -812,9 +811,9 @@ func GetProcessComponents(
 	return managedProcessComponents
 }
 
+// GetRunTypeComponents -
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeFactoryArgs := GetRunTypeFactoryArgs()
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(runTypeFactoryArgs)
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())

@@ -7,11 +7,6 @@ type EpochStartBootstrapperFactoryStub struct {
 	CreateEpochStartBootstrapperCalled func(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error)
 }
 
-// NewEpochStartBootstrapperFactoryStub -
-func NewEpochStartBootstrapperFactoryStub() *EpochStartBootstrapperFactoryStub {
-	return &EpochStartBootstrapperFactoryStub{}
-}
-
 // CreateEpochStartBootstrapper -
 func (e *EpochStartBootstrapperFactoryStub) CreateEpochStartBootstrapper(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error) {
 	if e.CreateEpochStartBootstrapperCalled != nil {
@@ -22,5 +17,5 @@ func (e *EpochStartBootstrapperFactoryStub) CreateEpochStartBootstrapper(args bo
 
 // IsInterfaceNil -
 func (e *EpochStartBootstrapperFactoryStub) IsInterfaceNil() bool {
-	return false
+	return e == nil
 }

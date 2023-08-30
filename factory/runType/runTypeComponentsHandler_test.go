@@ -3,10 +3,9 @@ package runType_test
 import (
 	"testing"
 
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,16 +16,13 @@ func TestNewManagedRunTypeComponents(t *testing.T) {
 		t.Parallel()
 
 		managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(nil)
-		require.Equal(t, errorsMx.ErrNilRunTypeComponentsFactory, err)
+		require.Equal(t, errors.ErrNilRunTypeComponentsFactory, err)
 		require.Nil(t, managedRunTypeComponents)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetRunTypeFactoryArgs()
-		rcf, _ := runType.NewRunTypeComponentsFactory(args)
-
-		managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(rcf)
+		managedRunTypeComponents, err := createComponents()
 		require.NoError(t, err)
 		require.NotNil(t, managedRunTypeComponents)
 	})
@@ -38,10 +34,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetRunTypeFactoryArgs()
-		rcf, _ := runType.NewRunTypeComponentsFactory(args)
-
-		managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(rcf)
+		managedRunTypeComponents, err := createComponents()
 		require.NoError(t, err)
 
 		require.Nil(t, managedRunTypeComponents.BlockChainHookHandlerCreator())
@@ -71,7 +64,6 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
-		require.Equal(t, "managedRunTypeComponents", managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())
 	})
 }
@@ -79,10 +71,9 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 func TestManagedRunTypeComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetRunTypeFactoryArgs()
-	rcf, _ := runType.NewRunTypeComponentsFactory(args)
-	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(rcf)
+	managedRunTypeComponents, _ := createComponents()
 	require.NoError(t, managedRunTypeComponents.Close())
+
 	err := managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
@@ -93,11 +84,9 @@ func TestManagedRunTypeComponents_Close(t *testing.T) {
 func TestManagedRunTypeComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetRunTypeFactoryArgs()
-	rcf, _ := runType.NewRunTypeComponentsFactory(args)
-	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(rcf)
+	managedRunTypeComponents, _ := createComponents()
 	err := managedRunTypeComponents.CheckSubcomponents()
-	require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
+	require.Equal(t, errors.ErrNilRunTypeComponents, err)
 
 	err = managedRunTypeComponents.Create()
 	require.NoError(t, err)
@@ -111,11 +100,15 @@ func TestManagedRunTypeComponents_CheckSubcomponents(t *testing.T) {
 func TestManagedRunTypeComponents_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	managedRunTypeComponents, _ := runType.NewManagedRunTypeComponents(nil)
+	var managedRunTypeComponents factory.RunTypeComponentsHandler
+	managedRunTypeComponents, _ = runType.NewManagedRunTypeComponents(nil)
 	require.True(t, managedRunTypeComponents.IsInterfaceNil())
 
-	args := componentsMock.GetRunTypeFactoryArgs()
-	rcf, _ := runType.NewRunTypeComponentsFactory(args)
-	managedRunTypeComponents, _ = runType.NewManagedRunTypeComponents(rcf)
+	managedRunTypeComponents, _ = createComponents()
 	require.False(t, managedRunTypeComponents.IsInterfaceNil())
+}
+
+func createComponents() (factory.RunTypeComponentsHandler, error) {
+	rcf, _ := runType.NewRunTypeComponentsFactory()
+	return runType.NewManagedRunTypeComponents(rcf)
 }

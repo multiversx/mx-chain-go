@@ -653,6 +653,6 @@ type ValidatorStatisticsProcessorCreator interface {
 
 // AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
 type AdditionalStorageServiceCreator interface {
-	CreateAdditionalStorageService(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
 	IsInterfaceNil() bool
 }

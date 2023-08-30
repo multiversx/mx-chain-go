@@ -10,11 +10,6 @@ type ValidatorStatisticsProcessorFactoryStub struct {
 	CreateValidatorStatisticsProcessorCalled func(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
 }
 
-// NewValidatorStatisticsProcessorFactoryStub -
-func NewValidatorStatisticsProcessorFactoryStub() *ValidatorStatisticsProcessorFactoryStub {
-	return &ValidatorStatisticsProcessorFactoryStub{}
-}
-
 // CreateValidatorStatisticsProcessor -
 func (v *ValidatorStatisticsProcessorFactoryStub) CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
 	if v.CreateValidatorStatisticsProcessorCalled != nil {
@@ -25,5 +20,5 @@ func (v *ValidatorStatisticsProcessorFactoryStub) CreateValidatorStatisticsProce
 
 // IsInterfaceNil -
 func (v *ValidatorStatisticsProcessorFactoryStub) IsInterfaceNil() bool {
-	return false
+	return v == nil
 }

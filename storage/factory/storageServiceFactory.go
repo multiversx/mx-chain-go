@@ -347,7 +347,21 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	err = psf.additionalStorageServiceFactory.CreateAdditionalStorageService(psf.createAndAddStorageUnitsForSovereign, store, shardID)
+	// TODO: this should be removed when the additionalStorageServiceFactory will be injected
+	if psf.chainRunType == common.ChainRunTypeSovereign {
+		psf.additionalStorageServiceFactory, err = NewSovereignAdditionalStorageServiceFactory()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		psf.additionalStorageServiceFactory, err = NewShardAdditionalStorageServiceFactory()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// TODO: this should be refactored to not get a function as a parameter
+	err = psf.additionalStorageServiceFactory.CreateAdditionalStorageUnits(psf.createAndAddStorageUnitsForSovereign, store, shardID)
 	if err != nil {
 		return nil, err
 	}

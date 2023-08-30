@@ -45,7 +45,7 @@ func (mrc *managedRunTypeComponents) Create() error {
 	return nil
 }
 
-// Close will close all underlying sub-components
+// Close will close all underlying subcomponents
 func (mrc *managedRunTypeComponents) Close() error {
 	mrc.mutStateComponents.Lock()
 	defer mrc.mutStateComponents.Unlock()

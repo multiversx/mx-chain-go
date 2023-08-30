@@ -1,6 +1,9 @@
 package factory
 
-import "github.com/multiversx/mx-chain-go/dataRetriever"
+import (
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
+)
 
 type sovereignAdditionalStorageServiceFactory struct {
 }
@@ -10,8 +13,11 @@ func NewSovereignAdditionalStorageServiceFactory() (*sovereignAdditionalStorageS
 	return &sovereignAdditionalStorageServiceFactory{}, nil
 }
 
-// CreateAdditionalStorageService creates an additional storage service for a sovereign shard
-func (s *sovereignAdditionalStorageServiceFactory) CreateAdditionalStorageService(f func(store dataRetriever.StorageService, shardID string) error, store dataRetriever.StorageService, shardID string) error {
+// CreateAdditionalStorageUnits creates additional storage units for a sovereign shard
+func (s *sovereignAdditionalStorageServiceFactory) CreateAdditionalStorageUnits(f func(store dataRetriever.StorageService, shardID string) error, store dataRetriever.StorageService, shardID string) error {
+	if f == nil {
+		return errors.ErrNilFunction
+	}
 	return f(store, shardID)
 }
 
