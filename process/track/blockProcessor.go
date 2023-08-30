@@ -5,6 +5,8 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -270,7 +272,7 @@ func (bp *blockProcessor) getNextHeader(
 
 	sortedHdrsStr := ""
 	for _, hdr := range sortedHeaders {
-		sortedHdrsStr += fmt.Sprintf("[sh: %d, ep: %d, nonce: %d], ", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetNonce())
+		sortedHdrsStr += fmt.Sprintf("[sh: %d, ep: %d, nonce: %d, round: %d], ", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetNonce(), hdr.GetRound())
 	}
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
@@ -287,7 +289,7 @@ func (bp *blockProcessor) getNextHeader(
 			"sh id", currHeader.GetShardID(),
 			"epoch", currHeader.GetEpoch(),
 			"nonce", currHeader.GetNonce(),
-			"chain parameters epoch", chainParametersEpoch,
+			"round", currHeader.GetRound(),
 			"sorted hdrs", sortedHdrsStr,
 		)
 		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1, chainParametersEpoch)
@@ -296,7 +298,7 @@ func (bp *blockProcessor) getNextHeader(
 				"sh id", currHeader.GetShardID(),
 				"epoch", currHeader.GetEpoch(),
 				"nonce", currHeader.GetNonce(),
-				"chain parameters epoch", chainParametersEpoch,
+				"round", currHeader.GetRound(),
 				"error", err,
 			)
 			continue
@@ -327,9 +329,25 @@ func (bp *blockProcessor) checkHeaderFinality(
 	//if finality > finalityForCurrentShard {
 	//	finality = finalityForCurrentShard
 	//}
+
+	// TODO: inject marshalizer/hasher or don't use the header hash
+	marshalizer := &marshal.GogoProtoMarshalizer{}
+	hasher := blake2b.NewBlake2b()
+	headerHash, _ := core.CalculateHash(marshalizer, hasher, header)
+	wrappedBlock := NewChainBlock(header, string(headerHash))
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
+		currHeaderHash, _ := core.CalculateHash(marshalizer, hasher, currHeader)
+		wrappedBlock.Add(currHeader, string(currHeaderHash))
+	}
 
+	longestCHain, height := wrappedBlock.LongestChain(make([]data.HeaderHandler, 0))
+	longestCHainStr := ""
+	for _, hdr := range longestCHain {
+		longestCHainStr += fmt.Sprintf("[sh: %d, ep: %d, rnd: %d, nnc: %d], ", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetRound(), hdr.GetNonce())
+	}
+	log.Error("REMOVE_ME: checkHeaderFinality height", "height", height, "chain", longestCHainStr)
+	for _, currHeader := range longestCHain {
 		//if currHeader.GetShardID() == core.MetachainShardId {
 		//	finality = bp.getCurrentFinality(core.MetachainShardId, currHeader.GetEpoch())
 		//}
@@ -341,7 +359,6 @@ func (bp *blockProcessor) checkHeaderFinality(
 			"finality", finality,
 			"reference header epoch", header.GetEpoch(),
 			"reference header nonce", header.GetNonce(),
-			"chain parameters epoch", chainParametersEpoch,
 		)
 		if numFinalityAttestingHeaders >= uint64(finality) || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
 			log.Error("\t\tREMOVE_ME: checkHeaderFinality not final - break",
@@ -361,9 +378,20 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
+			log.Error("REMOVE_ME: headerValidator.IsHeaderConstructionValid ERROR",
+				"error", err.Error(),
+				"currHeader ep", currHeader.GetEpoch(),
+				"currHeader round", currHeader.GetRound(),
+				"currHeader nonce", currHeader.GetNonce(),
+				"prevHeader ep", prevHeader.GetEpoch(),
+				"prevHeader round", prevHeader.GetRound(),
+				"prevHeader nonce", prevHeader.GetNonce(),
+			)
 			continue
 		}
 
+		// TODO: this won't work ok for a meta finality of 2+.
+		// example: sorted headers: {[nonce: 29 - bad], [nonce: 29 - good], [nonce: 30], [nonce: 31], ...} will result in invalid constructions because the prevheader is overwritten
 		prevHeader = currHeader
 		numFinalityAttestingHeaders += 1
 	}
