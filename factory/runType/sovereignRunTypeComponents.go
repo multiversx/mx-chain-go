@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -27,21 +26,6 @@ type sovereignRunTypeComponentsFactory struct {
 	runTypeComponentsFactory *runTypeComponentsFactory
 }
 
-// sovereignRunTypeComponents struct holds the components needed for a run type
-type sovereignRunTypeComponents struct {
-	blockChainHookHandlerCreator        factory.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator       factory.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator      factory.BootstrapperFromStorageCreator
-	blockProcessorCreator               factory.BlockProcessorCreator
-	forkDetectorCreator                 factory.ForkDetectorCreator
-	blockTrackerCreator                 factory.BlockTrackerCreator
-	requestHandlerCreator               factory.RequestHandlerCreator
-	headerValidatorCreator              factory.HeaderValidatorCreator
-	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
-	transactionCoordinatorCreator       factory.TransactionCoordinatorCreator
-	validatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
-}
-
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
 func NewSovereignRunTypeComponentsFactory(args SovereignRunTypeComponentsFactoryArgs) (*sovereignRunTypeComponentsFactory, error) {
 	if check.IfNil(args.RunTypeComponentsFactory) {
@@ -54,7 +38,7 @@ func NewSovereignRunTypeComponentsFactory(args SovereignRunTypeComponentsFactory
 }
 
 // Create creates the runType components
-func (rcf *sovereignRunTypeComponentsFactory) Create() (*sovereignRunTypeComponents, error) {
+func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	rtc, err := rcf.runTypeComponentsFactory.Create()
 	if err != nil {
 		return nil, err
@@ -115,7 +99,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*sovereignRunTypeCompone
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignValidatorStatisticsProcessorFactory failed: %w", err)
 	}
 
-	return &sovereignRunTypeComponents{
+	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
 		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
@@ -128,9 +112,4 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*sovereignRunTypeCompone
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 	}, nil
-}
-
-// Close does nothing
-func (rc *sovereignRunTypeComponents) Close() error {
-	return nil
 }
