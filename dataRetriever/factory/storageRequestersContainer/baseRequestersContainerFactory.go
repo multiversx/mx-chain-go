@@ -16,6 +16,7 @@ import (
 	disabledRequesters "github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters/disabled"
 	"github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -28,7 +29,7 @@ const defaultBeforeGracefulClose = time.Minute
 type baseRequestersContainerFactory struct {
 	container                dataRetriever.RequestersContainer
 	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
+	messenger                p2p.Messenger
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
@@ -261,14 +262,14 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		MainStorer:         mainStorer,
-		CheckpointsStorer:  checkpointsStorer,
-		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:   brcf.snapshotsEnabled,
-		IdleProvider:       disabled.NewProcessStatusHandler(),
-		Identifier:         storageIdentifier.String(),
+		MainStorer:          mainStorer,
+		CheckpointsStorer:   checkpointsStorer,
+		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:  brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:    brcf.snapshotsEnabled,
+		IdleProvider:        disabled.NewProcessStatusHandler(),
+		Identifier:          storageIdentifier.String(),
 		EnableEpochsHandler: handler,
 	}
 	return trieFactoryInstance.Create(args)

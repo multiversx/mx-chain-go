@@ -398,7 +398,7 @@ type InterceptorsContainer interface {
 
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
-	Create() (InterceptorsContainer, error)
+	Create() (InterceptorsContainer, InterceptorsContainer, error)
 	IsInterfaceNil() bool
 }
 
@@ -455,7 +455,7 @@ type VirtualMachinesContainer interface {
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	Close() error
-	BlockChainHookImpl() BlockChainHookHandler
+	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
 }
 
@@ -540,10 +540,16 @@ type BlockChainHookHandler interface {
 	IsBuiltinFunctionName(functionName string) bool
 }
 
+// BlockChainHookWithAccountsAdapter defines an extension of BlockChainHookHandler with the AccountsAdapter exposed
+type BlockChainHookWithAccountsAdapter interface {
+	BlockChainHookHandler
+	GetAccountsAdapter() state.AccountsAdapter
+}
+
 // Interceptor defines what a data interceptor should do
 // It should also adhere to the p2p.MessageProcessor interface so it can wire to a p2p.Messenger
 type Interceptor interface {
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	SetInterceptedDebugHandler(handler InterceptedDebugger) error
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	Close() error
@@ -777,6 +783,8 @@ type SCQuery struct {
 	Arguments      [][]byte
 	SameScState    bool
 	ShouldBeSynced bool
+	BlockNonce     core.OptionalUint64
+	BlockHash      []byte
 }
 
 // GasHandler is able to perform some gas calculation
@@ -917,7 +925,7 @@ type PeerValidatorMapper interface {
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
-	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool

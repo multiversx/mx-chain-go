@@ -94,7 +94,7 @@ type NodeHandler interface {
 
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 
@@ -112,7 +112,7 @@ type TransactionSimulatorProcessor interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	StatusMetrics() external.StatusMetricsHandler

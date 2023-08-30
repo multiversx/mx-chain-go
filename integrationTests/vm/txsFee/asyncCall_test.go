@@ -152,8 +152,9 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   100000, // fix not activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, newContractCode)
@@ -166,8 +167,9 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   0, // fix activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, newContractCode)
@@ -286,8 +288,9 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstSCCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   100000, // fix not activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, pathToSecondSC)
@@ -300,8 +303,9 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(secondSCCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   0, // fix activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, pathToSecondSC)

@@ -3,17 +3,26 @@ package smartContract
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/sharding"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
@@ -25,51 +34,48 @@ type SCQueryService struct {
 	vmContainer              process.VirtualMachinesContainer
 	economicsFee             process.FeeHandler
 	mutRunSc                 sync.Mutex
-	blockChainHook           process.BlockChainHookHandler
-	blockChain               data.ChainHandler
+	blockChainHook           process.BlockChainHookWithAccountsAdapter
+	mainBlockChain           data.ChainHandler
+	apiBlockChain            data.ChainHandler
 	numQueries               int
 	gasForQuery              uint64
 	wasmVMChangeLocker       common.Locker
 	bootstrapper             process.Bootstrapper
 	allowExternalQueriesChan chan struct{}
+	historyRepository        dblookupext.HistoryRepository
+	shardCoordinator         sharding.Coordinator
+	storageService           dataRetriever.StorageService
+	marshaller               marshal.Marshalizer
+	hasher                   hashing.Hasher
+	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
 type ArgsNewSCQueryService struct {
 	VmContainer              process.VirtualMachinesContainer
 	EconomicsFee             process.FeeHandler
-	BlockChainHook           process.BlockChainHookHandler
-	BlockChain               data.ChainHandler
+	BlockChainHook           process.BlockChainHookWithAccountsAdapter
+	MainBlockChain           data.ChainHandler
+	APIBlockChain            data.ChainHandler
 	WasmVMChangeLocker       common.Locker
 	Bootstrapper             process.Bootstrapper
 	AllowExternalQueriesChan chan struct{}
 	MaxGasLimitPerQuery      uint64
+	HistoryRepository        dblookupext.HistoryRepository
+	ShardCoordinator         sharding.Coordinator
+	StorageService           dataRetriever.StorageService
+	Marshaller               marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
 func NewSCQueryService(
 	args ArgsNewSCQueryService,
 ) (*SCQueryService, error) {
-	if check.IfNil(args.VmContainer) {
-		return nil, process.ErrNoVM
-	}
-	if check.IfNil(args.EconomicsFee) {
-		return nil, process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(args.BlockChainHook) {
-		return nil, process.ErrNilBlockChainHook
-	}
-	if check.IfNil(args.BlockChain) {
-		return nil, process.ErrNilBlockChain
-	}
-	if check.IfNilReflect(args.WasmVMChangeLocker) {
-		return nil, process.ErrNilLocker
-	}
-	if check.IfNil(args.Bootstrapper) {
-		return nil, process.ErrNilBootstrapper
-	}
-	if args.AllowExternalQueriesChan == nil {
-		return nil, process.ErrNilAllowExternalQueriesChan
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	gasForQuery := uint64(math.MaxUint64)
@@ -79,26 +85,80 @@ func NewSCQueryService(
 	return &SCQueryService{
 		vmContainer:              args.VmContainer,
 		economicsFee:             args.EconomicsFee,
-		blockChain:               args.BlockChain,
+		mainBlockChain:           args.MainBlockChain,
+		apiBlockChain:            args.APIBlockChain,
 		blockChainHook:           args.BlockChainHook,
 		wasmVMChangeLocker:       args.WasmVMChangeLocker,
 		bootstrapper:             args.Bootstrapper,
 		gasForQuery:              gasForQuery,
 		allowExternalQueriesChan: args.AllowExternalQueriesChan,
+		historyRepository:        args.HistoryRepository,
+		shardCoordinator:         args.ShardCoordinator,
+		storageService:           args.StorageService,
+		marshaller:               args.Marshaller,
+		hasher:                   args.Hasher,
+		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 	}, nil
 }
 
+func checkArgs(args ArgsNewSCQueryService) error {
+	if check.IfNil(args.VmContainer) {
+		return process.ErrNoVM
+	}
+	if check.IfNil(args.EconomicsFee) {
+		return process.ErrNilEconomicsFeeHandler
+	}
+	if check.IfNil(args.BlockChainHook) {
+		return process.ErrNilBlockChainHook
+	}
+	if check.IfNil(args.MainBlockChain) {
+		return fmt.Errorf("%w for main blockchain", process.ErrNilBlockChain)
+	}
+	if check.IfNil(args.APIBlockChain) {
+		return fmt.Errorf("%w for api blockchain", process.ErrNilBlockChain)
+	}
+	if check.IfNilReflect(args.WasmVMChangeLocker) {
+		return process.ErrNilLocker
+	}
+	if check.IfNil(args.Bootstrapper) {
+		return process.ErrNilBootstrapper
+	}
+	if args.AllowExternalQueriesChan == nil {
+		return process.ErrNilAllowExternalQueriesChan
+	}
+	if check.IfNil(args.HistoryRepository) {
+		return process.ErrNilHistoryRepository
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.StorageService) {
+		return process.ErrNilStorageService
+	}
+	if check.IfNil(args.Marshaller) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return process.ErrNilHasher
+	}
+	if check.IfNil(args.Uint64ByteSliceConverter) {
+		return process.ErrNilUint64Converter
+	}
+
+	return nil
+}
+
 // ExecuteQuery returns the VMOutput resulted upon running the function on the smart contract
-func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	if !service.shouldAllowQueriesExecution() {
-		return nil, process.ErrQueriesNotAllowedYet
+		return nil, nil, process.ErrQueriesNotAllowedYet
 	}
 
 	if query.ScAddress == nil {
-		return nil, process.ErrNilScAddress
+		return nil, nil, process.ErrNilScAddress
 	}
 	if len(query.FuncName) == 0 {
-		return nil, process.ErrEmptyFunctionName
+		return nil, nil, process.ErrEmptyFunctionName
 	}
 
 	service.mutRunSc.Lock()
@@ -116,29 +176,47 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 	}
 }
 
-func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, error) {
+func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
 	service.numQueries++
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
-		return nil, process.ErrNodeIsNotSynced
+		return nil, nil, process.ErrNodeIsNotSynced
+	}
+
+	blockHeader, blockRootHash, err := service.extractBlockHeaderAndRootHash(query)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(blockRootHash) > 0 {
+		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
+		err = accountsAdapter.RecreateTrie(blockRootHash)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	shouldCheckRootHashChanges := query.SameScState
 	rootHashBeforeExecution := make([]byte, 0)
 
 	if shouldCheckRootHashChanges {
-		rootHashBeforeExecution = service.blockChain.GetCurrentBlockRootHash()
+		rootHashBeforeExecution = service.apiBlockChain.GetCurrentBlockRootHash()
 	}
 
-	service.blockChainHook.SetCurrentHeader(service.blockChain.GetCurrentBlockHeader())
+	service.blockChainHook.SetCurrentHeader(service.mainBlockChain.GetCurrentBlockHeader())
 
 	service.wasmVMChangeLocker.RLock()
 	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
 	if err != nil {
 		service.wasmVMChangeLocker.RUnlock()
-		return nil, err
+		return nil, nil, err
 	}
 
 	query = prepareScQuery(query)
@@ -146,7 +224,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	vmOutput, err := vm.RunSmartContractCall(vmInput)
 	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if service.hasRetriableExecutionError(vmOutput) {
@@ -154,22 +232,151 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 		vmOutput, err = vm.RunSmartContractCall(vmInput)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	if query.SameScState {
 		err = service.checkForRootHashChanges(rootHashBeforeExecution)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return vmOutput, nil
+	var blockHash []byte
+	var blockNonce uint64
+	if !check.IfNil(blockHeader) {
+		blockNonce = blockHeader.GetNonce()
+		blockHash, err = core.CalculateHash(service.marshaller, service.hasher, blockHeader)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	blockInfo := holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
+	return vmOutput, blockInfo, nil
+}
+
+// TODO: extract duplicated code with nodeBlocks.go
+func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
+
+	if len(query.BlockHash) > 0 {
+		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return service.getRootHashForBlock(currentHeader)
+	}
+
+	if query.BlockNonce.HasValue {
+		currentHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return service.getRootHashForBlock(currentHeader)
+	}
+
+	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+}
+
+func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
+	blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	additionalData := blockHeader.GetAdditionalData()
+	if check.IfNil(additionalData) {
+		return currentHeader, currentHeader.GetRootHash(), nil
+	}
+
+	return blockHeader, additionalData.GetScheduledRootHash(), nil
+}
+
+func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
+	epoch, err := service.getOptionalEpochByHash(headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := service.getBlockHeaderInEpochByHash(headerHash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+func (service *SCQueryService) getOptionalEpochByHash(hash []byte) (core.OptionalUint32, error) {
+	if !service.historyRepository.IsEnabled() {
+		return core.OptionalUint32{}, nil
+	}
+
+	epoch, err := service.historyRepository.GetEpochByHash(hash)
+	if err != nil {
+		return core.OptionalUint32{}, err
+	}
+
+	return core.OptionalUint32{Value: epoch, HasValue: true}, nil
+}
+
+func (service *SCQueryService) getBlockHeaderInEpochByHash(headerHash []byte, epoch core.OptionalUint32) (data.HeaderHandler, error) {
+	shardId := service.shardCoordinator.SelfId()
+	unitType := dataRetriever.GetHeadersDataUnit(shardId)
+	storer, err := service.storageService.GetStorer(unitType)
+	if err != nil {
+		return nil, err
+	}
+
+	var headerBuffer []byte
+
+	if epoch.HasValue {
+		headerBuffer, err = storer.GetFromEpoch(headerHash, epoch.Value)
+	} else {
+		headerBuffer, err = storer.Get(headerHash)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := process.UnmarshalHeader(shardId, service.marshaller, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+func (service *SCQueryService) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
+	headerHash, err := service.getBlockHashByNonce(nonce)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	header, err := service.getBlockHeaderByHash(headerHash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return header, headerHash, nil
+}
+
+func (service *SCQueryService) getBlockHashByNonce(nonce uint64) ([]byte, error) {
+	shardId := service.shardCoordinator.SelfId()
+	hashByNonceUnit := dataRetriever.GetHdrNonceHashDataUnit(shardId)
+
+	return process.GetHeaderHashFromStorageWithNonce(
+		nonce,
+		service.storageService,
+		service.uint64ByteSliceConverter,
+		service.marshaller,
+		hashByNonceUnit,
+	)
 }
 
 func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
-	rootHashAfter := service.blockChain.GetCurrentBlockRootHash()
+	rootHashAfter := service.apiBlockChain.GetCurrentBlockRootHash()
 
 	if bytes.Equal(rootHashBefore, rootHashAfter) {
 		return nil
@@ -232,7 +439,7 @@ func (service *SCQueryService) ComputeScCallGasLimit(tx *transaction.Transaction
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
 
-	vmOutput, err := service.executeScCall(query, 1)
+	vmOutput, _, err := service.executeScCall(query, 1)
 	if err != nil {
 		return 0, err
 	}

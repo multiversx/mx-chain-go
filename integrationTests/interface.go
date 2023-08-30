@@ -85,7 +85,7 @@ type Facade interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
@@ -96,7 +96,7 @@ type Facade interface {
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error)
-	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
+	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)

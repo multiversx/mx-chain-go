@@ -34,7 +34,7 @@ type FacadeStub struct {
 	ValidateTransactionHandler                  func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler     func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
 	ValidatorStatisticsHandler                  func() (map[string]*accounts.ValidatorApiResponse, error)
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
@@ -43,7 +43,7 @@ type FacadeStub struct {
 	GetValueForKeyCalled                        func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                       func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetPeerInfoCalled                           func(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatingsCalled              func() string
+	GetConnectedPeersRatingsOnMainNetworkCalled func() (string, error)
 	GetEpochStartDataAPICalled                  func(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
@@ -331,7 +331,7 @@ func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApi
 }
 
 // ExecuteSCQuery is a mock implementation.
-func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
+func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
 	return f.ExecuteSCQueryHandler(query)
 }
 
@@ -388,9 +388,9 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return f.GetPeerInfoCalled(pid)
 }
 
-// GetConnectedPeersRatings -
-func (f *FacadeStub) GetConnectedPeersRatings() string {
-	return f.GetConnectedPeersRatingsCalled()
+// GetConnectedPeersRatingsOnMainNetwork -
+func (f *FacadeStub) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return f.GetConnectedPeersRatingsOnMainNetworkCalled()
 }
 
 // GetEpochStartDataAPI -

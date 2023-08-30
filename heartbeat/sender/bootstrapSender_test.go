@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -19,7 +18,8 @@ import (
 
 func createMockBootstrapSenderArgs() ArgBootstrapSender {
 	return ArgBootstrapSender{
-		Messenger:                          &p2pmocks.MessengerStub{},
+		MainMessenger:                      &p2pmocks.MessengerStub{},
+		FullArchiveMessenger:               &p2pmocks.MessengerStub{},
 		Marshaller:                         &marshallerMock.MarshalizerMock{},
 		HeartbeatTopic:                     "hb-topic",
 		HeartbeatTimeBetweenSends:          time.Second,
@@ -40,15 +40,25 @@ func createMockBootstrapSenderArgs() ArgBootstrapSender {
 func TestNewBootstrapSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil peer messenger should error", func(t *testing.T) {
+	t.Run("nil main messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBootstrapSenderArgs()
-		args.Messenger = nil
+		args.MainMessenger = nil
 		senderInstance, err := NewBootstrapSender(args)
 
 		assert.Nil(t, senderInstance)
-		assert.Equal(t, heartbeat.ErrNilMessenger, err)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBootstrapSenderArgs()
+		args.FullArchiveMessenger = nil
+		senderInstance, err := NewBootstrapSender(args)
+
+		assert.Nil(t, senderInstance)
+		assert.True(t, errors.Is(err, heartbeat.ErrNilMessenger))
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -182,7 +192,7 @@ func TestNewBootstrapSender(t *testing.T) {
 		args := createMockBootstrapSenderArgs()
 		senderInstance, err := NewBootstrapSender(args)
 
-		assert.False(t, check.IfNil(senderInstance))
+		assert.NotNil(t, senderInstance)
 		assert.Nil(t, err)
 	})
 }
@@ -201,4 +211,14 @@ func TestBootstrapSender_Close(t *testing.T) {
 	senderInstance, _ := NewBootstrapSender(args)
 	err := senderInstance.Close()
 	assert.Nil(t, err)
+}
+
+func TestBootstrapSender_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var senderInstance *bootstrapSender
+	assert.True(t, senderInstance.IsInterfaceNil())
+
+	senderInstance, _ = NewBootstrapSender(createMockBootstrapSenderArgs())
+	assert.False(t, senderInstance.IsInterfaceNil())
 }

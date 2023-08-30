@@ -1,9 +1,9 @@
-FROM golang:1.17.6 as builder
+FROM golang:1.20.7 as builder
 
 RUN apt-get update && apt-get install -y
 WORKDIR /go/mx-chain-go
 COPY . .
-RUN GO111MODULE=on go mod tidy
+RUN go mod tidy
 # Seed node
 WORKDIR /go/mx-chain-go/cmd/seednode
 RUN go build

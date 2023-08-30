@@ -202,8 +202,8 @@ func (inf *initialNodeFacade) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 // ExecuteSCQuery returns nil and error
-func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // PprofEnabled returns false
@@ -241,9 +241,9 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
-// GetConnectedPeersRatings returns empty string
-func (inf *initialNodeFacade) GetConnectedPeersRatings() string {
-	return ""
+// GetConnectedPeersRatingsOnMainNetwork returns empty string and error
+func (inf *initialNodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return "", errNodeStarting
 }
 
 // GetEpochStartDataAPI returns nil and error

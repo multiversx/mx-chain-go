@@ -248,6 +248,9 @@
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
     SetGuardianEnableEpoch = 1
 
+    # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
+    DeterministicSortOnValidatorsInfoEnableEpoch = 1
+
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
     SCProcessorV2EnableEpoch = 6
 
@@ -268,6 +271,12 @@
 
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
     FixDelegationChangeOwnerOnAccountEnableEpoch = 3
+
+    # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+
+    # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+    ScToScLogEventEnableEpoch = 3
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

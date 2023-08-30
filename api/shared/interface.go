@@ -100,7 +100,7 @@ type FacadeHandler interface {
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)
 	GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error)
-	GetConnectedPeersRatings() string
+	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
 	GetProofDataTrie(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
 	GetProofCurrentRootHash(address string) (*common.GetProofResponse, error)
@@ -115,7 +115,7 @@ type FacadeHandler interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error)
-	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, error)
+	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	RestApiInterface() string
 	RestAPIServerDebugMode() bool
