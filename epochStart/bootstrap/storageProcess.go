@@ -36,8 +36,8 @@ type ArgsStorageEpochStartBootstrap struct {
 	ImportDbConfig                config.ImportDbConfig
 	ChanGracefullyClose           chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData    time.Duration
-	ChainRunType                  common.ChainRunType
 	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
+	ResolverRequestFactory        requestHandlers.RequestHandlerCreator
 }
 
 type storageEpochStartBootstrap struct {
@@ -48,13 +48,19 @@ type storageEpochStartBootstrap struct {
 	chanGracefullyClose        chan endProcess.ArgEndProcess
 	chainID                    string
 	timeToWaitForRequestedData time.Duration
-	chainRunType               common.ChainRunType
 	resolverRequestFactory     requestHandlers.RequestHandlerCreator
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
 // the node with the help of storage requesters through the import-db process
 func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storageEpochStartBootstrap, error) {
+	if check.IfNil(args.ResolverRequestFactory) {
+		return nil, errors.ErrNilResolverRequestFactoryHandler
+	}
+	if check.IfNil(args.EpochStartBootstrapperCreator) {
+		return nil, errors.ErrNilEpochStartBootstrapperCreator
+	}
+
 	esb, err := createEpochStartBootstrapper(args)
 	if err != nil {
 		return nil, err
@@ -75,34 +81,18 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
 		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
-		chainRunType:               args.ChainRunType,
+		resolverRequestFactory:     args.ResolverRequestFactory,
 	}
 
 	return sesb, nil
 }
 
 func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error) {
-	fact, err := NewEpochStartBootstrapperFactory()
-	if err != nil {
-		return nil, err
+	if args.EpochStartBootstrapperCreator == nil {
+		return nil, errors.ErrNilEpochStartBootstrapperCreator
 	}
 
-	// TODO: remove this switch so that no assignment is made to the EpochStartBootstrapperCreator
-	var esbfh EpochStartBootstrapperCreator
-	switch args.ChainRunType {
-	case common.ChainRunTypeRegular:
-		esbfh = fact
-	case common.ChainRunTypeSovereign:
-		sovFactory, errSov := NewSovereignEpochStartBootstrapperFactory(fact)
-		if errSov != nil {
-			return nil, errSov
-		}
-		esbfh = sovFactory
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, args.ChainRunType)
-	}
-
-	return esbfh.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
+	return args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 }
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
@@ -253,24 +243,6 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.R
 		MaxTxsToRequest:       maxToRequest,
 		ShardID:               core.MetachainShardId,
 		RequestInterval:       timeBetweenRequests,
-	}
-
-	factory, err := requestHandlers.NewResolverRequestHandlerFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	switch sesb.chainRunType {
-	case common.ChainRunTypeRegular:
-		sesb.resolverRequestFactory = factory
-	case common.ChainRunTypeSovereign:
-		sovFactory, sovErr := requestHandlers.NewSovereignResolverRequestHandlerFactory(factory)
-		if sovErr != nil {
-			return nil, sovErr
-		}
-		sesb.resolverRequestFactory = sovFactory
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, sesb.chainRunType)
 	}
 
 	return sesb.resolverRequestFactory.CreateRequestHandler(args)
