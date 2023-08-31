@@ -49,6 +49,7 @@ import (
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -281,6 +282,16 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents()
+	if err != nil {
+		return true, err
+	}
+	// TODO: remove this
+	if managedRunTypeComponents != nil {
+		return true, err
+	}
 
 	log.Debug("creating core components")
 	managedCoreComponents, err := snr.CreateManagedCoreComponents(
@@ -1495,6 +1506,34 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeComponents is the managed runType components factory
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
+
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+	if err != nil {
+		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
+	}
+
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
+		runTypeComponentsFactory,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignRunTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func closeAllComponents(
