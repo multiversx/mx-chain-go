@@ -8,7 +8,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -89,6 +88,25 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAppStatusHandler, err)
 	})
+	//t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	argsCopy := args
+	//	argsCopy.RunTypeComponents = nil
+	//	bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+	//	require.Nil(t, bcf)
+	//	require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
+	//})
+	//t.Run("nil EpochStartBootstrapperCreator should error", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	argsCopy := args
+	//	componentsMock.GetRunTypeComponents()
+	//	argsCopy.RunTypeComponents.= nil
+	//	bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+	//	require.Nil(t, bcf)
+	//	require.Equal(t, errorsMx.ErrNilBootstrapComponentsFactory, err)
+	//})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -250,42 +268,11 @@ func TestBootstrapComponents(t *testing.T) {
 func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should create a epoch start bootstrapper main chain instance", func(t *testing.T) {
-		t.Parallel()
+	args := componentsMock.GetBootStrapFactoryArgs()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
-		args.ChainRunType = common.ChainRunTypeRegular
+	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+	bc, err := bcf.Create()
 
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
-		bc, err := bcf.Create()
-
-		require.NotNil(t, bc)
-		assert.Nil(t, err)
-	})
-
-	t.Run("should create a epoch start bootstrapper sovereign chain instance", func(t *testing.T) {
-		t.Parallel()
-
-		args := componentsMock.GetBootStrapFactoryArgs()
-		args.ChainRunType = common.ChainRunTypeSovereign
-
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
-		bc, err := bcf.Create()
-
-		require.NotNil(t, bc)
-		assert.Nil(t, err)
-	})
-
-	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		args := componentsMock.GetBootStrapFactoryArgs()
-		args.ChainRunType = "X"
-
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
-		bc, err := bcf.Create()
-
-		assert.Nil(t, bc)
-		require.True(t, errors.Is(err, errorsMx.ErrUnimplementedChainRunType))
-	})
+	require.NotNil(t, bc)
+	assert.Nil(t, err)
 }

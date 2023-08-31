@@ -32,6 +32,8 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
+	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
@@ -40,7 +42,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	require.Nil(t, err)

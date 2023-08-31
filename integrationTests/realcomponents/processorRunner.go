@@ -25,6 +25,7 @@ import (
 	factoryData "github.com/multiversx/mx-chain-go/factory/data"
 	factoryNetwork "github.com/multiversx/mx-chain-go/factory/network"
 	factoryProcessing "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	factoryStatus "github.com/multiversx/mx-chain-go/factory/status"
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -56,6 +57,7 @@ type ProcessorRunner struct {
 	NodesCoordinator     nodesCoord.NodesCoordinator
 	StatusComponents     factory.StatusComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
@@ -71,6 +73,7 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
+	pr.createRunTypeComponents(tb)
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createStatusCoreComponents(tb)
@@ -80,6 +83,21 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createStateComponents(tb)
 	pr.createStatusComponents(tb)
 	pr.createProcessComponents(tb)
+}
+
+func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
+	rtFactory, err := runType.NewRunTypeComponentsFactory()
+	require.Nil(tb, err)
+
+	rtComp, err := runType.NewManagedRunTypeComponents(rtFactory)
+	require.Nil(tb, err)
+
+	err = rtComp.Create()
+	require.Nil(tb, err)
+	require.Nil(tb, rtComp.CheckSubcomponents())
+
+	pr.closers = append(pr.closers, rtComp)
+	pr.RunTypeComponents = rtComp
 }
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
@@ -206,7 +224,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents:    pr.RunTypeComponents,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)

@@ -288,10 +288,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	if err != nil {
 		return true, err
 	}
-	// TODO: remove this
-	if managedRunTypeComponents != nil {
-		return true, err
-	}
 
 	log.Debug("creating core components")
 	managedCoreComponents, err := snr.CreateManagedCoreComponents(
@@ -326,7 +322,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := snr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := snr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1327,6 +1323,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1339,7 +1336,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		ChainRunType:         common.ChainRunTypeSovereign,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1510,7 +1507,6 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeComponents is the managed runType components factory
 func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
 	if err != nil {
 		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
