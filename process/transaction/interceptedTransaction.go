@@ -24,6 +24,7 @@ var _ process.InterceptedData = (*InterceptedTransaction)(nil)
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
 	tx                     *transaction.Transaction
+	userTx                 *transaction.Transaction
 	protoMarshalizer       marshal.Marshalizer
 	signMarshalizer        marshal.Marshalizer
 	hasher                 hashing.Hasher
@@ -243,6 +244,8 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
+	inTx.userTx = userTx
+
 	return nil
 }
 
@@ -296,6 +299,8 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	if isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
+
+	inTx.userTx = userTx
 
 	return nil
 }
@@ -447,6 +452,12 @@ func (inTx *InterceptedTransaction) IsForCurrentShard() bool {
 // Transaction returns the transaction pointer that actually holds the data
 func (inTx *InterceptedTransaction) Transaction() data.TransactionHandler {
 	return inTx.tx
+}
+
+// UserTransaction returns the transaction pointer that holds the user transaction
+// this method returns nil before parent tx validation
+func (inTx *InterceptedTransaction) UserTransaction() data.TransactionHandler {
+	return inTx.userTx
 }
 
 // Hash gets the hash of this transaction

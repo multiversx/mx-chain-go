@@ -13,8 +13,9 @@ var txLog = logger.GetOrCreate("process/interceptors/processor/txlog")
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
-	shardedPool process.ShardedPool
-	txValidator process.TxValidator
+	shardedPool     process.ShardedPool
+	userShardedPool process.ShardedPool
+	txValidator     process.TxValidator
 }
 
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -72,6 +73,8 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		interceptedTx.Transaction().Size(),
 		cacherIdentifier,
 	)
+
+	// TODO[Sorin]: save the user tx into the new pool
 
 	return nil
 }

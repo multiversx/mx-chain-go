@@ -96,6 +96,7 @@ type InterceptedTransactionHandler interface {
 	SenderAddress() []byte
 	Fee() *big.Int
 	Transaction() data.TransactionHandler
+	UserTransaction() data.TransactionHandler
 }
 
 // TxVersionCheckerHandler defines the functionality that is needed for a TxVersionChecker to validate transaction version

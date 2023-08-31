@@ -140,6 +140,11 @@ func (inUTx *InterceptedUnsignedTransaction) Transaction() data.TransactionHandl
 	return inUTx.uTx
 }
 
+// UserTransaction returns nil
+func (inUTx *InterceptedUnsignedTransaction) UserTransaction() data.TransactionHandler {
+	return nil
+}
+
 // Fee represents the unsigned transaction fee. It is always 0
 func (inUTx *InterceptedUnsignedTransaction) Fee() *big.Int {
 	return big.NewInt(0)
