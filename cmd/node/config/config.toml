@@ -416,6 +416,15 @@
     Type = "TxCache"
     Shards = 16
 
+[UserTxDataPool]
+    Name = "UserTxDataPool"
+    Capacity = 600000
+    SizePerSender = 20000
+    SizeInBytes = 419430400 #400MB
+    SizeInBytesPerSender = 12288000
+    Type = "TxCache"
+    Shards = 16
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400

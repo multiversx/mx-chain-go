@@ -31,6 +31,9 @@ var ErrNilMessenger = errors.New("nil Messenger")
 // ErrNilTxDataPool signals that a nil transaction pool has been provided
 var ErrNilTxDataPool = errors.New("nil transaction data pool")
 
+// ErrNilUserTxDataPool signals that a nil user transaction pool has been provided
+var ErrNilUserTxDataPool = errors.New("nil user transaction data pool")
+
 // ErrNilUnsignedTransactionPool signals that a nil unsigned transactions pool has been provided
 var ErrNilUnsignedTransactionPool = errors.New("nil unsigned transactions data pool")
 

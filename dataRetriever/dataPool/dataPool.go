@@ -13,6 +13,7 @@ var log = logger.GetOrCreate("dataRetriever/dataPool")
 
 type dataPool struct {
 	transactions           dataRetriever.ShardedDataCacherNotifier
+	userTransactions       dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
 	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
 	headers                dataRetriever.HeadersPool
@@ -31,6 +32,7 @@ type dataPool struct {
 // DataPoolArgs represents the data pool's constructor structure
 type DataPoolArgs struct {
 	Transactions              dataRetriever.ShardedDataCacherNotifier
+	UserTransactions          dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactions      dataRetriever.ShardedDataCacherNotifier
 	RewardTransactions        dataRetriever.ShardedDataCacherNotifier
 	Headers                   dataRetriever.HeadersPool
@@ -50,6 +52,9 @@ type DataPoolArgs struct {
 func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.Transactions) {
 		return nil, dataRetriever.ErrNilTxDataPool
+	}
+	if check.IfNil(args.UserTransactions) {
+		return nil, dataRetriever.ErrNilUserTxDataPool
 	}
 	if check.IfNil(args.UnsignedTransactions) {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
@@ -93,6 +98,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 
 	return &dataPool{
 		transactions:           args.Transactions,
+		userTransactions:       args.UserTransactions,
 		unsignedTransactions:   args.UnsignedTransactions,
 		rewardTransactions:     args.RewardTransactions,
 		headers:                args.Headers,
@@ -122,6 +128,11 @@ func (dp *dataPool) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCache
 // Transactions returns the holder for transactions
 func (dp *dataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return dp.transactions
+}
+
+// UserTransactions returns the holder for user transactions
+func (dp *dataPool) UserTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return dp.userTransactions
 }
 
 // UnsignedTransactions returns the holder for unsigned transactions (cross shard result entities)

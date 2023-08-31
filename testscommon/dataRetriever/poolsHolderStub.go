@@ -10,6 +10,7 @@ import (
 type PoolsHolderStub struct {
 	HeadersCalled                func() dataRetriever.HeadersPool
 	TransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
+	UserTransactionsCalled       func() dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
 	RewardTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
 	MiniBlocksCalled             func() storage.Cacher
@@ -44,6 +45,15 @@ func (holder *PoolsHolderStub) Headers() dataRetriever.HeadersPool {
 func (holder *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	if holder.TransactionsCalled != nil {
 		return holder.TransactionsCalled()
+	}
+
+	return testscommon.NewShardedDataStub()
+}
+
+// UserTransactions -
+func (holder *PoolsHolderStub) UserTransactions() dataRetriever.ShardedDataCacherNotifier {
+	if holder.UserTransactionsCalled != nil {
+		return holder.UserTransactionsCalled()
 	}
 
 	return testscommon.NewShardedDataStub()

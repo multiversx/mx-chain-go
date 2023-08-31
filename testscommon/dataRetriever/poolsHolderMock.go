@@ -19,6 +19,7 @@ import (
 // PoolsHolderMock -
 type PoolsHolderMock struct {
 	transactions           dataRetriever.ShardedDataCacherNotifier
+	userTransactions       dataRetriever.ShardedDataCacherNotifier
 	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
 	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
 	headers                dataRetriever.HeadersPool
@@ -40,6 +41,25 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder := &PoolsHolderMock{}
 
 	holder.transactions, err = txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageunit.CacheConfig{
+				Capacity:             100000,
+				SizePerSender:        1000,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: 10000000,
+				Shards:               16,
+			},
+			TxGasHandler: &txcachemocks.TxGasHandlerMock{
+				MinimumGasMove:       50000,
+				MinimumGasPrice:      200000000000,
+				GasProcessingDivisor: 100,
+			},
+			NumberOfShards: 1,
+		},
+	)
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.userTransactions, err = txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageunit.CacheConfig{
 				Capacity:             100000,
@@ -125,6 +145,11 @@ func (holder *PoolsHolderMock) CurrentEpochValidatorInfo() dataRetriever.Validat
 // Transactions -
 func (holder *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return holder.transactions
+}
+
+// UserTransactions -
+func (holder *PoolsHolderMock) UserTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return holder.userTransactions
 }
 
 // UnsignedTransactions -

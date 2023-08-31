@@ -17,6 +17,7 @@ import (
 func createMockDataPoolArgs() dataPool.DataPoolArgs {
 	return dataPool.DataPoolArgs{
 		Transactions:              testscommon.NewShardedDataStub(),
+		UserTransactions:          testscommon.NewShardedDataStub(),
 		UnsignedTransactions:      testscommon.NewShardedDataStub(),
 		RewardTransactions:        testscommon.NewShardedDataStub(),
 		Headers:                   &mock.HeadersCacherStub{},
@@ -41,6 +42,17 @@ func TestNewDataPool_NilTransactionsShouldErr(t *testing.T) {
 	tdp, err := dataPool.NewDataPool(args)
 
 	assert.Equal(t, dataRetriever.ErrNilTxDataPool, err)
+	assert.Nil(t, tdp)
+}
+
+func TestNewDataPool_NilUserTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.UserTransactions = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	assert.Equal(t, dataRetriever.ErrNilUserTxDataPool, err)
 	assert.Nil(t, tdp)
 }
 
@@ -197,6 +209,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	require.False(t, tdp.IsInterfaceNil())
 	//pointer checking
 	assert.True(t, args.Transactions == tdp.Transactions())
+	assert.True(t, args.UserTransactions == tdp.UserTransactions())
 	assert.True(t, args.UnsignedTransactions == tdp.UnsignedTransactions())
 	assert.True(t, args.RewardTransactions == tdp.RewardTransactions())
 	assert.True(t, args.Headers == tdp.Headers())

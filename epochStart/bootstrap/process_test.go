@@ -194,6 +194,11 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
+			UserTxDataPool: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 10,
+				Shards:   10,
+			},
 			Requesters: generalCfg.Requesters,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{

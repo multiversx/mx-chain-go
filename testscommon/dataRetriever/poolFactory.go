@@ -53,7 +53,10 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	var err error
 
 	txPool, err := CreateTxPool(numShards, selfShard)
-	panicIfError("CreatePoolsHolder", err)
+	panicIfError("CreatePoolsHolder for tx", err)
+
+	userTxPool, err := CreateTxPool(numShards, selfShard)
+	panicIfError("CreatePoolsHolder for user tx", err)
 
 	unsignedTxPool, err := shardedData.NewShardedData("unsignedTxPool", storageunit.CacheConfig{
 		Capacity:    100000,
@@ -135,6 +138,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
+		UserTransactions:          userTxPool,
 		UnsignedTransactions:      unsignedTxPool,
 		RewardTransactions:        rewardsTxPool,
 		Headers:                   headersPool,
@@ -158,6 +162,13 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 // CreatePoolsHolderWithTxPool -
 func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier) dataRetriever.PoolsHolder {
 	var err error
+
+	userTxPool, err := shardedData.NewShardedData("userTxPool", storageunit.CacheConfig{
+		Capacity:    100000,
+		SizeInBytes: 1000000000,
+		Shards:      1,
+	})
+	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	unsignedTxPool, err := shardedData.NewShardedData("unsignedTxPool", storageunit.CacheConfig{
 		Capacity:    100000,
@@ -219,6 +230,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
+		UserTransactions:          userTxPool,
 		UnsignedTransactions:      unsignedTxPool,
 		RewardTransactions:        rewardsTxPool,
 		Headers:                   headersPool,

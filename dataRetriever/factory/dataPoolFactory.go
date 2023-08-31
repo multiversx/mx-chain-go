@@ -70,6 +70,16 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
 	}
 
+	userTxPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
+		Config:         factory.GetCacherFromConfig(mainConfig.UserTxDataPool),
+		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
+		SelfShardID:    args.ShardCoordinator.SelfId(),
+		TxGasHandler:   args.EconomicsData,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the user transactions", err)
+	}
+
 	uTxPool, err := shardedData.NewShardedData(dataRetriever.UnsignedTxPoolName, factory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the unsigned transactions", err)
@@ -151,6 +161,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
+		UserTransactions:          userTxPool,
 		UnsignedTransactions:      uTxPool,
 		RewardTransactions:        rewardTxPool,
 		Headers:                   hdrPool,
