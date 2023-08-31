@@ -231,6 +231,9 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	for scrHash, scrInfo := range pool.SmartContractResults {
 		txGroups[scrHash] = scrInfo
 	}
+	for invalidTxHash, invalidTxInfo := range pool.InvalidTxs {
+		txGroups[invalidTxHash] = invalidTxInfo
+	}
 
 	if odp.shardID != core.MetachainShardId {
 		for txHash, rewardInfo := range pool.Rewards {
