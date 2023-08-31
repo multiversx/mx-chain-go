@@ -9,7 +9,7 @@ type sovereignShardRequestersContainerFactory struct {
 }
 
 // NewSovereignShardRequestersContainerFactory creates a new container filled with topic requesters for sovereign shards
-func NewSovereignShardRequestersContainerFactory(args FactoryArgs) (*sovereignShardRequestersContainerFactory, error) {
+func NewSovereignShardRequestersContainerFactory(_ FactoryArgs) (*sovereignShardRequestersContainerFactory, error) {
 	return &sovereignShardRequestersContainerFactory{}, nil
 }
 
