@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,25 +89,26 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAppStatusHandler, err)
 	})
-	//t.Run("nil RunTypeComponents should error", func(t *testing.T) {
-	//	t.Parallel()
-	//
-	//	argsCopy := args
-	//	argsCopy.RunTypeComponents = nil
-	//	bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
-	//	require.Nil(t, bcf)
-	//	require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
-	//})
-	//t.Run("nil EpochStartBootstrapperCreator should error", func(t *testing.T) {
-	//	t.Parallel()
-	//
-	//	argsCopy := args
-	//	componentsMock.GetRunTypeComponents()
-	//	argsCopy.RunTypeComponents.= nil
-	//	bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
-	//	require.Nil(t, bcf)
-	//	require.Equal(t, errorsMx.ErrNilBootstrapComponentsFactory, err)
-	//})
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.RunTypeComponents = nil
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
+	})
+	t.Run("nil EpochStartBootstrapperCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsMock{
+			EpochStartBootstrapperFactory: nil,
+		}
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
+	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
 
