@@ -440,7 +440,8 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
-	blockChainHook, err := gbc.arg.RunTypeComponents.BlockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
+
+	blockChainHook, err := gbc.arg.RunTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return err
 	}

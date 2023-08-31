@@ -1,23 +1,33 @@
 package mainFactoryMocks
 
 import (
-	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 )
 
 // RunTypeComponentsMock -
 type RunTypeComponentsMock struct {
-	BlockChainHookHandlerFactory        factory.BlockChainHookHandlerCreator
-	BlockProcessorFactory               factory.BlockProcessorCreator
-	BlockTrackerFactory                 factory.BlockTrackerCreator
-	BootstrapperFromStorageFactory      factory.BootstrapperFromStorageCreator
-	EpochStartBootstrapperFactory       factory.EpochStartBootstrapperCreator
-	ForkDetectorFactory                 factory.ForkDetectorCreator
-	HeaderValidatorFactory              factory.HeaderValidatorCreator
-	RequestHandlerFactory               factory.RequestHandlerCreator
-	ScheduledTxsExecutionFactory        factory.ScheduledTxsExecutionCreator
-	TransactionCoordinatorFactory       factory.TransactionCoordinatorCreator
-	ValidatorStatisticsProcessorFactory factory.ValidatorStatisticsProcessorCreator
-	AdditionalStorageServiceFactory     factory.AdditionalStorageServiceCreator
+	BlockChainHookHandlerFactory        hooks.BlockChainHookHandlerCreator
+	BlockProcessorFactory               block.BlockProcessorCreator
+	BlockTrackerFactory                 track.BlockTrackerCreator
+	BootstrapperFromStorageFactory      storageBootstrap.BootstrapperFromStorageCreator
+	EpochStartBootstrapperFactory       bootstrap.EpochStartBootstrapperCreator
+	ForkDetectorFactory                 sync.ForkDetectorCreator
+	HeaderValidatorFactory              block.HeaderValidatorCreator
+	RequestHandlerFactory               requestHandlers.RequestHandlerCreator
+	ScheduledTxsExecutionFactory        preprocess.ScheduledTxsExecutionCreator
+	TransactionCoordinatorFactory       coordinator.TransactionCoordinatorCreator
+	ValidatorStatisticsProcessorFactory peer.ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
 }
 
 // Create -
@@ -41,62 +51,62 @@ func (r *RunTypeComponentsMock) String() string {
 }
 
 // BlockChainHookHandlerCreator -
-func (r *RunTypeComponentsMock) BlockChainHookHandlerCreator() factory.BlockChainHookHandlerCreator {
+func (r *RunTypeComponentsMock) BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator {
 	return r.BlockChainHookHandlerFactory
 }
 
 // BlockProcessorCreator -
-func (r *RunTypeComponentsMock) BlockProcessorCreator() factory.BlockProcessorCreator {
+func (r *RunTypeComponentsMock) BlockProcessorCreator() block.BlockProcessorCreator {
 	return r.BlockProcessorFactory
 }
 
 // BlockTrackerCreator -
-func (r *RunTypeComponentsMock) BlockTrackerCreator() factory.BlockTrackerCreator {
+func (r *RunTypeComponentsMock) BlockTrackerCreator() track.BlockTrackerCreator {
 	return r.BlockTrackerFactory
 }
 
 // BootstrapperFromStorageCreator -
-func (r *RunTypeComponentsMock) BootstrapperFromStorageCreator() factory.BootstrapperFromStorageCreator {
+func (r *RunTypeComponentsMock) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
 	return r.BootstrapperFromStorageFactory
 }
 
 // EpochStartBootstrapperCreator -
-func (r *RunTypeComponentsMock) EpochStartBootstrapperCreator() factory.EpochStartBootstrapperCreator {
+func (r *RunTypeComponentsMock) EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator {
 	return r.EpochStartBootstrapperFactory
 }
 
 // ForkDetectorCreator -
-func (r *RunTypeComponentsMock) ForkDetectorCreator() factory.ForkDetectorCreator {
+func (r *RunTypeComponentsMock) ForkDetectorCreator() sync.ForkDetectorCreator {
 	return r.ForkDetectorFactory
 }
 
 // HeaderValidatorCreator -
-func (r *RunTypeComponentsMock) HeaderValidatorCreator() factory.HeaderValidatorCreator {
+func (r *RunTypeComponentsMock) HeaderValidatorCreator() block.HeaderValidatorCreator {
 	return r.HeaderValidatorFactory
 }
 
 // RequestHandlerCreator -
-func (r *RunTypeComponentsMock) RequestHandlerCreator() factory.RequestHandlerCreator {
+func (r *RunTypeComponentsMock) RequestHandlerCreator() requestHandlers.RequestHandlerCreator {
 	return r.RequestHandlerFactory
 }
 
 // ScheduledTxsExecutionCreator -
-func (r *RunTypeComponentsMock) ScheduledTxsExecutionCreator() factory.ScheduledTxsExecutionCreator {
+func (r *RunTypeComponentsMock) ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator {
 	return r.ScheduledTxsExecutionFactory
 }
 
 // TransactionCoordinatorCreator -
-func (r *RunTypeComponentsMock) TransactionCoordinatorCreator() factory.TransactionCoordinatorCreator {
+func (r *RunTypeComponentsMock) TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator {
 	return r.TransactionCoordinatorFactory
 }
 
 // ValidatorStatisticsProcessorCreator -
-func (r *RunTypeComponentsMock) ValidatorStatisticsProcessorCreator() factory.ValidatorStatisticsProcessorCreator {
+func (r *RunTypeComponentsMock) ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator {
 	return r.ValidatorStatisticsProcessorFactory
 }
 
 // AdditionalStorageServiceCreator -
-func (r *RunTypeComponentsMock) AdditionalStorageServiceCreator() factory.AdditionalStorageServiceCreator {
+func (r *RunTypeComponentsMock) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
 	return r.AdditionalStorageServiceFactory
 }
 

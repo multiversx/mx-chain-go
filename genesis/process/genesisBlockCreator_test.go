@@ -28,6 +28,7 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -179,7 +180,7 @@ func createMockArgument(
 				},
 			},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		RunTypeComponents: components.GetRunTypeComponents(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

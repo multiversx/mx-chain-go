@@ -265,18 +265,6 @@ func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() peer.
 	return mrc.runTypeComponents.validatorStatisticsProcessorCreator
 }
 
-// AdditionalStorageServiceCreator returns the additional storage service creator
-func (mrc *managedRunTypeComponents) AdditionalStorageServiceCreator() factory.AdditionalStorageServiceCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
-
-	if mrc.runTypeComponents == nil {
-		return nil
-	}
-
-	return mrc.runTypeComponents.additionalStorageServiceCreator
-}
-
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil

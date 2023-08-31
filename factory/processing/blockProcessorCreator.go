@@ -1010,7 +1010,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		MissingTrieNodesNotifier: notifier,
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1061,7 +1061,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
