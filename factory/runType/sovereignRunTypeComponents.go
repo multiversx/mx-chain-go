@@ -18,23 +18,18 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 )
 
-// SovereignRunTypeComponentsFactoryArgs holds the arguments needed for creating a state components factory
-type SovereignRunTypeComponentsFactoryArgs struct {
-	RunTypeComponentsFactory *runTypeComponentsFactory
-}
-
 type sovereignRunTypeComponentsFactory struct {
-	runTypeComponentsFactory *runTypeComponentsFactory
+	*runTypeComponentsFactory
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(args SovereignRunTypeComponentsFactoryArgs) (*sovereignRunTypeComponentsFactory, error) {
-	if check.IfNil(args.RunTypeComponentsFactory) {
+func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory) (*sovereignRunTypeComponentsFactory, error) {
+	if check.IfNil(fact) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 
 	return &sovereignRunTypeComponentsFactory{
-		runTypeComponentsFactory: args.RunTypeComponentsFactory,
+		runTypeComponentsFactory: fact,
 	}, nil
 }
 

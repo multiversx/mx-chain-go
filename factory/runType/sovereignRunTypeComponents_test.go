@@ -11,16 +11,12 @@ import (
 func TestNewSovereignRunTypeComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	srcf, err := runType.NewSovereignRunTypeComponentsFactory(runType.SovereignRunTypeComponentsFactoryArgs{
-		RunTypeComponentsFactory: nil,
-	})
+	srcf, err := runType.NewSovereignRunTypeComponentsFactory(nil)
 	require.Nil(t, srcf)
 	require.Error(t, errors.ErrNilRunTypeComponentsFactory, err)
 
 	rcf, _ := runType.NewRunTypeComponentsFactory()
-	srcf, err = runType.NewSovereignRunTypeComponentsFactory(runType.SovereignRunTypeComponentsFactoryArgs{
-		RunTypeComponentsFactory: rcf,
-	})
+	srcf, err = runType.NewSovereignRunTypeComponentsFactory(rcf)
 	require.NotNil(t, srcf)
 	require.NoError(t, err)
 }
@@ -29,9 +25,7 @@ func TestSovereignRunTypeComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	rcf, _ := runType.NewRunTypeComponentsFactory()
-	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(runType.SovereignRunTypeComponentsFactoryArgs{
-		RunTypeComponentsFactory: rcf,
-	})
+	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(rcf)
 
 	rc, err := srcf.Create()
 	require.NoError(t, err)
@@ -42,9 +36,7 @@ func TestSovereignRunTypeComponentsFactory_Close(t *testing.T) {
 	t.Parallel()
 
 	rcf, _ := runType.NewRunTypeComponentsFactory()
-	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(runType.SovereignRunTypeComponentsFactoryArgs{
-		RunTypeComponentsFactory: rcf,
-	})
+	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(rcf)
 
 	rc, err := srcf.Create()
 	require.NoError(t, err)
