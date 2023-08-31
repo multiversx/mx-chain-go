@@ -62,3 +62,9 @@ type SmartContractResultPreProcessorCreator interface {
 	CreateSmartContractResultPreProcessor(args SmartContractResultPreProcessorCreatorArgs) (process.PreProcessor, error)
 	IsInterfaceNil() bool
 }
+
+// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
+type ScheduledTxsExecutionCreator interface {
+	CreateScheduledTxsExecutionHandler(args ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
+	IsInterfaceNil() bool
+}
