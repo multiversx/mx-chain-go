@@ -216,6 +216,7 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
+		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }

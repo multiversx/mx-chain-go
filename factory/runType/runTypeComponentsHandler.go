@@ -115,7 +115,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.validatorStatisticsProcessorCreator) {
 		return errors.ErrNilValidatorStatisticsProcessorCreator
 	}
-
+	if check.IfNil(mrc.additionalStorageServiceCreator) {
+		return errors.ErrNilAdditionalStorageServiceCreator
+	}
 	return nil
 }
 

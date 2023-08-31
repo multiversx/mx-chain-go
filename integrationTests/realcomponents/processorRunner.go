@@ -243,16 +243,17 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 	argsData := factoryData.DataComponentsFactoryArgs{
-		Config:                        *pr.Config.GeneralConfig,
-		PrefsConfig:                   pr.Config.PreferencesConfig.Preferences,
-		ShardCoordinator:              pr.BootstrapComponents.ShardCoordinator(),
-		Core:                          pr.CoreComponents,
-		StatusCore:                    pr.StatusCoreComponents,
-		Crypto:                        pr.CryptoComponents,
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: false,
-		NodeProcessingMode:            common.Normal,
-		FlagsConfigs:                  config.ContextFlagsConfig{},
+		Config:                          *pr.Config.GeneralConfig,
+		PrefsConfig:                     pr.Config.PreferencesConfig.Preferences,
+		ShardCoordinator:                pr.BootstrapComponents.ShardCoordinator(),
+		Core:                            pr.CoreComponents,
+		StatusCore:                      pr.StatusCoreComponents,
+		Crypto:                          pr.CryptoComponents,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: pr.RunTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -448,6 +449,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		BootstrapComponents:    pr.BootstrapComponents,
 		StatusComponents:       pr.StatusComponents,
 		StatusCoreComponents:   pr.StatusCoreComponents,
+		RunTypeComponents:      pr.RunTypeComponents,
 		ChainRunType:           common.ChainRunTypeRegular,
 	}
 

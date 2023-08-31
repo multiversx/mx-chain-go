@@ -68,7 +68,8 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	coreComponents := componentsMock.GetCoreComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
-	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
+	runTypeComponents := componentsMock.GetRunTypeComponents()
+	dataComponents := componentsMock.GetDataComponents(coreComponents, runTypeComponents, shardCoordinator)
 	stateComponents := componentsMock.GetStateComponents(coreComponents)
 	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
 	argsB := componentsMock.GetBootStrapFactoryArgs()
@@ -107,7 +108,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType:       common.ChainRunTypeRegular,
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 }
 

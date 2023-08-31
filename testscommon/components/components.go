@@ -132,11 +132,12 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 
 // GetConsensusArgs -
 func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
+	runTypeComponents := GetRunTypeComponents()
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	stateComponents := GetStateComponents(coreComponents)
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
+	dataComponents := GetDataComponents(coreComponents, runTypeComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
 		coreComponents,
@@ -209,20 +210,21 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 }
 
 // GetDataArgs -
-func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
+func GetDataArgs(coreComponents factory.CoreComponentsHolder, runTypeComponents factory.RunTypeComponentsHolder, shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
 	return dataComp.DataComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},
-		ShardCoordinator:              shardCoordinator,
-		Core:                          coreComponents,
-		StatusCore:                    GetStatusCoreComponents(),
-		Crypto:                        GetCryptoComponents(coreComponents),
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: false,
-		NodeProcessingMode:            common.Normal,
-		FlagsConfigs:                  config.ContextFlagsConfig{},
+		ShardCoordinator:                shardCoordinator,
+		Core:                            coreComponents,
+		StatusCore:                      GetStatusCoreComponents(),
+		Crypto:                          GetCryptoComponents(coreComponents),
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 }
 
@@ -355,10 +357,11 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.
 
 // GetProcessComponentsFactoryArgs -
 func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
+	runTypeComponents := GetRunTypeComponents()
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
+	dataComponents := GetDataComponents(coreComponents, runTypeComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents)
 	processArgs := GetProcessArgs(
 		shardCoordinator,
@@ -564,7 +567,8 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:      common.ChainRunTypeRegular,
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -623,10 +627,11 @@ func GetStatusComponents(
 
 // GetStatusComponentsFactoryArgsAndProcessComponents -
 func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (statusComp.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
+	runTypeComponents := GetRunTypeComponents()
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
+	dataComponents := GetDataComponents(coreComponents, runTypeComponents, shardCoordinator)
 	stateComponents := GetStateComponents(coreComponents)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -692,8 +697,8 @@ func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.Net
 }
 
 // GetDataComponents -
-func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
-	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
+func GetDataComponents(coreComponents factory.CoreComponentsHolder, runTypeComponents factory.RunTypeComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
+	dataArgs := GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
@@ -799,6 +804,23 @@ func GetProcessComponents(
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
+// GetSovereignRunTypeComponents -
+func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
 		return nil

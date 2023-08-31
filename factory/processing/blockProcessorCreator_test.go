@@ -72,6 +72,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 		args.ChainRunType = common.ChainRunTypeSovereign
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
@@ -157,7 +158,8 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	}
 	shardC.CurrentShard = core.MetachainShardId
 
-	dataArgs := componentsMock.GetDataArgs(coreComponents, shardC)
+	runTypeComponents := componentsMock.GetRunTypeComponents()
+	dataArgs := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardC)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
