@@ -338,7 +338,7 @@ func (bbt *baseBlockTrack) ComputeLongestShardsChainsFromLastNotarized(chainPara
 
 		hdrsStr := ""
 		for _, hhddrr := range hdrsForShard {
-			hdrsStr += fmt.Sprintf("[nonce: %d, epoch: %d] ", hhddrr.GetNonce(), hhddrr.GetEpoch())
+			hdrsStr += fmt.Sprintf("[nonce: %d, round: %d, epoch: %d] ", hhddrr.GetNonce(), hhddrr.GetRound(), hhddrr.GetEpoch())
 		}
 		log.Error("\tREMOVE_ME: baseBlockTrack.ComputeLongestShardsChainsFromLastNotarized", "shard ID", shardID, "headers", hdrsStr)
 		hdrsMap[shardID] = append(hdrsMap[shardID], hdrsForShard...)

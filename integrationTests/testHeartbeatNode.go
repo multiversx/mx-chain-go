@@ -130,7 +130,7 @@ func NewTestHeartbeatNode(
 	pksBytes := make(map[uint32][]byte, maxShards)
 	pksBytes[nodeShardId], _ = pk.ToByteArray()
 
-	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorMock{
+	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		GetAllValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
 			keys := make(map[uint32][][]byte)
 			for shardID := uint32(0); shardID < maxShards; shardID++ {

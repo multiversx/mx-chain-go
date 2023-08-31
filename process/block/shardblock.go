@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/chainblock"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -574,7 +575,22 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	// verify if there are "K" block after current to make this one final
 	nextBlocksVerified := uint32(0)
 	log.Error("REMOVE_ME: shardProcessor.checkMetaHdrFinality", "header nonce", header.GetNonce(), "header epoch", header.GetEpoch())
+
+	headerHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	chainBlock := chainblock.NewChainBlock(header, string(headerHash))
+
 	for _, metaHdr := range finalityAttestingMetaHdrs[core.MetachainShardId] {
+		metaHdrHash, _ := core.CalculateHash(sp.marshalizer, sp.hasher, metaHdr)
+		chainBlock.Add(metaHdr, string(metaHdrHash))
+	}
+
+	chain, height := chainBlock.LongestChain(make([]data.HeaderHandler, 0))
+	chainStr := ""
+	for _, hdr := range chain {
+		chainStr += fmt.Sprintf("[sh:%d, ep:%d, rnd: %d, nnc: %d],", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetRound(), hdr.GetNonce())
+	}
+	log.Error("REMOVE_ME: shardProcessor.checkMetaHdrFinality - LONGEST CHAIN", "height", height, "longest chain", chainStr)
+	for _, metaHdr := range chain {
 		log.Error("REMOVE_ME: shardProcessor.checkMetaHdrFinality finalityAttestingMetaHdrs range", "metaHdr nonce", metaHdr.GetNonce(), "metaHdr epoch", metaHdr.GetEpoch())
 		if nextBlocksVerified >= finality {
 			break

@@ -589,7 +589,7 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	hdrsForBlockStr := ""
 	for _, hdr := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		hdrsForBlockStr += fmt.Sprintf("{ep: %d, sh: %d, nonce: %d, usedin block: %v}, ", hdr.hdr.GetEpoch(), hdr.hdr.GetShardID(), hdr.hdr.GetNonce(), hdr.usedInBlock)
+		hdrsForBlockStr += fmt.Sprintf("{ep: %d, sh: %d, round: %d, nonce: %d, usedin block: %v}, ", hdr.hdr.GetEpoch(), hdr.hdr.GetShardID(), hdr.hdr.GetRound(), hdr.hdr.GetNonce(), hdr.usedInBlock)
 	}
 	log.Error("REMOVE_ME: sortHeadersForCurrentBlockByNonce", "hdrsForCurrBlock", hdrsForBlockStr)
 	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {

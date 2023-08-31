@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/chainblock"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -1839,7 +1840,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 	finalityAttHdrsStr := ""
 	for _, hdrsInShard := range finalityAttestingShardHdrs {
 		for _, hdr := range hdrsInShard {
-			finalityAttHdrsStr += fmt.Sprintf("[sh: %d, ep: %d, nonce: %d],", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetNonce())
+			finalityAttHdrsStr += fmt.Sprintf("[sh: %d, ep: %d, round: %d, nonce: %d],", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetRound(), hdr.GetNonce())
 		}
 	}
 
@@ -1852,7 +1853,7 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 	var errFinal error
 
 	for shardId, lastVerifiedHdr := range highestNonceHdrs {
-		log.Error("REMOVE_ME: checking shard header", "shard id", shardId, "epoch", lastVerifiedHdr.GetEpoch(), "nonce", lastVerifiedHdr.GetNonce(), "finalityAttHdrsStr", finalityAttHdrsStr)
+		log.Error("REMOVE_ME: checking shard header", "shard id", shardId, "epoch", lastVerifiedHdr.GetEpoch(), "round", lastVerifiedHdr.GetRound(), "nonce", lastVerifiedHdr.GetNonce(), "finalityAttHdrsStr", finalityAttHdrsStr)
 		if check.IfNil(lastVerifiedHdr) {
 			return process.ErrNilBlockHeader
 		}
@@ -1881,14 +1882,28 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 		}
 		lastVerifiedHdrFinality := uint32(chainParams.ShardFinality)
 
+		lastVerifiedHdrHash, _ := core.CalculateHash(mp.marshalizer, mp.hasher, lastVerifiedHdr)
+		chainBlock := chainblock.NewChainBlock(lastVerifiedHdr, string(lastVerifiedHdrHash))
+
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
 		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			//chainParams, err = mp.chainParametersHandler.ChainParametersForEpoch(shardHdr.GetEpoch())
-			//if err != nil {
-			//	log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
-			//	chainParams = mp.chainParametersHandler.CurrentChainParameters()
-			//}
+			shardHdrHash, _ := core.CalculateHash(mp.marshalizer, mp.hasher, shardHdr)
+			chainBlock.Add(shardHdr, string(shardHdrHash))
+		}
+
+		//chainParams, err = mp.chainParametersHandler.ChainParametersForEpoch(shardHdr.GetEpoch())
+		//if err != nil {
+		//	log.Error("metaProcessor.checkShardHeadersFinality: cannot get chain params for epoch", "epoch", lastVerifiedHdr.GetEpoch(), "error", err)
+		//	chainParams = mp.chainParametersHandler.CurrentChainParameters()
+		//}
+		longestCHain, height := chainBlock.LongestChain(make([]data.HeaderHandler, 0))
+		chainStr := ""
+		for _, hdr := range longestCHain {
+			chainStr += fmt.Sprintf("[sh:%d, ep:%d, rnd: %d, nnc: %d],", hdr.GetShardID(), hdr.GetEpoch(), hdr.GetRound(), hdr.GetNonce())
+		}
+		log.Error("REMOVE_ME: metaProcessor.checkShardHeadersFinality - LONGEST CHAIN", "height", height, "longest chain", chainStr)
+		for _, shardHdr := range longestCHain {
 			shardHdrFinality := uint32(lastVerifiedHdrFinality)
 			log.Error("\tREMOVE_ME: checkShardHeadersFinality", "shard ID", lastVerifiedHdr.GetShardID(), "shardHdr.nonce", shardHdr.GetNonce(), "lastVerifiedHdr.nonce", lastVerifiedHdr.GetNonce(), "lastVerifiedHdr.epoch", lastVerifiedHdr.GetEpoch(), "shardHdr.epoch", shardHdr.GetEpoch(), "nextBlocksVerified", nextBlocksVerified, "finality", lastVerifiedHdrFinality)
 			if nextBlocksVerified >= shardHdrFinality {

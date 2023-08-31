@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/chainblock"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -334,7 +335,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 	hasher := blake2b.NewBlake2b()
 	headerHash, _ := core.CalculateHash(marshalizer, hasher, header)
-	wrappedBlock := NewChainBlock(header, string(headerHash))
+	wrappedBlock := chainblock.NewChainBlock(header, string(headerHash))
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
 		currHeaderHash, _ := core.CalculateHash(marshalizer, hasher, currHeader)
