@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -32,6 +33,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		Hasher:                 &testscommon.KeccakMock{},
 		MbsStorer:              &genericMocks.StorerMock{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 

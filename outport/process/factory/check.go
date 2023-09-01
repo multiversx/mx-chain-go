@@ -47,6 +47,9 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.ExecutionOrderGetter) {
+		return process.ErrNilExecutionOrderGetter
+	}
 
 	return nil
 }
