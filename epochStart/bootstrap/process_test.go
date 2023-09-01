@@ -44,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
@@ -2005,6 +2006,132 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 	params, err := epochStartProvider.requestAndProcessing()
 	assert.Equal(t, requiredParameters, params)
 	assert.Nil(t, err)
+}
+
+func TestEpochStartBootstrap_SaveEpochStartMetaToStaticStorer(t *testing.T) {
+	t.Parallel()
+
+	epochStartMetaBlock := &block.MetaBlock{
+		Epoch: 2,
+	}
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = epochStartMetaBlock
+
+	putCalls := 0
+	epochStartProvider.storageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return genericMocks.NewStorerMock(), nil
+		},
+		PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+			if unitType == dataRetriever.EpochStartStaticUnit {
+				putCalls++
+				return nil
+			}
+
+			return nil
+		},
+	}
+
+	err := epochStartProvider.saveEpochStartMetaToStaticStorer()
+	require.Nil(t, err)
+	require.Equal(t, 1, putCalls)
+}
+
+func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	txHashes := map[string]*state.ShardValidatorInfo{
+		"txHash1": &state.ShardValidatorInfo{
+			PublicKey:  []byte("pubKey1"),
+			ShardId:    0,
+			List:       "eligible",
+			Index:      0,
+			TempRating: 10,
+		},
+		"txHash2": &state.ShardValidatorInfo{
+			PublicKey:  []byte("pubKey1"),
+			ShardId:    0,
+			List:       "eligible",
+			Index:      0,
+			TempRating: 10,
+		},
+		"txHash3": &state.ShardValidatorInfo{
+			PublicKey:  []byte("pubKey1"),
+			ShardId:    0,
+			List:       "eligible",
+			Index:      0,
+			TempRating: 10,
+		},
+	}
+
+	peerMiniBlocks := []*block.MiniBlock{
+		&block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("txHash1"),
+				[]byte("txHash2"),
+			},
+			ReceiverShardID: 1,
+			SenderShardID:   1,
+			Type:            block.PeerBlock,
+		},
+		&block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("txHash3"),
+			},
+			ReceiverShardID: 1,
+			SenderShardID:   1,
+			Type:            block.PeerBlock,
+		},
+		&block.MiniBlock{
+			TxHashes: [][]byte{
+				[]byte("txHash5"),
+				[]byte("txHash6"),
+			},
+			ReceiverShardID: 1,
+			SenderShardID:   1,
+			Type:            block.TxBlock,
+		},
+	}
+
+	putCalls := 0
+	epochStartProvider.storageService = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return genericMocks.NewStorerMock(), nil
+		},
+		PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+			if unitType == dataRetriever.EpochStartStaticUnit {
+				putCalls++
+				return nil
+			}
+
+			return nil
+		},
+	}
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &validatorInfoCacherStub.ValidatorInfoCacherStub{
+				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+					val, ok := txHashes[string(validatorInfoHash)]
+					if ok {
+						return val, nil
+					}
+
+					return nil, errors.New("failed to get validator info")
+				},
+			}
+		},
+	}
+
+	err := epochStartProvider.saveMiniblocksToStaticStorer(peerMiniBlocks)
+	require.Nil(t, err)
+	require.Equal(t, 5, putCalls) // 2 miniblock + 3 validators info
 }
 
 func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
