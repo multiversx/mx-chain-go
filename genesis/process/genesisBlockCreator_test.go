@@ -229,7 +229,7 @@ func createMockArgument(
 			return entireSupply
 		},
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
-			return math.MaxUint64
+			return math.MaxInt64
 		},
 	}
 	arg.Economics = ted
