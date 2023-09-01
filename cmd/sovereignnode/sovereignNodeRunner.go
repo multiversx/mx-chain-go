@@ -417,6 +417,27 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating process components")
+
+	marshaller, err := marshallerFactory.NewMarshalizer(configs.NotifierConfig.WebSocketConfig.MarshallerType)
+	if err != nil {
+		return true, err
+	}
+	hasher, err := hasherFactory.NewHasher(configs.NotifierConfig.WebSocketConfig.HasherType)
+	if err != nil {
+		return true, err
+	}
+
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
+		HeadersPool: managedDataComponents.Datapool().Headers(),
+		TxPool:      managedDataComponents.Datapool().UnsignedTransactions(),
+		Marshaller:  marshaller,
+		Hasher:      hasher,
+	}
+	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
+	if err != nil {
+		return true, err
+	}
+
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -428,6 +449,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
+		incomingHeaderHandler,
 	)
 	if err != nil {
 		return true, err
@@ -494,6 +516,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	sovereignWsReceiver, err := createSovereignWsReceiver(
 		managedDataComponents.Datapool(),
 		configs.NotifierConfig,
+		incomingHeaderHandler,
 	)
 	if err != nil {
 		return true, err
@@ -1103,6 +1126,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1213,6 +1237,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ShardCoordinatorFactory:    sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:    processComp.NewSovereignGenesisMetaBlockChecker(),
+		IncomingHeaderSubscriber:   incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1670,6 +1695,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 func createSovereignWsReceiver(
 	dataPool dataRetriever.PoolsHolder,
 	config *sovereignConfig.NotifierConfig,
+	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
 		MarshallerType:   config.WebSocketConfig.MarshallerType,
@@ -1678,26 +1704,6 @@ func createSovereignWsReceiver(
 	}
 
 	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
-	if err != nil {
-		return nil, err
-	}
-	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
-	if err != nil {
-		return nil, err
-	}
-
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
-		HeadersPool: dataPool.Headers(),
-		TxPool:      dataPool.UnsignedTransactions(),
-		Marshaller:  marshaller,
-		Hasher:      hasher,
-	}
-	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -43,4 +44,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	FullArchivePeerShardMapper   process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
 	NodeOperationMode            common.NodeOperation
+	IncomingHeaderSubscriber     processing.IncomingHeaderSubscriber
 }
