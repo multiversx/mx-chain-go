@@ -262,8 +262,6 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 
 		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 
-		// TODO remove this after system test
-		log.Warn("executing transaction", "txHash", scrHash)
 		irp.executionOrderHandler.Add(scrHash)
 		irp.addIntermediateTxToResultsForBlock(addScr, scrHash, sndShId, dstShId)
 	}

@@ -276,8 +276,6 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 				return err
 			}
 
-			// TODO remove this after system test
-			log.Warn("executing transaction", "txHash", txHash)
 			rtp.txExecutionOrderHandler.Add(txHash)
 			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
@@ -510,8 +508,6 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 
 		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
 
-		// TODO remove this after system test
-		log.Warn("executing transaction", "txHash", miniBlockTxHashes[txIndex])
 		rtp.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])
 		if err != nil {
