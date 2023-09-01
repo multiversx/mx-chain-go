@@ -38,13 +38,3 @@ type EconomicsDataHandler interface {
 	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64
 }
-
-// ExecutionOrderHandler defines the interface for the execution order handler
-type ExecutionOrderHandler interface {
-	PutExecutionOrderInTransactionPool(
-		pool *outport.TransactionPool,
-		header data.HeaderHandler,
-		body data.BodyHandler,
-		prevHeader data.HeaderHandler,
-	) ([]string, []string, error)
-}

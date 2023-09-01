@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	mathRand "math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -59,6 +58,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -719,8 +719,9 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:       &roundsConfig,
-		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
+		RoundConfig:             &roundsConfig,
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -824,7 +825,8 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -2728,8 +2730,10 @@ func GenerateTrieKeysForMaxLevel(numTrieLevels int, numChildrenPerBranch int) []
 
 func generateRandHexString(size int) string {
 	buff := make([]string, size)
+	lenCharsPoolBig := big.NewInt(int64(len(charsPool)))
 	for i := 0; i < size; i++ {
-		buff[i] = charsPool[mathRand.Intn(len(charsPool))]
+		randomIndexBig, _ := rand.Int(rand.Reader, lenCharsPoolBig)
+		buff[i] = charsPool[randomIndexBig.Int64()]
 	}
 
 	return strings.Join(buff, "")
