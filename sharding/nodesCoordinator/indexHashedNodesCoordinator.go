@@ -255,7 +255,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		}
 	}
 
-	nodesConfig, err := ihnc.NodesConfigFromStaticStorer(epoch)
+	nodesConfig, err := ihnc.nodesConfigFromStaticStorer(epoch)
 	if err != nil {
 		return nil, false
 	}

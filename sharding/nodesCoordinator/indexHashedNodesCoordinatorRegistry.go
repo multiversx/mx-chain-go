@@ -41,69 +41,50 @@ func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte, epoch uint32) err
 	return ihnc.baseLoadState(key, epoch)
 }
 
-func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoDataFromStatic(
-	txHash []byte,
+func (ihnc *indexHashedNodesCoordinator) nodesConfigFromStaticStorer(
 	epoch uint32,
-) (*state.ShardValidatorInfo, error) {
-	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
-		shardValidatorInfoBytes, err := ihnc.epochStartStaticStorer.Get(txHash)
-		if err != nil {
-			log.Error("getShardValidatorInfoDataFromStatic: ", "key", txHash, "error", err)
-			return nil, err
-		}
-
-		shardValidatorInfo := &state.ShardValidatorInfo{}
-		err = ihnc.marshalizer.Unmarshal(shardValidatorInfo, shardValidatorInfoBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		return shardValidatorInfo, nil
-	}
-
-	shardValidatorInfo := &state.ShardValidatorInfo{}
-	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, txHash)
+) (*epochNodesConfig, error) {
+	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	return shardValidatorInfo, nil
+	validatorsInfo, err := ihnc.createValidatorsInfoFromStatic(metaBlock, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	return ihnc.nodesConfigFromValidatorsInfo(metaBlock, validatorsInfo)
 }
 
-func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
+func (ihnc *indexHashedNodesCoordinator) createValidatorsInfoFromStatic(
 	metaBlock data.HeaderHandler,
 	epoch uint32,
 ) ([]*state.ShardValidatorInfo, error) {
-	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
 	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
-
-	blockBody := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 
 	allValidatorInfo := make([]*state.ShardValidatorInfo, 0)
 
-	for i, mbHeader := range mbHeaderHandlers {
+	for _, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
 		}
 
-		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
-
 		mbBytes, err := ihnc.epochStartStaticStorer.Get(mbHeader.GetHash())
 		if err != nil {
-			log.Error("createValidatorInfoFromStatic: ", "key", mbHeader.GetHash(), "error", err)
+			log.Error("createValidatorsInfoFromStatic:", "key", mbHeader.GetHash(), "error", err)
 			return nil, err
 		}
+
 		mb := &block.MiniBlock{}
 		err = ihnc.marshalizer.Unmarshal(mb, mbBytes)
 		if err != nil {
-			log.Error("createValidatorInfoFromStatic: Unmarshal ", "key", mbHeader.GetHash(), "error", err)
+			log.Error("createValidatorsInfoFromStatic: Unmarshal", "key", mbHeader.GetHash(), "error", err)
 			return nil, err
 		}
 
-		blockBody.MiniBlocks = append(blockBody.MiniBlocks, mb)
-
 		for _, txHash := range mb.TxHashes {
-			shardValidatorInfo, err := ihnc.getShardValidatorInfoDataFromStatic(txHash, epoch)
+			shardValidatorInfo, err := ihnc.getShardValidatorInfoFromStatic(txHash, epoch)
 			if err != nil {
 				return nil, err
 			}
@@ -115,41 +96,27 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromStatic(
 	return allValidatorInfo, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) NodesConfigRegistryFromMetaBlock(
+func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoFromStatic(
+	txHash []byte,
 	epoch uint32,
-) (*NodesCoordinatorRegistry, error) {
-	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
+) (*state.ShardValidatorInfo, error) {
+	marshalledShardValidatorInfo := txHash
+	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		shardValidatorInfoBytes, err := ihnc.epochStartStaticStorer.Get(txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		marshalledShardValidatorInfo = shardValidatorInfoBytes
+	}
+
+	shardValidatorInfo := &state.ShardValidatorInfo{}
+	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, marshalledShardValidatorInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	validatorsInfo, err := ihnc.createValidatorInfoFromStatic(metaBlock, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch, metaBlock.GetRandSeed(), validatorsInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
-}
-
-func (ihnc *indexHashedNodesCoordinator) NodesConfigFromStaticStorer(
-	epoch uint32,
-) (*epochNodesConfig, error) {
-	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	validatorsInfo, err := ihnc.createValidatorInfoFromStatic(metaBlock, epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	return ihnc.nodesConfigFromValidatorsInfo(metaBlock, validatorsInfo)
+	return shardValidatorInfo, nil
 }
 
 func (ihnc *indexHashedNodesCoordinator) nodesConfigFromValidatorsInfo(

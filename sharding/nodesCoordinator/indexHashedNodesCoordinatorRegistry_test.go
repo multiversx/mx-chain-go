@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -625,35 +624,4 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 			return data, nil
 		},
 	}
-}
-
-func TestIndexHashedNodesCoordinator_NodesConfigFromMetaBlock(t *testing.T) {
-	t.Parallel()
-
-	epoch := uint32(2)
-
-	args := createArguments()
-
-	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           2,
-		NodesMeta:            1,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
-	}
-	nodesShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
-	require.Nil(t, err)
-
-	args.Shuffler = nodesShuffler
-	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		RefactorPeersMiniBlocksEnableEpochField: 1,
-	}
-	args.EpochStartStaticStorer = createEpochStartStaticStorerMock(2)
-	ihnc, err := NewIndexHashedNodesCoordinator(args)
-	require.Nil(t, err)
-
-	_, err = ihnc.NodesConfigRegistryFromMetaBlock(epoch)
-	require.Nil(t, err)
 }
