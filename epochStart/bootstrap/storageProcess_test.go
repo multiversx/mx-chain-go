@@ -34,11 +34,16 @@ func createMockStorageEpochStartBootstrapArgs(
 ) ArgsStorageEpochStartBootstrap {
 	esbc, _ := NewEpochStartBootstrapperFactory()
 	return ArgsStorageEpochStartBootstrap{
-		ArgsEpochStartBootstrap:    createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
-		ImportDbConfig:             config.ImportDbConfig{},
-		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
-		TimeToWaitForRequestedData: time.Second,
-		ChainRunType:               common.ChainRunTypeRegular,
+		ArgsEpochStartBootstrap:       createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
+		ImportDbConfig:                config.ImportDbConfig{},
+		ChanGracefullyClose:           make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData:    time.Second,
+		EpochStartBootstrapperCreator: esbc,
+		ResolverRequestFactory: &RequestHandlerFactoryStub{
+			CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error) {
+				return &testscommon.RequestHandlerStub{}, nil
+			},
+		},
 	}
 }
 
