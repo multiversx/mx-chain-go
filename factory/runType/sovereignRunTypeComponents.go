@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 )
 
 type sovereignRunTypeComponentsFactory struct {
@@ -94,6 +95,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignValidatorStatisticsProcessorFactory failed: %w", err)
 	}
 
+	additionalStorageServiceCreator, err := storageFactory.NewSovereignAdditionalStorageServiceFactory()
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -106,5 +112,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		scheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:     additionalStorageServiceCreator,
 	}, nil
 }

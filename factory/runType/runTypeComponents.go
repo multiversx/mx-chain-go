@@ -5,8 +5,9 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
-	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 )
 
 type runTypeComponentsFactory struct {
@@ -21,17 +23,18 @@ type runTypeComponentsFactory struct {
 
 // runTypeComponents struct holds the components needed for a run type
 type runTypeComponents struct {
-	blockChainHookHandlerCreator        factory.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator       factory.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator      factory.BootstrapperFromStorageCreator
-	blockProcessorCreator               factory.BlockProcessorCreator
-	forkDetectorCreator                 factory.ForkDetectorCreator
-	blockTrackerCreator                 factory.BlockTrackerCreator
-	requestHandlerCreator               factory.RequestHandlerCreator
-	headerValidatorCreator              factory.HeaderValidatorCreator
-	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
-	transactionCoordinatorCreator       factory.TransactionCoordinatorCreator
-	validatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
+	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
+	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
+	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
+	blockProcessorCreator               processBlock.BlockProcessorCreator
+	forkDetectorCreator                 sync.ForkDetectorCreator
+	blockTrackerCreator                 track.BlockTrackerCreator
+	requestHandlerCreator               requestHandlers.RequestHandlerCreator
+	headerValidatorCreator              processBlock.HeaderValidatorCreator
+	scheduledTxsExecutionCreator        preprocess.ScheduledTxsExecutionCreator
+	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
+	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
+	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -96,6 +99,11 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
 	}
 
+	additionalStorageServiceCreator, err := storageFactory.NewShardAdditionalStorageServiceFactory()
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardAdditionalStorageServiceFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -108,6 +116,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		scheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:     additionalStorageServiceCreator,
 	}, nil
 }
 

@@ -51,6 +51,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
@@ -195,14 +196,14 @@ type processComponentsFactory struct {
 	statusComponents                    factory.StatusComponentsHolder
 	statusCoreComponents                factory.StatusCoreComponentsHolder
 	chainRunType                        common.ChainRunType
-	blockProcessorCreator               factory.BlockProcessorCreator
-	resolverRequestCreator              factory.RequestHandlerCreator
-	scheduledTxsExecutionCreator        factory.ScheduledTxsExecutionCreator
-	blockTrackerCreator                 factory.BlockTrackerCreator
-	transactionCoordinatorCreator       factory.TransactionCoordinatorCreator
-	headerValidatorCreator              factory.HeaderValidatorCreator
-	forkDetectorCreator                 factory.ForkDetectorCreator
-	validatorStatisticsProcessorCreator factory.ValidatorStatisticsProcessorCreator
+	blockProcessorCreator               block.BlockProcessorCreator
+	resolverRequestCreator              requestHandlers.RequestHandlerCreator
+	scheduledTxsExecutionCreator        preprocess.ScheduledTxsExecutionCreator
+	blockTrackerCreator                 track.BlockTrackerCreator
+	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
+	headerValidatorCreator              block.HeaderValidatorCreator
+	forkDetectorCreator                 sync.ForkDetectorCreator
+	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory

@@ -5,8 +5,19 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	processSync "github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 )
 
 var _ factory.ComponentHandler = (*managedRunTypeComponents)(nil)
@@ -108,8 +119,20 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	return nil
 }
 
+// AdditionalStorageServiceCreator returns the additional storage service creator
+func (mrc *managedRunTypeComponents) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if mrc.runTypeComponents == nil {
+		return nil
+	}
+
+	return mrc.runTypeComponents.additionalStorageServiceCreator
+}
+
 // BlockProcessorCreator returns the block processor creator
-func (mrc *managedRunTypeComponents) BlockProcessorCreator() factory.BlockProcessorCreator {
+func (mrc *managedRunTypeComponents) BlockProcessorCreator() processBlock.BlockProcessorCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -121,7 +144,7 @@ func (mrc *managedRunTypeComponents) BlockProcessorCreator() factory.BlockProces
 }
 
 // BlockChainHookHandlerCreator returns the blockchain hook handler creator
-func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() factory.BlockChainHookHandlerCreator {
+func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -133,7 +156,7 @@ func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() factory.Bloc
 }
 
 // BootstrapperFromStorageCreator returns the bootstrapper from storage creator
-func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() factory.BootstrapperFromStorageCreator {
+func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -145,7 +168,7 @@ func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() factory.Bo
 }
 
 // BlockTrackerCreator returns the block tracker creator
-func (mrc *managedRunTypeComponents) BlockTrackerCreator() factory.BlockTrackerCreator {
+func (mrc *managedRunTypeComponents) BlockTrackerCreator() track.BlockTrackerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -157,7 +180,7 @@ func (mrc *managedRunTypeComponents) BlockTrackerCreator() factory.BlockTrackerC
 }
 
 // EpochStartBootstrapperCreator returns the epoch start bootstrapper creator
-func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() factory.EpochStartBootstrapperCreator {
+func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -169,7 +192,7 @@ func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() factory.Epo
 }
 
 // ForkDetectorCreator returns the fork detector creator
-func (mrc *managedRunTypeComponents) ForkDetectorCreator() factory.ForkDetectorCreator {
+func (mrc *managedRunTypeComponents) ForkDetectorCreator() processSync.ForkDetectorCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -181,7 +204,7 @@ func (mrc *managedRunTypeComponents) ForkDetectorCreator() factory.ForkDetectorC
 }
 
 // HeaderValidatorCreator returns the header validator creator
-func (mrc *managedRunTypeComponents) HeaderValidatorCreator() factory.HeaderValidatorCreator {
+func (mrc *managedRunTypeComponents) HeaderValidatorCreator() processBlock.HeaderValidatorCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -193,7 +216,7 @@ func (mrc *managedRunTypeComponents) HeaderValidatorCreator() factory.HeaderVali
 }
 
 // RequestHandlerCreator returns the request handler creator
-func (mrc *managedRunTypeComponents) RequestHandlerCreator() factory.RequestHandlerCreator {
+func (mrc *managedRunTypeComponents) RequestHandlerCreator() requestHandlers.RequestHandlerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -205,7 +228,7 @@ func (mrc *managedRunTypeComponents) RequestHandlerCreator() factory.RequestHand
 }
 
 // ScheduledTxsExecutionCreator returns the scheduled transactions execution creator
-func (mrc *managedRunTypeComponents) ScheduledTxsExecutionCreator() factory.ScheduledTxsExecutionCreator {
+func (mrc *managedRunTypeComponents) ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -217,7 +240,7 @@ func (mrc *managedRunTypeComponents) ScheduledTxsExecutionCreator() factory.Sche
 }
 
 // TransactionCoordinatorCreator returns the transaction coordinator creator
-func (mrc *managedRunTypeComponents) TransactionCoordinatorCreator() factory.TransactionCoordinatorCreator {
+func (mrc *managedRunTypeComponents) TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -229,7 +252,7 @@ func (mrc *managedRunTypeComponents) TransactionCoordinatorCreator() factory.Tra
 }
 
 // ValidatorStatisticsProcessorCreator returns the validator statistics processor creator
-func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() factory.ValidatorStatisticsProcessorCreator {
+func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
