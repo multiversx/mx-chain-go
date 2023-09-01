@@ -622,7 +622,7 @@ func deploySystemSmartContracts(
 			RcvAddr:   rcvAddress,
 			SndAddr:   address,
 			GasPrice:  0,
-			GasLimit:  math.MaxUint64,
+			GasLimit:  math.MaxInt64,
 			Data:      []byte(deployTxData),
 			Signature: nil,
 		}
@@ -667,7 +667,7 @@ func setStakedData(
 			RcvAddr:   vm.ValidatorSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
-			GasLimit:  math.MaxUint64,
+			GasLimit:  math.MaxInt64,
 			Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
 			Signature: nil,
 		}
