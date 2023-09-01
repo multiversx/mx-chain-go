@@ -18,6 +18,7 @@ import (
 func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: testscommon.NewShardedDataStub(),
+		UserShardedPool:  testscommon.NewShardedDataStub(),
 		TxValidator:      &mock.TxValidatorStub{},
 	}
 }
@@ -39,7 +40,18 @@ func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
 	txip, err := processor.NewTxInterceptorProcessor(arg)
 
 	assert.Nil(t, txip)
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+	assert.True(t, errors.Is(err, process.ErrNilDataPoolHolder))
+}
+
+func TestNewTxInterceptorProcessor_NilDataPoolForUserShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockTxArgument()
+	arg.UserShardedPool = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
+
+	assert.Nil(t, txip)
+	assert.True(t, errors.Is(err, process.ErrNilDataPoolHolder))
 }
 
 func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {

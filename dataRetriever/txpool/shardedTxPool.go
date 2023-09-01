@@ -18,6 +18,12 @@ var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
 
+type txCacheWithEviction interface {
+	RegisterEvictionHandler(handler func(hash []byte)) error
+}
+
+type evictionHandler = func(txHash []byte)
+
 // shardedTxPool holds transaction caches organised by source & destination shard
 type shardedTxPool struct {
 	mutexBackingMap              sync.RWMutex
@@ -28,6 +34,8 @@ type shardedTxPool struct {
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
 	txGasHandler                 txcache.TxGasHandler
+	mutEvictionHandler           sync.RWMutex
+	evictionHandler              evictionHandler
 }
 
 type txPoolShard struct {
@@ -107,6 +115,24 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	}
 
 	shard = txPool.createShard(cacheID)
+
+	txPool.mutEvictionHandler.RLock()
+	defer txPool.mutEvictionHandler.RUnlock()
+	if txPool.evictionHandler == nil {
+		return shard
+	}
+
+	cacheWithEviction, ok := shard.Cache.(txCacheWithEviction)
+	if !ok {
+		log.Warn("could not cast new shard cache to txCacheWithEviction")
+		return shard
+	}
+
+	err := cacheWithEviction.RegisterEvictionHandler(txPool.evictionHandler)
+	if err != nil {
+		log.Warn("could not register eviction handler", "error", err)
+	}
+
 	return shard
 }
 
@@ -152,6 +178,13 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	}
 
 	return cache
+}
+
+// SetEvictionHandler sets the eviction handler
+func (txPool *shardedTxPool) SetEvictionHandler(handler evictionHandler) {
+	txPool.mutEvictionHandler.Lock()
+	txPool.evictionHandler = handler
+	txPool.mutEvictionHandler.Unlock()
 }
 
 // ImmunizeSetOfDataAgainstEviction marks the items as non-evictable

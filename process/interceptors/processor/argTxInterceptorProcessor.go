@@ -9,5 +9,6 @@ import (
 // (balance txs, smart contract results, reward and so on)
 type ArgTxInterceptorProcessor struct {
 	ShardedDataCache dataRetriever.ShardedDataCacherNotifier
+	UserShardedPool  dataRetriever.ShardedDataCacherNotifier
 	TxValidator      process.TxValidator
 }

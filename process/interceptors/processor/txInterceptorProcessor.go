@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
@@ -24,15 +26,19 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 		return nil, process.ErrNilArgumentStruct
 	}
 	if check.IfNil(argument.ShardedDataCache) {
-		return nil, process.ErrNilDataPoolHolder
+		return nil, fmt.Errorf("%w for transactions", process.ErrNilDataPoolHolder)
+	}
+	if check.IfNil(argument.UserShardedPool) {
+		return nil, fmt.Errorf("%w for user transactions", process.ErrNilDataPoolHolder)
 	}
 	if check.IfNil(argument.TxValidator) {
 		return nil, process.ErrNilTxValidator
 	}
 
 	return &TxInterceptorProcessor{
-		shardedPool: argument.ShardedDataCache,
-		txValidator: argument.TxValidator,
+		shardedPool:     argument.ShardedDataCache,
+		txValidator:     argument.TxValidator,
+		userShardedPool: argument.UserShardedPool,
 	}, nil
 }
 
@@ -74,7 +80,16 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		cacherIdentifier,
 	)
 
-	// TODO[Sorin]: save the user tx into the new pool
+	userTx := interceptedTx.UserTransaction()
+	if !check.IfNil(userTx) {
+		txLog.Trace("received user transaction", "pid", peerOriginator.Pretty(), "hash", data.Hash())
+		txip.userShardedPool.AddData(
+			data.Hash(),
+			userTx,
+			userTx.Size(),
+			cacherIdentifier,
+		)
+	}
 
 	return nil
 }
