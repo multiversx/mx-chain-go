@@ -1752,10 +1752,9 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 				log.Warn("shardProcessor.receivedMetaBlock: cannot compute chain params", "epoch", headerHandler.GetEpoch(), "error", err)
 				return
 			}
-			// add 1 to the finality since the finality can be set to 0, resulting in no request
 			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 				core.MetachainShardId,
-				uint32(chainParams.MetaFinality)+1,
+				uint32(chainParams.MetaFinality),
 			)
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
