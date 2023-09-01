@@ -117,8 +117,6 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		log.Warn("PrepareOutportSaveBlockData - checkTxOrder", "error", err.Error())
 	}
 
-	printPool(pool)
-
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,
 	})
@@ -230,6 +228,9 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	}
 	for scrHash, scrInfo := range pool.SmartContractResults {
 		txGroups[scrHash] = scrInfo
+	}
+	for invalidTxHash, invalidTxInfo := range pool.InvalidTxs {
+		txGroups[invalidTxHash] = invalidTxInfo
 	}
 
 	if odp.shardID != core.MetachainShardId {
@@ -532,41 +533,4 @@ func (odp *outportDataProvider) filterOutDuplicatedMiniBlocks(miniBlocksFromBody
 	}
 
 	return filteredMiniBlocks, nil
-}
-
-func printPool(pool *outportcore.TransactionPool) {
-	total := len(pool.Transactions) + len(pool.InvalidTxs) + len(pool.SmartContractResults) + len(pool.Rewards)
-	if total > 0 {
-		log.Warn("###################################")
-	}
-
-	if len(pool.Transactions) > 0 {
-		log.Warn("############### NORMAL TXS ####################")
-		for hash, tx := range pool.Transactions {
-			log.Warn(hash, "order", tx.GetExecutionOrder())
-		}
-	}
-	if len(pool.InvalidTxs) > 0 {
-		log.Warn("############### INVALID ####################")
-		for hash, tx := range pool.Transactions {
-			log.Warn(hash, "order", tx.GetExecutionOrder())
-		}
-	}
-
-	if len(pool.SmartContractResults) > 0 {
-		log.Warn("############### SCRS ####################")
-		for hash, tx := range pool.SmartContractResults {
-			log.Warn(hash, "order", tx.GetExecutionOrder())
-		}
-	}
-
-	if len(pool.Rewards) > 0 {
-		log.Warn("############### REWARDS ####################")
-		for hash, tx := range pool.Rewards {
-			log.Warn(hash, "order", tx.GetExecutionOrder())
-		}
-	}
-	if total > 0 {
-		log.Warn("###################################")
-	}
 }

@@ -885,13 +885,14 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 	if isTxTargetedForDeletion {
+		txs.txExecutionOrderHandler.Remove(txHash)
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(txHash, strCache)
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		txs.txExecutionOrderHandler.Remove(txHash)
-		log.Warn("already executed", "error", err.Error(), "txhash", txHash)
+
 		return err
 	}
 

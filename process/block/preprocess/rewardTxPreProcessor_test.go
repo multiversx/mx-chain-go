@@ -470,6 +470,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
+	calledCount := 0
 	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
@@ -486,7 +487,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&common.TxExecutionOrderHandlerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -506,6 +511,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 
 	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, calledCount)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
 	if _, ok := txsMap[txHash]; !ok {
@@ -516,6 +522,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	t.Parallel()
 
+	calledCount := 0
 	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
@@ -532,7 +539,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&common.TxExecutionOrderHandlerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -551,6 +562,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	}
 
 	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	assert.Equal(t, 0, calledCount)
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
@@ -684,6 +696,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	txHash := testTxHash
 	tdp := initDataPool()
+	calledCount := 0
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&storageStubs.ChainStorerStub{},
@@ -698,7 +711,11 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&common.TxExecutionOrderHandlerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -725,6 +742,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
 	err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: mbHash1}, {TxCount: 1, Hash: mbHash2}}}, &blockBody, haveTimeTrue)
+	assert.Equal(t, 2, calledCount)
 	assert.Nil(t, err)
 }
 

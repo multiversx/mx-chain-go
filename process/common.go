@@ -709,8 +709,6 @@ func DisplayProcessTxDetails(
 		"data", hex.EncodeToString(txHandler.GetData()),
 		"sender", senderAddress,
 		"receiver", receiverAddress)
-
-	log.Warn("executing transaction", "txHash", txHash)
 }
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
