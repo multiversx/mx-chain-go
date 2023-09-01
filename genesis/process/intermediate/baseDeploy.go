@@ -3,8 +3,8 @@ package intermediate
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -104,7 +104,7 @@ func (dp *baseDeploy) deployForOneAddress(
 }
 
 func getSCCodeAsHex(filename string) (string, error) {
-	code, err := ioutil.ReadFile(filepath.Clean(filename))
+	code, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return "", err
 	}

@@ -2,7 +2,7 @@ package dataRetriever
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -90,7 +90,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	cacher, err := cache.NewCapacityLRU(10, 10000)
 	panicIfError("Create trieSync cacher", err)
 
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	tempDir, _ := os.MkdirTemp("", "integrationTests")
 	cfg := storageunit.ArgDB{
 		Path:              tempDir,
 		DBType:            storageunit.LvlDBSerial,

@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO reinstate test after Wasm VM pointer fix
 
@@ -28,6 +27,7 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -180,7 +180,8 @@ func createMockArgument(
 				},
 			},
 		},
-		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
