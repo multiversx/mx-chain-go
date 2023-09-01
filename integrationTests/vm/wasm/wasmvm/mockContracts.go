@@ -144,6 +144,7 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 
 	err = node.AccntState.SaveAccount(userAccount)
 	require.Nil(t, err)
+	_, _ = node.AccntState.Commit()
 
 	return address, userAccount
 }
@@ -168,7 +169,7 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountWithVM(t, net, node, net.DefaultVM)
 }
 
-// GetAddressForNewAccountWithVM
+// GetAddressForNewAccountWithVM -
 func GetAddressForNewAccountWithVM(
 	t *testing.T,
 	net *integrationTests.TestNetwork,
