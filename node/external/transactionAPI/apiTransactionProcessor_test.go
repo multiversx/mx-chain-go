@@ -683,6 +683,13 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				},
 			}
 		},
+		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return &testscommon.CacherStub{}
+				},
+			}
+		},
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				KeysCalled: func() [][]byte {
@@ -804,6 +811,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 				},
 			}
 		},
+		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return &testscommon.CacherStub{}
+				},
+			}
+		},
 	}
 	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
@@ -872,6 +886,13 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 					return txCacheIntraShard
+				},
+			}
+		},
+		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return &testscommon.CacherStub{}
 				},
 			}
 		},
@@ -946,6 +967,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 					}
 
 					return txCacheWithMeta
+				},
+			}
+		},
+		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					return &testscommon.CacherStub{}
 				},
 			}
 		},
