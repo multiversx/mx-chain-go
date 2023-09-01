@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"sync"
 
@@ -28,6 +27,9 @@ import (
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
+
+// MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
+const MaxGasLimitPerQuery = 300_000_000_000
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
@@ -78,7 +80,7 @@ func NewSCQueryService(
 		return nil, err
 	}
 
-	gasForQuery := uint64(math.MaxInt64)
+	gasForQuery := uint64(MaxGasLimitPerQuery)
 	if args.MaxGasLimitPerQuery > 0 {
 		gasForQuery = args.MaxGasLimitPerQuery
 	}
