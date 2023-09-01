@@ -96,6 +96,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.EpochStartBootstrapperCreator()) {
 		return nil, errors.ErrNilEpochStartBootstrapperCreator
 	}
+	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
+		return nil, errors.ErrNilAdditionalStorageServiceCreator
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,

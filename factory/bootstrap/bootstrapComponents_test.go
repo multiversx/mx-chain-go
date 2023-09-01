@@ -109,6 +109,18 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
 	})
+	t.Run("nil AdditionalStorageServiceFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsMock{
+			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryStub{},
+			AdditionalStorageServiceFactory: nil,
+		}
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilAdditionalStorageServiceCreator, err)
+	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -270,11 +282,29 @@ func TestBootstrapComponents(t *testing.T) {
 func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	t.Run("should create a epoch start bootstrapper main chain instance", func(t *testing.T) {
+		t.Parallel()
 
-	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
-	bc, err := bcf.Create()
+		args := componentsMock.GetBootStrapFactoryArgs()
+		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
 
-	require.NotNil(t, bc)
-	assert.Nil(t, err)
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+		bc, err := bcf.Create()
+
+		require.NotNil(t, bc)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a epoch start bootstrapper sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetBootStrapFactoryArgs()
+		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
+
+		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+		bc, err := bcf.Create()
+
+		require.NotNil(t, bc)
+		assert.Nil(t, err)
+	})
 }

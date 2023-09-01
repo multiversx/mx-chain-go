@@ -433,9 +433,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
+		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 
-	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, validatorStatisticsProcessor)
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -454,11 +455,7 @@ func (pcf *processComponentsFactory) createTransactionCoordinator(
 
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
-	//TODO: remove this when the new creator is injected
-	argumentsBaseProcessor.ValidatorStatisticsProcessor = validatorStatisticsProcessor
-
 	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
