@@ -496,14 +496,15 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    arg.ShardCoordinator,
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		Hasher:              arg.Core.Hasher(),
-		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
-		Store:               arg.Data.StorageService(),
-		PoolsHolder:         arg.Data.Datapool(),
-		EconomicsFee:        genesisFeeHandler,
-		EnableEpochsHandler: enableEpochsHandler,
+		ShardCoordinator:        arg.ShardCoordinator,
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		Hasher:                  arg.Core.Hasher(),
+		PubkeyConverter:         arg.Core.AddressPubKeyConverter(),
+		Store:                   arg.Data.StorageService(),
+		PoolsHolder:             arg.Data.Datapool(),
+		EconomicsFee:            genesisFeeHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		TxExecutionOrderHandler: arg.TxExecutionOrderHandler,
 	}
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
