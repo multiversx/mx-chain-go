@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -64,12 +64,12 @@ func getDefaultArgs() sync.ArgShardBootstrapper {
 			},
 		},
 		ChainHandler:                 &testscommon.ChainHandlerStub{},
-		RoundHandler:                 &mock.RoundHandlerMock{},
+		RoundHandler:                 &testscommon.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
 		WaitTime:                     time.Second,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &testscommon.ProtoMarshalizerMock{},
-		ForkDetector:                 &mock.ForkDetectorStub{},
+		ForkDetector:                 &mock.ForkDetectorMock{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             &testscommon.ShardsCoordinatorMock{},
 		Accounts:                     &stateMock.AccountsStub{},

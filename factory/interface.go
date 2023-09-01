@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -30,6 +31,14 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -550,4 +559,93 @@ type TrieSyncStatisticsProvider interface {
 type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
+}
+
+// RunTypeComponentsHandler defines the run type components handler actions
+type RunTypeComponentsHandler interface {
+	ComponentHandler
+	RunTypeComponentsHolder
+}
+
+// RunTypeComponentsHolder holds the run type components
+type RunTypeComponentsHolder interface {
+	BlockChainHookHandlerCreator() BlockChainHookHandlerCreator
+	BlockProcessorCreator() BlockProcessorCreator
+	BlockTrackerCreator() BlockTrackerCreator
+	BootstrapperFromStorageCreator() BootstrapperFromStorageCreator
+	EpochStartBootstrapperCreator() EpochStartBootstrapperCreator
+	ForkDetectorCreator() ForkDetectorCreator
+	HeaderValidatorCreator() HeaderValidatorCreator
+	RequestHandlerCreator() RequestHandlerCreator
+	ScheduledTxsExecutionCreator() ScheduledTxsExecutionCreator
+	TransactionCoordinatorCreator() TransactionCoordinatorCreator
+	ValidatorStatisticsProcessorCreator() ValidatorStatisticsProcessorCreator
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// BlockChainHookHandlerCreator defines the blockchain hook factory handler
+type BlockChainHookHandlerCreator interface {
+	CreateBlockChainHookHandler(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error)
+	IsInterfaceNil() bool
+}
+
+// BlockProcessorCreator defines the block processor factory handler
+type BlockProcessorCreator interface {
+	CreateBlockProcessor(args processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// BlockTrackerCreator is an interface for creating block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker(args track.ArgShardTracker) (process.BlockTracker, error)
+	IsInterfaceNil() bool
+}
+
+// BootstrapperFromStorageCreator defines the operations supported by a shard storage bootstrapper factory
+type BootstrapperFromStorageCreator interface {
+	CreateBootstrapperFromStorage(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
+	IsInterfaceNil() bool
+}
+
+// EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
+type EpochStartBootstrapperCreator interface {
+	CreateEpochStartBootstrapper(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error)
+	IsInterfaceNil() bool
+}
+
+// ForkDetectorCreator is the interface needed by base fork detector to create fork detector
+type ForkDetectorCreator interface {
+	CreateForkDetector(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error)
+	IsInterfaceNil() bool
+}
+
+// HeaderValidatorCreator is an interface for creating header validators
+type HeaderValidatorCreator interface {
+	CreateHeaderValidator(args processBlock.ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
+	IsInterfaceNil() bool
+}
+
+// RequestHandlerCreator defines the resolver requester factory handler
+type RequestHandlerCreator interface {
+	CreateRequestHandler(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
+type ScheduledTxsExecutionCreator interface {
+	CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
+	IsInterfaceNil() bool
+}
+
+// TransactionCoordinatorCreator defines the transaction coordinator factory creator
+type TransactionCoordinatorCreator interface {
+	CreateTransactionCoordinator(args coordinator.ArgTransactionCoordinator) (process.TransactionCoordinator, error)
+	IsInterfaceNil() bool
+}
+
+// ValidatorStatisticsProcessorCreator is an interface for creating validator statistics processors
+type ValidatorStatisticsProcessorCreator interface {
+	CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
+	IsInterfaceNil() bool
 }

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -49,7 +49,7 @@ func getDefaultArgShardBootstrapper() ArgsShardStorageBootstrapper {
 	argBaseBoostrapper := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper{
 			BootStorer:     &mock.BoostrapStorerMock{},
-			ForkDetector:   &mock.ForkDetectorStub{},
+			ForkDetector:   &mock.ForkDetectorMock{},
 			BlockProcessor: &testscommon.BlockProcessorStub{},
 			ChainHandler:   &testscommon.ChainHandlerStub{},
 			Marshalizer:    &testscommon.ProtoMarshalizerMock{},
@@ -63,7 +63,7 @@ func getDefaultArgShardBootstrapper() ArgsShardStorageBootstrapper {
 			ShardCoordinator:             &testscommon.ShardsCoordinatorMock{},
 			NodesCoordinator:             &shardingMocks.NodesCoordinatorMock{},
 			EpochStartTrigger:            &testscommon.EpochStartTriggerStub{},
-			BlockTracker:                 &mock.BlockTrackerStub{},
+			BlockTracker:                 &mock.BlockTrackerMock{},
 			ChainID:                      "2",
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
