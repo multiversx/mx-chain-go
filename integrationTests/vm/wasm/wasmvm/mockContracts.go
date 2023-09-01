@@ -30,7 +30,10 @@ var MockInitialBalance = big.NewInt(10_000_000)
 // WalletAddressPrefix is the prefix of any smart contract address used for testing.
 var WalletAddressPrefix = []byte("..........")
 
+// InitialEsdt is the initial amount minted for esdt
 var InitialEsdt = uint64(100)
+
+// EsdtTokenIdentifier is the token identifier in tests
 var EsdtTokenIdentifier = []byte("TTT-010101")
 
 // InitializeMockContracts -
