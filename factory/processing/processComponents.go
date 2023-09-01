@@ -1519,7 +1519,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return requesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
+		return requesterscontainer.NewSovereignShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
