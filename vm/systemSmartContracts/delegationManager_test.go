@@ -38,11 +38,7 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		ConfigChangeAddress:    configChangeAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.DelegationManagerFlag || flag == common.ValidatorToDelegationFlag || flag == common.MultiClaimOnDelegationFlag
-			},
-		},
+		EnableEpochsHandler:    enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DelegationManagerFlag, common.ValidatorToDelegationFlag, common.MultiClaimOnDelegationFlag),
 	}
 }
 
@@ -193,9 +189,7 @@ func TestDelegationManagerSystemSC_ExecuteWithDelegationManagerDisabled(t *testi
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	dm, _ := NewDelegationManagerSystemSC(args)
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.ValidatorToDelegationFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationManagerFlag)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{})
 
 	output := dm.Execute(vmInput)
@@ -687,16 +681,12 @@ func TestDelegationManagerSystemSC_checkValidatorToDelegationInput(t *testing.T)
 	d, _ := NewDelegationManagerSystemSC(args)
 	vmInput := getDefaultVmInputForDelegationManager("createNewDelegationContract", [][]byte{maxDelegationCap, serviceFee})
 
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.checkValidatorToDelegationInput(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.DelegationManagerFlag || flag == common.ValidatorToDelegationFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.checkValidatorToDelegationInput(vmInput)
@@ -734,16 +724,12 @@ func TestDelegationManagerSystemSC_MakeNewContractFromValidatorData(t *testing.T
 	vmInput := getDefaultVmInputForDelegationManager("makeNewContractFromValidatorData", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.ValidatorToDelegationFlag || flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -777,16 +763,12 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationSameOwner(t *testin
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationSameOwner", [][]byte{maxDelegationCap, serviceFee})
 	_ = d.init(&vmcommon.ContractCallInput{VMInput: vmcommon.VMInput{CallValue: big.NewInt(0)}})
 
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
 
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.ValidatorToDelegationFlag || flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(0)
@@ -862,9 +844,7 @@ func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvali
 	eei.returnMessage = ""
 	vmInput := getDefaultVmInputForDelegationManager("mergeValidatorToDelegationWithWhitelist", [][]byte{maxDelegationCap, serviceFee})
 	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "invalid function to call")
@@ -1113,11 +1093,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
 		createSystemSCContainer(eei),
 	)
 
-	enableHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			return flag == common.DelegationManagerFlag
-		},
-	}
+	enableHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DelegationManagerFlag)
 	args.EnableEpochsHandler = enableHandlerStub
 	args.Eei = eei
 	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(20))
@@ -1131,9 +1107,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegationFails(t *testing.T) {
 	assert.Equal(t, eei.GetReturnMessage(), "invalid function to call")
 
 	eei.returnMessage = ""
-	enableHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.DelegationManagerFlag || flag == common.MultiClaimOnDelegationFlag
-	}
+	enableHandlerStub.AddActiveFlags(common.MultiClaimOnDelegationFlag)
 	returnCode = dm.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidNumOfArguments.Error())
@@ -1295,12 +1269,7 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 
 		args := createMockArgumentsForDelegationManager()
 		epochsHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		epochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-			return flag == common.DelegationManagerFlag ||
-				flag == common.ValidatorToDelegationFlag ||
-				flag == common.MultiClaimOnDelegationFlag ||
-				flag == common.FixDelegationChangeOwnerOnAccountFlag
-		}
+		epochsHandler.AddActiveFlags(common.FixDelegationChangeOwnerOnAccountFlag)
 		updateCalled := false
 		args.Eei = &mock.SystemEIStub{
 			UpdateCodeDeployerAddressCalled: func(scAddress string, newOwner []byte) error {

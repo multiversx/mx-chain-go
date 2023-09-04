@@ -9,6 +9,7 @@ import (
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
 	sync.RWMutex
+	activeFlags                                                       map[core.EnableEpochFlag]struct{}
 	GetCurrentEpochCalled                                             func() uint32
 	BlockGasAndFeesReCheckEnableEpochField                            uint32
 	StakingV2EnableEpochField                                         uint32
@@ -134,6 +135,38 @@ type EnableEpochsHandlerStub struct {
 	GetActivationEpochCalled                                          func(flag core.EnableEpochFlag) uint32
 }
 
+// NewEnableEpochsHandlerStub -
+func NewEnableEpochsHandlerStub(flags ...core.EnableEpochFlag) *EnableEpochsHandlerStub {
+	stub := &EnableEpochsHandlerStub{
+		activeFlags: make(map[core.EnableEpochFlag]struct{}),
+	}
+	for _, flag := range flags {
+		stub.activeFlags[flag] = struct{}{}
+	}
+
+	return stub
+}
+
+// AddActiveFlags -
+func (stub *EnableEpochsHandlerStub) AddActiveFlags(flags ...core.EnableEpochFlag) {
+	stub.Lock()
+	defer stub.Unlock()
+
+	for _, flag := range flags {
+		stub.activeFlags[flag] = struct{}{}
+	}
+}
+
+// RemoveActiveFlags -
+func (stub *EnableEpochsHandlerStub) RemoveActiveFlags(flags ...core.EnableEpochFlag) {
+	stub.Lock()
+	defer stub.Unlock()
+
+	for _, flag := range flags {
+		delete(stub.activeFlags, flag)
+	}
+}
+
 // GetActivationEpoch -
 func (stub *EnableEpochsHandlerStub) GetActivationEpoch(flag core.EnableEpochFlag) uint32 {
 	if stub.GetActivationEpochCalled != nil {
@@ -155,7 +188,11 @@ func (stub *EnableEpochsHandlerStub) IsFlagEnabled(flag core.EnableEpochFlag) bo
 	if stub.IsFlagEnabledCalled != nil {
 		return stub.IsFlagEnabledCalled(flag)
 	}
-	return false
+
+	stub.RLock()
+	defer stub.RUnlock()
+	_, found := stub.activeFlags[flag]
+	return found
 }
 
 // IsFlagEnabledInEpoch -
