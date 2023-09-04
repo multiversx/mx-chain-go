@@ -329,6 +329,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -342,6 +344,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 1000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [AccountsTrieCheckpointsStorage]
     [AccountsTrieCheckpointsStorage.Cache]

@@ -165,3 +165,89 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	require.Nil(t, err)
 	require.Equal(t, ownerOfParent.Address, originalCallerChild)
 }
+
+func TestMockContract_NewAsync_BackTransfer_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numberOfShards := 2
+	net := integrationTests.NewTestNetworkSized(t, numberOfShards, 1, 1)
+	net.Start()
+	net.Step()
+
+	transferEGLD := big.NewInt(42)
+	net.CreateWallets(3)
+	net.MintWalletsUint64(100000000000)
+	ownerOfParent := net.Wallets[0]
+
+	parentAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[0][0])
+	childAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[0][0])
+	nephewAddress, _ := GetAddressForNewAccount(t, net, net.NodesSharded[1][0])
+
+	thirdPartyAddress := MakeTestWalletAddress("thirdPartyAddress")
+	vaultAddress := MakeTestWalletAddress("vaultAddress")
+
+	testConfig := &testcommon.TestConfig{
+		ParentBalance: 20,
+		ChildBalance:  10,
+
+		GasProvided:        2_000_000,
+		GasProvidedToChild: 1_000_000,
+		GasUsedByParent:    400,
+
+		ParentAddress:             parentAddress,
+		ChildAddress:              childAddress,
+		NephewAddress:             nephewAddress,
+		ThirdPartyAddress:         thirdPartyAddress,
+		VaultAddress:              vaultAddress,
+		TransferFromParentToChild: 8,
+
+		SuccessCallback: "myCallback",
+		ErrorCallback:   "myCallback",
+
+		ESDTTokensToTransfer: 5,
+	}
+
+	InitializeMockContracts(
+		t, net,
+		test.CreateMockContractOnShard(parentAddress, 0).
+			WithBalance(testConfig.ParentBalance).
+			WithConfig(testConfig).
+			WithCodeMetadata([]byte{0, 0}).
+			WithMethods(contracts.BackTransfer_ParentCallsChild),
+		test.CreateMockContractOnShard(childAddress, 0).
+			WithBalance(testConfig.ChildBalance).
+			WithConfig(testConfig).
+			WithMethods(
+				contracts.BackTransfer_ChildMakesAsync,
+				contracts.BackTransfer_ChildCallback,
+			),
+		test.CreateMockContractOnShard(nephewAddress, 1).
+			WithBalance(testConfig.ChildBalance).
+			WithConfig(testConfig).
+			WithMethods(contracts.WasteGasChildMock),
+	)
+
+	txData := txDataBuilder.
+		NewBuilder().
+		Func("callChild").
+		ToBytes()
+	tx := net.CreateTx(ownerOfParent, parentAddress, transferEGLD, txData)
+	tx.GasLimit = testConfig.GasProvided
+
+	_ = net.SignAndSendTx(ownerOfParent, tx)
+
+	net.Steps(16)
+
+	parentHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(parentAddress)
+	require.Nil(t, err)
+
+	expectedEgld := big.NewInt(0)
+	expectedEgld.Add(MockInitialBalance, big.NewInt(testConfig.TransferFromChildToParent))
+	require.True(t, parentHandler.GetBalance().Cmp(expectedEgld) > 0)
+
+	esdtData, err := net.NodesSharded[0][0].BlockchainHook.GetESDTToken(parentAddress, EsdtTokenIdentifier, 0)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(int64(InitialEsdt+testConfig.ESDTTokensToTransfer)), esdtData.Value)
+}

@@ -1173,6 +1173,9 @@ var ErrNilVMContainer = errors.New("nil ErrNilVMContainer")
 // ErrMaxCallsReached signals that the allowed max number of calls was reached
 var ErrMaxCallsReached = errors.New("max calls reached")
 
+// ErrNilTxExecutionOrderHandler signals that a nil transaction execution order handler was provided
+var ErrNilTxExecutionOrderHandler = errors.New("nil transaction execution order handler")
+
 // ErrWrongTransactionType signals that transaction is invalid
 var ErrWrongTransactionType = errors.New("invalid transaction type")
 
@@ -1220,6 +1223,9 @@ var ErrBuiltinFunctionNotExecutable = errors.New("builtin function not executabl
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrNilStorageService signals that a nil storage service has been provided
+var ErrNilStorageService = errors.New("nil storage service")
 
 // ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
 var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")

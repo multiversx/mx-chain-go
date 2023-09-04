@@ -832,6 +832,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
     DynamicGasCostForDataTrieStorageLoadEnableEpoch = 64
 
+	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	ScToScLogEventEnableEpoch = 88
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -938,6 +941,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeUsernameEnableEpoch:                         85,
 			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
+			ScToScLogEventEnableEpoch:                         88,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

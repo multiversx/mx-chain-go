@@ -247,14 +247,14 @@ func (sm *snapshotsManager) snapshotState(
 	})
 	if err != nil {
 		log.Error("error waiting for storage epoch change", "err", err)
-		sm.earlySnapshotCompletion(stats)
+		sm.earlySnapshotCompletion(stats, trieStorageManager)
 		return
 	}
 
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot", "rootHash", rootHash, "epoch", epoch)
 
-		sm.earlySnapshotCompletion(stats)
+		sm.earlySnapshotCompletion(stats, trieStorageManager)
 		return
 	}
 
@@ -277,15 +277,21 @@ func (sm *snapshotsManager) snapshotState(
 	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
 }
 
-func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics) {
+func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, trieStorageManager common.StorageManager) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
 	stats.SnapshotFinished()
 	sm.isSnapshotInProgress.Reset()
+	trieStorageManager.ExitPruningBufferingMode()
 }
 
 func (sm *snapshotsManager) waitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
+	if sm.processingMode == common.ImportDb {
+		log.Debug("no need to wait for storage epoch change as the node is running in import-db mode")
+		return nil
+	}
+
 	if args.SnapshotWaitTimeout < args.WaitTimeForSnapshotEpochCheck {
 		return fmt.Errorf("timeout (%s) must be greater than wait time between snapshot epoch check (%s)", args.SnapshotWaitTimeout, args.WaitTimeForSnapshotEpochCheck)
 	}
