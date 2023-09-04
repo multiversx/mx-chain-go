@@ -1,7 +1,7 @@
 package interceptorscontainer
 
 import (
-	"github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -11,10 +11,16 @@ import (
 
 // TODO: Implement this in MX-14517
 
+// IncomingHeaderSubscriber defines a subscriber to incoming headers
+type IncomingHeaderSubscriber interface {
+	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	IsInterfaceNil() bool
+}
+
 // sovereignShardInterceptorsContainerFactory will handle the creation of sovereign interceptors container
 type sovereignShardInterceptorsContainerFactory struct {
 	*shardInterceptorsContainerFactory
-	IncomingHeaderSubscriber processing.IncomingHeaderSubscriber
+	IncomingHeaderSubscriber IncomingHeaderSubscriber
 }
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory

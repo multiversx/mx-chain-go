@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 )
 
 // IncomingHeaderSubscriber defines a subscriber to incoming headers
@@ -61,37 +62,44 @@ func NewSovereignHdrInterceptorProcessor(argument *ArgsSovereignHeaderIntercepto
 
 // Validate checks if the intercepted data can be processed
 func (hip *sovereignHeaderInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
-	interceptedHdr, ok := data.(sovereign.Proof)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	//hip.blackList.Sweep()
-	//isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
-	//if isBlackListed {
-	//	return process.ErrHeaderIsBlackListed
+	//interceptedHdr, ok := data.(sovereign.Proof) SovereignInterceptedHeader
+	//if !ok {
+	//	return process.ErrWrongTypeAssertion
 	//}
-
-	_ = interceptedHdr
+	//
+	////hip.blackList.Sweep()
+	////isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
+	////if isBlackListed {
+	////	return process.ErrHeaderIsBlackListed
+	////}
+	//
+	//_ = interceptedHdr
 	return nil
 }
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]
 // and in headersNonces as nonce<->hash
 func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
-	interceptedHdr, ok := data.(sovereign.Proof)
+	interceptedHdr, ok := data.(*interceptedBlocks.SovereignInterceptedHeader)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	hdr, ok := interceptedHdr.(*block.ShardHeaderExtended)
+	hdr, ok := interceptedHdr.HeaderHandler().(*block.ShardHeaderExtended)
 	if !ok {
 		return fmt.Errorf("%w for ShardHeaderExtended", process.ErrWrongTypeAssertion)
 	}
 
-	hash, _ := core.CalculateHash(hip.Marshaller, hip.Hasher, hdr)
+	incomingHeader := &sovereign.IncomingHeader{
+		Header:         hdr.Header,
+		IncomingEvents: hdr.IncomingEvents,
+	}
 
-	return hip.IncomingHeaderSubscriber.AddHeader(hash, hdr)
+	hash, _ := core.CalculateHash(hip.Marshaller, hip.Hasher, incomingHeader)
+
+	log.Error("sovereignHeaderInterceptorProcessor.IncomingHeaderSubscriber.AddHeader")
+
+	return hip.IncomingHeaderSubscriber.AddHeader(hash, incomingHeader)
 }
 
 // RegisterHandler registers a callback function to be notified of incoming headers

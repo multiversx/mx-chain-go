@@ -28,7 +28,7 @@ type SovereignInterceptedHeader struct {
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
-func NewSovereignInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, error) {
+func NewSovereignInterceptedHeader(arg *ArgInterceptedBlockHeader) (*SovereignInterceptedHeader, error) {
 	err := checkBlockHeaderArgument(arg)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func NewSovereignInterceptedHeader(arg *ArgInterceptedBlockHeader) (*Intercepted
 		return nil, err
 	}
 
-	inHdr := &InterceptedHeader{
+	inHdr := &SovereignInterceptedHeader{
 		hdr:               hdr,
 		hasher:            arg.Hasher,
 		sigVerifier:       arg.HeaderSigVerifier,
@@ -54,6 +54,8 @@ func NewSovereignInterceptedHeader(arg *ArgInterceptedBlockHeader) (*Intercepted
 }
 
 func UnmarshalExtendedShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	log.Error("UnmarshalExtendedShardHeader", "hdrBuff", string(hdrBuff))
+
 	hdrV2 := &block.ShardHeaderExtended{}
 	err := marshalizer.Unmarshal(hdrV2, hdrBuff)
 	if err != nil {
@@ -109,6 +111,11 @@ func (inHdr *SovereignInterceptedHeader) Identifiers() [][]byte {
 	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.GetEpoch()))
 
 	return [][]byte{inHdr.hash, keyNonce, keyEpoch}
+}
+
+// HeaderHandler returns the HeaderHandler pointer that holds the data
+func (inHdr *SovereignInterceptedHeader) HeaderHandler() data.HeaderHandler {
+	return inHdr.hdr
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

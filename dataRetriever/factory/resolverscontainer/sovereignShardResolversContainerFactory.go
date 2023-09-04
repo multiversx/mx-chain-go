@@ -29,6 +29,11 @@ func (srcf *sovereignShardResolversContainerFactory) Create() (dataRetriever.Res
 		return nil, err
 	}
 
+	err = srcf.generateSovereignHeaderResolvers()
+	if err != nil {
+		return nil, err
+	}
+
 	return srcf.container, nil
 }
 
@@ -36,7 +41,7 @@ func (srcf *sovereignShardResolversContainerFactory) generateSovereignHeaderReso
 	shardC := srcf.shardCoordinator
 
 	// only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	hdrStorer, err := srcf.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 	if err != nil {

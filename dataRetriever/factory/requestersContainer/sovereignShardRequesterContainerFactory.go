@@ -36,7 +36,7 @@ func (srcf *sovereignShardRequestersContainerFactory) Create() (dataRetriever.Re
 		return nil, err
 	}
 
-	return nil, nil
+	return srcf.container, nil
 }
 
 func (srcf *sovereignShardRequestersContainerFactory) generateExtendedShardHeaderRequesters() error {
@@ -44,7 +44,7 @@ func (srcf *sovereignShardRequestersContainerFactory) generateExtendedShardHeade
 
 	shardID := srcf.shardCoordinator.SelfId()
 	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardID)
-	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardID, 0, srcf.numIntraShardPeers)
+	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardID, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}

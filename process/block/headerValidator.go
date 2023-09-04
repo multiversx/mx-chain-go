@@ -53,7 +53,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if prevHeader.GetRound() >= currHeader.GetRound() {
-		log.Trace("round does not match",
+		log.Error("round does not match",
 			"shard", currHeader.GetShardID(),
 			"local header round", prevHeader.GetRound(),
 			"received round", currHeader.GetRound())
@@ -61,7 +61,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if currHeader.GetNonce() != prevHeader.GetNonce()+1 {
-		log.Trace("nonce does not match",
+		log.Error("nonce does not match",
 			"shard", currHeader.GetShardID(),
 			"local header nonce", prevHeader.GetNonce(),
 			"received nonce", currHeader.GetNonce())
