@@ -5,8 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -420,15 +420,15 @@ func GenerateUserNameForDNSContract(contractAddress []byte) []byte {
 // Before applying the data it does a cleanup on the old state
 // the data from the file must be in the following format:
 //
-//hex(key1),hex(value1)
-//hex(key2),hex(value2)
-//...
+// hex(key1),hex(value1)
+// hex(key2),hex(value2)
+// ...
 //
 // Example:
-//61750100,0000
-//61750101,0001
+// 61750100,0000
+// 61750101,0001
 func OverwriteAccountStorageWithHexFileContent(tb testing.TB, testContext *vm.VMTestContext, address []byte, pathToData string) {
-	allData, err := ioutil.ReadFile(filepath.Clean(pathToData))
+	allData, err := os.ReadFile(filepath.Clean(pathToData))
 	require.Nil(tb, err)
 
 	account, err := testContext.Accounts.GetExistingAccount(address)

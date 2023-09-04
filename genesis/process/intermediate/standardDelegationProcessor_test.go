@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
@@ -250,30 +251,30 @@ func TestStandardDelegationProcessor_ExecuteDelegationStakeShouldWork(t *testing
 		},
 	}
 	arg.QueryService = &mock.QueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			if query.FuncName == "getUserStake" {
 				if bytes.Equal(query.Arguments[0], staker1.AddressBytes()) {
 					return &vmcommon.VMOutput{
 						ReturnData: [][]byte{staker1.Delegation.Value.Bytes()},
-					}, nil
+					}, nil, nil
 				}
 				if bytes.Equal(query.Arguments[0], staker2.AddressBytes()) {
 					return &vmcommon.VMOutput{
 						ReturnData: [][]byte{staker2.Delegation.Value.Bytes()},
-					}, nil
+					}, nil, nil
 				}
 
 				return &vmcommon.VMOutput{
 					ReturnData: make([][]byte, 0),
-				}, nil
+				}, nil, nil
 			}
 			if query.FuncName == "getNodeSignature" {
 				return &vmcommon.VMOutput{
 					ReturnData: [][]byte{genesisSignature},
-				}, nil
+				}, nil, nil
 			}
 
-			return nil, fmt.Errorf("unexpected function")
+			return nil, nil, fmt.Errorf("unexpected function")
 		},
 	}
 	arg.NodesListSplitter = &mock.NodesListSplitterStub{

@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -46,12 +45,12 @@ func testRelayedAsyncCallShouldWork(t *testing.T, enableEpochs config.EnableEpoc
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
 	require.Nil(t, err)
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
 	relayerAddr := []byte("12345678901234567890123456789017")
 
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
-	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
