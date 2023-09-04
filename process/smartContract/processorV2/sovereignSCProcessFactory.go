@@ -3,7 +3,6 @@ package processorV2
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 )
 
@@ -28,7 +27,7 @@ func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewS
 		return nil, err
 	}
 
-	scProc, ok := sp.(smartContract.SCProcessorBaseHandler)
+	scProc, ok := sp.(process.SmartContractProcessorFacade)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}

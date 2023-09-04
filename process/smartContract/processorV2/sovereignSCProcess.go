@@ -8,18 +8,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type sovereignSCProcessor struct {
-	smartContract.SCProcessorBaseHandler
+	process.SmartContractProcessorFacade
 }
 
 // TODO: use scrProcessorV2 when feat/vm1.5 is merged into feat/chain-sdk-go
 
 // NewSovereignSCRProcessor creates a sovereign scr processor
-func NewSovereignSCRProcessor(scrProc smartContract.SCProcessorBaseHandler) (*sovereignSCProcessor, error) {
+func NewSovereignSCRProcessor(scrProc process.SmartContractProcessorFacade) (*sovereignSCProcessor, error) {
 	if check.IfNil(scrProc) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
@@ -56,12 +55,12 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		return sc.SCProcessorBaseHandler.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
+		return sc.SmartContractProcessorFacade.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
 	default:
 		err = process.ErrWrongTransaction
 	}
 
-	return returnCode, sc.SCProcessorBaseHandler.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
+	return returnCode, sc.SmartContractProcessorFacade.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
 }
 
 func (sc *sovereignSCProcessor) checkBuiltInFuncCall(scrData string) error {
