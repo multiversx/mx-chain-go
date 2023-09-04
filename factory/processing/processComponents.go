@@ -2033,7 +2033,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorStatisticsProcessorCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCRProcessorCreator)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
 	}
 
 	return nil

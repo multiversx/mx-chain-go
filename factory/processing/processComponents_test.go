@@ -676,7 +676,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		rtMock.SCProcessorFactory = nil
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilSCRProcessorCreator))
+		require.True(t, errors.Is(err, errorsMx.ErrNilSCProcessorCreator))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

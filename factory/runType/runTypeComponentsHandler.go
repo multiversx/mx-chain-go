@@ -120,7 +120,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 		return errors.ErrNilAdditionalStorageServiceCreator
 	}
 	if check.IfNil(mrc.sCProcessorCreator) {
-		return errors.ErrNilSCRProcessorCreator
+		return errors.ErrNilSCProcessorCreator
 	}
 	return nil
 }
