@@ -437,7 +437,7 @@ func (sdp *standardDelegationProcessor) checkDelegator(
 		FuncName:  "getUserStake",
 		Arguments: [][]byte{delegator.AddressBytes()},
 	}
-	vmOutputStakeValue, err := sdp.queryService.ExecuteQuery(scQueryStakeValue)
+	vmOutputStakeValue, _, err := sdp.queryService.ExecuteQuery(scQueryStakeValue)
 	if err != nil {
 		return err
 	}
@@ -489,7 +489,7 @@ func (sdp *standardDelegationProcessor) verifyOneNode(
 		Arguments: [][]byte{node.PubKeyBytes()},
 	}
 
-	vmOutput, err := sdp.queryService.ExecuteQuery(scQueryBlsKeys)
+	vmOutput, _, err := sdp.queryService.ExecuteQuery(scQueryBlsKeys)
 	if err != nil {
 		return err
 	}

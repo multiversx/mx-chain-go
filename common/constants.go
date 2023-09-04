@@ -614,6 +614,9 @@ const (
 
 	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
 	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+
+	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
 )
 
 const (
@@ -982,6 +985,7 @@ const (
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"
-	// TODO[Sorin]: add new flag + check for DynamicGasCostForDataTrieStorageLoadEnableEpoch after merge from rc/v1.6.0
+	DynamicGasCostForDataTrieStorageLoadFlag           core.EnableEpochFlag = "DynamicGasCostForDataTrieStorageLoadFlag"
+	ScToScLogEventFlag                                 core.EnableEpochFlag = "ScToScLogEventFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

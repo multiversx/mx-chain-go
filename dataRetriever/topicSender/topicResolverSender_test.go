@@ -157,11 +157,11 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	t.Parallel()
 
 	pID1 := core.PeerID("peer1")
-	sentToPid1 := false
 	buffToSend := []byte("buff")
 	t.Run("on main network", func(t *testing.T) {
 		t.Parallel()
 
+		sentToPid1 := false
 		arg := createMockArgTopicResolverSender()
 		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
@@ -206,6 +206,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	t.Run("on full archive network", func(t *testing.T) {
 		t.Parallel()
 
+		sentToPid1 := false
 		arg := createMockArgTopicResolverSender()
 		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {

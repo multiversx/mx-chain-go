@@ -146,7 +146,7 @@ func (ts *transactionSimulator) addLogsFromVmOutput(results *txSimData.Simulatio
 			Address:    ts.addressPubKeyConverter.SilentEncode(entry.Address, log),
 			Identifier: string(entry.Identifier),
 			Topics:     entry.Topics,
-			Data:       entry.Data,
+			Data:       entry.GetFirstDataItem(),
 		})
 	}
 }

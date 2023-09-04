@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -179,6 +180,7 @@ func createMockArgument(
 				},
 			},
 		},
+		HistoryRepository: &dblookupext.HistoryRepositoryStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -442,6 +444,16 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, genesis.ErrInvalidInitialNodePrice))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil HistoryRepository should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.HistoryRepository = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilHistoryRepository))
 		require.Nil(t, gbc)
 	})
 	t.Run("should work", func(t *testing.T) {
