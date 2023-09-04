@@ -546,8 +546,9 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = testscommon.CreateMemUnit()
-		ts, _ := trie.NewTrieStorageManager(args)
+		args.MainStorer = testscommon.CreateStorerWithStats()
+		ts, err := trie.NewTrieStorageManager(args)
+		require.Nil(t, err)
 
 		assert.False(t, ts.ShouldTakeSnapshot())
 	})

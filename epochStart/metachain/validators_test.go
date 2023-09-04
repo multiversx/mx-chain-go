@@ -1110,7 +1110,7 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 		IsDeterministicSortOnValidatorsInfoFixEnabledField: deterministFixEnabled,
 	}
 
-	storer := createMemUnit()
+	storer := testscommon.CreateMemUnit()
 	arguments.ValidatorInfoStorage = storer
 	vic, _ := NewValidatorInfoCreator(arguments)
 
