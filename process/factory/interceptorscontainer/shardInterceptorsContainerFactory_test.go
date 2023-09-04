@@ -493,7 +493,7 @@ func testCreateShardTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrO
 		coreComp, cryptoComp := createMockComponentHolders()
 		args := getArgumentsShard(coreComp, cryptoComp)
 		if strings.Contains(t.Name(), "full_archive") {
-			args.NodeOperationMode = p2p.FullArchiveMode
+			args.NodeOperationMode = common.FullArchiveMode
 			args.FullArchiveMessenger = createShardStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
 		} else {
 			args.MainMessenger = createShardStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
@@ -637,7 +637,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		coreComp, cryptoComp := createMockComponentHolders()
 		coreComp.AddrPubKeyConv = testscommon.NewPubkeyConverterMock(32)
 		args := getArgumentsShard(coreComp, cryptoComp)
-		args.NodeOperationMode = p2p.FullArchiveMode
+		args.NodeOperationMode = common.FullArchiveMode
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}

@@ -2,7 +2,7 @@ package factory
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -187,7 +187,7 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 	}
 
 	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
-		filePath, errTempDir := ioutil.TempDir("", "trieSyncStorage")
+		filePath, errTempDir := os.MkdirTemp("", "trieSyncStorage")
 		if errTempDir != nil {
 			return nil, errTempDir
 		}

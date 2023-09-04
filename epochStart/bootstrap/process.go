@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -118,7 +119,7 @@ type epochStartBootstrap struct {
 	bootstrapHeartbeatSender   update.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
-	nodeOperationMode          p2p.NodeOperation
+	nodeOperationMode          common.NodeOperation
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -232,11 +233,11 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:           args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:         args.NodeProcessingMode,
-		nodeOperationMode:          p2p.NormalOperation,
+		nodeOperationMode:          common.NormalOperation,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
-		epochStartProvider.nodeOperationMode = p2p.FullArchiveMode
+		epochStartProvider.nodeOperationMode = common.FullArchiveMode
 	}
 
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(epochStartProvider.generalConfig.WhiteListPool))
@@ -1035,6 +1036,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 	shardNotarizedHeader data.ShardHeaderHandler,
 ) (*dataToSync, error) {
 
+	orderedCollection := ordering.NewOrderedCollection()
 	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
 		&factoryDisabled.TxProcessor{},
 		&factoryDisabled.TxCoordinator{},
@@ -1042,6 +1044,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
 		e.shardCoordinator,
+		orderedCollection,
 	)
 	if err != nil {
 		return nil, err

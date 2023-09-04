@@ -119,13 +119,16 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsScToScEventLogEnabledField                                 bool
 	IsRelayedNonceFixEnabledField                                bool
+	IsDeterministicSortOnValidatorsInfoFixEnabledField           bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 	IsChangeUsernameEnabledField                                 bool
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1015,6 +1018,14 @@ func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bo
 	return stub.IsMaxBlockchainHookCountersFlagEnabledField
 }
 
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (stub *EnableEpochsHandlerStub) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
 // IsWipeSingleNFTLiquidityDecreaseEnabled -
 func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	stub.RLock()
@@ -1039,12 +1050,28 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	return stub.IsSetGuardianEnabledField
 }
 
+// IsScToScEventLogEnabled -
+func (stub *EnableEpochsHandlerStub) IsScToScEventLogEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsScToScEventLogEnabledField
+}
+
 // IsRelayedNonceFixEnabled -
 func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsRelayedNonceFixEnabledField
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsDeterministicSortOnValidatorsInfoFixEnabledField
 }
 
 // IsKeepExecOrderOnCreatedSCRsEnabled -

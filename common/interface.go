@@ -191,6 +191,8 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	GetSnapshotDuration() int64
+	GetSnapshotNumNodes() uint64
 	IsInterfaceNil() bool
 }
 
@@ -404,12 +406,15 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsSetGuardianEnabled() bool
+	IsScToScEventLogEnabled() bool
 	IsRelayedNonceFixEnabled() bool
+	IsDeterministicSortOnValidatorsInfoFixEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
 	IsChangeUsernameEnabled() bool
 	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 
 	IsInterfaceNil() bool
@@ -455,5 +460,29 @@ type ManagedPeersMonitor interface {
 	GetManagedKeys() [][]byte
 	GetEligibleManagedKeys() ([][]byte, error)
 	GetWaitingManagedKeys() ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TxExecutionOrderHandler is used to collect and provide the order of transactions execution
+type TxExecutionOrderHandler interface {
+	Add(txHash []byte)
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	Remove(txHash []byte)
+	RemoveMultiple(txHashes [][]byte)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Clear()
+	Len() int
+	IsInterfaceNil() bool
+}
+
+// ExecutionOrderGetter defines the functionality of a component that can return the execution order of a block transactions
+type ExecutionOrderGetter interface {
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Len() int
 	IsInterfaceNil() bool
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -69,7 +68,7 @@ type ArgsExporter struct {
 	NumConcurrentTrieSyncers         int
 	TrieSyncerVersion                int
 	CheckNodesOnDisk                 bool
-	NodeOperationMode                p2p.NodeOperation
+	NodeOperationMode                common.NodeOperation
 }
 
 type exportHandlerFactory struct {
@@ -108,7 +107,7 @@ type exportHandlerFactory struct {
 	numConcurrentTrieSyncers         int
 	trieSyncerVersion                int
 	checkNodesOnDisk                 bool
-	nodeOperationMode                p2p.NodeOperation
+	nodeOperationMode                common.NodeOperation
 }
 
 // NewExportHandlerFactory creates an exporter factory

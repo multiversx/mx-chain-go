@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"os/signal"
@@ -27,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -52,7 +52,6 @@ import (
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -506,6 +505,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	if managedBootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		log.Debug("activating nodesCoordinator's validators indexing")
 		indexValidatorsListIfNeeded(
+			managedProcessComponents.ShardCoordinator().SelfId(),
 			managedStatusComponents.OutportHandler(),
 			nodesCoordinatorInstance,
 			managedProcessComponents.EpochStartTrigger().Epoch(),
@@ -709,6 +709,7 @@ func (nr *nodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		StatusComponents:     currentNode.statusComponents,
+		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1114,7 +1115,7 @@ func (nr *nodeRunner) logSessionInformation(
 		})
 
 	statsFile := filepath.Join(statsFolder, "session.info")
-	err := ioutil.WriteFile(statsFile, []byte(sessionInfoFileOutput), core.FileModeReadWrite)
+	err := os.WriteFile(statsFile, []byte(sessionInfoFileOutput), core.FileModeReadWrite)
 	log.LogIfError(err)
 
 	computedRatingsDataStr := createStringFromRatingsData(coreComponents.RatingsData())
@@ -1210,31 +1211,34 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                 *configs.GeneralConfig,
-		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            *configs.PreferencesConfig,
-		ImportDBConfig:         *configs.ImportDbConfig,
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nodesCoordinator,
-		Data:                   dataComponents,
-		CoreData:               coreComponents,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		BootstrapComponents:    bootstrapComponents,
-		StatusComponents:       statusComponents,
-		StatusCoreComponents:   statusCoreComponents,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         configs.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		FlagsConfig:            *configs.FlagsConfig,
+		Config:                  *configs.GeneralConfig,
+		EpochConfig:             *configs.EpochConfig,
+		PrefConfigs:             *configs.PreferencesConfig,
+		ImportDBConfig:          *configs.ImportDbConfig,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        nodesCoordinator,
+		Data:                    dataComponents,
+		CoreData:                coreComponents,
+		Crypto:                  cryptoComponents,
+		State:                   stateComponents,
+		Network:                 networkComponents,
+		BootstrapComponents:     bootstrapComponents,
+		StatusComponents:        statusComponents,
+		StatusCoreComponents:    statusCoreComponents,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          configs.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		FlagsConfig:             *configs.FlagsConfig,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1396,7 +1400,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:                coreComponents.SyncTimer(),
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:     p2p.NormalOperation,
+		NodeOperationMode:     common.NormalOperation,
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 		CryptoComponents:      cryptoComponents,
 	}
@@ -1404,7 +1408,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
-		networkComponentsFactoryArgs.NodeOperationMode = p2p.FullArchiveMode
+		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)
@@ -1604,7 +1608,7 @@ func copyConfigToStatsFolder(statsFolder string, gasScheduleDirectory string, co
 }
 
 func copyDirectory(source string, destination string) error {
-	fileDescriptors, err := ioutil.ReadDir(source)
+	fileDescriptors, err := os.ReadDir(source)
 	if err != nil {
 		return err
 	}
@@ -1665,6 +1669,7 @@ func copySingleFile(destinationDirectory string, sourceFile string) {
 }
 
 func indexValidatorsListIfNeeded(
+	shardID uint32,
 	outportHandler outport.OutportHandler,
 	coordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
@@ -1680,6 +1685,7 @@ func indexValidatorsListIfNeeded(
 
 	if len(validatorsPubKeys) > 0 {
 		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                shardID,
 			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  epoch,
 		})

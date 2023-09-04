@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -243,6 +244,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	p2pCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: "0",
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+				},
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,
@@ -293,7 +299,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 	return networkComp.NetworkComponentsFactoryArgs{
 		MainP2pConfig:     p2pCfg,
-		NodeOperationMode: p2p.NormalOperation,
+		NodeOperationMode: common.NormalOperation,
 		MainConfig:        mainConfig,
 		StatusHandler:     appStatusHandler,
 		Marshalizer:       &mock.MarshalizerMock{},
@@ -362,7 +368,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	return processArgs
 }
 
-//GetBootStrapFactoryArgs -
+// GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
@@ -554,6 +560,7 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 

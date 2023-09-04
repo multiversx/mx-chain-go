@@ -578,6 +578,11 @@ func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
 	return false
 }
 
+// IsScToScEventLogEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsScToScEventLogEnabled() bool {
+	return false
+}
+
 // IsRelayedNonceFixEnabled -
 func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
 	return false
@@ -610,6 +615,16 @@ func (mock *EnableEpochsHandlerMock) IsAutoBalanceDataTriesEnabled() bool {
 
 // FixDelegationChangeOwnerOnAccountEnabled -
 func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return false
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	return false
+}
+
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	return false
 }
 
