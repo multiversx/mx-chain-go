@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -35,6 +37,7 @@ type runTypeComponents struct {
 	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
 	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
 	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
+	sCProcessorCreator                  scrCommon.SCProcessorCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -104,6 +107,11 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardAdditionalStorageServiceFactory failed: %w", err)
 	}
 
+	sCProcessorCreator, err := processProxy.NewSCProcessProxyFactory()
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -117,6 +125,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
+		sCProcessorCreator:                  sCProcessorCreator,
 	}, nil
 }
 

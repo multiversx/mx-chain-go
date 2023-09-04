@@ -65,6 +65,11 @@ type SmartContractResultProcessor interface {
 type SmartContractProcessorFacade interface {
 	SmartContractProcessor
 	SmartContractResultProcessor
+
+	ArgsParser() ArgumentsParser
+	TxTypeHandler() TxTypeHandler
+
+	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 }
 
 // TxTypeHandler is an interface to calculate the transaction type
@@ -1350,4 +1355,12 @@ type DebuggerBlockProcessor interface {
 type AdditionalStorageServiceCreator interface {
 	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
 	IsInterfaceNil() bool
+}
+
+// ScrProcessingDataHandler is an interface for scr data to be processed after validation checks
+type ScrProcessingDataHandler interface {
+	GetHash() []byte
+	GetSnapshot() int
+	GetSender() state.UserAccountHandler
+	GetDestination() state.UserAccountHandler
 }

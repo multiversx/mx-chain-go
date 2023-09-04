@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -100,6 +101,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
 	}
 
+	sCProcessorCreator, err := processorV2.NewSovereignSCProcessFactory(rtc.sCProcessorCreator)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -113,5 +119,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
+		sCProcessorCreator:                  sCProcessorCreator,
 	}, nil
 }

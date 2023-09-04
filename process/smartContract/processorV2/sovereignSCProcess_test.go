@@ -290,7 +290,7 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 	_, err := sovProc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 
-	acc, err := sovProc.accounts.LoadAccount(scAddress)
+	acc, err := arguments.AccountsDB.LoadAccount(scAddress)
 	require.Nil(t, err)
 	requireTokenExists(t, acc, token1, nftTransferNonce.Uint64(), nftTransferValue)
 	requireTokenExists(t, acc, token2, esdtTransferNonce.Uint64(), esdtTransferVal)

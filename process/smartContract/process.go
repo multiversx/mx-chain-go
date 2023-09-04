@@ -2615,9 +2615,10 @@ func (sc *scProcessor) processSCOutputAccounts(
 
 // updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
 // It receives:
-// 	(1) the account as found in the State
+//
+//	(1) the account as found in the State
 //	(2) the account as returned in VM Output
-// 	(3) the transaction that, upon execution, produced the VM Output
+//	(3) the transaction that, upon execution, produced the VM Output
 func (sc *scProcessor) updateSmartContractCode(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
@@ -2742,7 +2743,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	var err error
 	returnCode := vmcommon.UserError
-	scrData, err := sc.checkSCRBeforeProcessing(scr)
+	scrData, err := sc.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}
@@ -2752,31 +2753,31 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.MoveBalance:
-		err = sc.processSimpleSCR(scr, scrData.Hash, scrData.Destination)
+		err = sc.processSimpleSCR(scr, scrData.GetHash(), scrData.GetDestination())
 		if err != nil {
-			return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
+			return returnCode, sc.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), gasLocked)
 		}
 		return vmcommon.Ok, nil
 	case process.SCDeployment:
 		err = process.ErrSCDeployFromSCRIsNotPermitted
-		return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
+		return returnCode, sc.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), gasLocked)
 	case process.SCInvoking:
-		returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.Sender, scrData.Destination)
+		returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.GetSender(), scrData.GetDestination())
 		return returnCode, err
 	case process.BuiltInFunctionCall:
 		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
-			returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.Sender, scrData.Destination)
+			returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.GetSender(), scrData.GetDestination())
 			return returnCode, err
 		}
-		returnCode, err = sc.ExecuteBuiltInFunction(scr, scrData.Sender, scrData.Destination)
+		returnCode, err = sc.ExecuteBuiltInFunction(scr, scrData.GetSender(), scrData.GetDestination())
 		return returnCode, err
 	}
 
 	err = process.ErrWrongTransaction
-	return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, gasLocked)
+	return returnCode, sc.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), gasLocked)
 }
 
-func (sc *scProcessor) checkSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (*scrCommon.ScrProcessingData, error) {
+func (sc *scProcessor) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
 	scrHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
 	if err != nil {
 		log.Debug("CalculateHash error", "error", err)
@@ -2987,4 +2988,14 @@ func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, e
 // IsInterfaceNil returns true if there is no value under the interface
 func (sc *scProcessor) IsInterfaceNil() bool {
 	return sc == nil
+}
+
+// ArgsParser returns the args parser
+func (sc *scProcessor) ArgsParser() process.ArgumentsParser {
+	return sc.argsParser
+}
+
+// TxTypeHandler returns the tx type handler
+func (sc *scProcessor) TxTypeHandler() process.TxTypeHandler {
+	return sc.txTypeHandler
 }

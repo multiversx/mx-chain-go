@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -117,6 +118,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.additionalStorageServiceCreator) {
 		return errors.ErrNilAdditionalStorageServiceCreator
+	}
+	if check.IfNil(mrc.sCProcessorCreator) {
+		return errors.ErrNilSCRProcessorCreator
 	}
 	return nil
 }
@@ -263,6 +267,18 @@ func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() peer.
 	}
 
 	return mrc.runTypeComponents.validatorStatisticsProcessorCreator
+}
+
+// SCProcessorCreator returns the smart contract processor creator
+func (mrc *managedRunTypeComponents) SCProcessorCreator() scrCommon.SCProcessorCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if mrc.runTypeComponents == nil {
+		return nil
+	}
+
+	return mrc.runTypeComponents.sCProcessorCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

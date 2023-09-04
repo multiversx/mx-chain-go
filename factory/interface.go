@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -581,6 +582,7 @@ type RunTypeComponentsHolder interface {
 	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator
 	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
 	Close() error
 	IsInterfaceNil() bool
 }

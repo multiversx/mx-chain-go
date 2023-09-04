@@ -8,23 +8,24 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type sovereignSCProcessor struct {
-	*scProcessor
+	smartContract.SCProcessorBaseHandler
 }
 
 // TODO: use scrProcessorV2 when feat/vm1.5 is merged into feat/chain-sdk-go
 
 // NewSovereignSCRProcessor creates a sovereign scr processor
-func NewSovereignSCRProcessor(scrProc *scProcessor) (*sovereignSCProcessor, error) {
+func NewSovereignSCRProcessor(scrProc smartContract.SCProcessorBaseHandler) (*sovereignSCProcessor, error) {
 	if check.IfNil(scrProc) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
 
 	return &sovereignSCProcessor{
-		scProcessor: scrProc,
+		scrProc,
 	}, nil
 }
 
@@ -42,12 +43,12 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, fmt.Errorf("%w, expected ESDTSCAddress", errInvalidSenderAddress)
 	}
 
-	scrData, err := sc.checkSCRBeforeProcessing(scr)
+	scrData, err := sc.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}
 
-	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
+	txType, _ := sc.TxTypeHandler().ComputeTransactionType(scr)
 	switch txType {
 	case process.BuiltInFunctionCall:
 		err = sc.checkBuiltInFuncCall(string(scr.Data))
@@ -55,16 +56,16 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		return sc.ExecuteBuiltInFunction(scr, nil, scrData.Destination)
+		return sc.SCProcessorBaseHandler.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
 	default:
 		err = process.ErrWrongTransaction
 	}
 
-	return returnCode, sc.ProcessIfError(scrData.Sender, scrData.Hash, scr, err.Error(), scr.ReturnMessage, scrData.Snapshot, 0)
+	return returnCode, sc.SCProcessorBaseHandler.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
 }
 
 func (sc *sovereignSCProcessor) checkBuiltInFuncCall(scrData string) error {
-	function, _, err := sc.argsParser.ParseCallData(scrData)
+	function, _, err := sc.ArgsParser().ParseCallData(scrData)
 	if err != nil {
 		return err
 	}

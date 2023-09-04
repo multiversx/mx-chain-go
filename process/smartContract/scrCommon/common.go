@@ -48,6 +48,26 @@ type ScrProcessingData struct {
 	Destination state.UserAccountHandler
 }
 
+// GetHash returns the hash
+func (spd *ScrProcessingData) GetHash() []byte {
+	return spd.Hash
+}
+
+// GetSnapshot returns the snapshot
+func (spd *ScrProcessingData) GetSnapshot() int {
+	return spd.Snapshot
+}
+
+// GetSender returns the sender
+func (spd *ScrProcessingData) GetSender() state.UserAccountHandler {
+	return spd.Sender
+}
+
+// GetDestination returns the destination
+func (spd *ScrProcessingData) GetDestination() state.UserAccountHandler {
+	return spd.Destination
+}
+
 // FindVMByScAddress is exported for use in all version of scr processors
 func FindVMByScAddress(container process.VirtualMachinesContainer, scAddress []byte) (vmcommon.VMExecutionHandler, []byte, error) {
 	vmType, err := vmcommon.ParseVMTypeFromContractAddress(scAddress)
