@@ -1160,11 +1160,10 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.RunTypeComponents = components.GetRunTypeComponents()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeRegular)
 
 		pc, err := pcf.Create()
 
@@ -1177,11 +1176,10 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.RunTypeComponents = components.GetSovereignRunTypeComponents()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeSovereign)
 
 		pc, err := pcf.Create()
 

@@ -63,9 +63,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 	}
 	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardCoordinator)
-	args.ChainRunType = chainType
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
-	processComponentsFactory.SetChainRunType(chainType)
 	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 	require.NotNil(t, managedProcessComponents)
 
