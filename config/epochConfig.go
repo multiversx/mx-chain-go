@@ -95,6 +95,7 @@ type EnableEpochs struct {
 	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
 	AlwaysSaveTokenMetaDataEnableEpoch                uint32
 	SetGuardianEnableEpoch                            uint32
+	ScToScLogEventEnableEpoch                         uint32
 	RelayedNonceFixEnableEpoch                        uint32
 	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32

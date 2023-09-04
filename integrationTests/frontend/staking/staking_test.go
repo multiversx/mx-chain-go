@@ -131,7 +131,7 @@ func checkStakeOnNode(t *testing.T, n *integrationTests.TestProcessorNode, blsKe
 		Arguments: [][]byte{blsKey},
 	}
 
-	vmOutput, err := n.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := n.SCQueryService.ExecuteQuery(query)
 	require.Nil(t, err)
 	require.NotNil(t, vmOutput)
 	require.Equal(t, 1, len(vmOutput.ReturnData))

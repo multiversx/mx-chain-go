@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -483,7 +483,7 @@ func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.Valid
 		return err
 	}
 
-	return ioutil.WriteFile(filepath.Join(se.exportFolder, common.NodesSetupJsonFileName), nodesSetupBytes, 0664)
+	return os.WriteFile(filepath.Join(se.exportFolder, common.NodesSetupJsonFileName), nodesSetupBytes, 0664)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

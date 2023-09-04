@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -342,7 +341,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 
 func query(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, function string) []byte {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  function,
 		Arguments: [][]byte{},

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -40,6 +41,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxDataPoolShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -64,6 +66,7 @@ func TestNewRewardTxPreprocessor_NilStoreShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -88,6 +91,7 @@ func TestNewRewardTxPreprocessor_NilHasherShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -112,6 +116,7 @@ func TestNewRewardTxPreprocessor_NilMarshalizerShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -136,6 +141,7 @@ func TestNewRewardTxPreprocessor_NilRewardTxProcessorShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -160,6 +166,7 @@ func TestNewRewardTxPreprocessor_NilShardCoordinatorShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -184,6 +191,7 @@ func TestNewRewardTxPreprocessor_NilAccountsShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -208,6 +216,7 @@ func TestNewRewardTxPreprocessor_NilRequestHandlerShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -232,6 +241,7 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -256,6 +266,7 @@ func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -280,6 +291,7 @@ func TestNewRewardTxPreprocessor_NilBlockSizeComputationHandlerShouldErr(t *test
 		nil,
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -304,6 +316,7 @@ func TestNewRewardTxPreprocessor_NilBalanceComputationHandlerShouldErr(t *testin
 		&testscommon.BlockSizeComputationStub{},
 		nil,
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
@@ -328,10 +341,36 @@ func TestNewRewardTxPreprocessor_NilProcessedMiniBlocksTrackerShouldErr(t *testi
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		nil,
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	assert.Nil(t, rtp)
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
+}
+
+func TestNewRewardTxPreprocessor_NilTxExecutionOrderHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	rtp, err := NewRewardTxPreprocessor(
+		tdp.RewardTransactions(),
+		&storageStubs.ChainStorerStub{},
+		&hashingMocks.HasherMock{},
+		&mock.MarshalizerMock{},
+		&testscommon.RewardTxProcessorMock{},
+		mock.NewMultiShardsCoordinatorMock(3),
+		&stateMock.AccountsStub{},
+		func(shardID uint32, txHashes [][]byte) {},
+		&testscommon.GasHandlerStub{},
+		createMockPubkeyConverter(),
+		&testscommon.BlockSizeComputationStub{},
+		&testscommon.BalanceComputationStub{},
+		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		nil,
+	)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 }
 
 func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
@@ -352,6 +391,7 @@ func TestNewRewardTxPreprocessor_OkValsShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.NotNil(t, rtp)
@@ -376,6 +416,7 @@ func TestRewardTxPreprocessor_CreateMarshalizedDataShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -407,6 +448,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -428,6 +470,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockInvalidMiniBlockTypeShouldErr(t *t
 func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
+	calledCount := 0
 	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
@@ -444,6 +487,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -463,6 +511,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 
 	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, calledCount)
 
 	txsMap := rtp.GetAllCurrentUsedTxs()
 	if _, ok := txsMap[txHash]; !ok {
@@ -473,6 +522,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	t.Parallel()
 
+	calledCount := 0
 	txHash := testTxHash
 	tdp := initDataPool()
 	rtp, _ := NewRewardTxPreprocessor(
@@ -489,6 +539,11 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -507,6 +562,7 @@ func TestRewardTxPreprocessor_ProcessMiniBlockNotFromMeta(t *testing.T) {
 	}
 
 	_, _, _, err := rtp.ProcessMiniBlock(&mb1, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	assert.Equal(t, 0, calledCount)
 	assert.Equal(t, process.ErrRewardMiniBlockNotFromMeta, err)
 }
 
@@ -529,6 +585,7 @@ func TestRewardTxPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -574,6 +631,7 @@ func TestRewardTxPreprocessor_RequestBlockTransactionsNoMissingTxsShouldWork(t *
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -618,6 +676,7 @@ func TestRewardTxPreprocessor_RequestTransactionsForMiniBlockShouldWork(t *testi
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -637,6 +696,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 
 	txHash := testTxHash
 	tdp := initDataPool()
+	calledCount := 0
 	rtp, _ := NewRewardTxPreprocessor(
 		tdp.RewardTransactions(),
 		&storageStubs.ChainStorerStub{},
@@ -651,6 +711,11 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{
+			AddCalled: func(txHash []byte) {
+				calledCount++
+			},
+		},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -677,6 +742,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactions(t *testing.T) {
 	blockBody.MiniBlocks = append(blockBody.MiniBlocks, &mb1, &mb2)
 
 	err := rtp.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: mbHash1}, {TxCount: 1, Hash: mbHash2}}}, &blockBody, haveTimeTrue)
+	assert.Equal(t, 2, calledCount)
 	assert.Nil(t, err)
 }
 
@@ -704,6 +770,7 @@ func TestRewardTxPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte(txHash)}
@@ -751,6 +818,7 @@ func TestRewardTxPreprocessor_IsDataPreparedShouldErr(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	err := rtp.IsDataPrepared(1, haveTime)
@@ -776,6 +844,7 @@ func TestRewardTxPreprocessor_IsDataPrepared(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	go func() {
@@ -822,6 +891,7 @@ func TestRewardTxPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	txHashes := [][]byte{[]byte("tx_hash1")}
@@ -867,6 +937,7 @@ func TestRewardTxPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T)
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	mBlocksSlice, err := rtp.CreateAndProcessMiniBlocks(haveTimeTrue, []byte("randomness"))
@@ -892,6 +963,7 @@ func TestRewardTxPreprocessor_CreateBlockStartedShouldCleanMap(t *testing.T) {
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&common.TxExecutionOrderHandlerStub{},
 	)
 
 	rtp.CreateBlockStarted()

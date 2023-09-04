@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -59,7 +59,7 @@ func RunDelegationStressTest(
 		return nil, err
 	}
 
-	tempDir, err := ioutil.TempDir("", "integrationTest")
+	tempDir, err := os.MkdirTemp("", "integrationTest")
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +159,14 @@ func RunDelegationStressTest(
 					getClaimableRewards.Arguments = [][]byte{copiedAddresses[j]}
 					getUserStakeByType.Arguments = [][]byte{copiedAddresses[j]}
 
-					_, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
+					_, _, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
 						mutExecutionError.Unlock()
 					}
 
-					_, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
+					_, _, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
@@ -218,7 +218,7 @@ func deployDelegationSC(node *integrationTests.TestProcessorNode, delegationFile
 	blocksBeforeUnBond := 60
 	value := big.NewInt(10)
 
-	contractBytes, err := ioutil.ReadFile(delegationFilename)
+	contractBytes, err := os.ReadFile(delegationFilename)
 	if err != nil {
 		return err
 	}

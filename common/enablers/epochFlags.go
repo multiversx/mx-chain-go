@@ -92,6 +92,7 @@ type epochFlagsHolder struct {
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
 	setGuardianFlag                             *atomic.Flag
+	scToScLogEventFlag                          *atomic.Flag
 	relayedNonceFixFlag                         *atomic.Flag
 	deterministicSortOnValidatorsInfoFixFlag    *atomic.Flag
 	keepExecOrderOnCreatedSCRsFlag              *atomic.Flag
@@ -192,6 +193,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
 		setGuardianFlag:                             &atomic.Flag{},
+		scToScLogEventFlag:                          &atomic.Flag{},
 		relayedNonceFixFlag:                         &atomic.Flag{},
 		deterministicSortOnValidatorsInfoFixFlag:    &atomic.Flag{},
 		keepExecOrderOnCreatedSCRsFlag:              &atomic.Flag{},
@@ -690,6 +692,11 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 // IsSetGuardianEnabled returns true if setGuardianFlag is enabled
 func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
+}
+
+// IsScToScLogEventFlagEnabled returns true if scToScLogEventFlag is enabled
+func (holder *epochFlagsHolder) IsScToScEventLogEnabled() bool {
+	return holder.scToScLogEventFlag.IsSet()
 }
 
 // IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
