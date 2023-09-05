@@ -552,8 +552,8 @@ func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.Mi
 }
 
 // SaveEpochStartInfoToStaticStorage -
-func (bp *baseProcessor) SaveEpochStartInfoToStaticStorage(header data.HeaderHandler, marshalledHeader []byte, body *block.Body) {
-	bp.saveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
+func (mp *metaProcessor) SaveEpochStartInfoToStaticStorage(header data.HeaderHandler, marshalledHeader []byte, body *block.Body) {
+	mp.saveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
 }
 
 func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]byte {
