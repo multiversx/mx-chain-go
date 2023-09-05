@@ -542,6 +542,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		ShardedDataCache: ficf.dataPool.Transactions(),
 		UserShardedPool:  ficf.dataPool.UserTransactions(),
 		TxValidator:      txValidator,
+		ShardCoordinator: ficf.shardCoordinator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -578,6 +579,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
 		UserShardedPool:  disabledDataRetriever.NewShardedDataCacherNotifier(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardCoordinator: ficf.shardCoordinator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -614,6 +616,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		ShardedDataCache: ficf.dataPool.RewardTransactions(),
 		UserShardedPool:  disabledDataRetriever.NewShardedDataCacherNotifier(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardCoordinator: ficf.shardCoordinator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {

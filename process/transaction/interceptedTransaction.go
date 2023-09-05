@@ -203,7 +203,36 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 
+	// at this point, we can extract the user tx as the transaction was already validated
+	inTx.extractUserTx()
+
 	return nil
+}
+
+func (inTx *InterceptedTransaction) extractUserTx() {
+	tx := inTx.tx
+	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
+	if err != nil {
+		return
+	}
+
+	if core.RelayedTransactionV2 == funcName {
+		inTx.userTx, err = createRelayedV2(tx, userTxArgs)
+		if err != nil {
+			return
+		}
+	}
+
+	if core.RelayedTransaction == funcName {
+		if len(userTxArgs) != 1 {
+			return
+		}
+
+		inTx.userTx, err = createTx(inTx.signMarshalizer, userTxArgs[0])
+		if err != nil {
+			return
+		}
+	}
 }
 
 func isRelayedTx(funcName string) bool {
@@ -243,8 +272,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 	if isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
-
-	inTx.userTx = userTx
 
 	return nil
 }
@@ -299,8 +326,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 	if isRelayedTx(funcName) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
-
-	inTx.userTx = userTx
 
 	return nil
 }

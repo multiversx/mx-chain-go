@@ -20,6 +20,7 @@ func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 		ShardedDataCache: testscommon.NewShardedDataStub(),
 		UserShardedPool:  testscommon.NewShardedDataStub(),
 		TxValidator:      &mock.TxValidatorStub{},
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 	}
 }
 
@@ -63,6 +64,17 @@ func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
 
 	assert.Nil(t, txip)
 	assert.Equal(t, process.ErrNilTxValidator, err)
+}
+
+func TestNewTxInterceptorProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockTxArgument()
+	arg.ShardCoordinator = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
+
+	assert.Nil(t, txip)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -357,30 +356,9 @@ func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard
 
 	txsForSender := txCache.GetTransactionsPoolForSender(sender)
 
-	// search for inner txs
+	// search user txs for this sender as well
+	// this should return all user txs from user pool
 	userTxsCache := atp.dataPool.UserTransactions().ShardDataStore(cacheId)
-	for _, tx := range txsForSender {
-		innerTx, found := userTxsCache.Get(tx.TxHash)
-		if !found {
-			continue
-		}
-
-		txHandler, ok := innerTx.(data.TransactionHandler)
-		if !ok {
-			continue
-		}
-
-		txsForSender = append(txsForSender, &txcache.WrappedTransaction{
-			Tx:     txHandler,
-			TxHash: tx.TxHash, // parent's hash
-		})
-	}
-
-	sort.Slice(txsForSender, func(i, j int) bool {
-		return txsForSender[i].Tx.GetNonce() < txsForSender[j].Tx.GetNonce()
-	})
-
-	// search user txs as well
 	txCache, ok = userTxsCache.(*txcache.TxCache)
 	if !ok {
 		log.Warn("fetchTxsForSender could not user txs cache cast to TxCache")
