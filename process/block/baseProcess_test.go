@@ -39,6 +39,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -452,6 +453,7 @@ func createMockTransactionCoordinatorArguments(
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	return argsTransactionCoordinator
@@ -3077,57 +3079,6 @@ func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T)
 	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
 	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
 	assert.Nil(t, err)
-}
-
-func TestBaseProcessor_SaveEpochStartInfoToStaticStorage(t *testing.T) {
-	t.Parallel()
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-
-	store := dataRetriever.NewChainStorer()
-
-	calledCount := 0
-	epochStartStaticUnit := &storageStubs.StorerStub{
-		PutCalled: func(key, data []byte) error {
-			calledCount++
-			return nil
-		},
-	}
-	store.AddStorer(dataRetriever.EpochStartStaticUnit, epochStartStaticUnit)
-	dataComponents.Storage = store
-
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	mp, _ := blproc.NewMetaProcessor(arguments)
-	require.NotNil(t, mp)
-
-	header := &block.MetaBlock{
-		Nonce: 1,
-		Round: 1,
-	}
-	marshalledHeader, _ := coreComponents.InternalMarshalizer().Marshal(header)
-
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
-				ReceiverShardID: 1,
-				SenderShardID:   1,
-				Type:            block.PeerBlock,
-			},
-			&block.MiniBlock{
-				ReceiverShardID: 2,
-				SenderShardID:   2,
-				Type:            block.PeerBlock,
-			},
-			&block.MiniBlock{
-				ReceiverShardID: 1,
-				SenderShardID:   1,
-				Type:            block.TxBlock,
-			},
-		},
-	}
-
-	mp.SaveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
-	require.Equal(t, 3, calledCount) // 1 for block + 2 peer miniblocks
 }
 
 func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {

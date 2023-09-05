@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package txsFee
 
@@ -10,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
@@ -27,7 +27,6 @@ func TestAsyncCallLegacy(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 
 	senderAddr := []byte("12345678901234567890123456789011")
@@ -71,7 +70,6 @@ func TestAsyncCallMulti(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 
 	senderAddr := []byte("12345678901234567890123456789011")
@@ -119,7 +117,6 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 
 	senderAddr := []byte("12345678901234567890123456789011")
@@ -177,7 +174,6 @@ func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfB
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 
 	senderAddr := []byte("12345678901234567890123456789011")
@@ -231,9 +227,9 @@ func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfB
 			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* sent back via callback*/))
 
 	utils.CheckESDTNFTBalance(t, testContext, forwarderSCAddress, esdtToken, 0,
-		big.NewInt((esdtBalance.Int64() - /* initial */
-			int64(numberOfCallsFromParent)*esdtToTransferFromParent + /* sent via async */
-			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */)))
+		big.NewInt(esdtBalance.Int64()- /* initial */
+			int64(numberOfCallsFromParent)*esdtToTransferFromParent+ /* sent via async */
+			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */))
 
 	res := vm.GetIntValueFromSC(nil, testContext.Accounts, childSCAddress, "num_called_retrieve_funds_promises")
 	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)
@@ -309,7 +305,6 @@ func TestAsyncCallMulti_CrossShard(t *testing.T) {
 	_, _ = vm.CreateAccount(testContextFirstContract.Accounts, firstContractOwner, 0, egldBalance)
 	_, _ = vm.CreateAccount(testContextSecondContract.Accounts, secondContractOwner, 0, egldBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 	firstAccount, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 
@@ -396,7 +391,6 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 	_, _ = vm.CreateAccount(childShard.Accounts, childOwner, 0, egldBalance)
 	_, _ = vm.CreateAccount(forwarderShard.Accounts, forwarderOwner, 0, egldBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 	childOwnerAccount, _ := childShard.Accounts.LoadAccount(childOwner)
 
@@ -455,19 +449,25 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
 	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
-	transferESDTAndExecute_CrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
+	transferESDTAndExecuteCrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
 }
 
-func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
+	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer vaultShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -484,7 +484,6 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 	_, _ = vm.CreateAccount(vaultShard.Accounts, vaultOwner, 0, egldBalance)
 	_, _ = vm.CreateAccount(forwarderShard.Accounts, forwarderOwner, 0, egldBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(5000000)
 	vaultOwnerAccount, _ := vaultShard.Accounts.LoadAccount(vaultOwner)
 
@@ -560,9 +559,9 @@ func transferESDTAndExecute_CrossShard(t *testing.T, numberOfCallsFromParent int
 			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* sent back via callback*/))
 
 	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0,
-		big.NewInt((esdtBalance.Int64() - /* initial */
-			int64(numberOfCallsFromParent)*esdtToTransferFromParent + /* sent via async */
-			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */)))
+		big.NewInt(esdtBalance.Int64()- /* initial */
+			int64(numberOfCallsFromParent)*esdtToTransferFromParent+ /* sent via async */
+			int64(numberOfCallsFromParent)*int64(numberOfBackTransfers)*esdtToTransferBackFromChild /* received back via callback */))
 
 	res := vm.GetIntValueFromSC(nil, vaultShard.Accounts, vaultSCAddress, "num_called_retrieve_funds_promises")
 	require.Equal(t, big.NewInt(int64(numberOfCallsFromParent)), res)

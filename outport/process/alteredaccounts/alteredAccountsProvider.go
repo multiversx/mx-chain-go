@@ -359,17 +359,17 @@ func (aap *alteredAccountsProvider) IsInterfaceNil() bool {
 	return aap == nil
 }
 
-func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
-	if check.IfNil(arg.ShardCoordinator) {
+func checkArgAlteredAccountsProvider(args ArgsAlteredAccountsProvider) error {
+	if check.IfNil(args.ShardCoordinator) {
 		return errNilShardCoordinator
 	}
-	if check.IfNil(arg.AddressConverter) {
+	if check.IfNil(args.AddressConverter) {
 		return ErrNilPubKeyConverter
 	}
-	if check.IfNil(arg.AccountsDB) {
+	if check.IfNil(args.AccountsDB) {
 		return ErrNilAccountsDB
 	}
-	if check.IfNil(arg.EsdtDataStorageHandler) {
+	if check.IfNil(args.EsdtDataStorageHandler) {
 		return ErrNilESDTDataStorageHandler
 	}
 

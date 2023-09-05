@@ -1574,6 +1574,38 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, marshalledHea
 	}
 }
 
+func (mp *metaProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHandler, marshalledHeader []byte, body *block.Body) {
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(header.GetEpoch()))...)
+	err := mp.store.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
+	if err != nil {
+		log.Warn("saveEpochStartInfoToStaticStorage.Put header", "error", err.Error())
+		return
+	}
+
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", header.GetEpoch())
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		if body.MiniBlocks[i].Type != block.PeerBlock {
+			continue
+		}
+
+		marshalledMiniBlock, err := mp.marshalizer.Marshal(body.MiniBlocks[i])
+		if err != nil {
+			log.Warn("saveEpochStartInfoToStaticStorage.Marshal", "error", err.Error())
+			continue
+		}
+
+		miniBlockHash := mp.hasher.Compute(string(marshalledMiniBlock))
+		err = mp.store.Put(dataRetriever.EpochStartStaticUnit, miniBlockHash, marshalledMiniBlock)
+		if err != nil {
+			log.Warn("saveEpochStartInfoToStaticStorage.Put miniblock", "error", err.Error())
+			continue
+		}
+
+		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblock", "miniBlockHash", miniBlockHash)
+	}
+}
+
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)

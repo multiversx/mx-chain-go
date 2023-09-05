@@ -168,14 +168,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
-		Store:               pcf.data.StorageService(),
-		PoolsHolder:         pcf.data.Datapool(),
-		EconomicsFee:        pcf.coreData.EconomicsData(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		PubkeyConverter:         pcf.coreData.AddressPubKeyConverter(),
+		Store:                   pcf.data.StorageService(),
+		PoolsHolder:             pcf.data.Datapool(),
+		EconomicsFee:            pcf.coreData.EconomicsData(),
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -341,6 +342,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		pcf.txExecutionOrderHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -381,6 +383,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -489,14 +492,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
-		Store:               pcf.data.StorageService(),
-		PoolsHolder:         pcf.data.Datapool(),
-		EconomicsFee:        pcf.coreData.EconomicsData(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		PubkeyConverter:         pcf.coreData.AddressPubKeyConverter(),
+		Store:                   pcf.data.StorageService(),
+		PoolsHolder:             pcf.data.Datapool(),
+		EconomicsFee:            pcf.coreData.EconomicsData(),
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)
@@ -642,6 +646,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		pcf.txExecutionOrderHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -682,6 +687,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -955,6 +961,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		Hasher:                 pcf.coreData.Hasher(),
 		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
+		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
 	})
 }
 
