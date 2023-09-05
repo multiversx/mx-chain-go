@@ -19,11 +19,7 @@ import (
 )
 
 func createEnableEpochsHandler() common.EnableEpochsHandler {
-	return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledInEpochCalled: func(epoch uint32) bool {
-			return true
-		},
-	}
+	return enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCDeployFlag)
 }
 
 func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
@@ -449,7 +445,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWorkV1(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	txHashes := make([][]byte, 0)
@@ -529,7 +525,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}

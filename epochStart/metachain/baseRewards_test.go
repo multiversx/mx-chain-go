@@ -1168,9 +1168,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		SwitchJailWaitingEnableEpochField: 0,
-	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId

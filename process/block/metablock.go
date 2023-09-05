@@ -590,8 +590,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 func (mp *metaProcessor) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	currentEpoch := mp.enableEpochsHandler.GetCurrentEpoch()
-	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return headerHandler.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, mp.shardCoordinator.SelfId())
@@ -949,8 +948,7 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	currentEpoch := mp.enableEpochsHandler.GetCurrentEpoch()
-	if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
@@ -1792,8 +1790,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
-	currentEpoch := mp.enableEpochsHandler.GetCurrentEpoch()
-	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return miniBlockHeaderHandlers
 	}
 
@@ -2030,9 +2027,8 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.AccumulatedFees = shardHdr.GetAccumulatedFees()
 		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
-		currentEpoch := mp.enableEpochsHandler.GetCurrentEpoch()
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
-			if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+			if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 				miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 				if !miniBlockHeader.IsFinal() {
 					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())

@@ -222,8 +222,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
 func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
-	currentEpoch := bp.enableEpochsHandler.GetCurrentEpoch()
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -678,8 +677,7 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	currentEpoch := bp.enableEpochsHandler.GetCurrentEpoch()
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -855,8 +853,7 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
-	currentEpoch := bp.enableEpochsHandler.GetCurrentEpoch()
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -1053,8 +1050,7 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	currentEpoch := bp.enableEpochsHandler.GetCurrentEpoch()
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return body, nil
 	}
 
@@ -2035,8 +2031,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 }
 
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
-	currentEpoch := bp.enableEpochsHandler.GetCurrentEpoch()
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabledInEpoch(currentEpoch) {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return 0
 	}
 

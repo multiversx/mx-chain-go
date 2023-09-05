@@ -115,8 +115,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
-	if !d.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(currentEpoch) {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationManagerFlag) {
 		d.eei.AddReturnMessage("delegation manager contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -269,8 +268,7 @@ func (d *delegationManager) deployNewContract(
 }
 
 func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, caller []byte) error {
-	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
-	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabledInEpoch(currentEpoch) {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag) {
 		return nil // backwards compatibility
 	}
 
@@ -307,8 +305,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
@@ -566,8 +563,7 @@ func (d *delegationManager) executeFuncOnListAddresses(
 	args *vmcommon.ContractCallInput,
 	funcName string,
 ) vmcommon.ReturnCode {
-	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
-	if !d.enableEpochsHandler.IsMultiClaimOnDelegationEnabledInEpoch(currentEpoch) {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
@@ -693,8 +689,7 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 
 // CanUseContract returns true if contract can be used
 func (d *delegationManager) CanUseContract() bool {
-	currentEpoch := d.enableEpochsHandler.GetCurrentEpoch()
-	return d.enableEpochsHandler.IsDelegationManagerFlagEnabledInEpoch(currentEpoch)
+	return d.enableEpochsHandler.IsFlagEnabled(common.DelegationManagerFlag)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

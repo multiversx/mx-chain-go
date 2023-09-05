@@ -338,8 +338,7 @@ func (s *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakeFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakeFlag) {
 		return s.unJailV1(args)
 	}
 
@@ -415,8 +414,7 @@ func (s *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (s *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("function deprecated")
 		return vmcommon.UserError
 	}
@@ -635,8 +633,7 @@ func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return vmcommon.Ok
 	}
 
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	addOneFromQueue := !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || s.canStakeIfOneRemoved()
+	addOneFromQueue := !s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) || s.canStakeIfOneRemoved()
 	if addOneFromQueue {
 		_, err = s.moveFirstFromWaitingToStaked()
 		if err != nil {
@@ -886,8 +883,7 @@ func (s *stakingSC) insertAfterLastJailed(
 			NextKey:      previousFirstKey,
 		}
 
-		currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-		if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) && len(previousFirstKey) > 0 {
+		if s.enableEpochsHandler.IsFlagEnabled(common.CorrectFirstQueuedFlag) && len(previousFirstKey) > 0 {
 			previousFirstElement, err := s.getWaitingListElement(previousFirstKey)
 			if err != nil {
 				return err
@@ -981,8 +977,7 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 	}
 
 	// remove the first element
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	isCorrectFirstQueueFlagEnabled := s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch)
+	isCorrectFirstQueueFlagEnabled := s.enableEpochsHandler.IsFlagEnabled(common.CorrectFirstQueuedFlag)
 	isFirstElementBeforeFix := !isCorrectFirstQueueFlagEnabled && bytes.Equal(elementToRemove.PreviousKey, inWaitingListKey)
 	isFirstElementAfterFix := isCorrectFirstQueueFlagEnabled && bytes.Equal(waitingList.FirstKey, inWaitingListKey)
 	if isFirstElementBeforeFix || isFirstElementAfterFix {
@@ -1000,14 +995,14 @@ func (s *stakingSC) removeFromWaitingList(blsKey []byte) error {
 		return s.saveElementAndList(elementToRemove.NextKey, nextElement, waitingList)
 	}
 
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) || bytes.Equal(inWaitingListKey, waitingList.LastJailedKey) {
 		waitingList.LastJailedKey = make([]byte, len(elementToRemove.PreviousKey))
 		copy(waitingList.LastJailedKey, elementToRemove.PreviousKey)
 	}
 
 	previousElement, _ := s.getWaitingListElement(elementToRemove.PreviousKey)
 	// search the other way around for the element in front
-	if s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) && previousElement == nil {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectFirstQueuedFlag) && previousElement == nil {
 		previousElement, err = s.searchPreviousFromHead(waitingList, inWaitingListKey, elementToRemove)
 		if err != nil {
 			return err
@@ -1163,8 +1158,7 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 	registrationData.Jailed = true
 	registrationData.JailedNonce = s.eei.BlockChainHook().CurrentNonce()
 
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !switched && !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(currentEpoch) {
+	if !switched && !s.enableEpochsHandler.IsFlagEnabled(common.CorrectJailedNotUnStakedEmptyQueueFlag) {
 		s.eei.AddReturnMessage("did not switch as nobody in waiting, but jailed")
 	} else {
 		s.tryRemoveJailedNodeFromStaked(registrationData)
@@ -1180,8 +1174,7 @@ func (s *stakingSC) switchJailedWithWaiting(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) tryRemoveJailedNodeFromStaked(registrationData *StakedDataV2_0) {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectJailedNotUnStakedEmptyQueueFlag) {
 		s.removeAndSetUnstaked(registrationData)
 		return
 	}
@@ -1232,8 +1225,7 @@ func (s *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) updateConfigMaxNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1440,16 +1432,15 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	passedNonce := currentNonce - stakedData.UnStakedNonce
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
 	if passedNonce >= s.unBondPeriod {
-		if s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(zero.Bytes())
 		} else {
 			s.eei.Finish([]byte("0"))
 		}
 	} else {
 		remaining := s.unBondPeriod - passedNonce
-		if s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
 		} else {
 			s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
@@ -1489,8 +1480,7 @@ func (s *stakingSC) getWaitingListRegisterNonceAndRewardAddress(args *vmcommon.C
 }
 
 func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1529,8 +1519,7 @@ func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1558,8 +1547,7 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1581,8 +1569,7 @@ func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallI
 }
 
 func (s *stakingSC) resetLastUnJailedFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		// backward compatibility
 		return vmcommon.UserError
 	}
@@ -1666,8 +1653,7 @@ func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
 }
 
 func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1692,7 +1678,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		nodePriceToUse.Set(s.stakeValue)
 	}
 
@@ -1739,8 +1725,7 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 }
 
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1781,8 +1766,7 @@ func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsValidatorToDelegationFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {
@@ -1951,8 +1935,7 @@ func (s *stakingSC) getFirstElementsFromWaitingList(numNodes uint32) (*waitingLi
 }
 
 func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectFirstQueuedFlag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -2023,8 +2006,7 @@ func (s *stakingSC) fixWaitingListQueueSize(args *vmcommon.ContractCallInput) vm
 }
 
 func (s *stakingSC) addMissingNodeToQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	currentEpoch := s.enableEpochsHandler.GetCurrentEpoch()
-	if !s.enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledInEpoch(currentEpoch) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectFirstQueuedFlag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

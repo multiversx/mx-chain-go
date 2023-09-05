@@ -31,7 +31,6 @@ func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process
 }
 
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
 
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()
@@ -64,8 +63,9 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 
 	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -106,8 +106,9 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 
 	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -143,8 +144,9 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.T) {
 	req := require.New(t)
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
@@ -189,8 +191,9 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 func TestNFTTransferWithScCall(t *testing.T) {
 	req := require.New(t)
 	feeComp, err := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsGasPriceModifierFlagEnabledInEpochCalled:    flagActiveTrueHandler,
-		IsPenalizedTooMuchGasFlagEnabledInEpochCalled: flagActiveTrueHandler,
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 	req.Nil(err)

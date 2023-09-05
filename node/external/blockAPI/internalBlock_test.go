@@ -21,8 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var flagActiveTrueHandler = func(epoch uint32) bool { return true }
-
 func createMockInternalBlockProcessor(
 	shardID uint32,
 	blockHeaderHash []byte,
@@ -885,7 +883,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					IsRefactorPeersMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+					IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+						return flag == common.RefactorPeersMiniBlocksFlag
+					},
 				},
 			}, nil)
 
@@ -916,7 +916,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					IsRefactorPeersMiniBlocksFlagEnabledInEpochCalled: flagActiveTrueHandler,
+					IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+						return flag == common.RefactorPeersMiniBlocksFlag
+					},
 				},
 			}, nil)
 

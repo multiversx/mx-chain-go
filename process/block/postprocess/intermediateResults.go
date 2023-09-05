@@ -135,7 +135,6 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 		irp.currTxs.AddTx([]byte(key), value.tx)
 	}
 
-	currentEpoch := irp.enableEpochsHandler.GetCurrentEpoch()
 	finalMBs := make([]*block.MiniBlock, 0)
 	for shId, miniblock := range miniBlocks {
 		if len(miniblock.TxHashes) > 0 {
@@ -143,7 +142,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 			miniblock.ReceiverShardID = shId
 			miniblock.Type = irp.blockType
 
-			if irp.enableEpochsHandler.IsKeepExecOrderOnCreatedSCRsEnabledInEpoch(currentEpoch) {
+			if irp.enableEpochsHandler.IsFlagEnabled(common.KeepExecOrderOnCreatedSCRsFlag) {
 				sort.Slice(miniblock.TxHashes, func(a, b int) bool {
 					scrInfoA := irp.interResultsForBlock[string(miniblock.TxHashes[a])]
 					scrInfoB := irp.interResultsForBlock[string(miniblock.TxHashes[b])]
