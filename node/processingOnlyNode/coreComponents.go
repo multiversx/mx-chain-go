@@ -79,6 +79,7 @@ type ArgsCoreComponentsHolder struct {
 	RoundsConfig        config.RoundConfig
 	EconomicsConfig     config.EconomicsConfig
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
+	NodesSetupPath      string
 	GasScheduleFilename string
 	NumShards           uint32
 	WorkingDir          string
@@ -124,6 +125,9 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 			ChainID:    args.Cfg.GeneralSettings.ChainID,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO check if we need the real watchdog
 	instance.watchdog = &watchdog.DisabledWatchdog{}
@@ -186,7 +190,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.ratingsData = nil
 	instance.rater = nil
 
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.WorkingDir, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
 	if err != nil {
 		return nil, err
 	}

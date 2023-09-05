@@ -23,6 +23,7 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
 	GasScheduleFilename string
 	WorkingDir          string
+	NodesSetupPath      string
 	NumShards           uint32
 	ShardID             uint32
 }
@@ -59,6 +60,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		NumShards:           args.NumShards,
 		WorkingDir:          args.WorkingDir,
 		GasScheduleFilename: args.GasScheduleFilename,
+		NodesSetupPath:      args.NodesSetupPath,
 	})
 	if err != nil {
 		return nil, err
@@ -84,6 +86,9 @@ func (node *testOnlyProcessingNode) createBasicComponents(numShards, selfShardID
 		return err
 	}
 	node.ShardCoordinator, err = sharding.NewMultiShardCoordinator(numShards, selfShardID)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
