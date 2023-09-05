@@ -1537,9 +1537,7 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
-	case core.ESDTRoleTransfer,
-		core.ESDTRoleNFTUpdateAttributes,
-		core.ESDTRoleNFTAddURI:
+	case core.ESDTRoleTransfer, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI:
 		if e.enableEpochsHandler.IsFlagEnabled(common.ESDTTransferRoleFlag) {
 			return nil
 		}

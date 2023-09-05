@@ -39,7 +39,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
@@ -358,16 +358,12 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    createMockPubKeyConverter(),
-		ShardCoordinator:   shardCoordinator,
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.ESDTMetadataContinuousCleanupFlag
-			},
-		},
+		PubkeyConverter:     createMockPubKeyConverter(),
+		ShardCoordinator:    shardCoordinator,
+		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTMetadataContinuousCleanupFlag),
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -424,11 +420,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			return flag == common.ESDTFlag
-		},
-	}
+	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTFlag)
 	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
@@ -443,9 +435,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		return 0, nil
 	}
 
-	enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.ESDTFlag || flag == common.BuiltInFunctionOnMetaFlag
-	}
+	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionOnMetaFlag)
 
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
