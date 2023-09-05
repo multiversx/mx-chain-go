@@ -769,6 +769,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	t.Parallel()
 
 	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
+	userTxHash := []byte("userTxHash")
 	sender := "alice"
 	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                       "test",
@@ -784,9 +785,8 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
 
-	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
-	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test-meta",
+	userTxCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                       "test",
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
 		CountPerSenderThreshold:    math.MaxUint32,
@@ -795,8 +795,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		MinimumGasPrice:      1,
 		GasProcessingDivisor: 1,
 	})
-	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
-	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
+	userTxCacheIntraShard.AddTx(createTx(userTxHash, sender, 4))
 
 	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -807,18 +806,23 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 						return txCacheIntraShard
 					}
 
-					return txCacheWithMeta
+					return &testscommon.CacherStub{}
 				},
 			}
 		},
 		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+					if len(cacheID) == 1 {
+						return userTxCacheIntraShard
+					}
+
 					return &testscommon.CacherStub{}
 				},
 			}
 		},
 	}
+
 	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
@@ -841,8 +845,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 
 	res, err := atp.GetTransactionsPoolForSender(sender, "sender,value")
 	require.NoError(t, err)
-	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
-	expectedValues := []string{"100001", "100002", "100003", "100004", "100005"}
+	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(userTxHash)}
+	expectedValues := []string{"100001", "100002", "100003", "100004"}
+	require.Equal(t, len(expectedHashes), len(res.Transactions))
 	for i, tx := range res.Transactions {
 		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
 		require.Equal(t, expectedValues[i], tx.TxFields[valueField])

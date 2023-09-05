@@ -1404,6 +1404,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)
+	assert.NotNil(t, txi.UserTransaction())
 
 	userTx.Signature = []byte("notOk")
 	userTxData, _ = marshalizer.Marshal(userTx)
@@ -1496,6 +1497,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)
+	assert.NotNil(t, txi.UserTransaction())
 }
 
 // ------- IsInterfaceNil

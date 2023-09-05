@@ -175,12 +175,20 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 			TransactionCalled: func() data.TransactionHandler {
 				return &transaction.Transaction{}
 			},
+			UserTransactionCalled: func() data.TransactionHandler {
+				return &transaction.Transaction{}
+			},
 		},
 	}
 	arg := createMockTxArgument()
 	shardedDataCache := arg.ShardedDataCache.(*testscommon.ShardedDataStub)
 	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 		addedWasCalled = true
+	}
+	userAddedWasCalled := false
+	userShardedDataCache := arg.UserShardedPool.(*testscommon.ShardedDataStub)
+	userShardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
+		userAddedWasCalled = true
 	}
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
@@ -189,6 +197,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)
+	assert.True(t, userAddedWasCalled)
 }
 
 //------- IsInterfaceNil

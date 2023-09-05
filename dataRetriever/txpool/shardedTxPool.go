@@ -116,6 +116,7 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 
 	shard = txPool.createShard(cacheID)
 
+	// no need to continue if the eviction handler was not set
 	txPool.mutEvictionHandler.RLock()
 	defer txPool.mutEvictionHandler.RUnlock()
 	if txPool.evictionHandler == nil {

@@ -132,6 +132,8 @@ func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
+	pool.SetEvictionHandler(func(txHash []byte) {})
+
 	fooGenericCache := pool.ShardDataStore("foo")
 	fooTxCache := pool.getTxCache("foo")
 	require.Equal(t, fooGenericCache, fooTxCache)
