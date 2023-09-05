@@ -155,11 +155,16 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	msg := ""
+	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+		msg = " (my turn in multi-key)"
+	}
 	if leader == sr.SelfPubKey() {
+		msg = " (my turn)"
+	}
+	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "proposer")
-		msg = " (my turn)"
 	}
 
 	log.Debug("step 0: preparing the round",
@@ -167,21 +172,24 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		"messsage", msg)
 
 	pubKeys := sr.ConsensusGroup()
+	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
 
 	sr.indexRoundIfNeeded(pubKeys)
 
 	_, err = sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("not in consensus group")
+		if numMultiKeysInConsensusGroup == 0 {
+			log.Debug("not in consensus group")
+		}
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if leader != sr.SelfPubKey() {
+		if leader != sr.SelfPubKey() && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
+			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
-		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 	}
 
-	err = sr.SignatureHandler().Reset(pubKeys)
+	err = sr.SigningHandler().Reset(pubKeys)
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
 
@@ -208,6 +216,25 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	go sr.executeStoredMessages()
 
 	return true
+}
+
+func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []string) int {
+	numMultiKeysInConsensusGroup := 0
+	for _, pk := range pubKeys {
+		pkBytes := []byte(pk)
+		if sr.IsKeyManagedByCurrentNode(pkBytes) {
+			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+			numMultiKeysInConsensusGroup++
+			log.Trace("in consensus group with multi key",
+				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
+		}
+	}
+
+	if numMultiKeysInConsensusGroup > 0 {
+		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
+	}
+
+	return numMultiKeysInConsensusGroup
 }
 
 func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
@@ -250,15 +277,18 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	round := sr.RoundHandler().Index()
 
 	roundInfo := &outportcore.RoundInfo{
-		Index:            uint64(round),
+		Round:            uint64(round),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        time.Duration(sr.RoundTimeStamp.Unix()),
+		Timestamp:        uint64(sr.RoundTimeStamp.Unix()),
 	}
-
-	sr.outportHandler.SaveRoundsInfo([]*outportcore.RoundInfo{roundInfo})
+	roundsInfo := &outportcore.RoundsInfo{
+		ShardID:    shardId,
+		RoundsInfo: []*outportcore.RoundInfo{roundInfo},
+	}
+	sr.outportHandler.SaveRoundsInfo(roundsInfo)
 }
 
 func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error {

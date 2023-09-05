@@ -144,6 +144,10 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.mergeValidatorToDelegation(args, d.checkCallerIsOwnerOfContract)
 	case "mergeValidatorToDelegationWithWhitelist":
 		return d.mergeValidatorToDelegation(args, d.isAddressWhiteListedForMerge)
+	case "claimMulti":
+		return d.claimMulti(args)
+	case "reDelegateMulti":
+		return d.reDelegateMulti(args)
 	}
 
 	d.eei.AddReturnMessage("invalid function to call")
@@ -196,7 +200,9 @@ func (d *delegationManager) createNewDelegationContract(args *vmcommon.ContractC
 		return vmcommon.UserError
 	}
 
-	return d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.CallerAddr, args.CallValue, args.Arguments)
+	_, returnCode := d.deployNewContract(args, true, core.SCDeployInitFunctionName, args.CallerAddr, args.CallValue, args.Arguments)
+
+	return returnCode
 }
 
 func (d *delegationManager) deployNewContract(
@@ -206,23 +212,23 @@ func (d *delegationManager) deployNewContract(
 	deployerAddr []byte,
 	depositValue *big.Int,
 	arguments [][]byte,
-) vmcommon.ReturnCode {
+) ([]byte, vmcommon.ReturnCode) {
 	delegationManagement, err := d.getDelegationManagementData()
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	minValue := big.NewInt(0).Set(delegationManagement.MinDeposit)
 	if args.CallValue.Cmp(minValue) < 0 && checkMinDeposit {
 		d.eei.AddReturnMessage("not enough call value")
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	delegationList, err := getDelegationContractList(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	newAddress := createNewAddress(delegationManagement.LastAddress)
@@ -230,10 +236,10 @@ func (d *delegationManager) deployNewContract(
 	returnCode, err := d.eei.DeploySystemSC(vm.FirstDelegationSCAddress, newAddress, deployerAddr, initFunction, depositValue, arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 	if returnCode != vmcommon.Ok {
-		return returnCode
+		return nil, returnCode
 	}
 
 	delegationManagement.NumOfContracts += 1
@@ -247,18 +253,26 @@ func (d *delegationManager) deployNewContract(
 	err = saveDelegationManagementData(d.eei, d.marshalizer, d.delegationMgrSCAddress, delegationManagement)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	err = d.saveDelegationContractList(delegationList)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, vmcommon.UserError
 	}
 
 	d.eei.Finish(newAddress)
 
-	return vmcommon.Ok
+	return newAddress, vmcommon.Ok
+}
+
+func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, caller []byte) error {
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+		return nil // backwards compatibility
+	}
+
+	return d.eei.UpdateCodeDeployerAddress(string(newAddress), caller)
 }
 
 func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -276,7 +290,18 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 	}
 
 	arguments := append([][]byte{args.CallerAddr}, args.Arguments...)
-	return d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
+	newAddress, returnCode := d.deployNewContract(args, false, initFromValidatorData, d.delegationMgrSCAddress, big.NewInt(0), arguments)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.correctOwnerOnAccount(newAddress, args.CallerAddr)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -491,6 +516,92 @@ func (d *delegationManager) getContractConfig(args *vmcommon.ContractCallInput) 
 	d.eei.Finish(big.NewInt(0).SetUint64(cfg.MaxServiceFee).Bytes())
 	d.eei.Finish(cfg.MinDeposit.Bytes())
 	d.eei.Finish(cfg.MinDelegationAmount.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) claimMulti(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.executeFuncOnListAddresses(args, claimRewards)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	totalSent := d.eei.GetTotalSentToUser(args.CallerAddr)
+	d.eei.Finish(totalSent.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) reDelegateMulti(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.executeFuncOnListAddresses(args, reDelegateRewards)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	logs := d.eei.GetLogs()
+	totalReDelegated := getTotalReDelegatedFromLogs(logs)
+	d.eei.Finish(totalReDelegated.Bytes())
+
+	return vmcommon.Ok
+}
+
+func getTotalReDelegatedFromLogs(logs []*vmcommon.LogEntry) *big.Int {
+	totalReDelegated := big.NewInt(0)
+	for _, reDelegateLog := range logs {
+		if len(reDelegateLog.Topics) < 1 {
+			continue
+		}
+		if !bytes.Equal(reDelegateLog.Identifier, []byte(delegate)) {
+			continue
+		}
+		valueFromFirstTopic := big.NewInt(0).SetBytes(reDelegateLog.Topics[0])
+		totalReDelegated.Add(totalReDelegated, valueFromFirstTopic)
+	}
+
+	return totalReDelegated
+}
+
+func (d *delegationManager) executeFuncOnListAddresses(
+	args *vmcommon.ContractCallInput,
+	funcName string,
+) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		d.eei.AddReturnMessage("invalid function to call")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 1 {
+		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	mapAddresses := make(map[string]struct{})
+	var vmOutput *vmcommon.VMOutput
+	var found bool
+	for _, address := range args.Arguments {
+		if len(address) != len(args.CallerAddr) {
+			d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
+			return vmcommon.UserError
+		}
+		_, found = mapAddresses[string(address)]
+		if found {
+			d.eei.AddReturnMessage("duplicated input")
+			return vmcommon.UserError
+		}
+
+		mapAddresses[string(address)] = struct{}{}
+		vmOutput, err = d.eei.ExecuteOnDestContext(address, args.CallerAddr, big.NewInt(0), []byte(funcName))
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return vmOutput.ReturnCode
+		}
+	}
 
 	return vmcommon.Ok
 }

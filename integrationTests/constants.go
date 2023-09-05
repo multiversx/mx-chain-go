@@ -6,3 +6,6 @@ const ShardTopic = "shard"
 
 // GlobalTopic is a global testing that all nodes will bind an interceptor
 const GlobalTopic = "global"
+
+// AddressPrefix is a global testing const
+const AddressHrp = "erd"

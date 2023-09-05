@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
@@ -24,6 +25,8 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/keysManagement"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -31,14 +34,19 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const disabledSigChecking = "disabled"
+const (
+	disabledSigChecking        = "disabled"
+	mainMachineRedundancyLevel = 0
+)
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
 type CryptoComponentsFactoryArgs struct {
 	ValidatorKeyPemFileName              string
+	AllValidatorKeysPemFileName          string
 	SkIndex                              int
 	Config                               config.Config
 	EnableEpochs                         config.EnableEpochs
+	PrefsConfig                          config.Preferences
 	CoreComponentsHolder                 factory.CoreComponentsHolder
 	KeyLoader                            factory.KeyLoaderHandler
 	ActivateBLSPubKeyMessageVerification bool
@@ -51,10 +59,12 @@ type CryptoComponentsFactoryArgs struct {
 type cryptoComponentsFactory struct {
 	consensusType                        string
 	validatorKeyPemFileName              string
+	allValidatorKeysPemFileName          string
 	skIndex                              int
 	config                               config.Config
 	enableEpochs                         config.EnableEpochs
-	coreComponentsHolder                 factory.CoreComponentsHolder
+	prefsConfig                          config.Preferences
+	validatorPubKeyConverter             core.PubkeyConverter
 	activateBLSPubKeyMessageVerification bool
 	keyLoader                            factory.KeyLoaderHandler
 	isInImportMode                       bool
@@ -65,11 +75,11 @@ type cryptoComponentsFactory struct {
 
 // cryptoParams holds the node public/private key data
 type cryptoParams struct {
-	publicKey       crypto.PublicKey
-	privateKey      crypto.PrivateKey
-	publicKeyString string
-	publicKeyBytes  []byte
-	privateKeyBytes []byte
+	publicKey          crypto.PublicKey
+	privateKey         crypto.PrivateKey
+	publicKeyString    string
+	publicKeyBytes     []byte
+	handledPrivateKeys [][]byte
 }
 
 // p2pCryptoParams holds the p2p public/private key data
@@ -80,15 +90,18 @@ type p2pCryptoParams struct {
 
 // cryptoComponents struct holds the crypto components
 type cryptoComponents struct {
-	txSingleSigner       crypto.SingleSigner
-	blockSingleSigner    crypto.SingleSigner
-	p2pSingleSigner      crypto.SingleSigner
-	multiSignerContainer cryptoCommon.MultiSignerContainer
-	peerSignHandler      crypto.PeerSignatureHandler
-	blockSignKeyGen      crypto.KeyGenerator
-	txSignKeyGen         crypto.KeyGenerator
-	p2pKeyGen            crypto.KeyGenerator
-	messageSignVerifier  vm.MessageSignVerifier
+	txSingleSigner          crypto.SingleSigner
+	blockSingleSigner       crypto.SingleSigner
+	p2pSingleSigner         crypto.SingleSigner
+	multiSignerContainer    cryptoCommon.MultiSignerContainer
+	peerSignHandler         crypto.PeerSignatureHandler
+	blockSignKeyGen         crypto.KeyGenerator
+	txSignKeyGen            crypto.KeyGenerator
+	p2pKeyGen               crypto.KeyGenerator
+	messageSignVerifier     vm.MessageSignVerifier
+	consensusSigningHandler consensus.SigningHandler
+	managedPeersHolder      common.ManagedPeersHolder
+	keysHandler             consensus.KeysHandler
 	cryptoParams
 	p2pCryptoParams
 }
@@ -99,6 +112,9 @@ var log = logger.GetOrCreate("factory")
 func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoComponentsFactory, error) {
 	if check.IfNil(args.CoreComponentsHolder) {
 		return nil, errors.ErrNilCoreComponents
+	}
+	if check.IfNil(args.CoreComponentsHolder.ValidatorPubKeyConverter()) {
+		return nil, errors.ErrNilPubKeyConverter
 	}
 	if len(args.ValidatorKeyPemFileName) == 0 {
 		return nil, errors.ErrNilPath
@@ -112,7 +128,8 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		validatorKeyPemFileName:              args.ValidatorKeyPemFileName,
 		skIndex:                              args.SkIndex,
 		config:                               args.Config,
-		coreComponentsHolder:                 args.CoreComponentsHolder,
+		prefsConfig:                          args.PrefsConfig,
+		validatorPubKeyConverter:             args.CoreComponentsHolder.ValidatorPubKeyConverter(),
 		activateBLSPubKeyMessageVerification: args.ActivateBLSPubKeyMessageVerification,
 		keyLoader:                            args.KeyLoader,
 		isInImportMode:                       args.IsInImportMode,
@@ -120,6 +137,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		enableEpochs:                         args.EnableEpochs,
 		noKeyProvided:                        args.NoKeyProvided,
 		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
+		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
 	}
 
 	return ccf, nil
@@ -182,25 +200,78 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
-	p2pCryptoParams, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
+	p2pCryptoParamsInstance, err := ccf.createP2pCryptoParams(p2pKeyGenerator)
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: refactor the logic for isMainMachine
+	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
+	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
+	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
+		KeyGenerator:                     blockSignKeyGen,
+		P2PKeyGenerator:                  p2pKeyGenerator,
+		IsMainMachine:                    isMainMachine,
+		MaxRoundsWithoutReceivedMessages: redundancyLevel,
+		PrefsConfig:                      ccf.prefsConfig,
+		P2PKeyConverter:                  p2pFactory.NewP2PKeyConverter(),
+	}
+	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, skBytes := range cp.handledPrivateKeys {
+		errAddManagedPeer := managedPeersHolder.AddManagedPeer(skBytes)
+		if errAddManagedPeer != nil {
+			return nil, errAddManagedPeer
+		}
+	}
+
 	log.Debug("block sign pubkey", "value", cp.publicKeyString)
 
+	currentPid, err := argsManagedPeersHolder.P2PKeyConverter.ConvertPublicKeyToPeerID(p2pCryptoParamsInstance.p2pPublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	argsKeysHandler := keysManagement.ArgsKeysHandler{
+		ManagedPeersHolder: managedPeersHolder,
+		PrivateKey:         cp.privateKey,
+		Pid:                currentPid,
+	}
+	keysHandler, err := keysManagement.NewKeysHandler(argsKeysHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	signingHandlerArgs := ArgsSigningHandler{
+		PubKeys:              []string{cp.publicKeyString},
+		MultiSignerContainer: multiSigner,
+		KeyGenerator:         blockSignKeyGen,
+		SingleSigner:         interceptSingleSigner,
+		KeysHandler:          keysHandler,
+	}
+	consensusSigningHandler, err := NewSigningHandler(signingHandlerArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cryptoComponents{
-		txSingleSigner:       txSingleSigner,
-		blockSingleSigner:    interceptSingleSigner,
-		multiSignerContainer: multiSigner,
-		peerSignHandler:      peerSigHandler,
-		blockSignKeyGen:      blockSignKeyGen,
-		txSignKeyGen:         txSignKeyGen,
-		p2pKeyGen:            p2pKeyGenerator,
-		messageSignVerifier:  messageSignVerifier,
-		cryptoParams:         *cp,
-		p2pCryptoParams:      *p2pCryptoParams,
-		p2pSingleSigner:      p2pSingleSigner,
+		txSingleSigner:          txSingleSigner,
+		blockSingleSigner:       interceptSingleSigner,
+		multiSignerContainer:    multiSigner,
+		peerSignHandler:         peerSigHandler,
+		blockSignKeyGen:         blockSignKeyGen,
+		txSignKeyGen:            txSignKeyGen,
+		p2pKeyGen:               p2pKeyGenerator,
+		messageSignVerifier:     messageSignVerifier,
+		consensusSigningHandler: consensusSigningHandler,
+		managedPeersHolder:      managedPeersHolder,
+		keysHandler:             keysHandler,
+		cryptoParams:            *cp,
+		p2pCryptoParams:         *p2pCryptoParamsInstance,
+		p2pSingleSigner:         p2pSingleSigner,
 	}, nil
 }
 
@@ -251,9 +322,23 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 	keygen crypto.KeyGenerator,
 ) (*cryptoParams, error) {
 
-	shouldGenerateCryptoParams := ccf.isInImportMode || ccf.noKeyProvided
-	if shouldGenerateCryptoParams {
-		return ccf.generateCryptoParams(keygen)
+	handledPrivateKeys, err := ccf.processAllHandledKeys(keygen)
+	if err != nil {
+		return nil, err
+	}
+
+	if ccf.isInImportMode {
+		if len(handledPrivateKeys) > 0 {
+			return nil, fmt.Errorf("invalid node configuration: import-db mode and allValidatorsKeys.pem file provided")
+		}
+
+		return ccf.generateCryptoParams(keygen, "in import mode", handledPrivateKeys)
+	}
+	if ccf.noKeyProvided {
+		return ccf.generateCryptoParams(keygen, "with no-key flag enabled", make([][]byte, 0))
+	}
+	if len(handledPrivateKeys) > 0 {
+		return ccf.generateCryptoParams(keygen, "running with a provided allValidatorsKeys.pem", handledPrivateKeys)
 	}
 
 	return ccf.readCryptoParams(keygen)
@@ -283,21 +368,20 @@ func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator)
 		}
 	}
 
-	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString, err = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return cp, nil
 }
 
-func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
-	var message string
-	if ccf.noKeyProvided {
-		message = "with no-key flag enabled"
-	} else {
-		message = "in import mode"
-	}
-
-	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", message))
+func (ccf *cryptoComponentsFactory) generateCryptoParams(
+	keygen crypto.KeyGenerator,
+	reason string,
+	handledPrivateKeys [][]byte,
+) (*cryptoParams, error) {
+	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", reason))
 	cp := &cryptoParams{}
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 
@@ -307,8 +391,11 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(keygen crypto.KeyGenera
 		return nil, err
 	}
 
-	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	cp.publicKeyString = validatorKeyConverter.Encode(cp.publicKeyBytes)
+	cp.publicKeyString, err = ccf.validatorPubKeyConverter.Encode(cp.publicKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+	cp.handledPrivateKeys = handledPrivateKeys
 
 	return cp, nil
 }
@@ -324,8 +411,7 @@ func (ccf *cryptoComponentsFactory) getSkPk() ([]byte, []byte, error) {
 		return nil, nil, fmt.Errorf("%w for encoded secret key", err)
 	}
 
-	validatorKeyConverter := ccf.coreComponentsHolder.ValidatorPubKeyConverter()
-	pkBytes, err := validatorKeyConverter.Decode(pkString)
+	pkBytes, err := ccf.validatorPubKeyConverter.Decode(pkString)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w for encoded public key %s", err, pkString)
 	}
@@ -375,6 +461,65 @@ func CreateP2pKeyPair(
 	log.Info("p2p private key: using the provided private key for p2p signing")
 
 	return privKey, privKey.GeneratePublic(), nil
+}
+
+func (ccf *cryptoComponentsFactory) processAllHandledKeys(keygen crypto.KeyGenerator) ([][]byte, error) {
+	privateKeys, publicKeys, err := ccf.keyLoader.LoadAllKeys(ccf.allValidatorKeysPemFileName)
+	if err != nil {
+		log.Debug("allValidatorsKeys could not be loaded", "reason", err)
+		return make([][]byte, 0), nil
+	}
+
+	if len(privateKeys) != len(publicKeys) {
+		return nil, fmt.Errorf("key loading error for the allValidatorsKeys file: mismatch number of private and public keys")
+	}
+
+	handledPrivateKeys := make([][]byte, 0, len(privateKeys))
+	for i, pkString := range publicKeys {
+		sk := privateKeys[i]
+		processedSkBytes, errCheck := ccf.processPrivatePublicKey(keygen, sk, pkString, i)
+		if errCheck != nil {
+			return nil, errCheck
+		}
+
+		log.Debug("loaded handled node key", "public key", pkString)
+		handledPrivateKeys = append(handledPrivateKeys, processedSkBytes)
+	}
+
+	return handledPrivateKeys, nil
+}
+
+func (ccf *cryptoComponentsFactory) processPrivatePublicKey(keygen crypto.KeyGenerator, encodedSk []byte, pkString string, index int) ([]byte, error) {
+	skBytes, err := hex.DecodeString(string(encodedSk))
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded secret key, key index %d", err, index)
+	}
+
+	pkBytes, err := ccf.validatorPubKeyConverter.Decode(pkString)
+	if err != nil {
+		return nil, fmt.Errorf("%w for encoded public key %s, key index %d", err, pkString, index)
+	}
+
+	sk, err := keygen.PrivateKeyFromByteArray(skBytes)
+	if err != nil {
+		return nil, fmt.Errorf("%w secret key, key index %d", err, index)
+	}
+
+	pk := sk.GeneratePublic()
+	pkGeneratedBytes, err := pk.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("%w while generating public key bytes, key index %d", err, index)
+	}
+
+	if !bytes.Equal(pkGeneratedBytes, pkBytes) {
+		return nil, fmt.Errorf("public keys mismatch, read %s, generated %s, key index %d",
+			pkString,
+			ccf.validatorPubKeyConverter.SilentEncode(pkBytes, log),
+			index,
+		)
+	}
+
+	return skBytes, nil
 }
 
 // Close closes all underlying components that need closing

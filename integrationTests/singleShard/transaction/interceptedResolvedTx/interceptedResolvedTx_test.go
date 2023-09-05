@@ -40,13 +40,13 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -136,13 +136,13 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -186,8 +186,8 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	)
 
 	//Step 4. request tx
-	rewardTxResolver, _ := nRequester.ResolverFinder.CrossShardResolver(factory.RewardsTransactionTopic, core.MetachainShardId)
-	err = rewardTxResolver.RequestDataFromHash(txHash, 0)
+	rewardTxRequester, _ := nRequester.RequestersFinder.CrossShardRequester(factory.RewardsTransactionTopic, core.MetachainShardId)
+	err = rewardTxRequester.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
 	select {

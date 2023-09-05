@@ -35,7 +35,22 @@
         { Name = "/epoch-start/:epoch", Open = true },
 
         # /node/bootstrapstatus will return all metrics available during bootstrap
-        { Name = "/bootstrapstatus", Open = true }
+        { Name = "/bootstrapstatus", Open = true },
+
+        # /node/connected-peers-ratings will return the peers ratings
+        { Name = "/connected-peers-ratings", Open = true },
+
+        # /node/managed-keys will return the keys managed by the node
+        { Name = "/managed-keys", Open = true },
+
+        # /node/managed-keys/count will return the number of keys managed by the node
+        { Name = "/managed-keys/count", Open = true },
+
+        # /node/managed-keys/eligible will return the eligible keys managed by the node on the current epoch
+        { Name = "/managed-keys/eligible", Open = true },
+
+        # /node/managed-keys/waiting will return the waiting keys managed by the node on the current epoch
+        { Name = "/managed-keys/waiting", Open = true }
     ]
 
 [APIPackages.address]
@@ -80,7 +95,10 @@
         { Name = "/:address/esdts-with-role/:role", Open = true },
 
         # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
-        { Name = "/:address/registered-nfts", Open = true }
+        { Name = "/:address/registered-nfts", Open = true },
+
+        # /address/:address/is-data-trie-migrated will return the status of the data trie migration for the given address
+        { Name = "/:address/is-data-trie-migrated", Open = true }
     ]
 
 [APIPackages.hardfork]

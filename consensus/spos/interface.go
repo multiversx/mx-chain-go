@@ -2,13 +2,13 @@ package spos
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -49,10 +49,6 @@ type ConsensusCoreHandler interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// PrivateKey returns the private key stored in the ConsensusStore used for randomness and leader's signature generation
-	PrivateKey() crypto.PrivateKey
-	// SingleSigner returns the single signer stored in the ConsensusStore used for randomness and leader's signature generation
-	SingleSigner() crypto.SingleSigner
 	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
 	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
@@ -63,8 +59,12 @@ type ConsensusCoreHandler interface {
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// SignatureHandler returns the signature handler component
-	SignatureHandler() consensus.SignatureHandler
+	// MessageSigningHandler returns the p2p signing handler
+	MessageSigningHandler() consensus.P2PSigningHandler
+	// PeerBlacklistHandler return the peer blacklist handler
+	PeerBlacklistHandler() consensus.PeerBlacklistHandler
+	// SigningHandler returns the signing handler component
+	SigningHandler() consensus.SigningHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -94,6 +94,8 @@ type ConsensusService interface {
 	IsMessageWithFinalInfo(consensus.MessageType) bool
 	// IsMessageTypeValid returns if the current messageType is valid
 	IsMessageTypeValid(consensus.MessageType) bool
+	// IsMessageWithInvalidSigners returns if the current messageType is with invalid signers
+	IsMessageWithInvalidSigners(consensus.MessageType) bool
 	// IsSubroundSignature returns if the current subround is about signature
 	IsSubroundSignature(int) bool
 	// IsSubroundStartRound returns if the current subround is about start round
@@ -124,7 +126,7 @@ type WorkerHandler interface {
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -158,5 +160,13 @@ type HeaderSigVerifier interface {
 // ConsensusDataIndexer defines the actions that a consensus data indexer has to do
 type ConsensusDataIndexer interface {
 	SaveRoundsInfo(roundsInfos []*outport.RoundInfo)
+	IsInterfaceNil() bool
+}
+
+// PeerBlackListCacher can determine if a certain peer id is blacklisted or not
+type PeerBlackListCacher interface {
+	Upsert(pid core.PeerID, span time.Duration) error
+	Has(pid core.PeerID) bool
+	Sweep()
 	IsInterfaceNil() bool
 }

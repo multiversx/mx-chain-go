@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -30,7 +31,14 @@ type openStorageUnits struct {
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
-func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) *openStorageUnits {
+func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits, error) {
+	if check.IfNil(args.BootstrapDataProvider) {
+		return nil, storage.ErrNilBootstrapDataProvider
+	}
+	if check.IfNil(args.LatestStorageDataProvider) {
+		return nil, storage.ErrNilLatestStorageDataProvider
+	}
+
 	o := &openStorageUnits{
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
@@ -38,7 +46,7 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) *openStorageUnits {
 		latestStorageDataProvider: args.LatestStorageDataProvider,
 	}
 
-	return o
+	return o, nil
 }
 
 // GetMostRecentStorageUnit will open bootstrap storage unit
@@ -48,7 +56,11 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	persisterFactory := NewPersisterFactory(dbConfig)
+	dbConfigHandler := NewDBConfigHandler(dbConfig)
+	persisterFactory, err := NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
 	pathWithoutShard := o.getPathWithoutShard(parentDir, lastEpoch)
 	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
 	if err != nil {
@@ -100,7 +112,11 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
 	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
-	persisterFactory := NewPersisterFactory(dbConfig)
+	dbConfigHandler := NewDBConfigHandler(dbConfig)
+	persisterFactory, err := NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	persister, err := createDB(persisterFactory, persisterPath)
 	if err != nil {

@@ -13,6 +13,7 @@ const (
 	idxTokenIDInTopics         = 0
 	idxTokenNonceInTopics      = 1
 	idxReceiverAddressInTopics = 3
+	minTopicsMultiTransfer     = 4
 )
 
 type tokensProcessor struct {
@@ -41,16 +42,12 @@ func newTokensProcessor(shardCoordinator sharding.Coordinator) *tokensProcessor 
 }
 
 func (tp *tokensProcessor) extractESDTAccounts(
-	txPool *outportcore.Pool,
+	txPool *outportcore.TransactionPool,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) error {
-	var err error
 	for _, txLog := range txPool.Logs {
-		for _, event := range txLog.LogHandler.GetLogEvents() {
-			err = tp.processEvent(event, markedAlteredAccounts)
-			if err != nil {
-				return err
-			}
+		for _, event := range txLog.Log.Events {
+			tp.processEvent(event, markedAlteredAccounts)
 		}
 	}
 
@@ -60,46 +57,44 @@ func (tp *tokensProcessor) extractESDTAccounts(
 func (tp *tokensProcessor) processEvent(
 	event data.EventHandler,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
-) error {
-	_, isESDT := tp.tokensIdentifier[string(event.GetIdentifier())]
+) {
+	eventIdentifier := string(event.GetIdentifier())
+	_, isESDT := tp.tokensIdentifier[eventIdentifier]
 	if !isESDT {
-		return nil
+		return
 	}
 
 	topics := event.GetTopics()
 	if len(topics) < idxTokenNonceInTopics+1 {
-		return nil
+		return
+	}
+
+	isMultiTransferEvent := eventIdentifier == core.BuiltInFunctionMultiESDTNFTTransfer
+	if isMultiTransferEvent {
+		tp.processMultiTransferEvent(event, markedAlteredAccounts)
+		return
 	}
 
 	nonce := topics[idxTokenNonceInTopics]
 	nonceBigInt := big.NewInt(0).SetBytes(nonce)
-	err := tp.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
-	if err != nil {
-		log.Debug("cannot extract esdt data", "error", err)
-		return nil
-	}
-
-	return nil
+	tp.extractEsdtData(event, nonceBigInt, markedAlteredAccounts)
 }
 
 func (tp *tokensProcessor) extractEsdtData(
 	event data.EventHandler,
 	nonce *big.Int,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
-) error {
+) {
 	address := event.GetAddress()
 	topics := event.GetTopics()
 	if len(topics) == 0 {
-		return nil
+		return
 	}
 
 	identifier := string(event.GetIdentifier())
 	isNFTCreate := identifier == core.BuiltInFunctionESDTNFTCreate
 	tokenID := topics[idxTokenIDInTopics]
-	err := tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts, isNFTCreate)
-	if err != nil {
-		return err
-	}
+	tp.processEsdtDataForAddress(address, nonce, string(tokenID), markedAlteredAccounts, isNFTCreate)
 
 	// in case of esdt transfer, nft transfer, wipe or multi esdt transfers, the 3rd index of the topics contains the destination address
 	eventShouldContainReceiverAddress := identifier == core.BuiltInFunctionESDTTransfer ||
@@ -111,13 +106,39 @@ func (tp *tokensProcessor) extractEsdtData(
 
 	if eventShouldContainReceiverAddress && len(topics) > idxReceiverAddressInTopics {
 		destinationAddress := topics[idxReceiverAddressInTopics]
-		err = tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts, false)
-		if err != nil {
-			return err
-		}
+		tp.processEsdtDataForAddress(destinationAddress, nonce, string(tokenID), markedAlteredAccounts, false)
+	}
+}
+
+func (tp *tokensProcessor) processMultiTransferEvent(event data.EventHandler, markedAlteredAccounts map[string]*markedAlteredAccount) {
+	topics := event.GetTopics()
+	// MultiESDTNFTTransfer event
+	// N = len(topics)
+	// i := 0; i < N-1; i+=3
+	// {
+	// 		topics[i] --- token identifier
+	// 		topics[i+1] --- token nonce
+	// 		topics[i+2] --- transferred value
+	// }
+	// topics[N-1]   --- destination address
+	numOfTopics := len(topics)
+	if numOfTopics < minTopicsMultiTransfer || numOfTopics%3 != 1 {
+		log.Warn("tokensProcessor.processMultiTransferEvent: wrong number of topics", "got", numOfTopics)
+		return
 	}
 
-	return nil
+	address := event.GetAddress()
+
+	destinationAddress := topics[numOfTopics-1]
+	for i := 0; i < numOfTopics-1; i += 3 {
+		tokenID := topics[i]
+		nonceBigInt := big.NewInt(0).SetBytes(topics[i+1])
+		// process event for the sender address
+		tp.processEsdtDataForAddress(address, nonceBigInt, string(tokenID), markedAlteredAccounts, false)
+
+		// process event for the destination address
+		tp.processEsdtDataForAddress(destinationAddress, nonceBigInt, string(tokenID), markedAlteredAccounts, false)
+	}
 }
 
 func (tp *tokensProcessor) processEsdtDataForAddress(
@@ -126,9 +147,9 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 	tokenID string,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 	isNFTCreate bool,
-) error {
+) {
 	if !tp.isSameShard(address) {
-		return nil
+		return
 	}
 
 	addressStr := string(address)
@@ -146,7 +167,7 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 	_, alreadyExists := markedAccount.tokens[tokenKey]
 	if alreadyExists {
 		markedAccount.tokens[tokenKey].isNFTCreate = markedAccount.tokens[tokenKey].isNFTCreate || isNFTCreate
-		return nil
+		return
 	}
 
 	markedAccount.tokens[tokenKey] = &markedAlteredAccountToken{
@@ -154,8 +175,6 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 		nonce:       nonce.Uint64(),
 		isNFTCreate: isNFTCreate,
 	}
-
-	return nil
 }
 
 func (tp *tokensProcessor) isSameShard(address []byte) bool {

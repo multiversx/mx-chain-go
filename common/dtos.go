@@ -1,6 +1,8 @@
 package common
 
-import "github.com/multiversx/mx-chain-core-go/data/outport"
+import (
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+)
 
 // GetProofResponse is a struct that stores the response of a GetProof API request
 type GetProofResponse struct {
@@ -71,5 +73,5 @@ type EpochStartDataAPI struct {
 
 // AlteredAccountsForBlockAPIResponse holds the altered accounts for a certain block
 type AlteredAccountsForBlockAPIResponse struct {
-	Accounts []*outport.AlteredAccount `json:"accounts"`
+	Accounts []*alteredAccount.AlteredAccount `json:"accounts"`
 }

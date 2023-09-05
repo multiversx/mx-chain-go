@@ -102,15 +102,24 @@ func (msc *managedStatusComponents) CheckSubcomponents() error {
 	if check.IfNil(msc.statusHandler) {
 		return errors.ErrNilStatusHandler
 	}
+	if check.IfNil(msc.managedPeersMonitor) {
+		return errors.ErrNilManagedPeersMonitor
+	}
 
 	return nil
 }
 
 // SetForkDetector sets the fork detector
-func (msc *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) {
+func (msc *managedStatusComponents) SetForkDetector(forkDetector process.ForkDetector) error {
+	if check.IfNil(forkDetector) {
+		return errors.ErrNilForkDetector
+	}
+
 	msc.mutStatusComponents.Lock()
 	msc.statusComponentsFactory.forkDetector = forkDetector
 	msc.mutStatusComponents.Unlock()
+
+	return nil
 }
 
 // StartPolling starts polling for the updated status
@@ -157,6 +166,18 @@ func (msc *managedStatusComponents) SoftwareVersionChecker() statistics.Software
 	}
 
 	return msc.statusComponents.softwareVersion
+}
+
+// ManagedPeersMonitor returns the managed peers monitor
+func (msc *managedStatusComponents) ManagedPeersMonitor() common.ManagedPeersMonitor {
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
+
+	if msc.statusComponents == nil {
+		return nil
+	}
+
+	return msc.managedPeersMonitor
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -256,12 +277,11 @@ func computeConnectedPeers(
 ) {
 	peersInfo := netMessenger.GetConnectedPeersInfo()
 
-	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,fullObs:%d,unknown:%d,",
+	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
 		len(peersInfo.IntraShardValidators),
 		len(peersInfo.CrossShardValidators),
 		len(peersInfo.IntraShardObservers),
 		len(peersInfo.CrossShardObservers),
-		len(peersInfo.FullHistoryObservers),
 		len(peersInfo.UnknownPeers),
 	)
 	appStatusHandler.SetStringValue(common.MetricNumConnectedPeersClassification, peerClassification)
@@ -277,7 +297,6 @@ func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p
 	appStatusHandler.SetStringValue(common.MetricP2PIntraShardObservers, mapToString(info.IntraShardObservers))
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardValidators, mapToString(info.CrossShardValidators))
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, mapToString(info.CrossShardObservers))
-	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, mapToString(info.FullHistoryObservers))
 }
 
 func sliceToString(input []string) string {

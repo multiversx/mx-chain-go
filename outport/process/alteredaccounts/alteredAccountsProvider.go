@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
@@ -69,7 +70,7 @@ func NewAlteredAccountsProvider(args ArgsAlteredAccountsProvider) (*alteredAccou
 }
 
 // ExtractAlteredAccountsFromPool will extract and return altered accounts from the pool
-func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outportcore.Pool, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
+func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
 	if err := options.Verify(); err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outpo
 
 	if txPool == nil {
 		log.Warn("alteredAccountsProvider: ExtractAlteredAccountsFromPool", "txPool is nil", "will return")
-		return map[string]*outportcore.AlteredAccount{}, nil
+		return map[string]*alteredAccount.AlteredAccount{}, nil
 	}
 
 	markedAccounts := make(map[string]*markedAlteredAccount)
@@ -92,8 +93,8 @@ func (aap *alteredAccountsProvider) ExtractAlteredAccountsFromPool(txPool *outpo
 	return aap.fetchDataForMarkedAccounts(markedAccounts, options)
 }
 
-func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount, options shared.AlteredAccountsOptions) (map[string]*outportcore.AlteredAccount, error) {
-	alteredAccounts := make(map[string]*outportcore.AlteredAccount)
+func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts map[string]*markedAlteredAccount, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+	alteredAccounts := make(map[string]*alteredAccount.AlteredAccount)
 	var err error
 	for address, markedAccount := range markedAccounts {
 		err = aap.processMarkedAccountData(address, markedAccount, alteredAccounts, options)
@@ -108,11 +109,11 @@ func (aap *alteredAccountsProvider) fetchDataForMarkedAccounts(markedAccounts ma
 func (aap *alteredAccountsProvider) processMarkedAccountData(
 	addressStr string,
 	markedAccount *markedAlteredAccount,
-	alteredAccounts map[string]*outportcore.AlteredAccount,
+	alteredAccounts map[string]*alteredAccount.AlteredAccount,
 	options shared.AlteredAccountsOptions,
 ) error {
 	addressBytes := []byte(addressStr)
-	encodedAddress := aap.addressConverter.Encode(addressBytes)
+	encodedAddress := aap.addressConverter.SilentEncode(addressBytes, log)
 
 	userAccount, err := aap.loadUserAccount(addressBytes, options)
 	if err != nil {
@@ -135,8 +136,8 @@ func (aap *alteredAccountsProvider) processMarkedAccountData(
 	return nil
 }
 
-func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAccount *outportcore.AlteredAccount, userAccount state.UserAccountHandler, markedAccount *markedAlteredAccount) {
-	alteredAccount.AdditionalData = &outportcore.AdditionalAccountData{
+func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc *alteredAccount.AlteredAccount, userAccount state.UserAccountHandler, markedAccount *markedAlteredAccount) {
+	alteredAcc.AdditionalData = &alteredAccount.AdditionalAccountData{
 		IsSender:       markedAccount.isSender,
 		BalanceChanged: markedAccount.balanceChanged,
 		UserName:       string(userAccount.GetUserName()),
@@ -144,22 +145,20 @@ func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc
 
 	ownerAddressBytes := userAccount.GetOwnerAddress()
 	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
-		alteredAccount.AdditionalData.CurrentOwner = aap.addressConverter.Encode(ownerAddressBytes)
+		alteredAcc.AdditionalData.CurrentOwner = aap.addressConverter.SilentEncode(ownerAddressBytes, log)
 	}
 	developerRewards := userAccount.GetDeveloperReward()
 	if developerRewards != nil {
-		alteredAccount.AdditionalData.DeveloperRewards = developerRewards.String()
+		alteredAcc.AdditionalData.DeveloperRewards = developerRewards.String()
 	}
 }
 
-func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *outportcore.AlteredAccount {
-	alteredAccount := &outportcore.AlteredAccount{
+func (aap *alteredAccountsProvider) getAlteredAccountFromUserAccounts(userEncodedAddress string, userAccount state.UserAccountHandler) *alteredAccount.AlteredAccount {
+	return &alteredAccount.AlteredAccount{
 		Address: userEncodedAddress,
 		Balance: userAccount.GetBalance().String(),
 		Nonce:   userAccount.GetNonce(),
 	}
-
-	return alteredAccount
 }
 
 func (aap *alteredAccountsProvider) loadUserAccount(addressBytes []byte, options shared.AlteredAccountsOptions) (state.UserAccountHandler, error) {
@@ -188,7 +187,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	encodedAddress string,
 	userAccount state.UserAccountHandler,
 	markedAccountToken *markedAlteredAccountToken,
-	alteredAccounts map[string]*outportcore.AlteredAccount,
+	alteredAccounts map[string]*alteredAccount.AlteredAccount,
 	options shared.AlteredAccountsOptions,
 ) error {
 	nonce := markedAccountToken.nonce
@@ -211,7 +210,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		return nil
 	}
 
-	accountTokenData := &outportcore.AccountTokenData{
+	accountTokenData := &alteredAccount.AccountTokenData{
 		Identifier: tokenID,
 		Balance:    esdtToken.Value.String(),
 		Nonce:      nonce,
@@ -219,26 +218,27 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
 	}
 	if options.WithAdditionalOutportData {
-		accountTokenData.AdditionalData = &outportcore.AdditionalAccountTokenData{
+		accountTokenData.AdditionalData = &alteredAccount.AdditionalAccountTokenData{
 			IsNFTCreate: markedAccountToken.isNFTCreate,
 		}
 	}
 
-	alteredAccount := alteredAccounts[encodedAddress]
-	alteredAccount.Tokens = append(alteredAccounts[encodedAddress].Tokens, accountTokenData)
+	alteredAcc := alteredAccounts[encodedAddress]
+	alteredAcc.Tokens = append(alteredAccounts[encodedAddress].Tokens, accountTokenData)
 
 	return nil
 }
 
-func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *outportcore.TokenMetaData {
+func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *alteredAccount.TokenMetaData {
 	if metaData == nil {
 		return nil
 	}
 
-	return &outportcore.TokenMetaData{
+	metaDataCreatorAddr := aap.addressConverter.SilentEncode(metaData.Creator, log)
+	return &alteredAccount.TokenMetaData{
 		Nonce:      metaData.Nonce,
 		Name:       string(metaData.Name),
-		Creator:    aap.addressConverter.Encode(metaData.Creator),
+		Creator:    metaDataCreatorAddr,
 		Royalties:  metaData.Royalties,
 		Hash:       metaData.Hash,
 		URIs:       metaData.URIs,
@@ -247,20 +247,60 @@ func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *ou
 }
 
 func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
-	txPool *outportcore.Pool,
+	txPool *outportcore.TransactionPool,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
 	selfShardID := aap.shardCoordinator.SelfId()
 
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Txs, markedAlteredAccounts, process.MoveBalance)
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Scrs, markedAlteredAccounts, process.SCInvoking)
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Rewards, markedAlteredAccounts, process.RewardTx)
-	aap.extractAddressesFromTxsHandlers(selfShardID, txPool.Invalid, markedAlteredAccounts, process.InvalidTransaction)
+	txs := txsMapToTxHandlerSlice(txPool.Transactions)
+	scrs := scrsMapToTxHandlerSlice(txPool.SmartContractResults)
+	rewards := rewardsMapToTxHandlerSlice(txPool.Rewards)
+	invalidTxs := txsMapToTxHandlerSlice(txPool.InvalidTxs)
+
+	aap.extractAddressesFromTxsHandlers(selfShardID, txs, markedAlteredAccounts, process.MoveBalance)
+	aap.extractAddressesFromTxsHandlers(selfShardID, scrs, markedAlteredAccounts, process.SCInvoking)
+	aap.extractAddressesFromTxsHandlers(selfShardID, rewards, markedAlteredAccounts, process.RewardTx)
+	aap.extractAddressesFromTxsHandlers(selfShardID, invalidTxs, markedAlteredAccounts, process.InvalidTransaction)
+}
+
+func txsMapToTxHandlerSlice(txs map[string]*outportcore.TxInfo) []data.TransactionHandler {
+	ret := make([]data.TransactionHandler, len(txs))
+
+	idx := 0
+	for _, tx := range txs {
+		ret[idx] = tx.Transaction
+		idx++
+	}
+
+	return ret
+}
+
+func scrsMapToTxHandlerSlice(scrs map[string]*outportcore.SCRInfo) []data.TransactionHandler {
+	ret := make([]data.TransactionHandler, len(scrs))
+
+	idx := 0
+	for _, scr := range scrs {
+		ret[idx] = scr.SmartContractResult
+		idx++
+	}
+
+	return ret
+}
+func rewardsMapToTxHandlerSlice(rewards map[string]*outportcore.RewardInfo) []data.TransactionHandler {
+	ret := make([]data.TransactionHandler, len(rewards))
+
+	idx := 0
+	for _, reward := range rewards {
+		ret[idx] = reward.Reward
+		idx++
+	}
+
+	return ret
 }
 
 func (aap *alteredAccountsProvider) extractAddressesFromTxsHandlers(
 	selfShardID uint32,
-	txsHandlers map[string]data.TransactionHandlerWithGasUsedAndFee,
+	txsHandlers []data.TransactionHandler,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 	txType process.TransactionType,
 ) {
@@ -319,17 +359,17 @@ func (aap *alteredAccountsProvider) IsInterfaceNil() bool {
 	return aap == nil
 }
 
-func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
-	if check.IfNil(arg.ShardCoordinator) {
+func checkArgAlteredAccountsProvider(args ArgsAlteredAccountsProvider) error {
+	if check.IfNil(args.ShardCoordinator) {
 		return errNilShardCoordinator
 	}
-	if check.IfNil(arg.AddressConverter) {
+	if check.IfNil(args.AddressConverter) {
 		return ErrNilPubKeyConverter
 	}
-	if check.IfNil(arg.AccountsDB) {
+	if check.IfNil(args.AccountsDB) {
 		return ErrNilAccountsDB
 	}
-	if check.IfNil(arg.EsdtDataStorageHandler) {
+	if check.IfNil(args.EsdtDataStorageHandler) {
 		return ErrNilESDTDataStorageHandler
 	}
 

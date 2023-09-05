@@ -11,39 +11,10 @@ var errNotImplemented = errors.New("not implemented")
 
 // HeaderResolverStub -
 type HeaderResolverStub struct {
-	RequestDataFromHashCalled     func(hash []byte, epoch uint32) error
-	ProcessReceivedMessageCalled  func(message p2p.MessageP2P) error
-	RequestDataFromNonceCalled    func(nonce uint64, epoch uint32) error
-	RequestDataFromEpochCalled    func(identifier []byte) error
-	SetEpochHandlerCalled         func(epochHandler dataRetriever.EpochHandler) error
-	SetNumPeersToQueryCalled      func(intra int, cross int)
-	NumPeersToQueryCalled         func() (int, int)
-	SetResolverDebugHandlerCalled func(handler dataRetriever.ResolverDebugHandler) error
-	CloseCalled                   func() error
-}
-
-// SetNumPeersToQuery -
-func (hrs *HeaderResolverStub) SetNumPeersToQuery(intra int, cross int) {
-	if hrs.SetNumPeersToQueryCalled != nil {
-		hrs.SetNumPeersToQueryCalled(intra, cross)
-	}
-}
-
-// NumPeersToQuery -
-func (hrs *HeaderResolverStub) NumPeersToQuery() (int, int) {
-	if hrs.NumPeersToQueryCalled != nil {
-		return hrs.NumPeersToQueryCalled()
-	}
-
-	return 2, 2
-}
-
-// RequestDataFromEpoch -
-func (hrs *HeaderResolverStub) RequestDataFromEpoch(identifier []byte) error {
-	if hrs.RequestDataFromEpochCalled != nil {
-		return hrs.RequestDataFromEpochCalled(identifier)
-	}
-	return nil
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
+	SetDebugHandlerCalled        func(handler dataRetriever.DebugHandler) error
+	CloseCalled                  func() error
 }
 
 // SetEpochHandler -
@@ -54,17 +25,8 @@ func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochH
 	return nil
 }
 
-// RequestDataFromHash -
-func (hrs *HeaderResolverStub) RequestDataFromHash(hash []byte, epoch uint32) error {
-	if hrs.RequestDataFromHashCalled != nil {
-		return hrs.RequestDataFromHashCalled(hash, epoch)
-	}
-
-	return errNotImplemented
-}
-
 // ProcessReceivedMessage -
-func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	if hrs.ProcessReceivedMessageCalled != nil {
 		return hrs.ProcessReceivedMessageCalled(message)
 	}
@@ -72,19 +34,10 @@ func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ 
 	return errNotImplemented
 }
 
-// RequestDataFromNonce -
-func (hrs *HeaderResolverStub) RequestDataFromNonce(nonce uint64, epoch uint32) error {
-	if hrs.RequestDataFromNonceCalled != nil {
-		return hrs.RequestDataFromNonceCalled(nonce, epoch)
-	}
-
-	return errNotImplemented
-}
-
-// SetResolverDebugHandler -
-func (hrs *HeaderResolverStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
-	if hrs.SetResolverDebugHandlerCalled != nil {
-		return hrs.SetResolverDebugHandlerCalled(handler)
+// SetDebugHandler -
+func (hrs *HeaderResolverStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
+	if hrs.SetDebugHandlerCalled != nil {
+		return hrs.SetDebugHandlerCalled(handler)
 	}
 
 	return nil

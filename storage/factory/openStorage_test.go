@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -25,8 +26,31 @@ func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 func TestNewStorageUnitOpenHandler(t *testing.T) {
 	t.Parallel()
 
-	suoh := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
-	assert.NotNil(t, suoh)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		suoh, err := NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+		assert.NoError(t, err)
+		assert.False(t, check.IfNil(suoh))
+	})
+	t.Run("nil BootstrapDataProvider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsOpenStorageUnits()
+		args.BootstrapDataProvider = nil
+		suoh, err := NewStorageUnitOpenHandler(args)
+		assert.Equal(t, storage.ErrNilBootstrapDataProvider, err)
+		assert.Nil(t, suoh)
+	})
+	t.Run("nil LatestStorageDataProvider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsOpenStorageUnits()
+		args.LatestStorageDataProvider = nil
+		suoh, err := NewStorageUnitOpenHandler(args)
+		assert.Equal(t, storage.ErrNilLatestStorageDataProvider, err)
+		assert.Nil(t, suoh)
+	})
 }
 
 func TestGetMostUpToDateDirectory(t *testing.T) {
@@ -45,13 +69,30 @@ func TestGetMostUpToDateDirectory(t *testing.T) {
 			}
 		},
 	}
-	suoh := NewStorageUnitOpenHandler(args)
+	suoh, _ := NewStorageUnitOpenHandler(args)
 
 	shardIDsStr := []string{"0", "1"}
 	path := "currPath"
 	dirName, err := suoh.getMostUpToDateDirectory(config.DBConfig{}, path, shardIDsStr, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, shardIDsStr[1], dirName)
+}
+
+func TestGetMostRecentBootstrapStorageUnit_GetParentDirAndLastEpochErr(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("localErr")
+	args := createMockArgsOpenStorageUnits()
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirAndLastEpochCalled: func() (string, uint32, error) {
+			return "", 0, localErr
+		},
+	}
+	suoh, _ := NewStorageUnitOpenHandler(args)
+
+	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
+	assert.Nil(t, storer)
+	assert.Equal(t, localErr, err)
 }
 
 func TestGetMostRecentBootstrapStorageUnit_GetShardsFromDirectoryErr(t *testing.T) {
@@ -64,7 +105,7 @@ func TestGetMostRecentBootstrapStorageUnit_GetShardsFromDirectoryErr(t *testing.
 			return nil, localErr
 		},
 	}
-	suoh := NewStorageUnitOpenHandler(args)
+	suoh, _ := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
@@ -80,7 +121,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotGetMostUpToDateDirectory(t *tes
 			return []string{"0", "1"}, nil
 		},
 	}
-	suoh := NewStorageUnitOpenHandler(args)
+	suoh, _ := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
@@ -107,7 +148,7 @@ func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
 			}, nil, nil
 		},
 	}
-	suoh := NewStorageUnitOpenHandler(args)
+	suoh, _ := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(config.DBConfig{})
 	assert.Nil(t, storer)
@@ -133,7 +174,7 @@ func TestGetMostRecentBootstrapStorageUnit(t *testing.T) {
 			}, nil, nil
 		},
 	}
-	suoh := NewStorageUnitOpenHandler(args)
+	suoh, _ := NewStorageUnitOpenHandler(args)
 
 	storer, err := suoh.GetMostRecentStorageUnit(generalConfig.BootstrapStorage.DB)
 	assert.NoError(t, err)
@@ -150,7 +191,7 @@ func TestStorageUnitOpenHandler_OpenDB(t *testing.T) {
 			return tempDir
 		},
 	}
-	suoh := NewStorageUnitOpenHandler(args)
+	suoh, _ := NewStorageUnitOpenHandler(args)
 
 	// do not run these in parallel as they are using the same temp dir
 	t.Run("create DB fails, should error", func(t *testing.T) {
@@ -194,6 +235,6 @@ func TestOldDataCleanerProvider_IsInterfaceNil(t *testing.T) {
 	var osu *openStorageUnits
 	require.True(t, osu.IsInterfaceNil())
 
-	osu = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
+	osu, _ = NewStorageUnitOpenHandler(createMockArgsOpenStorageUnits())
 	require.False(t, osu.IsInterfaceNil())
 }

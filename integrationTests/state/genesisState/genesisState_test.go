@@ -16,8 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +44,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 		PubkeyConverter: integrationTests.TestAddressPubkeyConverter,
 		KeyGenerator:    &mock.KeyGenMock{},
 		Hasher:          &hashingMocks.HasherMock{},
-		Marshalizer:     &testscommon.MarshalizerMock{},
+		Marshalizer:     &marshallerMock.MarshalizerMock{},
 	}
 
 	accountsParser, err := parsing.NewAccountsParser(args)

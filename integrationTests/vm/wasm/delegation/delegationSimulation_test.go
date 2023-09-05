@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package delegation
 
@@ -31,6 +30,9 @@ func TestSimulateExecutionOfStakeTransactionAndQueries(t *testing.T) {
 func runDelegationExecutionSimulate(t *testing.T, numRuns uint32, numBatches uint32, numTxPerBatch uint32, numQueriesPerBatch uint32) {
 	gasMapFilename := integrationTests.GasSchedulePath
 	gasSchedule, err := common.LoadGasScheduleConfig(gasMapFilename)
+	gasSchedule[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 100000
+	gasSchedule[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 100000
+	gasSchedule[common.MaxPerTransaction]["MaxNumberOfTrieReadsPerTx"] = 100000
 	require.Nil(t, err)
 
 	delegationScFilename := "../testdata/delegation/delegation_v0_5_2_full.wasm"

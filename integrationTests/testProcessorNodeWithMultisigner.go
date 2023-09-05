@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -70,9 +71,9 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
-	blsPubKeys := PubKeysMapFromKeysMap(cp.Keys)
-	txPubKeys := PubKeysMapFromKeysMap(cp.TxKeys)
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
+	blsPubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
+	txPubKeys := PubKeysMapFromTxKeysMap(cp.TxKeys)
 	validatorsMap := GenValidatorsFromPubKeysAndTxPubKeys(blsPubKeys, txPubKeys)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
@@ -208,13 +209,13 @@ func CreateNodesWithNodesCoordinatorFactory(
 	metaConsensusGroupSize int,
 	nodesCoordinatorFactory NodesCoordinatorFactory,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards))
-	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	cpWaiting := CreateCryptoParams(1, 1, uint32(nbShards), 1)
+	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
@@ -230,10 +231,11 @@ func CreateNodesWithNodesCoordinatorFactory(
 	}
 
 	epochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		StakingV2EnableEpoch:                            UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                  UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -355,7 +357,7 @@ func CreateNode(
 		NodeShardId:          shardId,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 		EpochsConfig:         &epochsConfig,
-		NodeKeys:             cp.Keys[shardId][keyIndex],
+		NodeKeys:             cp.NodesKeys[shardId][keyIndex],
 		NodesSetup:           nodesSetup,
 		NodesCoordinator:     nodesCoordinatorInstance,
 		RatingsData:          ratingsData,
@@ -385,8 +387,8 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	signer crypto.SingleSigner,
 	keyGen crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -398,7 +400,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -429,7 +431,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
-			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -456,9 +458,9 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		}
 
 		for i := range validatorList {
-			multiSigner, err := createMultiSigner(*cp)
-			if err != nil {
-				log.Error("error generating multisigner: %s\n", err)
+			multiSigner, errCreate := createMultiSigner(*cp)
+			if errCreate != nil {
+				log.Error("error generating multisigner: %s\n", errCreate)
 				return nil
 			}
 
@@ -471,7 +473,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 				},
-				NodeKeys:                cp.Keys[shardId][i],
+				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
 				NodesCoordinator:        nodesCoordinatorInstance,
 				MultiSigner:             multiSigner,
@@ -502,13 +504,13 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	singleSigner crypto.SingleSigner,
 	keyGenForBlocks crypto.KeyGenerator,
 ) map[uint32][]*TestProcessorNode {
-	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards))
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, nbMetaNodes, uint32(nbShards), 1)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, uint32(nbShards))
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards))
-	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	cpWaiting := CreateCryptoParams(2, 2, uint32(nbShards), 1)
+	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, uint32(nbShards))
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
@@ -544,7 +546,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:           false,
-			EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -580,9 +582,9 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
-			multiSigner, err := createMultiSigner(*cp)
-			if err != nil {
-				log.Error("error generating multisigner: %s\n", err)
+			multiSigner, errCreate := createMultiSigner(*cp)
+			if errCreate != nil {
+				log.Error("error generating multisigner: %s\n", errCreate)
 				return nil
 			}
 
@@ -595,7 +597,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 				},
-				NodeKeys:                cp.Keys[shardId][i],
+				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
 				NodesCoordinator:        nodesCoord,
 				MultiSigner:             multiSigner,
@@ -652,7 +654,7 @@ func selectTestNodesForPubKeys(nodes []*TestProcessorNode, pubKeys []string) []*
 
 	for i, pk := range pubKeys {
 		for _, node := range nodes {
-			pubKeyBytes, _ := node.NodeKeys.Pk.ToByteArray()
+			pubKeyBytes, _ := node.NodeKeys.MainKey.Pk.ToByteArray()
 			if bytes.Equal(pubKeyBytes, []byte(pk)) {
 				selectedNodes[i] = node
 				cntNodes++
@@ -704,7 +706,7 @@ func DoConsensusSigningOnBlock(
 
 	for i := 0; i < len(consensusNodes); i++ {
 		pubKeysBytes[i] = []byte(pubKeys[i])
-		sk, _ := consensusNodes[i].NodeKeys.Sk.ToByteArray()
+		sk, _ := consensusNodes[i].NodeKeys.MainKey.Sk.ToByteArray()
 		sigShares[i], _ = msig.CreateSignatureShare(sk, blockHeaderHash)
 	}
 
@@ -767,7 +769,8 @@ func AllShardsProposeBlock(
 
 	// propagate blocks
 	for i := range nodesMap {
-		consensusNodes[i][0].BroadcastBlock(body[i], header[i])
+		pk := consensusNodes[i][0].NodeKeys.MainKey.Pk
+		consensusNodes[i][0].BroadcastBlock(body[i], header[i], pk)
 		consensusNodes[i][0].CommitBlock(body[i], header[i])
 	}
 

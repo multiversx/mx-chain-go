@@ -3,6 +3,8 @@ package config
 // ContextFlagsConfig will keep the values for the cli.Context flags
 type ContextFlagsConfig struct {
 	WorkingDir                   string
+	DbDir                        string
+	LogsDir                      string
 	EnableGops                   bool
 	SaveLogFile                  bool
 	EnableLogCorrelation         bool
@@ -18,12 +20,14 @@ type ContextFlagsConfig struct {
 	UseLogView                   bool
 	ValidatorKeyIndex            int
 	EnableRestAPIServerDebugMode bool
+	BaseVersion                  string
 	Version                      string
 	ForceStartFromNetwork        bool
 	DisableConsensusWatchdog     bool
 	SerializeSnapshots           bool
 	NoKeyProvided                bool
 	OperationMode                string
+	RepopulateTokensSupplies     bool
 }
 
 // ImportDbConfig will hold the import-db parameters

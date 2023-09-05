@@ -1,7 +1,8 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -34,6 +35,7 @@ type BlockChainHookStub struct {
 	CloseCalled                   func() error
 	GetSnapshotCalled             func() int
 	RevertToSnapshotCalled        func(snapshot int) error
+	IsBuiltinFunctionNameCalled   func(functionName string) bool
 }
 
 // AccountExists -
@@ -74,7 +76,7 @@ func (b *BlockChainHookStub) GetUserAccount(address []byte) (vmcommon.UserAccoun
 		return b.GetUserAccountCalled(address)
 	}
 
-	return state.NewUserAccount(address)
+	return accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 }
 
 // GetShardOfAddress -
@@ -256,4 +258,12 @@ func (b *BlockChainHookStub) RevertToSnapshot(snapshot int) error {
 		return b.RevertToSnapshotCalled(snapshot)
 	}
 	return nil
+}
+
+// IsBuiltinFunctionName -
+func (b *BlockChainHookStub) IsBuiltinFunctionName(functionName string) bool {
+	if b.IsBuiltinFunctionNameCalled != nil {
+		return b.IsBuiltinFunctionNameCalled(functionName)
+	}
+	return false
 }

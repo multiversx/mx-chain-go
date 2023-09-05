@@ -126,18 +126,13 @@ func (n *Node) GenerateAndSendBulkTransactions(
 
 	atomic.AddInt32(&currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
-				txsSender.SendTransactionsPipe,
-				identifier,
-				bufferToSend,
-			)
-			if err != nil {
-				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
-			}
+		n.networkComponents.NetworkMessenger().BroadcastOnChannel(
+			txsSender.SendTransactionsPipe,
+			identifier,
+			buff,
+		)
 
-			atomic.AddInt32(&currentSendingGoRoutines, -1)
-		}(buff)
+		atomic.AddInt32(&currentSendingGoRoutines, -1)
 	}
 
 	return nil

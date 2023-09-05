@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -24,8 +23,6 @@ type ConsensusCore struct {
 	chronologyHandler             consensus.ChronologyHandler
 	hasher                        hashing.Hasher
 	marshalizer                   marshal.Marshalizer
-	blsPrivateKey                 crypto.PrivateKey
-	blsSingleSigner               crypto.SingleSigner
 	multiSignerContainer          cryptoCommon.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
@@ -38,7 +35,9 @@ type ConsensusCore struct {
 	fallbackHeaderValidator       consensus.FallbackHeaderValidator
 	nodeRedundancyHandler         consensus.NodeRedundancyHandler
 	scheduledProcessor            consensus.ScheduledProcessor
-	signatureHandler              consensus.SignatureHandler
+	messageSigningHandler         consensus.P2PSigningHandler
+	peerBlacklistHandler          consensus.PeerBlacklistHandler
+	signingHandler                consensus.SigningHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -50,8 +49,6 @@ type ConsensusCoreArgs struct {
 	ChronologyHandler             consensus.ChronologyHandler
 	Hasher                        hashing.Hasher
 	Marshalizer                   marshal.Marshalizer
-	BlsPrivateKey                 crypto.PrivateKey
-	BlsSingleSigner               crypto.SingleSigner
 	MultiSignerContainer          cryptoCommon.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
@@ -64,7 +61,9 @@ type ConsensusCoreArgs struct {
 	FallbackHeaderValidator       consensus.FallbackHeaderValidator
 	NodeRedundancyHandler         consensus.NodeRedundancyHandler
 	ScheduledProcessor            consensus.ScheduledProcessor
-	SignatureHandler              consensus.SignatureHandler
+	MessageSigningHandler         consensus.P2PSigningHandler
+	PeerBlacklistHandler          consensus.PeerBlacklistHandler
+	SigningHandler                consensus.SigningHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -79,8 +78,6 @@ func NewConsensusCore(
 		chronologyHandler:             args.ChronologyHandler,
 		hasher:                        args.Hasher,
 		marshalizer:                   args.Marshalizer,
-		blsPrivateKey:                 args.BlsPrivateKey,
-		blsSingleSigner:               args.BlsSingleSigner,
 		multiSignerContainer:          args.MultiSignerContainer,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
@@ -93,7 +90,9 @@ func NewConsensusCore(
 		fallbackHeaderValidator:       args.FallbackHeaderValidator,
 		nodeRedundancyHandler:         args.NodeRedundancyHandler,
 		scheduledProcessor:            args.ScheduledProcessor,
-		signatureHandler:              args.SignatureHandler,
+		messageSigningHandler:         args.MessageSigningHandler,
+		peerBlacklistHandler:          args.PeerBlacklistHandler,
+		signingHandler:                args.SigningHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -174,16 +173,6 @@ func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.Registration
 	return cc.epochStartRegistrationHandler
 }
 
-// PrivateKey returns the BLS private key stored in the ConsensusStore
-func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
-	return cc.blsPrivateKey
-}
-
-// SingleSigner returns the bls single signer stored in the ConsensusStore
-func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
-	return cc.blsSingleSigner
-}
-
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
 func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return cc.peerHonestyHandler
@@ -209,9 +198,19 @@ func (cc *ConsensusCore) ScheduledProcessor() consensus.ScheduledProcessor {
 	return cc.scheduledProcessor
 }
 
-// SignatureHandler will return the signature handler component
-func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
-	return cc.signatureHandler
+// MessageSigningHandler will return the message signing handler
+func (cc *ConsensusCore) MessageSigningHandler() consensus.P2PSigningHandler {
+	return cc.messageSigningHandler
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return cc.peerBlacklistHandler
+}
+
+// SigningHandler will return the signing handler component
+func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
+	return cc.signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

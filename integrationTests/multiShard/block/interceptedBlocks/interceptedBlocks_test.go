@@ -294,7 +294,7 @@ func requestAndRetrieveMetaHeader(
 	chanReceived chan struct{},
 ) *block.MetaBlock {
 
-	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, _ := node.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	_ = resolver.RequestDataFromHash(hash, 0)
 
 	select {

@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // SingleSignerMock -
@@ -12,12 +12,20 @@ type SingleSignerMock struct {
 
 // Sign -
 func (s *SingleSignerMock) Sign(private crypto.PrivateKey, msg []byte) ([]byte, error) {
-	return s.SignStub(private, msg)
+	if s.SignStub != nil {
+		return s.SignStub(private, msg)
+	}
+
+	return nil, nil
 }
 
 // Verify -
 func (s *SingleSignerMock) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
-	return s.VerifyStub(public, msg, sig)
+	if s.VerifyStub != nil {
+		return s.VerifyStub(public, msg, sig)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

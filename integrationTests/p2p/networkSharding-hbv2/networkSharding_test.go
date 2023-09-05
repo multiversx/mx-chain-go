@@ -45,9 +45,6 @@ func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 		MaxCrossShardObservers:  1,
 		MaxSeeders:              1,
 		Type:                    p2p.ListsSharder,
-		AdditionalConnections: p2pConfig.AdditionalConnectionsConfig{
-			MaxFullHistoryObservers: 1,
-		},
 	}
 
 	testConnectionsInNetworkSharding(t, p2pCfg)
@@ -127,7 +124,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 	_ = advertiser.Close()
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			n.Close()
 		}
 	}
 }
@@ -135,7 +132,7 @@ func stopNodes(advertiser p2p.Messenger, nodesMap map[uint32][]*integrationTests
 func startNodes(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			_ = n.Messenger.Bootstrap()
+			_ = n.MainMessenger.Bootstrap()
 		}
 	}
 }
@@ -158,7 +155,7 @@ func createTestInterceptorForEachNode(nodesMap map[uint32][]*integrationTests.Te
 
 func sendMessageOnGlobalTopic(nodesMap map[uint32][]*integrationTests.TestHeartbeatNode) {
 	fmt.Println("sending a message on global topic")
-	nodesMap[0][0].Messenger.Broadcast(integrationTests.GlobalTopic, []byte("global message"))
+	nodesMap[0][0].MainMessenger.Broadcast(integrationTests.GlobalTopic, []byte("global message"))
 	time.Sleep(time.Second)
 }
 
@@ -169,7 +166,7 @@ func sendMessagesOnIntraShardTopic(nodesMap map[uint32][]*integrationTests.TestH
 
 		identifier := integrationTests.ShardTopic +
 			n.ShardCoordinator.CommunicationIdentifier(n.ShardCoordinator.SelfId())
-		nodes[0].Messenger.Broadcast(identifier, []byte("intra shard message"))
+		nodes[0].MainMessenger.Broadcast(identifier, []byte("intra shard message"))
 	}
 	time.Sleep(time.Second)
 }
@@ -187,7 +184,7 @@ func sendMessagesOnCrossShardTopic(nodesMap map[uint32][]*integrationTests.TestH
 
 			identifier := integrationTests.ShardTopic +
 				n.ShardCoordinator.CommunicationIdentifier(shardIdDest)
-			nodes[0].Messenger.Broadcast(identifier, []byte("cross shard message"))
+			nodes[0].MainMessenger.Broadcast(identifier, []byte("cross shard message"))
 		}
 	}
 	time.Sleep(time.Second)
@@ -217,8 +214,8 @@ func testUnknownSeederPeers(
 
 	for _, nodes := range nodesMap {
 		for _, n := range nodes {
-			assert.Equal(t, 0, len(n.Messenger.GetConnectedPeersInfo().UnknownPeers))
-			assert.Equal(t, 1, len(n.Messenger.GetConnectedPeersInfo().Seeders))
+			assert.Equal(t, 0, len(n.MainMessenger.GetConnectedPeersInfo().UnknownPeers))
+			assert.Equal(t, 1, len(n.MainMessenger.GetConnectedPeersInfo().Seeders))
 		}
 	}
 }

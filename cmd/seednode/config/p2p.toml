@@ -79,7 +79,3 @@
     #              the shard membership of the connected peers
     #  `NilListSharder` will disable conection trimming (sharder is off)
     Type = "NilListSharder"
-
-    [AdditionalConnections]
-        #this value will be added to the target peer count automatically when the node will be in full archive mode
-        MaxFullHistoryObservers = 0

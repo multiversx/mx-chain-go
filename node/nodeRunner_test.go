@@ -1,116 +1,25 @@
 //go:build !race
-// +build !race
 
 package node
 
 import (
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
-	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/api"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createConfigs(tb testing.TB) *config.Configs {
-	tempDir := tb.TempDir()
-
-	originalConfigsPath := "../cmd/node/config"
-	newConfigsPath := path.Join(tempDir, "config")
-
-	cmd := exec.Command("cp", "-r", originalConfigsPath, newConfigsPath)
-	err := cmd.Run()
-	require.Nil(tb, err)
-
-	newGenesisSmartContractsFilename := path.Join(newConfigsPath, "genesisSmartContracts.json")
-	correctTestPathInGenesisSmartContracts(tb, tempDir, newGenesisSmartContractsFilename)
-
-	apiConfig, err := common.LoadApiConfig(path.Join(newConfigsPath, "api.toml"))
-	require.Nil(tb, err)
-
-	generalConfig, err := common.LoadMainConfig(path.Join(newConfigsPath, "config.toml"))
-	require.Nil(tb, err)
-
-	ratingsConfig, err := common.LoadRatingsConfig(path.Join(newConfigsPath, "ratings.toml"))
-	require.Nil(tb, err)
-
-	economicsConfig, err := common.LoadEconomicsConfig(path.Join(newConfigsPath, "economics.toml"))
-	require.Nil(tb, err)
-
-	prefsConfig, err := common.LoadPreferencesConfig(path.Join(newConfigsPath, "prefs.toml"))
-	require.Nil(tb, err)
-
-	p2pConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "p2p.toml"))
-	require.Nil(tb, err)
-
-	externalConfig, err := common.LoadExternalConfig(path.Join(newConfigsPath, "external.toml"))
-	require.Nil(tb, err)
-
-	systemSCConfig, err := common.LoadSystemSmartContractsConfig(path.Join(newConfigsPath, "systemSmartContractsConfig.toml"))
-	require.Nil(tb, err)
-
-	epochConfig, err := common.LoadEpochConfig(path.Join(newConfigsPath, "enableEpochs.toml"))
-	require.Nil(tb, err)
-
-	roundConfig, err := common.LoadRoundConfig(path.Join(newConfigsPath, "enableRounds.toml"))
-	require.Nil(tb, err)
-
-	// make the node pass the network wait constraints
-	p2pConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
-	p2pConfig.Node.ThresholdMinConnectedPeers = 0
-
-	return &config.Configs{
-		GeneralConfig:     generalConfig,
-		ApiRoutesConfig:   apiConfig,
-		EconomicsConfig:   economicsConfig,
-		SystemSCConfig:    systemSCConfig,
-		RatingsConfig:     ratingsConfig,
-		PreferencesConfig: prefsConfig,
-		ExternalConfig:    externalConfig,
-		P2pConfig:         p2pConfig,
-		FlagsConfig: &config.ContextFlagsConfig{
-			WorkingDir:    tempDir,
-			NoKeyProvided: true,
-			Version:       "test version",
-		},
-		ImportDbConfig: &config.ImportDbConfig{},
-		ConfigurationPathsHolder: &config.ConfigurationPathsHolder{
-			GasScheduleDirectoryName: path.Join(newConfigsPath, "gasSchedules"),
-			Nodes:                    path.Join(newConfigsPath, "nodesSetup.json"),
-			Genesis:                  path.Join(newConfigsPath, "genesis.json"),
-			SmartContracts:           newGenesisSmartContractsFilename,
-			ValidatorKey:             "validatorKey.pem",
-		},
-		EpochConfig: epochConfig,
-		RoundConfig: roundConfig,
-	}
-}
-
-func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGenesisSmartContractsFilename string) {
-	input, err := ioutil.ReadFile(newGenesisSmartContractsFilename)
-	require.Nil(tb, err)
-
-	lines := strings.Split(string(input), "\n")
-	for i, line := range lines {
-		if strings.Contains(line, "./config") {
-			lines[i] = strings.Replace(line, "./config", path.Join(tempDir, "config"), 1)
-		}
-	}
-	output := strings.Join(lines, "\n")
-	err = ioutil.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
-	require.Nil(tb, err)
-}
+const originalConfigsPath = "../cmd/node/config"
 
 func TestNewNodeRunner(t *testing.T) {
 	t.Parallel()
@@ -126,7 +35,7 @@ func TestNewNodeRunner(t *testing.T) {
 	t.Run("with valid configs should work", func(t *testing.T) {
 		t.Parallel()
 
-		configs := createConfigs(t)
+		configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
 		runner, err := NewNodeRunner(configs)
 		assert.NotNil(t, runner)
 		assert.Nil(t, err)
@@ -136,7 +45,7 @@ func TestNewNodeRunner(t *testing.T) {
 func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 	t.Parallel()
 
-	configs := createConfigs(t)
+	configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
 	runner, _ := NewNodeRunner(configs)
 
 	trigger := mock.NewApplicationRunningTrigger()
@@ -185,17 +94,17 @@ func TestCopyDirectory(t *testing.T) {
 	//   +- dir2
 	//         +- file4
 
-	err := ioutil.WriteFile(path.Join(tempDir, file1Name), file1Contents, os.ModePerm)
+	err := os.WriteFile(path.Join(tempDir, file1Name), file1Contents, os.ModePerm)
 	require.Nil(t, err)
 	err = os.MkdirAll(path.Join(tempDir, "src", "dir1"), os.ModePerm)
 	require.Nil(t, err)
 	err = os.MkdirAll(path.Join(tempDir, "src", "dir2"), os.ModePerm)
 	require.Nil(t, err)
-	err = ioutil.WriteFile(path.Join(tempDir, "src", file2Name), file2Contents, os.ModePerm)
+	err = os.WriteFile(path.Join(tempDir, "src", file2Name), file2Contents, os.ModePerm)
 	require.Nil(t, err)
-	err = ioutil.WriteFile(path.Join(tempDir, "src", "dir1", file3Name), file3Contents, os.ModePerm)
+	err = os.WriteFile(path.Join(tempDir, "src", "dir1", file3Name), file3Contents, os.ModePerm)
 	require.Nil(t, err)
-	err = ioutil.WriteFile(path.Join(tempDir, "src", "dir2", file4Name), file4Contents, os.ModePerm)
+	err = os.WriteFile(path.Join(tempDir, "src", "dir2", file4Name), file4Contents, os.ModePerm)
 	require.Nil(t, err)
 
 	err = copyDirectory(path.Join(tempDir, "src"), path.Join(tempDir, "dst"))
@@ -203,19 +112,19 @@ func TestCopyDirectory(t *testing.T) {
 	copySingleFile(path.Join(tempDir, "dst"), path.Join(tempDir, file1Name))
 
 	// after copy, check that the files are the same
-	buff, err := ioutil.ReadFile(path.Join(tempDir, "dst", file1Name))
+	buff, err := os.ReadFile(path.Join(tempDir, "dst", file1Name))
 	require.Nil(t, err)
 	assert.Equal(t, file1Contents, buff)
 
-	buff, err = ioutil.ReadFile(path.Join(tempDir, "dst", file2Name))
+	buff, err = os.ReadFile(path.Join(tempDir, "dst", file2Name))
 	require.Nil(t, err)
 	assert.Equal(t, file2Contents, buff)
 
-	buff, err = ioutil.ReadFile(path.Join(tempDir, "dst", "dir1", file3Name))
+	buff, err = os.ReadFile(path.Join(tempDir, "dst", "dir1", file3Name))
 	require.Nil(t, err)
 	assert.Equal(t, file3Contents, buff)
 
-	buff, err = ioutil.ReadFile(path.Join(tempDir, "dst", "dir2", file4Name))
+	buff, err = os.ReadFile(path.Join(tempDir, "dst", "dir2", file4Name))
 	require.Nil(t, err)
 	assert.Equal(t, file4Contents, buff)
 }

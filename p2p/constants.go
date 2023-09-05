@@ -1,17 +1,17 @@
 package p2p
 
 import (
-	p2p "github.com/multiversx/mx-chain-p2p-go"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 )
 
-// NodeOperation defines the p2p node operation
-type NodeOperation = p2p.NodeOperation
+// NetworkType defines the type of the network a messenger is running on
+type NetworkType = p2p.NetworkType
 
-// NormalOperation defines the normal mode operation: either seeder, observer or validator
-const NormalOperation = p2p.NormalOperation
+// MainNetwork defines the main network
+const MainNetwork NetworkType = "main"
 
-// FullArchiveMode defines the node operation as a full archive mode
-const FullArchiveMode = p2p.FullArchiveMode
+// FullArchiveNetwork defines the full archive network
+const FullArchiveNetwork NetworkType = "full archive"
 
 // ListsSharder is the variant that uses lists
 const ListsSharder = p2p.ListsSharder
@@ -24,3 +24,6 @@ const ConnectionWatcherTypePrint = p2p.ConnectionWatcherTypePrint
 
 // LocalHostListenAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
 const LocalHostListenAddrWithIp4AndTcp = p2p.LocalHostListenAddrWithIp4AndTcp
+
+// BroadcastMethod defines the broadcast method of the message
+type BroadcastMethod = p2p.BroadcastMethod

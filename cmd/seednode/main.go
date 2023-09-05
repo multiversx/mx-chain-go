@@ -258,16 +258,17 @@ func createNode(
 	}
 
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           marshalizer,
+		Marshaller:            marshalizer,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
 		P2pPrivateKey:         p2pKey,
 		P2pSingleSigner:       p2pSingleSigner,
 		P2pKeyGenerator:       p2pKeyGen,
+		NetworkType:           p2p.MainNetwork,
+		Logger:                logger.GetOrCreate("seed/p2p"),
 	}
 
 	return p2pFactory.NewNetworkMessenger(arg)

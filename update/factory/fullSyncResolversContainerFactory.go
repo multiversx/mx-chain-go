@@ -1,17 +1,18 @@
 package factory
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	factoryDataRetriever "github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/topicResolverSender"
+	"github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/update"
@@ -19,33 +20,29 @@ import (
 )
 
 const defaultTargetShardID = uint32(0)
-const numCrossShardPeers = 2
-const numIntraShardPeers = 2
-const numFullHistoryPeers = 3
 
 type resolversContainerFactory struct {
 	shardCoordinator       sharding.Coordinator
-	messenger              dataRetriever.TopicMessageHandler
+	mainMessenger          p2p.Messenger
+	fullArchiveMessenger   p2p.Messenger
 	marshalizer            marshal.Marshalizer
-	intRandomizer          dataRetriever.IntRandomizer
 	dataTrieContainer      common.TriesHolder
 	container              dataRetriever.ResolversContainer
 	inputAntifloodHandler  dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler dataRetriever.P2PAntifloodHandler
 	throttler              dataRetriever.ResolverThrottler
-	peersRatingHandler     dataRetriever.PeersRatingHandler
 }
 
 // ArgsNewResolversContainerFactory defines the arguments for the resolversContainerFactory constructor
 type ArgsNewResolversContainerFactory struct {
 	ShardCoordinator           sharding.Coordinator
-	Messenger                  dataRetriever.TopicMessageHandler
+	MainMessenger              p2p.Messenger
+	FullArchiveMessenger       p2p.Messenger
 	Marshalizer                marshal.Marshalizer
 	DataTrieContainer          common.TriesHolder
 	ExistingResolvers          dataRetriever.ResolversContainer
 	InputAntifloodHandler      dataRetriever.P2PAntifloodHandler
 	OutputAntifloodHandler     dataRetriever.P2PAntifloodHandler
-	PeersRatingHandler         dataRetriever.PeersRatingHandler
 	NumConcurrentResolvingJobs int32
 }
 
@@ -54,8 +51,11 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
-	if check.IfNil(args.Messenger) {
-		return nil, update.ErrNilMessenger
+	if check.IfNil(args.MainMessenger) {
+		return nil, fmt.Errorf("%w on main network", update.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return nil, fmt.Errorf("%w on full archive network", update.ErrNilMessenger)
 	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, update.ErrNilMarshalizer
@@ -66,9 +66,6 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	if check.IfNil(args.ExistingResolvers) {
 		return nil, update.ErrNilResolverContainer
 	}
-	if check.IfNil(args.PeersRatingHandler) {
-		return nil, update.ErrNilPeersRatingHandler
-	}
 
 	thr, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
 	if err != nil {
@@ -76,15 +73,14 @@ func NewResolversContainerFactory(args ArgsNewResolversContainerFactory) (*resol
 	}
 	return &resolversContainerFactory{
 		shardCoordinator:       args.ShardCoordinator,
-		messenger:              args.Messenger,
+		mainMessenger:          args.MainMessenger,
+		fullArchiveMessenger:   args.FullArchiveMessenger,
 		marshalizer:            args.Marshalizer,
-		intRandomizer:          &random.ConcurrentSafeIntRandomizer{},
 		dataTrieContainer:      args.DataTrieContainer,
 		container:              args.ExistingResolvers,
 		inputAntifloodHandler:  args.InputAntifloodHandler,
 		outputAntifloodHandler: args.OutputAntifloodHandler,
 		throttler:              thr,
-		peersRatingHandler:     args.PeersRatingHandler,
 	}, nil
 }
 
@@ -111,7 +107,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 		}
 
 		trieId := genesis.CreateTrieIdentifier(i, genesis.UserAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId, i)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
 		if err != nil {
 			return err
 		}
@@ -123,7 +119,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
 		trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.UserAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId, core.MetachainShardId)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
 		if err != nil {
 			return err
 		}
@@ -135,7 +131,7 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
 		trieID := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.ValidatorAccount)
-		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID, core.MetachainShardId)
+		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID)
 		if err != nil {
 			return err
 		}
@@ -152,42 +148,20 @@ func (rcf *resolversContainerFactory) checkIfResolverExists(topic string) bool {
 	return err == nil
 }
 
-func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string, targetShardID uint32) (dataRetriever.Resolver, error) {
-	//for each resolver we create a pseudo-intra shard topic as to make at least of half of the requests target the proper peers
-	//this pseudo-intra shard topic is the consensus_targetShardID
-	targetShardCoordinator, err := sharding.NewMultiShardCoordinator(rcf.shardCoordinator.NumberOfShards(), targetShardID)
-	if err != nil {
-		return nil, err
-	}
+func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, trieId string) (dataRetriever.Resolver, error) {
 
-	targetConsensusStopic := common.ConsensusTopic + targetShardCoordinator.CommunicationIdentifier(targetShardID)
-	peerListCreator, err := topicResolverSender.NewDiffPeerListCreator(
-		rcf.messenger,
-		baseTopic,
-		targetConsensusStopic,
-		factoryDataRetriever.EmptyExcludePeersOnTopic,
-	)
-	if err != nil {
-		return nil, err
+	arg := topicsender.ArgTopicResolverSender{
+		ArgBaseTopicSender: topicsender.ArgBaseTopicSender{
+			MainMessenger:                   rcf.mainMessenger,
+			FullArchiveMessenger:            rcf.fullArchiveMessenger,
+			TopicName:                       baseTopic,
+			OutputAntiflooder:               rcf.outputAntifloodHandler,
+			MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+			FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+			TargetShardId:                   defaultTargetShardID,
+		},
 	}
-
-	arg := topicResolverSender.ArgTopicResolverSender{
-		Messenger:                   rcf.messenger,
-		TopicName:                   baseTopic,
-		PeerListCreator:             peerListCreator,
-		Marshalizer:                 rcf.marshalizer,
-		Randomizer:                  rcf.intRandomizer,
-		TargetShardId:               defaultTargetShardID,
-		OutputAntiflooder:           rcf.outputAntifloodHandler,
-		NumCrossShardPeers:          numCrossShardPeers,
-		NumIntraShardPeers:          numIntraShardPeers,
-		NumFullHistoryPeers:         numFullHistoryPeers,
-		CurrentNetworkEpochProvider: disabled.NewCurrentNetworkEpochProviderHandler(),
-		PreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		SelfShardIdProvider:         rcf.shardCoordinator,
-		PeersRatingHandler:          rcf.peersRatingHandler,
-	}
-	resolverSender, err := topicResolverSender.NewTopicResolverSender(arg)
+	resolverSender, err := topicsender.NewTopicResolverSender(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +181,12 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.messenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
+	err = rcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

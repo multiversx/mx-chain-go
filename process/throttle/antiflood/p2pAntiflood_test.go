@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,7 +85,7 @@ func TestP2PAntiflood_CanNotIncrementFromConnectedPeerShouldError(t *testing.T) 
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := core.PeerID("from connected peer")
-	message := &mock.P2PMessageMock{
+	message := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 		FromField: messageOriginator,
 	}
@@ -111,7 +112,7 @@ func TestP2PAntiflood_CanNotIncrementMessageOriginatorShouldError(t *testing.T) 
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := core.PeerID("from connected peer")
-	message := &mock.P2PMessageMock{
+	message := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 		FromField: messageOriginator,
 		PeerField: core.PeerID(messageOriginator),
@@ -142,7 +143,7 @@ func TestP2PAntiflood_ShouldWork(t *testing.T) {
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := core.PeerID("from connected peer")
-	message := &mock.P2PMessageMock{
+	message := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 		PeerField: core.PeerID(messageOriginator),
 	}
@@ -165,7 +166,7 @@ func TestP2PAntiflood_ShouldWorkWithMoreThanOneFlodPreventer(t *testing.T) {
 
 	messageOriginator := []byte("originator")
 	fromConnectedPeer := core.PeerID("from connected peer")
-	message := &mock.P2PMessageMock{
+	message := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 		PeerField: core.PeerID(messageOriginator),
 	}
@@ -259,7 +260,7 @@ func TestP2pAntiflood_CanProcessMessagesOriginatorIsBlacklistedShouldErr(t *test
 			},
 		},
 	)
-	message := &mock.P2PMessageMock{
+	message := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 		PeerField: identifier,
 	}

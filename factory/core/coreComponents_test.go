@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	"github.com/multiversx/mx-chain-go/state"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -35,7 +35,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *te
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrHasherCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(t *testing.T) {
@@ -55,7 +55,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrHasherCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrHasherCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigShouldErr(t *testing.T) {
@@ -71,7 +71,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigSho
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConfigShouldErr(t *testing.T) {
@@ -91,7 +91,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConf
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr(t *testing.T) {
@@ -111,7 +111,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShouldErr(t *testing.T) {
@@ -134,7 +134,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShou
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShouldErr(t *testing.T) {
@@ -157,7 +157,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShoul
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfigShouldErr(t *testing.T) {
@@ -183,7 +183,21 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfig
 
 	cc, err := ccf.Create()
 	require.Nil(t, cc)
-	require.True(t, errors.Is(err, errorsErd.ErrMarshalizerCreation))
+	require.True(t, errors.Is(err, errorsMx.ErrMarshalizerCreation))
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignHasherConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.Config.TxSignHasher = config.TypeConfig{
+		Type: "invalid",
+	}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.True(t, errors.Is(err, errorsMx.ErrHasherCreation))
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShouldErr(t *testing.T) {
@@ -210,10 +224,106 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterSho
 	require.True(t, errors.Is(err, state.ErrInvalidPubkeyConverterType))
 }
 
+func TestCoreComponentsFactory_CreateCoreComponentsNilChanStopNodeProcessShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.ChanStopNodeProcess = nil
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidRoundConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.RoundConfig = config.RoundConfig{}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidEpochConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.EpochConfig = config.EpochConfig{}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidGenesisMaxNumberOfShardsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.Config.GeneralSettings.GenesisMaxNumberOfShards = 0
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidEconomicsConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.EconomicsConfig = config.EconomicsConfig{}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidRatingsConfigShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.RatingsConfig = config.RatingsConfig{}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsInvalidHardforkPubKeyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.Config.Hardfork.PublicKeyToListenFrom = "invalid"
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.NotNil(t, err)
+}
+
 func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := componentsMock.GetCoreArgs()
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+}
+
+func TestCoreComponentsFactory_CreateCoreComponentsShouldWorkAfterHardfork(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.Config.Hardfork.AfterHardFork = true
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
