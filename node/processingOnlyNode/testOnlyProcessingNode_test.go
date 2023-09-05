@@ -28,8 +28,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		EnableEpochsConfig:  config.EnableEpochs{},
 		EconomicsConfig:     economicsConfig,
 		GasScheduleFilename: gasScheduleName,
-		NumShards:           0,
-		ShardID:             3,
+		NumShards:           3,
+		ShardID:             0,
 	}
 }
 
