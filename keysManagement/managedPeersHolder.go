@@ -113,16 +113,8 @@ func createDataMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo
 // It errors if the generated public key is already contained by the struct
 // It will auto-generate some fields like the machineID and pid
 func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
-	privateKey, err := holder.keyGenerator.PrivateKeyFromByteArray(privateKeyBytes)
-	if err != nil {
-		return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
-	}
-
-	publicKey := privateKey.GeneratePublic()
-	publicKeyBytes, err := publicKey.ToByteArray()
-	if err != nil {
-		return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
-	}
+	sk, _ := holder.keyGenerator.GeneratePair()
+	publicKeyBytes := privateKeyBytes
 
 	p2pPrivateKey, p2pPublicKey := holder.p2pKeyGenerator.GeneratePair()
 
@@ -155,7 +147,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 
 	pInfo.pid = pid
 	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
-	pInfo.privateKey = privateKey
+	pInfo.privateKey = sk
 	holder.data[string(publicKeyBytes)] = pInfo
 	holder.pids[pid] = struct{}{}
 

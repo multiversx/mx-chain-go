@@ -54,7 +54,7 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-//  over the None struct.
+// over the None struct.
 type Option func(*Node) error
 
 type filter interface {
@@ -700,7 +700,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	txValidator, intTx, err := n.commonTransactionValidation(tx, n.processComponents.WhiteListerVerifiedTxs(), n.processComponents.WhiteListHandler(), true)
+	txValidator, intTx, err := n.commonTransactionValidation(tx, n.processComponents.WhiteListerVerifiedTxs(), n.processComponents.WhiteListHandler(), false)
 	if err != nil {
 		return err
 	}

@@ -158,19 +158,20 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
 	txSingleSigner := &singlesig.Ed25519Signer{}
-	processingSingleSigner, err := ccf.createSingleSigner(false)
+
+	processingSingleSigner, err := ccf.createSingleSigner(true)
 	if err != nil {
 		return nil, err
 	}
 
-	interceptSingleSigner, err := ccf.createSingleSigner(ccf.importModeNoSigCheck)
+	interceptSingleSigner, err := ccf.createSingleSigner(true)
 	if err != nil {
 		return nil, err
 	}
 
 	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
 
-	multiSigner, err := ccf.createMultiSignerContainer(blockSignKeyGen, ccf.importModeNoSigCheck)
+	multiSigner, err := ccf.createMultiSignerContainer(blockSignKeyGen, true)
 	if err != nil {
 		return nil, err
 	}
@@ -489,34 +490,10 @@ func (ccf *cryptoComponentsFactory) processAllHandledKeys(keygen crypto.KeyGener
 	return handledPrivateKeys, nil
 }
 
-func (ccf *cryptoComponentsFactory) processPrivatePublicKey(keygen crypto.KeyGenerator, encodedSk []byte, pkString string, index int) ([]byte, error) {
+func (ccf *cryptoComponentsFactory) processPrivatePublicKey(_ crypto.KeyGenerator, encodedSk []byte, _ string, index int) ([]byte, error) {
 	skBytes, err := hex.DecodeString(string(encodedSk))
 	if err != nil {
 		return nil, fmt.Errorf("%w for encoded secret key, key index %d", err, index)
-	}
-
-	pkBytes, err := ccf.validatorPubKeyConverter.Decode(pkString)
-	if err != nil {
-		return nil, fmt.Errorf("%w for encoded public key %s, key index %d", err, pkString, index)
-	}
-
-	sk, err := keygen.PrivateKeyFromByteArray(skBytes)
-	if err != nil {
-		return nil, fmt.Errorf("%w secret key, key index %d", err, index)
-	}
-
-	pk := sk.GeneratePublic()
-	pkGeneratedBytes, err := pk.ToByteArray()
-	if err != nil {
-		return nil, fmt.Errorf("%w while generating public key bytes, key index %d", err, index)
-	}
-
-	if !bytes.Equal(pkGeneratedBytes, pkBytes) {
-		return nil, fmt.Errorf("public keys mismatch, read %s, generated %s, key index %d",
-			pkString,
-			ccf.validatorPubKeyConverter.SilentEncode(pkBytes, log),
-			index,
-		)
 	}
 
 	return skBytes, nil
