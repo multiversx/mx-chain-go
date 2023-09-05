@@ -39,6 +39,7 @@ type preProcessorsContainerFactory struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	txExecutionOrderHandler      common.TxExecutionOrderHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -64,6 +65,7 @@ func NewPreProcessorsContainerFactory(
 	txTypeHandler process.TxTypeHandler,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*preProcessorsContainerFactory, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -129,6 +131,9 @@ func NewPreProcessorsContainerFactory(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	return &preProcessorsContainerFactory{
 		shardCoordinator:             shardCoordinator,
@@ -152,6 +157,7 @@ func NewPreProcessorsContainerFactory(
 		txTypeHandler:                txTypeHandler,
 		scheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   processedMiniBlocksTracker,
+		txExecutionOrderHandler:      txExecutionOrderHandler,
 	}, nil
 }
 
@@ -223,6 +229,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxTypeHandler:                ppcm.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcm.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcm.processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
@@ -247,6 +254,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcm.balanceComputation,
 		ppcm.enableEpochsHandler,
 		ppcm.processedMiniBlocksTracker,
+		ppcm.txExecutionOrderHandler,
 	)
 
 	return scrPreprocessor, err
@@ -267,6 +275,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcm.blockSizeComputation,
 		ppcm.balanceComputation,
 		ppcm.processedMiniBlocksTracker,
+		ppcm.txExecutionOrderHandler,
 	)
 
 	return rewardTxPreprocessor, err

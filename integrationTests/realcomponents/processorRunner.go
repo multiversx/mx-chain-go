@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -407,6 +408,8 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(pr.Config.FlagsConfig.DbDir, common.DefaultDBPath), pr.Config.FlagsConfig.Version)
 	require.Nil(tb, err)
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
@@ -416,25 +419,26 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       pr.NodesCoordinator,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         pr.Config.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		Data:                   pr.DataComponents,
-		CoreData:               pr.CoreComponents,
-		Crypto:                 pr.CryptoComponents,
-		State:                  pr.StateComponents,
-		Network:                pr.NetworkComponents,
-		BootstrapComponents:    pr.BootstrapComponents,
-		StatusComponents:       pr.StatusComponents,
-		StatusCoreComponents:   pr.StatusCoreComponents,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        pr.NodesCoordinator,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          pr.Config.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		Data:                    pr.DataComponents,
+		CoreData:                pr.CoreComponents,
+		Crypto:                  pr.CryptoComponents,
+		State:                   pr.StateComponents,
+		Network:                 pr.NetworkComponents,
+		BootstrapComponents:     pr.BootstrapComponents,
+		StatusComponents:        pr.StatusComponents,
+		StatusCoreComponents:    pr.StatusCoreComponents,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)
