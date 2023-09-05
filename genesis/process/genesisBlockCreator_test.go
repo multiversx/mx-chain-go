@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO reinstate test after Wasm VM pointer fix
 
@@ -28,7 +27,9 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -179,6 +180,8 @@ func createMockArgument(
 				},
 			},
 		},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -227,7 +230,7 @@ func createMockArgument(
 			return entireSupply
 		},
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
-			return math.MaxUint64
+			return math.MaxInt64
 		},
 	}
 	arg.Economics = ted
@@ -442,6 +445,16 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, genesis.ErrInvalidInitialNodePrice))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil HistoryRepository should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.HistoryRepository = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilHistoryRepository))
 		require.Nil(t, gbc)
 	})
 	t.Run("should work", func(t *testing.T) {

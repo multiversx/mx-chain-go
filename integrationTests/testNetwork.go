@@ -2,8 +2,8 @@ package integrationTests
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -153,14 +153,17 @@ func (net *TestNetwork) CreateWallets(count int) {
 	}
 }
 
+// SetWallet -
 func (net *TestNetwork) SetWallet(walletIndex int, wallet *TestWalletAccount) {
 	net.Wallets[walletIndex] = wallet
 }
 
+// CreateUninitializedWallets -
 func (net *TestNetwork) CreateUninitializedWallets(count int) {
 	net.Wallets = make([]*TestWalletAccount, count)
 }
 
+// CreateWalletOnShard -
 func (net *TestNetwork) CreateWalletOnShard(walletIndex int, shardID uint32) *TestWalletAccount {
 	node := net.firstNodeInShard(shardID)
 	net.Wallets[walletIndex] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
@@ -226,7 +229,7 @@ func (net *TestNetwork) DeploySCWithInitArgs(
 	args ...[]byte,
 ) []byte {
 	scAddress := net.NewAddress(owner)
-	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	code, err := os.ReadFile(filepath.Clean(fileName))
 	require.Nil(net.T, err)
 
 	codeMetadata := &vmcommon.CodeMetadata{
