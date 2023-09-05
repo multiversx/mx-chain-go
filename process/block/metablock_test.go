@@ -1236,6 +1236,57 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	assert.Equal(t, uint32(1), hdrsRequested)
 }
 
+func TestMetaProcessor_SaveEpochStartInfoToStaticStorage(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
+	store := dataRetriever.NewChainStorer()
+
+	calledCount := 0
+	epochStartStaticUnit := &storageStubs.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			calledCount++
+			return nil
+		},
+	}
+	store.AddStorer(dataRetriever.EpochStartStaticUnit, epochStartStaticUnit)
+	dataComponents.Storage = store
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	require.NotNil(t, mp)
+
+	header := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+	}
+	marshalledHeader, _ := coreComponents.InternalMarshalizer().Marshal(header)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				ReceiverShardID: 1,
+				SenderShardID:   1,
+				Type:            block.PeerBlock,
+			},
+			&block.MiniBlock{
+				ReceiverShardID: 2,
+				SenderShardID:   2,
+				Type:            block.PeerBlock,
+			},
+			&block.MiniBlock{
+				ReceiverShardID: 1,
+				SenderShardID:   1,
+				Type:            block.TxBlock,
+			},
+		},
+	}
+
+	mp.SaveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
+	require.Equal(t, 3, calledCount) // 1 for block + 2 peer miniblocks
+}
+
 func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
