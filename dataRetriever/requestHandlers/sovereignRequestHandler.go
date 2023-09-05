@@ -32,7 +32,7 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(nonce uint64) {
 	log.Error("RequestExtendedShardHeaderByNonce", "nonce", nonce)
 
-	if nonce < 11 {
+	if nonce < 10 {
 		log.Error("RequestExtendedShardHeaderByNonce REJECTED", "nonce", nonce)
 		return
 	}

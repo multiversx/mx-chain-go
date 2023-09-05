@@ -27,7 +27,7 @@ func NewSovereignChainIncomingSCR(scr *smartContractResults) (*sovereignChainInc
 		scr,
 	}
 
-	sovereignSCR.onRequestSmartContractResult = onRequestIncomingSCR
+	//sovereignSCR.onRequestSmartContractResult = onRequestIncomingSCR
 	return sovereignSCR, nil
 }
 
