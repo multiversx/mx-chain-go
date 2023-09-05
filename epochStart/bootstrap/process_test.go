@@ -2043,10 +2043,6 @@ func TestEpochStartBootstrap_SaveEpochStartMetaToStaticStorer(t *testing.T) {
 func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
-
 	txHashes := map[string]*state.ShardValidatorInfo{
 		"txHash1": &state.ShardValidatorInfo{
 			PublicKey:  []byte("pubKey1"),
@@ -2100,38 +2096,64 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 		},
 	}
 
-	putCalls := 0
-	epochStartProvider.storageService = &storageStubs.ChainStorerStub{
-		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return genericMocks.NewStorerMock(), nil
-		},
-		PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
-			if unitType == dataRetriever.EpochStartStaticUnit {
-				putCalls++
+	t.Run("nil epoch validators info pool", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
+		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return nil
-			}
+			},
+		}
 
-			return nil
-		},
-	}
-	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
-		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
-			return &validatorInfoCacherStub.ValidatorInfoCacherStub{
-				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
-					val, ok := txHashes[string(validatorInfoHash)]
-					if ok {
-						return val, nil
-					}
+		err := epochStartProvider.saveMiniblocksToStaticStorer(peerMiniBlocks)
+		require.Equal(t, epochStart.ErrNilCurrentEpochValidatorsInfoPool, err)
+	})
 
-					return nil, errors.New("failed to get validator info")
-				},
-			}
-		},
-	}
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	err := epochStartProvider.saveMiniblocksToStaticStorer(peerMiniBlocks)
-	require.Nil(t, err)
-	require.Equal(t, 5, putCalls) // 2 miniblock + 3 validators info
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		putCalls := 0
+		epochStartProvider.storageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return genericMocks.NewStorerMock(), nil
+			},
+			PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+				if unitType == dataRetriever.EpochStartStaticUnit {
+					putCalls++
+					return nil
+				}
+
+				return nil
+			},
+		}
+		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &validatorInfoCacherStub.ValidatorInfoCacherStub{
+					GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+						val, ok := txHashes[string(validatorInfoHash)]
+						if ok {
+							return val, nil
+						}
+
+						return nil, errors.New("failed to get validator info")
+					},
+				}
+			},
+		}
+
+		err := epochStartProvider.saveMiniblocksToStaticStorer(peerMiniBlocks)
+		require.Nil(t, err)
+		require.Equal(t, 5, putCalls) // 2 miniblock + 3 validators info
+	})
 }
 
 func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {

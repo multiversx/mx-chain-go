@@ -413,12 +413,7 @@ func (e *epochStartBootstrap) saveEpochStartMetaToStaticStorer() error {
 	}
 
 	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(e.epochStartMeta.GetEpoch()))...)
-	err = e.storageService.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return e.storageService.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
 }
 
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
@@ -787,6 +782,10 @@ func (e *epochStartBootstrap) saveMiniblocksToStaticStorer(miniBlocks []*block.M
 
 func (e *epochStartBootstrap) saveValidatorsInfoToStaticStorer(miniBlock *block.MiniBlock) error {
 	currentEpochValidatorInfoPool := e.dataPool.CurrentEpochValidatorInfo()
+	if check.IfNil(currentEpochValidatorInfoPool) {
+		return epochStart.ErrNilCurrentEpochValidatorsInfoPool
+	}
+
 	for _, txHash := range miniBlock.TxHashes {
 		validatorInfo, err := currentEpochValidatorInfoPool.GetValidatorInfo(txHash)
 		if err != nil {

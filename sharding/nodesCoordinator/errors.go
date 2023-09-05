@@ -56,7 +56,7 @@ var ErrNilShuffler = errors.New("nil nodes shuffler provided")
 var ErrNilBootStorer = errors.New("nil boot storer provided")
 
 // ErrNilEpochStartStaticStorer signals that a nil epoch start static storer was provided
-var ErrNilEpochStartStaticStorer = errors.New("nil epoch start static storer provided")
+var ErrNilEpochStartStaticStorer = errors.New("nil epoch start static storer")
 
 // ErrValidatorNotFound signals that the validator has not been found
 var ErrValidatorNotFound = errors.New("validator not found")
