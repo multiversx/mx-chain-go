@@ -117,6 +117,7 @@ func CreateNodesCoordinator(
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 	numStoredEpochs uint32,
+	epochStartStaticStorer storage.Storer,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if check.IfNil(nodeShufflerOut) {
 		return nil, errErd.ErrNilShuffleOutCloser
@@ -238,6 +239,7 @@ func CreateNodesCoordinator(
 		ValidatorInfoCacher:     validatorInfoCacher,
 		NumStoredEpochs:         numStoredEpochs,
 		NodesConfigCache:        nodesConfigCache,
+		EpochStartStaticStorer:  epochStartStaticStorer,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

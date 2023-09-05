@@ -96,6 +96,7 @@ type indexHashedNodesCoordinator struct {
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
 	numStoredEpochs               uint32
 	nodesConfigCacher             Cacher
+	epochStartStaticStorer        storage.Storer // TODO: will be used in following PR
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -143,6 +144,7 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		validatorInfoCacher:           args.ValidatorInfoCacher,
 		numStoredEpochs:               args.NumStoredEpochs,
 		nodesConfigCacher:             args.NodesConfigCache,
+		epochStartStaticStorer:        args.EpochStartStaticStorer,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -724,6 +726,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihnc.mutSavedStateKey.Unlock()
 
 	ihnc.consensusGroupCacher.Clear()
+
 }
 
 func (ihnc *indexHashedNodesCoordinator) fillPublicKeyToValidatorMap() {

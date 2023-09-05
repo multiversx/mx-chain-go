@@ -39,20 +39,21 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool            dataRetriever.PoolsHolder
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	RequestHandler      process.RequestHandler
-	ChanceComputer      nodesCoordinator.ChanceComputer
-	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
-	NodeShuffler        nodesCoordinator.NodesShuffler
-	PubKey              []byte
-	ShardIdAsObserver   uint32
-	ChanNodeStop        chan endProcess.ArgEndProcess
-	NodeTypeProvider    NodeTypeProviderHandler
-	IsFullArchive       bool
-	EnableEpochsHandler common.EnableEpochsHandler
-	NumStoredEpochs     uint32
+	DataPool               dataRetriever.PoolsHolder
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	RequestHandler         process.RequestHandler
+	ChanceComputer         nodesCoordinator.ChanceComputer
+	GenesisNodesConfig     sharding.GenesisNodesSetupHandler
+	NodeShuffler           nodesCoordinator.NodesShuffler
+	PubKey                 []byte
+	ShardIdAsObserver      uint32
+	ChanNodeStop           chan endProcess.ArgEndProcess
+	NodeTypeProvider       NodeTypeProviderHandler
+	IsFullArchive          bool
+	EnableEpochsHandler    common.EnableEpochsHandler
+	NumStoredEpochs        uint32
+	EpochStartStaticStorer storage.Storer
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -140,6 +141,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
 		NumStoredEpochs:         args.NumStoredEpochs,
 		NodesConfigCache:        nodesConfigCache,
+		EpochStartStaticStorer:  args.EpochStartStaticStorer,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

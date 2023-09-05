@@ -53,6 +53,8 @@ const (
 	PeerAccountsCheckpointsUnit UnitType = 23
 	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
 	ScheduledSCRsUnit UnitType = 24
+	// EpochStartStaticUnit is the epochstart metablocks storage unit identifier
+	EpochStartStaticUnit UnitType = 25
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -118,6 +120,8 @@ func (ut UnitType) String() string {
 		return "PeerAccountsCheckpointsUnit"
 	case ScheduledSCRsUnit:
 		return "ScheduledSCRsUnit"
+	case EpochStartStaticUnit:
+		return "EpochStartStaticUnit"
 	}
 
 	if ut < ShardHdrNonceHashDataUnit {

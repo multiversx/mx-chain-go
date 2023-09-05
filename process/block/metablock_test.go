@@ -1019,6 +1019,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			return nil
 		},
 	}
+
 	store := initStore()
 	store.AddStorer(dataRetriever.BlockHeaderUnit, blockHeaderUnit)
 
@@ -1086,6 +1087,126 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
+func TestMetaProcessor_CommitBlock_EpochStartHeader(t *testing.T) {
+	t.Parallel()
+
+	mdp := initDataPool([]byte("tx_hash"))
+	rootHash := []byte("rootHash")
+	hdr := createMetaBlockHeader()
+	hdr.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{
+		{
+			ShardID: 1,
+			Epoch:   1,
+			Round:   1,
+			Nonce:   1,
+		},
+	}
+	body := &block.Body{}
+	accounts := &stateMock.AccountsStub{
+		CommitCalled: func() (i []byte, e error) {
+			return rootHash, nil
+		},
+		RootHashCalled: func() ([]byte, error) {
+			return rootHash, nil
+		},
+	}
+	forkDetectorAddCalled := false
+	fd := &mock.ForkDetectorMock{
+		AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+			if header == hdr {
+				forkDetectorAddCalled = true
+				return nil
+			}
+
+			return errors.New("should have not got here")
+		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 0
+		},
+	}
+	hasher := &mock.HasherStub{}
+	blockHeaderUnit := &storageStubs.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			return nil
+		},
+	}
+
+	epochStartStaticUnitWasCalled := false
+	epochStartStaticUnit := &storageStubs.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			epochStartStaticUnitWasCalled = true
+			return nil
+		},
+	}
+	store := initStore()
+	store.AddStorer(dataRetriever.BlockHeaderUnit, blockHeaderUnit)
+	store.AddStorer(dataRetriever.EpochStartStaticUnit, epochStartStaticUnit)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.DataPool = mdp
+	dataComponents.Storage = store
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+	}
+
+	coreComponents.Hash = hasher
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.AccountsDB[state.UserAccountsState] = accounts
+	arguments.AccountsDB[state.PeerAccountsState] = accounts
+	arguments.ForkDetector = fd
+	blockTrackerMock := mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), createGenesisBlocks(bootstrapComponents.ShardCoordinator()))
+	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
+		return &block.Header{}, []byte("hash"), nil
+	}
+	arguments.BlockTracker = blockTrackerMock
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	debuggerMethodWasCalled := false
+	debugger := &testscommon.ProcessDebuggerStub{
+		SetLastCommittedBlockRoundCalled: func(round uint64) {
+			assert.Equal(t, hdr.Round, round)
+			debuggerMethodWasCalled = true
+		},
+	}
+
+	err := mp.SetProcessDebugger(nil)
+	assert.Equal(t, process.ErrNilProcessDebugger, err)
+
+	err = mp.SetProcessDebugger(debugger)
+	assert.Nil(t, err)
+
+	mdp.HeadersCalled = func() dataRetriever.HeadersPool {
+		cs := &mock.HeadersCacherStub{}
+		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
+		}
+		cs.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
+			return &block.Header{}, nil
+		}
+		cs.LenCalled = func() int {
+			return 0
+		}
+		cs.MaxSizeCalled = func() int {
+			return 1000
+		}
+		cs.NoncesCalled = func(shardId uint32) []uint64 {
+			return nil
+		}
+		return cs
+	}
+
+	mp.SetHdrForCurrentBlock([]byte("hdr_hash1"), &block.Header{}, true)
+	err = mp.CommitBlock(hdr, body)
+	assert.Nil(t, err)
+	assert.True(t, forkDetectorAddCalled)
+	assert.True(t, epochStartStaticUnitWasCalled)
+	assert.True(t, debuggerMethodWasCalled)
+	// this should sleep as there is an async call to display current header and block in CommitBlock
+	time.Sleep(time.Second)
+}
+
 func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 
@@ -1113,6 +1234,57 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	header := createMetaBlockHeader()
 	hdrsRequested, _ := mp.RequestBlockHeaders(header)
 	assert.Equal(t, uint32(1), hdrsRequested)
+}
+
+func TestMetaProcessor_SaveEpochStartInfoToStaticStorage(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
+	store := dataRetriever.NewChainStorer()
+
+	calledCount := 0
+	epochStartStaticUnit := &storageStubs.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			calledCount++
+			return nil
+		},
+	}
+	store.AddStorer(dataRetriever.EpochStartStaticUnit, epochStartStaticUnit)
+	dataComponents.Storage = store
+
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, _ := blproc.NewMetaProcessor(arguments)
+	require.NotNil(t, mp)
+
+	header := &block.MetaBlock{
+		Nonce: 1,
+		Round: 1,
+	}
+	marshalledHeader, _ := coreComponents.InternalMarshalizer().Marshal(header)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				ReceiverShardID: 1,
+				SenderShardID:   1,
+				Type:            block.PeerBlock,
+			},
+			&block.MiniBlock{
+				ReceiverShardID: 2,
+				SenderShardID:   2,
+				Type:            block.PeerBlock,
+			},
+			&block.MiniBlock{
+				ReceiverShardID: 1,
+				SenderShardID:   1,
+				Type:            block.TxBlock,
+			},
+		},
+	}
+
+	mp.SaveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
+	require.Equal(t, 3, calledCount) // 1 for block + 2 peer miniblocks
 }
 
 func TestMetaProcessor_ApplyBodyToHeaderShouldWork(t *testing.T) {
