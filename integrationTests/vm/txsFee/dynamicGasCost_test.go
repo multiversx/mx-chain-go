@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -34,8 +33,6 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	gasPrice := uint64(10)
-
 	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/trieStoreAndLoad/storage.wasm")
 	acc := getAccount(t, testContext, scAddress)
 	require.Nil(t, acc.DataTrie())
@@ -47,8 +44,8 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 
 	keys := insertInDataTrie(t, testContext, scAddress, 15)
 
-	dataTrie := getAccountDataTrie(t, testContext, scAddress)
-	trieKeysDepth := getTrieDepthForKeys(t, dataTrie, keys)
+	dataTrieInstance := getAccountDataTrie(t, testContext, scAddress)
+	trieKeysDepth := getTrieDepthForKeys(t, dataTrieInstance, keys)
 
 	apiCallsCost := 3
 	loadValCost := 32

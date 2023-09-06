@@ -3,8 +3,8 @@ package polynetworkbridge
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -80,7 +80,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		factory.WasmVirtualMachine,
 	)
 
-	scCode, err := ioutil.ReadFile(tokenManagerPath)
+	scCode, err := os.ReadFile(tokenManagerPath)
 	if err != nil {
 		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
 	}
