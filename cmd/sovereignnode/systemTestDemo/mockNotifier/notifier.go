@@ -108,7 +108,7 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 			RetryDurationInSec:         1,
 			WithAcknowledge:            true,
 			BlockingAckOnError:         false,
-			DropMessagesIfNoConnection: true,
+			DropMessagesIfNoConnection: false,
 			AcknowledgeTimeoutInSec:    60,
 		},
 		Marshaller: marshaller,
@@ -262,6 +262,8 @@ func sendFinalizedBlock(hash []byte, host factoryHost.FullDuplexHost) error {
 	return nil
 }
 
+var ct uint64
+
 func sendWithRetrial(host factoryHost.FullDuplexHost, data []byte, topic string) {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
@@ -276,4 +278,9 @@ func sendWithRetrial(host factoryHost.FullDuplexHost, data []byte, topic string)
 		log.Warn("could not send data", "topic", topic, "error", err)
 		timer.Reset(3 * time.Second)
 	}
+	if ct == 0 {
+		time.Sleep(3 * time.Second)
+	}
+
+	ct++
 }
