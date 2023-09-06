@@ -81,7 +81,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 
 func (srrh *sovereignResolverRequestHandler) getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error) {
 
-	headerRequester, err := srrh.requestersFinder.CrossShardRequester(factory.ExtendedHeaderProofTopic, srrh.shardID) // CrossShardRequester(factory.ShardBlocksTopic, shardID)
+	headerRequester, err := srrh.requestersFinder.IntraShardRequester(factory.ExtendedHeaderProofTopic) // CrossShardRequester(factory.ShardBlocksTopic, shardID)
 	if err != nil {
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
 			err, factory.ExtendedHeaderProofTopic, srrh.shardID, shardID)
