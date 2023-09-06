@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	disabledRequesters "github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters/disabled"
@@ -37,6 +38,7 @@ type baseRequestersContainerFactory struct {
 	dataPacker               dataRetriever.DataPacker
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	enableEpochsHandler      common.EnableEpochsHandler
+	stateStatsHandler        common.StateStatisticsHandler
 	chanGracefullyClose      chan endProcess.ArgEndProcess
 	generalConfig            config.Config
 	shardIDForTries          uint32
@@ -75,6 +77,9 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.enableEpochsHandler) {
 		return errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(brcf.stateStatsHandler) {
+		return statistics.ErrNilStateStatsHandler
 	}
 
 	return nil
@@ -239,6 +244,7 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	checkpointsStorer storage.Storer,
 	storageIdentifier dataRetriever.UnitType,
 	handler common.EnableEpochsHandler,
+	stateStatsHandler common.StateStatisticsHandler,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
@@ -262,16 +268,16 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		MainStorer:             mainStorer,
-		CheckpointsStorer:      checkpointsStorer,
-		PruningEnabled:         brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:     brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:      brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:       brcf.snapshotsEnabled,
-		IdleProvider:           disabled.NewProcessStatusHandler(),
-		Identifier:             storageIdentifier.String(),
-		EnableEpochsHandler:    handler,
-		StateStatisticsEnabled: brcf.generalConfig.StateTriesConfig.StateStatisticsEnabled,
+		MainStorer:          mainStorer,
+		CheckpointsStorer:   checkpointsStorer,
+		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:  brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:    brcf.snapshotsEnabled,
+		IdleProvider:        disabled.NewProcessStatusHandler(),
+		Identifier:          storageIdentifier.String(),
+		EnableEpochsHandler: handler,
+		StatsCollector:      stateStatsHandler,
 	}
 	return trieFactoryInstance.Create(args)
 }

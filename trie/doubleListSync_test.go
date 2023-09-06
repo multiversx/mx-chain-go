@@ -34,7 +34,7 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 }
 
 func createInMemoryTrie() (common.Trie, storage.Storer) {
-	memUnit := testscommon.CreateStorerWithStats()
+	memUnit := testscommon.CreateDefaultMemStorerWithStats()
 	tsm, _ := createTrieStorageManager(memUnit)
 	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
 

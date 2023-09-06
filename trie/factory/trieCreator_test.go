@@ -32,7 +32,7 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:          testscommon.CreateStorerWithStats(),
+		MainStorer:          testscommon.CreateDefaultMemStorerWithStats(),
 		CheckpointsStorer:   testscommon.CreateMemUnit(),
 		PruningEnabled:      false,
 		CheckpointsEnabled:  false,

@@ -9,25 +9,23 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	disabledStorage "github.com/multiversx/mx-chain-go/storage/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
-	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
 type TrieCreateArgs struct {
-	MainStorer             storage.Storer
-	CheckpointsStorer      storage.Storer
-	PruningEnabled         bool
-	CheckpointsEnabled     bool
-	SnapshotsEnabled       bool
-	MaxTrieLevelInMem      uint
-	IdleProvider           trie.IdleNodeProvider
-	Identifier             string
-	EnableEpochsHandler    common.EnableEpochsHandler
-	StateStatisticsEnabled bool
+	MainStorer          storage.Storer
+	CheckpointsStorer   storage.Storer
+	PruningEnabled      bool
+	CheckpointsEnabled  bool
+	SnapshotsEnabled    bool
+	MaxTrieLevelInMem   uint
+	IdleProvider        trie.IdleNodeProvider
+	Identifier          string
+	EnableEpochsHandler common.EnableEpochsHandler
+	StatsCollector      common.StateStatisticsHandler
 }
 
 type trieCreator struct {
@@ -59,18 +57,8 @@ func NewTrieFactory(
 	}, nil
 }
 
-func createStatsCollector(statsEnabled bool) common.StateStatisticsHandler {
-	if statsEnabled {
-		return statistics.NewStateStatistics()
-	}
-
-	return disabledStorage.NewStateStatistics()
-}
-
 // Create creates a new trie
 func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
-	statsCollector := createStatsCollector(args.StateStatisticsEnabled)
-
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
 		MainStorer:             args.MainStorer,
 		CheckpointsStorer:      args.CheckpointsStorer,
@@ -80,7 +68,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		CheckpointHashesHolder: tc.getCheckpointHashesHolder(args.CheckpointsEnabled),
 		IdleProvider:           args.IdleProvider,
 		Identifier:             args.Identifier,
-		StatsCollector:         statsCollector,
+		StatsCollector:         args.StatsCollector,
 	}
 
 	options := trie.StorageManagerOptions{
@@ -126,6 +114,7 @@ func CreateTriesComponentsForShardId(
 	generalConfig config.Config,
 	coreComponentsHolder coreComponentsHandler,
 	storageService dataRetriever.StorageService,
+	stateStatsHandler common.StateStatisticsHandler,
 ) (common.TriesHolder, map[string]common.StorageManager, error) {
 	trieFactoryArgs := TrieFactoryArgs{
 		Marshalizer:              coreComponentsHolder.InternalMarshalizer(),
@@ -149,16 +138,16 @@ func CreateTriesComponentsForShardId(
 	}
 
 	args := TrieCreateArgs{
-		MainStorer:             mainStorer,
-		CheckpointsStorer:      checkpointsStorer,
-		PruningEnabled:         generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:     generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:      generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:       generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:           coreComponentsHolder.ProcessStatusHandler(),
-		Identifier:             dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler:    coreComponentsHolder.EnableEpochsHandler(),
-		StateStatisticsEnabled: generalConfig.StateTriesConfig.StateStatisticsEnabled,
+		MainStorer:          mainStorer,
+		CheckpointsStorer:   checkpointsStorer,
+		PruningEnabled:      generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		CheckpointsEnabled:  generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:   generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:    generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:        coreComponentsHolder.ProcessStatusHandler(),
+		Identifier:          dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
+		StatsCollector:      stateStatsHandler,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -182,16 +171,16 @@ func CreateTriesComponentsForShardId(
 	}
 
 	args = TrieCreateArgs{
-		MainStorer:             mainStorer,
-		CheckpointsStorer:      checkpointsStorer,
-		PruningEnabled:         generalConfig.StateTriesConfig.PeerStatePruningEnabled,
-		CheckpointsEnabled:     generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:      generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
-		SnapshotsEnabled:       generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:           coreComponentsHolder.ProcessStatusHandler(),
-		Identifier:             dataRetriever.PeerAccountsUnit.String(),
-		EnableEpochsHandler:    coreComponentsHolder.EnableEpochsHandler(),
-		StateStatisticsEnabled: generalConfig.StateTriesConfig.StateStatisticsEnabled,
+		MainStorer:          mainStorer,
+		CheckpointsStorer:   checkpointsStorer,
+		PruningEnabled:      generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		CheckpointsEnabled:  generalConfig.StateTriesConfig.CheckpointsEnabled,
+		MaxTrieLevelInMem:   generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
+		SnapshotsEnabled:    generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:        coreComponentsHolder.ProcessStatusHandler(),
+		Identifier:          dataRetriever.PeerAccountsUnit.String(),
+		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
+		StatsCollector:      stateStatsHandler,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

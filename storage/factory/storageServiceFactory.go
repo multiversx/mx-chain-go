@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -53,6 +55,7 @@ type StorageServiceFactory struct {
 	nodeProcessingMode            common.NodeProcessingMode
 	snapshotsEnabled              bool
 	repopulateTokensSupplies      bool
+	stateStatsHandler             common.StateStatisticsHandler
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -69,6 +72,7 @@ type StorageServiceFactoryArgs struct {
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
 	RepopulateTokensSupplies      bool
+	StateStatsHandler             common.StateStatisticsHandler
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -104,6 +108,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		nodeProcessingMode:            args.NodeProcessingMode,
 		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
+		stateStatsHandler:             args.StateStatsHandler,
 	}, nil
 }
 
@@ -119,6 +124,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.StateStatsHandler) {
+		return statistics.ErrNilStateStatsHandler
 	}
 
 	return nil
@@ -603,6 +611,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
 		PersistersTracker:         pruning.NewPersistersTracker(epochsData),
 		EpochsData:                epochsData,
+		StateStatsHandler:         disabledStatistics.NewStateStatistics(),
 	}
 
 	return args, nil
@@ -645,6 +654,8 @@ func (psf *StorageServiceFactory) createTriePersister(
 }
 
 func (psf *StorageServiceFactory) createTriePruningPersister(arg pruning.StorerArgs) (storage.Storer, error) {
+	arg.StateStatsHandler = psf.stateStatsHandler
+
 	isFullArchive := psf.prefsConfig.FullArchive
 	isDBLookupExtension := psf.generalConfig.DbLookupExtensions.Enabled
 	if !isFullArchive && !isDBLookupExtension {

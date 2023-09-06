@@ -426,7 +426,7 @@ func createStakingDataProviderWithMockArgs(
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
 		StakingV2EnableEpoch: 1000,
-	}, testscommon.CreateStorerWithStats())
+	}, testscommon.CreateDefaultMemStorerWithStats())
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1000000,
 	})
@@ -468,7 +468,7 @@ func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[ui
 
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
 		StakingV2EnableEpoch: 1,
-	}, testscommon.CreateStorerWithStats())
+	}, testscommon.CreateDefaultMemStorerWithStats())
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1,
 	})

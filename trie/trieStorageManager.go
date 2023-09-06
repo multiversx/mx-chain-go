@@ -16,14 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	mainStorer             common.StorerWithStats
+	mainStorer             common.BaseStorer
 	checkpointsStorer      common.BaseStorer
 	pruningBlockingOps     uint32
 	snapshotReq            chan *snapshotsQueueEntry
@@ -88,15 +87,10 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		return nil, storage.ErrNilStatsCollector
 	}
 
-	storerWithStats, ok := args.MainStorer.(common.StorerWithStats)
-	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
-	}
-
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
-		mainStorer:             storerWithStats,
+		mainStorer:             args.MainStorer,
 		checkpointsStorer:      args.CheckpointsStorer,
 		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
 		checkpointReq:          make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
@@ -197,25 +191,19 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 		return nil, core.ErrContextClosing
 	}
 
-	val, foundInCache, err := tsm.mainStorer.GetWithStats(key)
+	val, err := tsm.mainStorer.Get(key)
 	if core.IsClosingError(err) {
 		return nil, err
 	}
 	if len(val) != 0 {
-		if foundInCache {
-			tsm.statsCollector.IncrCacheOp()
-		} else {
-			tsm.statsCollector.IncrPersisterOp()
-		}
-
 		return val, nil
 	}
 
 	return tsm.getFromOtherStorers(key)
 }
 
-// GetStatsCollector will return the stats collector component
-func (tsm *trieStorageManager) GetStatsCollector() common.StateStatisticsHandler {
+// GetStateStatsHandler will return the state statistics component
+func (tsm *trieStorageManager) GetStateStatsHandler() common.StateStatisticsHandler {
 	return tsm.statsCollector
 }
 

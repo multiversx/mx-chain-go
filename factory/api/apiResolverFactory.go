@@ -591,6 +591,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		IdleProvider:        args.coreComponents.ProcessStatusHandler(),
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
 	}
 	_, merkleTrie, err := trFactory.Create(trieCreatorArgs)
 	if err != nil {

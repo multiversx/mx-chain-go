@@ -1581,6 +1581,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1610,6 +1611,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)

@@ -172,6 +172,7 @@ func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error
 		userAccountsCheckpointStorer,
 		dataRetriever.UserAccountsUnit,
 		srcf.enableEpochsHandler,
+		srcf.stateStatsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)

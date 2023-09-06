@@ -6,7 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
+	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -38,6 +38,7 @@ func NewMetaRequestersContainerFactory(
 		workingDir:               args.WorkingDirectory,
 		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		stateStatsHandler:        args.StateStatsHandler,
 	}
 
 	err := base.checkParams()
@@ -197,6 +198,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 		userAccountsCheckpointStorer,
 		dataRetriever.UserAccountsUnit,
 		mrcf.enableEpochsHandler,
+		mrcf.stateStatsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
@@ -235,6 +237,7 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 		peerAccountsCheckpointStorer,
 		dataRetriever.PeerAccountsUnit,
 		mrcf.enableEpochsHandler,
+		mrcf.stateStatsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)

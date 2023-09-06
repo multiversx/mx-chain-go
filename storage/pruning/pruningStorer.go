@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
@@ -99,6 +100,7 @@ type PruningStorer struct {
 	numOfActivePersisters  uint32
 	epochForPutOperation   uint32
 	pruningEnabled         bool
+	stateStatsHandler      common.StateStatisticsHandler
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -158,6 +160,7 @@ func initPruningStorer(
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 	pdb.lastEpochNeededHandler = pdb.lastEpochNeeded
+	pdb.stateStatsHandler = args.StateStatsHandler
 
 	return pdb, nil
 }
@@ -192,6 +195,9 @@ func checkArgs(args StorerArgs) error {
 	}
 	if check.IfNil(args.PersistersTracker) {
 		return storage.ErrNilPersistersTracker
+	}
+	if check.IfNil(args.StateStatsHandler) {
+		return statistics.ErrNilStateStatsHandler
 	}
 
 	return nil
@@ -425,14 +431,10 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 
 // Get searches the key in the cache. In case it is not found, the key may be in the db.
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
-	v, _, err := ps.getWithCacheStatus(key)
-	return v, err
-}
-
-func (ps *PruningStorer) getWithCacheStatus(key []byte) ([]byte, bool, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
-		return v.([]byte), true, nil
+		ps.stateStatsHandler.IncrCacheOp()
+		return v.([]byte), nil
 	}
 
 	// not found in cache
@@ -453,14 +455,15 @@ func (ps *PruningStorer) getWithCacheStatus(key []byte) ([]byte, bool, error) {
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
-		return val, false, nil
+		ps.stateStatsHandler.IncrPersisterOp()
+		return val, nil
 	}
 
 	if numClosedDbs == len(ps.activePersisters) && len(ps.activePersisters) > 0 {
-		return nil, false, storage.ErrDBIsClosed
+		return nil, storage.ErrDBIsClosed
 	}
 
-	return nil, false, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
+	return nil, fmt.Errorf("key %s not found in %s", hex.EncodeToString(key), ps.identifier)
 }
 
 // Close will close PruningStorer

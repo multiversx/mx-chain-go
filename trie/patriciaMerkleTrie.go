@@ -40,6 +40,7 @@ type patriciaMerkleTrie struct {
 	hasher                  hashing.Hasher
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
+	stateStatsHandler       common.StateStatisticsHandler
 	mutOperation            sync.RWMutex
 
 	oldHashes            [][]byte

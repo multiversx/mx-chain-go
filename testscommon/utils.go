@@ -41,8 +41,8 @@ func (ss *StorerWithStats) GetWithStats(key []byte) ([]byte, bool, error) {
 	return v, false, err
 }
 
-// CreateStorerWithStats will create a new in-memory storer with stats component
-func CreateStorerWithStats() storage.StorerWithStats {
+// CreateDefaultMemStorerWithStats will create a new in-memory storer with stats component
+func CreateDefaultMemStorerWithStats() storage.StorerWithStats {
 	storerUnit := CreateMemUnit()
 	return &StorerWithStats{storerUnit}
 }

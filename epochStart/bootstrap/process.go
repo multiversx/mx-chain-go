@@ -120,6 +120,7 @@ type epochStartBootstrap struct {
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          common.NodeOperation
+	stateStatsHandler          common.StateStatisticsHandler
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -185,6 +186,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer        storage.Storer
 	TrieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	NodeProcessingMode         common.NodeProcessingMode
+	StateStatsHandler          common.StateStatisticsHandler
 }
 
 type dataToSync struct {
@@ -511,6 +513,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -804,6 +807,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -972,6 +976,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
