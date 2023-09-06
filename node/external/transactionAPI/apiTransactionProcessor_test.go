@@ -683,7 +683,7 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 				},
 			}
 		},
-		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		RelayedInnerTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 					return &testscommon.CacherStub{}
@@ -810,7 +810,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 				},
 			}
 		},
-		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		RelayedInnerTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 					if len(cacheID) == 1 {
@@ -894,7 +894,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 				},
 			}
 		},
-		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		RelayedInnerTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 					return &testscommon.CacherStub{}
@@ -975,7 +975,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 				},
 			}
 		},
-		UserTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+		RelayedInnerTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
 					return &testscommon.CacherStub{}

@@ -416,8 +416,8 @@
     Type = "TxCache"
     Shards = 16
 
-[UserTxDataPool]
-    Name = "UserTxDataPool"
+[RelayedInnerTxDataPool]
+    Name = "RelayedInnerTxDataPool"
     Capacity = 600000
     SizePerSender = 20000
     SizeInBytes = 419430400 #400MB

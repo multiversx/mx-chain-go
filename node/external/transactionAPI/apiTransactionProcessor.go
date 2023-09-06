@@ -358,10 +358,10 @@ func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard
 
 	// search user txs for this sender as well
 	// this should return all user txs from user pool
-	userTxsCache := atp.dataPool.UserTransactions().ShardDataStore(cacheId)
+	userTxsCache := atp.dataPool.RelayedInnerTransactions().ShardDataStore(cacheId)
 	txCache, ok = userTxsCache.(*txcache.TxCache)
 	if !ok {
-		log.Warn("fetchTxsForSender could not user txs cache cast to TxCache")
+		log.Warn("fetchTxsForSender could not cast relayed inner txs cache to TxCache")
 		return txsForSender
 	}
 

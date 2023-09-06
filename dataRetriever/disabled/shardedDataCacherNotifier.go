@@ -70,6 +70,11 @@ func (sdcn *shardedDataCacherNotifier) Keys() [][]byte {
 	return make([][]byte, 0)
 }
 
+// Close returns nil
+func (sdcn *shardedDataCacherNotifier) Close() error {
+	return nil
+}
+
 // IsInterfaceNil return true if there is no value under the interface
 func (sdcn *shardedDataCacherNotifier) IsInterfaceNil() bool {
 	return sdcn == nil

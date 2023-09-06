@@ -18,21 +18,21 @@ import (
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	userTransactions       dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	smartContracts         storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	transactions             dataRetriever.ShardedDataCacherNotifier
+	relayedInnerTransactions dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions     dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions       dataRetriever.ShardedDataCacherNotifier
+	headers                  dataRetriever.HeadersPool
+	miniBlocks               storage.Cacher
+	peerChangesBlocks        storage.Cacher
+	trieNodes                storage.Cacher
+	trieNodesChunks          storage.Cacher
+	smartContracts           storage.Cacher
+	currBlockTxs             dataRetriever.TransactionCacher
+	currEpochValidatorInfo   dataRetriever.ValidatorInfoCacher
+	peerAuthentications      storage.Cacher
+	heartbeats               storage.Cacher
+	validatorsInfo           dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewPoolsHolderMock -
@@ -59,7 +59,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	)
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.userTransactions, err = txpool.NewShardedTxPool(
+	holder.relayedInnerTransactions, err = txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageunit.CacheConfig{
 				Capacity:             100000,
@@ -147,9 +147,9 @@ func (holder *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNot
 	return holder.transactions
 }
 
-// UserTransactions -
-func (holder *PoolsHolderMock) UserTransactions() dataRetriever.ShardedDataCacherNotifier {
-	return holder.userTransactions
+// RelayedInnerTransactions -
+func (holder *PoolsHolderMock) RelayedInnerTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return holder.relayedInnerTransactions
 }
 
 // UnsignedTransactions -

@@ -2,6 +2,7 @@ package processor
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -98,6 +99,8 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 			userTx.Size(),
 			userTxCacherIdentifier,
 		)
+
+		time.Sleep(time.Minute)
 	}
 
 	return nil

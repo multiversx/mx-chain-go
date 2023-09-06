@@ -144,7 +144,7 @@ func GetGeneralConfig() config.Config {
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
 		},
-		UserTxDataPool: config.CacheConfig{
+		RelayedInnerTxDataPool: config.CacheConfig{
 			Capacity:             10000,
 			SizePerSender:        1000,
 			SizeInBytes:          1000000000,

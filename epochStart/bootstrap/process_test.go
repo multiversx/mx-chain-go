@@ -194,7 +194,7 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			UserTxDataPool: config.CacheConfig{
+			RelayedInnerTxDataPool: config.CacheConfig{
 				Type:     "LRU",
 				Capacity: 10,
 				Shards:   10,

@@ -274,7 +274,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: bicf.dataPool.Transactions(),
-		UserShardedPool:  bicf.dataPool.UserTransactions(),
+		UserShardedPool:  bicf.dataPool.RelayedInnerTransactions(),
 		TxValidator:      txValidator,
 		ShardCoordinator: bicf.shardCoordinator,
 	}

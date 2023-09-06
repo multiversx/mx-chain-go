@@ -387,6 +387,19 @@ func (txPool *shardedTxPool) Diagnose(deep bool) {
 	}
 }
 
+// Close closes all shards
+func (txPool *shardedTxPool) Close() error {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	var lastErr error
+	for _, shard := range txPool.backingMap {
+		cache := shard.Cache
+		lastErr = cache.Close()
+	}
+	return lastErr
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txPool *shardedTxPool) IsInterfaceNil() bool {
 	return txPool == nil

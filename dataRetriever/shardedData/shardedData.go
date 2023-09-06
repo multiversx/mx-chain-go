@@ -21,10 +21,10 @@ const untitledCacheName = "untitled"
 
 // shardedData holds the list of data organised by destination shard
 //
-//  The shardStores field maps a cacher, containing data
-//  hashes, to a corresponding identifier. It is able to add or remove
-//  data given the shard id it is associated with. It can
-//  also merge and split pools when required
+//	The shardStores field maps a cacher, containing data
+//	hashes, to a corresponding identifier. It is able to add or remove
+//	data given the shard id it is associated with. It can
+//	also merge and split pools when required
 type shardedData struct {
 	name                string
 	mutShardedDataStore sync.RWMutex
@@ -189,7 +189,8 @@ func (sd *shardedData) RemoveData(key []byte, cacheID string) {
 }
 
 // RemoveDataFromAllShards will remove data from the store given only
-//  the data hash. It will iterate over all shard store map and will remove it everywhere
+//
+//	the data hash. It will iterate over all shard store map and will remove it everywhere
 func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 	sd.mutShardedDataStore.RLock()
 	defer sd.mutShardedDataStore.RUnlock()
@@ -295,6 +296,11 @@ func (sd *shardedData) Diagnose(deep bool) {
 	for _, shard := range sd.shardedDataStore {
 		shard.cache.Diagnose(deep)
 	}
+}
+
+// Close returns nil on this implementation
+func (sd *shardedData) Close() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -60,14 +60,14 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 
 	mainConfig := args.Config
 
-	userTxPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
-		Config:         factory.GetCacherFromConfig(mainConfig.UserTxDataPool),
+	relayedInnerTxPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
+		Config:         factory.GetCacherFromConfig(mainConfig.RelayedInnerTxDataPool),
 		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:    args.ShardCoordinator.SelfId(),
 		TxGasHandler:   args.EconomicsData,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the user transactions", err)
+		return nil, fmt.Errorf("%w while creating the cache for the relayed inner transactions", err)
 	}
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
@@ -80,7 +80,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
 	}
 
-	txPool.SetEvictionHandler(userTxPool.RemoveDataFromAllShards)
+	txPool.SetEvictionHandler(relayedInnerTxPool.RemoveDataFromAllShards)
 
 	uTxPool, err := shardedData.NewShardedData(dataRetriever.UnsignedTxPoolName, factory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {
@@ -163,7 +163,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
-		UserTransactions:          userTxPool,
+		RelayedInnerTransactions:  relayedInnerTxPool,
 		UnsignedTransactions:      uTxPool,
 		RewardTransactions:        rewardTxPool,
 		Headers:                   hdrPool,

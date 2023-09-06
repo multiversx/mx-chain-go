@@ -540,7 +540,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: ficf.dataPool.Transactions(),
-		UserShardedPool:  ficf.dataPool.UserTransactions(),
+		UserShardedPool:  ficf.dataPool.RelayedInnerTransactions(),
 		TxValidator:      txValidator,
 		ShardCoordinator: ficf.shardCoordinator,
 	}
