@@ -1509,7 +1509,7 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
 	if err != nil {
-		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
+		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
 	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
