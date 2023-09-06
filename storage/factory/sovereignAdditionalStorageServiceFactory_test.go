@@ -25,7 +25,7 @@ func TestSovereignAdditionalStorageServiceFactory_CreateAdditionalStorageUnits(t
 
 		f, _ := factory.NewSovereignAdditionalStorageServiceFactory()
 		err := f.CreateAdditionalStorageUnits(nil, nil, "")
-		require.Error(t, errors.ErrNilFunction, err)
+		require.ErrorIs(t, errors.ErrNilFunction, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

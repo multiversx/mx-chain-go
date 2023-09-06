@@ -22,8 +22,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.ShardCoordinator = nil
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
@@ -34,8 +33,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(nil, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(nil, shardCoordinator)
 		args.Core = nil
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
@@ -47,8 +45,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.StatusCore = nil
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
@@ -60,8 +57,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.Crypto = nil
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
@@ -73,8 +69,7 @@ func TestNewDataComponentsFactory(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, dcf)
@@ -89,8 +84,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.StatusCore = &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField: nil,
 		}
@@ -108,8 +102,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.CurrentShard = core.MetachainShardId
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.StatusCore = &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField: nil,
 		}
@@ -127,8 +120,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.CurrentShard = 12345
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
@@ -142,8 +134,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.Config.StoragePruning.NumActivePersisters = 0
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
@@ -157,8 +148,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
@@ -180,8 +170,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 			return 0
 		}
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
@@ -195,8 +184,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		coreComponents := componentsMock.GetCoreComponents()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		args.Config.TxBlockBodyDataPool.Type = "invalid"
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
@@ -210,8 +198,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 
 		coreComponents := componentsMock.GetCoreComponents()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 
 		require.NoError(t, err)
@@ -225,8 +212,7 @@ func TestDataComponentsFactory_Create(t *testing.T) {
 		coreComponents := componentsMock.GetCoreComponents()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.CurrentShard = core.MetachainShardId
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 
 		dcf, err := dataComp.NewDataComponentsFactory(args)
 		require.NoError(t, err)
@@ -241,8 +227,7 @@ func TestManagedDataComponents_CloseShouldWork(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	runTypeComponents := componentsMock.GetRunTypeComponents()
-	args := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardCoordinator)
+	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
 	dcf, _ := dataComp.NewDataComponentsFactory(args)
 
 	dc, _ := dcf.Create()

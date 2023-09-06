@@ -14,8 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 )
 
-// RunTypeComponentsMock -
-type RunTypeComponentsMock struct {
+// RunTypeComponentsStub -
+type RunTypeComponentsStub struct {
 	BlockChainHookHandlerFactory        hooks.BlockChainHookHandlerCreator
 	BlockProcessorFactory               block.BlockProcessorCreator
 	BlockTrackerFactory                 track.BlockTrackerCreator
@@ -31,86 +31,86 @@ type RunTypeComponentsMock struct {
 }
 
 // Create -
-func (r *RunTypeComponentsMock) Create() error {
+func (r *RunTypeComponentsStub) Create() error {
 	return nil
 }
 
 // Close -
-func (r *RunTypeComponentsMock) Close() error {
+func (r *RunTypeComponentsStub) Close() error {
 	return nil
 }
 
 // CheckSubcomponents -
-func (r *RunTypeComponentsMock) CheckSubcomponents() error {
+func (r *RunTypeComponentsStub) CheckSubcomponents() error {
 	return nil
 }
 
 // BlockChainHookHandlerCreator -
-func (r *RunTypeComponentsMock) String() string {
+func (r *RunTypeComponentsStub) String() string {
 	return ""
 }
 
 // BlockChainHookHandlerCreator -
-func (r *RunTypeComponentsMock) BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator {
+func (r *RunTypeComponentsStub) BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator {
 	return r.BlockChainHookHandlerFactory
 }
 
 // BlockProcessorCreator -
-func (r *RunTypeComponentsMock) BlockProcessorCreator() block.BlockProcessorCreator {
+func (r *RunTypeComponentsStub) BlockProcessorCreator() block.BlockProcessorCreator {
 	return r.BlockProcessorFactory
 }
 
 // BlockTrackerCreator -
-func (r *RunTypeComponentsMock) BlockTrackerCreator() track.BlockTrackerCreator {
+func (r *RunTypeComponentsStub) BlockTrackerCreator() track.BlockTrackerCreator {
 	return r.BlockTrackerFactory
 }
 
 // BootstrapperFromStorageCreator -
-func (r *RunTypeComponentsMock) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
+func (r *RunTypeComponentsStub) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
 	return r.BootstrapperFromStorageFactory
 }
 
 // EpochStartBootstrapperCreator -
-func (r *RunTypeComponentsMock) EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator {
+func (r *RunTypeComponentsStub) EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator {
 	return r.EpochStartBootstrapperFactory
 }
 
 // ForkDetectorCreator -
-func (r *RunTypeComponentsMock) ForkDetectorCreator() sync.ForkDetectorCreator {
+func (r *RunTypeComponentsStub) ForkDetectorCreator() sync.ForkDetectorCreator {
 	return r.ForkDetectorFactory
 }
 
 // HeaderValidatorCreator -
-func (r *RunTypeComponentsMock) HeaderValidatorCreator() block.HeaderValidatorCreator {
+func (r *RunTypeComponentsStub) HeaderValidatorCreator() block.HeaderValidatorCreator {
 	return r.HeaderValidatorFactory
 }
 
 // RequestHandlerCreator -
-func (r *RunTypeComponentsMock) RequestHandlerCreator() requestHandlers.RequestHandlerCreator {
+func (r *RunTypeComponentsStub) RequestHandlerCreator() requestHandlers.RequestHandlerCreator {
 	return r.RequestHandlerFactory
 }
 
 // ScheduledTxsExecutionCreator -
-func (r *RunTypeComponentsMock) ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator {
+func (r *RunTypeComponentsStub) ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator {
 	return r.ScheduledTxsExecutionFactory
 }
 
 // TransactionCoordinatorCreator -
-func (r *RunTypeComponentsMock) TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator {
+func (r *RunTypeComponentsStub) TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator {
 	return r.TransactionCoordinatorFactory
 }
 
 // ValidatorStatisticsProcessorCreator -
-func (r *RunTypeComponentsMock) ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator {
+func (r *RunTypeComponentsStub) ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator {
 	return r.ValidatorStatisticsProcessorFactory
 }
 
 // AdditionalStorageServiceCreator -
-func (r *RunTypeComponentsMock) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
+func (r *RunTypeComponentsStub) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
 	return r.AdditionalStorageServiceFactory
 }
 
 // IsInterfaceNil -
-func (r *RunTypeComponentsMock) IsInterfaceNil() bool {
+func (r *RunTypeComponentsStub) IsInterfaceNil() bool {
 	return r == nil
 }

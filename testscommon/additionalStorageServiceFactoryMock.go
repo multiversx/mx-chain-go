@@ -7,7 +7,7 @@ type AdditionalStorageServiceFactoryMock struct {
 	WorkAsSovereign bool
 }
 
-// CreateAdditionalStorageUnits creates an additional storage units for a shard
+// CreateAdditionalStorageUnits -
 func (asf *AdditionalStorageServiceFactoryMock) CreateAdditionalStorageUnits(f func(store dataRetriever.StorageService, shardID string) error, store dataRetriever.StorageService, shardID string) error {
 	if asf.WorkAsSovereign {
 		return f(store, shardID)

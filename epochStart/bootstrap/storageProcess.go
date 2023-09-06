@@ -61,7 +61,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		return nil, errors.ErrNilEpochStartBootstrapperCreator
 	}
 
-	esb, err := createEpochStartBootstrapper(args)
+	esb, err := args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 	if err != nil {
 		return nil, err
 	}
@@ -85,14 +85,6 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	}
 
 	return sesb, nil
-}
-
-func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error) {
-	if args.EpochStartBootstrapperCreator == nil {
-		return nil, errors.ErrNilEpochStartBootstrapperCreator
-	}
-
-	return args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 }
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory

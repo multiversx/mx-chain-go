@@ -114,8 +114,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	}
 	shardC.CurrentShard = core.MetachainShardId
 
-	runTypeComponents := componentsMock.GetRunTypeComponents()
-	dataArgs := componentsMock.GetDataArgs(coreComponents, runTypeComponents, shardC)
+	dataArgs := componentsMock.GetDataArgs(coreComponents, shardC)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()

@@ -33,7 +33,7 @@ func createMockStorageEpochStartBootstrapArgs(
 	coreMock *mock.CoreComponentsMock,
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsStorageEpochStartBootstrap {
-	esbc, _ := NewEpochStartBootstrapperFactory()
+	esbc := NewEpochStartBootstrapperFactory()
 	return ArgsStorageEpochStartBootstrap{
 		ArgsEpochStartBootstrap:       createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
 		ImportDbConfig:                config.ImportDbConfig{},
@@ -72,15 +72,15 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(sesb))
 		assert.True(t, errors.Is(err, dataRetriever.ErrNilGracefullyCloseChannel))
 	})
-	t.Run("nil AdditionalStorageServiceCreator should err", func(t *testing.T) {
+	t.Run("nil EpochStartBootstrapperCreator should err", func(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.AdditionalStorageServiceCreator = nil
+		args.EpochStartBootstrapperCreator = nil
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.True(t, check.IfNil(sesb))
-		assert.Error(t, mxErrors.ErrNilAdditionalStorageServiceCreator, err)
+		assert.Equal(t, mxErrors.ErrNilEpochStartBootstrapperCreator, err)
 	})
 	t.Run("nil ResolverRequestFactory should err", func(t *testing.T) {
 		t.Parallel()
@@ -90,7 +90,7 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 		args.ResolverRequestFactory = nil
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.True(t, check.IfNil(sesb))
-		assert.Error(t, mxErrors.ErrNilRequestHandlerCreator, err)
+		assert.Equal(t, mxErrors.ErrNilResolverRequestFactoryHandler, err)
 	})
 }
 
@@ -111,7 +111,7 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-	esb, err := createEpochStartBootstrapper(args)
+	esb, err := args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 
 	require.NotNil(t, esb)
 	assert.Nil(t, err)
@@ -128,9 +128,6 @@ func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T
 		},
 	}
 
-	esbc, _ := NewEpochStartBootstrapperFactory()
-
-	args.EpochStartBootstrapperCreator = esbc
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
@@ -560,7 +557,7 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ResolverRequestFactory, _ = requestHandlers.NewResolverRequestHandlerFactory()
+		args.ResolverRequestFactory = requestHandlers.NewResolverRequestHandlerFactory()
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
@@ -575,7 +572,7 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		rrhf, _ := requestHandlers.NewResolverRequestHandlerFactory()
+		rrhf := requestHandlers.NewResolverRequestHandlerFactory()
 		args.ResolverRequestFactory, _ = requestHandlers.NewSovereignResolverRequestHandlerFactory(rrhf)
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 

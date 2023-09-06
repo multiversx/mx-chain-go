@@ -3,6 +3,7 @@ package bootstrap_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -102,7 +103,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsMock{
+		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
 			EpochStartBootstrapperFactory: nil,
 		}
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
@@ -113,7 +114,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsMock{
+		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
 			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryStub{},
 			AdditionalStorageServiceFactory: nil,
 		}
@@ -293,18 +294,22 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 
 		require.NotNil(t, bc)
 		assert.Nil(t, err)
+
+		assert.Equal(t, "*bootstrap.epochStartBootstrap", fmt.Sprintf("%T", bc.EpochStartBootstrapper()))
 	})
 
 	t.Run("should create a epoch start bootstrapper sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
 		args := componentsMock.GetBootStrapFactoryArgs()
-		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		bc, err := bcf.Create()
 
 		require.NotNil(t, bc)
 		assert.Nil(t, err)
+
+		assert.Equal(t, "*bootstrap.sovereignChainEpochStartBootstrap", fmt.Sprintf("%T", bc.EpochStartBootstrapper()))
 	})
 }
