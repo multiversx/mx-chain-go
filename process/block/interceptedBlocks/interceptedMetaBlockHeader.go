@@ -86,7 +86,13 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
-	err := imh.integrity()
+	var err error
+	defer func() {
+		if err != nil {
+			log.Error("REMOVE_ME: InterceptedMetaHeader.CheckValidity", "sh id", imh.hdr.GetShardID(), "ep", imh.hdr.GetEpoch(), "rnd", imh.hdr.GetRound(), "nnc", imh.hdr.GetNonce(), "error", err)
+		}
+	}()
+	err = imh.integrity()
 	if err != nil {
 		return err
 	}
@@ -122,7 +128,8 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	return imh.integrityVerifier.Verify(imh.hdr)
+	err = imh.integrityVerifier.Verify(imh.hdr)
+	return err
 }
 
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {

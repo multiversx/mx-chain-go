@@ -575,6 +575,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
+	log.Error("REMOVE_ME: trigger.receivedMetaBlock", "ep", headerHandler.GetEpoch(), "rnd", headerHandler.GetRound(), "nnc", headerHandler.GetNonce())
 	metaHdr, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
 		return
@@ -589,7 +590,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	}
 
 	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
-		log.Debug("REMOVE_ME: trigger.receivedMetaBlock - early return", " !t.newEpochHdrReceived", !t.newEpochHdrReceived, "!metaHdr.IsStartOfEpochBlock()", !metaHdr.IsStartOfEpochBlock())
+		log.Debug("REMOVE_ME: trigger.receivedMetaBlock - early return", " !t.newEpochHdrReceived", !t.newEpochHdrReceived, "!metaHdr.IsStartOfEpochBlock()", !metaHdr.IsStartOfEpochBlock(), "hdr epoch", headerHandler.GetEpoch(), "hdr rnd", headerHandler.GetRound(), "hdr nnc", headerHandler.GetNonce())
 		return
 	}
 

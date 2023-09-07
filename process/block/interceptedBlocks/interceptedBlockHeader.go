@@ -66,23 +66,35 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
-	err := inHdr.integrityVerifier.Verify(inHdr.hdr)
+	var err error
+	defer func() {
+		if err != nil {
+			log.Error("REMOVE_ME: InterceptedHeader.CheckValidity error", "sh id", inHdr.hdr.GetShardID(), "ep", inHdr.hdr.GetEpoch(), "rnd", inHdr.hdr.GetRound(), "nnc", inHdr.hdr.GetNonce(), "error", err)
+		}
+	}()
+	err = inHdr.integrityVerifier.Verify(inHdr.hdr)
 	if err != nil {
+		log.Error("REMOVE_ME: InterceptedHeader.Verify error", "sh id", inHdr.hdr.GetShardID(), "ep", inHdr.hdr.GetEpoch(), "rnd", inHdr.hdr.GetRound(), "nnc", inHdr.hdr.GetNonce(), "error", err)
 		return err
 	}
 
 	err = inHdr.integrity()
 	if err != nil {
-		log.Error("InterceptedHeader.CheckValidity", "error", err)
+		log.Error("REMOVE_ME: inHdr.integrity() error", "sh id", inHdr.hdr.GetShardID(), "ep", inHdr.hdr.GetEpoch(), "rnd", inHdr.hdr.GetRound(), "nnc", inHdr.hdr.GetNonce(), "error", err)
 		return err
 	}
 
 	err = inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
+		log.Error("REMOVE_ME: InterceptedHeader VerifyRandSeedAndLeaderSignature error", "sh id", inHdr.hdr.GetShardID(), "ep", inHdr.hdr.GetEpoch(), "rnd", inHdr.hdr.GetRound(), "nnc", inHdr.hdr.GetNonce(), "error", err)
 		return err
 	}
 
-	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	err = inHdr.sigVerifier.VerifySignature(inHdr.hdr)
+	if err != nil {
+		log.Error("REMOVE_ME: InterceptedHeader VerifySignature error", "sh id", inHdr.hdr.GetShardID(), "ep", inHdr.hdr.GetEpoch(), "rnd", inHdr.hdr.GetRound(), "nnc", inHdr.hdr.GetNonce(), "error", err)
+	}
+	return err
 }
 
 func (inHdr *InterceptedHeader) isEpochCorrect() bool {

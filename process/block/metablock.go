@@ -1980,7 +1980,9 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 				log.Error("metaProcessor.receivedShardHeader: cannot compute chain params for epoch", "epoch", shardHeader.GetEpoch(), "error", err)
 				chainParams = mp.chainParametersHandler.CurrentChainParameters()
 			}
-			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(uint32(chainParams.ShardFinality))
+			finalitiesMap := make(map[uint32]uint32)
+			finalitiesMap[headerHandler.GetShardID()] = uint32(chainParams.ShardFinality)
+			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(finalitiesMap, uint32(chainParams.ShardFinality))
 			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting shard headers")
 			}
@@ -2007,20 +2009,17 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 // processing the current block. It requests the shardBlockFinality headers greater than the highest shard header,
 // for each shard, related to the block which should be processed
 // this method should be called only under the mutex protection: hdrsForCurrBlock.mutHdrsForBlock
-func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders(finality uint32) uint32 {
+func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders(finalities map[uint32]uint32, fallbackFinality uint32) uint32 {
 	missingFinalityAttestingShardHeaders := uint32(0)
-
-	// TODO - mp.epochNotifier.CurrentEpoch() is not suited here
-	//chainParams := mp.chainParametersHandler.CurrentChainParameters()
-	//chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(mp.epochNotifier.CurrentEpoch())
-	//if err != nil {
-	//	log.Warn("metaProcessor.requestMissingFinalityAttestingShardHeaders: cannot compute chain params", "epoch", mp.epochNotifier.CurrentEpoch(), "error", err)
-	//	return 0
-	//}
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
+		shardFinality, ok := finalities[shardId]
+		if !ok {
+			log.Error("REMOVE_ME: applied fallback finality", "shard id", shardId, "finality", fallbackFinality)
+			shardFinality = fallbackFinality
+		}
 		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
 			shardId,
-			finality,
+			shardFinality,
 		)
 
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
@@ -2043,7 +2042,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	highestShardsEpoch := uint32(0)
+	shardsEpochs := make(map[uint32]uint32)
 	for _, shardData := range metaBlock.ShardInfo {
 		if shardData.Nonce == mp.genesisNonce {
 			lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardData.ShardID)
@@ -2061,6 +2060,8 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			continue
 		}
 
+		shardsEpochs[shardData.ShardID] = shardData.GetEpoch()
+
 		hdr, err := process.GetShardHeaderFromPool(
 			shardData.HeaderHash,
 			mp.dataPool.Headers())
@@ -2076,8 +2077,6 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			continue
 		}
 
-		// TODO: update this by including the Epoch inside ShardData as well
-		highestShardsEpoch = hdr.GetEpoch()
 		log.Error("REMOVE_ME: add to hdrHashAndInfo - checkpoint 2", "sh", hdr.GetShardID(), "epoch", hdr.GetEpoch(), "nonce", hdr.GetNonce())
 		mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)] = &hdrInfo{
 			hdr:         hdr,
@@ -2090,14 +2089,19 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 	}
 
 	if mp.hdrsForCurrBlock.missingHdrs == 0 {
-		chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(highestShardsEpoch)
-		if err != nil {
-			log.Error("metaProcessor.computeExistingAndRequestMissingShardHeaders: cannot compute chain params",
-				"epoch", metaBlock.GetEpoch(),
-				"error", err)
-			chainParams = mp.chainParametersHandler.CurrentChainParameters()
+		shardFinalities := make(map[uint32]uint32)
+		for shId, epoch := range shardsEpochs {
+			chainParams, err := mp.chainParametersHandler.ChainParametersForEpoch(epoch)
+			if err != nil {
+				log.Error("metaProcessor.computeExistingAndRequestMissingShardHeaders: cannot compute chain params",
+					"epoch", metaBlock.GetEpoch(),
+					"error", err)
+				chainParams = mp.chainParametersHandler.CurrentChainParameters()
+			}
+			shardFinalities[shId] = uint32(chainParams.ShardFinality)
 		}
-		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(uint32(chainParams.ShardFinality))
+
+		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders(shardFinalities, uint32(mp.chainParametersHandler.CurrentChainParameters().ShardFinality))
 	}
 
 	return mp.hdrsForCurrBlock.missingHdrs, mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
@@ -2137,6 +2141,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.LastIncludedMetaNonce = header.GetNonce()
 		shardData.AccumulatedFees = shardHdr.GetAccumulatedFees()
 		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
+		shardData.Epoch = shardHdr.GetEpoch()
 
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
 			if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
@@ -2165,7 +2170,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		"size", len(shardInfo),
 	)
 	for _, si := range shardInfo {
-		log.Debug(fmt.Sprintf("\tShard %d - Nonce %d - Round %d - Epoch %d\n", si.GetShardID(), si.GetNonce(), si.GetRound(), mp.epochStartTrigger.Epoch()))
+		log.Debug(fmt.Sprintf("\tShard %d - Nonce %d - Round %d - Epoch %d\n", si.GetShardID(), si.GetNonce(), si.GetRound(), si.GetEpoch()))
 	}
 	return shardInfo, nil
 }

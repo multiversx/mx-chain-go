@@ -1,6 +1,8 @@
 package interceptors
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
@@ -96,7 +98,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	err = interceptedData.CheckValidity()
 	if err != nil {
-		log.Error("REMOVE_ME: interceptedData.CheckValidity() error", "error", err)
+		log.Error("REMOVE_ME: interceptedData.CheckValidity() error", "error", err, "interceptor type", fmt.Sprintf("%T", interceptedData))
 		sdi.throttler.EndProcessing()
 		sdi.processDebugInterceptedData(interceptedData, err)
 
