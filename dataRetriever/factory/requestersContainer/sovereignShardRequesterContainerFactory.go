@@ -18,9 +18,14 @@ func NewSovereignShardRequestersContainerFactory(shardReqContainerFactory *shard
 		return nil, errors.ErrNilShardRequesterContainerFactory
 	}
 
-	return &sovereignShardRequestersContainerFactory{
+	f := &sovereignShardRequestersContainerFactory{
 		shardRequestersContainerFactory: shardReqContainerFactory,
-	}, nil
+	}
+
+	f.numIntraShardPeers = f.numTotalPeers
+	f.numCrossShardPeers = 0
+
+	return f, nil
 }
 
 // Create returns a requesters container that will hold all sovereign requesters
