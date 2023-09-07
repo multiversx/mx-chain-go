@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/alarm"
 	"github.com/multiversx/mx-chain-core-go/core/nodetype"
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
@@ -23,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 type coreComponentsHolder struct {
@@ -73,6 +74,7 @@ type coreComponentsHolder struct {
 	enableEpochsHandler           common.EnableEpochsHandler
 }
 
+// ArgsCoreComponentsHolder will hold arguments needed for the core components holder
 type ArgsCoreComponentsHolder struct {
 	Cfg                 config.Config
 	EnableEpochsConfig  config.EnableEpochs
@@ -85,6 +87,7 @@ type ArgsCoreComponentsHolder struct {
 	WorkingDir          string
 }
 
+// CreateCoreComponentsHolder will create a new instance of factory.CoreComponentsHolder
 func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComponentsHolder, error) {
 	var err error
 	instance := &coreComponentsHolder{}
@@ -129,12 +132,9 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 		return nil, err
 	}
 
-	// TODO check if we need the real watchdog
 	instance.watchdog = &watchdog.DisabledWatchdog{}
-	// TODO check if we need the real alarm scheduler
-	instance.alarmScheduler = alarm.NewAlarmScheduler()
-	// TODO check if we need the real sync time also this component need to be started
-	instance.syncTimer = ntp.NewSyncTime(args.Cfg.NTPConfig, nil)
+	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
+	instance.syncTimer = &testscommon.SyncTimerStub{}
 	// TODO discuss with Iulian about the round handler
 	//instance.roundHandler
 
