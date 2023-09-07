@@ -180,7 +180,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 }
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
-	return headerHandler.GetEpoch() >= mp.enableEpochsHandler.StakingV2EnableEpoch()
+	return mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.StakingV2Flag, headerHandler.GetEpoch())
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
