@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
@@ -1185,34 +1186,35 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                     *configs.GeneralConfig,
-		EpochConfig:                *configs.EpochConfig,
-		PrefConfigs:                *configs.PreferencesConfig,
-		ImportDBConfig:             *configs.ImportDbConfig,
-		AccountsParser:             sovereignAccountsParser,
-		SmartContractParser:        smartContractParser,
-		GasSchedule:                gasScheduleNotifier,
-		NodesCoordinator:           nodesCoordinator,
-		Data:                       dataComponents,
-		CoreData:                   coreComponents,
-		Crypto:                     cryptoComponents,
-		State:                      stateComponents,
-		Network:                    networkComponents,
-		BootstrapComponents:        bootstrapComponents,
-		StatusComponents:           statusComponents,
-		StatusCoreComponents:       statusCoreComponents,
-		RequestedItemsHandler:      requestedItemsHandler,
-		WhiteListHandler:           whiteListRequest,
-		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
-		MaxRating:                  configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:             configs.SystemSCConfig,
-		ImportStartHandler:         importStartHandler,
-		HistoryRepo:                historyRepository,
-		FlagsConfig:                *configs.FlagsConfig,
-		ChainRunType:               common.ChainRunTypeSovereign,
-		ShardCoordinatorFactory:    sharding.NewSovereignShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewSovereignGenesisMetaBlockChecker(),
+		Config:                           *configs.GeneralConfig,
+		EpochConfig:                      *configs.EpochConfig,
+		PrefConfigs:                      *configs.PreferencesConfig,
+		ImportDBConfig:                   *configs.ImportDbConfig,
+		AccountsParser:                   sovereignAccountsParser,
+		SmartContractParser:              smartContractParser,
+		GasSchedule:                      gasScheduleNotifier,
+		NodesCoordinator:                 nodesCoordinator,
+		Data:                             dataComponents,
+		CoreData:                         coreComponents,
+		Crypto:                           cryptoComponents,
+		State:                            stateComponents,
+		Network:                          networkComponents,
+		BootstrapComponents:              bootstrapComponents,
+		StatusComponents:                 statusComponents,
+		StatusCoreComponents:             statusCoreComponents,
+		RequestedItemsHandler:            requestedItemsHandler,
+		WhiteListHandler:                 whiteListRequest,
+		WhiteListerVerifiedTxs:           whiteListerVerifiedTxs,
+		MaxRating:                        configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                   configs.SystemSCConfig,
+		ImportStartHandler:               importStartHandler,
+		HistoryRepo:                      historyRepository,
+		FlagsConfig:                      *configs.FlagsConfig,
+		ChainRunType:                     common.ChainRunTypeSovereign,
+		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:       genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:          processComp.NewSovereignGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator: requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

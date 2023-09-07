@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -239,10 +240,11 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
-		ChainRunType:               common.ChainRunTypeRegular,
-		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory: genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		ChainRunType:                     common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:       genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:          processComp.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator: requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
