@@ -232,11 +232,8 @@ func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	for invalidTxHash, invalidTxInfo := range pool.InvalidTxs {
 		txGroups[invalidTxHash] = invalidTxInfo
 	}
-
-	if odp.shardID != core.MetachainShardId {
-		for txHash, rewardInfo := range pool.Rewards {
-			txGroups[txHash] = rewardInfo
-		}
+	for txHash, rewardInfo := range pool.Rewards {
+		txGroups[txHash] = rewardInfo
 	}
 
 	foundTxHashes := 0
