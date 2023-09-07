@@ -235,147 +235,183 @@ func computeEncodedAddressLen(converter core.PubkeyConverter) (uint32, error) {
 	return uint32(len(encodedEmptyAddress)), nil
 }
 
+// InternalMarshalizer will return the internal marshaller
 func (c *coreComponentsHolder) InternalMarshalizer() marshal.Marshalizer {
 	return c.internalMarshaller
 }
 
+// SetInternalMarshalizer will set the internal marshaller
 func (c *coreComponentsHolder) SetInternalMarshalizer(marshalizer marshal.Marshalizer) error {
 	c.internalMarshaller = marshalizer
 	return nil
 }
 
+// TxMarshalizer will return the transaction marshaller
 func (c *coreComponentsHolder) TxMarshalizer() marshal.Marshalizer {
 	return c.txMarshaller
 }
 
+// VmMarshalizer will return the vm marshaller
 func (c *coreComponentsHolder) VmMarshalizer() marshal.Marshalizer {
 	return c.vmMarshaller
 }
 
+// Hasher will return the hasher
 func (c *coreComponentsHolder) Hasher() hashing.Hasher {
 	return c.hasher
 }
 
+// TxSignHasher will return the transaction sign hasher
 func (c *coreComponentsHolder) TxSignHasher() hashing.Hasher {
 	return c.txSignHasher
 }
 
+// Uint64ByteSliceConverter will return the uint64 to slice converter
 func (c *coreComponentsHolder) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
 	return c.uint64SliceConverter
 }
 
+// AddressPubKeyConverter will return the address pub key converter
 func (c *coreComponentsHolder) AddressPubKeyConverter() core.PubkeyConverter {
 	return c.addressPubKeyConverter
 }
 
+// ValidatorPubKeyConverter will return the validator pub key converter
 func (c *coreComponentsHolder) ValidatorPubKeyConverter() core.PubkeyConverter {
 	return c.validatorPubKeyConverter
 }
 
+// PathHandler will return the path handler
 func (c *coreComponentsHolder) PathHandler() storage.PathManagerHandler {
 	return c.pathHandler
 }
 
+// Watchdog will return the watch dog
 func (c *coreComponentsHolder) Watchdog() core.WatchdogTimer {
 	return c.watchdog
 }
 
+// AlarmScheduler will return the alarm scheduler
 func (c *coreComponentsHolder) AlarmScheduler() core.TimersScheduler {
 	return c.alarmScheduler
 }
 
+// SyncTimer will return the sync timer
 func (c *coreComponentsHolder) SyncTimer() ntp.SyncTimer {
 	return c.syncTimer
 }
 
+// RoundHandler will return the round handler
 func (c *coreComponentsHolder) RoundHandler() consensus.RoundHandler {
 	return c.roundHandler
 }
 
+// EconomicsData will return the economics data handler
 func (c *coreComponentsHolder) EconomicsData() process.EconomicsDataHandler {
 	return c.economicsData
 }
 
+// APIEconomicsData will return the api economics data handler
 func (c *coreComponentsHolder) APIEconomicsData() process.EconomicsDataHandler {
 	return c.apiEconomicsData
 }
 
+// RatingsData will return the ratings data handler
 func (c *coreComponentsHolder) RatingsData() process.RatingsInfoHandler {
 	return c.ratingsData
 }
 
+// Rater will return the rater handler
 func (c *coreComponentsHolder) Rater() sharding.PeerAccountListAndRatingHandler {
 	return c.rater
 }
 
+// GenesisNodesSetup will return the genesis nodes setup handler
 func (c *coreComponentsHolder) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	return c.genesisNodesSetup
 }
 
+// NodesShuffler will return the nodes shuffler
 func (c *coreComponentsHolder) NodesShuffler() nodesCoordinator.NodesShuffler {
 	return c.nodesShuffler
 }
 
+// EpochNotifier will return the epoch notifier
 func (c *coreComponentsHolder) EpochNotifier() process.EpochNotifier {
 	return c.epochNotifier
 }
 
+// EnableRoundsHandler will return the enable rounds handler
 func (c *coreComponentsHolder) EnableRoundsHandler() process.EnableRoundsHandler {
 	return c.enableRoundsHandler
 }
 
+// RoundNotifier will return the round notifier
 func (c *coreComponentsHolder) RoundNotifier() process.RoundNotifier {
 	return c.roundNotifier
 }
 
+// EpochStartNotifierWithConfirm will return the epoch start notifier with confirm
 func (c *coreComponentsHolder) EpochStartNotifierWithConfirm() factory.EpochStartNotifierWithConfirm {
 	return c.epochStartNotifierWithConfirm
 }
 
+// ChanStopNodeProcess will return the channel for stop node process
 func (c *coreComponentsHolder) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	return c.chanStopNodeProcess
 }
 
+// GenesisTime will return the genesis time
 func (c *coreComponentsHolder) GenesisTime() time.Time {
 	return c.genesisTime
 }
 
+// ChainID will return the chain id
 func (c *coreComponentsHolder) ChainID() string {
 	return c.chainID
 }
 
+// MinTransactionVersion will return the min transaction version
 func (c *coreComponentsHolder) MinTransactionVersion() uint32 {
 	return c.minTransactionVersion
 }
 
+// TxVersionChecker will return the tx version checker
 func (c *coreComponentsHolder) TxVersionChecker() process.TxVersionCheckerHandler {
 	return c.txVersionChecker
 }
 
+// EncodedAddressLen will return the len of encoded address
 func (c *coreComponentsHolder) EncodedAddressLen() uint32 {
 	return c.encodedAddressLen
 }
 
+// NodeTypeProvider will return the node type provider
 func (c *coreComponentsHolder) NodeTypeProvider() core.NodeTypeProviderHandler {
 	return c.nodeTypeProvider
 }
 
+// WasmVMChangeLocker will return the wasm vm change locker
 func (c *coreComponentsHolder) WasmVMChangeLocker() common.Locker {
 	return c.wasmVMChangeLocker
 }
 
+// ProcessStatusHandler will return the process status handler
 func (c *coreComponentsHolder) ProcessStatusHandler() common.ProcessStatusHandler {
 	return c.processStatusHandler
 }
 
+// HardforkTriggerPubKey will return the pub key for the hard fork trigger
 func (c *coreComponentsHolder) HardforkTriggerPubKey() []byte {
 	return c.hardforkTriggerPubKey
 }
 
+// EnableEpochsHandler will return the enable epoch handler
 func (c *coreComponentsHolder) EnableEpochsHandler() common.EnableEpochsHandler {
 	return c.enableEpochsHandler
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (c *coreComponentsHolder) IsInterfaceNil() bool {
 	return c == nil
 }
