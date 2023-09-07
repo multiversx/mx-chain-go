@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -39,16 +38,12 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 				return big.NewInt(0)
 			},
 		},
-		hasher:      &hashingMocks.HasherMock{},
-		marshalizer: &marshallerMock.MarshalizerMock{},
-		scProcessor: &testscommon.SCProcessorMock{},
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.PenalizedTooMuchGasFlag
-			},
-		},
-		txVersionChecker: &testscommon.TxVersionCheckerStub{},
-		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
+		hasher:              &hashingMocks.HasherMock{},
+		marshalizer:         &marshallerMock.MarshalizerMock{},
+		scProcessor:         &testscommon.SCProcessorMock{},
+		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag),
+		txVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		guardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return &baseProc
@@ -211,16 +206,12 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 				return big.NewInt(0)
 			},
 		},
-		hasher:      &hashingMocks.HasherMock{},
-		marshalizer: &marshallerMock.MarshalizerMock{},
-		scProcessor: &testscommon.SCProcessorMock{},
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.PenalizedTooMuchGasFlag
-			},
-		},
-		txVersionChecker: &testscommon.TxVersionCheckerStub{},
-		guardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
+		hasher:              &hashingMocks.HasherMock{},
+		marshalizer:         &marshallerMock.MarshalizerMock{},
+		scProcessor:         &testscommon.SCProcessorMock{},
+		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag),
+		txVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		guardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	notGuardedAccount := &stateMock.UserAccountStub{}

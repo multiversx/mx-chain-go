@@ -1104,26 +1104,6 @@ func (v *validatorSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error
 	return v.eei.ExecuteOnDestContext(v.stakingSCAddress, v.validatorSCAddress, big.NewInt(0), data)
 }
 
-// nolint
-func (v *validatorSC) setOwnerOfBlsKey(blsKey []byte, ownerAddress []byte) bool {
-	vmOutput, err := v.executeOnStakingSC([]byte("setOwner@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(ownerAddress)))
-	if err != nil {
-		v.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %s, error %s", hex.EncodeToString(blsKey), err.Error()))
-		v.eei.Finish(blsKey)
-		v.eei.Finish([]byte{failed})
-		return false
-
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		v.eei.AddReturnMessage(fmt.Sprintf("cannot set owner for key %s, error %s", hex.EncodeToString(blsKey), vmOutput.ReturnCode.String()))
-		v.eei.Finish(blsKey)
-		v.eei.Finish([]byte{failed})
-		return false
-	}
-
-	return true
-}
-
 func (v *validatorSC) basicChecksForUnStakeNodes(args *vmcommon.ContractCallInput) (*ValidatorDataV2, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
@@ -2107,13 +2087,6 @@ func (v *validatorSC) changeOwnerAndRewardAddressOnStaking(registrationData *Val
 		return vmOutput.ReturnCode
 	}
 
-	return vmcommon.Ok
-}
-
-// nolint
-func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	// TODO: implement this. It is needed as last component of slashing. Slashing should happen to the funds of the
-	// validator which is running the nodes
 	return vmcommon.Ok
 }
 

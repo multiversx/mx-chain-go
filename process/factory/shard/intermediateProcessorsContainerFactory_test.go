@@ -3,7 +3,6 @@ package shard_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -57,18 +56,14 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockArgsNewIntermediateProcessorsFactory() shard.ArgsNewIntermediateProcessorsContainerFactory {
 	args := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		Hasher:           &hashingMocks.HasherMock{},
-		Marshalizer:      &mock.MarshalizerMock{},
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConverter:  createMockPubkeyConverter(),
-		Store:            &storageStubs.ChainStorerStub{},
-		PoolsHolder:      createDataPools(),
-		EconomicsFee:     &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.KeepExecOrderOnCreatedSCRsFlag
-			},
-		},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConverter:     createMockPubkeyConverter(),
+		Store:               &storageStubs.ChainStorerStub{},
+		PoolsHolder:         createDataPools(),
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 	}
 	return args
 }

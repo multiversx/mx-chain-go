@@ -35,19 +35,15 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:  testscommon.NewPubkeyConverterMock(32),
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerStub{},
-		PeerState:   &stateMock.AccountsStub{},
-		BaseState:   &stateMock.AccountsStub{},
-		ArgParser:   &mock.ArgumentParserMock{},
-		CurrTxs:     &mock.TxForCurrentBlockStub{},
-		RatingsData: &mock.RatingsInfoMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.StakeFlag || flag == common.ValidatorToDelegationFlag
-			},
-		},
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerStub{},
+		PeerState:           &stateMock.AccountsStub{},
+		BaseState:           &stateMock.AccountsStub{},
+		ArgParser:           &mock.ArgumentParserMock{},
+		CurrTxs:             &mock.TxForCurrentBlockStub{},
+		RatingsData:         &mock.RatingsInfoMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag),
 	}
 }
 
@@ -65,7 +61,7 @@ func createBlockBody() *block.Body {
 }
 
 func createStakingScAccount() state.UserAccountHandler {
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})
 	return userAcc

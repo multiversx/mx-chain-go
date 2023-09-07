@@ -25,16 +25,12 @@ import (
 func createMockArguments() ArgNewTxTypeHandler {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgNewTxTypeHandler{
-		PubkeyConverter:    createMockPubkeyConverter(),
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.ESDTMetadataContinuousCleanupFlag
-			},
-		},
+		PubkeyConverter:     createMockPubkeyConverter(),
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTMetadataContinuousCleanupFlag),
 	}
 }
 

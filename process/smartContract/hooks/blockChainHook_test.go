@@ -61,7 +61,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:   enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		NilCompiledSCStore:    true,
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
@@ -431,11 +431,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MaxBlockchainHookCountersFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
 				return expectedErr
@@ -484,11 +480,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MaxBlockchainHookCountersFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
 				counterProcessedCalled = true
@@ -518,11 +510,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MaxBlockchainHookCountersFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			CurrentShard: core.MetachainShardId,
 		}
@@ -844,11 +832,7 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
-	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			return flag == common.DoNotReturnOldBlockInBlockchainHookFlag
-		},
-	}
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DoNotReturnOldBlockInBlockchainHookFlag)
 	nonce := uint64(10)
 	header := &block.Header{Nonce: nonce}
 	shardID := args.ShardCoordinator.SelfId()
@@ -1004,11 +988,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.DoNotReturnOldBlockInBlockchainHookFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DoNotReturnOldBlockInBlockchainHookFlag)
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet
@@ -1158,11 +1138,7 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 			return acc, nil
 		},
 	}
-	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			return flag == common.PayableBySCFlag
-		},
-	}
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 	isPayable, err := bh.IsPayable(make([]byte, 32), make([]byte, 32))
@@ -1767,11 +1743,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MaxBlockchainHookCountersFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.BuiltInFunctions = builtInFunctionsContainer
 
 		args.Accounts = &stateMock.AccountsStub{
@@ -1804,11 +1776,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MaxBlockchainHookCountersFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.BuiltInFunctions = builtInFunctionsContainer
 
 		args.Accounts = &stateMock.AccountsStub{
@@ -1842,11 +1810,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MaxBlockchainHookCountersFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.BuiltInFunctions = builtInFunctionsContainer
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			CurrentShard: core.MetachainShardId,
@@ -1943,18 +1907,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return errMarshaller
 			},
 		}
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-			return false
-		}
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		require.Nil(t, esdtData)
 		require.Equal(t, errMarshaller, err)
@@ -1986,18 +1944,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-			return false
-		}
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Nil(t, esdtData)
 		assert.Equal(t, state.ErrNilTrie, err)
@@ -2018,18 +1970,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-			return false
-		}
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, emptyESDTData, esdtData)
 		assert.Nil(t, err)
@@ -2049,18 +1995,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-			return false
-		}
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -2078,18 +2018,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-			return false
-		}
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -2112,11 +2046,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return nil, false, expectedErr
 			},
 		}
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -2143,11 +2073,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return &copyToken, false, nil
 			},
 		}
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.OptimizeNFTStoreFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -2186,11 +2112,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.PayableBySCFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		provided := vmcommon.CodeMetadata{
@@ -2260,11 +2182,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.PayableBySCFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF, 0xFF}
@@ -2276,11 +2194,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.PayableBySCFlag
-			},
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF}

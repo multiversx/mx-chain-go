@@ -100,7 +100,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 			},
 		},
 		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:         enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
 		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
@@ -123,11 +123,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxComputableRounds:                  1000,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SwitchJailWaitingFlag || flag == common.BelowSignedThresholdFlag
-			},
-		},
+		EnableEpochsHandler:                  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
 	}
 	return arguments
 }
@@ -1409,6 +1405,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.RemoveActiveFlags(common.StopDecreasingValidatorRatingWhenStuckFlag)
 	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1419,9 +1416,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	require.Equal(t, 99, validatorRating)
 
 	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.SwitchJailWaitingFlag || flag == common.BelowSignedThresholdFlag || flag == common.StopDecreasingValidatorRatingWhenStuckFlag
-	}
+	enableEpochsHandler.AddActiveFlags(common.StopDecreasingValidatorRatingWhenStuckFlag)
 	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
 	require.Equal(t, 98, validatorRating)
@@ -2325,12 +2320,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.SwitchJailWaitingFlag ||
-			flag == common.BelowSignedThresholdFlag ||
-			flag == common.StakingV2Flag ||
-			flag == common.StakingV2FlagAfterEpoch
-	}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2FlagAfterEpoch)
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

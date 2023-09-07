@@ -34,19 +34,15 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsProcessor {
 	args := ArgsNewIntermediateResultsProcessor{
-		Hasher:       &hashingMocks.HasherMock{},
-		Marshalizer:  &mock.MarshalizerMock{},
-		Coordinator:  mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConv:   createMockPubkeyConverter(),
-		Store:        &storage.ChainStorerStub{},
-		BlockType:    block.SmartContractResultBlock,
-		CurrTxs:      &mock.TxForCurrentBlockStub{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.KeepExecOrderOnCreatedSCRsFlag
-			},
-		},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Coordinator:         mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConv:          createMockPubkeyConverter(),
+		Store:               &storage.ChainStorerStub{},
+		BlockType:           block.SmartContractResultBlock,
+		CurrTxs:             &mock.TxForCurrentBlockStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 	}
 
 	return args
@@ -649,11 +645,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 			return maxGasLimitPerBlock
 		},
 	}
-	enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			return false
-		},
-	}
+	enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args.EnableEpochsHandler = enableEpochHandler
 	irp, err := NewIntermediateResultsProcessor(args)
 
@@ -699,9 +691,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 
-	enableEpochHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
-		return flag == common.KeepExecOrderOnCreatedSCRsFlag
-	}
+	enableEpochHandler.AddActiveFlags(common.KeepExecOrderOnCreatedSCRsFlag)
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, err, process.ErrMiniBlockHashMismatch)
 

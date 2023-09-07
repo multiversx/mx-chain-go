@@ -9,8 +9,8 @@ import (
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
 	sync.RWMutex
-	GetCurrentEpochCalled func() uint32
-
+	activeFlags                map[core.EnableEpochFlag]struct{}
+	GetCurrentEpochCalled      func() uint32
 	IsFlagDefinedCalled        func(flag core.EnableEpochFlag) bool
 	IsFlagEnabledCalled        func(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpochCalled func(flag core.EnableEpochFlag, epoch uint32) bool
@@ -20,9 +20,42 @@ type EnableEpochsHandlerStub struct {
 // NewEnableEpochsHandlerStubWithNoFlagsDefined -
 func NewEnableEpochsHandlerStubWithNoFlagsDefined() *EnableEpochsHandlerStub {
 	return &EnableEpochsHandlerStub{
+		activeFlags: 		 make(map[core.EnableEpochFlag]struct{}),
 		IsFlagDefinedCalled: func(flag core.EnableEpochFlag) bool {
 			return false
 		},
+	}
+}
+
+// NewEnableEpochsHandlerStub -
+func NewEnableEpochsHandlerStub(flags ...core.EnableEpochFlag) *EnableEpochsHandlerStub {
+	stub := &EnableEpochsHandlerStub{
+		activeFlags: make(map[core.EnableEpochFlag]struct{}),
+	}
+	for _, flag := range flags {
+		stub.activeFlags[flag] = struct{}{}
+	}
+
+	return stub
+}
+
+// AddActiveFlags -
+func (stub *EnableEpochsHandlerStub) AddActiveFlags(flags ...core.EnableEpochFlag) {
+	stub.Lock()
+	defer stub.Unlock()
+
+	for _, flag := range flags {
+		stub.activeFlags[flag] = struct{}{}
+	}
+}
+
+// RemoveActiveFlags -
+func (stub *EnableEpochsHandlerStub) RemoveActiveFlags(flags ...core.EnableEpochFlag) {
+	stub.Lock()
+	defer stub.Unlock()
+
+	for _, flag := range flags {
+		delete(stub.activeFlags, flag)
 	}
 }
 
@@ -47,7 +80,11 @@ func (stub *EnableEpochsHandlerStub) IsFlagEnabled(flag core.EnableEpochFlag) bo
 	if stub.IsFlagEnabledCalled != nil {
 		return stub.IsFlagEnabledCalled(flag)
 	}
-	return false
+
+	stub.RLock()
+	defer stub.RUnlock()
+	_, found := stub.activeFlags[flag]
+	return found
 }
 
 // IsFlagEnabledInEpoch -
