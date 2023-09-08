@@ -113,7 +113,7 @@ func (r *RunTypeComponentsStub) AdditionalStorageServiceCreator() process.Additi
 }
 
 // SCProcessorCreator -
-func (r *RunTypeComponentsMock) SCProcessorCreator() scrCommon.SCProcessorCreator {
+func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreator {
 	return r.SCProcessorFactory
 }
 
