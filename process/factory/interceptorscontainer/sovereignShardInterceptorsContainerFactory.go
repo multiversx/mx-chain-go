@@ -1,7 +1,6 @@
 package interceptorscontainer
 
 import (
-	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -14,7 +13,7 @@ import (
 // sovereignShardInterceptorsContainerFactory will handle the creation of sovereign interceptors container
 type sovereignShardInterceptorsContainerFactory struct {
 	*shardInterceptorsContainerFactory
-	IncomingHeaderSubscriber processing.IncomingHeaderSubscriber
+	IncomingHeaderSubscriber IncomingHeaderSubscriber
 }
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory
@@ -50,13 +49,16 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderInterceptors() error {
 	shardC := sicf.shardCoordinator
 
-	hdrFactory, err := interceptorFactory.NewSovereignInterceptedShardHeaderDataFactory(sicf.argInterceptorFactory)
+	argsHdrFactory := interceptorFactory.ArgsSovereignInterceptedExtendedHeaderFactory{
+		Marshaller: sicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+		Hasher:     sicf.argInterceptorFactory.CoreComponents.Hasher(),
+	}
+	hdrFactory, err := interceptorFactory.NewSovereignInterceptedShardHeaderDataFactory(argsHdrFactory)
 	if err != nil {
 		return err
 	}
 
 	argProcessor := &processor.ArgsSovereignHeaderInterceptorProcessor{
-		Headers:                  sicf.dataPool.Headers(),
 		BlockBlackList:           sicf.blockBlackList,
 		Hasher:                   sicf.argInterceptorFactory.CoreComponents.Hasher(),
 		Marshaller:               sicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
@@ -69,7 +71,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderI
 
 	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	// only one intrashard header topic
+	// only one intra shard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHdr,

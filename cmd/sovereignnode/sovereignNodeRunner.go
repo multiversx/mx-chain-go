@@ -419,25 +419,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	marshaller, err := marshallerFactory.NewMarshalizer(configs.NotifierConfig.WebSocketConfig.MarshallerType)
-	if err != nil {
-		return true, err
-	}
-	hasher, err := hasherFactory.NewHasher(configs.NotifierConfig.WebSocketConfig.HasherType)
-	if err != nil {
-		return true, err
-	}
-
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
-		HeadersPool: managedDataComponents.Datapool().Headers(),
-		TxPool:      managedDataComponents.Datapool().UnsignedTransactions(),
-		Marshaller:  marshaller,
-		Hasher:      hasher,
-	}
-	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
-	if err != nil {
-		return true, err
-	}
+	incomingHeaderHandler, err := createIncomingHeaderProcessor(
+		configs.NotifierConfig,
+		managedDataComponents.Datapool(),
+	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedCoreComponents,
@@ -515,7 +500,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	sovereignWsReceiver, err := createSovereignWsReceiver(
-		managedDataComponents.Datapool(),
 		configs.NotifierConfig,
 		incomingHeaderHandler,
 	)
@@ -1694,8 +1678,30 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func createSovereignWsReceiver(
+func createIncomingHeaderProcessor(
+	config *sovereignConfig.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
+) (notifierProcess.IncomingHeaderSubscriber, error) {
+	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	if err != nil {
+		return nil, err
+	}
+	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	if err != nil {
+		return nil, err
+	}
+
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
+		HeadersPool: dataPool.Headers(),
+		TxPool:      dataPool.UnsignedTransactions(),
+		Marshaller:  marshaller,
+		Hasher:      hasher,
+	}
+
+	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
+}
+
+func createSovereignWsReceiver(
 	config *sovereignConfig.NotifierConfig,
 	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {

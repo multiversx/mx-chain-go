@@ -113,6 +113,12 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
+// ExtendedHeaderValidatorHandler defines extended header validator functionality
+type ExtendedHeaderValidatorHandler interface {
+	Hash() []byte
+	GetExtendedHeader() data.ShardHeaderExtendedHandler
+}
+
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
