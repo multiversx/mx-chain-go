@@ -10,6 +10,7 @@ import (
 const pathForMainConfig = "../../cmd/node/config/config.toml"
 const pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
 const pathForGasSchedules = "../../cmd/node/config/gasSchedules"
+const nodesSetupConfig = "../../cmd/node/config/nodesSetup.json"
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	mainConfig := config.Config{}
@@ -24,12 +25,20 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	assert.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
-		Config:              mainConfig,
-		EnableEpochsConfig:  config.EnableEpochs{},
+		Config:             mainConfig,
+		EnableEpochsConfig: config.EnableEpochs{},
+		RoundsConfig: config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "18446744073709551614",
+				},
+			},
+		},
 		EconomicsConfig:     economicsConfig,
 		GasScheduleFilename: gasScheduleName,
-		NumShards:           0,
-		ShardID:             3,
+		NodesSetupPath:      nodesSetupConfig,
+		NumShards:           3,
+		ShardID:             0,
 	}
 }
 
