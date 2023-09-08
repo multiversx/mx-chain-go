@@ -6,11 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // AccountFactory creates an account of different types
@@ -24,47 +21,6 @@ type Updater interface {
 	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
 	IsInterfaceNil() bool
-}
-
-// PeerAccountHandler models a peer state account, which can journalize a normal account's data
-// with some extra features like signing statistics or rating information
-type PeerAccountHandler interface {
-	GetBLSPublicKey() []byte
-	SetBLSPublicKey([]byte) error
-	GetRewardAddress() []byte
-	SetRewardAddress([]byte) error
-	GetAccumulatedFees() *big.Int
-	AddToAccumulatedFees(*big.Int)
-	GetList() string
-	GetPreviousList() string
-	GetIndexInList() uint32
-	GetPreviousIndexInList() uint32
-	GetShardId() uint32
-	SetUnStakedEpoch(epoch uint32)
-	GetUnStakedEpoch() uint32
-	IncreaseLeaderSuccessRate(uint32)
-	DecreaseLeaderSuccessRate(uint32)
-	IncreaseValidatorSuccessRate(uint32)
-	DecreaseValidatorSuccessRate(uint32)
-	IncreaseValidatorIgnoredSignaturesRate(uint32)
-	GetNumSelectedInSuccessBlocks() uint32
-	IncreaseNumSelectedInSuccessBlocks()
-	GetLeaderSuccessRate() SignRate
-	GetValidatorSuccessRate() SignRate
-	GetValidatorIgnoredSignaturesRate() uint32
-	GetTotalLeaderSuccessRate() SignRate
-	GetTotalValidatorSuccessRate() SignRate
-	GetTotalValidatorIgnoredSignaturesRate() uint32
-	SetListAndIndex(shardID uint32, list string, index uint32, updatePreviousValues bool)
-	GetRating() uint32
-	SetRating(uint32)
-	GetTempRating() uint32
-	SetTempRating(uint32)
-	GetConsecutiveProposerMisses() uint32
-	SetConsecutiveProposerMisses(uint322 uint32)
-	ResetAtNewEpoch()
-	SetPreviousList(list string)
-	vmcommon.AccountHandler
 }
 
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
@@ -86,6 +42,7 @@ type AccountsAdapter interface {
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
+	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
@@ -93,7 +50,6 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -101,6 +57,7 @@ type AccountsAdapter interface {
 // SnapshotsManager defines the methods for the snapshot manager
 type SnapshotsManager interface {
 	SnapshotState(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
+	SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager)
 	StartSnapshotAfterRestartIfNeeded(trieStorageManager common.StorageManager) error
 	IsSnapshotInProgress() bool
 	SetSyncer(syncer AccountsDBSyncer) error
@@ -163,7 +120,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -225,6 +182,44 @@ type DataTrie interface {
 	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
 
+// PeerAccountHandler models a peer state account, which can journalize a normal account's data
+//
+//	with some extra features like signing statistics or rating information
+type PeerAccountHandler interface {
+	SetBLSPublicKey([]byte) error
+	GetRewardAddress() []byte
+	SetRewardAddress([]byte) error
+	GetAccumulatedFees() *big.Int
+	AddToAccumulatedFees(*big.Int)
+	GetList() string
+	GetIndexInList() uint32
+	GetShardId() uint32
+	SetUnStakedEpoch(epoch uint32)
+	GetUnStakedEpoch() uint32
+	IncreaseLeaderSuccessRate(uint32)
+	DecreaseLeaderSuccessRate(uint32)
+	IncreaseValidatorSuccessRate(uint32)
+	DecreaseValidatorSuccessRate(uint32)
+	IncreaseValidatorIgnoredSignaturesRate(uint32)
+	GetNumSelectedInSuccessBlocks() uint32
+	IncreaseNumSelectedInSuccessBlocks()
+	GetLeaderSuccessRate() SignRate
+	GetValidatorSuccessRate() SignRate
+	GetValidatorIgnoredSignaturesRate() uint32
+	GetTotalLeaderSuccessRate() SignRate
+	GetTotalValidatorSuccessRate() SignRate
+	GetTotalValidatorIgnoredSignaturesRate() uint32
+	SetListAndIndex(shardID uint32, list string, index uint32)
+	GetRating() uint32
+	SetRating(uint32)
+	GetTempRating() uint32
+	SetTempRating(uint32)
+	GetConsecutiveProposerMisses() uint32
+	SetConsecutiveProposerMisses(uint322 uint32)
+	ResetAtNewEpoch()
+	vmcommon.AccountHandler
+}
+
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
@@ -261,7 +256,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -272,101 +267,9 @@ type SignRate interface {
 	GetNumFailure() uint32
 }
 
-// StateStatsHandler defines the behaviour needed to handler state statistics
-type StateStatsHandler interface {
-	ResetSnapshot()
-	SnapshotStats() []string
-	IsInterfaceNil() bool
-}
-
-// LastSnapshotMarker manages the lastSnapshot marker operations
-type LastSnapshotMarker interface {
-	AddMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
-	RemoveMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
-	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
-	IsInterfaceNil() bool
-}
-
-// ShardValidatorsInfoMapHandler shall be used to manage operations inside
-// a <shardID, []ValidatorInfoHandler> map in a concurrent-safe way.
-type ShardValidatorsInfoMapHandler interface {
-	GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler
-	GetAllValidatorsInfo() []ValidatorInfoHandler
-	GetValidator(blsKey []byte) ValidatorInfoHandler
-
-	Add(validator ValidatorInfoHandler) error
-	Delete(validator ValidatorInfoHandler) error
-	DeleteByKey(blsKey []byte, shardID uint32)
-	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
-	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool
-	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
-	SetValidatorsInShardUnsafe(shardID uint32, validators []ValidatorInfoHandler)
-}
-
-// ValidatorInfoHandler defines which data shall a validator info hold.
-type ValidatorInfoHandler interface {
-	IsInterfaceNil() bool
-
-	GetPublicKey() []byte
-	GetShardId() uint32
-	GetList() string
-	GetIndex() uint32
-	GetPreviousIndex() uint32
-	GetTempRating() uint32
-	GetRating() uint32
-	GetRatingModifier() float32
-	GetRewardAddress() []byte
-	GetLeaderSuccess() uint32
-	GetLeaderFailure() uint32
-	GetValidatorSuccess() uint32
-	GetValidatorFailure() uint32
-	GetValidatorIgnoredSignatures() uint32
-	GetNumSelectedInSuccessBlocks() uint32
-	GetAccumulatedFees() *big.Int
-	GetTotalLeaderSuccess() uint32
-	GetTotalLeaderFailure() uint32
-	GetTotalValidatorSuccess() uint32
-	GetTotalValidatorFailure() uint32
-	GetTotalValidatorIgnoredSignatures() uint32
-	GetPreviousList() string
-
-	SetPublicKey(publicKey []byte)
-	SetShardId(shardID uint32)
-	SetPreviousList(list string)
-	SetList(list string)
-	SetIndex(index uint32)
-	SetListAndIndex(list string, index uint32, updatePreviousValues bool)
-	SetTempRating(tempRating uint32)
-	SetRating(rating uint32)
-	SetRatingModifier(ratingModifier float32)
-	SetRewardAddress(rewardAddress []byte)
-	SetLeaderSuccess(leaderSuccess uint32)
-	SetLeaderFailure(leaderFailure uint32)
-	SetValidatorSuccess(validatorSuccess uint32)
-	SetValidatorFailure(validatorFailure uint32)
-	SetValidatorIgnoredSignatures(validatorIgnoredSignatures uint32)
-	SetNumSelectedInSuccessBlocks(numSelectedInSuccessBlock uint32)
-	SetAccumulatedFees(accumulatedFees *big.Int)
-	SetTotalLeaderSuccess(totalLeaderSuccess uint32)
-	SetTotalLeaderFailure(totalLeaderFailure uint32)
-	SetTotalValidatorSuccess(totalValidatorSuccess uint32)
-	SetTotalValidatorFailure(totalValidatorFailure uint32)
-	SetTotalValidatorIgnoredSignatures(totalValidatorIgnoredSignatures uint32)
-
-	ShallowClone() ValidatorInfoHandler
-	String() string
-	GoString() string
-}
-
-// StateChangesCollector defines the methods needed for an StateChangesCollector implementation
 type StateChangesCollector interface {
-	AddStateChange(stateChange stateChanges.StateChange)
-	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange)
+	AddStateChange(stateChange StateChangeDTO)
+	GetStateChanges() []StateChangeDTO
 	Reset()
-	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
-	SetIndexToLastStateChange(index int) error
-	RevertToIndex(index int) error
-	Publish() error
-	RetrieveStateChanges() []stateChanges.StateChange
 	IsInterfaceNil() bool
 }

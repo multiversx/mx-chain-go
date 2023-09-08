@@ -11,7 +11,6 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -22,31 +21,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDefaultTrackableDataTrie() state.DataTrieTracker {
-	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-		[]byte("identifier"),
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
-		stateChanges.NewStateChangesCollector(),
-	)
-
-	return tdt
-}
-
 func TestNewTrackableDataTrie(t *testing.T) {
 	t.Parallel()
 
 	t.Run("create with nil hasher", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, err := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			nil,
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), nil, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.Equal(t, state.ErrNilHasher, err)
 		assert.True(t, check.IfNil(tdt))
 	})
@@ -54,13 +35,7 @@ func TestNewTrackableDataTrie(t *testing.T) {
 	t.Run("create with nil marshaller", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, err := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			nil,
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.Equal(t, state.ErrNilMarshalizer, err)
 		assert.True(t, check.IfNil(tdt))
 	})
@@ -68,41 +43,15 @@ func TestNewTrackableDataTrie(t *testing.T) {
 	t.Run("create with nil enableEpochsHandler", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, err := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			nil,
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, nil)
 		assert.Equal(t, state.ErrNilEnableEpochsHandler, err)
-		assert.True(t, check.IfNil(tdt))
-	})
-
-	t.Run("create with invalid enableEpochsHandler", func(t *testing.T) {
-		t.Parallel()
-
-		tdt, err := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
-			stateChanges.NewStateChangesCollector(),
-		)
-		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 		assert.True(t, check.IfNil(tdt))
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, err := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(tdt))
 	})
@@ -114,13 +63,7 @@ func TestTrackableDataTrie_SaveKeyValue(t *testing.T) {
 	t.Run("data too large", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		err := tdt.SaveKeyValue([]byte("key"), make([]byte, core.MaxLeafSize+1))
 		assert.Equal(t, err, data.ErrLeafSizeTooBig)
@@ -141,13 +84,7 @@ func TestTrackableDataTrie_SaveKeyValue(t *testing.T) {
 				return nil, 0, nil
 			},
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
 
@@ -180,19 +117,13 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 				return nil, 0, nil
 			},
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
 
 		valRecovered, _, err := tdt.RetrieveValue(key)
-		assert.Nil(t, err)
 		assert.Equal(t, retrievedTrieVal, valRecovered)
+		assert.Nil(t, err)
 
 		_ = tdt.SaveKeyValue(key, newTrieValue)
 		valRecovered, _, err = tdt.RetrieveValue(key)
@@ -203,13 +134,7 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 	t.Run("nil data trie should err", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, err := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, err := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.Nil(t, err)
 		assert.NotNil(t, tdt)
 
@@ -235,17 +160,9 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: true,
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
 
@@ -276,17 +193,9 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return false
-			},
+			IsAutoBalanceDataTriesEnabledField: false,
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandler)
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
 
@@ -321,17 +230,9 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: true,
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
 
@@ -350,13 +251,7 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 				return nil, 0, errExpected
 			},
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
 
@@ -382,16 +277,13 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: true,
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
 			identifier,
 			hasher,
 			marshaller,
 			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
 		)
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
@@ -418,16 +310,13 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: false,
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
 			identifier,
 			hasher,
 			marshaller,
 			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
 		)
 		assert.NotNil(t, tdt)
 		tdt.SetDataTrie(trie)
@@ -444,13 +333,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 	t.Run("no dirty data", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		stateChanges, oldValues, err := tdt.SaveDirtyData(&trieMock.TrieStub{})
 		assert.Nil(t, err)
@@ -475,14 +358,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				}, nil
 			},
 		}
-
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		key := []byte("key")
 		val := []byte("val")
@@ -503,27 +379,21 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		expectedVal := []byte("value")
+		value := append(expectedVal, expectedKey...)
+		value = append(value, identifier...)
 		hasher := &hashingMocks.HasherMock{}
 		marshaller := &marshallerMock.MarshalizerMock{}
 		deleteCalled := false
 		updateCalled := false
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
-		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
 
-		expectedKey := []byte("key")
-		expectedVal := []byte("value")
-		value := tdt.GetValueForVersion(expectedKey, expectedVal, core.NotSpecified)
-		serializedTrieVal := tdt.GetValueForVersion(expectedKey, expectedVal, core.AutoBalanceEnabled)
+		trieVal := &dataTrieValue.TrieLeafData{
+			Value:   expectedVal,
+			Key:     expectedKey,
+			Address: identifier,
+		}
+		serializedTrieVal, _ := marshaller.Marshal(trieVal)
 
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
@@ -545,17 +415,18 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ = trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler, stateChanges.NewStateChangesCollector())
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, expectedVal)
 		stateChanges, oldValues, err := tdt.SaveDirtyData(trie)
 		assert.Nil(t, err)
-		assert.Equal(t, 2, len(oldValues))
+		assert.Equal(t, 1, len(oldValues))
 		assert.Equal(t, expectedKey, oldValues[0].Key)
 		assert.Equal(t, value, oldValues[0].Value)
-		assert.Equal(t, hasher.Compute(string(expectedKey)), oldValues[1].Key)
-		assert.Equal(t, []byte(nil), oldValues[1].Value)
 		assert.Equal(t, 2, len(stateChanges))
 		assert.Equal(t, hasher.Compute(string(expectedKey)), stateChanges[0].Key)
 		assert.Equal(t, serializedTrieVal, stateChanges[0].Val)
@@ -569,26 +440,13 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		val := []byte("value")
+		expectedVal := append(val, expectedKey...)
+		expectedVal = append(expectedVal, identifier...)
 		hasher := &hashingMocks.HasherMock{}
 		marshaller := &marshallerMock.MarshalizerMock{}
 		updateCalled := false
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return false
-			},
-		}
-
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
-
-		expectedKey := []byte("key")
-		val := []byte("value")
-		expectedVal := tdt.GetValueForVersion(expectedKey, val, core.NotSpecified)
 
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
@@ -609,7 +467,10 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ = trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler, stateChanges.NewStateChangesCollector())
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: false,
+		}
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, val)
@@ -628,27 +489,26 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		identifier := []byte("identifier")
-		hasher := &hashingMocks.HasherMock{}
-		marshaller := &marshallerMock.MarshalizerMock{}
-		updateCalled := false
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
-		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
-
 		expectedKey := []byte("key")
 		newVal := []byte("value")
 		oldVal := []byte("old val")
-		serializedOldTrieVal := tdt.GetValueForVersion(expectedKey, oldVal, core.AutoBalanceEnabled)
-		serializedNewTrieVal := tdt.GetValueForVersion(expectedKey, newVal, core.AutoBalanceEnabled)
+		hasher := &hashingMocks.HasherMock{}
+		marshaller := &marshallerMock.MarshalizerMock{}
+		updateCalled := false
+
+		oldTrieVal := &dataTrieValue.TrieLeafData{
+			Value:   oldVal,
+			Key:     expectedKey,
+			Address: identifier,
+		}
+		serializedOldTrieVal, _ := marshaller.Marshal(oldTrieVal)
+
+		newTrieVal := &dataTrieValue.TrieLeafData{
+			Value:   newVal,
+			Key:     expectedKey,
+			Address: identifier,
+		}
+		serializedNewTrieVal, _ := marshaller.Marshal(newTrieVal)
 
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
@@ -669,13 +529,10 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ = trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, newVal)
@@ -694,25 +551,18 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		newVal := []byte("value")
 		hasher := &hashingMocks.HasherMock{}
 		marshaller := &marshallerMock.MarshalizerMock{}
 		updateCalled := false
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
-		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
 
-		expectedKey := []byte("key")
-		newVal := []byte("value")
-		serializedNewTrieVal := tdt.GetValueForVersion(expectedKey, newVal, core.AutoBalanceEnabled)
+		newTrieVal := &dataTrieValue.TrieLeafData{
+			Value:   newVal,
+			Key:     expectedKey,
+			Address: identifier,
+		}
+		serializedNewTrieVal, _ := marshaller.Marshal(newTrieVal)
 
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
@@ -730,7 +580,10 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ = trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler, stateChanges.NewStateChangesCollector())
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: true,
+		}
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, hasher, marshaller, enableEpochsHandler)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, newVal)
@@ -760,7 +613,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, stateChanges.NewStateChangesCollector())
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, val)
@@ -785,7 +638,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, stateChanges.NewStateChangesCollector())
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, nil)
@@ -814,7 +667,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			},
 		}
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, stateChanges.NewStateChangesCollector())
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, nil)
@@ -847,11 +700,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: true,
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs, stateChanges.NewStateChangesCollector())
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, nil)
@@ -885,11 +736,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		}
 
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: true,
 		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs, stateChanges.NewStateChangesCollector())
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, nil)
@@ -906,25 +755,13 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		t.Parallel()
 
 		identifier := []byte("identifier")
+		expectedKey := []byte("key")
+		newVal := []byte("value")
+		valueWithMetadata := append(newVal, expectedKey...)
+		valueWithMetadata = append(valueWithMetadata, identifier...)
 		hasher := &hashingMocks.HasherMock{}
 		marshaller := &marshallerMock.MarshalizerMock{}
 		updateCalled := false
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return false
-			},
-		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
-
-		expectedKey := []byte("key")
-		newVal := []byte("value")
-		valueWithMetadata := tdt.GetValueForVersion(expectedKey, newVal, core.NotSpecified)
 
 		trie := &trieMock.TrieStub{
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
@@ -941,6 +778,16 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				return nil
 			},
 		}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsAutoBalanceDataTriesEnabledField: false,
+		}
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
+			identifier,
+			hasher,
+			marshaller,
+			enableEpochsHandler,
+		)
 		tdt.SetDataTrie(trie)
 
 		_ = tdt.SaveKeyValue(expectedKey, newVal)
@@ -954,81 +801,6 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		assert.Equal(t, expectedKey, stateChanges[0].Key)
 		assert.Equal(t, valueWithMetadata, stateChanges[0].Val)
 	})
-
-	t.Run("state changes are ordered deterministically", func(t *testing.T) {
-		t.Parallel()
-
-		identifier := []byte("identifier")
-		hasher := &hashingMocks.HasherMock{}
-		marshaller := &marshallerMock.MarshalizerMock{}
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return true
-			},
-		}
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			identifier,
-			hasher,
-			marshaller,
-			enableEpochsHandler,
-			stateChanges.NewStateChangesCollector(),
-		)
-
-		key1 := "key1"
-		key2 := "key2"
-		key3 := "key3"
-		key4 := "key4"
-
-		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				if bytes.Equal(key, []byte(key1)) {
-					return tdt.GetValueForVersion([]byte(key1), []byte("value1"), core.NotSpecified), 0, nil
-				}
-				if bytes.Equal(key, []byte(key2)) {
-					return tdt.GetValueForVersion([]byte(key2), []byte("value2"), core.NotSpecified), 0, nil
-				}
-				if bytes.Equal(key, hasher.Compute(key3)) {
-					return tdt.GetValueForVersion([]byte(key3), []byte("value3"), core.AutoBalanceEnabled), 0, nil
-				}
-				if bytes.Equal(key, hasher.Compute(key4)) {
-					return tdt.GetValueForVersion([]byte(key4), []byte("value4"), core.AutoBalanceEnabled), 0, nil
-				}
-
-				return nil, 0, nil
-			},
-			UpdateWithVersionCalled: func(_, _ []byte, _ core.TrieNodeVersion) error {
-				return nil
-			},
-			DeleteCalled: func(_ []byte) error {
-				return nil
-			},
-		}
-		tdt.SetDataTrie(trie)
-
-		_ = tdt.SaveKeyValue([]byte(key1), []byte("value"))
-		_ = tdt.SaveKeyValue([]byte(key2), []byte("value"))
-		_ = tdt.SaveKeyValue([]byte(key3), []byte("value"))
-		_ = tdt.SaveKeyValue([]byte(key4), nil)
-		_ = tdt.SaveKeyValue([]byte("non existent key"), nil)
-
-		stateChanges, oldVals, err := tdt.SaveDirtyData(trie)
-		assert.Nil(t, err)
-		assert.Equal(t, 7, len(oldVals))
-		assert.Equal(t, 6, len(stateChanges))
-
-		assert.Equal(t, hasher.Compute(key1), stateChanges[0].Key)
-		assert.Equal(t, tdt.GetValueForVersion([]byte(key1), []byte("value"), core.AutoBalanceEnabled), stateChanges[0].Val)
-		assert.Equal(t, hasher.Compute(key2), stateChanges[1].Key)
-		assert.Equal(t, tdt.GetValueForVersion([]byte(key2), []byte("value"), core.AutoBalanceEnabled), stateChanges[1].Val)
-		assert.Equal(t, hasher.Compute(key3), stateChanges[2].Key)
-		assert.Equal(t, tdt.GetValueForVersion([]byte(key3), []byte("value"), core.AutoBalanceEnabled), stateChanges[2].Val)
-		assert.Equal(t, hasher.Compute(key4), stateChanges[3].Key)
-		assert.Equal(t, []byte(nil), stateChanges[3].Val)
-		assert.Equal(t, []byte(key1), stateChanges[4].Key)
-		assert.Equal(t, []byte(nil), stateChanges[4].Val)
-		assert.Equal(t, []byte(key2), stateChanges[5].Key)
-		assert.Equal(t, []byte(nil), stateChanges[5].Val)
-	})
 }
 
 func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
@@ -1037,13 +809,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 	t.Run("nil trie", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		args := vmcommon.ArgsMigrateDataTrieLeaves{
 			OldVersion:   core.NotSpecified,
 			NewVersion:   core.AutoBalanceEnabled,
@@ -1056,13 +822,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 	t.Run("nil trie migrator", func(t *testing.T) {
 		t.Parallel()
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tdt.SetDataTrie(&trieMock.TrieStub{})
 
 		args := vmcommon.ArgsMigrateDataTrieLeaves{
@@ -1084,13 +844,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			},
 		}
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			[]byte("identifier"),
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		tdt.SetDataTrie(tr)
 		args := vmcommon.ArgsMigrateDataTrieLeaves{
 			OldVersion:   core.NotSpecified,
@@ -1104,22 +858,20 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 	t.Run("leaves that need to be migrated are added to dirty data", func(t *testing.T) {
 		t.Parallel()
 
-		expectedValues := [][]byte{[]byte("value1"), []byte("value2"), []byte("value3")}
-		address := []byte("identifier")
 		leavesToBeMigrated := []core.TrieData{
 			{
 				Key:     []byte("key1"),
-				Value:   append([]byte("value1key1"), address...),
+				Value:   []byte("value1"),
 				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key2"),
-				Value:   append([]byte("value2key2"), address...),
+				Value:   []byte("value2"),
 				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key3"),
-				Value:   append([]byte("value3key3"), address...),
+				Value:   []byte("value3"),
 				Version: core.NotSpecified,
 			},
 		}
@@ -1134,18 +886,10 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			},
 		}
 		enableEpchs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.AutoBalanceDataTriesFlag
-			},
+			IsAutoBalanceDataTriesEnabledField: true,
 		}
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-			address,
-			&hashingMocks.HasherMock{},
-			&marshallerMock.MarshalizerMock{},
-			enableEpchs,
-			stateChanges.NewStateChangesCollector(),
-		)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
 		tdt.SetDataTrie(tr)
 		args := vmcommon.ArgsMigrateDataTrieLeaves{
 			OldVersion:   core.NotSpecified,
@@ -1159,7 +903,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		assert.Equal(t, len(leavesToBeMigrated), len(dirtyData))
 		for i := range leavesToBeMigrated {
 			d := dirtyData[string(leavesToBeMigrated[i].Key)]
-			assert.Equal(t, expectedValues[i], d.Value)
+			assert.Equal(t, leavesToBeMigrated[i].Value, d.Value)
 			assert.Equal(t, core.TrieNodeVersion(100), d.NewVersion)
 		}
 	})
@@ -1168,13 +912,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	t.Parallel()
 
-	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-		[]byte("identifier"),
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		stateChanges.NewStateChangesCollector(),
-	)
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	newTrie := &trieMock.TrieStub{}
 	tdt.SetDataTrie(newTrie)

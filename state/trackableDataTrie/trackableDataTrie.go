@@ -14,7 +14,6 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -29,13 +28,12 @@ type dirtyData struct {
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData             map[string]dirtyData
-	tr                    common.Trie
-	hasher                hashing.Hasher
-	marshaller            marshal.Marshalizer
-	enableEpochsHandler   common.EnableEpochsHandler
-	identifier            []byte
-	stateChangesCollector state.StateChangesCollector
+	dirtyData           map[string]dirtyData
+	tr                  common.Trie
+	hasher              hashing.Hasher
+	marshaller          marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
+	identifier          []byte
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -44,7 +42,6 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
-	stateChangesCollector state.StateChangesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -55,25 +52,14 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(stateChangesCollector) {
-		return nil, state.ErrNilStateChangesCollector
-	}
-
-	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
-		common.AutoBalanceDataTriesFlag,
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	return &trackableDataTrie{
-		tr:                    nil,
-		hasher:                hasher,
-		marshaller:            marshaller,
-		dirtyData:             make(map[string]dirtyData),
-		identifier:            identifier,
-		enableEpochsHandler:   enableEpochsHandler,
-		stateChangesCollector: stateChangesCollector,
+		tr:                  nil,
+		hasher:              hasher,
+		marshaller:          marshaller,
+		dirtyData:           make(map[string]dirtyData),
+		identifier:          identifier,
+		enableEpochsHandler: enableEpochsHandler,
 	}, nil
 }
 
@@ -84,7 +70,6 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	// search in dirty data cache
 	if dataEntry, found := tdt.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
-
 		return dataEntry.value, 0, nil
 	}
 
@@ -103,20 +88,6 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	}
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
-
-	stateChange := &stateChanges.StateChangeDTO{
-		Type:        "read",
-		MainTrieKey: tdt.identifier,
-		MainTrieVal: nil,
-		DataTrieChanges: []stateChanges.DataTrieChange{
-			{
-				Type: "read",
-				Key:  key,
-				Val:  val,
-			},
-		},
-	}
-	tdt.stateChangesCollector.AddStateChange(stateChange)
 
 	return val, depth, nil
 }
@@ -158,13 +129,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	}
 
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
-	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
-		val, err := tdt.getValueWithoutMetadata(leafData.Key, leafData)
-		if err != nil {
-			return err
-		}
-
 		originalKey, err := tdt.getOriginalKeyFromTrieData(leafData)
 		if err != nil {
 			return err
@@ -172,7 +137,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 
 		dataEntry := dirtyData{
 			index:      tdt.getIndexForKey(originalKey),
-			value:      val,
+			value:      leafData.Value,
 			newVersion: args.NewVersion,
 		}
 
@@ -245,9 +210,9 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
-		return make([]stateChanges.DataTrieChange, 0), make([]core.TrieData, 0), nil
+		return make([]state.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdt.tr) {
@@ -267,10 +232,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]stateChange
 	return tdt.updateTrie(dtr)
 }
 
-func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
-	newData := make([]stateChanges.DataTrieChange, len(tdt.dirtyData))
-	deletedKeys := make([]stateChanges.DataTrieChange, 0)
+	stateChanges := make([]state.DataTrieChange, len(tdt.dirtyData))
+	deletedKeys := make([]state.DataTrieChange, 0)
 
 	index := 0
 	for key, dataEntry := range tdt.dirtyData {
@@ -287,10 +252,9 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
-				stateChanges.DataTrieChange{
-					Type: "write",
-					Key:  []byte(key),
-					Val:  nil,
+				state.DataTrieChange{
+					Key: []byte(key),
+					Val: nil,
 				},
 			)
 		}
@@ -302,38 +266,28 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 
 		index++
 
-		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
-		if isFirstMigration && len(dataTrieKey) != 0 {
-			oldValues = append(oldValues, core.TrieData{
-				Key:   dataTrieKey,
-				Value: nil,
-			})
-		}
-
 		if len(dataTrieKey) == 0 {
 			continue
 		}
 
-		if dataEntry.index > len(newData)-1 {
+		if dataEntry.index > len(stateChanges)-1 {
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
-		newData[dataEntry.index] = stateChanges.DataTrieChange{
-			Type: "write",
-			Key:  dataTrieKey,
-			Val:  dataTrieVal,
+		stateChanges[dataEntry.index] = state.DataTrieChange{
+			Key: dataTrieKey,
+			Val: dataTrieVal,
 		}
 	}
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	stateChanges := make([]stateChanges.DataTrieChange, 0)
-	for i := range newData {
-		if len(newData[i].Key) == 0 {
+	for i := range stateChanges {
+		if len(stateChanges[i].Key) != 0 {
 			continue
 		}
 
-		stateChanges = append(stateChanges, newData[i])
+		stateChanges = append(stateChanges[:i], stateChanges[i+1:]...)
 	}
 
 	sort.Slice(deletedKeys, func(i, j int) bool {
@@ -345,7 +299,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
-	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
+	if tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		hashedKey := tdt.hasher.Compute(string(key))
 		valWithMetadata, depth, err := tdt.tr.Get(hashedKey)
 		if err != nil {
@@ -418,13 +372,12 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 }
 
 func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) (bool, error) {
-	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
+	if !tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
 		return false, nil
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
-		log.Trace("delete old entry if migrated", "key", key)
 		return true, tdt.tr.Delete(key)
 	}
 
