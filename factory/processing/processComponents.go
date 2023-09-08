@@ -170,10 +170,11 @@ type ProcessComponentsFactoryArgs struct {
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	ChainRunType         common.ChainRunType
 
-	ShardCoordinatorFactory    sharding.ShardCoordinatorFactory
-	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker    GenesisMetaBlockChecker
-	IncomingHeaderSubscriber   IncomingHeaderSubscriber
+	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	GenesisBlockCreatorFactory       processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker          GenesisMetaBlockChecker
+	RequesterContainerFactoryCreator requesterscontainer.RequesterContainerFactoryCreator
+	IncomingHeaderSubscriber         IncomingHeaderSubscriber
 }
 
 type processComponentsFactory struct {
@@ -209,10 +210,11 @@ type processComponentsFactory struct {
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	chainRunType         common.ChainRunType
 
-	shardCoordinatorFactory    sharding.ShardCoordinatorFactory
-	genesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker    GenesisMetaBlockChecker
-	IncomingHeaderSubscriber   IncomingHeaderSubscriber
+	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	genesisBlockCreatorFactory       processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker          GenesisMetaBlockChecker
+	requesterContainerFactoryCreator requesterscontainer.RequesterContainerFactoryCreator
+	IncomingHeaderSubscriber         IncomingHeaderSubscriber
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -223,36 +225,37 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                     args.Config,
-		epochConfig:                args.EpochConfig,
-		prefConfigs:                args.PrefConfigs,
-		importDBConfig:             args.ImportDBConfig,
-		accountsParser:             args.AccountsParser,
-		smartContractParser:        args.SmartContractParser,
-		gasSchedule:                args.GasSchedule,
-		nodesCoordinator:           args.NodesCoordinator,
-		data:                       args.Data,
-		coreData:                   args.CoreData,
-		crypto:                     args.Crypto,
-		state:                      args.State,
-		network:                    args.Network,
-		bootstrapComponents:        args.BootstrapComponents,
-		statusComponents:           args.StatusComponents,
-		requestedItemsHandler:      args.RequestedItemsHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		maxRating:                  args.MaxRating,
-		systemSCConfig:             args.SystemSCConfig,
-		importStartHandler:         args.ImportStartHandler,
-		historyRepo:                args.HistoryRepo,
-		epochNotifier:              args.CoreData.EpochNotifier(),
-		statusCoreComponents:       args.StatusCoreComponents,
-		flagsConfig:                args.FlagsConfig,
-		chainRunType:               args.ChainRunType,
-		shardCoordinatorFactory:    args.ShardCoordinatorFactory,
-		genesisBlockCreatorFactory: args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:    args.GenesisMetaBlockChecker,
-		IncomingHeaderSubscriber:   args.IncomingHeaderSubscriber,
+		config:                           args.Config,
+		epochConfig:                      args.EpochConfig,
+		prefConfigs:                      args.PrefConfigs,
+		importDBConfig:                   args.ImportDBConfig,
+		accountsParser:                   args.AccountsParser,
+		smartContractParser:              args.SmartContractParser,
+		gasSchedule:                      args.GasSchedule,
+		nodesCoordinator:                 args.NodesCoordinator,
+		data:                             args.Data,
+		coreData:                         args.CoreData,
+		crypto:                           args.Crypto,
+		state:                            args.State,
+		network:                          args.Network,
+		bootstrapComponents:              args.BootstrapComponents,
+		statusComponents:                 args.StatusComponents,
+		requestedItemsHandler:            args.RequestedItemsHandler,
+		whiteListHandler:                 args.WhiteListHandler,
+		whiteListerVerifiedTxs:           args.WhiteListerVerifiedTxs,
+		maxRating:                        args.MaxRating,
+		systemSCConfig:                   args.SystemSCConfig,
+		importStartHandler:               args.ImportStartHandler,
+		historyRepo:                      args.HistoryRepo,
+		epochNotifier:                    args.CoreData.EpochNotifier(),
+		statusCoreComponents:             args.StatusCoreComponents,
+		flagsConfig:                      args.FlagsConfig,
+		chainRunType:                     args.ChainRunType,
+		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
+		genesisBlockCreatorFactory:       args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:          args.GenesisMetaBlockChecker,
+		requesterContainerFactoryCreator: args.RequesterContainerFactoryCreator,
+		IncomingHeaderSubscriber:         args.IncomingHeaderSubscriber,
 	}, nil
 }
 
@@ -1529,7 +1532,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return requesterscontainer.NewSovereignShardRequestersContainerFactory(requestersContainerFactoryArgs)
+		return pcf.requesterContainerFactoryCreator.CreateRequesterContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -2083,6 +2086,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
+	}
+	if check.IfNil(args.RequesterContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
 	}
 
 	return nil
