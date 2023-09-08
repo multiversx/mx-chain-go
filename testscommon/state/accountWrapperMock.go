@@ -9,8 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/disabled"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -49,7 +47,6 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		disabled.NewDisabledStateChangesCollector(),
 	)
 
 	return &AccountWrapMock{
@@ -199,7 +196,7 @@ func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
+func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
 	return awm.trackableDataTrie.SaveDirtyData(trie)
 }
 
