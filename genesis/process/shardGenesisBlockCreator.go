@@ -149,6 +149,7 @@ func createGenesisConfig() config.EnableEpochs {
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 		SetGuardianEnableEpoch:                            unreachableEpoch,
 		ScToScLogEventEnableEpoch:                         unreachableEpoch,
+		RelayedTransactionsV3EnableEpoch:                  unreachableEpoch,
 	}
 }
 
