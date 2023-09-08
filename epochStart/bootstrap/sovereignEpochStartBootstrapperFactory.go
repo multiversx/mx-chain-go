@@ -32,7 +32,7 @@ func (bcf *sovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(
 		return nil, err
 	}
 
-	return sesb.epochStartBootstrap, nil
+	return sesb, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

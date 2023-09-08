@@ -12,12 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -33,31 +33,65 @@ func createMockStorageEpochStartBootstrapArgs(
 	coreMock *mock.CoreComponentsMock,
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsStorageEpochStartBootstrap {
+	esbc := NewEpochStartBootstrapperFactory()
 	return ArgsStorageEpochStartBootstrap{
-		ArgsEpochStartBootstrap:    createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
-		ImportDbConfig:             config.ImportDbConfig{},
-		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
-		TimeToWaitForRequestedData: time.Second,
-		ChainRunType:               common.ChainRunTypeRegular,
+		ArgsEpochStartBootstrap:       createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
+		ImportDbConfig:                config.ImportDbConfig{},
+		ChanGracefullyClose:           make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData:    time.Second,
+		EpochStartBootstrapperCreator: esbc,
+		ResolverRequestFactory: &RequestHandlerFactoryStub{
+			CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error) {
+				return &testscommon.RequestHandlerStub{}, nil
+			},
+		},
 	}
 }
 
 func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	coreComp.Hash = nil
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	sesb, err := NewStorageEpochStartBootstrap(args)
-	assert.True(t, check.IfNil(sesb))
-	assert.True(t, errors.Is(err, epochStart.ErrNilHasher))
+	t.Run("nil hash should error", func(t *testing.T) {
+		t.Parallel()
 
-	coreComp, cryptoComp = createComponentsForEpochStart()
-	args = createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.ChanGracefullyClose = nil
-	sesb, err = NewStorageEpochStartBootstrap(args)
-	assert.True(t, check.IfNil(sesb))
-	assert.True(t, errors.Is(err, dataRetriever.ErrNilGracefullyCloseChannel))
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		coreComp.Hash = nil
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.True(t, check.IfNil(sesb))
+		assert.True(t, errors.Is(err, epochStart.ErrNilHasher))
+
+	})
+	t.Run("nil ChanGracefullyClose should err", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ChanGracefullyClose = nil
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.True(t, check.IfNil(sesb))
+		assert.True(t, errors.Is(err, dataRetriever.ErrNilGracefullyCloseChannel))
+	})
+	t.Run("nil EpochStartBootstrapperCreator should err", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.EpochStartBootstrapperCreator = nil
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.True(t, check.IfNil(sesb))
+		assert.Equal(t, mxErrors.ErrNilEpochStartBootstrapperCreator, err)
+	})
+	t.Run("nil ResolverRequestFactory should err", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ResolverRequestFactory = nil
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.True(t, check.IfNil(sesb))
+		assert.Equal(t, mxErrors.ErrNilResolverRequestFactoryHandler, err)
+	})
 }
 
 func TestNewStorageEpochStartBootstrap_ShouldWork(t *testing.T) {
@@ -74,41 +108,13 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
-	t.Run("should create a main chain instance", func(t *testing.T) {
-		t.Parallel()
 
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ChainRunType = common.ChainRunTypeRegular
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-		esb, err := createEpochStartBootstrapper(args)
+	esb, err := args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 
-		require.NotNil(t, esb)
-		assert.Nil(t, err)
-	})
-
-	t.Run("should create a sovereign chain instance", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ChainRunType = common.ChainRunTypeSovereign
-
-		esb, err := createEpochStartBootstrapper(args)
-
-		require.NotNil(t, esb)
-		assert.Nil(t, err)
-	})
-
-	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ChainRunType = "X"
-
-		esb, err := createEpochStartBootstrapper(args)
-
-		assert.Nil(t, esb)
-		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
-	})
+	require.NotNil(t, esb)
+	assert.Nil(t, err)
 }
 
 func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
@@ -121,6 +127,7 @@ func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T
 			return storage.LatestDataFromStorage{}, err
 		},
 	}
+
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
@@ -172,6 +179,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
+
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
@@ -544,14 +552,12 @@ func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testi
 func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-
 	t.Run("should create a main chain instance", func(t *testing.T) {
 		t.Parallel()
+		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ChainRunType = common.ChainRunTypeRegular
-
+		args.ResolverRequestFactory = requestHandlers.NewResolverRequestHandlerFactory()
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
@@ -563,10 +569,11 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 
 	t.Run("should create a sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
+		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ChainRunType = common.ChainRunTypeSovereign
-
+		rrhf := requestHandlers.NewResolverRequestHandlerFactory()
+		args.ResolverRequestFactory, _ = requestHandlers.NewSovereignResolverRequestHandlerFactory(rrhf)
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
@@ -576,17 +583,4 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		sesb, _ := NewStorageEpochStartBootstrap(args)
-
-		sesb.chainRunType = "X"
-
-		requestHandler, err := sesb.createStorageRequestHandler()
-
-		assert.Nil(t, requestHandler)
-		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
-	})
 }

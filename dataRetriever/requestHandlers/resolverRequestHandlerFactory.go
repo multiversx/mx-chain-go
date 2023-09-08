@@ -8,8 +8,8 @@ type resolverRequestHandlerFactory struct {
 }
 
 // NewResolverRequestHandlerFactory creates a new resolver request handler factory for chain run type normal
-func NewResolverRequestHandlerFactory() (RequestHandlerCreator, error) {
-	return &resolverRequestHandlerFactory{}, nil
+func NewResolverRequestHandlerFactory() RequestHandlerCreator {
+	return &resolverRequestHandlerFactory{}
 }
 
 // CreateRequestHandler creates a RequestHandler for chain run type normal

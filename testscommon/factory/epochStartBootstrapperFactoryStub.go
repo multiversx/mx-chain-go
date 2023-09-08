@@ -1,6 +1,8 @@
 package factory
 
-import "github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+import (
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+)
 
 // EpochStartBootstrapperFactoryStub -
 type EpochStartBootstrapperFactoryStub struct {

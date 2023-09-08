@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
@@ -54,25 +55,24 @@ type StorageServiceFactory struct {
 	nodeProcessingMode              common.NodeProcessingMode
 	snapshotsEnabled                bool
 	repopulateTokensSupplies        bool
-	additionalStorageServiceFactory process.AdditionalStorageServiceCreator
-	chainRunType                    common.ChainRunType
+	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
 type StorageServiceFactoryArgs struct {
-	Config                        config.Config
-	PrefsConfig                   config.PreferencesConfig
-	ShardCoordinator              storage.ShardCoordinator
-	PathManager                   storage.PathManagerHandler
-	EpochStartNotifier            epochStart.EpochStartNotifier
-	NodeTypeProvider              NodeTypeProviderHandler
-	StorageType                   StorageServiceType
-	ManagedPeersHolder            storage.ManagedPeersHolder
-	CurrentEpoch                  uint32
-	CreateTrieEpochRootHashStorer bool
-	NodeProcessingMode            common.NodeProcessingMode
-	RepopulateTokensSupplies      bool
-	ChainRunType                  common.ChainRunType
+	Config                          config.Config
+	PrefsConfig                     config.PreferencesConfig
+	ShardCoordinator                storage.ShardCoordinator
+	PathManager                     storage.PathManagerHandler
+	EpochStartNotifier              epochStart.EpochStartNotifier
+	NodeTypeProvider                NodeTypeProviderHandler
+	StorageType                     StorageServiceType
+	ManagedPeersHolder              storage.ManagedPeersHolder
+	CurrentEpoch                    uint32
+	CreateTrieEpochRootHashStorer   bool
+	NodeProcessingMode              common.NodeProcessingMode
+	RepopulateTokensSupplies        bool
+	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -96,19 +96,19 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 	}
 
 	return &StorageServiceFactory{
-		generalConfig:                 args.Config,
-		prefsConfig:                   args.PrefsConfig,
-		shardCoordinator:              args.ShardCoordinator,
-		pathManager:                   args.PathManager,
-		epochStartNotifier:            args.EpochStartNotifier,
-		currentEpoch:                  args.CurrentEpoch,
-		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		oldDataCleanerProvider:        oldDataCleanProvider,
-		storageType:                   args.StorageType,
-		nodeProcessingMode:            args.NodeProcessingMode,
-		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
-		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
-		chainRunType:                  args.ChainRunType,
+		generalConfig:                   args.Config,
+		prefsConfig:                     args.PrefsConfig,
+		shardCoordinator:                args.ShardCoordinator,
+		pathManager:                     args.PathManager,
+		epochStartNotifier:              args.EpochStartNotifier,
+		currentEpoch:                    args.CurrentEpoch,
+		createTrieEpochRootHashStorer:   args.CreateTrieEpochRootHashStorer,
+		oldDataCleanerProvider:          oldDataCleanProvider,
+		storageType:                     args.StorageType,
+		nodeProcessingMode:              args.NodeProcessingMode,
+		snapshotsEnabled:                args.Config.StateTriesConfig.SnapshotsEnabled,
+		repopulateTokensSupplies:        args.RepopulateTokensSupplies,
+		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 	}, nil
 }
 
@@ -125,7 +125,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
 	}
-
+	if check.IfNil(args.AdditionalStorageServiceCreator) {
+		return errors.ErrNilAdditionalStorageServiceCreator
+	}
 	return nil
 }
 
@@ -345,21 +347,8 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 		return nil, err
 	}
 
-	// TODO: this should be removed when the additionalStorageServiceFactory will be injected
-	if psf.chainRunType == common.ChainRunTypeSovereign {
-		psf.additionalStorageServiceFactory, err = NewSovereignAdditionalStorageServiceFactory()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		psf.additionalStorageServiceFactory, err = NewShardAdditionalStorageServiceFactory()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// TODO: this should be refactored to not get a function as a parameter
-	err = psf.additionalStorageServiceFactory.CreateAdditionalStorageUnits(psf.createAndAddStorageUnitsForSovereign, store, shardID)
+	err = psf.additionalStorageServiceCreator.CreateAdditionalStorageUnits(psf.createAndAddStorageUnitsForSovereign, store, shardID)
 	if err != nil {
 		return nil, err
 	}

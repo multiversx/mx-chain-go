@@ -210,19 +210,22 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 
 // GetDataArgs -
 func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
+	runTypeComponents := GetRunTypeComponents()
+
 	return dataComp.DataComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},
-		ShardCoordinator:              shardCoordinator,
-		Core:                          coreComponents,
-		StatusCore:                    GetStatusCoreComponents(),
-		Crypto:                        GetCryptoComponents(coreComponents),
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: false,
-		NodeProcessingMode:            common.Normal,
-		FlagsConfigs:                  config.ContextFlagsConfig{},
+		ShardCoordinator:                shardCoordinator,
+		Core:                            coreComponents,
+		StatusCore:                      GetStatusCoreComponents(),
+		Crypto:                          GetCryptoComponents(coreComponents),
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 }
 
@@ -397,7 +400,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -564,7 +567,8 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:      common.ChainRunTypeRegular,
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -799,6 +803,23 @@ func GetProcessComponents(
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
+// GetSovereignRunTypeComponents -
+func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
 		return nil

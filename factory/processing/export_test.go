@@ -52,8 +52,3 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
 	return pcf.createAPITransactionEvaluator()
 }
-
-// SetChainRunType -
-func (pcf *processComponentsFactory) SetChainRunType(chainRunType common.ChainRunType) {
-	pcf.chainRunType = chainRunType
-}

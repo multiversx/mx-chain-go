@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -25,29 +24,9 @@ import (
 )
 
 func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
-	gCfg := config.Config{}
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
-
-	mtStrHandler, err := NewMetaStorageHandler(
-		gCfg,
-		prefsConfig,
-		coordinator,
-		pathManager,
-		marshalizer,
-		hasher,
-		1,
-		uit64Cvt,
-		nodeTypeProvider,
-		common.Normal,
-		managedPeersHolder,
-	)
+	args := createMetaHandlerArgs()
+	args.GeneralConfig = config.Config{}
+	mtStrHandler, err := NewMetaStorageHandler(args)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
 }
@@ -57,28 +36,8 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
-	mtStrHandler, err := NewMetaStorageHandler(
-		gCfg,
-		prefsConfig,
-		coordinator,
-		pathManager,
-		marshalizer,
-		hasher,
-		1,
-		uit64Cvt,
-		nodeTypeProvider,
-		common.Normal,
-		managedPeersHolder,
-	)
+	args := createMetaHandlerArgs()
+	mtStrHandler, err := NewMetaStorageHandler(args)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
 }
@@ -88,33 +47,12 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(
-		gCfg,
-		prefsConfig,
-		coordinator,
-		pathManager,
-		marshalizer,
-		hasher,
-		1,
-		uit64Cvt,
-		nodeTypeProvider,
-		common.Normal,
-		managedPeersHolder,
-	)
+	args := createMetaHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	header := &block.MetaBlock{Nonce: 0}
 
-	headerHash, _ := core.CalculateHash(marshalizer, hasher, header)
+	headerHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
 	expectedBootInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId, Hash: headerHash,
 	}
@@ -129,34 +67,13 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(
-		gCfg,
-		prefsConfig,
-		coordinator,
-		pathManager,
-		marshalizer,
-		hasher,
-		1,
-		uit64Cvt,
-		nodeTypeProvider,
-		common.Normal,
-		managedPeersHolder,
-	)
+	args := createMetaHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	hdr1 := &block.Header{Nonce: 1}
 	hdr2 := &block.Header{Nonce: 2}
-	hdrHash1, _ := core.CalculateHash(marshalizer, hasher, hdr1)
-	hdrHash2, _ := core.CalculateHash(marshalizer, hasher, hdr2)
+	hdrHash1, _ := core.CalculateHash(args.Marshalizer, args.Hasher, hdr1)
+	hdrHash2, _ := core.CalculateHash(args.Marshalizer, args.Hasher, hdr2)
 
 	hdr3 := &block.MetaBlock{
 		Nonce: 3,
@@ -176,29 +93,8 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(
-		gCfg,
-		prefsConfig,
-		coordinator,
-		pathManager,
-		marshalizer,
-		hasher,
-		1,
-		uit64Cvt,
-		nodeTypeProvider,
-		common.Normal,
-		managedPeersHolder,
-	)
+	args := createMetaHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
@@ -214,29 +110,8 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	gCfg := testscommon.GetGeneralConfig()
-	prefsConfig := config.PreferencesConfig{}
-	coordinator := &mock.ShardCoordinatorStub{}
-	pathManager := &testscommon.PathManagerStub{}
-	marshalizer := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-	uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-	nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-	managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
-
-	mtStrHandler, _ := NewMetaStorageHandler(
-		gCfg,
-		prefsConfig,
-		coordinator,
-		pathManager,
-		marshalizer,
-		hasher,
-		1,
-		uit64Cvt,
-		nodeTypeProvider,
-		common.Normal,
-		managedPeersHolder,
-	)
+	args := createMetaHandlerArgs()
+	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
@@ -269,29 +144,9 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			_ = os.RemoveAll("./Epoch_0")
 		}()
 
-		gCfg := testscommon.GetGeneralConfig()
-		prefsConfig := config.PreferencesConfig{}
-		coordinator := &mock.ShardCoordinatorStub{}
-		pathManager := &testscommon.PathManagerStub{}
-		marshalizer := &mock.MarshalizerMock{}
-		hasher := &hashingMocks.HasherMock{}
-		uit64Cvt := &mock.Uint64ByteSliceConverterMock{}
-		nodeTypeProvider := &nodeTypeProviderMock.NodeTypeProviderStub{}
-		managedPeersHolder := &testscommon.ManagedPeersHolderStub{}
+		args := createMetaHandlerArgs()
+		mtStrHandler, _ := NewMetaStorageHandler(args)
 
-		mtStrHandler, _ := NewMetaStorageHandler(
-			gCfg,
-			prefsConfig,
-			coordinator,
-			pathManager,
-			marshalizer,
-			hasher,
-			1,
-			uit64Cvt,
-			nodeTypeProvider,
-			common.Normal,
-			managedPeersHolder,
-		)
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -318,4 +173,21 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
+}
+
+func createMetaHandlerArgs() StorageHandlerArgs {
+	return StorageHandlerArgs{
+		GeneralConfig:                   testscommon.GetGeneralConfig(),
+		PrefsConfig:                     config.PreferencesConfig{},
+		ShardCoordinator:                &mock.ShardCoordinatorStub{},
+		PathManagerHandler:              &testscommon.PathManagerStub{},
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		CurrentEpoch:                    1,
+		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
+	}
+
 }

@@ -12,7 +12,6 @@ import (
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -258,7 +257,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
-
 	scProcessorProxy, err := processorV2.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
 	if err != nil {
 		return nil, err
@@ -388,7 +386,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 	}
-	txCoordinator, err := pcf.createTransactionCoordinator(argsTransactionCoordinator)
+	txCoordinator, err := pcf.runTypeComponents.TransactionCoordinatorCreator().CreateTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -435,9 +433,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
+		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
 
-	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, validatorStatisticsProcessor)
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -448,53 +447,10 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}, nil
 }
 
-func (pcf *processComponentsFactory) createTransactionCoordinator(
-	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
-) (process.TransactionCoordinator, error) {
-	tcFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		pcf.transactionCoordinatorCreator = tcFactory
-	case common.ChainRunTypeSovereign:
-		pcf.transactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(tcFactory)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
-
-	return pcf.transactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
-}
-
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) (process.BlockProcessor, error) {
-	//TODO: remove this when the new creator is injected
-	argumentsBaseProcessor.ValidatorStatisticsProcessor = validatorStatisticsProcessor
-	tempBpc, err := block.NewShardBlockProcessorFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		pcf.blockProcessorCreator = tempBpc
-	case common.ChainRunTypeSovereign:
-		pcf.blockProcessorCreator, err = block.NewSovereignBlockProcessorFactory(tempBpc)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
-
-	blockProcessor, err := pcf.blockProcessorCreator.CreateBlockProcessor(argumentsBaseProcessor)
+	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -1047,7 +1003,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		MissingTrieNodesNotifier: notifier,
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1098,7 +1054,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}

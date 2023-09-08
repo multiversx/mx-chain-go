@@ -26,12 +26,12 @@ var _ factory.RunTypeComponentsHolder = (*managedRunTypeComponents)(nil)
 
 type managedRunTypeComponents struct {
 	*runTypeComponents
-	factory            *runTypeComponentsFactory
+	factory            runTypeComponentsCreator
 	mutStateComponents sync.RWMutex
 }
 
 // NewManagedRunTypeComponents returns a news instance of managedRunTypeComponents
-func NewManagedRunTypeComponents(rcf *runTypeComponentsFactory) (*managedRunTypeComponents, error) {
+func NewManagedRunTypeComponents(rcf runTypeComponentsCreator) (*managedRunTypeComponents, error) {
 	if rcf == nil {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
@@ -44,13 +44,13 @@ func NewManagedRunTypeComponents(rcf *runTypeComponentsFactory) (*managedRunType
 
 // Create will create the managed components
 func (mrc *managedRunTypeComponents) Create() error {
-	sc, err := mrc.factory.Create()
+	rtc, err := mrc.factory.Create()
 	if err != nil {
 		return fmt.Errorf("%w: %v", errors.ErrRunTypeComponentsFactoryCreate, err)
 	}
 
 	mrc.mutStateComponents.Lock()
-	mrc.runTypeComponents = sc
+	mrc.runTypeComponents = rtc
 	mrc.mutStateComponents.Unlock()
 
 	return nil
@@ -115,7 +115,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.validatorStatisticsProcessorCreator) {
 		return errors.ErrNilValidatorStatisticsProcessorCreator
 	}
-
+	if check.IfNil(mrc.additionalStorageServiceCreator) {
+		return errors.ErrNilAdditionalStorageServiceCreator
+	}
 	return nil
 }
 
