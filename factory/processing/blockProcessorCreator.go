@@ -385,7 +385,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 	}
-	txCoordinator, err := pcf.createTransactionCoordinator(argsTransactionCoordinator)
+	txCoordinator, err := pcf.runTypeComponents.TransactionCoordinatorCreator().CreateTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -444,12 +444,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		blockProcessor:         blockProcessor,
 		vmFactoryForProcessing: vmFactory,
 	}, nil
-}
-
-func (pcf *processComponentsFactory) createTransactionCoordinator(
-	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
-) (process.TransactionCoordinator, error) {
-	return pcf.runTypeComponents.TransactionCoordinatorCreator().CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(

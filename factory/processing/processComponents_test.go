@@ -688,9 +688,9 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 	})
 }
 
-func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsMock {
+func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 	rt := components.GetRunTypeComponents()
-	return &mainFactoryMocks.RunTypeComponentsMock{
+	return &mainFactoryMocks.RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
 		BlockProcessorFactory:               rt.BlockProcessorCreator(),
 		BlockTrackerFactory:                 rt.BlockTrackerCreator(),

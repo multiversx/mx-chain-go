@@ -15,7 +15,7 @@ func TestNewSovereignEpochStartBootstrapperFactory(t *testing.T) {
 	require.Nil(t, sebf)
 	require.Equal(t, errors.ErrNilEpochStartBootstrapperFactory, err)
 
-	esbf, _ := NewEpochStartBootstrapperFactory()
+	esbf := NewEpochStartBootstrapperFactory()
 	sebf, err = NewSovereignEpochStartBootstrapperFactory(esbf)
 
 	require.Nil(t, err)
@@ -25,7 +25,7 @@ func TestNewSovereignEpochStartBootstrapperFactory(t *testing.T) {
 func TestSovereignEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *testing.T) {
 	t.Parallel()
 
-	esbf, _ := NewEpochStartBootstrapperFactory()
+	esbf := NewEpochStartBootstrapperFactory()
 	sebf, _ := NewSovereignEpochStartBootstrapperFactory(esbf)
 
 	seb, err := sebf.CreateEpochStartBootstrapper(getDefaultArgs())
@@ -37,7 +37,7 @@ func TestSovereignEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *
 func TestSovereignEpochStartBootstrapperFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	esbf, _ := NewEpochStartBootstrapperFactory()
+	esbf := NewEpochStartBootstrapperFactory()
 	sebf, _ := NewSovereignEpochStartBootstrapperFactory(esbf)
 
 	require.False(t, sebf.IsInterfaceNil())

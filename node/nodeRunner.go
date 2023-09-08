@@ -1547,7 +1547,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateManagedRunTypeComponents is the managed runType components factory
+// CreateManagedRunTypeComponents creates the managed run type components
 func (nr *nodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
 	if err != nil {

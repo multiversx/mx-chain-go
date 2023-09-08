@@ -440,7 +440,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Hasher:      pcf.coreData.Hasher(),
 		Marshalizer: pcf.coreData.InternalMarshalizer(),
 	}
-	headerValidator, err := pcf.createHeaderValidator(argsHeaderValidator)
+	headerValidator, err := pcf.runTypeComponents.HeaderValidatorCreator().CreateHeaderValidator(argsHeaderValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -789,11 +789,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
 	}
 
-	return pcf.createValidatorStatisticsProcessor(arguments)
-}
-
-func (pcf *processComponentsFactory) createValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
-	return pcf.runTypeComponents.ValidatorStatisticsProcessorCreator().CreateValidatorStatisticsProcessor(args)
+	return pcf.runTypeComponents.ValidatorStatisticsProcessorCreator().CreateValidatorStatisticsProcessor(arguments)
 }
 
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
@@ -803,7 +799,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			Hasher:      pcf.coreData.Hasher(),
 			Marshalizer: pcf.coreData.InternalMarshalizer(),
 		}
-		headerValidator, err := pcf.createHeaderValidator(argsHeaderValidator)
+		headerValidator, err := pcf.runTypeComponents.HeaderValidatorCreator().CreateHeaderValidator(argsHeaderValidator)
 		if err != nil {
 			return nil, err
 		}
@@ -862,10 +858,6 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	}
 
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
-}
-
-func (pcf *processComponentsFactory) createHeaderValidator(argsHeaderValidator block.ArgsHeaderValidator) (process.HeaderConstructionValidator, error) {
-	return pcf.runTypeComponents.HeaderValidatorCreator().CreateHeaderValidator(argsHeaderValidator)
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
@@ -1327,7 +1319,11 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return pcf.createShardBlockTracker(argBaseTracker)
+		arguments := track.ArgShardTracker{
+			ArgBaseTracker: argBaseTracker,
+		}
+
+		return pcf.runTypeComponents.BlockTrackerCreator().CreateBlockTracker(arguments)
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1339,14 +1335,6 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	}
 
 	return nil, errors.New("could not create block tracker")
-}
-
-func (pcf *processComponentsFactory) createShardBlockTracker(argBaseTracker track.ArgBaseTracker) (process.BlockTracker, error) {
-	arguments := track.ArgShardTracker{
-		ArgBaseTracker: argBaseTracker,
-	}
-
-	return pcf.runTypeComponents.BlockTrackerCreator().CreateBlockTracker(arguments)
 }
 
 // -- Resolvers container Factory begin

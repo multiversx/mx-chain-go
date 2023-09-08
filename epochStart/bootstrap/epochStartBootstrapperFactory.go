@@ -5,8 +5,8 @@ type epochStartBootstrapperFactory struct {
 }
 
 // NewEpochStartBootstrapperFactory creates a new epoch start bootstrapper factory for chain run normal
-func NewEpochStartBootstrapperFactory() (EpochStartBootstrapperCreator, error) {
-	return &epochStartBootstrapperFactory{}, nil
+func NewEpochStartBootstrapperFactory() EpochStartBootstrapperCreator {
+	return &epochStartBootstrapperFactory{}
 }
 
 // CreateEpochStartBootstrapper creates a new epoch start bootstrapper for chain run normal

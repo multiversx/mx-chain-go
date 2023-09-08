@@ -12,9 +12,8 @@ import (
 func TestNewResolverRequestHandlerFactory(t *testing.T) {
 	t.Parallel()
 
-	rrhf, err := NewResolverRequestHandlerFactory()
+	rrhf := NewResolverRequestHandlerFactory()
 
-	require.Nil(t, err)
 	require.NotNil(t, rrhf)
 	require.IsType(t, &resolverRequestHandlerFactory{}, rrhf)
 }
@@ -22,7 +21,7 @@ func TestNewResolverRequestHandlerFactory(t *testing.T) {
 func TestResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	rrhf, _ := NewResolverRequestHandlerFactory()
+	rrhf := NewResolverRequestHandlerFactory()
 
 	rrh, err := rrhf.CreateRequestHandler(RequestHandlerArgs{})
 	require.NotNil(t, err)
@@ -38,7 +37,7 @@ func TestResolverRequestHandlerFactory_CreateResolverRequestHandler(t *testing.T
 func TestResolverRequestHandlerFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	rrhf, _ := NewResolverRequestHandlerFactory()
+	rrhf := NewResolverRequestHandlerFactory()
 	require.False(t, rrhf.IsInterfaceNil())
 }
 

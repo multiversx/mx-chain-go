@@ -52,7 +52,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewBlockChainHookFactory failed: %w", err)
 	}
 
-	epochStartBootstrapperFactory, err := bootstrap.NewEpochStartBootstrapperFactory()
+	epochStartBootstrapperFactory := bootstrap.NewEpochStartBootstrapperFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewEpochStartBootstrapperFactory failed: %w", err)
 	}
@@ -77,7 +77,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockTrackerFactory failed: %w", err)
 	}
 
-	requestHandlerFactory, err := requestHandlers.NewResolverRequestHandlerFactory()
+	requestHandlerFactory := requestHandlers.NewResolverRequestHandlerFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewResolverRequestHandlerFactory failed: %w", err)
 	}
