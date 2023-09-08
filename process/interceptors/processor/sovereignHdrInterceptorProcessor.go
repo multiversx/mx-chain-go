@@ -5,31 +5,24 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 )
-
-// IncomingHeaderSubscriber defines a subscriber to incoming headers
-type IncomingHeaderSubscriber interface {
-	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
-	IsInterfaceNil() bool
-}
 
 // ArgsSovereignHeaderInterceptorProcessor is a struct placeholder used to create a new sovereign extended header interceptor processor
 type ArgsSovereignHeaderInterceptorProcessor struct {
 	BlockBlackList           process.TimeCacher
 	Hasher                   hashing.Hasher
 	Marshaller               marshal.Marshalizer
-	IncomingHeaderSubscriber IncomingHeaderSubscriber
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 type sovereignHeaderInterceptorProcessor struct {
 	blackList                process.TimeCacher
 	Hasher                   hashing.Hasher
 	Marshaller               marshal.Marshalizer
-	IncomingHeaderSubscriber IncomingHeaderSubscriber
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 // NewSovereignHdrInterceptorProcessor creates a new sovereign extended header interceptor processor

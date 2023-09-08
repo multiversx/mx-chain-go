@@ -8,12 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 )
 
-// TODO: Implement this in MX-14517
-
 // sovereignShardInterceptorsContainerFactory will handle the creation of sovereign interceptors container
 type sovereignShardInterceptorsContainerFactory struct {
 	*shardInterceptorsContainerFactory
-	IncomingHeaderSubscriber IncomingHeaderSubscriber
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory

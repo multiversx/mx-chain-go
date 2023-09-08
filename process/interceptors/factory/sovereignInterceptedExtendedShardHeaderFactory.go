@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 )
 
+// ArgsSovereignInterceptedExtendedHeaderFactory is a struct placeholder for args needed to create an instance of sovereign extended header factory
 type ArgsSovereignInterceptedExtendedHeaderFactory struct {
 	Marshaller marshal.Marshalizer
 	Hasher     hashing.Hasher
@@ -18,7 +19,7 @@ type sovereignInterceptedShardHeaderDataFactory struct {
 	hasher     hashing.Hasher
 }
 
-// NewSovereignInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
+// NewSovereignInterceptedShardHeaderDataFactory creates an instance of sovereign extended header factory
 func NewSovereignInterceptedShardHeaderDataFactory(args ArgsSovereignInterceptedExtendedHeaderFactory) (*sovereignInterceptedShardHeaderDataFactory, error) {
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
@@ -33,7 +34,7 @@ func NewSovereignInterceptedShardHeaderDataFactory(args ArgsSovereignIntercepted
 	}, nil
 }
 
-// Create creates instances of InterceptedData by unmarshalling provided buffer
+// Create creates instances of sovereign extended header by unmarshalling provided buffer
 func (ishdf *sovereignInterceptedShardHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
 	arg := interceptedBlocks.ArgsSovereignInterceptedHeader{
 		Marshaller:  ishdf.marshaller,

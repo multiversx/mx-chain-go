@@ -12,20 +12,20 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// ArgsSovereignInterceptedHeader is a struct placeholder for args needed to create a new instance of a sovereign extended header interceptor
 type ArgsSovereignInterceptedHeader struct {
 	Marshaller  marshal.Marshalizer
 	Hasher      hashing.Hasher
 	HeaderBytes []byte
 }
 
-type SovereignInterceptedHeader struct {
-	hdr    data.ShardHeaderExtendedHandler
-	hasher hashing.Hasher
-	hash   []byte
+type sovereignInterceptedHeader struct {
+	hdr  data.ShardHeaderExtendedHandler
+	hash []byte
 }
 
-// NewSovereignInterceptedHeader creates a new instance sovereign extended header interceptor
-func NewSovereignInterceptedHeader(args ArgsSovereignInterceptedHeader) (*SovereignInterceptedHeader, error) {
+// NewSovereignInterceptedHeader creates a new instance of a sovereign extended header interceptor
+func NewSovereignInterceptedHeader(args ArgsSovereignInterceptedHeader) (*sovereignInterceptedHeader, error) {
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -38,14 +38,10 @@ func NewSovereignInterceptedHeader(args ArgsSovereignInterceptedHeader) (*Sovere
 		return nil, err
 	}
 
-	inHdr := &SovereignInterceptedHeader{
-		hdr:    hdr,
-		hasher: args.Hasher,
-	}
-
-	inHdr.hash = inHdr.hasher.Compute(string(args.HeaderBytes))
-
-	return inHdr, nil
+	return &sovereignInterceptedHeader{
+		hdr:  hdr,
+		hash: args.Hasher.Compute(string(args.HeaderBytes)),
+	}, nil
 }
 
 func unmarshalExtendedShardHeader(marshaller marshal.Marshalizer, headerBytes []byte) (data.ShardHeaderExtendedHandler, error) {
@@ -62,34 +58,35 @@ func unmarshalExtendedShardHeader(marshaller marshal.Marshalizer, headerBytes []
 	return extendedHeader, nil
 }
 
-// CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
-func (inHdr *SovereignInterceptedHeader) CheckValidity() error {
+// CheckValidity checks if the received header is valid (basic checks such as not nil fields)
+func (inHdr *sovereignInterceptedHeader) CheckValidity() error {
 	return nil
 }
 
-// Hash gets the hash of this header
-func (inHdr *SovereignInterceptedHeader) Hash() []byte {
+// Hash returns the hash of received extended header
+func (inHdr *sovereignInterceptedHeader) Hash() []byte {
 	return inHdr.hash
 }
 
 // GetExtendedHeader returns intercepted extended shard header
-func (inHdr *SovereignInterceptedHeader) GetExtendedHeader() data.ShardHeaderExtendedHandler {
+func (inHdr *sovereignInterceptedHeader) GetExtendedHeader() data.ShardHeaderExtendedHandler {
 	return inHdr.hdr
 }
 
-// IsForCurrentShard returns true if this header is meant to be processed by the node from this shard
-func (inHdr *SovereignInterceptedHeader) IsForCurrentShard() bool {
+// IsForCurrentShard returns true
+func (inHdr *sovereignInterceptedHeader) IsForCurrentShard() bool {
 	return true
 }
 
 // Type returns the type of this intercepted data
-func (inHdr *SovereignInterceptedHeader) Type() string {
+func (inHdr *sovereignInterceptedHeader) Type() string {
 	return "intercepted sovereign extended shard header"
 }
 
 // String returns the header's most important fields as string
-func (inHdr *SovereignInterceptedHeader) String() string {
-	return fmt.Sprintf("shardId=%d, shardEpoch=%d, round=%d, nonce=%d",
+func (inHdr *sovereignInterceptedHeader) String() string {
+	return fmt.Sprintf("%s, shardId=%d, shardEpoch=%d, round=%d, nonce=%d",
+		inHdr.Type(),
 		inHdr.hdr.GetShardID(),
 		inHdr.hdr.GetEpoch(),
 		inHdr.hdr.GetRound(),
@@ -98,14 +95,15 @@ func (inHdr *SovereignInterceptedHeader) String() string {
 }
 
 // Identifiers returns the identifiers used in requests
-func (inHdr *SovereignInterceptedHeader) Identifiers() [][]byte {
+func (inHdr *sovereignInterceptedHeader) Identifiers() [][]byte {
 	keyNonce := []byte(fmt.Sprintf("%d-%d", inHdr.hdr.GetShardID(), inHdr.hdr.GetNonce()))
 	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.GetEpoch()))
+	keyType := []byte(inHdr.Type())
 
-	return [][]byte{inHdr.hash, keyNonce, keyEpoch}
+	return [][]byte{keyType, inHdr.hash, keyNonce, keyEpoch}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (inHdr *SovereignInterceptedHeader) IsInterfaceNil() bool {
+func (inHdr *sovereignInterceptedHeader) IsInterfaceNil() bool {
 	return inHdr == nil
 }

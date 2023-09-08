@@ -16,7 +16,6 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -84,12 +83,6 @@ import (
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
-
-// IncomingHeaderSubscriber defines a subscriber to incoming headers
-type IncomingHeaderSubscriber interface {
-	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
-	IsInterfaceNil() bool
-}
 
 // processComponents struct holds the process components
 type processComponents struct {
@@ -174,7 +167,7 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisBlockCreatorFactory       processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker          GenesisMetaBlockChecker
 	RequesterContainerFactoryCreator requesterscontainer.RequesterContainerFactoryCreator
-	IncomingHeaderSubscriber         IncomingHeaderSubscriber
+	IncomingHeaderSubscriber         process.IncomingHeaderSubscriber
 }
 
 type processComponentsFactory struct {
@@ -214,7 +207,7 @@ type processComponentsFactory struct {
 	genesisBlockCreatorFactory       processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker          GenesisMetaBlockChecker
 	requesterContainerFactoryCreator requesterscontainer.RequesterContainerFactoryCreator
-	IncomingHeaderSubscriber         IncomingHeaderSubscriber
+	IncomingHeaderSubscriber         process.IncomingHeaderSubscriber
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
