@@ -120,7 +120,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -183,7 +183,8 @@ type DataTrie interface {
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//  with some extra features like signing statistics or rating information
+//
+//	with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte
@@ -255,7 +256,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -264,4 +265,11 @@ type DataTrieTracker interface {
 type SignRate interface {
 	GetNumSuccess() uint32
 	GetNumFailure() uint32
+}
+
+type StateChangesCollector interface {
+	AddStateChange(stateChange StateChangeDTO)
+	GetStateChanges() []StateChangeDTO
+	Reset()
+	IsInterfaceNil() bool
 }

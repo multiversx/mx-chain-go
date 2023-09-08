@@ -342,14 +342,16 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	dtt := &trieMock.DataTrieTrackerStub{
-		SaveDirtyDataCalled: func(_ common.Trie) ([]core.TrieData, error) {
-			return []core.TrieData{
+		SaveDirtyDataCalled: func(_ common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
+			var stateChanges []state.DataTrieChange
+			oldVal := []core.TrieData{
 				{
 					Key:     []byte("key"),
 					Value:   []byte("value"),
 					Version: 0,
 				},
-			}, nil
+			}
+			return stateChanges, oldVal, nil
 		},
 		DataTrieCalled: func() common.Trie {
 			return trieStub

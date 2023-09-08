@@ -85,13 +85,13 @@ type AccountsDB struct {
 	obsoleteDataTrieHashes map[string][][]byte
 	snapshotsManger        SnapshotsManager
 
-	lastRootHash []byte
-	dataTries    common.TriesHolder
-	entries      []JournalEntry
-
-	mutOp                sync.RWMutex
-	loadCodeMeasurements *loadingMeasurements
-	addressConverter     core.PubkeyConverter
+	lastRootHash          []byte
+	dataTries             common.TriesHolder
+	entries               []JournalEntry
+	stateChangesCollector StateChangesCollector
+	mutOp                 sync.RWMutex
+	loadCodeMeasurements  *loadingMeasurements
+	addressConverter      core.PubkeyConverter
 
 	stackDebug []byte
 }
@@ -161,8 +161,9 @@ func createAccountsDb(args ArgsAccountsDB, snapshotManager SnapshotsManager) *Ac
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		addressConverter: args.AddressConverter,
-		snapshotsManger:  snapshotManager,
+		addressConverter:      args.AddressConverter,
+		snapshotsManger:       snapshotManager,
+		stateChangesCollector: NewStateChangesCollector(),
 	}
 }
 
@@ -247,7 +248,8 @@ func (adb *AccountsDB) ImportAccount(account vmcommon.AccountHandler) error {
 	}
 
 	mainTrie := adb.getMainTrie()
-	return adb.saveAccountToTrie(account, mainTrie)
+	_, err := adb.saveAccountToTrie(account, mainTrie)
+	return err
 }
 
 func (adb *AccountsDB) getMainTrie() common.Trie {
@@ -287,28 +289,45 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		adb.journalize(entry)
 	}
 
-	err = adb.saveCodeAndDataTrie(oldAccount, account)
+	newDataTrieValues, err := adb.saveCodeAndDataTrie(oldAccount, account)
 	if err != nil {
 		return err
 	}
 
-	return adb.saveAccountToTrie(account, adb.mainTrie)
+	marshalledAccount, err := adb.saveAccountToTrie(account, adb.mainTrie)
+	if err != nil {
+		return err
+	}
+
+	stateChange := StateChangeDTO{
+		MainTrieKey:     account.AddressBytes(),
+		MainTrieVal:     marshalledAccount,
+		DataTrieChanges: newDataTrieValues,
+	}
+	adb.stateChangesCollector.AddStateChange(stateChange)
+
+	return err
 }
 
-func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
+func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]DataTrieChange, error) {
 	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
 	baseOldAccount, _ := oldAcc.(baseAccountHandler)
 
 	if !newAccOk {
-		return nil
+		return make([]DataTrieChange, 0), nil
 	}
 
-	err := adb.saveDataTrie(baseNewAcc)
+	newValues, err := adb.saveDataTrie(baseNewAcc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return adb.saveCode(baseNewAcc, baseOldAccount)
+	err = adb.saveCode(baseNewAcc, baseOldAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	return newValues, err
 }
 
 func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
@@ -375,14 +394,28 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 			return nil, err
 		}
 
+		stateChange := StateChangeDTO{
+			MainTrieKey:     oldCodeHash,
+			MainTrieVal:     nil,
+			DataTrieChanges: nil,
+		}
+		adb.stateChangesCollector.AddStateChange(stateChange)
+
 		return unmodifiedOldCodeEntry, nil
 	}
 
 	oldCodeEntry.NumReferences--
-	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
+	codeEntryBytes, err := saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
+
+	stateChange := StateChangeDTO{
+		MainTrieKey:     oldCodeHash,
+		MainTrieVal:     codeEntryBytes,
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(stateChange)
 
 	return unmodifiedOldCodeEntry, nil
 }
@@ -404,10 +437,17 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 	newCodeEntry.NumReferences++
 
-	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
+	codeEntryBytes, err := saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
+
+	stateChange := StateChangeDTO{
+		MainTrieKey:     newCodeHash,
+		MainTrieVal:     codeEntryBytes,
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(stateChange)
 
 	return nil
 }
@@ -431,18 +471,18 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 	return &codeEntry, nil
 }
 
-func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) ([]byte, error) {
 	codeEntry, err := marshalizer.Marshal(entry)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = trie.Update(codeHash, codeEntry)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return codeEntry, nil
 }
 
 // loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
@@ -473,27 +513,24 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
-func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
-	oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
+func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]DataTrieChange, error) {
+	newValues, oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(oldValues) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	adb.journalize(entry)
 
-	//TODO in order to avoid recomputing the root hash after every transaction for the same data trie,
-	// benchmark if it is better to cache the account and compute the rootHash only when the state is committed.
-	// For this to work, LoadAccount should check that cache first, and only after load from the trie.
 	rootHash, err := accountHandler.DataTrie().RootHash()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	accountHandler.SetRootHash(rootHash)
 
@@ -501,16 +538,16 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 		trie, ok := accountHandler.DataTrie().(common.Trie)
 		if !ok {
 			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
-			return nil
+			return nil, nil
 		}
 
 		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	}
 
-	return nil
+	return newValues, nil
 }
 
-func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) error {
+func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) ([]byte, error) {
 	log.Trace("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
@@ -518,10 +555,15 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 	// pass the reference to marshaller, otherwise it will fail marshalling balance
 	buff, err := adb.marshaller.Marshal(accountHandler)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return mainTrie.Update(accountHandler.AddressBytes(), buff)
+	err = mainTrie.Update(accountHandler.AddressBytes(), buff)
+	if err != nil {
+		return nil, err
+	}
+
+	return buff, nil
 }
 
 // RemoveAccount removes the account data from underlying trie.
@@ -785,7 +827,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		}
 
 		if !check.IfNil(account) {
-			err = adb.saveAccountToTrie(account, adb.mainTrie)
+			_, err = adb.saveAccountToTrie(account, adb.mainTrie)
 			if err != nil {
 				return err
 			}
@@ -1223,6 +1265,13 @@ func collectStats(
 	stats.Add(trieStats, trieType)
 
 	log.Debug(strings.Join(trieStats.ToString(), " "))
+}
+
+func (adb *AccountsDB) GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error) {
+	stateChanges := adb.stateChangesCollector.GetStateChanges()
+	adb.stateChangesCollector.Reset()
+
+	return stateChanges, nil
 }
 
 // IsSnapshotInProgress returns true if there is a snapshot in progress

@@ -185,8 +185,8 @@ func (u *UserAccountStub) IsGuarded() bool {
 }
 
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
-	return nil, nil
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
+	return nil, nil, nil
 }
 
 // IsInterfaceNil -
