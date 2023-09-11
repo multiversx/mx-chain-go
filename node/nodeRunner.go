@@ -55,6 +55,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -1219,35 +1220,36 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                           *configs.GeneralConfig,
-		EpochConfig:                      *configs.EpochConfig,
-		PrefConfigs:                      *configs.PreferencesConfig,
-		ImportDBConfig:                   *configs.ImportDbConfig,
-		AccountsParser:                   accountsParser,
-		SmartContractParser:              smartContractParser,
-		GasSchedule:                      gasScheduleNotifier,
-		NodesCoordinator:                 nodesCoordinator,
-		Data:                             dataComponents,
-		CoreData:                         coreComponents,
-		Crypto:                           cryptoComponents,
-		State:                            stateComponents,
-		Network:                          networkComponents,
-		BootstrapComponents:              bootstrapComponents,
-		StatusComponents:                 statusComponents,
-		StatusCoreComponents:             statusCoreComponents,
-		RequestedItemsHandler:            requestedItemsHandler,
-		WhiteListHandler:                 whiteListRequest,
-		WhiteListerVerifiedTxs:           whiteListerVerifiedTxs,
-		MaxRating:                        configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:                   configs.SystemSCConfig,
-		ImportStartHandler:               importStartHandler,
-		HistoryRepo:                      historyRepository,
-		FlagsConfig:                      *configs.FlagsConfig,
-		ChainRunType:                     common.ChainRunTypeRegular,
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory:       genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:          processComp.NewGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator: requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		Config:                              *configs.GeneralConfig,
+		EpochConfig:                         *configs.EpochConfig,
+		PrefConfigs:                         *configs.PreferencesConfig,
+		ImportDBConfig:                      *configs.ImportDbConfig,
+		AccountsParser:                      accountsParser,
+		SmartContractParser:                 smartContractParser,
+		GasSchedule:                         gasScheduleNotifier,
+		NodesCoordinator:                    nodesCoordinator,
+		Data:                                dataComponents,
+		CoreData:                            coreComponents,
+		Crypto:                              cryptoComponents,
+		State:                               stateComponents,
+		Network:                             networkComponents,
+		BootstrapComponents:                 bootstrapComponents,
+		StatusComponents:                    statusComponents,
+		StatusCoreComponents:                statusCoreComponents,
+		RequestedItemsHandler:               requestedItemsHandler,
+		WhiteListHandler:                    whiteListRequest,
+		WhiteListerVerifiedTxs:              whiteListerVerifiedTxs,
+		MaxRating:                           configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                      configs.SystemSCConfig,
+		ImportStartHandler:                  importStartHandler,
+		HistoryRepo:                         historyRepository,
+		FlagsConfig:                         *configs.FlagsConfig,
+		ChainRunType:                        common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:          genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:             processComp.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:    requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		InterceptorsContainerFactoryCreator: interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

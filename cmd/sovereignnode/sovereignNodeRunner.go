@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -1111,7 +1112,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
+	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1194,36 +1195,37 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                           *configs.GeneralConfig,
-		EpochConfig:                      *configs.EpochConfig,
-		PrefConfigs:                      *configs.PreferencesConfig,
-		ImportDBConfig:                   *configs.ImportDbConfig,
-		AccountsParser:                   sovereignAccountsParser,
-		SmartContractParser:              smartContractParser,
-		GasSchedule:                      gasScheduleNotifier,
-		NodesCoordinator:                 nodesCoordinator,
-		Data:                             dataComponents,
-		CoreData:                         coreComponents,
-		Crypto:                           cryptoComponents,
-		State:                            stateComponents,
-		Network:                          networkComponents,
-		BootstrapComponents:              bootstrapComponents,
-		StatusComponents:                 statusComponents,
-		StatusCoreComponents:             statusCoreComponents,
-		RequestedItemsHandler:            requestedItemsHandler,
-		WhiteListHandler:                 whiteListRequest,
-		WhiteListerVerifiedTxs:           whiteListerVerifiedTxs,
-		MaxRating:                        configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:                   configs.SystemSCConfig,
-		ImportStartHandler:               importStartHandler,
-		HistoryRepo:                      historyRepository,
-		FlagsConfig:                      *configs.FlagsConfig,
-		ChainRunType:                     common.ChainRunTypeSovereign,
-		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory:       genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:          processComp.NewSovereignGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator: requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
-		IncomingHeaderSubscriber:         incomingHeaderHandler,
+		Config:                              *configs.GeneralConfig,
+		EpochConfig:                         *configs.EpochConfig,
+		PrefConfigs:                         *configs.PreferencesConfig,
+		ImportDBConfig:                      *configs.ImportDbConfig,
+		AccountsParser:                      sovereignAccountsParser,
+		SmartContractParser:                 smartContractParser,
+		GasSchedule:                         gasScheduleNotifier,
+		NodesCoordinator:                    nodesCoordinator,
+		Data:                                dataComponents,
+		CoreData:                            coreComponents,
+		Crypto:                              cryptoComponents,
+		State:                               stateComponents,
+		Network:                             networkComponents,
+		BootstrapComponents:                 bootstrapComponents,
+		StatusComponents:                    statusComponents,
+		StatusCoreComponents:                statusCoreComponents,
+		RequestedItemsHandler:               requestedItemsHandler,
+		WhiteListHandler:                    whiteListRequest,
+		WhiteListerVerifiedTxs:              whiteListerVerifiedTxs,
+		MaxRating:                           configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                      configs.SystemSCConfig,
+		ImportStartHandler:                  importStartHandler,
+		HistoryRepo:                         historyRepository,
+		FlagsConfig:                         *configs.FlagsConfig,
+		ChainRunType:                        common.ChainRunTypeSovereign,
+		ShardCoordinatorFactory:             sharding.NewSovereignShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:          genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:             processComp.NewSovereignGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:    requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
+		IncomingHeaderSubscriber:            incomingHeaderHandler,
+		InterceptorsContainerFactoryCreator: interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1703,7 +1705,7 @@ func createIncomingHeaderProcessor(
 
 func createSovereignWsReceiver(
 	config *sovereignConfig.NotifierConfig,
-	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
+	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
 		MarshallerType:   config.WebSocketConfig.MarshallerType,

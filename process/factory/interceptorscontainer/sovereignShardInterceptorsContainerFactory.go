@@ -8,24 +8,24 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 )
 
-// sovereignShardInterceptorsContainerFactory will handle the creation of sovereign interceptors container
+type argsSovereignShardInterceptorsContainerFactory struct {
+	shardContainer           *shardInterceptorsContainerFactory
+	incomingHeaderSubscriber process.IncomingHeaderSubscriber
+}
+
 type sovereignShardInterceptorsContainerFactory struct {
 	*shardInterceptorsContainerFactory
-	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+	incomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory
 func NewSovereignShardInterceptorsContainerFactory(
-	args CommonInterceptorsContainerFactoryArgs,
+	args argsSovereignShardInterceptorsContainerFactory,
 ) (*sovereignShardInterceptorsContainerFactory, error) {
-	shardInterceptorContainer, err := NewShardInterceptorsContainerFactory(args)
-	if err != nil {
-		return nil, err
-	}
 
 	return &sovereignShardInterceptorsContainerFactory{
-		shardInterceptorsContainerFactory: shardInterceptorContainer,
-		IncomingHeaderSubscriber:          args.IncomingHeaderSubscriber,
+		shardInterceptorsContainerFactory: args.shardContainer,
+		incomingHeaderSubscriber:          args.incomingHeaderSubscriber,
 	}, nil
 }
 
@@ -60,7 +60,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderI
 		BlockBlackList:           sicf.blockBlackList,
 		Hasher:                   sicf.argInterceptorFactory.CoreComponents.Hasher(),
 		Marshaller:               sicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
-		IncomingHeaderSubscriber: sicf.IncomingHeaderSubscriber,
+		IncomingHeaderSubscriber: sicf.incomingHeaderSubscriber,
 	}
 	hdrProcessor, err := processor.NewSovereignHdrInterceptorProcessor(argProcessor)
 	if err != nil {
