@@ -55,7 +55,6 @@ func CreateStateComponents(args ArgsStateComponents) (factory.StateComponentsHol
 		return nil, err
 	}
 
-	// TODO should call this
 	err = stateComp.CheckSubcomponents()
 	if err != nil {
 		return nil, err

@@ -18,6 +18,7 @@ type statusComponentsHolder struct {
 	managedPeerMonitor     common.ManagedPeersMonitor
 }
 
+// CreateStatusComponentsHolder will create a new instance of status components holder
 func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHolder, error) {
 	var err error
 	instance := &statusComponentsHolder{}
@@ -35,14 +36,17 @@ func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHolde
 	return instance, nil
 }
 
+// OutportHandler will return the outport handler
 func (s *statusComponentsHolder) OutportHandler() outport.OutportHandler {
 	return s.outportHandler
 }
 
+// SoftwareVersionChecker will return the software version checker
 func (s *statusComponentsHolder) SoftwareVersionChecker() statistics.SoftwareVersionChecker {
 	return s.softwareVersionChecker
 }
 
+// ManagedPeersMonitor will return the managed peers monitor
 func (s *statusComponentsHolder) ManagedPeersMonitor() common.ManagedPeersMonitor {
 	return s.managedPeerMonitor
 }
