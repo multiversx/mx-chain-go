@@ -634,3 +634,6 @@ var ErrNilShardRequesterContainerFactory = errors.New(" nil shard shard requeste
 
 // ErrNilRequesterContainerFactoryCreator signals that a nil requester container factory creator has been provided
 var ErrNilRequesterContainerFactoryCreator = errors.New("nil requester container factory creator provided")
+
+// ErrNilInterceptorsContainerFactoryCreator signals that a nil interceptors container factory creator has been provided
+var ErrNilInterceptorsContainerFactoryCreator = errors.New("nil interceptors container factory creator has been provided")

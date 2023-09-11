@@ -614,6 +614,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilRequesterContainerFactoryCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil interceptors container factory creator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.InterceptorsContainerFactoryCreator = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilInterceptorsContainerFactoryCreator))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

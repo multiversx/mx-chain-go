@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+const sovInterceptedHeaderType = "intercepted sovereign extended shard header"
+
 // ArgsSovereignInterceptedHeader is a struct placeholder for args needed to create a new instance of a sovereign extended header interceptor
 type ArgsSovereignInterceptedHeader struct {
 	Marshaller  marshal.Marshalizer
@@ -80,7 +82,7 @@ func (inHdr *sovereignInterceptedHeader) IsForCurrentShard() bool {
 
 // Type returns the type of this intercepted data
 func (inHdr *sovereignInterceptedHeader) Type() string {
-	return "intercepted sovereign extended shard header"
+	return sovInterceptedHeaderType
 }
 
 // String returns the header's most important fields as string

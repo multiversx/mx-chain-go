@@ -2086,6 +2086,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RequesterContainerFactoryCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
 	}
+	if check.IfNil(args.InterceptorsContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
+	}
 
 	return nil
 }
