@@ -32,9 +32,10 @@ type ArgsTestOnlyProcessingNode struct {
 }
 
 type testOnlyProcessingNode struct {
-	CoreComponentsHolder  factory.CoreComponentsHolder
-	StatusCoreComponents  factory.StatusCoreComponentsHolder
-	StateComponentsHolder factory.StateComponentsHolder
+	CoreComponentsHolder   factory.CoreComponentsHolder
+	StatusCoreComponents   factory.StatusCoreComponentsHolder
+	StateComponentsHolder  factory.StateComponentsHolder
+	StatusComponentsHolder factory.StatusComponentsHolder
 
 	ChainHandler                chainData.ChainHandler
 	ShardCoordinator            sharding.Coordinator
@@ -89,6 +90,10 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		StoreService:   instance.StoreService,
 		ChainHandler:   instance.ChainHandler,
 	})
+	if err != nil {
+		return nil, err
+	}
+	instance.StatusComponentsHolder, err = CreateStatusComponentsHolder(args.ShardID)
 	if err != nil {
 		return nil, err
 	}
