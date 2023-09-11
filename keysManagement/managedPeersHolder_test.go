@@ -250,7 +250,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 		assert.Equal(t, skBytes0, skBytesRecovered)
 		assert.Equal(t, 10, len(pInfo.MachineID()))
 		assert.Equal(t, defaultIdentity, pInfo.NodeIdentity())
-		assert.Equal(t, defaultName+"-0", pInfo.NodeName())
+		assert.Equal(t, defaultName+"-00", pInfo.NodeName())
 	})
 	t.Run("should work for a new pk with identity from config", func(t *testing.T) {
 		providedAddress := []byte("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th")
@@ -294,7 +294,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 		assert.Equal(t, providedAddress, skBytesRecovered)
 		assert.Equal(t, 10, len(pInfo.MachineID()))
 		assert.Equal(t, providedIdentity, pInfo.NodeIdentity())
-		assert.Equal(t, providedName+"-0", pInfo.NodeName())
+		assert.Equal(t, providedName+"-00", pInfo.NodeName())
 	})
 	t.Run("should error when trying to add the same pk", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
@@ -415,7 +415,7 @@ func TestManagedPeersHolder_GetNameAndIdentity(t *testing.T) {
 	t.Run("public key exists should return name and identity", func(t *testing.T) {
 		name, identity, err := holder.GetNameAndIdentity(pkBytes0)
 		assert.Nil(t, err)
-		assert.Equal(t, defaultName+"-0", name)
+		assert.Equal(t, defaultName+"-00", name)
 		assert.Equal(t, defaultIdentity, identity)
 	})
 	t.Run("complex scenarios with multiple identities should work", func(t *testing.T) {
@@ -457,18 +457,18 @@ func TestManagedPeersHolder_GetNameAndIdentity(t *testing.T) {
 			_ = holderLocal.AddManagedPeer([]byte(fmt.Sprintf("private key %d", i)))
 		}
 
-		checkNameIdentity(t, holderLocal, "public key 0", "identity1", "name1-0")
-		checkNameIdentity(t, holderLocal, "public key 1", "identity1", "name1-1")
+		checkNameIdentity(t, holderLocal, "public key 0", "identity1", "name1-00")
+		checkNameIdentity(t, holderLocal, "public key 1", "identity1", "name1-01")
 
-		checkNameIdentity(t, holderLocal, "public key 2", "identity2", "name2-0")
-		checkNameIdentity(t, holderLocal, "public key 3", "identity2", "name2-1")
+		checkNameIdentity(t, holderLocal, "public key 2", "identity2", "name2-00")
+		checkNameIdentity(t, holderLocal, "public key 3", "identity2", "name2-01")
 
 		checkNameIdentity(t, holderLocal, "public key 4", "identity3", "")
 		checkNameIdentity(t, holderLocal, "public key 5", "identity3", "")
 
-		checkNameIdentity(t, holderLocal, "public key 6", defaultIdentity, defaultName+"-0")
-		checkNameIdentity(t, holderLocal, "public key 7", defaultIdentity, defaultName+"-1")
-		checkNameIdentity(t, holderLocal, "public key 8", defaultIdentity, defaultName+"-2")
+		checkNameIdentity(t, holderLocal, "public key 6", defaultIdentity, defaultName+"-00")
+		checkNameIdentity(t, holderLocal, "public key 7", defaultIdentity, defaultName+"-01")
+		checkNameIdentity(t, holderLocal, "public key 8", defaultIdentity, defaultName+"-02")
 	})
 }
 

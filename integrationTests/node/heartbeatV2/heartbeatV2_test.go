@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -16,10 +14,9 @@ import (
 )
 
 var log = logger.GetOrCreate("inteagrationtests/node/heartbeatv2")
-var keygen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
-func generateTestKeyPay() *integrationTests.TestKeyPair {
-	sk, pk := keygen.GeneratePair()
+func generateTestKeyPair() *integrationTests.TestKeyPair {
+	sk, pk := integrationTests.TestBLSKeyGenerator.GeneratePair()
 	return &integrationTests.TestKeyPair{
 		Sk: sk,
 		Pk: pk,
@@ -36,7 +33,7 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
 		key := &integrationTests.TestNodeKeys{
-			MainKey: generateTestKeyPay(),
+			MainKey: generateTestKeyPair(),
 		}
 
 		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60, key, nil)
@@ -65,7 +62,7 @@ func TestHeartbeatV2_AllPeersSendMessagesOnMultikeyMode(t *testing.T) {
 	numHandledKeys := 6
 	handledKeys := make([]*integrationTests.TestKeyPair, 0, numHandledKeys)
 	for i := 0; i < numHandledKeys; i++ {
-		key := generateTestKeyPay()
+		key := generateTestKeyPair()
 		handledKeys = append(handledKeys, key)
 
 		pkBytes, _ := key.Pk.ToByteArray()
@@ -112,7 +109,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
 		key := &integrationTests.TestNodeKeys{
-			MainKey: generateTestKeyPay(),
+			MainKey: generateTestKeyPair(),
 		}
 
 		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60, key, nil)
@@ -130,7 +127,7 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 
 	// Add new delayed node which requests messages
 	key := &integrationTests.TestNodeKeys{
-		MainKey: generateTestKeyPay(),
+		MainKey: generateTestKeyPair(),
 	}
 	delayedNode := integrationTests.NewTestHeartbeatNode(t, 3, 0, 0, p2pConfig, 60, key, nil)
 	nodes = append(nodes, delayedNode)
@@ -157,7 +154,7 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
 		key := &integrationTests.TestNodeKeys{
-			MainKey: generateTestKeyPay(),
+			MainKey: generateTestKeyPair(),
 		}
 
 		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 20, key, nil)
@@ -213,7 +210,7 @@ func TestHeartbeatV2_AllPeersSendMessagesOnAllNetworks(t *testing.T) {
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
 		key := &integrationTests.TestNodeKeys{
-			MainKey: generateTestKeyPay(),
+			MainKey: generateTestKeyPair(),
 		}
 
 		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60, key, nil)

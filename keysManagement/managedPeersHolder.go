@@ -120,7 +120,7 @@ func generateNodeName(providedNodeName string, index int) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s-%d", providedNodeName, index)
+	return fmt.Sprintf("%s-%02d", providedNodeName, index)
 }
 
 // AddManagedPeer will try to add a new managed peer providing the private key bytes.
