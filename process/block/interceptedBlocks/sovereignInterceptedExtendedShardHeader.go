@@ -60,7 +60,7 @@ func unmarshalExtendedShardHeader(marshaller marshal.Marshalizer, headerBytes []
 	return extendedHeader, nil
 }
 
-// CheckValidity checks if the received header is valid (basic checks such as not nil fields)
+// CheckValidity does nothing. Proof verification is being done in Validate func from sovereign intercepted header processor
 func (inHdr *sovereignInterceptedHeader) CheckValidity() error {
 	return nil
 }
