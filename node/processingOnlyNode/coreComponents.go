@@ -76,7 +76,7 @@ type coreComponentsHolder struct {
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
 type ArgsCoreComponentsHolder struct {
-	Cfg                 config.Config
+	Config              config.Config
 	EnableEpochsConfig  config.EnableEpochs
 	RoundsConfig        config.RoundConfig
 	EconomicsConfig     config.EconomicsConfig
@@ -92,32 +92,32 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	var err error
 	instance := &coreComponentsHolder{}
 
-	instance.internalMarshaller, err = marshalFactory.NewMarshalizer(args.Cfg.Marshalizer.Type)
+	instance.internalMarshaller, err = marshalFactory.NewMarshalizer(args.Config.Marshalizer.Type)
 	if err != nil {
 		return nil, err
 	}
-	instance.txMarshaller, err = marshalFactory.NewMarshalizer(args.Cfg.TxSignMarshalizer.Type)
+	instance.txMarshaller, err = marshalFactory.NewMarshalizer(args.Config.TxSignMarshalizer.Type)
 	if err != nil {
 		return nil, err
 	}
-	instance.vmMarshaller, err = marshalFactory.NewMarshalizer(args.Cfg.VmMarshalizer.Type)
+	instance.vmMarshaller, err = marshalFactory.NewMarshalizer(args.Config.VmMarshalizer.Type)
 	if err != nil {
 		return nil, err
 	}
-	instance.hasher, err = hashingFactory.NewHasher(args.Cfg.Hasher.Type)
+	instance.hasher, err = hashingFactory.NewHasher(args.Config.Hasher.Type)
 	if err != nil {
 		return nil, err
 	}
-	instance.txSignHasher, err = hashingFactory.NewHasher(args.Cfg.TxSignHasher.Type)
+	instance.txSignHasher, err = hashingFactory.NewHasher(args.Config.TxSignHasher.Type)
 	if err != nil {
 		return nil, err
 	}
 	instance.uint64SliceConverter = uint64ByteSlice.NewBigEndianConverter()
-	instance.addressPubKeyConverter, err = factoryPubKey.NewPubkeyConverter(args.Cfg.AddressPubkeyConverter)
+	instance.addressPubKeyConverter, err = factoryPubKey.NewPubkeyConverter(args.Config.AddressPubkeyConverter)
 	if err != nil {
 		return nil, err
 	}
-	instance.validatorPubKeyConverter, err = factoryPubKey.NewPubkeyConverter(args.Cfg.ValidatorPubkeyConverter)
+	instance.validatorPubKeyConverter, err = factoryPubKey.NewPubkeyConverter(args.Config.ValidatorPubkeyConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.pathHandler, err = storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
 			WorkingDir: args.WorkingDir,
-			ChainID:    args.Cfg.GeneralSettings.ChainID,
+			ChainID:    args.Config.GeneralSettings.ChainID,
 		},
 	)
 	if err != nil {
@@ -139,7 +139,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	//instance.roundHandler
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
-	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Cfg.GeneralSettings.MinTransactionVersion)
+	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 	instance.epochNotifier = forking.NewGenericEpochNotifier()
 	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
 	if err != nil {
@@ -206,8 +206,8 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
-	instance.chainID = args.Cfg.GeneralSettings.ChainID
-	instance.minTransactionVersion = args.Cfg.GeneralSettings.MinTransactionVersion
+	instance.chainID = args.Config.GeneralSettings.ChainID
+	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)
 	if err != nil {
 		return nil, err
@@ -216,7 +216,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.nodeTypeProvider = nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 	instance.processStatusHandler = statusHandler.NewProcessStatusHandler()
 
-	pubKeyBytes, err := instance.validatorPubKeyConverter.Decode(args.Cfg.Hardfork.PublicKeyToListenFrom)
+	pubKeyBytes, err := instance.validatorPubKeyConverter.Decode(args.Config.Hardfork.PublicKeyToListenFrom)
 	if err != nil {
 		return nil, err
 	}
