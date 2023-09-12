@@ -1,12 +1,19 @@
 package processingOnlyNode
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
+)
+
+var (
+	errNilHandler           = errors.New("nil handler")
+	errHandlerAlreadyExists = errors.New("handler already exists")
+	errUnknownPeer          = errors.New("unknown peer")
 )
 
 type messageReceiver interface {
@@ -29,7 +36,7 @@ func NewSyncedBroadcastNetwork() *syncedBroadcastNetwork {
 // RegisterMessageReceiver registers the message receiver
 func (network *syncedBroadcastNetwork) RegisterMessageReceiver(handler messageReceiver, pid core.PeerID) {
 	if handler == nil {
-		log.Error("programming error in syncedBroadcastNetwork.RegisterMessageReceiver: nil handler")
+		log.Error("programming error in syncedBroadcastNetwork.RegisterMessageReceiver: %w", errNilHandler)
 		return
 	}
 
@@ -38,7 +45,7 @@ func (network *syncedBroadcastNetwork) RegisterMessageReceiver(handler messageRe
 
 	_, found := network.peers[pid]
 	if found {
-		log.Error("programming error in syncedBroadcastNetwork.RegisterMessageReceiver: handler already exists", "pid", pid.Pretty())
+		log.Error("programming error in syncedBroadcastNetwork.RegisterMessageReceiver", "pid", pid.Pretty(), "error", errHandlerAlreadyExists)
 		return
 	}
 
@@ -68,7 +75,7 @@ func (network *syncedBroadcastNetwork) SendDirectly(from core.PeerID, topic stri
 	if !found {
 		network.mutOperation.RUnlock()
 
-		return fmt.Errorf("syncedBroadcastNetwork.SendDirectly: trying to send to an unknwon peer, pid %s", to.Pretty())
+		return fmt.Errorf("syncedBroadcastNetwork.SendDirectly: %w, pid %s", errUnknownPeer, to.Pretty())
 	}
 	network.mutOperation.RUnlock()
 

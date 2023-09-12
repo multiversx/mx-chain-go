@@ -17,9 +17,17 @@ import (
 
 const virtualAddressTemplate = "/virtual/p2p/%s"
 
-var log = logger.GetOrCreate("node/chainSimulator")
-var p2pInstanceCreator, _ = crypto.NewIdentityGenerator(log)
-var hasher = blake2b.NewBlake2b()
+var (
+	log                    = logger.GetOrCreate("node/chainSimulator")
+	p2pInstanceCreator, _  = crypto.NewIdentityGenerator(log)
+	hasher                 = blake2b.NewBlake2b()
+	errNilNetwork          = errors.New("nil network")
+	errTopicAlreadyCreated = errors.New("topic already created")
+	errNilMessageProcessor = errors.New("nil message processor")
+	errTopicNotCreated     = errors.New("topic not created")
+	errTopicHasProcessor   = errors.New("there is already a message processor for provided topic and identifier")
+	errInvalidSignature    = errors.New("invalid signature")
+)
 
 type syncedBroadcastNetworkHandler interface {
 	RegisterMessageReceiver(handler messageReceiver, pid core.PeerID)
@@ -40,7 +48,7 @@ type syncedMessenger struct {
 // NewSyncedMessenger creates a new synced network messenger
 func NewSyncedMessenger(network syncedBroadcastNetworkHandler) (*syncedMessenger, error) {
 	if check.IfNil(network) {
-		return nil, fmt.Errorf("nil network")
+		return nil, errNilNetwork
 	}
 
 	_, pid, err := p2pInstanceCreator.CreateRandomP2PIdentity()
@@ -91,7 +99,7 @@ func (messenger *syncedMessenger) CreateTopic(name string, _ bool) error {
 
 	_, found := messenger.topics[name]
 	if found {
-		return fmt.Errorf("programming error in syncedMessenger.CreateTopic, topic already created, topic %s", name)
+		return fmt.Errorf("programming error in syncedMessenger.CreateTopic, %w for topic %s", errTopicAlreadyCreated, name)
 	}
 
 	messenger.topics[name] = make(map[string]p2p.MessageProcessor, 0)
@@ -113,7 +121,7 @@ func (messenger *syncedMessenger) HasTopic(name string) bool {
 func (messenger *syncedMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
 	if check.IfNil(handler) {
 		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, "+
-			"provided handler is nil for topic %s and identifier %s", topic, identifier)
+			"%w for topic %s and identifier %s", errNilMessageProcessor, topic, identifier)
 	}
 
 	messenger.mutOperation.Lock()
@@ -121,13 +129,14 @@ func (messenger *syncedMessenger) RegisterMessageProcessor(topic string, identif
 
 	handlers, found := messenger.topics[topic]
 	if !found {
-		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, topic %s does not exists", topic)
+		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, %w for topic %s",
+			errTopicNotCreated, topic)
 	}
 
 	_, found = handlers[identifier]
 	if found {
-		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, topic %s already "+
-			"contains a registered processor for identifier %s", topic, identifier)
+		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, %w, topic %s, identifier %s",
+			errTopicHasProcessor, topic, identifier)
 	}
 
 	handlers[identifier] = handler
@@ -154,7 +163,8 @@ func (messenger *syncedMessenger) UnregisterMessageProcessor(topic string, ident
 
 	handlers, found := messenger.topics[topic]
 	if !found {
-		return fmt.Errorf("programming error in syncedMessenger.UnregisterMessageProcessor, topic %s does not exists", topic)
+		return fmt.Errorf("programming error in syncedMessenger.UnregisterMessageProcessor, %w for topic %s",
+			errTopicNotCreated, topic)
 	}
 
 	delete(handlers, identifier)
@@ -330,7 +340,7 @@ func (messenger *syncedMessenger) Verify(payload []byte, pid core.PeerID, signat
 		return nil
 	}
 
-	return errors.New("invalid signature")
+	return errInvalidSignature
 }
 
 // SignUsingPrivateKey will return an empty byte slice

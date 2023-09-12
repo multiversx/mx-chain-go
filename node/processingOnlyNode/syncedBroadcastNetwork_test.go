@@ -229,7 +229,6 @@ func TestSyncedBroadcastNetwork_ConnectedPeersAndAddresses(t *testing.T) {
 
 	addresses := peer1.ConnectedAddresses()
 	assert.Equal(t, 2, len(addresses))
-	fmt.Println(addresses)
 	assert.Contains(t, addresses, fmt.Sprintf(virtualAddressTemplate, peer1.ID().Pretty()))
 	assert.Contains(t, addresses, peer1.Addresses()[0])
 	assert.Contains(t, addresses, fmt.Sprintf(virtualAddressTemplate, peer2.ID().Pretty()))

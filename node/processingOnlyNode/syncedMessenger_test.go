@@ -16,8 +16,7 @@ func TestNewSyncedMessenger(t *testing.T) {
 
 		messenger, err := NewSyncedMessenger(nil)
 		assert.Nil(t, messenger)
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "nil network")
+		assert.Equal(t, errNilNetwork, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -78,8 +77,7 @@ func TestSyncedMessenger_RegisterMessageProcessor(t *testing.T) {
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
 		err := messenger.RegisterMessageProcessor("", "", nil)
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "provided handler is nil for topic")
+		assert.ErrorIs(t, err, errNilMessageProcessor)
 	})
 	t.Run("topic not created should error", func(t *testing.T) {
 		t.Parallel()
@@ -87,8 +85,7 @@ func TestSyncedMessenger_RegisterMessageProcessor(t *testing.T) {
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
 		err := messenger.RegisterMessageProcessor("t", "", &p2pmocks.MessageProcessorStub{})
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "topic t does not exists")
+		assert.ErrorIs(t, err, errTopicNotCreated)
 	})
 	t.Run("processor exists, should error", func(t *testing.T) {
 		t.Parallel()
@@ -104,8 +101,7 @@ func TestSyncedMessenger_RegisterMessageProcessor(t *testing.T) {
 
 		processor2 := &p2pmocks.MessageProcessorStub{}
 		err = messenger.RegisterMessageProcessor("t", "i", processor2)
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "topic t already contains a registered processor for identifier i")
+		assert.ErrorIs(t, err, errTopicHasProcessor)
 
 		messenger.mutOperation.RLock()
 		defer messenger.mutOperation.RUnlock()
@@ -202,8 +198,7 @@ func TestSyncedMessenger_UnregisterMessageProcessor(t *testing.T) {
 		topic := "topic"
 		identifier := "identifier"
 		err := messenger.UnregisterMessageProcessor(topic, identifier)
-		assert.NotNil(t, err)
-		assert.Contains(t, err.Error(), "syncedMessenger.UnregisterMessageProcessor, topic topic does not exists")
+		assert.ErrorIs(t, err, errTopicNotCreated)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
