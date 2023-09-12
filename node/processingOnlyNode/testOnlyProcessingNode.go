@@ -1,9 +1,12 @@
 package processingOnlyNode
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -29,8 +32,12 @@ type ArgsTestOnlyProcessingNode struct {
 }
 
 type testOnlyProcessingNode struct {
-	CoreComponentsHolder factory.CoreComponentsHolder
+	CoreComponentsHolder   factory.CoreComponentsHolder
+	StatusCoreComponents   factory.StatusCoreComponentsHolder
+	StateComponentsHolder  factory.StateComponentsHolder
+	StatusComponentsHolder factory.StatusComponentsHolder
 
+	ChainHandler                chainData.ChainHandler
 	ShardCoordinator            sharding.Coordinator
 	ArgumentsParser             process.ArgumentsParser
 	TransactionFeeHandler       process.TransactionFeeHandler
@@ -52,7 +59,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.CoreComponentsHolder, err = CreateCoreComponentsHolder(ArgsCoreComponentsHolder{
-		Cfg:                 args.Config,
+		Config:              args.Config,
 		EnableEpochsConfig:  args.EnableEpochsConfig,
 		RoundsConfig:        args.RoundsConfig,
 		EconomicsConfig:     args.EconomicsConfig,
@@ -62,6 +69,31 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		GasScheduleFilename: args.GasScheduleFilename,
 		NodesSetupPath:      args.NodesSetupPath,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	instance.StatusCoreComponents, err = CreateStatusCoreComponentsHolder(args.Config, instance.CoreComponentsHolder)
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createBlockChain(args.ShardID)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
+		Config:         args.Config,
+		CoreComponents: instance.CoreComponentsHolder,
+		StatusCore:     instance.StatusCoreComponents,
+		StoreService:   instance.StoreService,
+		ChainHandler:   instance.ChainHandler,
+	})
+	if err != nil {
+		return nil, err
+	}
+	instance.StatusComponentsHolder, err = CreateStatusComponentsHolder(args.ShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,6 +123,17 @@ func (node *testOnlyProcessingNode) createBasicComponents(numShards, selfShardID
 	}
 
 	return nil
+}
+
+func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
+	var err error
+	if selfShardID == core.MetachainShardId {
+		node.ChainHandler, err = blockchain.NewMetaChain(node.StatusCoreComponents.AppStatusHandler())
+	} else {
+		node.ChainHandler, err = blockchain.NewBlockChain(node.StatusCoreComponents.AppStatusHandler())
+	}
+
+	return err
 }
 
 func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNode) error {

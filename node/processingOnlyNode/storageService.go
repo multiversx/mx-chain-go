@@ -20,6 +20,10 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.TxLogsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UserAccountsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.PeerAccountsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, CreateMemUnit())
 	// TODO add the rest of units
 
 	for i := uint32(0); i < numOfShards; i++ {
