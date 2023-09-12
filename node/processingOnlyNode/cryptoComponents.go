@@ -81,6 +81,9 @@ func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.Cryp
 	instance.publicKey = managedCryptoComponents.PublicKey()
 	instance.privateKey = managedCryptoComponents.PrivateKey()
 	instance.publicKeyBytes, err = instance.publicKey.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
 	instance.publicKeyString, err = args.CoreComponentsHolder.ValidatorPubKeyConverter().Encode(instance.publicKeyBytes)
 	if err != nil {
 		return nil, err
