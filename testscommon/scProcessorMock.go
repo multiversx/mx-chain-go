@@ -107,22 +107,6 @@ func (sc *SCProcessorMock) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunct
 	return sc.CheckBuiltinFunctionIsExecutableCalled(expectedBuiltinFunction, tx)
 }
 
-// ArgsParser -
-func (sc *SCProcessorMock) ArgsParser() process.ArgumentsParser {
-	if sc.ArgsParserCalled == nil {
-		return nil
-	}
-	return sc.ArgsParserCalled()
-}
-
-// TxTypeHandler -
-func (sc *SCProcessorMock) TxTypeHandler() process.TxTypeHandler {
-	if sc.TxTypeHandlerCalled == nil {
-		return nil
-	}
-	return sc.TxTypeHandlerCalled()
-}
-
 // CheckSCRBeforeProcessing -
 func (sc *SCProcessorMock) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
 	if sc.CheckSCRBeforeProcessingCalled == nil {

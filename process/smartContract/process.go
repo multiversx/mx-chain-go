@@ -2989,13 +2989,3 @@ func (sc *scProcessor) IsPayable(sndAddress []byte, recvAddress []byte) (bool, e
 func (sc *scProcessor) IsInterfaceNil() bool {
 	return sc == nil
 }
-
-// ArgsParser returns the args parser
-func (sc *scProcessor) ArgsParser() process.ArgumentsParser {
-	return sc.argsParser
-}
-
-// TxTypeHandler returns the tx type handler
-func (sc *scProcessor) TxTypeHandler() process.TxTypeHandler {
-	return sc.txTypeHandler
-}

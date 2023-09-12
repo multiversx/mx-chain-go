@@ -32,7 +32,11 @@ func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewS
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return NewSovereignSCRProcessor(scProc)
+	return NewSovereignSCRProcessor(SovereignSCProcessArgs{
+		ArgsParser:             args.ArgsParser,
+		TxTypeHandler:          args.TxTypeHandler,
+		SmartContractProcessor: scProc,
+	})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

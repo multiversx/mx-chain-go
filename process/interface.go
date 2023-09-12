@@ -66,9 +66,6 @@ type SmartContractProcessorFacade interface {
 	SmartContractProcessor
 	SmartContractResultProcessor
 
-	ArgsParser() ArgumentsParser
-	TxTypeHandler() TxTypeHandler
-
 	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 }
 

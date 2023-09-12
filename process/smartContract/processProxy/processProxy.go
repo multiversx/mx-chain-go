@@ -175,16 +175,6 @@ func (proxy *scProcessorProxy) EpochConfirmed(_ uint32, _ uint64) {
 	proxy.setActiveProcessorV1()
 }
 
-// ArgsParser returns the args parser
-func (proxy *scProcessorProxy) ArgsParser() process.ArgumentsParser {
-	return proxy.getProcessor().ArgsParser()
-}
-
-// TxTypeHandler returns the tx type handler
-func (proxy *scProcessorProxy) TxTypeHandler() process.TxTypeHandler {
-	return proxy.getProcessor().TxTypeHandler()
-}
-
 // CheckSCRBeforeProcessing delegates to selected processor
 func (proxy *scProcessorProxy) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
 	return proxy.getProcessor().CheckSCRBeforeProcessing(scr)

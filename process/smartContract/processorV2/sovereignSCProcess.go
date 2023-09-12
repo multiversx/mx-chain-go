@@ -11,18 +11,39 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+// SovereignSCProcessArgs - arguments for creating a new sovereign smart contract processor
+type SovereignSCProcessArgs struct {
+	ArgsParser    process.ArgumentsParser
+	TxTypeHandler process.TxTypeHandler
+
+	SmartContractProcessor process.SmartContractProcessorFacade
+}
+
 type sovereignSCProcessor struct {
 	process.SmartContractProcessorFacade
+
+	argsParser    process.ArgumentsParser
+	txTypeHandler process.TxTypeHandler
 }
 
 // NewSovereignSCRProcessor creates a sovereign scr processor
-func NewSovereignSCRProcessor(scrProc process.SmartContractProcessorFacade) (*sovereignSCProcessor, error) {
-	if check.IfNil(scrProc) {
+func NewSovereignSCRProcessor(args SovereignSCProcessArgs) (*sovereignSCProcessor, error) {
+	if check.IfNil(args.SmartContractProcessor) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
 
+	if check.IfNil(args.ArgsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
+
+	if check.IfNil(args.TxTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
+
 	return &sovereignSCProcessor{
-		scrProc,
+		SmartContractProcessorFacade: args.SmartContractProcessor,
+		argsParser:                   args.ArgsParser,
+		txTypeHandler:                args.TxTypeHandler,
 	}, nil
 }
 
@@ -45,7 +66,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, err
 	}
 
-	txType, _ := sc.TxTypeHandler().ComputeTransactionType(scr)
+	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.BuiltInFunctionCall:
 		err = sc.checkBuiltInFuncCall(string(scr.Data))
@@ -53,16 +74,16 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		return sc.SmartContractProcessorFacade.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
+		return sc.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
 	default:
 		err = process.ErrWrongTransaction
 	}
 
-	return returnCode, sc.SmartContractProcessorFacade.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
+	return returnCode, sc.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
 }
 
 func (sc *sovereignSCProcessor) checkBuiltInFuncCall(scrData string) error {
-	function, _, err := sc.ArgsParser().ParseCallData(scrData)
+	function, _, err := sc.argsParser.ParseCallData(scrData)
 	if err != nil {
 		return err
 	}

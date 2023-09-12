@@ -2980,13 +2980,3 @@ func (sc *scProcessor) getBlockchainHookCountersString() string {
 
 	return strings.Join(lines, ", ")
 }
-
-// ArgsParser returns the args parser
-func (sc *scProcessor) ArgsParser() process.ArgumentsParser {
-	return sc.argsParser
-}
-
-// TxTypeHandler returns the tx type handler
-func (sc *scProcessor) TxTypeHandler() process.TxTypeHandler {
-	return sc.txTypeHandler
-}
