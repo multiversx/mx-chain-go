@@ -11,6 +11,8 @@ const pathForMainConfig = "../../cmd/node/config/config.toml"
 const pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
 const pathForGasSchedules = "../../cmd/node/config/gasSchedules"
 const nodesSetupConfig = "../../cmd/node/config/nodesSetup.json"
+const pathForPrefsConfig = "../../cmd/node/config/prefs.toml"
+const validatorPemFile = "../../cmd/node/config/testKeys/validatorKey.pem"
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	mainConfig := config.Config{}
@@ -22,6 +24,10 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	assert.Nil(t, err)
 
 	gasScheduleName, err := GetLatestGasScheduleFilename(pathForGasSchedules)
+	assert.Nil(t, err)
+
+	prefsConfig := config.Preferences{}
+	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
 	assert.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
@@ -39,6 +45,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		NodesSetupPath:      nodesSetupConfig,
 		NumShards:           3,
 		ShardID:             0,
+		ValidatorPemFile:    validatorPemFile,
+		PreferencesConfig:   prefsConfig,
 	}
 }
 
