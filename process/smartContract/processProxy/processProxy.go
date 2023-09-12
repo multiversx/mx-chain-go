@@ -38,7 +38,11 @@ type scProcessorProxy struct {
 //   that will notify a new epoch *** after *** all its epoch flags are set
 
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
-func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*scProcessorProxy, error) {
+func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor) (*scProcessorProxy, error) {
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
+	}
+
 	proxy := &scProcessorProxy{
 		args: scrCommon.ArgsNewSmartContractProcessor{
 			VmContainer:         args.VmContainer,
@@ -64,10 +68,8 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			VMOutputCacher:      args.VMOutputCacher,
 			WasmVMChangeLocker:  args.WasmVMChangeLocker,
 			IsGenesisProcessing: args.IsGenesisProcessing,
+			EpochNotifier:       args.EpochNotifier,
 		},
-	}
-	if check.IfNil(epochNotifier) {
-		return nil, process.ErrNilEpochNotifier
 	}
 
 	proxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
@@ -83,7 +85,7 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 		return nil, err
 	}
 
-	epochNotifier.RegisterNotifyHandler(proxy)
+	args.EpochNotifier.RegisterNotifyHandler(proxy)
 
 	return proxy, nil
 }

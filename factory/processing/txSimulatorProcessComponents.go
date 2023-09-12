@@ -361,9 +361,10 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		VMOutputCacher:      vmOutputCacher,
 		WasmVMChangeLocker:  pcf.coreData.WasmVMChangeLocker(),
 		IsGenesisProcessing: false,
+		EpochNotifier:       pcf.epochNotifier,
 	}
 
-	scProcessor, err := pcf.runTypeComponents.SCProcessorCreator().CreateSCProcessor(scProcArgs, pcf.epochNotifier)
+	scProcessor, err := pcf.runTypeComponents.SCProcessorCreator().CreateSCProcessor(scProcArgs)
 	if err != nil {
 		return args, nil, nil, err
 	}

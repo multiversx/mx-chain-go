@@ -576,9 +576,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  genesisWasmVMLocker,
+		EpochNotifier:       epochNotifier,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}

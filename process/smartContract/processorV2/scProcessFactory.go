@@ -1,7 +1,6 @@
 package processorV2
 
 import (
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 )
 
@@ -14,7 +13,7 @@ func NewSCProcessFactory() (*scProcessFactory, error) {
 }
 
 // CreateSCProcessor creates a new smart contract processor
-func (scpf *scProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewSmartContractProcessor, _ process.EpochNotifier) (scrCommon.SCRProcessorHandler, error) {
+func (scpf *scProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewSmartContractProcessor) (scrCommon.SCRProcessorHandler, error) {
 	return NewSmartContractProcessorV2(args)
 }
 

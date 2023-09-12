@@ -255,8 +255,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
+		EpochNotifier:       pcf.epochNotifier,
 	}
-	scProcessorProxy, err := pcf.runTypeComponents.SCProcessorCreator().CreateSCProcessor(argsNewScProcessor, pcf.epochNotifier)
+	scProcessorProxy, err := pcf.runTypeComponents.SCProcessorCreator().CreateSCProcessor(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -587,9 +588,10 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
+		EpochNotifier:       pcf.epochNotifier,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}

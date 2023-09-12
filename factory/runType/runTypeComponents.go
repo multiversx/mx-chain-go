@@ -107,7 +107,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardAdditionalStorageServiceFactory failed: %w", err)
 	}
 
-	sCProcessorCreator, err := processProxy.NewSCProcessProxyFactory()
+	sCProcessorCreator := processProxy.NewSCProcessProxyFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
 	}
@@ -137,4 +137,9 @@ func (rc *runTypeComponentsFactory) IsInterfaceNil() bool {
 // Close does nothing
 func (rc *runTypeComponents) Close() error {
 	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (rc *runTypeComponents) IsInterfaceNil() bool {
+	return rc == nil
 }

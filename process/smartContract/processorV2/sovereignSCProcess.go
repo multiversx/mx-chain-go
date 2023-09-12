@@ -15,8 +15,6 @@ type sovereignSCProcessor struct {
 	process.SmartContractProcessorFacade
 }
 
-// TODO: use scrProcessorV2 when feat/vm1.5 is merged into feat/chain-sdk-go
-
 // NewSovereignSCRProcessor creates a sovereign scr processor
 func NewSovereignSCRProcessor(scrProc process.SmartContractProcessorFacade) (*sovereignSCProcessor, error) {
 	if check.IfNil(scrProc) {

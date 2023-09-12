@@ -62,7 +62,7 @@ func (mrc *managedRunTypeComponents) Close() error {
 	mrc.mutStateComponents.Lock()
 	defer mrc.mutStateComponents.Unlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -80,7 +80,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return errors.ErrNilRunTypeComponents
 	}
 	if check.IfNil(mrc.blockProcessorCreator) {
@@ -130,7 +130,7 @@ func (mrc *managedRunTypeComponents) AdditionalStorageServiceCreator() process.A
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -142,7 +142,7 @@ func (mrc *managedRunTypeComponents) BlockProcessorCreator() processBlock.BlockP
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() hooks.BlockC
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -166,7 +166,7 @@ func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() storageBoo
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -178,7 +178,7 @@ func (mrc *managedRunTypeComponents) BlockTrackerCreator() track.BlockTrackerCre
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -190,7 +190,7 @@ func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() bootstrap.E
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -202,7 +202,7 @@ func (mrc *managedRunTypeComponents) ForkDetectorCreator() processSync.ForkDetec
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -214,7 +214,7 @@ func (mrc *managedRunTypeComponents) HeaderValidatorCreator() processBlock.Heade
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -226,7 +226,7 @@ func (mrc *managedRunTypeComponents) RequestHandlerCreator() requestHandlers.Req
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -238,7 +238,7 @@ func (mrc *managedRunTypeComponents) ScheduledTxsExecutionCreator() preprocess.S
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -250,7 +250,7 @@ func (mrc *managedRunTypeComponents) TransactionCoordinatorCreator() coordinator
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -262,7 +262,7 @@ func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() peer.
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 
@@ -274,7 +274,7 @@ func (mrc *managedRunTypeComponents) SCProcessorCreator() scrCommon.SCProcessorC
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
-	if mrc.runTypeComponents == nil {
+	if check.IfNil(mrc.runTypeComponents) {
 		return nil
 	}
 

@@ -25,17 +25,27 @@ func TestNewSovereignSCProcessFactory(t *testing.T) {
 func TestSovereignSCProcessFactory_CreateSCProcessor(t *testing.T) {
 	t.Parallel()
 
-	f, _ := processorV2.NewSCProcessFactory()
-	fact, _ := processorV2.NewSovereignSCProcessFactory(f)
+	t.Run("Nil EpochNotifier should not fail because it is not used", func(t *testing.T) {
+		f, _ := processorV2.NewSCProcessFactory()
+		fact, _ := processorV2.NewSovereignSCProcessFactory(f)
 
-	scProcessor, err := fact.CreateSCProcessor(scrCommon.ArgsNewSmartContractProcessor{}, nil)
-	require.NotNil(t, err)
-	require.Nil(t, scProcessor)
+		args := processorV2.CreateMockSmartContractProcessorArguments()
+		args.EpochNotifier = nil
+		scProcessor, err := fact.CreateSCProcessor(args)
+		require.Nil(t, err)
+		require.NotNil(t, scProcessor)
+	})
 
-	scProcessor, err = fact.CreateSCProcessor(processorV2.CreateMockSmartContractProcessorArguments(), nil)
-	require.Nil(t, err)
-	require.NotNil(t, scProcessor)
-	require.Implements(t, new(scrCommon.SCRProcessorHandler), scProcessor)
+	t.Run("CreateSCProcessor should work", func(t *testing.T) {
+		f, _ := processorV2.NewSCProcessFactory()
+		fact, _ := processorV2.NewSovereignSCProcessFactory(f)
+
+		args := processorV2.CreateMockSmartContractProcessorArguments()
+		scProcessor, err := fact.CreateSCProcessor(args)
+		require.Nil(t, err)
+		require.NotNil(t, scProcessor)
+		require.Implements(t, new(scrCommon.SCRProcessorHandler), scProcessor)
+	})
 }
 
 func TestSovereignSCProcessFactory_IsInterfaceNil(t *testing.T) {
