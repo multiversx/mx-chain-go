@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-const NormalProcessingMode = 0
-
 // ArgsStateComponents will hold the components needed for state components
 type ArgsStateComponents struct {
 	Config         config.Config
@@ -39,7 +37,7 @@ func CreateStateComponents(args ArgsStateComponents) (factory.StateComponentsHol
 		Core:                     args.CoreComponents,
 		StatusCore:               args.StatusCore,
 		StorageService:           args.StoreService,
-		ProcessingMode:           NormalProcessingMode,
+		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
 		ChainHandler:             args.ChainHandler,
 	})
