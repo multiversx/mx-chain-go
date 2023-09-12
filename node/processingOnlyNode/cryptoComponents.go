@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
+// ArgsCryptoComponentsHolder holds all arguments needed to create a crypto components holder
 type ArgsCryptoComponentsHolder struct {
 	Config                  config.Config
 	EnableEpochsConfig      config.EnableEpochs
@@ -43,6 +44,7 @@ type cryptoComponentsHolder struct {
 	publicKeyString         string
 }
 
+// CreateCryptoComponentsHolder will create a new instance of cryptoComponentsHolder
 func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHolder, error) {
 	instance := &cryptoComponentsHolder{}
 
