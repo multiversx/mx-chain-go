@@ -31,8 +31,12 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	assert.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
-		Config:             mainConfig,
-		EnableEpochsConfig: config.EnableEpochs{},
+		Config: mainConfig,
+		EnableEpochsConfig: config.EnableEpochs{
+			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{
+				{EnableEpoch: 0, Type: "KOSK"},
+			},
+		},
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
