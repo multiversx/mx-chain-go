@@ -111,7 +111,7 @@ func (messenger *syncedMessenger) HasTopic(name string) bool {
 
 // RegisterMessageProcessor will try to register a message processor on the provided topic & identifier
 func (messenger *syncedMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
-	if handler.IsInterfaceNil() {
+	if check.IfNil(handler) {
 		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, "+
 			"provided handler is nil for topic %s and identifier %s", topic, identifier)
 	}

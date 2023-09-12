@@ -1,6 +1,7 @@
 package processingOnlyNode
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
@@ -203,6 +204,84 @@ func TestSyncedBroadcastNetwork_SendDirectlyShouldNotDeadlock(t *testing.T) {
 
 	assert.Equal(t, "reply: "+string(testMessage), string(messages[peer1.ID()][topic]))
 	assert.Nil(t, messages[peer2.ID()][topic])
+}
+
+func TestSyncedBroadcastNetwork_ConnectedPeersAndAddresses(t *testing.T) {
+	t.Parallel()
+
+	network := NewSyncedBroadcastNetwork()
+
+	peer1, err := NewSyncedMessenger(network)
+	assert.Nil(t, err)
+
+	peer2, err := NewSyncedMessenger(network)
+	assert.Nil(t, err)
+
+	peers := peer1.ConnectedPeers()
+	assert.Equal(t, 2, len(peers))
+
+	assert.Contains(t, peers, peer1.ID())
+	assert.Contains(t, peers, peer2.ID())
+
+	assert.True(t, peer1.IsConnected(peer2.ID()))
+	assert.True(t, peer2.IsConnected(peer1.ID()))
+	assert.False(t, peer1.IsConnected("no connection"))
+
+	addresses := peer1.ConnectedAddresses()
+	assert.Equal(t, 2, len(addresses))
+	fmt.Println(addresses)
+	assert.Contains(t, addresses, fmt.Sprintf(virtualAddressTemplate, peer1.ID().Pretty()))
+	assert.Contains(t, addresses, peer1.Addresses()[0])
+	assert.Contains(t, addresses, fmt.Sprintf(virtualAddressTemplate, peer2.ID().Pretty()))
+	assert.Contains(t, addresses, peer2.Addresses()[0])
+}
+
+func TestSyncedBroadcastNetwork_GetConnectedPeersOnTopic(t *testing.T) {
+	t.Parallel()
+
+	globalTopic := "global"
+	oneTwoTopic := "topic_1_2"
+	oneThreeTopic := "topic_1_3"
+	twoThreeTopic := "topic_2_3"
+
+	network := NewSyncedBroadcastNetwork()
+
+	peer1, err := NewSyncedMessenger(network)
+	assert.Nil(t, err)
+	_ = peer1.CreateTopic(globalTopic, false)
+	_ = peer1.CreateTopic(oneTwoTopic, false)
+	_ = peer1.CreateTopic(oneThreeTopic, false)
+
+	peer2, err := NewSyncedMessenger(network)
+	assert.Nil(t, err)
+	_ = peer2.CreateTopic(globalTopic, false)
+	_ = peer2.CreateTopic(oneTwoTopic, false)
+	_ = peer2.CreateTopic(twoThreeTopic, false)
+
+	peer3, err := NewSyncedMessenger(network)
+	assert.Nil(t, err)
+	_ = peer3.CreateTopic(globalTopic, false)
+	_ = peer3.CreateTopic(oneThreeTopic, false)
+	_ = peer3.CreateTopic(twoThreeTopic, false)
+
+	peers := peer1.ConnectedPeersOnTopic(globalTopic)
+	assert.Equal(t, 3, len(peers))
+	assert.Contains(t, peers, peer1.ID())
+	assert.Contains(t, peers, peer2.ID())
+	assert.Contains(t, peers, peer3.ID())
+
+	peers = peer1.ConnectedPeersOnTopic(oneTwoTopic)
+	assert.Equal(t, 2, len(peers))
+	assert.Contains(t, peers, peer1.ID())
+	assert.Contains(t, peers, peer2.ID())
+
+	peers = peer3.ConnectedPeersOnTopic(oneThreeTopic)
+	assert.Equal(t, 2, len(peers))
+	assert.Contains(t, peers, peer1.ID())
+	assert.Contains(t, peers, peer3.ID())
+
+	peersInfo := peer1.GetConnectedPeersInfo()
+	assert.Equal(t, 3, len(peersInfo.UnknownPeers))
 }
 
 func createMessageProcessor(dataMap map[core.PeerID]map[string][]byte, pid core.PeerID) p2p.MessageProcessor {
