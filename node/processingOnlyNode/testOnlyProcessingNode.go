@@ -59,7 +59,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.CoreComponentsHolder, err = CreateCoreComponentsHolder(ArgsCoreComponentsHolder{
-		Cfg:                 args.Config,
+		Config:              args.Config,
 		EnableEpochsConfig:  args.EnableEpochsConfig,
 		RoundsConfig:        args.RoundsConfig,
 		EconomicsConfig:     args.EconomicsConfig,
@@ -84,7 +84,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
-		Cfg:            args.Config,
+		Config:         args.Config,
 		CoreComponents: instance.CoreComponentsHolder,
 		StatusCore:     instance.StatusCoreComponents,
 		StoreService:   instance.StoreService,
