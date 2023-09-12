@@ -24,6 +24,7 @@ type ArgBaseTracker struct {
 	WhitelistHandler       process.WhiteListHandler
 	FeeHandler             process.FeeHandler
 	ChainParametersHandler process.ChainParametersHandler
+	EpochStartTrigger      process.EpochFinalityAttestingRoundProvider
 }
 
 // ArgShardTracker holds all dependencies required by the process data factory in order to create

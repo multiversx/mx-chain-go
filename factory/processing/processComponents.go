@@ -468,10 +468,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	epochStartTriggerWithFinalityAttestingRounds, ok := epochStartTrigger.(process.EpochFinalityAttestingRoundProvider)
+	if !ok {
+		return nil, fmt.Errorf("cannot cast epochStart.TriggerHandler to EpochFinalityAttestingRoundProvider")
+	}
 	blockTracker, err := pcf.newBlockTracker(
 		headerValidator,
 		requestHandler,
 		genesisBlocks,
+		epochStartTriggerWithFinalityAttestingRounds,
 	)
 	if err != nil {
 		return nil, err
@@ -1288,6 +1293,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	headerValidator process.HeaderConstructionValidator,
 	requestHandler process.RequestHandler,
 	genesisBlocks map[uint32]data.HeaderHandler,
+	epochStartTrigger process.EpochFinalityAttestingRoundProvider,
 ) (process.BlockTracker, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	argBaseTracker := track.ArgBaseTracker{
@@ -1303,6 +1309,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 		WhitelistHandler:       pcf.whiteListHandler,
 		FeeHandler:             pcf.coreData.EconomicsData(),
 		ChainParametersHandler: pcf.coreData.ChainParametersHandler(),
+		EpochStartTrigger:      epochStartTrigger,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

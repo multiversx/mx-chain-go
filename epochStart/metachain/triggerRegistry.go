@@ -28,6 +28,10 @@ func (t *trigger) LoadState(key []byte) error {
 	t.triggerStateKey = key
 	t.currentRound = state.CurrentRound
 	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
+	if t.epochAttestingRounds == nil {
+		t.epochAttestingRounds = make(map[uint32]uint64)
+	}
+	t.epochAttestingRounds[state.Epoch] = state.EpochFinalityAttestingRound
 	t.currEpochStartRound = state.CurrEpochStartRound
 	t.prevEpochStartRound = state.PrevEpochStartRound
 	t.epoch = state.Epoch
@@ -77,7 +81,8 @@ func (t *trigger) saveState(key []byte) error {
 	}
 
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
-	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
+	triggerDataBytes, _ := json.Marshal(registry)
+	log.Debug("saving start of epoch trigger state", "key", trigInternalKey, "value", string(triggerDataBytes))
 
 	return t.triggerStorage.Put(trigInternalKey, triggerData)
 }

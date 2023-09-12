@@ -37,6 +37,7 @@ func (t *trigger) LoadState(key []byte) error {
 	t.isEpochStart = state.GetIsEpochStart()
 	t.newEpochHdrReceived = state.GetNewEpochHeaderReceived()
 	t.epochFinalityAttestingRound = state.GetEpochFinalityAttestingRound()
+	t.epochAttestingRounds[state.GetEpoch()] = state.GetEpochFinalityAttestingRound()
 	t.epochStartShardHeader = state.GetEpochStartHeaderHandler()
 	t.mutTrigger.Unlock()
 

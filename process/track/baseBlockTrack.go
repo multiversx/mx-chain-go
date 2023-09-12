@@ -48,6 +48,7 @@ type baseBlockTrack struct {
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
 	chainParametersHandler                process.ChainParametersHandler
+	finalityAttestingRoundProvider        process.EpochFinalityAttestingRoundProvider
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -115,6 +116,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
+		finalityAttestingRoundProvider:        arguments.EpochStartTrigger,
 	}
 
 	return bbt, nil
@@ -134,6 +136,11 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 	shardHeader, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		log.Warn("cannot convert data.HeaderHandler in data.ShardHeaderHandler")
+		return
+	}
+
+	isEpochCorrect := bbt.checkEpochCorrectness(headerHandler)
+	if !isEpochCorrect {
 		return
 	}
 
@@ -157,6 +164,41 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 
 	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 	bbt.blockProcessor.ProcessReceivedHeader(shardHeader)
+}
+
+func (bbt *baseBlockTrack) checkEpochCorrectness(headerHandler data.HeaderHandler) bool {
+	// TODO: analyze if the same check should be applied for shards as well (during testing, seems that it doesn't work)
+	if bbt.shardCoordinator.SelfId() != core.MetachainShardId {
+		return true
+	}
+
+	metaEpoch := bbt.finalityAttestingRoundProvider.MetaEpoch()
+	finalityAttestingRoundForEpoch, found := bbt.finalityAttestingRoundProvider.AttestingRoundForEpoch(metaEpoch)
+	if !found {
+		log.Debug("baseBlockTrack.receivedShardHeader: attesting round for epoch not set yet. Will not check against the grace period",
+			"shard", headerHandler.GetShardID(),
+			"header epoch", headerHandler.GetEpoch(),
+			"header round", headerHandler.GetRound(),
+			"meta epoch", metaEpoch,
+			"grace period", process.EpochChangeGracePeriod,
+		)
+
+		return true
+	}
+	isInvalidHeader := headerHandler.GetRound() > finalityAttestingRoundForEpoch+process.EpochChangeGracePeriod && headerHandler.GetEpoch() < bbt.finalityAttestingRoundProvider.MetaEpoch()
+	if isInvalidHeader {
+		log.Warn("baseBlockTrack.receivedShardHeader: shard header with old epoch",
+			"shard", headerHandler.GetShardID(),
+			"header's epoch", headerHandler.GetEpoch(),
+			"header's round", headerHandler.GetRound(),
+			"meta epoch", metaEpoch,
+			"epoch finality attesting round", finalityAttestingRoundForEpoch,
+			"grace period", process.EpochChangeGracePeriod,
+		)
+		return false
+	}
+
+	return true
 }
 
 func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
@@ -310,7 +352,7 @@ func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.Heade
 }
 
 // ComputeLongestMetaChainFromLastNotarized returns the longest valid chain for metachain from its last cross notarized header
-func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized(chainParametersEpoch uint32) ([]data.HeaderHandler, [][]byte, error) {
+func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized(_ uint32) ([]data.HeaderHandler, [][]byte, error) {
 	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
@@ -800,6 +842,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.ChainParametersHandler) {
 		return process.ErrNilChainParametersHandler
+	}
+	if check.IfNil(arguments.EpochStartTrigger) {
+		return process.ErrNilEpochFinalityAttestingRoundProvider
 	}
 
 	return nil

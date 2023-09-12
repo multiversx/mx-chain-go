@@ -69,6 +69,7 @@ type trigger struct {
 	epochFinalityAttestingRound uint64
 	epochStartShardHeader       data.HeaderHandler
 	epochStartMeta              data.HeaderHandler
+	epochAttestingRounds        map[uint32]uint64
 
 	mutTrigger         sync.RWMutex
 	mapHashHdr         map[string]data.HeaderHandler
@@ -218,15 +219,19 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
-	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
+	triggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
+
+	epochAttestingRounds := make(map[uint32]uint64)
+	epochAttestingRounds[args.Epoch] = 0
 
 	t := &trigger{
-		triggerStateKey:               []byte(trigggerStateKey),
+		triggerStateKey:               []byte(triggerStateKey),
 		epoch:                         args.Epoch,
 		metaEpoch:                     args.Epoch,
 		currentRoundIndex:             0,
 		epochStartRound:               0,
 		epochFinalityAttestingRound:   0,
+		epochAttestingRounds:          epochAttestingRounds,
 		isEpochStart:                  false,
 		validity:                      args.Validity,
 		chainParametersHandler:        args.ChainParametersHandler,
@@ -444,6 +449,15 @@ func (t *trigger) MetaEpoch() uint32 {
 	return t.metaEpoch
 }
 
+// AttestingRoundForEpoch returns the attesting round for the provided epoch (if found)
+func (t *trigger) AttestingRoundForEpoch(epoch uint32) (uint64, bool) {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	round, found := t.epochAttestingRounds[epoch]
+	return round, found
+}
+
 // EpochStartRound returns the start round of the current epoch
 func (t *trigger) EpochStartRound() uint64 {
 	t.mutTrigger.RLock()
@@ -529,6 +543,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 
 		log.Error("REMOVE_ME: updated epochFinalityAttestingRound with metaHdrWithFinalityAttestingRound.GetRound()", "round", metaHdrWithFinalityAttestingRound.GetRound())
 		t.epochFinalityAttestingRound = metaHdrWithFinalityAttestingRound.GetRound()
+		t.epochAttestingRounds[metaHdrWithFinalityAttestingRound.GetEpoch()] = metaHdrWithFinalityAttestingRound.GetRound()
 		return
 	}
 
@@ -557,6 +572,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 
 		log.Error("REMOVE_ME: t.requestedFinalityAttestingBlock.IsSet() updated epochFinalityAttestingRound", "round", metaHdr.GetRound())
 		t.epochFinalityAttestingRound = metaHdr.GetRound()
+		t.epochAttestingRounds[metaHdr.GetEpoch()] = metaHdr.GetRound()
 		t.requestedFinalityAttestingBlock.Reset()
 		return
 	}
@@ -567,6 +583,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 
 	log.Error("REMOVE_ME: metaHdr.GetRound() < t.epochFinalityAttestingRound updated epochFinalityAttestingRound", "round", metaHdr.GetRound())
 	t.epochFinalityAttestingRound = metaHdr.GetRound()
+	t.epochAttestingRounds[metaHdr.GetEpoch()] = metaHdr.GetRound()
 }
 
 // receivedMetaBlock is a callback function when a new metablock was received
@@ -672,6 +689,10 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.isEpochStart = true
 			t.epochStartRound = currMetaInfo.hdr.GetRound()
 			t.epochFinalityAttestingRound = finalityAttestingRound
+			if t.epochAttestingRounds == nil {
+				t.epochAttestingRounds = make(map[uint32]uint64)
+			}
+			t.epochAttestingRounds[currMetaInfo.hdr.GetEpoch()] = finalityAttestingRound
 			t.epochMetaBlockHash = []byte(currMetaInfo.hash)
 			t.epochStartMeta = currMetaInfo.hdr
 			t.saveCurrentState(currMetaInfo.hdr.GetRound())

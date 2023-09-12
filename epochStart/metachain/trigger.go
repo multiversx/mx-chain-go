@@ -55,6 +55,7 @@ type trigger struct {
 	epochStartMeta              data.HeaderHandler
 	currentRound                uint64
 	epochFinalityAttestingRound uint64
+	epochAttestingRounds        map[uint32]uint64
 	currEpochStartRound         uint64
 	prevEpochStartRound         uint64
 	nextEpochStartRound         uint64
@@ -123,6 +124,8 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
+	epochAttestingRounds := make(map[uint32]uint64)
+	epochAttestingRounds[args.Epoch] = args.EpochStartRound
 	trig := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
@@ -133,6 +136,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		minRoundsBetweenEpochs:      uint64(args.Settings.MinRoundsBetweenEpochs),
 		mutTrigger:                  sync.RWMutex{},
 		epochFinalityAttestingRound: args.EpochStartRound,
+		epochAttestingRounds:        epochAttestingRounds,
 		epochStartNotifier:          args.EpochStartNotifier,
 		metaHeaderStorage:           metaBlockStorage,
 		triggerStorage:              triggerStorage,
@@ -282,9 +286,19 @@ func (t *trigger) SetFinalityAttestingRound(round uint64) {
 
 	if round > t.currEpochStartRound {
 		t.epochFinalityAttestingRound = round
+		t.epochAttestingRounds[t.epoch] = round
 		t.saveCurrentState(round)
 		t.epochStartNotifier.NotifyEpochChangeConfirmed(t.epoch)
 	}
+}
+
+// AttestingRoundForEpoch returns the attesting round for the provided epoch (if found)
+func (t *trigger) AttestingRoundForEpoch(epoch uint32) (uint64, bool) {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	round, found := t.epochAttestingRounds[epoch]
+	return round, found
 }
 
 // RevertStateToBlock will revert the state of the trigger to the current block

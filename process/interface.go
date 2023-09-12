@@ -1072,6 +1072,14 @@ type ChainParametersHandler interface {
 	IsInterfaceNil() bool
 }
 
+// EpochFinalityAttestingRoundProvider defines the actions that need to be done by component that can provide the epoch finality attesting round
+type EpochFinalityAttestingRoundProvider interface {
+	EpochFinalityAttestingRound() uint64
+	AttestingRoundForEpoch(epoch uint32) (uint64, bool)
+	MetaEpoch() uint32
+	IsInterfaceNil() bool
+}
+
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
 type ValidatorInfoSyncer interface {
 	SyncMiniBlocks(headerHandler data.HeaderHandler) ([][]byte, data.BodyHandler, error)
