@@ -23,8 +23,10 @@ type ArgsTestOnlyProcessingNode struct {
 	EnableEpochsConfig  config.EnableEpochs
 	EconomicsConfig     config.EconomicsConfig
 	RoundsConfig        config.RoundConfig
+	PreferencesConfig   config.Preferences
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
 	GasScheduleFilename string
+	ValidatorPemFile    string
 	WorkingDir          string
 	NodesSetupPath      string
 	NumShards           uint32
@@ -36,6 +38,7 @@ type testOnlyProcessingNode struct {
 	StatusCoreComponents   factory.StatusCoreComponentsHolder
 	StateComponentsHolder  factory.StateComponentsHolder
 	StatusComponentsHolder factory.StatusComponentsHolder
+	CryptoComponentsHolder factory.CryptoComponentsHolder
 
 	ChainHandler                chainData.ChainHandler
 	ShardCoordinator            sharding.Coordinator
@@ -94,6 +97,16 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 	instance.StatusComponentsHolder, err = CreateStatusComponentsHolder(args.ShardID)
+	if err != nil {
+		return nil, err
+	}
+	instance.CryptoComponentsHolder, err = CreateCryptoComponentsHolder(ArgsCryptoComponentsHolder{
+		Config:                  args.Config,
+		EnableEpochsConfig:      args.EnableEpochsConfig,
+		Preferences:             args.PreferencesConfig,
+		CoreComponentsHolder:    instance.CoreComponentsHolder,
+		ValidatorKeyPemFileName: args.ValidatorPemFile,
+	})
 	if err != nil {
 		return nil, err
 	}

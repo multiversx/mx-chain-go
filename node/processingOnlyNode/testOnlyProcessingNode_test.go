@@ -11,6 +11,8 @@ const pathForMainConfig = "../../cmd/node/config/config.toml"
 const pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
 const pathForGasSchedules = "../../cmd/node/config/gasSchedules"
 const nodesSetupConfig = "../../cmd/node/config/nodesSetup.json"
+const pathForPrefsConfig = "../../cmd/node/config/prefs.toml"
+const validatorPemFile = "../../cmd/node/config/testKeys/validatorKey.pem"
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	mainConfig := config.Config{}
@@ -24,9 +26,17 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	gasScheduleName, err := GetLatestGasScheduleFilename(pathForGasSchedules)
 	assert.Nil(t, err)
 
+	prefsConfig := config.Preferences{}
+	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
+	assert.Nil(t, err)
+
 	return ArgsTestOnlyProcessingNode{
-		Config:             mainConfig,
-		EnableEpochsConfig: config.EnableEpochs{},
+		Config: mainConfig,
+		EnableEpochsConfig: config.EnableEpochs{
+			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{
+				{EnableEpoch: 0, Type: "KOSK"},
+			},
+		},
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
@@ -39,6 +49,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		NodesSetupPath:      nodesSetupConfig,
 		NumShards:           3,
 		ShardID:             0,
+		ValidatorPemFile:    validatorPemFile,
+		PreferencesConfig:   prefsConfig,
 	}
 }
 
