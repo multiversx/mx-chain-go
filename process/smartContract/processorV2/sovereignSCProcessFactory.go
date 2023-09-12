@@ -32,7 +32,24 @@ func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewS
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return NewSovereignSCRProcessor(scProc)
+	scpHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+		Accounts:         args.AccountsDB,
+		ShardCoordinator: args.ShardCoordinator,
+		Marshalizer:      args.Marshalizer,
+		Hasher:           args.Hasher,
+		PubkeyConverter:  args.PubkeyConv,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSovereignSCRProcessor(SovereignSCProcessArgs{
+		ArgsParser:             args.ArgsParser,
+		TxTypeHandler:          args.TxTypeHandler,
+		SmartContractProcessor: scProc,
+		SCProcessHelperHandler: scpHelper,
+	})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

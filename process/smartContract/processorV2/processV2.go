@@ -79,6 +79,7 @@ type scProcessor struct {
 	economicsFee        process.FeeHandler
 	txTypeHandler       process.TxTypeHandler
 	gasHandler          process.GasHandler
+	scProcessHandler    process.SCProcessHelperHandler
 
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
@@ -178,6 +179,19 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
+
+	accHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+		Accounts:         args.AccountsDB,
+		ShardCoordinator: args.ShardCoordinator,
+		Marshalizer:      args.Marshalizer,
+		Hasher:           args.Hasher,
+		PubkeyConverter:  args.PubkeyConv,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	sc := &scProcessor{
 		vmContainer:         args.VmContainer,
 		argsParser:          args.ArgsParser,
@@ -203,9 +217,9 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
+		scProcessHandler:    accHelper,
 	}
 
-	var err error
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
 	if err != nil {
 		return nil, err
@@ -2684,7 +2698,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	var err error
 	returnCode := vmcommon.UserError
-	scrData, err := sc.CheckSCRBeforeProcessing(scr)
+	scrData, err := sc.scProcessHandler.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}
@@ -2716,44 +2730,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	err = process.ErrWrongTransaction
 	return returnCode, sc.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), gasLocked)
-}
-
-func (sc *scProcessor) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
-	scrHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
-	if err != nil {
-		log.Debug("CalculateHash error", "error", err)
-		return nil, err
-	}
-
-	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
-	if err != nil {
-		return nil, err
-	}
-	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	if check.IfNil(dstAcc) {
-		err = process.ErrNilSCDestAccount
-		return nil, err
-	}
-
-	snapshot := sc.accounts.JournalLen()
-	process.DisplayProcessTxDetails(
-		"ProcessSmartContractResult: receiver account details",
-		dstAcc,
-		scr,
-		scrHash,
-		sc.pubkeyConv,
-	)
-
-	return &scrCommon.ScrProcessingData{
-		Hash:        scrHash,
-		Snapshot:    snapshot,
-		Sender:      sndAcc,
-		Destination: dstAcc,
-	}, nil
 }
 
 // CheckBuiltinFunctionIsExecutable validates the builtin function arguments and tx fields without executing it
@@ -2979,14 +2955,4 @@ func (sc *scProcessor) getBlockchainHookCountersString() string {
 	}
 
 	return strings.Join(lines, ", ")
-}
-
-// ArgsParser returns the args parser
-func (sc *scProcessor) ArgsParser() process.ArgumentsParser {
-	return sc.argsParser
-}
-
-// TxTypeHandler returns the tx type handler
-func (sc *scProcessor) TxTypeHandler() process.TxTypeHandler {
-	return sc.txTypeHandler
 }

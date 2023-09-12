@@ -255,12 +255,60 @@ func generateRandomBytes(len int) []byte {
 	return randomBytes
 }
 
+func TestNewSovereignSCRProcessor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil ArgsParser should err", func(t *testing.T) {
+		args := createSSCProcessArgs()
+		args.ArgsParser = nil
+
+		sovProc, err := NewSovereignSCRProcessor(args)
+		require.Nil(t, sovProc)
+		require.Equal(t, process.ErrNilArgumentParser, err)
+	})
+	t.Run("nil TxTypeHandler should err", func(t *testing.T) {
+		args := createSSCProcessArgs()
+		args.TxTypeHandler = nil
+
+		sovProc, err := NewSovereignSCRProcessor(args)
+		require.Nil(t, sovProc)
+		require.Equal(t, process.ErrNilTxTypeHandler, err)
+	})
+	t.Run("nil SmartContractProcessor should err", func(t *testing.T) {
+		args := createSSCProcessArgs()
+		args.SmartContractProcessor = nil
+
+		sovProc, err := NewSovereignSCRProcessor(args)
+		require.Nil(t, sovProc)
+		require.Equal(t, process.ErrNilSmartContractResultProcessor, err)
+	})
+	t.Run("nil SCProcessHelperHandler should err", func(t *testing.T) {
+		args := createSSCProcessArgs()
+		args.SCProcessHelperHandler = nil
+
+		sovProc, err := NewSovereignSCRProcessor(args)
+		require.Nil(t, sovProc)
+		require.Equal(t, process.ErrNilSCProcessHelper, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		args := createSSCProcessArgs()
+
+		sovProc, err := NewSovereignSCRProcessor(args)
+		require.NotNil(t, sovProc)
+		require.Nil(t, err)
+	})
+}
+
 func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T) {
 	t.Parallel()
 
 	arguments := createSovereignSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
-	sovProc, _ := NewSovereignSCRProcessor(sc)
+	sovProc, _ := NewSovereignSCRProcessor(SovereignSCProcessArgs{
+		ArgsParser:             arguments.ArgsParser,
+		TxTypeHandler:          arguments.TxTypeHandler,
+		SmartContractProcessor: sc,
+	})
 
 	scAddress := generateRandomBytes(32)
 
@@ -294,4 +342,15 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 	require.Nil(t, err)
 	requireTokenExists(t, acc, token1, nftTransferNonce.Uint64(), nftTransferValue)
 	requireTokenExists(t, acc, token2, esdtTransferNonce.Uint64(), esdtTransferVal)
+}
+
+func createSSCProcessArgs() SovereignSCProcessArgs {
+	arguments := createSovereignSmartContractProcessorArguments()
+	sc, _ := NewSmartContractProcessorV2(arguments)
+
+	return SovereignSCProcessArgs{
+		ArgsParser:             arguments.ArgsParser,
+		TxTypeHandler:          arguments.TxTypeHandler,
+		SmartContractProcessor: sc,
+	}
 }

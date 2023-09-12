@@ -11,18 +11,42 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+// SovereignSCProcessArgs - arguments for creating a new sovereign smart contract processor
+type SovereignSCProcessArgs struct {
+	ArgsParser             process.ArgumentsParser
+	TxTypeHandler          process.TxTypeHandler
+	SCProcessHelperHandler process.SCProcessHelperHandler
+	SmartContractProcessor process.SmartContractProcessorFacade
+}
+
 type sovereignSCProcessor struct {
 	process.SmartContractProcessorFacade
+
+	argsParser      process.ArgumentsParser
+	txTypeHandler   process.TxTypeHandler
+	scProcessHelper process.SCProcessHelperHandler
 }
 
 // NewSovereignSCRProcessor creates a sovereign scr processor
-func NewSovereignSCRProcessor(scrProc process.SmartContractProcessorFacade) (*sovereignSCProcessor, error) {
-	if check.IfNil(scrProc) {
+func NewSovereignSCRProcessor(args SovereignSCProcessArgs) (*sovereignSCProcessor, error) {
+	if check.IfNil(args.SmartContractProcessor) {
 		return nil, process.ErrNilSmartContractResultProcessor
+	}
+	if check.IfNil(args.ArgsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
+	if check.IfNil(args.TxTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
+	if check.IfNil(args.SCProcessHelperHandler) {
+		return nil, process.ErrNilSCProcessHelper
 	}
 
 	return &sovereignSCProcessor{
-		scrProc,
+		SmartContractProcessorFacade: args.SmartContractProcessor,
+		argsParser:                   args.ArgsParser,
+		txTypeHandler:                args.TxTypeHandler,
+		scProcessHelper:              args.SCProcessHelperHandler,
 	}, nil
 }
 
@@ -40,12 +64,12 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, fmt.Errorf("%w, expected ESDTSCAddress", errInvalidSenderAddress)
 	}
 
-	scrData, err := sc.CheckSCRBeforeProcessing(scr)
+	scrData, err := sc.scProcessHelper.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}
 
-	txType, _ := sc.TxTypeHandler().ComputeTransactionType(scr)
+	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.BuiltInFunctionCall:
 		err = sc.checkBuiltInFuncCall(string(scr.Data))
@@ -53,16 +77,16 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 			return returnCode, err
 		}
 
-		return sc.SmartContractProcessorFacade.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
+		return sc.ExecuteBuiltInFunction(scr, nil, scrData.GetDestination())
 	default:
 		err = process.ErrWrongTransaction
 	}
 
-	return returnCode, sc.SmartContractProcessorFacade.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
+	return returnCode, sc.ProcessIfError(scrData.GetSender(), scrData.GetHash(), scr, err.Error(), scr.ReturnMessage, scrData.GetSnapshot(), 0)
 }
 
 func (sc *sovereignSCProcessor) checkBuiltInFuncCall(scrData string) error {
-	function, _, err := sc.ArgsParser().ParseCallData(scrData)
+	function, _, err := sc.argsParser.ParseCallData(scrData)
 	if err != nil {
 		return err
 	}

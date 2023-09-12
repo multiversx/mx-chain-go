@@ -20,7 +20,6 @@ type SCProcessorMock struct {
 	CheckBuiltinFunctionIsExecutableCalled func(expectedBuiltinFunction string, tx data.TransactionHandler) error
 	ArgsParserCalled                       func() process.ArgumentsParser
 	TxTypeHandlerCalled                    func() process.TxTypeHandler
-	CheckSCRBeforeProcessingCalled         func(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error)
 }
 
 // IsPayable -
@@ -105,31 +104,6 @@ func (sc *SCProcessorMock) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunct
 	}
 
 	return sc.CheckBuiltinFunctionIsExecutableCalled(expectedBuiltinFunction, tx)
-}
-
-// ArgsParser -
-func (sc *SCProcessorMock) ArgsParser() process.ArgumentsParser {
-	if sc.ArgsParserCalled == nil {
-		return nil
-	}
-	return sc.ArgsParserCalled()
-}
-
-// TxTypeHandler -
-func (sc *SCProcessorMock) TxTypeHandler() process.TxTypeHandler {
-	if sc.TxTypeHandlerCalled == nil {
-		return nil
-	}
-	return sc.TxTypeHandlerCalled()
-}
-
-// CheckSCRBeforeProcessing -
-func (sc *SCProcessorMock) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
-	if sc.CheckSCRBeforeProcessingCalled == nil {
-		return nil, nil
-	}
-
-	return sc.CheckSCRBeforeProcessingCalled(scr)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

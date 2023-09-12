@@ -175,18 +175,3 @@ func (proxy *scProcessorTestProxy) GetAllSCRs() []data.TransactionHandler {
 func (proxy *scProcessorTestProxy) CleanGasRefunded() {
 	proxy.testScProcessor.CleanGasRefunded()
 }
-
-// ArgsParser returns the args parser
-func (proxy *scProcessorTestProxy) ArgsParser() process.ArgumentsParser {
-	return proxy.testScProcessor.ArgsParser()
-}
-
-// TxTypeHandler returns the tx type handler
-func (proxy *scProcessorTestProxy) TxTypeHandler() process.TxTypeHandler {
-	return proxy.testScProcessor.TxTypeHandler()
-}
-
-// CheckSCRBeforeProcessing delegates to the selected testScProcessor
-func (proxy *scProcessorTestProxy) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
-	return proxy.testScProcessor.CheckSCRBeforeProcessing(scr)
-}

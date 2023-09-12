@@ -65,11 +65,6 @@ type SmartContractResultProcessor interface {
 type SmartContractProcessorFacade interface {
 	SmartContractProcessor
 	SmartContractResultProcessor
-
-	ArgsParser() ArgumentsParser
-	TxTypeHandler() TxTypeHandler
-
-	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 }
 
 // TxTypeHandler is an interface to calculate the transaction type
@@ -1363,4 +1358,11 @@ type ScrProcessingDataHandler interface {
 	GetSnapshot() int
 	GetSender() state.UserAccountHandler
 	GetDestination() state.UserAccountHandler
+}
+
+// SCProcessHelperHandler is an interface for smart contract process helper
+type SCProcessHelperHandler interface {
+	GetAccountFromAddress(address []byte) (state.UserAccountHandler, error)
+	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
+	IsInterfaceNil() bool
 }
