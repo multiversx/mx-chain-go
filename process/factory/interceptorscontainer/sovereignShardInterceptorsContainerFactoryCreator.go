@@ -17,9 +17,9 @@ func (f *sovereignShardInterceptorsContainerFactoryCreator) CreateInterceptorsCo
 		return nil, err
 	}
 
-	argsSov := argsSovereignShardInterceptorsContainerFactory{
-		shardContainer:           shardContainer,
-		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
+	argsSov := ArgsSovereignShardInterceptorsContainerFactory{
+		ShardContainer:           shardContainer,
+		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}
 	return NewSovereignShardInterceptorsContainerFactory(argsSov)
 }

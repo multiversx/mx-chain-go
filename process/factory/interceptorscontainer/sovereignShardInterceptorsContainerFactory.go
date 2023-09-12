@@ -1,6 +1,8 @@
 package interceptorscontainer
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -8,9 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 )
 
-type argsSovereignShardInterceptorsContainerFactory struct {
-	shardContainer           *shardInterceptorsContainerFactory
-	incomingHeaderSubscriber process.IncomingHeaderSubscriber
+// ArgsSovereignShardInterceptorsContainerFactory is a struct placeholder for args needed to create a sovereign
+// shard interceptors container factory
+type ArgsSovereignShardInterceptorsContainerFactory struct {
+	ShardContainer           *shardInterceptorsContainerFactory
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 type sovereignShardInterceptorsContainerFactory struct {
@@ -20,12 +24,18 @@ type sovereignShardInterceptorsContainerFactory struct {
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory
 func NewSovereignShardInterceptorsContainerFactory(
-	args argsSovereignShardInterceptorsContainerFactory,
+	args ArgsSovereignShardInterceptorsContainerFactory,
 ) (*sovereignShardInterceptorsContainerFactory, error) {
+	if check.IfNil(args.ShardContainer) {
+		return nil, errors.ErrNilShardInterceptorsContainerFactory
+	}
+	if check.IfNil(args.IncomingHeaderSubscriber) {
+		return nil, errors.ErrNilIncomingHeaderSubscriber
+	}
 
 	return &sovereignShardInterceptorsContainerFactory{
-		shardInterceptorsContainerFactory: args.shardContainer,
-		incomingHeaderSubscriber:          args.incomingHeaderSubscriber,
+		shardInterceptorsContainerFactory: args.ShardContainer,
+		incomingHeaderSubscriber:          args.IncomingHeaderSubscriber,
 	}, nil
 }
 
