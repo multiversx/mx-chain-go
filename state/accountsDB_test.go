@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -40,6 +41,7 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
+	disabledHashesHolder "github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -97,19 +99,25 @@ func generateAddressAccountAccountsDB(trie common.Trie) ([]byte, *stateMock.Acco
 
 func getDefaultTrieAndAccountsDb() (common.Trie, *state.AccountsDB) {
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	return tr, adb
 }
 
 func getDefaultTrieAndAccountsDbWithCustomDB(db common.BaseStorer) (common.Trie, *state.AccountsDB) {
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, db)
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, db, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return tr, adb
+}
+
+func getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs common.EnableEpochsHandler) (common.Trie, *state.AccountsDB) {
+	adb, tr, _ := getDefaultStateComponents(disabledHashesHolder.NewDisabledCheckpointHashesHolder(), testscommon.NewSnapshotPruningStorerMock(), enableEpochs)
 	return tr, adb
 }
 
 func getDefaultStateComponents(
 	hashesHolder trie.CheckpointHashesHolder,
 	db common.BaseStorer,
+	enableEpochs common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie, common.StorageManager) {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
@@ -123,7 +131,7 @@ func getDefaultStateComponents(
 	args.MainStorer = db
 	args.CheckpointHashesHolder = hashesHolder
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochs, 5)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -133,7 +141,7 @@ func getDefaultStateComponents(
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochs,
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -394,6 +402,118 @@ func TestAccountsDB_SaveAccountMalfunctionMarshallerShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestAccountsDB_SaveAccountCollectsAllStateChanges(t *testing.T) {
+	t.Parallel()
+
+	enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsAutoBalanceDataTriesEnabledField: false,
+	}
+	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
+	address := generateRandomByteArray(32)
+
+	stepCreateAccountWithDataTrieAndCode(t, adb, address)
+	enableEpochs.IsAutoBalanceDataTriesEnabledField = true
+	stepMigrateDataTrieValAndChangeCode(t, adb, address)
+}
+
+func stepCreateAccountWithDataTrieAndCode(
+	t *testing.T,
+	adb *state.AccountsDB,
+	address []byte,
+) {
+	marshaller := &marshallerMock.MarshalizerMock{}
+
+	acc, _ := adb.LoadAccount(address)
+	userAcc := acc.(state.UserAccountHandler)
+	code := []byte("smart contract code")
+	key1 := []byte("key1")
+	key2 := []byte("key2")
+	userAcc.SetCode(code)
+	_ = userAcc.SaveKeyValue(key1, []byte("value"))
+	_ = userAcc.SaveKeyValue(key2, []byte("value"))
+	_ = adb.SaveAccount(userAcc)
+
+	serializedAcc, _ := marshaller.Marshal(userAcc)
+	codeHash := userAcc.GetCodeHash()
+
+	stateChanges, err := adb.GetStateChangesForTheLatestTransaction()
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(stateChanges))
+
+	codeStateChange := stateChanges[0]
+	assert.Equal(t, codeHash, codeStateChange.MainTrieKey)
+	codeEntry := &state.CodeEntry{
+		Code:          code,
+		NumReferences: 1,
+	}
+	serializedCodeEntry, _ := marshaller.Marshal(codeEntry)
+	assert.Equal(t, serializedCodeEntry, codeStateChange.MainTrieVal)
+	assert.Equal(t, 0, len(codeStateChange.DataTrieChanges))
+
+	accountStateChange := stateChanges[1]
+	assert.Equal(t, address, accountStateChange.MainTrieKey)
+	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
+	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
+	assert.Equal(t, key1, accountStateChange.DataTrieChanges[0].Key)
+	valWithMetadata1 := append([]byte("value"), key1...)
+	valWithMetadata1 = append(valWithMetadata1, address...)
+	assert.Equal(t, valWithMetadata1, accountStateChange.DataTrieChanges[0].Val)
+	valWithMetadata2 := append([]byte("value"), key2...)
+	valWithMetadata2 = append(valWithMetadata2, address...)
+	assert.Equal(t, valWithMetadata2, accountStateChange.DataTrieChanges[1].Val)
+}
+
+func stepMigrateDataTrieValAndChangeCode(
+	t *testing.T,
+	adb *state.AccountsDB,
+	address []byte,
+) {
+	marshaller := &marshallerMock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
+
+	acc, _ := adb.LoadAccount(address)
+	userAcc := acc.(state.UserAccountHandler)
+	oldCodeHash := userAcc.GetCodeHash()
+	code := []byte("new smart contract code")
+	userAcc.SetCode(code)
+	_ = userAcc.SaveKeyValue([]byte("key1"), []byte("value1"))
+	_ = adb.SaveAccount(userAcc)
+
+	stateChanges, err := adb.GetStateChangesForTheLatestTransaction()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(stateChanges))
+
+	oldCodeEntryChange := stateChanges[0]
+	assert.Equal(t, oldCodeHash, oldCodeEntryChange.MainTrieKey)
+	assert.Equal(t, []byte(nil), oldCodeEntryChange.MainTrieVal)
+	assert.Equal(t, 0, len(oldCodeEntryChange.DataTrieChanges))
+
+	newCodeEntryChange := stateChanges[1]
+	codeEntry := &state.CodeEntry{
+		Code:          code,
+		NumReferences: 1,
+	}
+	serializedCodeEntry, _ := marshaller.Marshal(codeEntry)
+	assert.Equal(t, userAcc.GetCodeHash(), newCodeEntryChange.MainTrieKey)
+	assert.Equal(t, serializedCodeEntry, newCodeEntryChange.MainTrieVal)
+	assert.Equal(t, 0, len(newCodeEntryChange.DataTrieChanges))
+
+	accountStateChange := stateChanges[2]
+	serializedAcc, _ := marshaller.Marshal(userAcc)
+	assert.Equal(t, address, accountStateChange.MainTrieKey)
+	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
+	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
+	trieVal := &dataTrieValue.TrieLeafData{
+		Value:   []byte("value1"),
+		Key:     []byte("key1"),
+		Address: address,
+	}
+	serializedTrieVal, _ := marshaller.Marshal(trieVal)
+	assert.Equal(t, hasher.Compute("key1"), accountStateChange.DataTrieChanges[0].Key)
+	assert.Equal(t, serializedTrieVal, accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[1].Key)
+	assert.Equal(t, []byte(nil), accountStateChange.DataTrieChanges[1].Val)
+}
 func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2058,7 +2178,7 @@ func TestAccountsDB_CommitAddsDirtyHashesToCheckpointHashesHolder(t *testing.T) 
 		},
 	}
 
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes, _ = tr.GetDirtyHashes()
@@ -2101,7 +2221,7 @@ func TestAccountsDB_CommitSetsStateCheckpointIfCheckpointHashesHolderIsFull(t *t
 		},
 	}
 
-	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes = modifyDataTries(t, accountsAddresses, adb)
@@ -2131,7 +2251,7 @@ func TestAccountsDB_SnapshotStateCleansCheckpointHashesHolder(t *testing.T) {
 			return false
 		},
 	}
-	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	_ = trieStorage.Put([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal))
 
 	accountsAddresses := generateAccounts(t, 3, adb)
@@ -2152,7 +2272,7 @@ func TestAccountsDB_SetStateCheckpointCommitsOnlyMissingData(t *testing.T) {
 	t.Parallel()
 
 	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(100000, testscommon.HashSize)
-	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, tr, trieStorage := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	rootHash, _ := tr.RootHash()
@@ -2229,7 +2349,7 @@ func TestAccountsDB_CheckpointHashesHolderReceivesOnly32BytesData(t *testing.T) 
 			return false
 		},
 	}
-	adb, _, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, _, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	_ = modifyDataTries(t, accountsAddresses, adb)
@@ -2250,7 +2370,7 @@ func TestAccountsDB_PruneRemovesDataFromCheckpointHashesHolder(t *testing.T) {
 			removeCalled++
 		},
 	}
-	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock())
+	adb, tr, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	accountsAddresses := generateAccounts(t, 3, adb)
 	newHashes, _ = tr.GetDirtyHashes()
