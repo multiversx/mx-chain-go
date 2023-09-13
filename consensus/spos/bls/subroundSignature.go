@@ -370,6 +370,8 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
+		signatureShare[0] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
+		signatureShare[1] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
 
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
