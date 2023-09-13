@@ -167,14 +167,10 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 }
 
 func (bbt *baseBlockTrack) checkEpochCorrectness(headerHandler data.HeaderHandler) bool {
-	// TODO: analyze if the same check should be applied for shards as well (during testing, seems that it doesn't work)
-	if bbt.shardCoordinator.SelfId() != core.MetachainShardId {
-		return true
-	}
-
 	metaEpoch := bbt.finalityAttestingRoundProvider.MetaEpoch()
 	finalityAttestingRoundForEpoch, found := bbt.finalityAttestingRoundProvider.AttestingRoundForEpoch(metaEpoch)
-	if !found {
+	shouldSkipCheck := !found || (metaEpoch > 0 && finalityAttestingRoundForEpoch == 0)
+	if shouldSkipCheck {
 		log.Debug("baseBlockTrack.receivedShardHeader: attesting round for epoch not set yet. Will not check against the grace period",
 			"shard", headerHandler.GetShardID(),
 			"header epoch", headerHandler.GetEpoch(),
