@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,26 +19,28 @@ import (
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Config              config.Config
-	EnableEpochsConfig  config.EnableEpochs
-	EconomicsConfig     config.EconomicsConfig
-	RoundsConfig        config.RoundConfig
-	PreferencesConfig   config.Preferences
-	ChanStopNodeProcess chan endProcess.ArgEndProcess
-	GasScheduleFilename string
-	ValidatorPemFile    string
-	WorkingDir          string
-	NodesSetupPath      string
-	NumShards           uint32
-	ShardID             uint32
+	Config                 config.Config
+	EnableEpochsConfig     config.EnableEpochs
+	EconomicsConfig        config.EconomicsConfig
+	RoundsConfig           config.RoundConfig
+	PreferencesConfig      config.Preferences
+	ChanStopNodeProcess    chan endProcess.ArgEndProcess
+	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
+	GasScheduleFilename    string
+	ValidatorPemFile       string
+	WorkingDir             string
+	NodesSetupPath         string
+	NumShards              uint32
+	ShardID                uint32
 }
 
 type testOnlyProcessingNode struct {
-	CoreComponentsHolder   factory.CoreComponentsHolder
-	StatusCoreComponents   factory.StatusCoreComponentsHolder
-	StateComponentsHolder  factory.StateComponentsHolder
-	StatusComponentsHolder factory.StatusComponentsHolder
-	CryptoComponentsHolder factory.CryptoComponentsHolder
+	CoreComponentsHolder    factory.CoreComponentsHolder
+	StatusCoreComponents    factory.StatusCoreComponentsHolder
+	StateComponentsHolder   factory.StateComponentsHolder
+	StatusComponentsHolder  factory.StatusComponentsHolder
+	CryptoComponentsHolder  factory.CryptoComponentsHolder
+	NetworkComponentsHolder factory.NetworkComponentsHolder
 
 	ChainHandler                chainData.ChainHandler
 	ShardCoordinator            sharding.Coordinator
@@ -107,6 +109,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
 		ValidatorKeyPemFileName: args.ValidatorPemFile,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	instance.NetworkComponentsHolder, err = CreateNetworkComponentsHolder(args.SyncedBroadcastNetwork)
 	if err != nil {
 		return nil, err
 	}

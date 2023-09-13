@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"

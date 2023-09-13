@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	"testing"
@@ -44,13 +44,14 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 				},
 			},
 		},
-		EconomicsConfig:     economicsConfig,
-		GasScheduleFilename: gasScheduleName,
-		NodesSetupPath:      nodesSetupConfig,
-		NumShards:           3,
-		ShardID:             0,
-		ValidatorPemFile:    validatorPemFile,
-		PreferencesConfig:   prefsConfig,
+		EconomicsConfig:        economicsConfig,
+		GasScheduleFilename:    gasScheduleName,
+		NodesSetupPath:         nodesSetupConfig,
+		NumShards:              3,
+		ShardID:                0,
+		ValidatorPemFile:       validatorPemFile,
+		PreferencesConfig:      prefsConfig,
+		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
 	}
 }
 
