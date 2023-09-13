@@ -1,7 +1,8 @@
 package interceptorscontainer
 
 import (
-	"github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -9,26 +10,32 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 )
 
-// TODO: Implement this in MX-14517
+// ArgsSovereignShardInterceptorsContainerFactory is a struct placeholder for args needed to create a sovereign
+// shard interceptors container factory
+type ArgsSovereignShardInterceptorsContainerFactory struct {
+	ShardContainer           *shardInterceptorsContainerFactory
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+}
 
-// sovereignShardInterceptorsContainerFactory will handle the creation of sovereign interceptors container
 type sovereignShardInterceptorsContainerFactory struct {
 	*shardInterceptorsContainerFactory
-	IncomingHeaderSubscriber processing.IncomingHeaderSubscriber
+	incomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory
 func NewSovereignShardInterceptorsContainerFactory(
-	args CommonInterceptorsContainerFactoryArgs,
+	args ArgsSovereignShardInterceptorsContainerFactory,
 ) (*sovereignShardInterceptorsContainerFactory, error) {
-	shardInterceptorContainer, err := NewShardInterceptorsContainerFactory(args)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.ShardContainer) {
+		return nil, errors.ErrNilShardInterceptorsContainerFactory
+	}
+	if check.IfNil(args.IncomingHeaderSubscriber) {
+		return nil, errors.ErrNilIncomingHeaderSubscriber
 	}
 
 	return &sovereignShardInterceptorsContainerFactory{
-		shardInterceptorsContainerFactory: shardInterceptorContainer,
-		IncomingHeaderSubscriber:          args.IncomingHeaderSubscriber,
+		shardInterceptorsContainerFactory: args.ShardContainer,
+		incomingHeaderSubscriber:          args.IncomingHeaderSubscriber,
 	}, nil
 }
 
@@ -50,17 +57,20 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderInterceptors() error {
 	shardC := sicf.shardCoordinator
 
-	hdrFactory, err := interceptorFactory.NewSovereignInterceptedShardHeaderDataFactory(sicf.argInterceptorFactory)
+	argsHdrFactory := interceptorFactory.ArgsSovereignInterceptedExtendedHeaderFactory{
+		Marshaller: sicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+		Hasher:     sicf.argInterceptorFactory.CoreComponents.Hasher(),
+	}
+	hdrFactory, err := interceptorFactory.NewSovereignInterceptedShardHeaderDataFactory(argsHdrFactory)
 	if err != nil {
 		return err
 	}
 
 	argProcessor := &processor.ArgsSovereignHeaderInterceptorProcessor{
-		Headers:                  sicf.dataPool.Headers(),
 		BlockBlackList:           sicf.blockBlackList,
 		Hasher:                   sicf.argInterceptorFactory.CoreComponents.Hasher(),
 		Marshaller:               sicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
-		IncomingHeaderSubscriber: sicf.IncomingHeaderSubscriber,
+		IncomingHeaderSubscriber: sicf.incomingHeaderSubscriber,
 	}
 	hdrProcessor, err := processor.NewSovereignHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -69,7 +79,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderI
 
 	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
-	// only one intrashard header topic
+	// only one intra shard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHdr,

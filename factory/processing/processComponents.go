@@ -16,7 +16,6 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -84,12 +83,6 @@ import (
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
 var timeSpanForBadHeaders = time.Minute * 2
-
-// IncomingHeaderSubscriber defines a subscriber to incoming headers
-type IncomingHeaderSubscriber interface {
-	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
-	IsInterfaceNil() bool
-}
 
 // processComponents struct holds the process components
 type processComponents struct {
@@ -170,10 +163,12 @@ type ProcessComponentsFactoryArgs struct {
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	ChainRunType         common.ChainRunType
 
-	ShardCoordinatorFactory    sharding.ShardCoordinatorFactory
-	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker    GenesisMetaBlockChecker
-	IncomingHeaderSubscriber   IncomingHeaderSubscriber
+	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	GenesisBlockCreatorFactory          processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker             GenesisMetaBlockChecker
+	RequesterContainerFactoryCreator    requesterscontainer.RequesterContainerFactoryCreator
+	IncomingHeaderSubscriber            process.IncomingHeaderSubscriber
+	InterceptorsContainerFactoryCreator interceptorscontainer.InterceptorsContainerFactoryCreator
 }
 
 type processComponentsFactory struct {
@@ -209,10 +204,12 @@ type processComponentsFactory struct {
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	chainRunType         common.ChainRunType
 
-	shardCoordinatorFactory    sharding.ShardCoordinatorFactory
-	genesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker    GenesisMetaBlockChecker
-	IncomingHeaderSubscriber   IncomingHeaderSubscriber
+	shardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	genesisBlockCreatorFactory          processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker             GenesisMetaBlockChecker
+	requesterContainerFactoryCreator    requesterscontainer.RequesterContainerFactoryCreator
+	incomingHeaderSubscriber            process.IncomingHeaderSubscriber
+	interceptorsContainerFactoryCreator interceptorscontainer.InterceptorsContainerFactoryCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -223,36 +220,38 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                     args.Config,
-		epochConfig:                args.EpochConfig,
-		prefConfigs:                args.PrefConfigs,
-		importDBConfig:             args.ImportDBConfig,
-		accountsParser:             args.AccountsParser,
-		smartContractParser:        args.SmartContractParser,
-		gasSchedule:                args.GasSchedule,
-		nodesCoordinator:           args.NodesCoordinator,
-		data:                       args.Data,
-		coreData:                   args.CoreData,
-		crypto:                     args.Crypto,
-		state:                      args.State,
-		network:                    args.Network,
-		bootstrapComponents:        args.BootstrapComponents,
-		statusComponents:           args.StatusComponents,
-		requestedItemsHandler:      args.RequestedItemsHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		maxRating:                  args.MaxRating,
-		systemSCConfig:             args.SystemSCConfig,
-		importStartHandler:         args.ImportStartHandler,
-		historyRepo:                args.HistoryRepo,
-		epochNotifier:              args.CoreData.EpochNotifier(),
-		statusCoreComponents:       args.StatusCoreComponents,
-		flagsConfig:                args.FlagsConfig,
-		chainRunType:               args.ChainRunType,
-		shardCoordinatorFactory:    args.ShardCoordinatorFactory,
-		genesisBlockCreatorFactory: args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:    args.GenesisMetaBlockChecker,
-		IncomingHeaderSubscriber:   args.IncomingHeaderSubscriber,
+		config:                              args.Config,
+		epochConfig:                         args.EpochConfig,
+		prefConfigs:                         args.PrefConfigs,
+		importDBConfig:                      args.ImportDBConfig,
+		accountsParser:                      args.AccountsParser,
+		smartContractParser:                 args.SmartContractParser,
+		gasSchedule:                         args.GasSchedule,
+		nodesCoordinator:                    args.NodesCoordinator,
+		data:                                args.Data,
+		coreData:                            args.CoreData,
+		crypto:                              args.Crypto,
+		state:                               args.State,
+		network:                             args.Network,
+		bootstrapComponents:                 args.BootstrapComponents,
+		statusComponents:                    args.StatusComponents,
+		requestedItemsHandler:               args.RequestedItemsHandler,
+		whiteListHandler:                    args.WhiteListHandler,
+		whiteListerVerifiedTxs:              args.WhiteListerVerifiedTxs,
+		maxRating:                           args.MaxRating,
+		systemSCConfig:                      args.SystemSCConfig,
+		importStartHandler:                  args.ImportStartHandler,
+		historyRepo:                         args.HistoryRepo,
+		epochNotifier:                       args.CoreData.EpochNotifier(),
+		statusCoreComponents:                args.StatusCoreComponents,
+		flagsConfig:                         args.FlagsConfig,
+		chainRunType:                        args.ChainRunType,
+		shardCoordinatorFactory:             args.ShardCoordinatorFactory,
+		genesisBlockCreatorFactory:          args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:             args.GenesisMetaBlockChecker,
+		requesterContainerFactoryCreator:    args.RequesterContainerFactoryCreator,
+		incomingHeaderSubscriber:            args.IncomingHeaderSubscriber,
+		interceptorsContainerFactoryCreator: args.InterceptorsContainerFactoryCreator,
 	}, nil
 }
 
@@ -1529,7 +1528,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return requesterscontainer.NewSovereignShardRequestersContainerFactory(requestersContainerFactoryArgs)
+		return pcf.requesterContainerFactoryCreator.CreateRequesterContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1748,10 +1747,10 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            nodeOperationMode,
-		IncomingHeaderSubscriber:     pcf.IncomingHeaderSubscriber,
+		IncomingHeaderSubscriber:     pcf.incomingHeaderSubscriber,
 	}
 
-	interceptorContainerFactory, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
+	interceptorContainerFactory, err := pcf.interceptorsContainerFactoryCreator.CreateInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2083,6 +2082,12 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
+	}
+	if check.IfNil(args.RequesterContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
+	}
+	if check.IfNil(args.InterceptorsContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
 	}
 
 	return nil

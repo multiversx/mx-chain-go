@@ -6,77 +6,40 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
-	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-type sovereignInterceptedShardHeaderDataFactory struct {
-	marshalizer             marshal.Marshalizer
-	hasher                  hashing.Hasher
-	shardCoordinator        sharding.Coordinator
-	headerSigVerifier       process.InterceptedHeaderSigVerifier
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
-	validityAttester        process.ValidityAttester
-	epochStartTrigger       process.EpochStartTriggerHandler
+// ArgsSovereignInterceptedExtendedHeaderFactory is a struct placeholder for args needed to create an instance of sovereign extended header factory
+type ArgsSovereignInterceptedExtendedHeaderFactory struct {
+	Marshaller marshal.Marshalizer
+	Hasher     hashing.Hasher
 }
 
-// NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
-func NewSovereignInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (*sovereignInterceptedShardHeaderDataFactory, error) {
-	if argument == nil {
-		return nil, process.ErrNilArgumentStruct
-	}
-	if check.IfNil(argument.CoreComponents) {
-		return nil, process.ErrNilCoreComponentsHolder
-	}
-	if check.IfNil(argument.CoreComponents.InternalMarshalizer()) {
+type sovereignInterceptedShardHeaderDataFactory struct {
+	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
+}
+
+// NewSovereignInterceptedShardHeaderDataFactory creates an instance of sovereign extended header factory
+func NewSovereignInterceptedShardHeaderDataFactory(args ArgsSovereignInterceptedExtendedHeaderFactory) (*sovereignInterceptedShardHeaderDataFactory, error) {
+	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
-	if check.IfNil(argument.CoreComponents.TxMarshalizer()) {
-		return nil, process.ErrNilMarshalizer
-	}
-	if check.IfNil(argument.CoreComponents.Hasher()) {
+	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
-	}
-	if check.IfNil(argument.ShardCoordinator) {
-		return nil, process.ErrNilShardCoordinator
-	}
-	if check.IfNil(argument.HeaderSigVerifier) {
-		return nil, process.ErrNilHeaderSigVerifier
-	}
-	if check.IfNil(argument.HeaderIntegrityVerifier) {
-		return nil, process.ErrNilHeaderIntegrityVerifier
-	}
-	if check.IfNil(argument.EpochStartTrigger) {
-		return nil, process.ErrNilEpochStartTrigger
-	}
-	if len(argument.CoreComponents.ChainID()) == 0 {
-		return nil, process.ErrInvalidChainID
-	}
-	if check.IfNil(argument.ValidityAttester) {
-		return nil, process.ErrNilValidityAttester
 	}
 
 	return &sovereignInterceptedShardHeaderDataFactory{
-		marshalizer:             argument.CoreComponents.InternalMarshalizer(),
-		hasher:                  argument.CoreComponents.Hasher(),
-		shardCoordinator:        argument.ShardCoordinator,
-		headerSigVerifier:       argument.HeaderSigVerifier,
-		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
-		validityAttester:        argument.ValidityAttester,
-		epochStartTrigger:       argument.EpochStartTrigger,
+		marshaller: args.Marshaller,
+		hasher:     args.Hasher,
 	}, nil
 }
 
-// Create creates instances of InterceptedData by unmarshalling provided buffer
+// Create creates instances of sovereign extended header by unmarshalling provided buffer
 func (ishdf *sovereignInterceptedShardHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		HdrBuff:                 buff,
-		Marshalizer:             ishdf.marshalizer,
-		Hasher:                  ishdf.hasher,
-		ShardCoordinator:        ishdf.shardCoordinator,
-		HeaderSigVerifier:       ishdf.headerSigVerifier,
-		HeaderIntegrityVerifier: ishdf.headerIntegrityVerifier,
-		ValidityAttester:        ishdf.validityAttester,
-		EpochStartTrigger:       ishdf.epochStartTrigger,
+	arg := interceptedBlocks.ArgsSovereignInterceptedHeader{
+		Marshaller:  ishdf.marshaller,
+		Hasher:      ishdf.hasher,
+		HeaderBytes: buff,
 	}
 
 	return interceptedBlocks.NewSovereignInterceptedHeader(arg)
