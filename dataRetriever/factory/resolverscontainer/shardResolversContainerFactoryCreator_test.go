@@ -16,7 +16,7 @@ func TestNewShardResolversContainerFactory(t *testing.T) {
 	require.Implements(t, new(resolverscontainer.ShardResolversContainerFactoryCreator), factory)
 }
 
-func TestShardResolversContainerFactory_Create(t *testing.T) {
+func TestShardResolversContainerFactoryCreator_Create(t *testing.T) {
 	t.Parallel()
 
 	factory := resolverscontainer.NewShardResolversContainerFactoryCreator()
