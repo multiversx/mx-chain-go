@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	"errors"

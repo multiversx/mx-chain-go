@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	chainData "github.com/multiversx/mx-chain-core-go/data"

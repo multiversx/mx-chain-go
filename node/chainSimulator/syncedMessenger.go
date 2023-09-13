@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	"bytes"
@@ -29,24 +29,15 @@ var (
 	errInvalidSignature    = errors.New("invalid signature")
 )
 
-type syncedBroadcastNetworkHandler interface {
-	RegisterMessageReceiver(handler messageReceiver, pid core.PeerID)
-	Broadcast(pid core.PeerID, topic string, buff []byte)
-	SendDirectly(from core.PeerID, topic string, buff []byte, to core.PeerID) error
-	GetConnectedPeers() []core.PeerID
-	GetConnectedPeersOnTopic(topic string) []core.PeerID
-	IsInterfaceNil() bool
-}
-
 type syncedMessenger struct {
 	mutOperation sync.RWMutex
 	topics       map[string]map[string]p2p.MessageProcessor
-	network      syncedBroadcastNetworkHandler
+	network      SyncedBroadcastNetworkHandler
 	pid          core.PeerID
 }
 
 // NewSyncedMessenger creates a new synced network messenger
-func NewSyncedMessenger(network syncedBroadcastNetworkHandler) (*syncedMessenger, error) {
+func NewSyncedMessenger(network SyncedBroadcastNetworkHandler) (*syncedMessenger, error) {
 	if check.IfNil(network) {
 		return nil, errNilNetwork
 	}

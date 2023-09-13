@@ -1,4 +1,4 @@
-package processingOnlyNode
+package chainSimulator
 
 import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
