@@ -38,7 +38,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 		"nonce", nonce,
 	)
 
-	requester, err := srrh.getShardHeaderRequester(srrh.shardID)
+	requester, err := srrh.getExtendedShardHeaderRequester(srrh.shardID)
 	if err != nil {
 		log.Error("RequestShardHeaderByNonce.getExtendedShardHeaderRequester",
 			"error", err.Error(),
@@ -93,7 +93,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 		"hash", hash,
 	)
 
-	headerRequester, err := srrh.getShardHeaderRequester(srrh.shardID)
+	headerRequester, err := srrh.getExtendedShardHeaderRequester(srrh.shardID)
 	if err != nil {
 		log.Error("sovereignResolverRequestHandler.getExtendedShardHeaderRequester",
 			"error", err.Error(),
