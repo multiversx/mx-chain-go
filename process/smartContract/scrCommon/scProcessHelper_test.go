@@ -184,7 +184,7 @@ func TestSCProcessHelper_CheckSCRBeforeProcessing(t *testing.T) {
 		receiverAddr := []byte{2}
 		args.Accounts = &testState.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				if bytes.Compare(address, senderAddr) == 0 {
+				if bytes.Equal(address, senderAddr) {
 					return nil, expectedErr
 				}
 				return &testState.AccountWrapMock{}, nil
@@ -209,7 +209,7 @@ func TestSCProcessHelper_CheckSCRBeforeProcessing(t *testing.T) {
 		receiverAddr := []byte{2}
 		args.Accounts = &testState.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				if bytes.Compare(address, receiverAddr) == 0 {
+				if bytes.Equal(address, receiverAddr) {
 					return nil, expectedErr
 				}
 				return &testState.AccountWrapMock{}, nil
