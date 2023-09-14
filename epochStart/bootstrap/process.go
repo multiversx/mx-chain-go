@@ -771,9 +771,11 @@ func (e *epochStartBootstrap) saveMiniblocksToStaticStorer(miniBlocks []*block.M
 
 		log.Debug("saveMiniblocksToStaticStorer: peer miniblock", "miniBlockHash", miniBlockHash)
 
-		err = e.saveValidatorsInfoToStaticStorer(miniBlock)
-		if err != nil {
-			return err
+		if e.epochStartMeta.GetEpoch() >= e.coreComponentsHolder.EnableEpochsHandler().RefactorPeersMiniBlocksEnableEpoch() {
+			err = e.saveValidatorsInfoToStaticStorer(miniBlock)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

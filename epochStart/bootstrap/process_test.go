@@ -2100,8 +2100,13 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
+		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			RefactorPeersMiniBlocksEnableEpochField: 1,
+		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 2}
 
 		epochStartProvider.storageService = genericMocks.NewChainStorerMock(0)
 		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -2114,12 +2119,17 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 		require.Equal(t, epochStart.ErrNilCurrentEpochValidatorsInfoPool, err)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work - without refactor peer miniblocks enabled", func(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
+		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			RefactorPeersMiniBlocksEnableEpochField: 3,
+		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 2}
 
 		putCalls := 0
 		epochStartProvider.storageService = &storageStubs.ChainStorerStub{
@@ -2129,6 +2139,40 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 			PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
 				if unitType == dataRetriever.EpochStartStaticUnit {
 					putCalls++
+
+					return nil
+				}
+
+				return nil
+			},
+		}
+
+		err := epochStartProvider.saveMiniblocksToStaticStorer(peerMiniBlocks)
+		require.Nil(t, err)
+		require.Equal(t, 2, putCalls) // 2 miniblock
+	})
+
+	t.Run("should work - with refactor peer miniblocks enabled", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			RefactorPeersMiniBlocksEnableEpochField: 1,
+		}
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+		epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 2}
+
+		putCalls := 0
+		epochStartProvider.storageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return genericMocks.NewStorerMock(), nil
+			},
+			PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+				if unitType == dataRetriever.EpochStartStaticUnit {
+					putCalls++
+
 					return nil
 				}
 

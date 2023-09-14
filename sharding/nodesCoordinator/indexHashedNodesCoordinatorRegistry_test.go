@@ -548,7 +548,8 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 		GetCalled: func(key []byte) ([]byte, error) {
 			var data []byte
 
-			if bytes.Equal(key, []byte(common.EpochStartStaticBlockKeyPrefix+fmt.Sprint(epoch))) {
+			switch string(key) {
+			case common.EpochStartStaticBlockKeyPrefix + fmt.Sprint(epoch):
 				data, _ = json.Marshal(&block.MetaBlock{
 					Epoch: epoch,
 					MiniBlockHeaders: []block.MiniBlockHeader{
@@ -562,7 +563,7 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 						},
 					},
 				})
-			} else if bytes.Equal(key, []byte("mbHeaderHash1")) {
+			case "mbHeaderHash1":
 				data, _ = json.Marshal(&block.MiniBlock{
 					TxHashes: [][]byte{
 						[]byte("txHash1"),
@@ -572,14 +573,14 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 						[]byte("txHash5"),
 					},
 				})
-			} else if bytes.Equal(key, []byte("mbHeaderHash2")) {
+			case "mbHeaderHash2":
 				data, _ = json.Marshal(&block.MiniBlock{
 					TxHashes: [][]byte{
 						[]byte("txHash3"),
 					},
 					Type: block.TxBlock,
 				})
-			} else if bytes.Equal(key, []byte("txHash1")) {
+			case "txHash1":
 				data, _ = json.Marshal(&state.ShardValidatorInfo{
 					PublicKey:  []byte("pubKey1"),
 					ShardId:    0,
@@ -587,7 +588,7 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 					Index:      0,
 					TempRating: 10,
 				})
-			} else if bytes.Equal(key, []byte("txHash2")) {
+			case "txHash2":
 				data, _ = json.Marshal(&state.ShardValidatorInfo{
 					PublicKey:  []byte("pubKey2"),
 					ShardId:    1,
@@ -595,7 +596,7 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 					Index:      1,
 					TempRating: 11,
 				})
-			} else if bytes.Equal(key, []byte("txHash3")) {
+			case "txHash3":
 				data, _ = json.Marshal(&state.ShardValidatorInfo{
 					PublicKey:  []byte("pubKey3"),
 					ShardId:    core.MetachainShardId,
@@ -603,7 +604,7 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 					Index:      2,
 					TempRating: 12,
 				})
-			} else if bytes.Equal(key, []byte("txHash4")) {
+			case "txHash4":
 				data, _ = json.Marshal(&state.ShardValidatorInfo{
 					PublicKey:  []byte("pubKey4"),
 					ShardId:    0,
@@ -611,7 +612,7 @@ func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
 					Index:      3,
 					TempRating: 13,
 				})
-			} else if bytes.Equal(key, []byte("txHash5")) {
+			case "txHash5":
 				data, _ = json.Marshal(&state.ShardValidatorInfo{
 					PublicKey:  []byte("pubKey5"),
 					ShardId:    1,
