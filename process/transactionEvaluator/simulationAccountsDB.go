@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -173,9 +172,9 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// SetTxHashForLatestStateChanges -
-func (r *simulationAccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
-	r.originalAccounts.SetTxHashForLatestStateChanges(txHash, tx)
+// GetStateChangesForTheLatestTransaction -
+func (r *simulationAccountsDB) GetStateChangesForTheLatestTransaction() ([]state.StateChangeDTO, error) {
+	return r.originalAccounts.GetStateChangesForTheLatestTransaction()
 }
 
 // Close will handle the closing of the underlying components
