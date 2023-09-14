@@ -254,6 +254,38 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	}
 
 	headerV2 := &block.HeaderV2{ScheduledRootHash: []byte("root hash")}
+
+	transfer1 := [][]byte{
+		[]byte("token1"),
+		big.NewInt(4).Bytes(),
+		big.NewInt(100).Bytes(),
+	}
+	transfer2 := [][]byte{
+		[]byte("token2"),
+		big.NewInt(0).Bytes(),
+		big.NewInt(50).Bytes(),
+	}
+	topic1 := append([][]byte{addr1}, transfer1...)
+	topic1 = append(topic1, transfer2...)
+
+	transfer3 := [][]byte{
+		[]byte("token1"),
+		big.NewInt(1).Bytes(),
+		big.NewInt(150).Bytes(),
+	}
+	topic2 := append([][]byte{addr2}, transfer3...)
+
+	incomingEvents := []*transaction.Event{
+		{
+			Identifier: []byte("deposit"),
+			Topics:     topic1,
+		},
+		{
+			Identifier: []byte("deposit"),
+			Topics:     topic2,
+		},
+	}
+
 	extendedHeader := &block.ShardHeaderExtended{
 		Header: headerV2,
 		IncomingMiniBlocks: []*block.MiniBlock{
@@ -264,6 +296,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 				Type:            block.SmartContractResultBlock,
 			},
 		},
+		IncomingEvents: incomingEvents,
 	}
 	extendedHeaderHash, err := core.CalculateHash(args.Marshaller, args.Hasher, extendedHeader)
 	require.Nil(t, err)
@@ -292,39 +325,10 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		},
 	}
 
-	transfer1 := [][]byte{
-		[]byte("token1"),
-		big.NewInt(4).Bytes(),
-		big.NewInt(100).Bytes(),
-	}
-	transfer2 := [][]byte{
-		[]byte("token2"),
-		big.NewInt(0).Bytes(),
-		big.NewInt(50).Bytes(),
-	}
-	topic1 := append([][]byte{addr1}, transfer1...)
-	topic1 = append(topic1, transfer2...)
-
-	transfer3 := [][]byte{
-		[]byte("token1"),
-		big.NewInt(1).Bytes(),
-		big.NewInt(150).Bytes(),
-	}
-	topic2 := append([][]byte{addr2}, transfer3...)
-
 	handler, _ := NewIncomingHeaderProcessor(args)
 	incomingHeader := &sovereign.IncomingHeader{
-		Header: headerV2,
-		IncomingEvents: []*transaction.Event{
-			{
-				Identifier: []byte("deposit"),
-				Topics:     topic1,
-			},
-			{
-				Identifier: []byte("deposit"),
-				Topics:     topic2,
-			},
-		},
+		Header:         headerV2,
+		IncomingEvents: incomingEvents,
 	}
 	err = handler.AddHeader([]byte("hash"), incomingHeader)
 	require.Nil(t, err)

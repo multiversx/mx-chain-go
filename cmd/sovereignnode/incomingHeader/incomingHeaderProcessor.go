@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -66,17 +65,16 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
 
-	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
-	if !castOk {
-		return errInvalidHeaderType
-	}
-
 	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
 
-	extendedHeader := createExtendedHeader(headerV2, incomingSCRs)
+	extendedHeader, err := createExtendedHeader(header, incomingSCRs)
+	if err != nil {
+		return err
+	}
+
 	err = ihp.extendedHeaderProc.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
