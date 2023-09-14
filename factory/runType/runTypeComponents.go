@@ -37,7 +37,7 @@ type runTypeComponents struct {
 	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
 	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
 	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
-	sCProcessorCreator                  scrCommon.SCProcessorCreator
+	scProcessorCreator                  scrCommon.SCProcessorCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -107,7 +107,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardAdditionalStorageServiceFactory failed: %w", err)
 	}
 
-	sCProcessorCreator := processProxy.NewSCProcessProxyFactory()
+	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
 	}
@@ -125,7 +125,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
-		sCProcessorCreator:                  sCProcessorCreator,
+		scProcessorCreator:                  scProcessorCreator,
 	}, nil
 }
 

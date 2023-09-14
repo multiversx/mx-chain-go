@@ -119,7 +119,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.additionalStorageServiceCreator) {
 		return errors.ErrNilAdditionalStorageServiceCreator
 	}
-	if check.IfNil(mrc.sCProcessorCreator) {
+	if check.IfNil(mrc.scProcessorCreator) {
 		return errors.ErrNilSCProcessorCreator
 	}
 	return nil
@@ -278,7 +278,7 @@ func (mrc *managedRunTypeComponents) SCProcessorCreator() scrCommon.SCProcessorC
 		return nil
 	}
 
-	return mrc.runTypeComponents.sCProcessorCreator
+	return mrc.runTypeComponents.scProcessorCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

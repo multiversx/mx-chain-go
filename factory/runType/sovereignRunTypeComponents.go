@@ -101,7 +101,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
 	}
 
-	sCProcessorCreator, err := processorV2.NewSovereignSCProcessFactory(rtc.sCProcessorCreator)
+	scProcessorCreator, err := processorV2.NewSovereignSCProcessFactory(rtc.scProcessorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
 	}
@@ -119,6 +119,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		transactionCoordinatorCreator:       transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
-		sCProcessorCreator:                  sCProcessorCreator,
+		scProcessorCreator:                  scProcessorCreator,
 	}, nil
 }
