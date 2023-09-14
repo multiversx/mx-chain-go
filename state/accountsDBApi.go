@@ -221,6 +221,11 @@ func (accountsDB *accountsDBApi) GetStackDebugFirstEntry() []byte {
 	return accountsDB.innerAccountsAdapter.GetStackDebugFirstEntry()
 }
 
+// GetStateChangesForTheLatestTransaction will call the inner accountsAdapter method
+func (accountsDB *accountsDBApi) GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error) {
+	return accountsDB.innerAccountsAdapter.GetStateChangesForTheLatestTransaction()
+}
+
 // Close will handle the closing of the underlying components
 func (accountsDB *accountsDBApi) Close() error {
 	return accountsDB.innerAccountsAdapter.Close()

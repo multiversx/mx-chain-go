@@ -144,6 +144,11 @@ func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// GetStateChangesForTheLatestTransaction returns nil
+func (accountsDB *accountsDBApiWithHistory) GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error) {
+	return nil, nil
+}
+
 // Close will handle the closing of the underlying components
 func (accountsDB *accountsDBApiWithHistory) Close() error {
 	return accountsDB.innerAccountsAdapter.Close()

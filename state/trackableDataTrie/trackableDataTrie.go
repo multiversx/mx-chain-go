@@ -234,7 +234,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]state.DataT
 
 func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
-	stateChanges := make([]state.DataTrieChange, len(tdt.dirtyData))
+	newData := make([]state.DataTrieChange, len(tdt.dirtyData))
 	deletedKeys := make([]state.DataTrieChange, 0)
 
 	index := 0
@@ -270,11 +270,11 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 			continue
 		}
 
-		if dataEntry.index > len(stateChanges)-1 {
+		if dataEntry.index > len(newData)-1 {
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
-		stateChanges[dataEntry.index] = state.DataTrieChange{
+		newData[dataEntry.index] = state.DataTrieChange{
 			Key: dataTrieKey,
 			Val: dataTrieVal,
 		}
@@ -282,12 +282,13 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	for i := range stateChanges {
-		if len(stateChanges[i].Key) != 0 {
+	stateChanges := make([]state.DataTrieChange, 0)
+	for i := range newData {
+		if len(newData[i].Key) == 0 {
 			continue
 		}
 
-		stateChanges = append(stateChanges[:i], stateChanges[i+1:]...)
+		stateChanges = append(stateChanges, newData[i])
 	}
 
 	sort.Slice(deletedKeys, func(i, j int) bool {

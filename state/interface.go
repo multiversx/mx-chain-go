@@ -50,6 +50,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error)
 	Close() error
 	IsInterfaceNil() bool
 }

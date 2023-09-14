@@ -211,6 +211,14 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return vmcommon.UserError, err
 	}
 
+	defer func() {
+		// TODO collect state changes from each transactions here
+		_, err = txProc.accounts.GetStateChangesForTheLatestTransaction()
+		if err != nil {
+			log.Error("GetStateChangesForTheLatestTransaction error", "err", err.Error())
+		}
+	}()
+
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false)

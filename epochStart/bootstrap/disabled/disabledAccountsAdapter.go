@@ -137,6 +137,11 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// GetStateChangesForTheLatestTransaction -
+func (a *accountsAdapter) GetStateChangesForTheLatestTransaction() ([]state.StateChangeDTO, error) {
+	return nil, nil
+}
+
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil

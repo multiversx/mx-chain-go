@@ -176,6 +176,11 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// GetStateChangesForTheLatestTransaction -
+func (r *simulationAccountsDB) GetStateChangesForTheLatestTransaction() ([]state.StateChangeDTO, error) {
+	return r.originalAccounts.GetStateChangesForTheLatestTransaction()
+}
+
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil

@@ -881,6 +881,12 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
+	stateChanges := adb.stateChangesCollector.GetStateChanges()
+	if len(stateChanges) != 0 {
+		log.Warn("state changes collector is not empty", "state changes", stateChanges)
+		adb.stateChangesCollector.Reset()
+	}
+
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
@@ -1267,6 +1273,7 @@ func collectStats(
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
+// GetStateChangesForTheLatestTransaction will return the state changes since the last call of this method
 func (adb *AccountsDB) GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error) {
 	stateChanges := adb.stateChangesCollector.GetStateChanges()
 	adb.stateChangesCollector.Reset()
