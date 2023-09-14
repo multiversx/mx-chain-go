@@ -447,12 +447,18 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 
 		txsPoolPerShard[senderShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
 			Transaction: tx,
-			FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
+			FeeInfo: &outportcore.FeeInfo{
+				Fee:            big.NewInt(0),
+				InitialPaidFee: big.NewInt(0),
+			},
 		}
 
 		txsPoolPerShard[receiverShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
 			Transaction: tx,
-			FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
+			FeeInfo: &outportcore.FeeInfo{
+				Fee:            big.NewInt(0),
+				InitialPaidFee: big.NewInt(0),
+			},
 		}
 
 		for _, miniBlock := range miniBlocks {
