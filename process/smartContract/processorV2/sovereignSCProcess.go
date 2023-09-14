@@ -42,6 +42,14 @@ func NewSovereignSCRProcessor(args SovereignSCProcessArgs) (*sovereignSCProcesso
 		return nil, process.ErrNilSCProcessHelper
 	}
 
+	if check.IfNil(args.ArgsParser) {
+		return nil, process.ErrNilArgumentParser
+	}
+
+	if check.IfNil(args.TxTypeHandler) {
+		return nil, process.ErrNilTxTypeHandler
+	}
+
 	return &sovereignSCProcessor{
 		SmartContractProcessorFacade: args.SmartContractProcessor,
 		argsParser:                   args.ArgsParser,
