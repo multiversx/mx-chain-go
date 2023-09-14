@@ -2115,7 +2115,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("SRC"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("SRC"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 }
@@ -2146,7 +2146,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 	require.Equal(t, 1, getCalled)
@@ -2178,7 +2178,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 0, getCalled)
@@ -2211,7 +2211,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.NotNil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 1, getCalled)

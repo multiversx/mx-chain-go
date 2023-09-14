@@ -1360,8 +1360,8 @@ type ScrProcessingDataHandler interface {
 	GetDestination() state.UserAccountHandler
 }
 
-// SCProcessHelperHandler is an interface for smart contract process helper
-type SCProcessHelperHandler interface {
+// SCProcessorHelperHandler is an interface for smart contract processor helper
+type SCProcessorHelperHandler interface {
 	GetAccountFromAddress(address []byte) (state.UserAccountHandler, error)
 	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 	IsInterfaceNil() bool

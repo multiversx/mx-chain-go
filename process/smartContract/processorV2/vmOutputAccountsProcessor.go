@@ -48,7 +48,7 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 
 	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {
-		acc, err := oap.sc.getAccountFromAddress(outAcc.Address)
+		acc, err := oap.sc.scProcessorHelper.GetAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return false, nil, err
 		}
@@ -155,9 +155,10 @@ func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 
 // updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
 // It receives:
-// 	(1) the account as found in the State
+//
+//	(1) the account as found in the State
 //	(2) the account as returned in VM Output
-// 	(3) the transaction that, upon execution, produced the VM Output
+//	(3) the transaction that, upon execution, produced the VM Output
 func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,

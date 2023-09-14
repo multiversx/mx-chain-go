@@ -79,7 +79,7 @@ type scProcessor struct {
 	economicsFee        process.FeeHandler
 	txTypeHandler       process.TxTypeHandler
 	gasHandler          process.GasHandler
-	scProcessHelper     process.SCProcessHelperHandler
+	scProcessorHelper   process.SCProcessorHelperHandler
 
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
@@ -180,7 +180,7 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 
-	scProcessHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+	scProcessorHelper, err := scrCommon.NewSCProcessorHelper(scrCommon.SCProcessorHelperArgs{
 		Accounts:         args.AccountsDB,
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
@@ -217,7 +217,7 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
-		scProcessHelper:     scProcessHelper,
+		scProcessorHelper:   scProcessorHelper,
 	}
 
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
@@ -635,7 +635,7 @@ func (sc *scProcessor) addToDevRewards(address []byte, gasUsed uint64, tx data.T
 
 	consumedFee := sc.economicsFee.ComputeFeeForProcessing(tx, gasUsed)
 	devRwd := core.GetIntTrimmedPercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
-	userAcc, err := sc.getAccountFromAddress(address)
+	userAcc, err := sc.scProcessorHelper.GetAccountFromAddress(address)
 	if err != nil {
 		return err
 	}
@@ -1289,7 +1289,7 @@ func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
 		newVMInput.ESDTTransfers = in.parsedTransfer.ESDTTransfers
 	}
 
-	newDestSC, err := sc.getAccountFromAddress(in.vmInput.RecipientAddr)
+	newDestSC, err := sc.scProcessorHelper.GetAccountFromAddress(in.vmInput.RecipientAddr)
 	if err != nil {
 		in.failureContext.setMessages(err.Error(), []byte(""))
 		return newVMInput, newDestSC, nil
@@ -1595,7 +1595,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 		return nil, nil
 	}
 
-	relayerAcnt, err := sc.getAccountFromAddress(relayedSCR.RelayerAddr)
+	relayerAcnt, err := sc.scProcessorHelper.GetAccountFromAddress(relayedSCR.RelayerAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -1708,7 +1708,7 @@ func (sc *scProcessor) addBackTxValues(
 		determineCallType(originalTx) == vmData.AsynchronousCallBack &&
 			sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(originalTx.GetRcvAddr())
 	if isOriginalTxAsyncCallBack {
-		destAcc, err := sc.getAccountFromAddress(originalTx.GetRcvAddr())
+		destAcc, err := sc.scProcessorHelper.GetAccountFromAddress(originalTx.GetRcvAddr())
 		if err != nil {
 			return err
 		}
@@ -2072,7 +2072,7 @@ func (sc *scProcessor) checkSCRSizeInvariant(scrTxs []data.TransactionHandler) e
 }
 
 func (sc *scProcessor) addGasRefundIfInShard(address []byte, value *big.Int) error {
-	userAcc, err := sc.getAccountFromAddress(address)
+	userAcc, err := sc.scProcessorHelper.GetAccountFromAddress(address)
 	if err != nil {
 		return err
 	}
@@ -2245,7 +2245,7 @@ func (sc *scProcessor) reloadLocalAccount(acntSnd state.UserAccountHandler) (sta
 		return acntSnd, nil
 	}
 
-	return sc.getAccountFromAddress(acntSnd.AddressBytes())
+	return sc.scProcessorHelper.GetAccountFromAddress(acntSnd.AddressBytes())
 }
 
 func createBaseSCR(
@@ -2650,7 +2650,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM
 func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	for _, value := range deletedAccounts {
-		acc, err := sc.getAccountFromAddress(value)
+		acc, err := sc.scProcessorHelper.GetAccountFromAddress(value)
 		if err != nil {
 			return err
 		}
@@ -2668,26 +2668,6 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 	return nil
 }
 
-func (sc *scProcessor) getAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
-	shardForCurrentNode := sc.shardCoordinator.SelfId()
-	shardForSrc := sc.shardCoordinator.ComputeId(address)
-	if shardForCurrentNode != shardForSrc {
-		return nil, nil
-	}
-
-	acnt, err := sc.accounts.LoadAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	stAcc, ok := acnt.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return stAcc, nil
-}
-
 // ProcessSmartContractResult updates the account state from the smart contract result
 func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
 	if check.IfNil(scr) {
@@ -2698,7 +2678,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	var err error
 	returnCode := vmcommon.UserError
-	scrData, err := sc.scProcessHelper.CheckSCRBeforeProcessing(scr)
+	scrData, err := sc.scProcessorHelper.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}
