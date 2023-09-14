@@ -185,7 +185,7 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 
-	accHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+	scProcessHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
 		Accounts:         args.AccountsDB,
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
@@ -223,7 +223,7 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
-		scProcessHelper:     accHelper,
+		scProcessHelper:     scProcessHelper,
 	}
 
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)

@@ -79,7 +79,7 @@ type scProcessor struct {
 	economicsFee        process.FeeHandler
 	txTypeHandler       process.TxTypeHandler
 	gasHandler          process.GasHandler
-	scProcessHandler    process.SCProcessHelperHandler
+	scProcessHelper     process.SCProcessHelperHandler
 
 	builtInGasCosts     map[string]uint64
 	persistPerByte      uint64
@@ -180,7 +180,7 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	builtInFuncCost := args.GasSchedule.LatestGasSchedule()[common.BuiltInCost]
 	baseOperationCost := args.GasSchedule.LatestGasSchedule()[common.BaseOperationCost]
 
-	accHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+	scProcessHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
 		Accounts:         args.AccountsDB,
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
@@ -217,7 +217,7 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 		storePerByte:        baseOperationCost["StorePerByte"],
 		persistPerByte:      baseOperationCost["PersistPerByte"],
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
-		scProcessHandler:    accHelper,
+		scProcessHelper:     scProcessHelper,
 	}
 
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
@@ -2698,7 +2698,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	var err error
 	returnCode := vmcommon.UserError
-	scrData, err := sc.scProcessHandler.CheckSCRBeforeProcessing(scr)
+	scrData, err := sc.scProcessHelper.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}

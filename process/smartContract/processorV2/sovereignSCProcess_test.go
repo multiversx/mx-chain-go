@@ -304,10 +304,18 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 
 	arguments := createSovereignSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
+	scpHelper, _ := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+		Accounts:         arguments.AccountsDB,
+		ShardCoordinator: arguments.ShardCoordinator,
+		Marshalizer:      arguments.Marshalizer,
+		Hasher:           arguments.Hasher,
+		PubkeyConverter:  arguments.PubkeyConv,
+	})
 	sovProc, _ := NewSovereignSCRProcessor(SovereignSCProcessArgs{
 		ArgsParser:             arguments.ArgsParser,
 		TxTypeHandler:          arguments.TxTypeHandler,
 		SmartContractProcessor: sc,
+		SCProcessHelperHandler: scpHelper,
 	})
 
 	scAddress := generateRandomBytes(32)
@@ -347,10 +355,17 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 func createSSCProcessArgs() SovereignSCProcessArgs {
 	arguments := createSovereignSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
-
+	scpHelper, _ := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+		Accounts:         arguments.AccountsDB,
+		ShardCoordinator: arguments.ShardCoordinator,
+		Marshalizer:      arguments.Marshalizer,
+		Hasher:           arguments.Hasher,
+		PubkeyConverter:  arguments.PubkeyConv,
+	})
 	return SovereignSCProcessArgs{
 		ArgsParser:             arguments.ArgsParser,
 		TxTypeHandler:          arguments.TxTypeHandler,
 		SmartContractProcessor: sc,
+		SCProcessHelperHandler: scpHelper,
 	}
 }
