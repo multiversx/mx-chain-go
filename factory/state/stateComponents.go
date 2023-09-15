@@ -13,15 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
-	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
-	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -57,7 +51,6 @@ type stateComponents struct {
 	triesContainer           common.TriesHolder
 	trieStorageManagers      map[string]common.StorageManager
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier
-	stateChangesCollector    state.StateChangesCollector
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -89,18 +82,12 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		scf.config,
 		scf.core,
 		scf.storageService,
-		scf.statusCore.StateStatsHandler(),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	stateChangesCollector, err := scf.createStateChangesCollector()
-	if err != nil {
-		return nil, err
-	}
-
-	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer, stateChangesCollector)
+	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -118,71 +105,14 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		triesContainer:           triesContainer,
 		trieStorageManagers:      trieStorageManagers,
 		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
-		stateChangesCollector:    stateChangesCollector,
 	}, nil
 }
 
-func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateChangesCollector, error) {
-	if !scf.config.StateTriesConfig.CollectStateChangesEnabled {
-		return disabled.NewDisabledStateChangesCollector(), nil
-	}
-
-	if !scf.config.StateTriesConfig.CollectStateChangesWithReadEnabled {
-		return stateChanges.NewStateChangesCollector(), nil
-	}
-
-	dbConfig := config.DBConfig{
-		FilePath:          "stateChanges",
-		Type:              "LvlDBSerial",
-		BatchDelaySeconds: 2,
-		MaxBatchSize:      100,
-		MaxOpenFiles:      10,
-	}
-
-	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := storageunit.NewDB(persisterFactory, dbConfig.FilePath)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
-	}
-
-	return stateChanges.NewDataAnalysisStateChangesCollector(db)
-}
-
-func (scf *stateComponentsFactory) createSnapshotManager(
-	accountFactory state.AccountFactory,
-	stateMetrics state.StateMetrics,
-	iteratorChannelsProvider state.IteratorChannelsProvider,
-) (state.SnapshotsManager, error) {
-	if !scf.config.StateTriesConfig.SnapshotsEnabled {
-		return disabled.NewDisabledSnapshotsManager(), nil
-	}
-
-	argsSnapshotsManager := state.ArgsNewSnapshotsManager{
-		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
-		ProcessingMode:           scf.processingMode,
-		Marshaller:               scf.core.InternalMarshalizer(),
-		AddressConverter:         scf.core.AddressPubKeyConverter(),
-		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		StateMetrics:             stateMetrics,
-		ChannelsProvider:         iteratorChannelsProvider,
-		AccountFactory:           accountFactory,
-		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
-		StateStatsHandler:        scf.statusCore.StateStatsHandler(),
-	}
-	return state.NewSnapshotsManager(argsSnapshotsManager)
-}
-
-func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder, stateChangesCollector state.StateChangesCollector) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
+func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		EnableEpochsHandler:   scf.core.EnableEpochsHandler(),
-		StateChangesCollector: stateChangesCollector,
+		Hasher:              scf.core.Hasher(),
+		Marshaller:          scf.core.InternalMarshalizer(),
+		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
 	}
 	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -195,30 +125,18 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, err
 	}
 
-	argStateMetrics := stateMetrics.ArgsStateMetrics{
-		SnapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
-		LastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
-		SnapshotMessage:         stateMetrics.UserTrieSnapshotMsg,
-	}
-	sm, err := stateMetrics.NewStateMetrics(argStateMetrics, scf.statusCore.AppStatusHandler())
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	snapshotsManager, err := scf.createSnapshotManager(accountFactory, sm, iteratorChannelsProvider.NewUserStateIteratorChannelsProvider())
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChangesCollector,
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		ProcessingMode:           scf.processingMode,
+		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
+		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
+		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		StateChangesCollector:    state.NewStateChangesCollector(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -231,8 +149,10 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		Marshaller:            scf.core.InternalMarshalizer(),
 		AccountFactory:        accountFactory,
 		StoragePruningManager: storagePruning,
+		ProcessingMode:        scf.processingMode,
+		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
+		AppStatusHandler:      scf.statusCore.AppStatusHandler(),
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:      disabled.NewDisabledSnapshotsManager(),
 		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
 	}
 
@@ -273,35 +193,18 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
-	stateChangesCollector := disabled.NewDisabledStateChangesCollector()
-	// if scf.config.StateTriesConfig.CollectStateChangesEnabled {
-	// 	stateChangesCollector = state.NewStateChangesCollector()
-	// }
-
-	argStateMetrics := stateMetrics.ArgsStateMetrics{
-		SnapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
-		LastSnapshotDurationKey: common.MetricLastPeersSnapshotDurationSec,
-		SnapshotMessage:         stateMetrics.PeerTrieSnapshotMsg,
-	}
-	sm, err := stateMetrics.NewStateMetrics(argStateMetrics, scf.statusCore.AppStatusHandler())
-	if err != nil {
-		return nil, err
-	}
-
-	snapshotManager, err := scf.createSnapshotManager(accountFactory, sm, iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider())
-	if err != nil {
-		return nil, err
-	}
-
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:      snapshotManager,
-		StateChangesCollector: stateChangesCollector,
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		ProcessingMode:           scf.processingMode,
+		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
+		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
+		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		StateChangesCollector:    state.NewStateChangesCollector(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

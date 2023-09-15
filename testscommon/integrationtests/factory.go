@@ -4,13 +4,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/disabled"
 	accountFactory "github.com/multiversx/mx-chain-go/state/factory"
-	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -19,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -39,6 +35,7 @@ func CreateMemUnit() storage.Storer {
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
+
 	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	return unit
 }
@@ -84,7 +81,7 @@ func CreateStorer(parentDir string) storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	return CreateAccountsDB(testscommon.CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return CreateAccountsDB(CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 // CreateAccountsDB -
@@ -106,24 +103,11 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{
-		Hasher:                TestHasher,
-		Marshaller:            TestMarshalizer,
-		EnableEpochsHandler:   enableEpochs,
-		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+		Hasher:              TestHasher,
+		Marshaller:          TestMarshalizer,
+		EnableEpochsHandler: enableEpochs,
 	}
 	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
-
-	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
-		ProcessingMode:       common.Normal,
-		Marshaller:           TestMarshalizer,
-		AddressConverter:     &testscommon.PubkeyConverterMock{},
-		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
-		StateMetrics:         &testStorage.StateMetricsStub{},
-		AccountFactory:       accCreator,
-		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
-		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
-		StateStatsHandler:    statistics.NewStateStatistics(),
-	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
@@ -131,9 +115,11 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 		Marshaller:            TestMarshalizer,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
