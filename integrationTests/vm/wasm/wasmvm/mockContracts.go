@@ -1,10 +1,13 @@
 package wasmvm
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -26,6 +29,12 @@ var MockInitialBalance = big.NewInt(10_000_000)
 
 // WalletAddressPrefix is the prefix of any smart contract address used for testing.
 var WalletAddressPrefix = []byte("..........")
+
+// InitialEsdt is the initial amount minted for esdt
+var InitialEsdt = uint64(100)
+
+// EsdtTokenIdentifier is the token identifier in tests
+var EsdtTokenIdentifier = []byte("TTT-010101")
 
 // InitializeMockContracts -
 func InitializeMockContracts(
@@ -71,7 +80,8 @@ func GetAddressForNewAccountOnWalletAndNode(
 	wallet *integrationTests.TestWalletAccount,
 	node *integrationTests.TestProcessorNode,
 ) ([]byte, state.UserAccountHandler) {
-	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, wallet, node, net.DefaultVM)
+	return GetAddressForNewAccountOnWalletAndNodeWithVM(t, net, wallet, node,
+		net.DefaultVM)
 }
 
 // GetAddressForNewAccountOnWalletAndNodeWithVM -
@@ -82,6 +92,10 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	node *integrationTests.TestProcessorNode,
 	vmType []byte,
 ) ([]byte, state.UserAccountHandler) {
+	esdtValue := big.NewInt(int64(InitialEsdt))
+	esdtNonce := uint64(0)
+	pubKey := []byte("12345678901234567890123456789012")
+
 	walletAccount, err := node.AccntState.GetExistingAccount(wallet.Address)
 	require.Nil(t, err)
 	walletAccount.IncreaseNonce(1)
@@ -102,8 +116,35 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	_ = userAccount.AddToBalance(MockInitialBalance)
 	userAccount.SetCode(address)
 	userAccount.SetCodeHash(address)
+
+	esdtData := &esdt.ESDigitalToken{
+		Value:      esdtValue,
+		Properties: []byte{},
+	}
+	if esdtNonce > 0 {
+		esdtData.TokenMetaData = &esdt.MetaData{
+			Name:    []byte(fmt.Sprintf("Token %d", esdtNonce)),
+			URIs:    [][]byte{[]byte(fmt.Sprintf("URI for token %d", esdtNonce))},
+			Creator: pubKey,
+			Nonce:   esdtNonce,
+		}
+	}
+
+	esdtDataBytes, err := integrationTests.TestMarshalizer.Marshal(esdtData)
+	require.Nil(t, err)
+
+	key := append([]byte(core.ProtectedKeyPrefix), []byte(core.ESDTKeyIdentifier)...)
+	key = append(key, EsdtTokenIdentifier...)
+	if esdtNonce > 0 {
+		key = append(key, big.NewInt(0).SetUint64(esdtNonce).Bytes()...)
+	}
+
+	err = userAccount.SaveKeyValue(key, esdtDataBytes)
+	require.Nil(t, err)
+
 	err = node.AccntState.SaveAccount(userAccount)
 	require.Nil(t, err)
+	_, _ = node.AccntState.Commit()
 
 	return address, userAccount
 }
@@ -128,7 +169,7 @@ func GetAddressForNewAccount(
 	return GetAddressForNewAccountWithVM(t, net, node, net.DefaultVM)
 }
 
-// GetAddressForNewAccountWithVM
+// GetAddressForNewAccountWithVM -
 func GetAddressForNewAccountWithVM(
 	t *testing.T,
 	net *integrationTests.TestNetwork,

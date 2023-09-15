@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -577,7 +577,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
-
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
 	require.Equal(t, uint64(255), testValue1.Uint64())
@@ -984,7 +983,7 @@ func putDeploySCToDataPool(
 	nodes []*integrationTests.TestProcessorNode,
 	gasLimit uint64,
 ) []byte {
-	scCode, err := ioutil.ReadFile(fileName)
+	scCode, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
 	}
