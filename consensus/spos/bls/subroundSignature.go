@@ -93,6 +93,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
+		signatureShare[0] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
+		signatureShare[1] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
+		log.Debug("doSignatureJob.CreateSignatureShareForPublicKey - INVALID SIGNER")
+
 		if !isSelfLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
 			if !ok {
@@ -372,6 +376,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 		signatureShare[0] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
 		signatureShare[1] = signatureShare[0] ^ signatureShare[1] ^ signatureShare[2]
+		log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey - INVALID SIGNER")
 
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
