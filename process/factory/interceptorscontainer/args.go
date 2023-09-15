@@ -43,5 +43,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	FullArchivePeerShardMapper   process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
 	NodeOperationMode            common.NodeOperation
-	IncomingHeaderSubscriber     IncomingHeaderSubscriber
+	IncomingHeaderSubscriber     process.IncomingHeaderSubscriber
 }

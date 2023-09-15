@@ -1,110 +1,101 @@
 package processor
 
 import (
+	"bytes"
 	"fmt"
-	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 )
 
-// IncomingHeaderSubscriber defines a subscriber to incoming headers
-type IncomingHeaderSubscriber interface {
-	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
-	IsInterfaceNil() bool
-}
-
+// ArgsSovereignHeaderInterceptorProcessor is a struct placeholder used to create a new sovereign extended header interceptor processor
 type ArgsSovereignHeaderInterceptorProcessor struct {
-	Headers                  dataRetriever.HeadersPool
 	BlockBlackList           process.TimeCacher
 	Hasher                   hashing.Hasher
 	Marshaller               marshal.Marshalizer
-	IncomingHeaderSubscriber IncomingHeaderSubscriber
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+	HeadersPool              dataRetriever.HeadersPool
 }
 
 type sovereignHeaderInterceptorProcessor struct {
-	headers                  dataRetriever.HeadersPool
 	blackList                process.TimeCacher
-	registeredHandlers       []func(topic string, hash []byte, data interface{})
-	mutHandlers              sync.RWMutex
 	Hasher                   hashing.Hasher
 	Marshaller               marshal.Marshalizer
-	IncomingHeaderSubscriber IncomingHeaderSubscriber
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+	headersPool              dataRetriever.HeadersPool
 }
 
-func NewSovereignHdrInterceptorProcessor(argument *ArgsSovereignHeaderInterceptorProcessor) (*sovereignHeaderInterceptorProcessor, error) {
-	if argument == nil {
+// NewSovereignHdrInterceptorProcessor creates a new sovereign extended header interceptor processor
+func NewSovereignHdrInterceptorProcessor(args *ArgsSovereignHeaderInterceptorProcessor) (*sovereignHeaderInterceptorProcessor, error) {
+	if args == nil {
 		return nil, process.ErrNilArgumentStruct
 	}
-	if check.IfNil(argument.Headers) {
-		return nil, process.ErrNilCacher
-	}
-	if check.IfNil(argument.BlockBlackList) {
+	if check.IfNil(args.BlockBlackList) {
 		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &sovereignHeaderInterceptorProcessor{
-		headers:                  argument.Headers,
-		blackList:                argument.BlockBlackList,
-		registeredHandlers:       make([]func(topic string, hash []byte, data interface{}), 0),
-		Hasher:                   argument.Hasher,
-		Marshaller:               argument.Marshaller,
-		IncomingHeaderSubscriber: argument.IncomingHeaderSubscriber,
+		blackList:                args.BlockBlackList,
+		Hasher:                   args.Hasher,
+		Marshaller:               args.Marshaller,
+		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
+		headersPool:              args.HeadersPool,
 	}, nil
 }
 
 // Validate checks if the intercepted data can be processed
 func (hip *sovereignHeaderInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
-	//interceptedHdr, ok := data.(sovereign.Proof) SovereignInterceptedHeader
-	//if !ok {
-	//	return process.ErrWrongTypeAssertion
-	//}
-	//
-	////hip.blackList.Sweep()
-	////isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
-	////if isBlackListed {
-	////	return process.ErrHeaderIsBlackListed
-	////}
-	//
-	//_ = interceptedHdr
+	interceptedHdr, ok := data.(process.ExtendedHeaderValidatorHandler)
+	if !ok {
+		return fmt.Errorf("sovereignHeaderInterceptorProcessor.Validate error: %w", process.ErrWrongTypeAssertion)
+	}
+
+	hip.blackList.Sweep()
+	isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
+	if isBlackListed {
+		return process.ErrHeaderIsBlackListed
+	}
+
+	extendedHdr := interceptedHdr.GetExtendedHeader()
+	computedExtendedHeader, err := hip.IncomingHeaderSubscriber.CreateExtendedHeader(extendedHdr)
+	if err != nil {
+		return err
+	}
+
+	computedHeaderHash, err := core.CalculateHash(hip.Marshaller, hip.Hasher, computedExtendedHeader)
+	if bytes.Compare(computedHeaderHash, interceptedHdr.Hash()) != 0 {
+		return errors.ErrInvalidReceivedSovereignProof
+	}
+
 	return nil
 }
 
-// Save will save the received data into the headers cacher as hash<->[plain header structure]
-// and in headersNonces as nonce<->hash
-func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
-	interceptedHdr, ok := data.(*interceptedBlocks.SovereignInterceptedHeader)
+// Save will save the received data into headers pool
+func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+	interceptedHdr, ok := data.(process.ExtendedHeaderValidatorHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return fmt.Errorf("sovereignHeaderInterceptorProcessor.Save error: %w", process.ErrWrongTypeAssertion)
 	}
 
-	hdr, ok := interceptedHdr.HeaderHandler().(*block.ShardHeaderExtended)
-	if !ok {
-		return fmt.Errorf("%w for ShardHeaderExtended", process.ErrWrongTypeAssertion)
-	}
+	log.Error("sovereignHeaderInterceptorProcessor.IncomingHeaderSubscriber. BEFORE  AddHeader")
 
-	incomingHeader := &sovereign.IncomingHeader{
-		Header:         hdr.Header,
-		IncomingEvents: hdr.IncomingEvents,
-	}
 
-	hash, _ := core.CalculateHash(hip.Marshaller, hip.Hasher, incomingHeader)
+	if _, err := hip.headersPool.GetHeaderByHash(interceptedHdr.Hash()); err == nil {
+		return nil
+	}
 
 	log.Error("sovereignHeaderInterceptorProcessor.IncomingHeaderSubscriber.AddHeader")
 
-	return hip.IncomingHeaderSubscriber.AddHeader(hash, incomingHeader)
+	return hip.IncomingHeaderSubscriber.AddHeader(interceptedHdr.Hash(), interceptedHdr.GetExtendedHeader())
 }
 
-// RegisterHandler registers a callback function to be notified of incoming headers
-func (hip *sovereignHeaderInterceptorProcessor) RegisterHandler(handler func(topic string, hash []byte, data interface{})) {
-
+// RegisterHandler does nothing
+func (hip *sovereignHeaderInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

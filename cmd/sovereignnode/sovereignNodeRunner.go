@@ -36,6 +36,8 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
@@ -59,6 +61,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -418,25 +421,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	marshaller, err := marshallerFactory.NewMarshalizer(configs.NotifierConfig.WebSocketConfig.MarshallerType)
-	if err != nil {
-		return true, err
-	}
-	hasher, err := hasherFactory.NewHasher(configs.NotifierConfig.WebSocketConfig.HasherType)
-	if err != nil {
-		return true, err
-	}
-
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
-		HeadersPool: managedDataComponents.Datapool().Headers(),
-		TxPool:      managedDataComponents.Datapool().UnsignedTransactions(),
-		Marshaller:  marshaller,
-		Hasher:      hasher,
-	}
-	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
-	if err != nil {
-		return true, err
-	}
+	incomingHeaderHandler, err := createIncomingHeaderProcessor(
+		configs.NotifierConfig,
+		managedDataComponents.Datapool(),
+	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedCoreComponents,
@@ -514,7 +502,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	sovereignWsReceiver, err := createSovereignWsReceiver(
-		managedDataComponents.Datapool(),
 		configs.NotifierConfig,
 		incomingHeaderHandler,
 	)
@@ -1126,7 +1113,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
+	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1209,35 +1196,38 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                     *configs.GeneralConfig,
-		EpochConfig:                *configs.EpochConfig,
-		PrefConfigs:                *configs.PreferencesConfig,
-		ImportDBConfig:             *configs.ImportDbConfig,
-		AccountsParser:             sovereignAccountsParser,
-		SmartContractParser:        smartContractParser,
-		GasSchedule:                gasScheduleNotifier,
-		NodesCoordinator:           nodesCoordinator,
-		Data:                       dataComponents,
-		CoreData:                   coreComponents,
-		Crypto:                     cryptoComponents,
-		State:                      stateComponents,
-		Network:                    networkComponents,
-		BootstrapComponents:        bootstrapComponents,
-		StatusComponents:           statusComponents,
-		StatusCoreComponents:       statusCoreComponents,
-		RequestedItemsHandler:      requestedItemsHandler,
-		WhiteListHandler:           whiteListRequest,
-		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
-		MaxRating:                  configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:             configs.SystemSCConfig,
-		ImportStartHandler:         importStartHandler,
-		HistoryRepo:                historyRepository,
-		FlagsConfig:                *configs.FlagsConfig,
-		ChainRunType:               common.ChainRunTypeSovereign,
-		ShardCoordinatorFactory:    sharding.NewSovereignShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewSovereignGenesisMetaBlockChecker(),
-		IncomingHeaderSubscriber:   incomingHeaderHandler,
+		Config:                                *configs.GeneralConfig,
+		EpochConfig:                           *configs.EpochConfig,
+		PrefConfigs:                           *configs.PreferencesConfig,
+		ImportDBConfig:                        *configs.ImportDbConfig,
+		AccountsParser:                        sovereignAccountsParser,
+		SmartContractParser:                   smartContractParser,
+		GasSchedule:                           gasScheduleNotifier,
+		NodesCoordinator:                      nodesCoordinator,
+		Data:                                  dataComponents,
+		CoreData:                              coreComponents,
+		Crypto:                                cryptoComponents,
+		State:                                 stateComponents,
+		Network:                               networkComponents,
+		BootstrapComponents:                   bootstrapComponents,
+		StatusComponents:                      statusComponents,
+		StatusCoreComponents:                  statusCoreComponents,
+		RequestedItemsHandler:                 requestedItemsHandler,
+		WhiteListHandler:                      whiteListRequest,
+		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
+		MaxRating:                             configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                        configs.SystemSCConfig,
+		ImportStartHandler:                    importStartHandler,
+		HistoryRepo:                           historyRepository,
+		FlagsConfig:                           *configs.FlagsConfig,
+		ChainRunType:                          common.ChainRunTypeSovereign,
+		ShardCoordinatorFactory:               sharding.NewSovereignShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:      requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
+		IncomingHeaderSubscriber:              incomingHeaderHandler,
+		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1692,10 +1682,32 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
-func createSovereignWsReceiver(
-	dataPool dataRetriever.PoolsHolder,
+func createIncomingHeaderProcessor(
 	config *sovereignConfig.NotifierConfig,
-	incomingHeaderHandler processComp.IncomingHeaderSubscriber,
+	dataPool dataRetriever.PoolsHolder,
+) (notifierProcess.IncomingHeaderSubscriber, error) {
+	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	if err != nil {
+		return nil, err
+	}
+	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	if err != nil {
+		return nil, err
+	}
+
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
+		HeadersPool: dataPool.Headers(),
+		TxPool:      dataPool.UnsignedTransactions(),
+		Marshaller:  marshaller,
+		Hasher:      hasher,
+	}
+
+	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
+}
+
+func createSovereignWsReceiver(
+	config *sovereignConfig.NotifierConfig,
+	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
 		MarshallerType:   config.WebSocketConfig.MarshallerType,

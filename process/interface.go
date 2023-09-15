@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -111,6 +112,12 @@ type TxVersionCheckerHandler interface {
 type HdrValidatorHandler interface {
 	Hash() []byte
 	HeaderHandler() data.HeaderHandler
+}
+
+// ExtendedHeaderValidatorHandler defines extended header validator functionality
+type ExtendedHeaderValidatorHandler interface {
+	Hash() []byte
+	GetExtendedHeader() data.ShardHeaderExtendedHandler
 }
 
 // InterceptedDataFactory can create new instances of InterceptedData
@@ -1331,5 +1338,12 @@ type PeerAuthenticationPayloadValidator interface {
 type Debugger interface {
 	SetLastCommittedBlockRound(round uint64)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// IncomingHeaderSubscriber defines a subscriber to incoming headers
+type IncomingHeaderSubscriber interface {
+	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
 	IsInterfaceNil() bool
 }

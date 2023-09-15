@@ -1,9 +1,11 @@
 package resolverscontainer
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -11,14 +13,13 @@ type sovereignShardResolversContainerFactory struct {
 	*shardResolversContainerFactory
 }
 
-func NewSovereignShardResolversContainerFactory(args FactoryArgs) (*sovereignShardResolversContainerFactory, error) {
-	shardResolversContainer, err := NewShardResolversContainerFactory(args)
-	if err != nil {
-		return nil, err
+func NewSovereignShardResolversContainerFactory(shardContainer *shardResolversContainerFactory) (*sovereignShardResolversContainerFactory, error) {
+	if check.IfNil(shardContainer) {
+		return nil, errors.ErrNilShardResolversContainerFactory
 	}
 
 	return &sovereignShardResolversContainerFactory{
-		shardResolversContainerFactory: shardResolversContainer,
+		shardResolversContainerFactory: shardContainer,
 	}, nil
 }
 
@@ -40,20 +41,18 @@ func (srcf *sovereignShardResolversContainerFactory) Create() (dataRetriever.Res
 func (srcf *sovereignShardResolversContainerFactory) generateSovereignHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
 
-	// only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardC.SelfId())
-
 	hdrStorer, err := srcf.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 	if err != nil {
 		return err
 	}
+
+	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 	resolverSender, err := srcf.createOneResolverSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardC.SelfId())
 	if err != nil {
 		return err
 	}
 
-	hdrNonceHashDataUnit := dataRetriever.ExtendedShardHeadersNonceHashDataUnit
-	hdrNonceStore, err := srcf.store.GetStorer(hdrNonceHashDataUnit)
+	hdrNonceStore, err := srcf.store.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
 	if err != nil {
 		return err
 	}

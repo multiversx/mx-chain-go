@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -95,6 +96,15 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	ihp.scrProc.addSCRsToPool(incomingSCRs)
 	ihp.mapHashes[string(headerHash)] = struct{}{}
 	return nil
+}
+
+func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
+	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	if err != nil {
+		return nil, err
+	}
+
+	return createExtendedHeader(header, incomingSCRs)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

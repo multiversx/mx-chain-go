@@ -26,8 +26,6 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 	return srrh, nil
 }
 
-// TODO: Implement this in MX-14496
-
 // RequestExtendedShardHeaderByNonce method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(nonce uint64) {
 	log.Error("RequestExtendedShardHeaderByNonce", "nonce", nonce)
@@ -37,20 +35,21 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 		return
 	}
 
+
 	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, srrh.shardID)
 	key := []byte(fmt.Sprintf("%d-%d", srrh.shardID, nonce))
 	if !srrh.testIfRequestIsNeeded(key, suffix) {
 		return
 	}
 
-	log.Debug("requesting shard header by nonce from network",
+	log.Debug("sovereign: requesting extended shard header by nonce from network",
 		"shard", srrh.shardID,
 		"nonce", nonce,
 	)
 
-	requester, err := srrh.getShardHeaderRequester(srrh.shardID)
+	requester, err := srrh.getExtendedShardHeaderRequester(srrh.shardID)
 	if err != nil {
-		log.Error("RequestShardHeaderByNonce.getShardHeaderRequester",
+		log.Error("RequestShardHeaderByNonce.getExtendedShardHeaderRequester",
 			"error", err.Error(),
 			"shard", srrh.shardID,
 		)
@@ -79,17 +78,13 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 	srrh.addRequestedItems([][]byte{key}, suffix)
 }
 
-func (srrh *sovereignResolverRequestHandler) getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error) {
-
-	headerRequester, err := srrh.requestersFinder.IntraShardRequester(factory.ExtendedHeaderProofTopic) // CrossShardRequester(factory.ShardBlocksTopic, shardID)
+func (srrh *sovereignResolverRequestHandler) getExtendedShardHeaderRequester(_ uint32) (dataRetriever.Requester, error) {
+	headerRequester, err := srrh.requestersFinder.IntraShardRequester(factory.ExtendedHeaderProofTopic)
 	if err != nil {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
-			err, factory.ExtendedHeaderProofTopic, srrh.shardID, shardID)
-
-		log.Warn("available requesters in container",
+		log.Warn("extended header proof container not found, available requesters in container",
 			"requesters", srrh.requestersFinder.RequesterKeys(),
 		)
-		return nil, err
+		return nil, fmt.Errorf("%w, topic: %s", err, factory.ExtendedHeaderProofTopic)
 	}
 
 	return headerRequester, nil
@@ -97,7 +92,6 @@ func (srrh *sovereignResolverRequestHandler) getShardHeaderRequester(shardID uin
 
 // RequestExtendedShardHeader method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []byte) {
-	//TODO: This method should be implemented for sovereign chain
 	log.Error("sovereignResolverRequestHandler.RequestExtendedShardHeader", "hash", hex.EncodeToString(hash))
 
 	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, srrh.shardID)
@@ -105,14 +99,14 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 		return
 	}
 
-	log.Debug("requesting shard header from network",
+	log.Debug("sovereign: requesting extended shard header from network by hash",
 		"shard", srrh.shardID,
 		"hash", hash,
 	)
 
-	headerRequester, err := srrh.getShardHeaderRequester(srrh.shardID)
+	headerRequester, err := srrh.getExtendedShardHeaderRequester(srrh.shardID)
 	if err != nil {
-		log.Error("RequestShardHeader.getShardHeaderRequester",
+		log.Error("sovereignResolverRequestHandler.getExtendedShardHeaderRequester",
 			"error", err.Error(),
 			"shard", srrh.shardID,
 		)

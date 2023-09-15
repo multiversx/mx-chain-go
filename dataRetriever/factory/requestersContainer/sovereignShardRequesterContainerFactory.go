@@ -1,27 +1,31 @@
 package requesterscontainer
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
-
-// TODO: Implement this in MX-14516
 
 type sovereignShardRequestersContainerFactory struct {
 	*shardRequestersContainerFactory
 }
 
 // NewSovereignShardRequestersContainerFactory creates a new container filled with topic requesters for sovereign shards
-func NewSovereignShardRequestersContainerFactory(args FactoryArgs) (*sovereignShardRequestersContainerFactory, error) {
-	shardRequester, err := NewShardRequestersContainerFactory(args)
-	if err != nil {
-		return nil, err
+func NewSovereignShardRequestersContainerFactory(shardReqContainerFactory *shardRequestersContainerFactory) (*sovereignShardRequestersContainerFactory, error) {
+	if check.IfNil(shardReqContainerFactory) {
+		return nil, errors.ErrNilShardRequesterContainerFactory
 	}
 
-	return &sovereignShardRequestersContainerFactory{
-		shardRequestersContainerFactory: shardRequester,
-	}, nil
+	f := &sovereignShardRequestersContainerFactory{
+		shardRequestersContainerFactory: shardReqContainerFactory,
+	}
+
+	f.numIntraShardPeers = f.numTotalPeers
+	f.numCrossShardPeers = 0
+
+	return f, nil
 }
 
 // Create returns a requesters container that will hold all sovereign requesters
@@ -41,8 +45,8 @@ func (srcf *sovereignShardRequestersContainerFactory) Create() (dataRetriever.Re
 
 func (srcf *sovereignShardRequestersContainerFactory) generateExtendedShardHeaderRequesters() error {
 	shardC := srcf.shardCoordinator
+	shardID := shardC.SelfId()
 
-	shardID := srcf.shardCoordinator.SelfId()
 	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardID)
 	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardID, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
