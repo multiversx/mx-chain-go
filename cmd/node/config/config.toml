@@ -35,13 +35,10 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
-    # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
-    # the activation of the configured guardian.
-    # Make sure that this is greater than the unbonding period!
-    SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
-
-[HardwareRequirements]
-    CPUFlags = ["SSE4", "SSE42"]
+   # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
+   # the activation of the configured guardian.
+   # Make sure that this is greater than the unbonding period!
+   SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
 [Versions]
     DefaultVersion = "default"
@@ -345,6 +342,32 @@
         ShardIDProviderType = "BinarySplit"
         NumShards = 4
 
+[AccountsTrieCheckpointsStorage]
+    [AccountsTrieCheckpointsStorage.Cache]
+        Name = "AccountsTrieCheckpointsStorage"
+        Capacity = 100000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [AccountsTrieCheckpointsStorage.DB]
+        FilePath = "AccountsTrieCheckpoints"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 45000
+        MaxOpenFiles = 10
+
+[PeerAccountsTrieCheckpointsStorage]
+    [PeerAccountsTrieCheckpointsStorage.Cache]
+        Name = "PeerAccountsTrieCheckpointsStorage"
+        Capacity = 10000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [PeerAccountsTrieCheckpointsStorage.DB]
+        FilePath = "PeerAccountsTrieCheckpoints"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 1000
+        MaxOpenFiles = 10
+
 [EvictionWaitingList]
     #total max size ~ 2 * [(RoothashesSize * 32) + (HashesSize * 32)]
     RootHashesSize = 10000
@@ -360,6 +383,7 @@
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
     SnapshotsGoroutineNum = 200
+    CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [HeadersPoolConfig]
     MaxHeadersPerShard = 1000
@@ -492,7 +516,6 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
-    NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
         IntervalInSeconds = 1
         ReservedPercent   = 20.0
@@ -621,7 +644,6 @@
    Type = "json"
 
 [EpochStartConfig]
-    GenesisEpoch = 0
     MinRoundsBetweenEpochs = 20
     RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
@@ -631,7 +653,6 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    ExtraDelayForRequestBlockInfoInMilliseconds = 3000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -656,12 +677,13 @@
     Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
+    CheckpointRoundsModulus = 100
+    CheckpointsEnabled = false
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
-    StateStatisticsEnabled = false
     CollectStateChangesEnabled = false
 
 [BlockSizeThrottleConfig]
@@ -673,8 +695,9 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.Querying]
@@ -682,8 +705,9 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.4" },
-            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.3" },
+            { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.GasConfig]
@@ -811,10 +835,6 @@
     StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
 
-[GatewayMetricsConfig]
-    # TODO: set this to gateway URL based on testnet/devnet/mainnet env
-    URL = ""
-
 [LogsAndEvents]
     SaveInStorageEnabled = false
     [LogsAndEvents.TxLogsStorage.Cache]
@@ -936,8 +956,3 @@
         Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
-
-[Redundancy]
-    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
-    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-    MaxRoundsOfInactivityAccepted = 3
