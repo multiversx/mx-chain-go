@@ -24,6 +24,8 @@ type ArgsTestOnlyProcessingNode struct {
 	EconomicsConfig        config.EconomicsConfig
 	RoundsConfig           config.RoundConfig
 	PreferencesConfig      config.Preferences
+	ImportDBConfig         config.ImportDbConfig
+	ContextFlagsConfig     config.ContextFlagsConfig
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 	GasScheduleFilename    string
@@ -35,12 +37,13 @@ type ArgsTestOnlyProcessingNode struct {
 }
 
 type testOnlyProcessingNode struct {
-	CoreComponentsHolder    factory.CoreComponentsHolder
-	StatusCoreComponents    factory.StatusCoreComponentsHolder
-	StateComponentsHolder   factory.StateComponentsHolder
-	StatusComponentsHolder  factory.StatusComponentsHolder
-	CryptoComponentsHolder  factory.CryptoComponentsHolder
-	NetworkComponentsHolder factory.NetworkComponentsHolder
+	CoreComponentsHolder      factory.CoreComponentsHolder
+	StatusCoreComponents      factory.StatusCoreComponentsHolder
+	StateComponentsHolder     factory.StateComponentsHolder
+	StatusComponentsHolder    factory.StatusComponentsHolder
+	CryptoComponentsHolder    factory.CryptoComponentsHolder
+	NetworkComponentsHolder   factory.NetworkComponentsHolder
+	BootstrapComponentsHolder factory.BootstrapComponentsHolder
 
 	ChainHandler                chainData.ChainHandler
 	ShardCoordinator            sharding.Coordinator
@@ -114,6 +117,21 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.NetworkComponentsHolder, err = CreateNetworkComponentsHolder(args.SyncedBroadcastNetwork)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.BootstrapComponentsHolder, err = CreateBootstrapComponentHolder(ArgsBootstrapComponentsHolder{
+		CoreComponents:       instance.CoreComponentsHolder,
+		CryptoComponents:     instance.CryptoComponentsHolder,
+		NetworkComponents:    instance.NetworkComponentsHolder,
+		StatusCoreComponents: instance.StatusCoreComponents,
+		WorkingDir:           args.WorkingDir,
+		FlagsConfig:          args.ContextFlagsConfig,
+		ImportDBConfig:       args.ImportDBConfig,
+		PrefsConfig:          args.PreferencesConfig,
+		Config:               args.Config,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 type coreComponentsHolder struct {
@@ -136,7 +137,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 	// TODO discuss with Iulian about the round handler
-	//instance.roundHandler
+	instance.roundHandler = &testscommon.RoundHandlerMock{}
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
@@ -188,14 +189,14 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 
 	// TODO check if we need this
 	instance.ratingsData = nil
-	instance.rater = nil
+	instance.rater = &testscommon.RaterMock{}
 
 	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
 	if err != nil {
 		return nil, err
 	}
 	// TODO check if we need nodes shuffler
-	instance.nodesShuffler = nil
+	instance.nodesShuffler = &shardingMocks.NodeShufflerMock{}
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
