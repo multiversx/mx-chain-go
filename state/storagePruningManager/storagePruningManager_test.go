@@ -54,6 +54,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

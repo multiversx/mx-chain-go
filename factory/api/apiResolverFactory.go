@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -607,6 +608,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		ProcessStatusHandler:  args.coreComponents.ProcessStatusHandler(),
 		AppStatusHandler:      args.statusCoreComponents.AppStatusHandler(),
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
+		StateChangesCollector: stateDisabled.NewDisabledStateChangesCollector(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

@@ -903,6 +903,7 @@ func createAccountsDB(
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb

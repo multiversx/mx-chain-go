@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -135,6 +136,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
 		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		StateChangesCollector:    state.NewStateChangesCollector(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -151,6 +153,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
 		AppStatusHandler:      scf.statusCore.AppStatusHandler(),
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
+		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -201,6 +204,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
 		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		StateChangesCollector:    state.NewStateChangesCollector(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

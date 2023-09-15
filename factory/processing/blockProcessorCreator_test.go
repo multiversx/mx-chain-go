@@ -208,6 +208,7 @@ func createAccountAdapter(
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

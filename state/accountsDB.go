@@ -110,6 +110,7 @@ type ArgsAccountsDB struct {
 	ProcessStatusHandler     common.ProcessStatusHandler
 	AppStatusHandler         core.AppStatusHandler
 	AddressConverter         core.PubkeyConverter
+	StateChangesCollector    StateChangesCollector
 }
 
 // NewAccountsDB creates a new account manager
@@ -163,7 +164,7 @@ func createAccountsDb(args ArgsAccountsDB, snapshotManager SnapshotsManager) *Ac
 		},
 		addressConverter:      args.AddressConverter,
 		snapshotsManger:       snapshotManager,
-		stateChangesCollector: NewStateChangesCollector(),
+		stateChangesCollector: args.StateChangesCollector,
 	}
 }
 
@@ -185,6 +186,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.AddressConverter) {
 		return ErrNilAddressConverter
+	}
+	if check.IfNil(args.StateChangesCollector) {
+		return ErrNilStateChangesCollector
 	}
 
 	return nil

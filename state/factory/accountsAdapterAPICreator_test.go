@@ -31,6 +31,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 }
 

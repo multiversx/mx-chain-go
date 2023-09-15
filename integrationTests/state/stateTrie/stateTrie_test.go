@@ -1066,6 +1066,7 @@ func createAccounts(
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2530,6 +2531,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

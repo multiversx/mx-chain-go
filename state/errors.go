@@ -144,3 +144,6 @@ var ErrNilStateMetrics = errors.New("nil sstate metrics")
 
 // ErrNilChannelsProvider signals that a nil channels provider has been given
 var ErrNilChannelsProvider = errors.New("nil channels provider")
+
+// ErrNilStateChangesCollector signals that a nil state changes collector has been given
+var ErrNilStateChangesCollector = errors.New("nil state changes collector")
