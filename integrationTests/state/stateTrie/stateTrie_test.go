@@ -2,7 +2,6 @@ package stateTrie
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
@@ -25,28 +24,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/errChan"
-	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
-	esdtCommon "github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
-	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -223,15 +215,15 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	acc, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
 
-	userAccount := acc.(state.UserAccountHandler)
-	_ = userAccount.AddToBalance(balance2)
+	stateMock := acc.(state.UserAccountHandler)
+	_ = stateMock.AddToBalance(balance2)
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = userAccount.SaveKeyValue(key, val)
+	_ = stateMock.SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
-	_ = adb.SaveAccount(userAccount)
+	_ = adb.SaveAccount(stateMock)
 
 	// states are now prepared, committing
 
@@ -312,15 +304,15 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	acc, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
 
-	userAccount := acc.(state.UserAccountHandler)
-	_ = userAccount.AddToBalance(balance2)
+	stateMock := acc.(state.UserAccountHandler)
+	_ = stateMock.AddToBalance(balance2)
 
 	key := []byte("ABC")
 	val := []byte("123")
-	_ = userAccount.SaveKeyValue(key, val)
+	_ = stateMock.SaveKeyValue(key, val)
 
 	_ = adb.SaveAccount(state1)
-	_ = adb.SaveAccount(userAccount)
+	_ = adb.SaveAccount(stateMock)
 
 	// states are now prepared, committing
 
@@ -453,9 +445,9 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	userAccount, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = adb.SaveAccount(userAccount)
+	_ = adb.SaveAccount(stateMock)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
@@ -479,8 +471,8 @@ func TestAccountsDB_RevertNonceStepByStepAccountDataShouldWork(t *testing.T) {
 	hrWithNonce1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with nonce 40: %v\n", hrWithNonce1)
 
-	userAccount.(state.UserAccountHandler).IncreaseNonce(50)
-	_ = adb.SaveAccount(userAccount)
+	stateMock.(state.UserAccountHandler).IncreaseNonce(50)
+	_ = adb.SaveAccount(stateMock)
 
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
@@ -530,9 +522,9 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	userAccount, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = adb.SaveAccount(userAccount)
+	_ = adb.SaveAccount(stateMock)
 
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -557,8 +549,8 @@ func TestAccountsDB_RevertBalanceStepByStepAccountDataShouldWork(t *testing.T) {
 	hrWithBalance1 := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - account with balance 40: %v\n", hrWithBalance1)
 
-	_ = userAccount.(state.UserAccountHandler).AddToBalance(big.NewInt(50))
-	_ = adb.SaveAccount(userAccount)
+	_ = stateMock.(state.UserAccountHandler).AddToBalance(big.NewInt(50))
+	_ = adb.SaveAccount(stateMock)
 
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
@@ -611,10 +603,10 @@ func TestAccountsDB_RevertCodeStepByStepAccountDataShouldWork(t *testing.T) {
 
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 
-	userAccount, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	userAccount.(state.UserAccountHandler).SetCode(code)
-	_ = adb.SaveAccount(userAccount)
+	stateMock.(state.UserAccountHandler).SetCode(code)
+	_ = adb.SaveAccount(stateMock)
 
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -686,10 +678,10 @@ func TestAccountsDB_RevertDataStepByStepAccountDataShouldWork(t *testing.T) {
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
-	userAccount, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = userAccount.(state.UserAccountHandler).SaveKeyValue(key, val)
-	err = adb.SaveAccount(userAccount)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
+	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
@@ -765,16 +757,16 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
 	fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
 
-	userAccount, err := adb.LoadAccount(adr2)
+	stateMock, err := adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = userAccount.(state.UserAccountHandler).SaveKeyValue(key, val)
-	err = adb.SaveAccount(userAccount)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
+	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	snapshotCreated2 := adb.JournalLen()
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
+	rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 	require.Nil(t, err)
 	hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -796,15 +788,15 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	// Step 4. 2-nd account changes its data
 	snapshotMod := adb.JournalLen()
 
-	userAccount, err = adb.LoadAccount(adr2)
+	stateMock, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	_ = userAccount.(state.UserAccountHandler).SaveKeyValue(key, newVal)
-	err = adb.SaveAccount(userAccount)
+	_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, newVal)
+	err = adb.SaveAccount(stateMock)
 	require.Nil(t, err)
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
 	hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
+	rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 	require.Nil(t, err)
 	hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
 
@@ -824,9 +816,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	require.Nil(t, err)
 	hrCreated2Rev := base64.StdEncoding.EncodeToString(rootHash)
 
-	userAccount, err = adb.LoadAccount(adr2)
+	stateMock, err = adb.LoadAccount(adr2)
 	require.Nil(t, err)
-	rootHash, err = userAccount.(state.UserAccountHandler).DataTrie().RootHash()
+	rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 	require.Nil(t, err)
 	hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
 	fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
@@ -1059,32 +1051,22 @@ func createAccounts(
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		Hasher:              integrationTests.TestHasher,
+		Marshaller:          integrationTests.TestMarshalizer,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
-		ProcessingMode:       common.Normal,
-		Marshaller:           &marshallerMock.MarshalizerMock{},
-		AddressConverter:     &testscommon.PubkeyConverterMock{},
-		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
-		StateMetrics:         &stateMock.StateMetricsStub{},
-		AccountFactory:       accCreator,
-		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
-		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
-		StateStatsHandler:    statistics.NewStateStatistics(),
-	})
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                integrationTests.TestHasher,
 		Marshaller:            integrationTests.TestMarshalizer,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -1251,17 +1233,17 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	_ = adb.SaveAccount(state1)
 
 	acc2, _ := adb.LoadAccount(address2)
-	userAccount := acc2.(state.UserAccountHandler)
-	_ = userAccount.SaveKeyValue(key1, value1)
-	_ = userAccount.SaveKeyValue(key2, value1)
-	_ = adb.SaveAccount(userAccount)
+	stateMock := acc2.(state.UserAccountHandler)
+	_ = stateMock.SaveKeyValue(key1, value1)
+	_ = stateMock.SaveKeyValue(key2, value1)
+	_ = adb.SaveAccount(stateMock)
 
 	oldRootHash, _ := adb.Commit()
 
 	acc2, _ = adb.LoadAccount(address2)
-	userAccount = acc2.(state.UserAccountHandler)
-	_ = userAccount.SaveKeyValue(key1, value2)
-	_ = adb.SaveAccount(userAccount)
+	stateMock = acc2.(state.UserAccountHandler)
+	_ = stateMock.SaveKeyValue(key1, value2)
+	_ = adb.SaveAccount(stateMock)
 
 	newRootHash, _ := adb.Commit()
 	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
@@ -1273,13 +1255,13 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	require.Nil(t, err)
 
 	collapseTrie(state1, t)
-	collapseTrie(userAccount, t)
+	collapseTrie(stateMock, t)
 
 	val, _, err := state1.RetrieveValue(key1)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 
-	val, _, err = userAccount.RetrieveValue(key2)
+	val, _, err = stateMock.RetrieveValue(key2)
 	require.Nil(t, err)
 	require.Equal(t, value1, val)
 }
@@ -1719,15 +1701,13 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
+	stateCheckpointModulus := uint(3)
 
-	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
-	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
-
-	nodes := integrationTests.CreateNodesWithEnableEpochsConfig(
+	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		enableEpochsConfig,
+		stateCheckpointModulus,
 	)
 
 	roundsPerEpoch := uint64(17)
@@ -1762,6 +1742,7 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	time.Sleep(integrationTests.StepDelay)
 
+	checkpointsRootHashes := make(map[int][][]byte)
 	snapshotsRootHashes := make(map[uint32][][]byte)
 	prunedRootHashes := make(map[int][][]byte)
 
@@ -1776,11 +1757,13 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		}
 		time.Sleep(integrationTests.StepDelay)
 
-		collectSnapshotHashes(
+		collectSnapshotAndCheckpointHashes(
 			nodes,
 			numShardNodes,
+			checkpointsRootHashes,
 			snapshotsRootHashes,
 			prunedRootHashes,
+			uint64(stateCheckpointModulus),
 			roundsPerEpoch,
 		)
 		time.Sleep(time.Second)
@@ -1798,15 +1781,17 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	for i := 0; i < numOfShards*nodesPerShard; i++ {
 		shId := nodes[i].ShardCoordinator.SelfId()
-		testNodeStateSnapshotAndPruning(t, nodes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
+		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
 	}
 }
 
-func collectSnapshotHashes(
+func collectSnapshotAndCheckpointHashes(
 	nodes []*integrationTests.TestProcessorNode,
 	numShardNodes int,
+	checkpointsRootHashes map[int][][]byte,
 	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
+	stateCheckpointModulus uint64,
 	roundsPerEpoch uint64,
 ) {
 	pruningQueueSize := uint64(5)
@@ -1816,6 +1801,12 @@ func collectSnapshotHashes(
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
 		if currentBlockHeader.IsStartOfEpochBlock() {
+			continue
+		}
+
+		checkpointRound := currentBlockHeader.GetNonce()%stateCheckpointModulus == 0
+		if checkpointRound {
+			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue
 		}
 
@@ -1848,13 +1839,22 @@ func collectSnapshotHashes(
 	}
 }
 
-func testNodeStateSnapshotAndPruning(
+func testNodeStateCheckpointSnapshotAndPruning(
 	t *testing.T,
 	node *integrationTests.TestProcessorNode,
+	checkpointsRootHashes [][]byte,
 	snapshotsRootHashes [][]byte,
 	prunedRootHashes [][]byte,
 ) {
+
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
+	assert.Equal(t, 6, len(checkpointsRootHashes))
+	for i := range checkpointsRootHashes {
+		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
+		require.Nil(t, err)
+		require.NotNil(t, tr)
+	}
+
 	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
 		tr, err := stateTrie.Recreate(snapshotsRootHashes[i])
@@ -2343,224 +2343,6 @@ func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testin
 	assert.NotNil(t, err)
 }
 
-func TestMigrateDataTrieBuiltinFunc(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	t.Run("migrate shard 0 system account", func(t *testing.T) {
-		shardId := byte(0)
-		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
-		defer func() {
-			for _, n := range nodes {
-				n.Close()
-			}
-		}()
-
-		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
-		migrateDataTrieBuiltInFunc(t, nodes, shardId, core.SystemAccountAddress, nonce, round, idxProposers)
-		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
-
-		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
-		require.True(t, len(valuesAfterMigration) > 0)
-		for i := range valuesBeforeMigration {
-			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
-		}
-	})
-	t.Run("migrate shard 0 user account", func(t *testing.T) {
-		shardId := byte(0)
-		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
-		defer func() {
-			for _, n := range nodes {
-				n.Close()
-			}
-		}()
-
-		migrationAddress := nodes[shardId].OwnAccount.Address
-		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
-		migrateDataTrieBuiltInFunc(t, nodes, shardId, migrationAddress, nonce, round, idxProposers)
-		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
-
-		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
-		require.True(t, len(valuesAfterMigration) > 0)
-		for i := range valuesBeforeMigration {
-			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
-		}
-	})
-	t.Run("migrate shard 1 system account", func(t *testing.T) {
-		shardId := byte(1)
-		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
-		defer func() {
-			for _, n := range nodes {
-				n.Close()
-			}
-		}()
-
-		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
-		migrateDataTrieBuiltInFunc(t, nodes, shardId, core.SystemAccountAddress, nonce, round, idxProposers)
-		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
-
-		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
-		require.True(t, len(valuesAfterMigration) > 0)
-		for i := range valuesBeforeMigration {
-			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
-		}
-	})
-	t.Run("migrate shard 1 user account", func(t *testing.T) {
-		shardId := byte(1)
-		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
-		defer func() {
-			for _, n := range nodes {
-				n.Close()
-			}
-		}()
-
-		migrationAddress := nodes[shardId].OwnAccount.Address
-		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
-		migrateDataTrieBuiltInFunc(t, nodes, shardId, nodes[shardId].OwnAccount.Address, nonce, round, idxProposers)
-		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
-
-		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
-		require.True(t, len(valuesAfterMigration) > 0)
-		for i := range valuesBeforeMigration {
-			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
-		}
-	})
-}
-
-func getValuesFromAccount(t *testing.T, adb state.AccountsAdapter, address []byte) [][]byte {
-	account, err := adb.GetExistingAccount(address)
-	require.Nil(t, err)
-
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = account.(state.UserAccountHandler).GetAllLeaves(chLeaves, context.Background())
-	require.Nil(t, err)
-
-	values := make([][]byte, 0)
-	for leaf := range chLeaves.LeavesChan {
-		values = append(values, leaf.Value())
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
-	require.Nil(t, err)
-
-	return values
-}
-
-func migrateDataTrieBuiltInFunc(
-	t *testing.T,
-	nodes []*integrationTests.TestProcessorNode,
-	shardId byte,
-	migrationAddress []byte,
-	nonce uint64,
-	round uint64,
-	idxProposers []int,
-) {
-	require.True(t, nodes[shardId].EnableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag))
-	isMigrated := getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
-	require.False(t, isMigrated)
-
-	integrationTests.CreateAndSendTransactionWithSenderAccount(nodes[shardId], nodes, big.NewInt(0), nodes[shardId].OwnAccount, getDestAccountAddress(migrationAddress, shardId), core.BuiltInFunctionMigrateDataTrie, 1000000)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagate := 5
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
-
-	isMigrated = getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
-	require.True(t, isMigrated)
-}
-
-func startNodesAndIssueToken(
-	t *testing.T,
-	numOfShards int,
-	issuerShardId byte,
-) ([]*integrationTests.TestProcessorNode, []int, uint64, uint64) {
-	nodesPerShard := 1
-	numMetachainNodes := 1
-
-	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
-		StakingV2EnableEpoch:                        integrationTests.UnreachableEpoch,
-		StakeLimitsEnableEpoch:                      integrationTests.UnreachableEpoch,
-		StakingV4Step1EnableEpoch:                   integrationTests.UnreachableEpoch,
-		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
-		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
-		AutoBalanceDataTriesEnableEpoch:             1,
-	}
-	nodes := integrationTests.CreateNodesWithEnableEpochs(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-		enableEpochs,
-	)
-
-	roundsPerEpoch := uint64(5)
-	for _, node := range nodes {
-		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
-	}
-
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
-	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
-
-	integrationTests.DisplayAndStartNodes(nodes)
-
-	initialVal := int64(10000000000)
-	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	// send token issue
-	initialSupply := int64(10000000000)
-	ticker := "TCK"
-	esdtCommon.IssueTestTokenWithIssuerAccount(nodes, nodes[issuerShardId].OwnAccount, initialSupply, ticker)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagate := 8
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
-
-	esdtCommon.CheckAddressHasTokens(t, nodes[issuerShardId].OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
-
-	return nodes, idxProposers, nonce, round
-}
-
-func getDestAccountAddress(migrationAddress []byte, shardId byte) []byte {
-	if bytes.Equal(migrationAddress, core.SystemAccountAddress) && shardId == 0 {
-		systemAccountAddress := bytes.Repeat([]byte{255}, 30)
-		systemAccountAddress = append(systemAccountAddress, []byte{0, 0}...)
-		return systemAccountAddress
-	}
-
-	return migrationAddress
-}
-
-func getAddressMigrationStatus(t *testing.T, adb state.AccountsAdapter, address []byte) bool {
-	account, err := adb.LoadAccount(address)
-	require.Nil(t, err)
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	require.True(t, ok)
-
-	isMigrated, err := userAccount.DataTrie().IsMigratedToLatestVersion()
-	require.Nil(t, err)
-
-	return isMigrated
-}
-
 func addDataTriesForAccountsStartingWithIndex(
 	startIndex uint32,
 	nbAccounts uint32,
@@ -2733,24 +2515,11 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		Hasher:              integrationTests.TestHasher,
+		Marshaller:          integrationTests.TestMarshalizer,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-
-	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
-		ProcessingMode:       common.Normal,
-		Marshaller:           &marshallerMock.MarshalizerMock{},
-		AddressConverter:     &testscommon.PubkeyConverterMock{},
-		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
-		StateMetrics:         &stateMock.StateMetricsStub{},
-		AccountFactory:       accCreator,
-		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
-		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
-		StateStatsHandler:    statistics.NewStateStatistics(),
-	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
@@ -2758,9 +2527,11 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		Marshaller:            integrationTests.TestMarshalizer,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
+		ProcessingMode:        common.Normal,
+		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
+		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
