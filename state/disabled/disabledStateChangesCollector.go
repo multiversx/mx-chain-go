@@ -9,7 +9,7 @@ type DisabledStateChangesCollector struct {
 }
 
 // NewDisabledStateChangesCollector creates a new DisabledStateChangesCollector
-func NewDisabledStateChangesCollector() *DisabledStateChangesCollector {
+func NewDisabledStateChangesCollector() state.StateChangesCollector {
 	return &DisabledStateChangesCollector{}
 }
 
