@@ -88,7 +88,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 		return
 	}
 
-	log.Debug("rsovereign: requesting extended shard header from network by hash",
+	log.Debug("sovereign: requesting extended shard header from network by hash",
 		"shard", srrh.shardID,
 		"hash", hash,
 	)
