@@ -1344,5 +1344,6 @@ type Debugger interface {
 // IncomingHeaderSubscriber defines a subscriber to incoming headers
 type IncomingHeaderSubscriber interface {
 	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
 	IsInterfaceNil() bool
 }

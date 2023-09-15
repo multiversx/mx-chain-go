@@ -71,6 +71,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderI
 		Hasher:                   sicf.argInterceptorFactory.CoreComponents.Hasher(),
 		Marshaller:               sicf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
 		IncomingHeaderSubscriber: sicf.incomingHeaderSubscriber,
+		HeadersPool:              sicf.dataPool.Headers(),
 	}
 	hdrProcessor, err := processor.NewSovereignHdrInterceptorProcessor(argProcessor)
 	if err != nil {
