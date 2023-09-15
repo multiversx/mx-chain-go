@@ -125,6 +125,11 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, err
 	}
 
+	stateChangesCollector := disabled.NewDisabledStateChangesCollector()
+	if scf.config.StateTriesConfig.CollectStateChangesEnabled {
+		stateChangesCollector = state.NewStateChangesCollector()
+	}
+
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
 		Trie:                     merkleTrie,
 		Hasher:                   scf.core.Hasher(),
@@ -136,7 +141,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
 		AddressConverter:         scf.core.AddressPubKeyConverter(),
-		StateChangesCollector:    state.NewStateChangesCollector(),
+		StateChangesCollector:    stateChangesCollector,
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -193,6 +198,11 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
+	stateChangesCollector := disabled.NewDisabledStateChangesCollector()
+	if scf.config.StateTriesConfig.CollectStateChangesEnabled {
+		stateChangesCollector = state.NewStateChangesCollector()
+	}
+
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
 		Trie:                     merkleTrie,
 		Hasher:                   scf.core.Hasher(),
@@ -204,7 +214,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
 		AddressConverter:         scf.core.AddressPubKeyConverter(),
-		StateChangesCollector:    state.NewStateChangesCollector(),
+		StateChangesCollector:    stateChangesCollector,
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {
