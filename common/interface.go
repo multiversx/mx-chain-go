@@ -441,3 +441,27 @@ type ManagedPeersMonitor interface {
 	GetWaitingManagedKeys() ([][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// TxExecutionOrderHandler is used to collect and provide the order of transactions execution
+type TxExecutionOrderHandler interface {
+	Add(txHash []byte)
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	Remove(txHash []byte)
+	RemoveMultiple(txHashes [][]byte)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Clear()
+	Len() int
+	IsInterfaceNil() bool
+}
+
+// ExecutionOrderGetter defines the functionality of a component that can return the execution order of a block transactions
+type ExecutionOrderGetter interface {
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Len() int
+	IsInterfaceNil() bool
+}

@@ -998,7 +998,7 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 	mockVM := &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
 			return &vmcommon.VMOutput{
-				GasRemaining:  uint64(math.MaxUint64) - consumedGas,
+				GasRemaining:  uint64(math.MaxInt64) - consumedGas,
 				ReturnCode:    vmcommon.FunctionNotFound,
 				ReturnMessage: message,
 			}, nil
