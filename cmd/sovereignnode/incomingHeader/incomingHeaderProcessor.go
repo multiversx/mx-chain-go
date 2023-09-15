@@ -70,13 +70,13 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
 
-	ihp.mutex.Lock()
-	defer ihp.mutex.Unlock()
-
-	if _, found := ihp.mapHashes[string(headerHash)]; found {
-		log.Error("incomingHeaderProcessor.AddHeader already exists")
-		return nil
-	}
+	//ihp.mutex.Lock()
+	//defer ihp.mutex.Unlock()
+	//
+	//if _, found := ihp.mapHashes[string(headerHash)]; found {
+	//	log.Error("incomingHeaderProcessor.AddHeader already exists")
+	//	return nil
+	//}
 
 	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {
@@ -94,7 +94,7 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	}
 
 	ihp.scrProc.addSCRsToPool(incomingSCRs)
-	ihp.mapHashes[string(headerHash)] = struct{}{}
+	//ihp.mapHashes[string(headerHash)] = struct{}{}
 	return nil
 }
 
