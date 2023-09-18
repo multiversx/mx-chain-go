@@ -112,7 +112,7 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 	return nil
 }
 
-// Save will save the received data into headers pool
+// Save will save the received data into headers pool, if it doesn't exit already
 func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
 	interceptedHdr, ok := data.(process.ExtendedHeaderValidatorHandler)
 	if !ok {
