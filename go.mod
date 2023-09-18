@@ -19,7 +19,7 @@ require (
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.12
 	github.com/multiversx/mx-chain-logger-go v1.0.13
 	github.com/multiversx/mx-chain-scenario-go v1.2.1
-	github.com/multiversx/mx-chain-storage-go v1.0.13
+	github.com/multiversx/mx-chain-storage-go v1.0.14-0.20230918070139-b84473363e3b
 	github.com/multiversx/mx-chain-vm-common-go v1.5.5
 	github.com/multiversx/mx-chain-vm-go v1.5.10
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.61
@@ -57,6 +57,8 @@ require (
 	github.com/flynn/noise v1.0.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
+	github.com/gammazero/deque v0.2.0 // indirect
+	github.com/gammazero/workerpool v1.1.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
