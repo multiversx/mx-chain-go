@@ -233,6 +233,15 @@ func TestNewIndexHashedNodesCoordinator_NilNodesConfigCacherShouldErr(t *testing
 	require.Nil(t, ihnc)
 }
 
+func TestNewIndexHashedNodesCoordinator_NilEpochStartStaticStorerShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.EpochStartStaticStorer = nil
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrNilEpochStartStaticStorer, err)
+	require.Nil(t, ihnc)
+}
+
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1778,6 +1787,23 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 
 	arguments := createArguments()
 	arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           2,
+		NodesMeta:            1,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+	}
+	nodesShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	arguments.Shuffler = nodesShuffler
+
+	arguments.EpochStartStaticStorer = createEpochStartStaticStorerMock(0)
+
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
@@ -2595,6 +2621,22 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		epochKey := []byte(fmt.Sprint(1))
 
 		args := createArguments()
+
+		shufflerArgs := &NodesShufflerArgs{
+			NodesShard:           2,
+			NodesMeta:            1,
+			Hysteresis:           hysteresis,
+			Adaptivity:           adaptivity,
+			ShuffleBetweenShards: shuffleBetweenShards,
+			MaxNodesEnableConfig: nil,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		}
+		nodesShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+		require.Nil(t, err)
+
+		args.Shuffler = nodesShuffler
+
+		args.EpochStartStaticStorer = createEpochStartStaticStorerMock(1)
 		args.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
 		args.BootStorer = genericMocks.NewStorerMockWithEpoch(1)
 
@@ -2619,7 +2661,7 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		require.True(t, ok)
 		require.NotNil(t, epochNodesConfig)
 
-		err := ihnc.saveState([]byte("key"))
+		err = ihnc.saveState([]byte("key"))
 		require.Nil(t, err)
 
 		epochNodesConfig, ok = ihnc.nodesConfig[2]

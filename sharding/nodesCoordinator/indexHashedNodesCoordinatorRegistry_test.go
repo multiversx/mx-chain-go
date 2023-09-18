@@ -9,9 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -537,4 +541,88 @@ func TestIndexHashedNodesCoordinator_SaveLoadNodesCoordinatorRegistry(t *testing
 	assert.True(t, sameValidatorsMaps(expectedNodesConfig.eligibleMap, actualConfig.eligibleMap))
 	assert.True(t, sameValidatorsMaps(expectedNodesConfig.waitingMap, actualConfig.waitingMap))
 	assert.True(t, sameValidatorsMaps(expectedNodesConfig.leavingMap, actualConfig.leavingMap))
+}
+
+func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
+	return &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			var data []byte
+
+			switch string(key) {
+			case common.EpochStartStaticBlockKeyPrefix + fmt.Sprint(epoch):
+				data, _ = json.Marshal(&block.MetaBlock{
+					Epoch: epoch,
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHeaderHash1"),
+							Type: block.PeerBlock,
+						},
+						{
+							Hash: []byte("mbHeaderHash2"),
+							Type: block.InvalidBlock,
+						},
+					},
+				})
+			case "mbHeaderHash1":
+				data, _ = json.Marshal(&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+						[]byte("txHash5"),
+					},
+				})
+			case "mbHeaderHash2":
+				data, _ = json.Marshal(&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("txHash3"),
+					},
+					Type: block.TxBlock,
+				})
+			case "txHash1":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey1"),
+					ShardId:    0,
+					List:       "eligible",
+					Index:      0,
+					TempRating: 10,
+				})
+			case "txHash2":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey2"),
+					ShardId:    1,
+					List:       "eligible",
+					Index:      1,
+					TempRating: 11,
+				})
+			case "txHash3":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey3"),
+					ShardId:    core.MetachainShardId,
+					List:       "eligible",
+					Index:      2,
+					TempRating: 12,
+				})
+			case "txHash4":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey4"),
+					ShardId:    0,
+					List:       "eligible",
+					Index:      3,
+					TempRating: 13,
+				})
+			case "txHash5":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey5"),
+					ShardId:    1,
+					List:       "eligible",
+					Index:      4,
+					TempRating: 14,
+				})
+			}
+
+			return data, nil
+		},
+	}
 }

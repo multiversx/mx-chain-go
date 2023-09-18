@@ -2,7 +2,6 @@ package nodesCoordinator
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"sync"
@@ -96,7 +95,7 @@ type indexHashedNodesCoordinator struct {
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
 	numStoredEpochs               uint32
 	nodesConfigCacher             Cacher
-	epochStartStaticStorer        storage.Storer // TODO: will be used in following PR
+	epochStartStaticStorer        storage.Storer
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -233,6 +232,9 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if check.IfNil(args.NodesConfigCache) {
 		return ErrNilNodesConfigCacher
 	}
+	if check.IfNil(args.EpochStartStaticStorer) {
+		return ErrNilEpochStartStaticStorer
+	}
 
 	return nil
 }
@@ -253,47 +255,14 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		}
 	}
 
-	epochConfigBytes, err := ihnc.getNodesConfigFromStorer(epoch)
+	nodesConfig, err := ihnc.nodesConfigFromStaticStorer(epoch)
 	if err != nil {
 		return nil, false
 	}
 
-	registry := &NodesCoordinatorRegistry{}
-	err = json.Unmarshal(epochConfigBytes, registry)
-	if err != nil {
-		return nil, false
-	}
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
 
-	nodesConfig, err := ihnc.registryToNodesCoordinator(registry)
-	if err != nil {
-		return nil, false
-	}
-
-	nodesConfigEpoch, ok := nodesConfig[epoch]
-	if !ok {
-		return nil, ok
-	}
-	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfigEpoch, 0)
-
-	return nodesConfigEpoch, ok
-}
-
-func (ihnc *indexHashedNodesCoordinator) getNodesConfigFromStorer(epoch uint32) ([]byte, error) {
-	var err error
-
-	mostRecentEpoch := epoch + ihnc.numStoredEpochs - 1
-
-	for mostRecentEpoch >= epoch {
-		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(epoch))...)
-		epochConfigBytes, err := ihnc.bootStorer.GetFromEpoch(ncInternalkey, mostRecentEpoch)
-		if err == nil {
-			return epochConfigBytes, nil
-		}
-
-		mostRecentEpoch--
-	}
-
-	return nil, err
+	return nodesConfig, true
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
@@ -726,7 +695,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	ihnc.mutSavedStateKey.Unlock()
 
 	ihnc.consensusGroupCacher.Clear()
-
 }
 
 func (ihnc *indexHashedNodesCoordinator) fillPublicKeyToValidatorMap() {

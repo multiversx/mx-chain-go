@@ -6,7 +6,11 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -35,6 +39,166 @@ type NodesCoordinatorRegistry struct {
 // LoadState loads the nodes coordinator state from the used boot storage
 func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte, epoch uint32) error {
 	return ihnc.baseLoadState(key, epoch)
+}
+
+func (ihnc *indexHashedNodesCoordinator) nodesConfigFromStaticStorer(
+	epoch uint32,
+) (*epochNodesConfig, error) {
+	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorsInfo, err := ihnc.createValidatorsInfoFromStatic(metaBlock, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	return ihnc.nodesConfigFromValidatorsInfo(metaBlock, validatorsInfo)
+}
+
+func (ihnc *indexHashedNodesCoordinator) createValidatorsInfoFromStatic(
+	metaBlock data.HeaderHandler,
+	epoch uint32,
+) ([]*state.ShardValidatorInfo, error) {
+	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+
+	allValidatorInfo := make([]*state.ShardValidatorInfo, 0)
+
+	for _, mbHeader := range mbHeaderHandlers {
+		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
+			continue
+		}
+
+		mbBytes, err := ihnc.epochStartStaticStorer.Get(mbHeader.GetHash())
+		if err != nil {
+			log.Error("createValidatorsInfoFromStatic:", "key", mbHeader.GetHash(), "error", err)
+			return nil, err
+		}
+
+		mb := &block.MiniBlock{}
+		err = ihnc.marshalizer.Unmarshal(mb, mbBytes)
+		if err != nil {
+			log.Error("createValidatorsInfoFromStatic: Unmarshal", "key", mbHeader.GetHash(), "error", err)
+			return nil, err
+		}
+
+		for _, txHash := range mb.TxHashes {
+			shardValidatorInfo, err := ihnc.getShardValidatorInfoFromStatic(txHash, epoch)
+			if err != nil {
+				return nil, err
+			}
+
+			allValidatorInfo = append(allValidatorInfo, shardValidatorInfo)
+		}
+	}
+
+	return allValidatorInfo, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoFromStatic(
+	txHash []byte,
+	epoch uint32,
+) (*state.ShardValidatorInfo, error) {
+	marshalledShardValidatorInfo := txHash
+	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		shardValidatorInfoBytes, err := ihnc.epochStartStaticStorer.Get(txHash)
+		if err != nil {
+			return nil, err
+		}
+
+		marshalledShardValidatorInfo = shardValidatorInfoBytes
+	}
+
+	shardValidatorInfo := &state.ShardValidatorInfo{}
+	err := ihnc.marshalizer.Unmarshal(shardValidatorInfo, marshalledShardValidatorInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardValidatorInfo, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) nodesConfigFromValidatorsInfo(
+	metaBlock data.HeaderHandler,
+	validatorsInfo []*state.ShardValidatorInfo,
+) (*epochNodesConfig, error) {
+	epoch := metaBlock.GetEpoch()
+	randomness := metaBlock.GetRandSeed()
+
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorsInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(validatorsInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	unStakeLeavingList := ihnc.createSortedListFromMap(newNodesConfig.leavingMap)
+	additionalLeavingList := ihnc.createSortedListFromMap(additionalLeavingMap)
+
+	shufflerArgs := ArgsUpdateNodes{
+		Eligible:          newNodesConfig.eligibleMap,
+		Waiting:           newNodesConfig.waitingMap,
+		NewNodes:          newNodesConfig.newList,
+		UnStakeLeaving:    unStakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              randomness,
+		NbShards:          newNodesConfig.nbShards,
+		Epoch:             epoch,
+	}
+
+	resUpdateNodes, err := ihnc.shuffler.UpdateNodeLists(shufflerArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	leavingNodesMap, _ := createActuallyLeavingPerShards(
+		newNodesConfig.leavingMap,
+		additionalLeavingMap,
+		resUpdateNodes.Leaving,
+	)
+
+	nodesConfig := &epochNodesConfig{}
+	nodesConfig.nbShards = uint32(len(resUpdateNodes.Eligible) - 1)
+	nodesConfig.eligibleMap = resUpdateNodes.Eligible
+	nodesConfig.waitingMap = resUpdateNodes.Waiting
+	nodesConfig.leavingMap = leavingNodesMap
+	nodesConfig.shardID, _ = ihnc.computeShardForSelfPublicKey(nodesConfig)
+	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return nodesConfig, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) metaBlockFromStaticStorer(
+	epoch uint32,
+) (data.HeaderHandler, error) {
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	metaBlockBytes, err := ihnc.epochStartStaticStorer.Get(epochStartBootstrapKey)
+	if err != nil {
+		return nil, err
+	}
+
+	metaBlock := &block.MetaBlock{}
+	err = ihnc.marshalizer.Unmarshal(metaBlock, metaBlockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	if metaBlock.GetNonce() > 1 && !metaBlock.IsStartOfEpochBlock() {
+		return nil, epochStart.ErrNotEpochStartBlock
+	}
+
+	if metaBlock.GetEpoch() != epoch {
+		return nil, ErrInvalidEpochStartEpoch
+	}
+
+	return metaBlock, nil
 }
 
 // GetNodesCoordinatorRegistry will get the nodes coordinator registry from boot storage
@@ -221,7 +385,7 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	}
 
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
-		epochNodesData, ok := ihnc.nodesConfig[epoch]
+		epochNodesData, ok := ihnc.getNodesConfig(epoch)
 		if !ok {
 			continue
 		}
