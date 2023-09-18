@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -7,8 +6,8 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -115,7 +114,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 }
 
 func getLatestGasScheduleVersion(tb testing.TB, directoryToSearch string) string {
-	fileInfoSlice, err := ioutil.ReadDir(directoryToSearch)
+	fileInfoSlice, err := os.ReadDir(directoryToSearch)
 	require.Nil(tb, err)
 
 	gasSchedulePrefix := "gasScheduleV"

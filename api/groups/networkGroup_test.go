@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -96,8 +95,8 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := common.MetricMinGasLimit
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
+	val := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, val)
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -113,17 +112,15 @@ func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -152,8 +149,6 @@ func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -186,8 +181,8 @@ func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := common.MetricExtraGasLimitGuardedTx
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
+	val := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, val)
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -203,11 +198,11 @@ func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
@@ -216,8 +211,8 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := common.MetricEpochNumber
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
+	val := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, val)
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -233,19 +228,19 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := common.MetricTotalSupply
-	value := "12345"
-	statusMetricsProvider.SetStringValue(key, value)
+	val := "12345"
+	statusMetricsProvider.SetStringValue(key, val)
 
 	facade := mock.FacadeStub{
 		GetTotalStakedValueHandler: func() (*api.StakeValues, error) {
@@ -268,17 +263,15 @@ func TestEconomicsMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, val)
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -312,8 +305,8 @@ func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := common.MetricTotalSupply
-	value := "12345"
-	statusMetricsProvider.SetStringValue(key, value)
+	val := "12345"
+	statusMetricsProvider.SetStringValue(key, val)
 
 	localErr := fmt.Errorf("%s", "local error")
 	facade := mock.FacadeStub{
@@ -410,7 +403,7 @@ func TestDirectStakedInfo_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -440,7 +433,7 @@ func TestDirectStakedInfo_CannotGetDirectStakedList(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
@@ -495,7 +488,7 @@ func TestDelegatedInfo_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -534,7 +527,7 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
@@ -542,8 +535,6 @@ func TestDelegatedInfo_CannotGetDelegatedList(t *testing.T) {
 }
 
 func TestGetEnableEpochs_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -576,8 +567,8 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 
 	statusMetrics := statusHandler.NewStatusMetrics()
 	key := common.MetricScDeployEnableEpoch
-	value := uint64(4)
-	statusMetrics.SetUInt64Value(key, value)
+	val := uint64(4)
+	statusMetrics.SetUInt64Value(key, val)
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -593,18 +584,17 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, strconv.FormatUint(value, 10))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, strconv.FormatUint(val, 10))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	facade := mock.FacadeStub{
 		GetTokenSupplyCalled: func(token string) (*api.ESDTSupply, error) {
 			return nil, expectedErr
@@ -620,7 +610,7 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 
@@ -629,8 +619,6 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 }
 
 func TestGetNetworkRatings_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -716,7 +704,7 @@ func TestGetESDTTotalSupply(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
 	respSupply := &supplyResponse{}
@@ -964,7 +952,6 @@ func TestNetworkGroup_UpdateFacade(t *testing.T) {
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, builtInCost, response.Data.Configs.BuiltInCost)
 
-		expectedErr := errors.New("expected error")
 		newFacade := mock.FacadeStub{
 			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
 				return nil, expectedErr

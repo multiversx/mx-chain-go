@@ -54,6 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -914,14 +915,15 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    shardCoordinator,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		Hasher:              integrationtests.TestHasher,
-		PubkeyConverter:     pubkeyConv,
-		Store:               disabled.NewChainStorer(),
-		PoolsHolder:         poolsHolder,
-		EconomicsFee:        &processDisabled.FeeHandler{},
-		EnableEpochsHandler: enableEpochsHandler,
+		ShardCoordinator:        shardCoordinator,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		Hasher:                  integrationtests.TestHasher,
+		PubkeyConverter:         pubkeyConv,
+		Store:                   disabled.NewChainStorer(),
+		PoolsHolder:             poolsHolder,
+		EconomicsFee:            &processDisabled.FeeHandler{},
+		EnableEpochsHandler:     enableEpochsHandler,
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -43,6 +44,7 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		CurrTxs:             &mock.TxForCurrentBlockStub{},
 		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
+		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 
 	return args
@@ -145,6 +147,17 @@ func TestNewIntermediateResultsProcessor_InvalidEpochHandler(t *testing.T) {
 
 	assert.Nil(t, irp)
 	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
+func TestNewIntermediateResultsProcessor_NilTxExecutionOrderHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.TxExecutionOrderHandler = nil
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 }
 
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
@@ -361,6 +374,13 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+
+	calledCount := 0
+	args.TxExecutionOrderHandler = &txExecOrderStub.TxExecutionOrderHandlerStub{
+		AddCalled: func(txHash []byte) {
+			calledCount++
+		},
+	}
 	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
@@ -381,6 +401,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(txs), calledCount)
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)

@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -59,7 +59,7 @@ func RunDelegationStressTest(
 		return nil, err
 	}
 
-	tempDir, err := ioutil.TempDir("", "integrationTest")
+	tempDir, err := os.MkdirTemp("", "integrationTest")
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func deployDelegationSC(node *integrationTests.TestProcessorNode, delegationFile
 	blocksBeforeUnBond := 60
 	value := big.NewInt(10)
 
-	contractBytes, err := ioutil.ReadFile(delegationFilename)
+	contractBytes, err := os.ReadFile(delegationFilename)
 	if err != nil {
 		return err
 	}
