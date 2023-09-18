@@ -311,6 +311,7 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.StakingV2Flag,
 		common.StakingV2FlagAfterEpoch,
+		common.SwitchJailWaitingFlag,
 	})
 	if err != nil {
 		return err
