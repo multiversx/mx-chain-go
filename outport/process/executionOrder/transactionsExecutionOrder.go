@@ -39,6 +39,12 @@ func NewSorter(arg ArgSorter) (*sorter, error) {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(arg.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.FrontRunningProtectionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &sorter{
 		mbsGetter:           newMiniblocksGetter(arg.MbsStorer, arg.Marshaller),

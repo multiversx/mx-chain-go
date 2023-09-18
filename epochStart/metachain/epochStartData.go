@@ -73,6 +73,12 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.MiniBlockPartialExecutionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	e := &epochStartData{
 		marshalizer:         args.Marshalizer,

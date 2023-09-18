@@ -1757,6 +1757,14 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ScheduledMiniBlocksFlag,
+		common.MiniBlockPartialExecutionFlag,
+		common.BlockGasAndFeesReCheckFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}

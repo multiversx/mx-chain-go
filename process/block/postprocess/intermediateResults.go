@@ -71,6 +71,12 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.KeepExecOrderOnCreatedSCRsFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	base := &basePostProcessor{
 		hasher:             args.Hasher,

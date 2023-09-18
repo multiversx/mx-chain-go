@@ -48,6 +48,12 @@ func NewGasComputation(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.SCDeployFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	g := &gasComputation{
 		txTypeHandler:                         txTypeHandler,

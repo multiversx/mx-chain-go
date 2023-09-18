@@ -141,6 +141,21 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly,
+		common.StakingV2OwnerFlagInSpecificEpochOnly,
+		common.CorrectLastUnJailedFlagInSpecificEpochOnly,
+		common.DelegationSmartContractFlag,
+		common.CorrectLastUnJailedFlag,
+		common.SwitchJailWaitingFlag,
+		common.StakingV2Flag,
+		common.ESDTFlagInSpecificEpochOnly,
+		common.GovernanceFlag,
+		common.SaveJailedAlwaysFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	s := &systemSCProcessor{
 		systemVM:                 args.SystemVM,

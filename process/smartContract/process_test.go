@@ -280,6 +280,17 @@ func TestNewSmartContractProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T)
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewSmartContractProcessor_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	sc, err := NewSmartContractProcessor(arguments)
+
+	require.Nil(t, sc)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewSmartContractProcessor_NilEconomicsFeeShouldErr(t *testing.T) {
 	t.Parallel()
 

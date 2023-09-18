@@ -163,6 +163,12 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.BuiltInFunctionOnMetaFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.BadTxForwarder) {
 		return nil, process.ErrNilBadTxHandler
 	}
@@ -205,7 +211,6 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
 	}
 
-	var err error
 	sc.esdtTransferParser, err = parsers.NewESDTTransferParser(args.Marshalizer)
 	if err != nil {
 		return nil, err

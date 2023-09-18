@@ -565,6 +565,16 @@ func TestNewEconomicsData_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewEconomicsData_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	_, err := economics.NewEconomicsData(args)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewEconomicsData_ShouldWork(t *testing.T) {
 	t.Parallel()
 

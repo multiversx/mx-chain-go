@@ -98,6 +98,17 @@ func NewStakingSmartContract(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.CorrectFirstQueuedFlag,
+		common.ValidatorToDelegationFlag,
+		common.StakingV2Flag,
+		common.CorrectLastUnJailedFlag,
+		common.CorrectJailedNotUnStakedEmptyQueueFlag,
+		common.StakeFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	minStakeValue, okValue := big.NewInt(0).SetString(args.StakingSCConfig.MinStakeValue, conversionBase)
 	if !okValue || minStakeValue.Cmp(zero) <= 0 {

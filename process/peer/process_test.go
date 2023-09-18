@@ -268,6 +268,28 @@ func TestNewValidatorStatisticsProcessor_NilDataPoolShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 }
 
+func TestNewValidatorStatisticsProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.EnableEpochsHandler = nil
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewValidatorStatisticsProcessor_InvalidEnableEpochsHandlerhouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewValidatorStatisticsProcessor(t *testing.T) {
 	t.Parallel()
 

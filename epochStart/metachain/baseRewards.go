@@ -308,6 +308,14 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return epochStart.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StakingV2Flag,
+		common.StakingV2FlagAfterEpoch,
+		common.SwitchJailWaitingFlag,
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

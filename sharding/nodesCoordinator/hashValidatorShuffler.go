@@ -69,6 +69,13 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.BalanceWaitingListsFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	var configs []config.MaxNodesChangeConfig
 

@@ -121,6 +121,17 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PenalizedTooMuchGasFlag,
+		common.MetaProtectionFlag,
+		common.AddFailedRelayedTxToInvalidMBsFlag,
+		common.RelayedTransactionsFlag,
+		common.RelayedTransactionsV2Flag,
+		common.RelayedNonceFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.TxVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}

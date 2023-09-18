@@ -75,6 +75,15 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.DelegationManagerFlag,
+		common.ValidatorToDelegationFlag,
+		common.FixDelegationChangeOwnerOnAccountFlag,
+		common.MultiClaimOnDelegationFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	minCreationDeposit, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.MinCreationDeposit, conversionBase)
 	if !okConvert || minCreationDeposit.Cmp(zero) < 0 {

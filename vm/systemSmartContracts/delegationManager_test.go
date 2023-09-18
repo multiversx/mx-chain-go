@@ -140,6 +140,17 @@ func TestNewDelegationManagerSystemSC_NilEnableEpochsHandlerShouldErr(t *testing
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewDelegationManagerSystemSC_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegationManager()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	dm, err := NewDelegationManagerSystemSC(args)
+	assert.Nil(t, dm)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewDelegationManagerSystemSC_InvalidMinCreationDepositShouldErr(t *testing.T) {
 	t.Parallel()
 

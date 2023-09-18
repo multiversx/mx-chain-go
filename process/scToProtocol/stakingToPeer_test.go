@@ -155,6 +155,17 @@ func TestNewStakingToPeerNilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewStakingToPeerInvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	stp, err := NewStakingToPeer(arguments)
+	assert.Nil(t, stp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewStakingToPeer_ShouldWork(t *testing.T) {
 	t.Parallel()
 

@@ -3,6 +3,7 @@ package processProxy
 import (
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -40,6 +41,13 @@ type scProcessorProxy struct {
 
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
 func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*scProcessorProxy, error) {
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.SCProcessorV2Flag,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	proxy := &scProcessorProxy{
 		args: scrCommon.ArgsNewSmartContractProcessor{
 			VmContainer:         args.VmContainer,
@@ -73,7 +81,6 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 
 	proxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
 
-	var err error
 	err = proxy.createProcessorV1()
 	if err != nil {
 		return nil, err

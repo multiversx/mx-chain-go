@@ -209,6 +209,15 @@ func TestNewIndexHashedNodesCoordinator_NilEnableEpochsHandlerShouldErr(t *testi
 	require.Nil(t, ihnc)
 }
 
+func TestNewIndexHashedNodesCoordinator_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+	require.Nil(t, ihnc)
+}
+
 func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 

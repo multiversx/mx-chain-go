@@ -199,6 +199,15 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PayableBySCFlag,
+		common.DoNotReturnOldBlockInBlockchainHookFlag,
+		common.OptimizeNFTStoreFlag,
+		common.MaxBlockchainHookCountersFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return process.ErrNilGasSchedule
 	}

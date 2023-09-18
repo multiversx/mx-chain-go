@@ -24,6 +24,12 @@ func NewDataTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enabl
 	if check.IfNil(enableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.AutoBalanceDataTriesFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &dataTrieLeafParser{
 		address:             address,

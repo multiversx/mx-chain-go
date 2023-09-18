@@ -57,6 +57,12 @@ func NewTxTypeHandler(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ESDTMetadataContinuousCleanupFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	tc := &txTypeHandler{
 		pubkeyConv:          args.PubkeyConverter,

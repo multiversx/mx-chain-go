@@ -3,8 +3,10 @@ package integrationTests
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -71,7 +73,12 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return UnreachableEpoch
+				}
+				return 0
+			},
 		},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}
@@ -125,7 +132,12 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return UnreachableEpoch
+				}
+				return 0
+			},
 		},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
 	}

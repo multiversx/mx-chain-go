@@ -106,8 +106,10 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-
-	return nil
+	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StakeFlag,
+		common.ValidatorToDelegationFlag,
+	})
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {

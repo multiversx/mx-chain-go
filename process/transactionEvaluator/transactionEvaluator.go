@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -62,6 +63,12 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.CleanUpInformativeSCRsFlag,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	tce := &apiTransactionEvaluator{

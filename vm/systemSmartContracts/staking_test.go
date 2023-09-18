@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -146,6 +147,17 @@ func TestNewStakingSmartContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, stakingSmartContract)
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewStakingSmartContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestStakingSC_ExecuteInit(t *testing.T) {

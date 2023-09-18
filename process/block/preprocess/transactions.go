@@ -135,6 +135,15 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.OptimizeGasUsedInCrossMiniBlocksFlag,
+		common.ScheduledMiniBlocksFlag,
+		common.FrontRunningProtectionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}

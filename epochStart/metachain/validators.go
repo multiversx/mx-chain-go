@@ -71,6 +71,13 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.DeterministicSortOnValidatorsInfoFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	vic := &validatorInfoCreator{
 		shardCoordinator:     args.ShardCoordinator,

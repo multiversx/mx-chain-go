@@ -2,13 +2,14 @@ package parsers
 
 import (
 	"encoding/hex"
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -24,7 +25,7 @@ func TestNewDataTrieLeafParser(t *testing.T) {
 
 		tlp, err := NewDataTrieLeafParser([]byte("address"), nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.True(t, check.IfNil(tlp))
-		assert.Equal(t, errors.ErrNilMarshalizer, err)
+		assert.Equal(t, mxErrors.ErrNilMarshalizer, err)
 	})
 
 	t.Run("nil enableEpochsHandler", func(t *testing.T) {
@@ -32,7 +33,15 @@ func TestNewDataTrieLeafParser(t *testing.T) {
 
 		tlp, err := NewDataTrieLeafParser([]byte("address"), &marshallerMock.MarshalizerMock{}, nil)
 		assert.True(t, check.IfNil(tlp))
-		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
+		assert.Equal(t, mxErrors.ErrNilEnableEpochsHandler, err)
+	})
+
+	t.Run("invalid enableEpochsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		tlp, err := NewDataTrieLeafParser([]byte("address"), &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined())
+		assert.True(t, check.IfNil(tlp))
+		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	})
 
 	t.Run("should work", func(t *testing.T) {

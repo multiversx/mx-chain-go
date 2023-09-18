@@ -104,6 +104,17 @@ func TestNewESDTSmartContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewESDTSmartContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	e, err := NewESDTSmartContract(args)
+	assert.Nil(t, e)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewESDTSmartContract_NilPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 

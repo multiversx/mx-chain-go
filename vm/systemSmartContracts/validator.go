@@ -108,6 +108,18 @@ func NewValidatorSmartContract(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, fmt.Errorf("%w in validatorSC", vm.ErrNilEnableEpochsHandler)
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StakingV2Flag,
+		common.StakeFlag,
+		common.ValidatorToDelegationFlag,
+		common.DoubleKeyProtectionFlag,
+		common.MultiClaimOnDelegationFlag,
+		common.DelegationManagerFlag,
+		common.UnBondTokensV2Flag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	baseConfig := ValidatorConfig{
 		TotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),

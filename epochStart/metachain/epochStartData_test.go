@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -187,6 +188,17 @@ func TestEpochStartData_NilEnableEpochsHandler(t *testing.T) {
 	esd, err := NewEpochStartData(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestEpochStartData_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	esd, err := NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestVerifyEpochStartDataForMetablock_NotEpochStartBlock(t *testing.T) {
