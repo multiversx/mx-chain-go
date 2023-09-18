@@ -1157,7 +1157,6 @@ func testNFTTransferCreateRoleAndStop(t *testing.T, numOfShards int) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 20
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
@@ -1212,8 +1211,7 @@ func testNFTTransferCreateRoleAndStop(t *testing.T, numOfShards int) {
 	)
 
 	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard = 2
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 	time.Sleep(time.Second)
 
 	// we check that old data remains on NONCE 1 - as creation must return failure
