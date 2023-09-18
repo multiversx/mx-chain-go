@@ -1,6 +1,10 @@
 package processor
 
 import (
+	"encoding/hex"
+	stdErr "errors"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -111,4 +115,113 @@ func TestSovereignHeaderInterceptorProcessor_Validate(t *testing.T) {
 	err := sovHdrProc.Validate(interceptedHdr, "")
 	require.Nil(t, err)
 	require.True(t, wasHashComputed)
+}
+
+func TestSovereignHeaderInterceptorProcessor_ValidateErrorCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid intercepted data", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovHdrProcArgs()
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Validate(&testscommon.InterceptedDataStub{}, "")
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+
+	t.Run("black listed header", func(t *testing.T) {
+		t.Parallel()
+
+		extendedHdrHash := []byte("hash")
+		args := createSovHdrProcArgs()
+		args.BlockBlackList = &testscommon.TimeCacheStub{
+			HasCalled: func(key string) bool {
+				require.Equal(t, string(extendedHdrHash), key)
+				return true
+			},
+		}
+
+		extendedHeader := &block.ShardHeaderExtended{}
+		interceptedHdr := &testscommon.SovereignInterceptedExtendedHeaderDataStub{
+			HashCalled: func() []byte {
+				return extendedHdrHash
+			},
+			GetExtendedHeaderCalled: func() data.ShardHeaderExtendedHandler {
+				return extendedHeader
+			},
+		}
+
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Validate(interceptedHdr, "")
+		require.ErrorIs(t, err, process.ErrHeaderIsBlackListed)
+	})
+
+	t.Run("cannot create extended header", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovHdrProcArgs()
+		errCreateHdr := stdErr.New("error creating hdr")
+		args.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{
+			CreateExtendedHeaderCalled: func(header sovereignData.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
+				return nil, errCreateHdr
+			},
+		}
+
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Validate(&testscommon.SovereignInterceptedExtendedHeaderDataStub{}, "")
+		require.Equal(t, errCreateHdr, err)
+	})
+
+	t.Run("cannot compute hash", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovHdrProcArgs()
+
+		errMarshal := stdErr.New("error creating hdr")
+		args.Marshaller = &testscommon.MarshallerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, errMarshal
+			},
+		}
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Validate(&testscommon.SovereignInterceptedExtendedHeaderDataStub{}, "")
+		require.Equal(t, errMarshal, err)
+	})
+
+	t.Run("different computed hash", func(t *testing.T) {
+		t.Parallel()
+
+		extendedHdrHash := []byte("hash")
+		args := createSovHdrProcArgs()
+		args.Hasher = &testscommon.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return extendedHdrHash
+			},
+		}
+
+		extendedHeader := &block.ShardHeaderExtended{}
+		args.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{
+			CreateExtendedHeaderCalled: func(header sovereignData.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
+				require.Equal(t, extendedHeader, header)
+				return extendedHeader, nil
+			},
+		}
+
+		anotherHash := []byte("another hash")
+		interceptedHdr := &testscommon.SovereignInterceptedExtendedHeaderDataStub{
+			HashCalled: func() []byte {
+				return anotherHash
+			},
+			GetExtendedHeaderCalled: func() data.ShardHeaderExtendedHandler {
+				return extendedHeader
+			},
+		}
+
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Validate(interceptedHdr, "")
+		require.ErrorIs(t, err, errors.ErrInvalidReceivedSovereignProof)
+		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("computed hash: %s", hex.EncodeToString(extendedHdrHash))))
+		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("received hash: %s", hex.EncodeToString(anotherHash))))
+	})
+
 }
