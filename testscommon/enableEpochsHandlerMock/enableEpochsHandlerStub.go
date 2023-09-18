@@ -1,6 +1,8 @@
 package enableEpochsHandlerMock
 
-import "sync"
+import (
+	"sync"
+)
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
