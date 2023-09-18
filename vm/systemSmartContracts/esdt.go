@@ -1644,6 +1644,11 @@ func (e *esdt) setRolesForTokenAndAddress(
 		return nil, vmcommon.UserError
 	}
 
+	if token.NFTCreateStopped && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleNFTCreate)) {
+		e.eei.AddReturnMessage("cannot add NFT create role as NFT creation was stopped")
+		return nil, vmcommon.UserError
+	}
+
 	if !token.CanCreateMultiShard && checkIfDefinedRoleExistsInArgsAndToken(roles, token, []byte(core.ESDTRoleNFTCreate)) {
 		e.eei.AddReturnMessage(vm.ErrNFTCreateRoleAlreadyExists.Error())
 		return nil, vmcommon.UserError

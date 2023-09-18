@@ -671,7 +671,7 @@ func testNFTSendCreateRole(t *testing.T, numOfShards int) {
 		nftCreator,
 		&round,
 		&nonce,
-		core.NonFungibleESDT,
+		core.SemiFungibleESDT,
 		initialQuantity,
 		roles,
 	)

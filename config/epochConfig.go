@@ -105,6 +105,7 @@ type EnableEpochs struct {
 	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
+	NFTStopCreateEnableEpoch                          uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

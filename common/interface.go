@@ -395,6 +395,7 @@ type EnableEpochsHandler interface {
 	IsAutoBalanceDataTriesEnabled() bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
+	NFTStopCreateEnabled() bool
 
 	IsInterfaceNil() bool
 }
