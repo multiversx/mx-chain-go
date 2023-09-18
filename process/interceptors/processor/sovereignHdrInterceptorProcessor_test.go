@@ -38,6 +38,7 @@ func TestNewSovereignHdrInterceptorProcessor(t *testing.T) {
 		sovHdrProc, err := NewSovereignHdrInterceptorProcessor(args)
 		require.Nil(t, err)
 		require.False(t, sovHdrProc.IsInterfaceNil())
+		require.NotPanics(t, func() { sovHdrProc.RegisterHandler(nil) })
 	})
 	t.Run("nil args, should return error", func(t *testing.T) {
 		sovHdrProc, err := NewSovereignHdrInterceptorProcessor(nil)
@@ -176,7 +177,6 @@ func TestSovereignHeaderInterceptorProcessor_ValidateErrorCases(t *testing.T) {
 		t.Parallel()
 
 		args := createSovHdrProcArgs()
-
 		errMarshal := stdErr.New("error creating hdr")
 		args.Marshaller = &testscommon.MarshallerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
@@ -223,5 +223,90 @@ func TestSovereignHeaderInterceptorProcessor_ValidateErrorCases(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("computed hash: %s", hex.EncodeToString(extendedHdrHash))))
 		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("received hash: %s", hex.EncodeToString(anotherHash))))
 	})
+}
 
+func TestSovereignHeaderInterceptorProcessor_Save(t *testing.T) {
+	t.Parallel()
+
+	t.Run("add missing header", func(t *testing.T) {
+		t.Parallel()
+
+		extendedHdrHash := []byte("hash")
+		extendedHeader := &block.ShardHeaderExtended{}
+		wasHdrAdded := false
+
+		args := createSovHdrProcArgs()
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, extendedHdrHash, hash)
+				return nil, stdErr.New("hdr not found")
+			},
+		}
+		args.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{
+			AddHeaderCalled: func(headerHash []byte, header sovereignData.IncomingHeaderHandler) error {
+				require.Equal(t, extendedHdrHash, headerHash)
+				require.Equal(t, extendedHeader, header)
+				wasHdrAdded = true
+
+				return nil
+			},
+		}
+
+		interceptedHdr := &testscommon.SovereignInterceptedExtendedHeaderDataStub{
+			HashCalled: func() []byte {
+				return extendedHdrHash
+			},
+			GetExtendedHeaderCalled: func() data.ShardHeaderExtendedHandler {
+				return extendedHeader
+			},
+		}
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Save(interceptedHdr, "", "")
+		require.Nil(t, err)
+		require.True(t, wasHdrAdded)
+	})
+
+	t.Run("invalid received data", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovHdrProcArgs()
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Save(&testscommon.InterceptedDataStub{}, "", "")
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+
+	t.Run("add already existing header, should skip it", func(t *testing.T) {
+		t.Parallel()
+
+		extendedHdrHash := []byte("hash")
+		extendedHeader := &block.ShardHeaderExtended{}
+		wasHdrAdded := false
+
+		args := createSovHdrProcArgs()
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, extendedHdrHash, hash)
+				return nil, nil
+			},
+		}
+		args.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{
+			AddHeaderCalled: func(headerHash []byte, header sovereignData.IncomingHeaderHandler) error {
+				wasHdrAdded = true
+				return nil
+			},
+		}
+
+		interceptedHdr := &testscommon.SovereignInterceptedExtendedHeaderDataStub{
+			HashCalled: func() []byte {
+				return extendedHdrHash
+			},
+			GetExtendedHeaderCalled: func() data.ShardHeaderExtendedHandler {
+				return extendedHeader
+			},
+		}
+		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
+		err := sovHdrProc.Save(interceptedHdr, "", "")
+		require.Nil(t, err)
+		require.False(t, wasHdrAdded)
+	})
 }
