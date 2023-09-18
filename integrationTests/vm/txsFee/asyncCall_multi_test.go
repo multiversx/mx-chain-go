@@ -431,6 +431,7 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 
 	intermediateTxs := forwarderShard.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
+	require.Equal(t, 2, len(intermediateTxs))
 
 	// execute cross shard calls
 	scrCall1 := intermediateTxs[0]
