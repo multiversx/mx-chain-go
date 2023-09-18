@@ -200,9 +200,6 @@ func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
 
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
-	// return maybe do nothing?
-	destShardID = core.SovereignChainShardId
-	log.Error("RequestUnsignedTransactions !!!!!!!!!!!!!!!!!!!")
 	rrh.requestByHashes(destShardID, scrHashes, factory.UnsignedTransactionTopic, uniqueScrSuffix)
 }
 

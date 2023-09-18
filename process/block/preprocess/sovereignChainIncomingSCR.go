@@ -14,7 +14,8 @@ type sovereignChainIncomingSCR struct {
 }
 
 func onRequestIncomingSCR(_ uint32, txHashes [][]byte) {
-	log.Error("sovereignChainIncomingSCR.onRequestIncomingSCR was called; not implemented", "missing scrs hashes", txHashes)
+	log.Debug("sovereignChainIncomingSCR.onRequestIncomingSCR was called because of missing extended header, will wait to receive header along with scrs",
+		"missing scrs hashes", txHashes)
 }
 
 // NewSovereignChainIncomingSCR creates a sovereign scr pre-processor
@@ -27,7 +28,7 @@ func NewSovereignChainIncomingSCR(scr *smartContractResults) (*sovereignChainInc
 		scr,
 	}
 
-	//sovereignSCR.onRequestSmartContractResult = onRequestIncomingSCR
+	sovereignSCR.onRequestSmartContractResult = onRequestIncomingSCR
 	return sovereignSCR, nil
 }
 

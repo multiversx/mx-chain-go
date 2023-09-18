@@ -48,7 +48,7 @@ func (srcf *sovereignShardRequestersContainerFactory) generateExtendedShardHeade
 	shardID := shardC.SelfId()
 
 	identifierHdr := factory.ExtendedHeaderProofTopic + shardC.CommunicationIdentifier(shardID)
-	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardID, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
+	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardID, 0, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package incomingHeader
 
 import (
 	"encoding/hex"
-	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -26,8 +25,6 @@ type ArgsIncomingHeaderProcessor struct {
 type incomingHeaderProcessor struct {
 	scrProc            *scrProcessor
 	extendedHeaderProc *extendedHeaderProcessor
-	mapHashes          map[string]struct{}
-	mutex              sync.RWMutex
 }
 
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
@@ -62,21 +59,12 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	return &incomingHeaderProcessor{
 		scrProc:            scrProc,
 		extendedHeaderProc: extendedHearProc,
-		mapHashes:          make(map[string]struct{}),
 	}, nil
 }
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
-
-	//ihp.mutex.Lock()
-	//defer ihp.mutex.Unlock()
-	//
-	//if _, found := ihp.mapHashes[string(headerHash)]; found {
-	//	log.Error("incomingHeaderProcessor.AddHeader already exists")
-	//	return nil
-	//}
 
 	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {
@@ -94,7 +82,6 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	}
 
 	ihp.scrProc.addSCRsToPool(incomingSCRs)
-	//ihp.mapHashes[string(headerHash)] = struct{}{}
 	return nil
 }
 
