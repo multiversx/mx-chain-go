@@ -783,6 +783,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 			NodesConfigProvider:           pcf.nodesCoordinator,
 			UserAccountsDB:                pcf.state.AccountsAdapter(),
 			EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+			ExecutionOrderHandler:         pcf.txExecutionOrderHandler,
 		},
 		StakingDataProvider:   stakingDataProvider,
 		RewardsHandler:        pcf.coreData.EconomicsData(),
