@@ -6,7 +6,7 @@ import "github.com/multiversx/mx-chain-go/process"
 
 // sovereignShardInterceptorsContainerFactory will handle the creation of sovereign interceptors container
 type sovereignShardInterceptorsContainerFactory struct {
-	*baseInterceptorsContainerFactory
+	//*baseInterceptorsContainerFactory
 }
 
 // NewSovereignShardInterceptorsContainerFactory creates a new sovereign interceptors factory
