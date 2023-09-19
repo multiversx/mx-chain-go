@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSovereignNewShardResolversContainerFactory(t *testing.T) {
+func TestNewSovereignShardResolversContainerFactoryCreator(t *testing.T) {
 	t.Parallel()
 
 	factory := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
@@ -16,7 +16,7 @@ func TestSovereignNewShardResolversContainerFactory(t *testing.T) {
 	require.Implements(t, new(resolverscontainer.ShardResolversContainerFactoryCreator), factory)
 }
 
-func TestSovereignShardResolversContainerFactoryCreator_Create(t *testing.T) {
+func TestSovereignShardResolversContainerFactoryCreator_CreateShardResolversContainerFactory(t *testing.T) {
 	t.Parallel()
 
 	factory := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
