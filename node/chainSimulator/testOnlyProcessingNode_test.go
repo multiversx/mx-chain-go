@@ -1,7 +1,6 @@
 package chainSimulator
 
 import (
-	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -31,8 +30,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
 	assert.Nil(t, err)
 
-	workingDir, err := os.Getwd()
-	assert.Nil(t, err)
+	workingDir := t.TempDir()
 
 	return ArgsTestOnlyProcessingNode{
 		Config:     mainConfig,

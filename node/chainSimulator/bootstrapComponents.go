@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
+// ArgsBootstrapComponentsHolder will hold the components needed for the bootstrap components holders
 type ArgsBootstrapComponentsHolder struct {
 	CoreComponents       factory.CoreComponentsHolder
 	CryptoComponents     factory.CryptoComponentsHolder
