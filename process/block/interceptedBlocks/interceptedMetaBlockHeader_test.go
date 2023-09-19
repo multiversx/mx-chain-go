@@ -1,7 +1,6 @@
 package interceptedBlocks_test
 
 import (
-	"encoding/hex"
 	"errors"
 	"math/big"
 	"testing"
@@ -9,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -293,7 +291,4 @@ func TestInterceptedMetaHeader_IsInterfaceNil(t *testing.T) {
 	var inHdr *interceptedBlocks.InterceptedMetaHeader
 
 	assert.True(t, check.IfNil(inHdr))
-
-	buff, _ := hex.DecodeString("0a7a0a72080c1220217c9a38b2790ad0e9e57df0e4aeeaa0240938f11a4a5b0de79fee8f44a87e4b1a2031d0d5952c01c03a19f2abe504df0d78fa44ddedc95e1be2057a34e7ce1c13ae2220a6fa9f3d12e9df538221a6cd0752398d126eeedca4cbf5a14935ca3def9be69b400cb2010100ba0101001a0100220100122a0a20c5aa6da316fc296425db391b5fcf3e71e3410f54df86b962e750e96fe302c63b18fdffffff0f205a1acf010a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e112076465706f7369741a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e11a0a4153482d6136343264311a01011a5e0801120200642256080112086e616d65206e66741a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e12a084e465420686173683204757269313204757269323204757269333a0a617474726962757465731a0c5745474c442d6264346437391a001a013e")
-	interceptedBlocks.UnmarshalExtendedShardHeader(&marshal.GogoProtoMarshalizer{}, buff)
 }

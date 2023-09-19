@@ -28,7 +28,7 @@ type blockProcessor struct {
 	shouldProcessReceivedHeaderFunc         func(headerHandler data.HeaderHandler) bool
 	processReceivedHeaderFunc               func(header data.HeaderHandler)
 	doJobOnReceivedCrossNotarizedHeaderFunc func(shardID uint32)
-	requestHeaderWithShardAndNonceFunc      func(shardID uint32, nonce uint64)
+	requestHeaderWithShardAndNonceFunc      func(shardID uint32, nonce uint64, header data.HeaderHandler)
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
@@ -381,7 +381,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		"highest nonce received", highestNonceReceived,
 		"highest nonce in longest chain", highestNonceInLongestChain)
 
-	bp.requestHeaders(shardID, highestNonceInLongestChain+1)
+	bp.requestHeaders(shardID, highestNonceInLongestChain+1, lastNotarizedHeader)
 }
 
 func (bp *blockProcessor) getLatestValidHeader(
@@ -438,10 +438,10 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		"chronology round", bp.roundHandler.Index(),
 		"highest round in received headers", highestRoundInReceivedHeaders)
 
-	bp.requestHeaders(shardID, latestValidHeader.GetNonce()+1)
+	bp.requestHeaders(shardID, latestValidHeader.GetNonce()+1, latestValidHeader)
 }
 
-func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
+func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64, header data.HeaderHandler) {
 	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Trace("requestHeaders.RequestHeaderByNonce",
@@ -449,11 +449,11 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 			"nonce", nonce)
 
 		bp.blockTracker.AddHeaderFromPool(shardID, nonce)
-		bp.requestHeaderWithShardAndNonceFunc(shardID, nonce)
+		bp.requestHeaderWithShardAndNonceFunc(shardID, nonce, header)
 	}
 }
 
-func (bp *blockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64) {
+func (bp *blockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64, _ data.HeaderHandler) {
 	if shardID == core.MetachainShardId {
 		bp.requestHandler.RequestMetaHeaderByNonce(nonce)
 	} else {
