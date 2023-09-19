@@ -1790,6 +1790,26 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+	chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
+	if err != nil {
+		log.Warn("shardProcessor.computeExistingAndRequestMissingMetaHeaders: cannot compute chain params", "epoch", header.GetEpoch(), "error", err)
+		return 0, 0
+	}
+	metaFinality := chainParams.MetaFinality
+
+	lastCommittedShardHeaderEpoch := sp.blockChain.GetCurrentBlockHeader().GetEpoch()
+	if lastCommittedShardHeaderEpoch < header.GetEpoch() {
+		chainParamsForPastEpoch, err := sp.chainParametersHandler.ChainParametersForEpoch(lastCommittedShardHeaderEpoch)
+		if err != nil {
+			log.Warn("shardProcessor.computeExistingAndRequestMissingMetaHeaders: cannot compute chain params", "epoch", header.GetEpoch(), "error", err)
+			return 0, 0
+		}
+
+		if chainParamsForPastEpoch.MetaFinality > metaFinality {
+			metaFinality = chainParamsForPastEpoch.MetaFinality
+		}
+	}
+
 	metaBlockHashes := header.GetMetaBlockHashes()
 	for i := 0; i < len(metaBlockHashes); i++ {
 		hdr, err := process.GetMetaHeaderFromPool(
@@ -1817,15 +1837,9 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	}
 
 	if sp.hdrsForCurrBlock.missingHdrs == 0 {
-		//chainParams := sp.chainParametersHandler.CurrentChainParameters()
-		chainParams, err := sp.chainParametersHandler.ChainParametersForEpoch(header.GetEpoch())
-		if err != nil {
-			log.Warn("shardProcessor.computeExistingAndRequestMissingMetaHeaders: cannot compute chain params", "epoch", header.GetEpoch(), "error", err)
-			return 0, 0
-		}
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
-			uint32(chainParams.MetaFinality),
+			uint32(metaFinality),
 		)
 	}
 
