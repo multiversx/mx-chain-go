@@ -163,12 +163,13 @@ type ProcessComponentsFactoryArgs struct {
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	ChainRunType         common.ChainRunType
 
-	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
-	GenesisBlockCreatorFactory          processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker             GenesisMetaBlockChecker
-	RequesterContainerFactoryCreator    requesterscontainer.RequesterContainerFactoryCreator
-	IncomingHeaderSubscriber            process.IncomingHeaderSubscriber
-	InterceptorsContainerFactoryCreator interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
+	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker               GenesisMetaBlockChecker
+	RequesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
+	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
+	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 }
 
 type processComponentsFactory struct {
@@ -204,12 +205,13 @@ type processComponentsFactory struct {
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	chainRunType         common.ChainRunType
 
-	shardCoordinatorFactory             sharding.ShardCoordinatorFactory
-	genesisBlockCreatorFactory          processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker             GenesisMetaBlockChecker
-	requesterContainerFactoryCreator    requesterscontainer.RequesterContainerFactoryCreator
-	incomingHeaderSubscriber            process.IncomingHeaderSubscriber
-	interceptorsContainerFactoryCreator interceptorscontainer.InterceptorsContainerFactoryCreator
+	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
+	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker               GenesisMetaBlockChecker
+	requesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
+	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
+	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
+	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -220,38 +222,39 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                              args.Config,
-		epochConfig:                         args.EpochConfig,
-		prefConfigs:                         args.PrefConfigs,
-		importDBConfig:                      args.ImportDBConfig,
-		accountsParser:                      args.AccountsParser,
-		smartContractParser:                 args.SmartContractParser,
-		gasSchedule:                         args.GasSchedule,
-		nodesCoordinator:                    args.NodesCoordinator,
-		data:                                args.Data,
-		coreData:                            args.CoreData,
-		crypto:                              args.Crypto,
-		state:                               args.State,
-		network:                             args.Network,
-		bootstrapComponents:                 args.BootstrapComponents,
-		statusComponents:                    args.StatusComponents,
-		requestedItemsHandler:               args.RequestedItemsHandler,
-		whiteListHandler:                    args.WhiteListHandler,
-		whiteListerVerifiedTxs:              args.WhiteListerVerifiedTxs,
-		maxRating:                           args.MaxRating,
-		systemSCConfig:                      args.SystemSCConfig,
-		importStartHandler:                  args.ImportStartHandler,
-		historyRepo:                         args.HistoryRepo,
-		epochNotifier:                       args.CoreData.EpochNotifier(),
-		statusCoreComponents:                args.StatusCoreComponents,
-		flagsConfig:                         args.FlagsConfig,
-		chainRunType:                        args.ChainRunType,
-		shardCoordinatorFactory:             args.ShardCoordinatorFactory,
-		genesisBlockCreatorFactory:          args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:             args.GenesisMetaBlockChecker,
-		requesterContainerFactoryCreator:    args.RequesterContainerFactoryCreator,
-		incomingHeaderSubscriber:            args.IncomingHeaderSubscriber,
-		interceptorsContainerFactoryCreator: args.InterceptorsContainerFactoryCreator,
+		config:                                args.Config,
+		epochConfig:                           args.EpochConfig,
+		prefConfigs:                           args.PrefConfigs,
+		importDBConfig:                        args.ImportDBConfig,
+		accountsParser:                        args.AccountsParser,
+		smartContractParser:                   args.SmartContractParser,
+		gasSchedule:                           args.GasSchedule,
+		nodesCoordinator:                      args.NodesCoordinator,
+		data:                                  args.Data,
+		coreData:                              args.CoreData,
+		crypto:                                args.Crypto,
+		state:                                 args.State,
+		network:                               args.Network,
+		bootstrapComponents:                   args.BootstrapComponents,
+		statusComponents:                      args.StatusComponents,
+		requestedItemsHandler:                 args.RequestedItemsHandler,
+		whiteListHandler:                      args.WhiteListHandler,
+		whiteListerVerifiedTxs:                args.WhiteListerVerifiedTxs,
+		maxRating:                             args.MaxRating,
+		systemSCConfig:                        args.SystemSCConfig,
+		importStartHandler:                    args.ImportStartHandler,
+		historyRepo:                           args.HistoryRepo,
+		epochNotifier:                         args.CoreData.EpochNotifier(),
+		statusCoreComponents:                  args.StatusCoreComponents,
+		flagsConfig:                           args.FlagsConfig,
+		chainRunType:                          args.ChainRunType,
+		shardCoordinatorFactory:               args.ShardCoordinatorFactory,
+		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
+		requesterContainerFactoryCreator:      args.RequesterContainerFactoryCreator,
+		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
+		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
+		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
 	}, nil
 }
 
@@ -1462,7 +1465,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                payloadValidator,
 	}
-	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	resolversContainerFactory, err := pcf.shardResolversContainerFactoryCreator.CreateShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -2088,6 +2091,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.InterceptorsContainerFactoryCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
+	}
+	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
 	}
 
 	return nil

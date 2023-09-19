@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -241,12 +242,13 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
-		ChainRunType:                        common.ChainRunTypeRegular,
-		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory:          genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:             processComp.NewGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator:    requesterscontainer.NewShardRequestersContainerFactoryCreator(),
-		InterceptorsContainerFactoryCreator: interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		ChainRunType:                          common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -621,6 +623,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.InterceptorsContainerFactoryCreator = nil
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilInterceptorsContainerFactoryCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil shard resolvers container factory creator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.ShardResolversContainerFactoryCreator = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {
