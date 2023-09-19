@@ -54,8 +54,9 @@ func TestSovereignShardInterceptorsContainerFactory_Create(t *testing.T) {
 
 	args := createSovInterceptorsContainerArgs()
 
-	sovContainer, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(args)
+	sovContainer, _ := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(args)
 	mainContainer, fullArchiveContainer, err := sovContainer.Create()
+	require.Nil(t, err)
 
 	noOfShards := 1
 	totalInterceptors := calcNumShardInterceptors(noOfShards) + 1 // one extra for shard extended header
