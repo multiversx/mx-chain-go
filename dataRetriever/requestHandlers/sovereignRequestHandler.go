@@ -42,14 +42,14 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 		return
 	}
 
-	log.Debug("sovereign: requesting extended shard header by nonce from network",
+	log.Debug("RequestExtendedShardHeaderByNonce.getExtendedShardHeaderRequester: requesting extended shard header by nonce from network",
 		"shard", srrh.shardID,
 		"nonce", nonce,
 	)
 
-	requester, err := srrh.getExtendedShardHeaderRequester(srrh.shardID)
+	requester, err := srrh.getExtendedShardHeaderRequester()
 	if err != nil {
-		log.Error("RequestShardHeaderByNonce.getExtendedShardHeaderRequester",
+		log.Error("RequestExtendedShardHeaderByNonce.getExtendedShardHeaderRequester",
 			"error", err.Error(),
 			"shard", srrh.shardID,
 		)
@@ -58,7 +58,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 
 	headerRequester, ok := requester.(NonceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating header requester")
+		log.Error("sovereignResolverRequestHandler.RequestExtendedShardHeaderByNonce: wrong assertion type when creating header requester")
 		return
 	}
 
@@ -67,7 +67,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 	epoch := srrh.getEpoch()
 	err = headerRequester.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
-		log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
+		log.Debug("RequestExtendedShardHeaderByNonce.RequestDataFromNonce",
 			"error", err.Error(),
 			"epoch", epoch,
 			"nonce", nonce,
@@ -78,7 +78,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(n
 	srrh.addRequestedItems([][]byte{key}, suffix)
 }
 
-func (srrh *sovereignResolverRequestHandler) getExtendedShardHeaderRequester(_ uint32) (dataRetriever.Requester, error) {
+func (srrh *sovereignResolverRequestHandler) getExtendedShardHeaderRequester() (dataRetriever.Requester, error) {
 	headerRequester, err := srrh.requestersFinder.IntraShardRequester(factory.ExtendedHeaderProofTopic)
 	if err != nil {
 		log.Warn("extended header proof container not found, available requesters in container",
@@ -99,14 +99,14 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 		return
 	}
 
-	log.Debug("sovereign: requesting extended shard header from network by hash",
+	log.Debug("sovereignResolverRequestHandler.RequestExtendedShardHeader: requesting extended shard header from network by hash",
 		"shard", srrh.shardID,
 		"hash", hash,
 	)
 
-	headerRequester, err := srrh.getExtendedShardHeaderRequester(srrh.shardID)
+	headerRequester, err := srrh.getExtendedShardHeaderRequester()
 	if err != nil {
-		log.Error("sovereignResolverRequestHandler.getExtendedShardHeaderRequester",
+		log.Error("RequestExtendedShardHeader.getExtendedShardHeaderRequester",
 			"error", err.Error(),
 			"shard", srrh.shardID,
 		)
@@ -118,7 +118,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 	epoch := srrh.getEpoch()
 	err = headerRequester.RequestDataFromHash(hash, epoch)
 	if err != nil {
-		log.Debug("RequestShardHeader.RequestDataFromHash",
+		log.Debug("RequestExtendedShardHeader.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", hash,

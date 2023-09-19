@@ -26,9 +26,9 @@ type ArgsSovereignHeaderInterceptorProcessor struct {
 
 type sovereignHeaderInterceptorProcessor struct {
 	blackList                process.TimeCacher
-	Hasher                   hashing.Hasher
-	Marshaller               marshal.Marshalizer
-	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+	hasher                   hashing.Hasher
+	marshaller               marshal.Marshalizer
+	incomingHeaderSubscriber process.IncomingHeaderSubscriber
 	headersPool              dataRetriever.HeadersPool
 }
 
@@ -41,9 +41,9 @@ func NewSovereignHdrInterceptorProcessor(args *ArgsSovereignHeaderInterceptorPro
 
 	return &sovereignHeaderInterceptorProcessor{
 		blackList:                args.BlockBlackList,
-		Hasher:                   args.Hasher,
-		Marshaller:               args.Marshaller,
-		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
+		hasher:                   args.Hasher,
+		marshaller:               args.Marshaller,
+		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 		headersPool:              args.HeadersPool,
 	}, nil
 }
@@ -91,12 +91,12 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 	extendedHdr data.ShardHeaderExtendedHandler,
 	hash []byte,
 ) error {
-	computedExtendedHeader, err := hip.IncomingHeaderSubscriber.CreateExtendedHeader(extendedHdr)
+	computedExtendedHeader, err := hip.incomingHeaderSubscriber.CreateExtendedHeader(extendedHdr)
 	if err != nil {
 		return err
 	}
 
-	computedHeaderHash, err := core.CalculateHash(hip.Marshaller, hip.Hasher, computedExtendedHeader)
+	computedHeaderHash, err := core.CalculateHash(hip.marshaller, hip.hasher, computedExtendedHeader)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 	return nil
 }
 
-// Save will save the received data into headers pool, if it doesn't exit already
+// Save will save the received data into headers pool, if it doesn't already exist
 func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
 	interceptedHdr, ok := data.(process.ExtendedHeaderValidatorHandler)
 	if !ok {
@@ -128,7 +128,7 @@ func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedDat
 		return nil
 	}
 	log.Error("sovereignHeaderInterceptorProcessor.IncomingHeaderSubscriber.AddHeader")
-	return hip.IncomingHeaderSubscriber.AddHeader(interceptedHdr.Hash(), interceptedHdr.GetExtendedHeader())
+	return hip.incomingHeaderSubscriber.AddHeader(interceptedHdr.Hash(), interceptedHdr.GetExtendedHeader())
 }
 
 // RegisterHandler does nothing
