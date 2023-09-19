@@ -13,6 +13,7 @@ type sovereignShardResolversContainerFactory struct {
 	*shardResolversContainerFactory
 }
 
+// NewSovereignShardResolversContainerFactory creates a new sovereign shard resolvers container factory
 func NewSovereignShardResolversContainerFactory(shardContainer *shardResolversContainerFactory) (*sovereignShardResolversContainerFactory, error) {
 	if check.IfNil(shardContainer) {
 		return nil, errors.ErrNilShardResolversContainerFactory
@@ -52,7 +53,7 @@ func (srcf *sovereignShardResolversContainerFactory) generateSovereignHeaderReso
 		return err
 	}
 
-	hdrNonceStore, err := srcf.store.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+	hdrNonceStorer, err := srcf.store.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
 	if err != nil {
 		return err
 	}
@@ -66,7 +67,7 @@ func (srcf *sovereignShardResolversContainerFactory) generateSovereignHeaderReso
 		},
 		Headers:              srcf.dataPools.Headers(),
 		HdrStorage:           hdrStorer,
-		HeadersNoncesStorage: hdrNonceStore,
+		HeadersNoncesStorage: hdrNonceStorer,
 		NonceConverter:       srcf.uint64ByteSliceConverter,
 		ShardCoordinator:     srcf.shardCoordinator,
 		IsFullHistoryNode:    srcf.isFullHistoryNode,
