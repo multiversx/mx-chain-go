@@ -20,8 +20,8 @@ type ArgsSovereignHeaderInterceptorProcessor struct {
 
 type sovereignHeaderInterceptorProcessor struct {
 	blackList                process.TimeCacher
-	Hasher                   hashing.Hasher
-	Marshaller               marshal.Marshalizer
+	hasher                   hashing.Hasher
+	marshaller               marshal.Marshalizer
 	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
@@ -36,8 +36,8 @@ func NewSovereignHdrInterceptorProcessor(argument *ArgsSovereignHeaderIntercepto
 
 	return &sovereignHeaderInterceptorProcessor{
 		blackList:                argument.BlockBlackList,
-		Hasher:                   argument.Hasher,
-		Marshaller:               argument.Marshaller,
+		hasher:                   argument.Hasher,
+		marshaller:               argument.Marshaller,
 		IncomingHeaderSubscriber: argument.IncomingHeaderSubscriber,
 	}, nil
 }
