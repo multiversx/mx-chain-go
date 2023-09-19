@@ -630,7 +630,7 @@ var ErrInvalidGenesisMetaBlock = errors.New("genesis meta block invalid, should 
 var ErrGenesisMetaBlockOnSovereign = errors.New("genesis meta block was found on sovereign chain")
 
 // ErrNilShardRequesterContainerFactory signals that a nil shard requester container factory has been provided
-var ErrNilShardRequesterContainerFactory = errors.New(" nil shard shard requester container factory provided")
+var ErrNilShardRequesterContainerFactory = errors.New("nil shard shard requester container factory provided")
 
 // ErrNilRequesterContainerFactoryCreator signals that a nil requester container factory creator has been provided
 var ErrNilRequesterContainerFactoryCreator = errors.New("nil requester container factory creator provided")
