@@ -30,8 +30,11 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
 	assert.Nil(t, err)
 
+	workingDir := t.TempDir()
+
 	return ArgsTestOnlyProcessingNode{
-		Config: mainConfig,
+		Config:     mainConfig,
+		WorkingDir: workingDir,
 		EnableEpochsConfig: config.EnableEpochs{
 			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{
 				{EnableEpoch: 0, Type: "KOSK"},
@@ -52,6 +55,10 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		ValidatorPemFile:       validatorPemFile,
 		PreferencesConfig:      prefsConfig,
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
+		ImportDBConfig:         config.ImportDbConfig{},
+		ContextFlagsConfig: config.ContextFlagsConfig{
+			WorkingDir: workingDir,
+		},
 	}
 }
 
