@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -569,10 +570,11 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType:               common.ChainRunTypeRegular,
-		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		ChainRunType:                     common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:       process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:          processComp.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator: requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 	}
 }
 

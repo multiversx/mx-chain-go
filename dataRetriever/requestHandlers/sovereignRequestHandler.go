@@ -19,6 +19,8 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 	return srrh, nil
 }
 
+// TODO: Implement this in MX-14496
+
 // RequestExtendedShardHeaderByNonce method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(_ uint64) {
 	//TODO: This method should be implemented for sovereign chain
