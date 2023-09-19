@@ -5,7 +5,6 @@ package esdtNFT
 import (
 	"bytes"
 	"encoding/hex"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"math/big"
 	"testing"
 	"time"
@@ -1159,8 +1158,6 @@ func testNFTTransferCreateRoleAndStop(t *testing.T, numOfShards int) {
 	time.Sleep(time.Second)
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
 	time.Sleep(time.Second)
-
-	_ = logger.SetLogLevel("process/smartcontract:TRACE")
 
 	// stopNFTCreate
 	txData = []byte("stopNFTCreate" + "@" + hex.EncodeToString([]byte(tokenIdentifier)))
