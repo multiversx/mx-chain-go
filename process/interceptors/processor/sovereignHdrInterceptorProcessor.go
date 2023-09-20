@@ -101,7 +101,7 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 		return err
 	}
 
-	if bytes.Compare(computedHeaderHash, hash) != 0 {
+	if !bytes.Equal(computedHeaderHash, hash) {
 		return fmt.Errorf("%w, computed hash: %s, received hash: %s",
 			errors.ErrInvalidReceivedSovereignProof,
 			hex.EncodeToString(computedHeaderHash),
