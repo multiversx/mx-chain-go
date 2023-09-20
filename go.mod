@@ -14,17 +14,17 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.6
-	github.com/multiversx/mx-chain-core-go v1.2.15-0.20230828081708-1d1190bec635
+	github.com/multiversx/mx-chain-core-go v1.2.17-0.20230918144211-8728c8a6e2d5
 	github.com/multiversx/mx-chain-crypto-go v1.2.8
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.10
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.12
 	github.com/multiversx/mx-chain-logger-go v1.0.13
 	github.com/multiversx/mx-chain-scenario-go v1.2.1
-	github.com/multiversx/mx-chain-storage-go v1.0.12
-	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230901130135-4d211b1a41d2
-	github.com/multiversx/mx-chain-vm-go v1.5.8-0.20230901135126-7dc171f51135
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.62-0.20230901130404-1ffab896262e
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.63-0.20230901134952-8406267f59cf
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.89-0.20230901135058-9a361737cb3d
+	github.com/multiversx/mx-chain-storage-go v1.0.13
+	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230918144414-73020ec780b7
+	github.com/multiversx/mx-chain-vm-go v1.5.11-0.20230918154354-afab2d800bb1
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.62-0.20230918144623-370ee5be0939
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.63-0.20230918144719-6912df17b115
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.89-0.20230918144902-820b2faa7646
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -154,7 +154,7 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/assertions v1.13.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
+	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

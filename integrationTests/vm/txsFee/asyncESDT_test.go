@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -32,16 +31,16 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	sndAddr := []byte("12345678901234567890123456789012")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -84,16 +83,16 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	sndAddr := []byte("12345678901234567890123456789012")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -137,16 +136,16 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	sndAddr := []byte("12345678901234567890123456789012")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -486,20 +485,19 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	function1 := []byte("add_queued_call")
 	function2 := []byte("forward_queued_calls")
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("owner-78901234567890123456789000")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	sndAddr := []byte("sender-8901234567890123456789000")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	esdtTransferValue := big.NewInt(5000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
 
 	// deploy contract
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 	scAddress := utils.DoDeploySecond(t, testContext, "./testdata/third/third.wasm", ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(0))
@@ -516,7 +514,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, testContext, sndAddr, token, esdtBalance)
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, localEsdtBalance)
 	utils.CheckESDTBalance(t, testContext, scAddress, token, big.NewInt(0))
 
 	// execute second call
@@ -530,7 +528,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	utils.CheckESDTBalance(t, testContext, sndAddr, token, big.NewInt(0).Sub(esdtBalance, esdtTransferValue))
+	utils.CheckESDTBalance(t, testContext, sndAddr, token, big.NewInt(0).Sub(localEsdtBalance, esdtTransferValue))
 	utils.CheckESDTBalance(t, testContext, scAddress, token, esdtTransferValue)
 
 	// try to recreate the data trie

@@ -22,25 +22,27 @@ import (
 var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
 
 type intermediateResultsProcessor struct {
-	pubkeyConv          core.PubkeyConverter
-	blockType           block.Type
-	currTxs             dataRetriever.TransactionCacher
-	enableEpochsHandler common.EnableEpochsHandler
+	pubkeyConv            core.PubkeyConverter
+	blockType             block.Type
+	currTxs               dataRetriever.TransactionCacher
+	enableEpochsHandler   common.EnableEpochsHandler
+	executionOrderHandler common.TxExecutionOrderHandler
 
 	*basePostProcessor
 }
 
 // ArgsNewIntermediateResultsProcessor defines the arguments needed for new smart contract processor
 type ArgsNewIntermediateResultsProcessor struct {
-	Hasher              hashing.Hasher
-	Marshalizer         marshal.Marshalizer
-	Coordinator         sharding.Coordinator
-	PubkeyConv          core.PubkeyConverter
-	Store               dataRetriever.StorageService
-	BlockType           block.Type
-	CurrTxs             dataRetriever.TransactionCacher
-	EconomicsFee        process.FeeHandler
-	EnableEpochsHandler common.EnableEpochsHandler
+	Hasher                  hashing.Hasher
+	Marshalizer             marshal.Marshalizer
+	Coordinator             sharding.Coordinator
+	PubkeyConv              core.PubkeyConverter
+	Store                   dataRetriever.StorageService
+	BlockType               block.Type
+	CurrTxs                 dataRetriever.TransactionCacher
+	EconomicsFee            process.FeeHandler
+	EnableEpochsHandler     common.EnableEpochsHandler
+	TxExecutionOrderHandler common.TxExecutionOrderHandler
 }
 
 // NewIntermediateResultsProcessor creates a new intermediate results processor
@@ -77,6 +79,9 @@ func NewIntermediateResultsProcessor(
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	base := &basePostProcessor{
 		hasher:             args.Hasher,
@@ -89,11 +94,12 @@ func NewIntermediateResultsProcessor(
 	}
 
 	irp := &intermediateResultsProcessor{
-		basePostProcessor:   base,
-		pubkeyConv:          args.PubkeyConv,
-		blockType:           args.BlockType,
-		currTxs:             args.CurrTxs,
-		enableEpochsHandler: args.EnableEpochsHandler,
+		basePostProcessor:     base,
+		pubkeyConv:            args.PubkeyConv,
+		blockType:             args.BlockType,
+		currTxs:               args.CurrTxs,
+		enableEpochsHandler:   args.EnableEpochsHandler,
+		executionOrderHandler: args.TxExecutionOrderHandler,
 	}
 
 	irp.interResultsForBlock = make(map[string]*txInfo)
@@ -261,6 +267,8 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		}
 
 		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
+
+		irp.executionOrderHandler.Add(scrHash)
 		irp.addIntermediateTxToResultsForBlock(addScr, scrHash, sndShId, dstShId)
 	}
 

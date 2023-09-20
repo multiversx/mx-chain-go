@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -616,7 +616,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 
 // GetSCCode -
 func GetSCCode(fileName string) string {
-	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	code, err := os.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		panic("Could not get SC code.")
 	}
