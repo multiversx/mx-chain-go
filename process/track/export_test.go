@@ -260,8 +260,8 @@ func (bp *blockProcessor) RequestHeadersIfNothingNewIsReceived(lastNotarizedHead
 	bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders, shardID)
 }
 
-func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64) {
-	bp.requestHeaders(shardID, fromNonce, nil)
+func (bp *blockProcessor) RequestHeaders(shardID uint32, fromNonce uint64, lastNotarizedHeader data.HeaderHandler) {
+	bp.requestHeaders(shardID, fromNonce, lastNotarizedHeader)
 }
 
 func (bp *blockProcessor) ShouldProcessReceivedHeader(headerHandler data.HeaderHandler) bool {

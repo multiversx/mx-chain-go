@@ -28,7 +28,7 @@ type blockProcessor struct {
 	shouldProcessReceivedHeaderFunc         func(headerHandler data.HeaderHandler) bool
 	processReceivedHeaderFunc               func(header data.HeaderHandler)
 	doJobOnReceivedCrossNotarizedHeaderFunc func(shardID uint32)
-	requestHeaderWithShardAndNonceFunc      func(shardID uint32, nonce uint64, header data.HeaderHandler)
+	requestHeaderWithShardAndNonceFunc      func(shardID uint32, nonce uint64, lastNotarizedHeader data.HeaderHandler)
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
@@ -441,7 +441,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	bp.requestHeaders(shardID, latestValidHeader.GetNonce()+1, latestValidHeader)
 }
 
-func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64, header data.HeaderHandler) {
+func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64, lastNotarizedHeader data.HeaderHandler) {
 	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		log.Trace("requestHeaders.RequestHeaderByNonce",
@@ -449,7 +449,7 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64, heade
 			"nonce", nonce)
 
 		bp.blockTracker.AddHeaderFromPool(shardID, nonce)
-		bp.requestHeaderWithShardAndNonceFunc(shardID, nonce, header)
+		bp.requestHeaderWithShardAndNonceFunc(shardID, nonce, lastNotarizedHeader)
 	}
 }
 

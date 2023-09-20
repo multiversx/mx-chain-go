@@ -311,7 +311,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardH
 	shardID := core.MainChainShardId
 	fromNonce := uint64(1)
 
-	scbp.RequestHeaders(shardID, fromNonce)
+	scbp.RequestHeaders(shardID, fromNonce, &block.HeaderV2{})
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -366,7 +366,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	shardID := core.SovereignChainShardId
 	fromNonce := uint64(1)
 
-	scbp.RequestHeaders(shardID, fromNonce)
+	scbp.RequestHeaders(shardID, fromNonce, &block.ShardHeaderExtended{})
 
 	time.Sleep(100 * time.Millisecond)
 

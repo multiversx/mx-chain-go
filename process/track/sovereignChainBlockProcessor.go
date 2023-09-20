@@ -85,8 +85,8 @@ func (scbp *sovereignChainBlockProcessor) doJobOnReceivedCrossNotarizedHeader(sh
 	}
 }
 
-func (scbp *sovereignChainBlockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64, header data.HeaderHandler) {
-	_, isExtendedHeader := header.(data.ShardHeaderExtendedHandler)
+func (scbp *sovereignChainBlockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64, lastNotarizedHeader data.HeaderHandler) {
+	_, isExtendedHeader := lastNotarizedHeader.(data.ShardHeaderExtendedHandler)
 	if isExtendedHeader {
 		scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
 	} else {
