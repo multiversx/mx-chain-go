@@ -723,24 +723,6 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) rel
 	return computedFees
 }
 
-func (txProc *txProcessor) computeRelayedV3TxFees(tx *transaction.Transaction, innerTxs []*transaction.Transaction) relayedFees {
-	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
-	totalFee := big.NewInt(0)
-	for _, innerTx := range innerTxs {
-		innerFee := txProc.economicsFee.ComputeTxFee(innerTx)
-		totalFee.Add(totalFee, innerFee)
-	}
-	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
-
-	computedFees := relayedFees{
-		totalFee:     totalFee,
-		remainingFee: remainingFee,
-		relayerFee:   relayerFee,
-	}
-
-	return computedFees
-}
-
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
