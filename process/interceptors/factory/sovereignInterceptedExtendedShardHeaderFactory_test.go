@@ -59,7 +59,7 @@ func TestSovereignInterceptedShardHeaderDataFactory_Create(t *testing.T) {
 	headerBytes, err := args.Marshaller.Marshal(extendedHeader)
 	require.Nil(t, err)
 
-	sovFactory, err := NewSovereignInterceptedShardHeaderDataFactory(args)
+	sovFactory, _ := NewSovereignInterceptedShardHeaderDataFactory(args)
 	interceptedData, err := sovFactory.Create(headerBytes)
 	require.Nil(t, err)
 
