@@ -1497,6 +1497,80 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	innerTx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data inner tx 1"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	marshaller := &mock.MarshalizerMock{}
+	innerTxBuff, err := marshaller.Marshal(innerTx)
+	assert.Nil(t, err)
+
+	tx := &dataTransaction.Transaction{
+		Nonce:            1,
+		Value:            big.NewInt(0),
+		GasLimit:         10,
+		GasPrice:         4,
+		RcvAddr:          recvAddress,
+		SndAddr:          senderAddress,
+		Signature:        sigOk,
+		ChainID:          chainID,
+		Version:          minTxVersion,
+		InnerTransaction: innerTxBuff,
+	}
+	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
+
+	innerTx.Signature = nil
+	tx.InnerTransaction, err = marshaller.Marshal(innerTx)
+	assert.Nil(t, err)
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+
+	innerTx.Signature = sigBad
+	tx.InnerTransaction, err = marshaller.Marshal(innerTx)
+	assert.Nil(t, err)
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+
+	innerTx2 := &dataTransaction.Transaction{
+		Nonce:     2,
+		Value:     big.NewInt(3),
+		Data:      []byte("data inner tx 2"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+	innerTx2Buff, err := marshaller.Marshal(innerTx2)
+	assert.Nil(t, err)
+	innerTx.InnerTransaction, err = marshaller.Marshal(innerTx2Buff)
+	assert.Nil(t, err)
+	tx.InnerTransaction, err = marshaller.Marshal(innerTx)
+	assert.Nil(t, err)
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+}
+
 // ------- IsInterfaceNil
 func TestInterceptedTransaction_IsInterfaceNil(t *testing.T) {
 	t.Parallel()

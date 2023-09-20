@@ -176,6 +176,7 @@ type SendTxRequest struct {
 	Options           uint32 `json:"options,omitempty"`
 	GuardianAddr      string `json:"guardian,omitempty"`
 	GuardianSignature string `json:"guardianSignature,omitempty"`
+	InnerTransaction  []byte `json:"innerTransaction,omitempty"`
 }
 
 // TxResponse represents the structure on which the response will be validated against
@@ -233,6 +234,7 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		Options:          gtx.Options,
 		Guardian:         gtx.GuardianAddr,
 		GuardianSigHex:   gtx.GuardianSignature,
+		InnerTransaction: gtx.InnerTransaction,
 	}
 	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
@@ -323,6 +325,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		Options:          gtx.Options,
 		Guardian:         gtx.GuardianAddr,
 		GuardianSigHex:   gtx.GuardianSignature,
+		InnerTransaction: gtx.InnerTransaction,
 	}
 	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
@@ -421,6 +424,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 			Options:          receivedTx.Options,
 			Guardian:         receivedTx.GuardianAddr,
 			GuardianSigHex:   receivedTx.GuardianSignature,
+			InnerTransaction: receivedTx.InnerTransaction,
 		}
 		tx, txHash, err = tg.getFacade().CreateTransaction(txArgs)
 		logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
@@ -550,6 +554,7 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		Options:          gtx.Options,
 		Guardian:         gtx.GuardianAddr,
 		GuardianSigHex:   gtx.GuardianSignature,
+		InnerTransaction: gtx.InnerTransaction,
 	}
 	start := time.Now()
 	tx, _, err := tg.getFacade().CreateTransaction(txArgs)

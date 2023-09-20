@@ -199,14 +199,45 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		err = inTx.verifyIfRelayedTxV3(inTx.tx)
+		if err != nil {
+			return err
+		}
+
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 
 	return nil
 }
 
-func isRelayedTx(funcName string) bool {
-	return core.RelayedTransaction == funcName || core.RelayedTransactionV2 == funcName
+func isRelayedTx(funcName string, innerTx []byte) bool {
+	return core.RelayedTransaction == funcName ||
+		core.RelayedTransactionV2 == funcName ||
+		len(innerTx) > 0
+}
+
+func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
+	if len(tx.InnerTransaction) == 0 {
+		return nil
+	}
+
+	innerTx := &transaction.Transaction{}
+	err := inTx.signMarshalizer.Unmarshal(innerTx, tx.InnerTransaction)
+	if err != nil {
+		return err
+	}
+
+	err = inTx.integrity(innerTx)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
+
+	err = inTx.verifyUserTx(innerTx)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transaction) error {
@@ -223,27 +254,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 		return err
 	}
 
-	err = inTx.verifySig(userTx)
-	if err != nil {
-		return fmt.Errorf("inner transaction: %w", err)
-	}
-
-	err = inTx.VerifyGuardianSig(userTx)
-	if err != nil {
-		return fmt.Errorf("inner transaction: %w", err)
-	}
-
-	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
-	if err != nil {
-		return nil
-	}
-
-	// recursive relayed transactions are not allowed
-	if isRelayedTx(funcName) {
-		return process.ErrRecursiveRelayedTxIsNotAllowed
-	}
-
-	return nil
+	return inTx.verifyUserTx(userTx)
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transaction) error {
@@ -273,7 +284,11 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return fmt.Errorf("inner transaction: %w", err)
 	}
 
-	err = inTx.verifySig(userTx)
+	return inTx.verifyUserTx(userTx)
+}
+
+func (inTx *InterceptedTransaction) verifyUserTx(userTx *transaction.Transaction) error {
+	err := inTx.verifySig(userTx)
 	if err != nil {
 		return fmt.Errorf("inner transaction: %w", err)
 	}
@@ -283,17 +298,13 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return fmt.Errorf("inner transaction: %w", err)
 	}
 
-	if len(userTx.Data) == 0 {
-		return nil
-	}
-
-	funcName, _, err = inTx.argsParser.ParseCallData(string(userTx.Data))
+	funcName, _, err := inTx.argsParser.ParseCallData(string(userTx.Data))
 	if err != nil {
 		return nil
 	}
 
 	// recursive relayed transactions are not allowed
-	if isRelayedTx(funcName) {
+	if isRelayedTx(funcName, userTx.InnerTransaction) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 

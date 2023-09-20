@@ -36,6 +36,8 @@ const (
 	RelayedTx
 	// RelayedTxV2 defines the ID of a slim relayed transaction version
 	RelayedTxV2
+	// RelayedTxV3 defines the ID of a relayed v3 transaction
+	RelayedTxV3
 	// RewardTx defines ID of a reward transaction
 	RewardTx
 	// InvalidTransaction defines unknown transaction type

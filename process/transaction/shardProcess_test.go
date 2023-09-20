@@ -90,9 +90,9 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsPenalizedTooMuchGasFlagEnabledField: true,
 		},
-		GuardianChecker:  &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	return args
@@ -2017,6 +2017,186 @@ func TestTxProcessor_ProcessRelayedTransactionV2(t *testing.T) {
 	returnCode, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnCode)
+}
+
+func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &mock.MarshalizerMock{}
+
+	userAddr := []byte("user")
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("sSRC")
+	tx.RcvAddr = userAddr
+	tx.Value = big.NewInt(0)
+	tx.GasPrice = 1
+	tx.GasLimit = 4
+
+	userTx := &transaction.Transaction{}
+	userTx.Nonce = 0
+	userTx.SndAddr = userAddr
+	userTx.RcvAddr = []byte("sDST")
+	userTx.Value = big.NewInt(0)
+	userTx.Data = []byte("execute@param1")
+	userTx.GasPrice = 1
+	userTx.GasLimit = 2
+
+	tx.InnerTransaction, _ = marshaller.Marshal(userTx)
+
+	t.Run("flag not active should error", func(t *testing.T) {
+		t.Parallel()
+
+		pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
+		acntSrc := createUserAcc(tx.SndAddr)
+		_ = acntSrc.AddToBalance(big.NewInt(100))
+		acntDst := createUserAcc(tx.RcvAddr)
+		_ = acntDst.AddToBalance(big.NewInt(10))
+
+		acntFinal := createUserAcc(userTx.RcvAddr)
+		_ = acntFinal.AddToBalance(big.NewInt(10))
+
+		adb := &stateMock.AccountsStub{}
+		adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+			if bytes.Equal(address, tx.SndAddr) {
+				return acntSrc, nil
+			}
+			if bytes.Equal(address, tx.RcvAddr) {
+				return acntDst, nil
+			}
+			if bytes.Equal(address, userTx.RcvAddr) {
+				return acntFinal, nil
+			}
+
+			return nil, errors.New("failure")
+		}
+
+		scProcessorMock := &testscommon.SCProcessorMock{}
+		shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
+		esdtTransferParser, _ := parsers.NewESDTTransferParser(marshaller)
+		argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+			PubkeyConverter:    pubKeyConverter,
+			ShardCoordinator:   shardC,
+			BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+			ArgumentParser:     parsers.NewCallArgsParser(),
+			ESDTTransferParser: esdtTransferParser,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsESDTMetadataContinuousCleanupFlagEnabledField: true,
+			},
+		}
+		txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
+
+		args := createArgsForTxProcessor()
+		args.Accounts = adb
+		args.ScProcessor = scProcessorMock
+		args.ShardCoordinator = shardC
+		args.TxTypeHandler = txTypeHandler
+		args.PubkeyConv = pubKeyConverter
+		args.ArgsParser = smartContract.NewArgumentParser()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		execTx, _ := txproc.NewTxProcessor(args)
+
+		returnCode, err := execTx.ProcessTransaction(tx)
+		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.Equal(t, vmcommon.UserError, returnCode)
+	})
+	t.Run("dummy inner txs on relayed tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		txCopy.InnerTransaction = []byte("dummy")
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("different sender on inner tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		txCopy.RcvAddr = userTx.RcvAddr
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("different gas price on inner tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		txCopy.GasPrice = userTx.GasPrice + 1
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("higher gas limit on inner tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		txCopy.GasLimit = userTx.GasLimit - 1
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+		testProcessRelayedTransactionV3(t, tx, userTx.RcvAddr, nil, vmcommon.Ok)
+	})
+}
+
+func testProcessRelayedTransactionV3(
+	t *testing.T,
+	tx *transaction.Transaction,
+	finalRcvr []byte,
+	expectedErr error,
+	expectedCode vmcommon.ReturnCode,
+) {
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(4)
+	marshaller := &mock.MarshalizerMock{}
+
+	acntSrc := createUserAcc(tx.SndAddr)
+	_ = acntSrc.AddToBalance(big.NewInt(100))
+	acntDst := createUserAcc(tx.RcvAddr)
+	_ = acntDst.AddToBalance(big.NewInt(10))
+
+	acntFinal := createUserAcc(finalRcvr)
+	_ = acntFinal.AddToBalance(big.NewInt(10))
+
+	adb := &stateMock.AccountsStub{}
+	adb.LoadAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		if bytes.Equal(address, tx.SndAddr) {
+			return acntSrc, nil
+		}
+		if bytes.Equal(address, tx.RcvAddr) {
+			return acntDst, nil
+		}
+		if bytes.Equal(address, finalRcvr) {
+			return acntFinal, nil
+		}
+
+		return nil, errors.New("failure")
+	}
+
+	scProcessorMock := &testscommon.SCProcessorMock{}
+	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
+	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshaller)
+	argTxTypeHandler := coordinator.ArgNewTxTypeHandler{
+		PubkeyConverter:    pubKeyConverter,
+		ShardCoordinator:   shardC,
+		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:     parsers.NewCallArgsParser(),
+		ESDTTransferParser: esdtTransferParser,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
+		},
+	}
+	txTypeHandler, _ := coordinator.NewTxTypeHandler(argTxTypeHandler)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ScProcessor = scProcessorMock
+	args.ShardCoordinator = shardC
+	args.TxTypeHandler = txTypeHandler
+	args.PubkeyConv = pubKeyConverter
+	args.ArgsParser = smartContract.NewArgumentParser()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsRelayedTransactionsV3FlagEnabledField: true,
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	returnCode, err := execTx.ProcessTransaction(tx)
+	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, expectedCode, returnCode)
 }
 
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {

@@ -1862,6 +1862,7 @@ func getDefaultTransactionArgs() *external.ArgsCreateTransaction {
 		Options:          0,
 		Guardian:         "",
 		GuardianSigHex:   "",
+		InnerTransaction: nil,
 	}
 }
 

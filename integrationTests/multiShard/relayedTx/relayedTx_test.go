@@ -21,331 +21,372 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type createAndSendRelayedAndUserTxFuncType = func([]*integrationTests.TestProcessorNode, *integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, []byte, *big.Int, uint64, []byte) *transaction.Transaction
+
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
-		}
-	}()
-
-	sendValue := big.NewInt(5)
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	receiverAddress1 := []byte("12345678901234567890123456789012")
-	receiverAddress2 := []byte("12345678901234567890123456789011")
-
-	nrRoundsToTest := int64(5)
-	for i := int64(0); i < nrRoundsToTest; i++ {
-		for _, player := range players {
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-		}
-
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-
-		time.Sleep(integrationTests.StepDelay)
-	}
-
-	roundToPropagateMultiShard := int64(20)
-	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	}
-
-	time.Sleep(time.Second)
-	receiver1 := GetUserAccount(nodes, receiverAddress1)
-	receiver2 := GetUserAccount(nodes, receiverAddress2)
-
-	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
-	finalBalance.Mul(finalBalance, sendValue)
-	assert.Equal(t, receiver1.GetBalance().Cmp(finalBalance), 0)
-	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
-
-	players = append(players, relayer)
-	checkPlayerBalances(t, nodes, players)
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTx))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTxV3))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
-		}
-	}()
-
-	sendValue := big.NewInt(5)
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	receiverAddress1 := []byte("12345678901234567890123456789012")
-	receiverAddress2 := []byte("12345678901234567890123456789011")
-
-	ownerNode := nodes[0]
-	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
-
-	integrationTests.CreateAndSendTransactionWithGasLimit(
-		nodes[0],
-		big.NewInt(0),
-		20000,
-		make([]byte, 32),
-		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
-		integrationTests.ChainID,
-		integrationTests.MinTransactionVersion,
-	)
-
-	transferTokenVMGas := uint64(7200)
-	transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
-	transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
-
-	initialTokenSupply := big.NewInt(1000000000)
-	initialPlusForGas := uint64(1000)
-	for _, player := range players {
-		integrationTests.CreateAndSendTransactionWithGasLimit(
-			ownerNode,
-			big.NewInt(0),
-			transferTokenFullGas+initialPlusForGas,
-			scAddress,
-			[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(initialTokenSupply.Bytes())),
-			integrationTests.ChainID,
-			integrationTests.MinTransactionVersion,
-		)
-	}
-	time.Sleep(time.Second)
-
-	nrRoundsToTest := int64(5)
-	for i := int64(0); i < nrRoundsToTest; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-
-		for _, player := range players {
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0),
-				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress1)+"@00"+hex.EncodeToString(sendValue.Bytes())))
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0),
-				transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
-		}
-
-		time.Sleep(integrationTests.StepDelay)
-	}
-
-	roundToPropagateMultiShard := int64(20)
-	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	}
-
-	time.Sleep(time.Second)
-
-	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
-	finalBalance.Mul(finalBalance, sendValue)
-
-	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
-	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
-
-	checkPlayerBalances(t, nodes, players)
-
-	userAcc := GetUserAccount(nodes, relayer.Address)
-	assert.Equal(t, userAcc.GetBalance().Cmp(relayer.Balance), 1)
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTx))
+	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV2))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV3))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
-		}
-	}()
-
-	sendValue := big.NewInt(5)
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	receiverAddress1 := []byte("12345678901234567890123456789012")
-	receiverAddress2 := []byte("12345678901234567890123456789011")
-
-	// ------- send token issue
-	issuePrice := big.NewInt(1000)
-	initalSupply := big.NewInt(10000000000)
-	tokenIssuer := nodes[0]
-	txData := "issue" +
-		"@" + hex.EncodeToString([]byte("robertWhyNot")) +
-		"@" + hex.EncodeToString([]byte("RBT")) +
-		"@" + hex.EncodeToString(initalSupply.Bytes()) +
-		"@" + hex.EncodeToString([]byte{6})
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := int64(10)
-	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(integrationTests.StepDelay)
-	}
-	time.Sleep(time.Second)
-
-	tokenIdenfitifer := string(integrationTests.GetTokenIdentifier(nodes, []byte("RBT")))
-	CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
-
-	// ------ send tx to players
-	valueToTopUp := big.NewInt(100000000)
-	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(valueToTopUp.Bytes())
-	for _, player := range players {
-		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), player.Address, txData, integrationTests.AdditionalGasLimit)
-	}
-
-	time.Sleep(time.Second)
-	for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-		time.Sleep(integrationTests.StepDelay)
-	}
-	time.Sleep(time.Second)
-
-	txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(sendValue.Bytes())
-	transferTokenESDTGas := uint64(1)
-	transferTokenBaseGas := tokenIssuer.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte(txData)})
-	transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas + uint64(100) // use more gas to simulate gas refund
-	nrRoundsToTest := int64(5)
-	for i := int64(0); i < nrRoundsToTest; i++ {
-		for _, player := range players {
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
-		}
-
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-
-		time.Sleep(integrationTests.StepDelay)
-	}
-
-	nrRoundsToPropagateMultiShard = int64(20)
-	for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	}
-
-	time.Sleep(time.Second)
-	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
-	finalBalance.Mul(finalBalance, sendValue)
-	CheckAddressHasTokens(t, receiverAddress1, nodes, tokenIdenfitifer, finalBalance)
-	CheckAddressHasTokens(t, receiverAddress2, nodes, tokenIdenfitifer, finalBalance)
-
-	players = append(players, relayer)
-	checkPlayerBalances(t, nodes, players)
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTx))
+	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV2))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV3))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTx))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTxV3))
+}
 
-	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
+func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
+	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("this is not a short test")
 		}
-	}()
 
-	for _, node := range nodes {
-		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		sendValue := big.NewInt(5)
+		round := uint64(0)
+		nonce := uint64(0)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		receiverAddress1 := []byte("12345678901234567890123456789012")
+		receiverAddress2 := []byte("12345678901234567890123456789011")
+
+		nrRoundsToTest := int64(5)
+		for i := int64(0); i < nrRoundsToTest; i++ {
+			for _, player := range players {
+				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			}
+
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
+			time.Sleep(integrationTests.StepDelay)
+		}
+
+		roundToPropagateMultiShard := int64(20)
+		for i := int64(0); i <= roundToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		}
+
+		time.Sleep(time.Second)
+		receiver1 := GetUserAccount(nodes, receiverAddress1)
+		receiver2 := GetUserAccount(nodes, receiverAddress2)
+
+		finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
+		finalBalance.Mul(finalBalance, sendValue)
+		assert.Equal(t, receiver1.GetBalance().Cmp(finalBalance), 0)
+		assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
+
+		players = append(players, relayer)
+		checkPlayerBalances(t, nodes, players)
 	}
+}
 
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
+func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
+	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("this is not a short test")
+		}
 
-	ownerNode := nodes[0]
-	scCode := wasm.GetSCCode("attestation.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
 
-	registerValue := big.NewInt(100)
-	integrationTests.CreateAndSendTransactionWithGasLimit(
-		nodes[0],
-		big.NewInt(0),
-		200000,
-		make([]byte, 32),
-		[]byte(wasm.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
-		integrationTests.ChainID,
-		integrationTests.MinTransactionVersion,
-	)
-	time.Sleep(time.Second)
+		sendValue := big.NewInt(5)
+		round := uint64(0)
+		nonce := uint64(0)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
 
-	registerVMGas := uint64(100000)
-	savePublicInfoVMGas := uint64(100000)
-	attestVMGas := uint64(100000)
+		receiverAddress1 := []byte("12345678901234567890123456789012")
+		receiverAddress2 := []byte("12345678901234567890123456789011")
 
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		ownerNode := nodes[0]
+		initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
+		scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+		scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
-	uniqueIDs := make([]string, len(players))
-	for i, player := range players {
-		uniqueIDs[i] = core.UniqueIdentifier()
-		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, registerValue,
-			registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
+		integrationTests.CreateAndSendTransactionWithGasLimit(
+			nodes[0],
+			big.NewInt(0),
+			20000,
+			make([]byte, 32),
+			[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
+			integrationTests.ChainID,
+			integrationTests.MinTransactionVersion,
+		)
+
+		transferTokenVMGas := uint64(7200)
+		transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
+		transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
+
+		initialTokenSupply := big.NewInt(1000000000)
+		initialPlusForGas := uint64(1000)
+		for _, player := range players {
+			integrationTests.CreateAndSendTransactionWithGasLimit(
+				ownerNode,
+				big.NewInt(0),
+				transferTokenFullGas+initialPlusForGas,
+				scAddress,
+				[]byte("transferToken@"+hex.EncodeToString(player.Address)+"@00"+hex.EncodeToString(initialTokenSupply.Bytes())),
+				integrationTests.ChainID,
+				integrationTests.MinTransactionVersion,
+			)
+		}
+		time.Sleep(time.Second)
+
+		nrRoundsToTest := int64(5)
+		for i := int64(0); i < nrRoundsToTest; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
+			for _, player := range players {
+				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0),
+					transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress1)+"@00"+hex.EncodeToString(sendValue.Bytes())))
+				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0),
+					transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
+			}
+
+			time.Sleep(integrationTests.StepDelay)
+		}
+
+		roundToPropagateMultiShard := int64(20)
+		for i := int64(0); i <= roundToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		}
+
+		time.Sleep(time.Second)
+
+		finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
+		finalBalance.Mul(finalBalance, sendValue)
+
+		checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
+		checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
+
+		checkPlayerBalances(t, nodes, players)
+
+		userAcc := GetUserAccount(nodes, relayer.Address)
+		assert.Equal(t, 1, userAcc.GetBalance().Cmp(relayer.Balance))
 	}
-	time.Sleep(time.Second)
+}
 
-	nrRoundsToPropagateMultiShard := int64(10)
-	for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
+func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
+	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("this is not a short test")
+		}
+
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		sendValue := big.NewInt(5)
+		round := uint64(0)
+		nonce := uint64(0)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		receiverAddress1 := []byte("12345678901234567890123456789012")
+		receiverAddress2 := []byte("12345678901234567890123456789011")
+
+		// ------- send token issue
+		issuePrice := big.NewInt(1000)
+		initalSupply := big.NewInt(10000000000)
+		tokenIssuer := nodes[0]
+		txData := "issue" +
+			"@" + hex.EncodeToString([]byte("robertWhyNot")) +
+			"@" + hex.EncodeToString([]byte("RBT")) +
+			"@" + hex.EncodeToString(initalSupply.Bytes()) +
+			"@" + hex.EncodeToString([]byte{6})
+		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+
+		time.Sleep(time.Second)
+		nrRoundsToPropagateMultiShard := int64(10)
+		for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+			time.Sleep(integrationTests.StepDelay)
+		}
+		time.Sleep(time.Second)
+
+		tokenIdenfitifer := string(integrationTests.GetTokenIdentifier(nodes, []byte("RBT")))
+		CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, tokenIdenfitifer, initalSupply)
+
+		// ------ send tx to players
+		valueToTopUp := big.NewInt(100000000)
+		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(valueToTopUp.Bytes())
+		for _, player := range players {
+			integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), player.Address, txData, integrationTests.AdditionalGasLimit)
+		}
+
+		time.Sleep(time.Second)
+		for i := int64(0); i < nrRoundsToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+			time.Sleep(integrationTests.StepDelay)
+		}
+		time.Sleep(time.Second)
+
+		txData = core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString([]byte(tokenIdenfitifer)) + "@" + hex.EncodeToString(sendValue.Bytes())
+		transferTokenESDTGas := uint64(1)
+		transferTokenBaseGas := tokenIssuer.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte(txData)})
+		transferTokenFullGas := transferTokenBaseGas + transferTokenESDTGas + uint64(100) // use more gas to simulate gas refund
+		nrRoundsToTest := int64(5)
+		for i := int64(0); i < nrRoundsToTest; i++ {
+			for _, player := range players {
+				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
+				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
+			}
+
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+
+			time.Sleep(integrationTests.StepDelay)
+		}
+
+		nrRoundsToPropagateMultiShard = int64(20)
+		for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		}
+
+		time.Sleep(time.Second)
+		finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
+		finalBalance.Mul(finalBalance, sendValue)
+		CheckAddressHasTokens(t, receiverAddress1, nodes, tokenIdenfitifer, finalBalance)
+		CheckAddressHasTokens(t, receiverAddress2, nodes, tokenIdenfitifer, finalBalance)
+
+		players = append(players, relayer)
+		checkPlayerBalances(t, nodes, players)
+	}
+}
+
+func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
+	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+
+		if testing.Short() {
+			t.Skip("this is not a short test")
+		}
+
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		for _, node := range nodes {
+			node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		}
+
+		round := uint64(0)
+		nonce := uint64(0)
+		round = integrationTests.IncrementAndPrintRound(round)
+		nonce++
+
+		ownerNode := nodes[0]
+		scCode := wasm.GetSCCode("attestation.wasm")
+		scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+
+		registerValue := big.NewInt(100)
+		integrationTests.CreateAndSendTransactionWithGasLimit(
+			nodes[0],
+			big.NewInt(0),
+			200000,
+			make([]byte, 32),
+			[]byte(wasm.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
+			integrationTests.ChainID,
+			integrationTests.MinTransactionVersion,
+		)
+		time.Sleep(time.Second)
+
+		registerVMGas := uint64(100000)
+		savePublicInfoVMGas := uint64(100000)
+		attestVMGas := uint64(100000)
+
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	}
 
-	cryptoHook := hooks.NewVMCryptoHook()
-	privateInfos := make([]string, len(players))
-	for i := range players {
-		privateInfos[i] = core.UniqueIdentifier()
-		publicInfo, _ := cryptoHook.Keccak256([]byte(privateInfos[i]))
-		createAndSendSimpleTransaction(nodes, relayer, scAddress, big.NewInt(0), savePublicInfoVMGas,
-			[]byte("savePublicInfo@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString(publicInfo)))
-	}
-	time.Sleep(time.Second)
+		uniqueIDs := make([]string, len(players))
+		for i, player := range players {
+			uniqueIDs[i] = core.UniqueIdentifier()
+			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, registerValue,
+				registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
+		}
+		time.Sleep(time.Second)
 
-	nrRoundsToPropagate := int64(5)
-	for i := int64(0); i <= nrRoundsToPropagate; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	}
+		nrRoundsToPropagateMultiShard := int64(10)
+		for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		}
 
-	for i, player := range players {
-		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
-			[]byte("attest@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString([]byte(privateInfos[i]))))
-		_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, registerValue,
-			registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
-	}
-	time.Sleep(time.Second)
+		cryptoHook := hooks.NewVMCryptoHook()
+		privateInfos := make([]string, len(players))
+		for i := range players {
+			privateInfos[i] = core.UniqueIdentifier()
+			publicInfo, _ := cryptoHook.Keccak256([]byte(privateInfos[i]))
+			createAndSendSimpleTransaction(nodes, relayer, scAddress, big.NewInt(0), savePublicInfoVMGas,
+				[]byte("savePublicInfo@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString(publicInfo)))
+		}
+		time.Sleep(time.Second)
 
-	nrRoundsToPropagateMultiShard = int64(20)
-	for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	}
+		nrRoundsToPropagate := int64(5)
+		for i := int64(0); i <= nrRoundsToPropagate; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		}
 
-	for i, player := range players {
-		checkAttestedPublicKeys(t, ownerNode, scAddress, []byte(uniqueIDs[i]), player.Address)
+		for i, player := range players {
+			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
+				[]byte("attest@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString([]byte(privateInfos[i]))))
+			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, registerValue,
+				registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
+		}
+		time.Sleep(time.Second)
+
+		nrRoundsToPropagateMultiShard = int64(20)
+		for i := int64(0); i <= nrRoundsToPropagateMultiShard; i++ {
+			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
+		}
+
+		for i, player := range players {
+			checkAttestedPublicKeys(t, ownerNode, scAddress, []byte(uniqueIDs[i]), player.Address)
+		}
 	}
 }
 

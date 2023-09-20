@@ -228,6 +228,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return txProc.processRelayedTx(tx, acntSnd, acntDst)
 	case process.RelayedTxV2:
 		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+	case process.RelayedTxV3:
+		return txProc.processRelayedTxV3(tx, acntSnd, acntDst)
 	}
 
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
@@ -612,6 +614,34 @@ func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler
 	return txProc.accounts.SaveAccount(acntDst)
 }
 
+func (txProc *txProcessor) processRelayedTxV3(
+	tx *transaction.Transaction,
+	relayerAcnt, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	if !txProc.enableEpochsHandler.IsRelayedTransactionsV3FlagEnabled() {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3Disabled)
+	}
+
+	innerTx := &transaction.Transaction{}
+	innerTxBuff := tx.GetInnerTransaction()
+	err := txProc.signMarshalizer.Unmarshal(innerTx, innerTxBuff)
+	if err != nil {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
+	}
+
+	if !bytes.Equal(tx.RcvAddr, innerTx.SndAddr) {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver)
+	}
+	if tx.GasPrice != innerTx.GasPrice {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedV3GasPriceMismatch)
+	}
+	if tx.GasLimit < innerTx.GasLimit {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3GasLimitLowerThanInnerTx)
+	}
+
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, innerTx)
+}
+
 func (txProc *txProcessor) processRelayedTxV2(
 	tx *transaction.Transaction,
 	relayerAcnt, acntDst state.UserAccountHandler,
@@ -682,6 +712,24 @@ func (txProc *txProcessor) processRelayedTx(
 func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) relayedFees {
 	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalFee := txProc.economicsFee.ComputeTxFee(tx)
+	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
+
+	computedFees := relayedFees{
+		totalFee:     totalFee,
+		remainingFee: remainingFee,
+		relayerFee:   relayerFee,
+	}
+
+	return computedFees
+}
+
+func (txProc *txProcessor) computeRelayedV3TxFees(tx *transaction.Transaction, innerTxs []*transaction.Transaction) relayedFees {
+	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	totalFee := big.NewInt(0)
+	for _, innerTx := range innerTxs {
+		innerFee := txProc.economicsFee.ComputeTxFee(innerTx)
+		totalFee.Add(totalFee, innerFee)
+	}
 	remainingFee := big.NewInt(0).Sub(totalFee, relayerFee)
 
 	computedFees := relayedFees{
