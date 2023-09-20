@@ -44,7 +44,7 @@ func TestSovereignResolverRequestHandler_RequestExtendedShardHeaderByNonce(t *te
 	requestedNonce := uint64(4)
 
 	shardID := core.SovereignChainShardId
-	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
+	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, shardID)
 	expectedKey := fmt.Sprintf("%d-%d", shardID, requestedNonce)
 	expectedFullKey := expectedKey + suffix
 
@@ -106,7 +106,7 @@ func TestSovereignResolverRequestHandler_RequestExtendedShardHeader(t *testing.T
 	requestedHash := []byte("hash")
 
 	shardID := core.SovereignChainShardId
-	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
+	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, shardID)
 	expectedKey := string(requestedHash)
 	expectedFullKey := expectedKey + suffix
 
