@@ -125,9 +125,6 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 	var buff []byte
 
-	log.Error("HeaderResolver.ProcessReceivedMessage",
-		"message", rd.Value)
-
 	switch rd.Type {
 	case dataRetriever.HashType:
 		buff, err = hdrRes.resolveHeaderFromHash(rd)

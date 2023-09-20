@@ -118,7 +118,6 @@ func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedDat
 	if !ok {
 		return fmt.Errorf("sovereignHeaderInterceptorProcessor.Save error: %w", process.ErrWrongTypeAssertion)
 	}
-	log.Error("sovereignHeaderInterceptorProcessor.IncomingHeaderSubscriber. BEFORE  AddHeader")
 
 	// do not add header again + create scrs and mbs if already received
 	_, err := hip.headersPool.GetHeaderByHash(interceptedHdr.Hash())
@@ -127,7 +126,7 @@ func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedDat
 			"hash", hex.EncodeToString(interceptedHdr.Hash()))
 		return nil
 	}
-	log.Error("sovereignHeaderInterceptorProcessor.IncomingHeaderSubscriber.AddHeader")
+
 	return hip.incomingHeaderSubscriber.AddHeader(interceptedHdr.Hash(), interceptedHdr.GetExtendedHeader())
 }
 

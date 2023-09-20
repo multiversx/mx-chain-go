@@ -1,7 +1,6 @@
 package requestHandlers
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,12 +29,6 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 
 // RequestExtendedShardHeaderByNonce method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(nonce uint64) {
-	log.Error("RequestExtendedShardHeaderByNonce", "nonce", nonce)
-
-	if nonce < 10 {
-		log.Error("RequestExtendedShardHeaderByNonce REJECTED", "nonce", nonce)
-	}
-
 	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, srrh.shardID)
 	key := []byte(fmt.Sprintf("%d-%d", srrh.shardID, nonce))
 	if !srrh.testIfRequestIsNeeded(key, suffix) {
@@ -92,8 +85,6 @@ func (srrh *sovereignResolverRequestHandler) getExtendedShardHeaderRequester() (
 
 // RequestExtendedShardHeader method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []byte) {
-	log.Error("sovereignResolverRequestHandler.RequestExtendedShardHeader", "hash", hex.EncodeToString(hash))
-
 	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, srrh.shardID)
 	if !srrh.testIfRequestIsNeeded(hash, suffix) {
 		return

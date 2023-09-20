@@ -74,7 +74,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if !bytes.Equal(currHeader.GetPrevHash(), prevHeaderHash) {
-		log.Trace("header hash does not match",
+		log.Error("header hash does not match",
 			"shard", currHeader.GetShardID(),
 			"local header hash", prevHeaderHash,
 			"received header with prev hash", currHeader.GetPrevHash(),
@@ -83,7 +83,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if !bytes.Equal(currHeader.GetPrevRandSeed(), prevHeader.GetRandSeed()) {
-		log.Trace("header random seed does not match",
+		log.Error("header random seed does not match",
 			"shard", currHeader.GetShardID(),
 			"local header random seed", prevHeader.GetRandSeed(),
 			"received header with prev random seed", currHeader.GetPrevRandSeed(),

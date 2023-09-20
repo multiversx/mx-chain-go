@@ -47,8 +47,6 @@ func NewSovereignInterceptedHeader(args ArgsSovereignInterceptedHeader) (*sovere
 }
 
 func unmarshalExtendedShardHeader(marshaller marshal.Marshalizer, headerBytes []byte) (data.ShardHeaderExtendedHandler, error) {
-	log.Error("UnmarshalExtendedShardHeader", "hdrBuff", string(headerBytes))
-
 	extendedHeader := &block.ShardHeaderExtended{}
 	err := marshaller.Unmarshal(extendedHeader, headerBytes)
 	if err != nil {
