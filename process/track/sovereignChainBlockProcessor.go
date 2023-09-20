@@ -1,6 +1,7 @@
 package track
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -8,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 )
+
+var mainChainID = []byte("1")
 
 type extendedShardHeaderRequestHandler interface {
 	RequestExtendedShardHeaderByNonce(nonce uint64)
@@ -86,8 +89,7 @@ func (scbp *sovereignChainBlockProcessor) doJobOnReceivedCrossNotarizedHeader(sh
 }
 
 func (scbp *sovereignChainBlockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64, lastNotarizedHeader data.HeaderHandler) {
-	_, isExtendedHeader := lastNotarizedHeader.(data.ShardHeaderExtendedHandler)
-	if isExtendedHeader {
+	if bytes.Equal(lastNotarizedHeader.GetChainID(), mainChainID) {
 		scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
 	} else {
 		scbp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)

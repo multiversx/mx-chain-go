@@ -366,7 +366,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	shardID := core.SovereignChainShardId
 	fromNonce := uint64(1)
 
-	scbp.RequestHeaders(shardID, fromNonce, &block.ShardHeaderExtended{})
+	scbp.RequestHeaders(shardID, fromNonce, &block.Header{ChainID: []byte("1")})
 
 	time.Sleep(100 * time.Millisecond)
 

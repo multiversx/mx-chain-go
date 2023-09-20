@@ -132,6 +132,7 @@ func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.H
 			Round:        nonce,
 			RandSeed:     generateRandomHash(),
 			PrevRandSeed: prevRandSeed,
+			ChainID:      []byte("1"),
 		},
 	}
 }
