@@ -19,6 +19,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Before merging anything into feat/chain-go-sdk, please try a "stress" system test with a local testnet and this notifier.
+// Steps:
+// 1. Replace github.com/multiversx/mx-chain-communication-go from cmd/sovereignnode/systemTestDemo/go.mod with the one
+// from this branch: sovereign-stress-test-branch.
+// 2. Keep the config in variables.sh with at least 3 validators.
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "MultiversX sovereign chain mock notifier"
