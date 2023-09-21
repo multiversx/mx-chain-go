@@ -22,6 +22,7 @@ var log = logger.GetOrCreate("keysManagement")
 type managedPeersHolder struct {
 	mut                              sync.RWMutex
 	defaultPeerInfoCurrentIndex      int
+	providedIdentity                 map[string]*peerInfo
 	data                             map[string]*peerInfo
 	pids                             map[core.PeerID]struct{}
 	keyGenerator                     crypto.KeyGenerator
@@ -60,9 +61,10 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
 		defaultIdentity:                  args.PrefsConfig.Preferences.Identity,
 		p2pKeyConverter:                  args.P2PKeyConverter,
+		data:                             make(map[string]*peerInfo),
 	}
 
-	holder.data, err = holder.createDataMap(args.PrefsConfig.NamedIdentity)
+	holder.providedIdentity, err = holder.createDataMap(args.PrefsConfig.NamedIdentity)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +161,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 			ErrDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
 	}
 
+	pInfo, found = holder.providedIdentity[string(publicKeyBytes)]
 	if !found {
 		pInfo = &peerInfo{
 			machineID:    generateRandomMachineID(),
