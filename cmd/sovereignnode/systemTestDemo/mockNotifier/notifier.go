@@ -173,6 +173,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 						Address:    subscribedAddr,
 						Identifier: []byte("deposit"),
 						Topics:     topics,
+						Data:       big.NewInt(int64(ct)).Bytes(),
 					},
 				},
 			},
