@@ -494,7 +494,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	sovereignWsReceiver, err := createSovereignWsReceiver(
 		managedDataComponents.Datapool(),
 		configs.NotifierConfig,
-		configs.SovereignExtraConfig.MainChainStartRoundNotarization,
+		configs.SovereignExtraConfig.MainChainNotarization.StartRound,
 	)
 	if err != nil {
 		return true, err

@@ -4,5 +4,9 @@ package config
 type SovereignConfig struct {
 	ExtendedShardHdrNonceHashStorage StorageConfig
 	ExtendedShardHeaderStorage       StorageConfig
-	MainChainStartRoundNotarization  uint64
+	MainChainNotarization            MainChainNotarization `toml:"MainChainNotarization"`
+}
+
+type MainChainNotarization struct {
+	StartRound uint64 `toml:"StartRound"`
 }
