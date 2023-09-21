@@ -13,8 +13,11 @@ const (
 	minRequestTimeoutSec = 1
 	contentTypeKey       = "Content-Type"
 	contentTypeValue     = "application/json"
-	payloadVersionKey    = "version"
-	payloadVersionValue  = "1"
+
+	payloadVersionKey = "version"
+	// set http header version to 1; notifier connector will have to handle
+	// previous payload type if no version header is set
+	payloadVersionValue = "1"
 )
 
 type httpClientWrapper struct {

@@ -16,6 +16,7 @@
     EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "esdts"]
 
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
+# HTTP event notifier connector integration will be DEPRECATED in the following iterations
 [EventNotifierConnector]
     # Enabled will turn on or off the event notifier connector
     Enabled = false
