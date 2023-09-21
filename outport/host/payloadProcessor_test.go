@@ -39,12 +39,12 @@ func TestPayloadProcessor_SetHandlerFunc(t *testing.T) {
 	require.Nil(t, err)
 
 	// wrong topic should ignore
-	err = pp.ProcessPayload([]byte(""), outport.TopicSaveAccounts, "1.0")
+	err = pp.ProcessPayload([]byte(""), outport.TopicSaveAccounts, 1)
 	require.Nil(t, err)
 	require.False(t, called)
 
 	// should call handler func
-	err = pp.ProcessPayload([]byte(""), outport.TopicSettings, "1.0")
+	err = pp.ProcessPayload([]byte(""), outport.TopicSettings, 1)
 	require.Nil(t, err)
 	require.True(t, called)
 }

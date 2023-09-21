@@ -73,4 +73,4 @@
     # Defines the payload version. Version will be changed when there are breaking
     # changes on payload data. The receiver/consumer will have to know how to handle different
     # versions. The version will be sent as metadata in the websocket message.
-    Version = "1.0"
+    Version = 1
