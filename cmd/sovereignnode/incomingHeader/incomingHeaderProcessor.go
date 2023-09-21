@@ -20,11 +20,13 @@ type ArgsIncomingHeaderProcessor struct {
 	TxPool      TransactionPool
 	Marshaller  marshal.Marshalizer
 	Hasher      hashing.Hasher
+	StartRound  uint64
 }
 
 type incomingHeaderProcessor struct {
 	scrProc            *scrProcessor
 	extendedHeaderProc *extendedHeaderProcessor
+	startRound         uint64
 }
 
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
@@ -56,15 +58,25 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		hasher:      args.Hasher,
 	}
 
+	log.Debug("NewIncomingHeaderProcessor", "starting round to notarize main chain headers", args.StartRound)
+
 	return &incomingHeaderProcessor{
 		scrProc:            scrProc,
 		extendedHeaderProc: extendedHearProc,
+		startRound:         args.StartRound,
 	}, nil
 }
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
+	round := header.GetHeaderHandler().GetRound()
+	if round < ihp.startRound {
+		log.Debug("do not notarize incoming header, round lower than start round",
+			"round", round,
+			"start round", ihp.startRound)
+		return nil
+	}
 
 	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
 	if !castOk {

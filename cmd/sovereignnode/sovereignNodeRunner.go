@@ -494,6 +494,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	sovereignWsReceiver, err := createSovereignWsReceiver(
 		managedDataComponents.Datapool(),
 		configs.NotifierConfig,
+		configs.SovereignExtraConfig.MainChainStartRoundNotarization,
 	)
 	if err != nil {
 		return true, err
@@ -1670,6 +1671,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 func createSovereignWsReceiver(
 	dataPool dataRetriever.PoolsHolder,
 	config *sovereignConfig.NotifierConfig,
+	startRound uint64,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
 		MarshallerType:   config.WebSocketConfig.MarshallerType,
@@ -1696,6 +1698,7 @@ func createSovereignWsReceiver(
 		TxPool:      dataPool.UnsignedTransactions(),
 		Marshaller:  marshaller,
 		Hasher:      hasher,
+		StartRound:  startRound,
 	}
 	incomingHeaderHandler, err := incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 	if err != nil {

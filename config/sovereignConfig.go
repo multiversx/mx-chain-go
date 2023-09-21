@@ -4,4 +4,5 @@ package config
 type SovereignConfig struct {
 	ExtendedShardHdrNonceHashStorage StorageConfig
 	ExtendedShardHeaderStorage       StorageConfig
+	MainChainStartRoundNotarization  uint64
 }
