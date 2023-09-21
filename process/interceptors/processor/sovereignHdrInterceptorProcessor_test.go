@@ -219,7 +219,7 @@ func TestSovereignHeaderInterceptorProcessor_ValidateErrorCases(t *testing.T) {
 
 		sovHdrProc, _ := NewSovereignHdrInterceptorProcessor(args)
 		err := sovHdrProc.Validate(interceptedHdr, "")
-		require.ErrorIs(t, err, errors.ErrInvalidReceivedSovereignProof)
+		require.ErrorIs(t, err, errors.ErrInvalidReceivedExtendedShardHeader)
 		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("computed hash: %s", hex.EncodeToString(extendedHdrHash))))
 		require.True(t, strings.Contains(err.Error(), fmt.Sprintf("received hash: %s", hex.EncodeToString(anotherHash))))
 	})

@@ -650,5 +650,5 @@ var ErrNilShardResolversContainerFactory = errors.New("nil shard resolvers conta
 // ErrNilShardResolversContainerFactoryCreator signals that a nil shard resolvers container factory creator has been provided
 var ErrNilShardResolversContainerFactoryCreator = errors.New("nil shard resolvers container factory creator has been provided")
 
-// ErrInvalidReceivedSovereignProof signals that an invalid sovereign proof has been intercepted when requested
-var ErrInvalidReceivedSovereignProof = errors.New("invalid received sovereign proof")
+// ErrInvalidReceivedExtendedShardHeader signals that an invalid extended shard header has been intercepted when requested
+var ErrInvalidReceivedExtendedShardHeader = errors.New("invalid extended shard header has been intercepted")
