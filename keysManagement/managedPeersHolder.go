@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("keysManagement")
 type managedPeersHolder struct {
 	mut                              sync.RWMutex
 	defaultPeerInfoCurrentIndex      int
-	providedIdentity                 map[string]*peerInfo
+	providedIdentities               map[string]*peerInfo
 	data                             map[string]*peerInfo
 	pids                             map[core.PeerID]struct{}
 	keyGenerator                     crypto.KeyGenerator
@@ -64,7 +64,7 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		data:                             make(map[string]*peerInfo),
 	}
 
-	holder.providedIdentity, err = holder.createDataMap(args.PrefsConfig.NamedIdentity)
+	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	return nil
 }
 
-func (holder *managedPeersHolder) createDataMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
+func (holder *managedPeersHolder) createProvidedIdentitiesMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
 	dataMap := make(map[string]*peerInfo)
 
 	for _, identity := range namedIdentities {
@@ -161,7 +161,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 			ErrDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
 	}
 
-	pInfo, found = holder.providedIdentity[string(publicKeyBytes)]
+	pInfo, found = holder.providedIdentities[string(publicKeyBytes)]
 	if !found {
 		pInfo = &peerInfo{
 			machineID:    generateRandomMachineID(),
