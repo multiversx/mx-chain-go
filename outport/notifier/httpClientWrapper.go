@@ -13,6 +13,8 @@ const (
 	minRequestTimeoutSec = 1
 	contentTypeKey       = "Content-Type"
 	contentTypeValue     = "application/json"
+	payloadVersionKey    = "version"
+	payloadVersionValue  = "1"
 )
 
 type httpClientWrapper struct {
@@ -76,6 +78,7 @@ func (h *httpClientWrapper) Post(
 	}
 
 	req.Header.Set(contentTypeKey, contentTypeValue)
+	req.Header.Set(payloadVersionKey, payloadVersionValue)
 
 	if h.useAuthorization {
 		req.SetBasicAuth(h.username, h.password)
