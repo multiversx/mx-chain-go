@@ -893,6 +893,13 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 		}
 	}
 
+	if len(txArgs.Relayer) > 0 {
+		tx.RelayedAddr, err = addrPubKeyConverter.Decode(txArgs.Relayer)
+		if err != nil {
+			return nil, nil, errors.New("could not create relayer address from provided param")
+		}
+	}
+
 	var txHash []byte
 	txHash, err = core.CalculateHash(n.coreComponents.InternalMarshalizer(), n.coreComponents.Hasher(), tx)
 	if err != nil {

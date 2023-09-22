@@ -1503,20 +1503,18 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	minTxVersion := uint32(1)
 	chainID := []byte("chain")
 	innerTx := &dataTransaction.Transaction{
-		Nonce:     1,
-		Value:     big.NewInt(2),
-		Data:      []byte("data inner tx 1"),
-		GasLimit:  3,
-		GasPrice:  4,
-		RcvAddr:   recvAddress,
-		SndAddr:   senderAddress,
-		Signature: sigOk,
-		ChainID:   chainID,
-		Version:   minTxVersion,
+		Nonce:       1,
+		Value:       big.NewInt(2),
+		Data:        []byte("data inner tx 1"),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     []byte("34567890123456789012345678901234"),
+		SndAddr:     recvAddress,
+		Signature:   sigOk,
+		ChainID:     chainID,
+		Version:     minTxVersion,
+		RelayedAddr: senderAddress,
 	}
-	marshaller := &mock.MarshalizerMock{}
-	innerTxBuff, err := marshaller.Marshal(innerTx)
-	assert.Nil(t, err)
 
 	tx := &dataTransaction.Transaction{
 		Nonce:            1,
@@ -1528,22 +1526,30 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		Signature:        sigOk,
 		ChainID:          chainID,
 		Version:          minTxVersion,
-		InnerTransaction: innerTxBuff,
+		InnerTransaction: innerTx,
 	}
 	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
-	err = txi.CheckValidity()
+	err := txi.CheckValidity()
 	assert.Nil(t, err)
 
+	innerTx.RelayedAddr = nil
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRelayedTxV3EmptyRelayer, err)
+	innerTx.RelayedAddr = senderAddress
+
+	innerTx.SndAddr = []byte("34567890123456789012345678901234")
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver, err)
+	innerTx.SndAddr = recvAddress
+
 	innerTx.Signature = nil
-	tx.InnerTransaction, err = marshaller.Marshal(innerTx)
-	assert.Nil(t, err)
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)
 
 	innerTx.Signature = sigBad
-	tx.InnerTransaction, err = marshaller.Marshal(innerTx)
-	assert.Nil(t, err)
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)
@@ -1560,12 +1566,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		ChainID:   chainID,
 		Version:   minTxVersion,
 	}
-	innerTx2Buff, err := marshaller.Marshal(innerTx2)
-	assert.Nil(t, err)
-	innerTx.InnerTransaction, err = marshaller.Marshal(innerTx2Buff)
-	assert.Nil(t, err)
-	tx.InnerTransaction, err = marshaller.Marshal(innerTx)
-	assert.Nil(t, err)
+	innerTx.InnerTransaction = innerTx2
+	tx.InnerTransaction = innerTx
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)

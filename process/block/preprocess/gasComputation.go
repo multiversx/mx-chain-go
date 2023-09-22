@@ -420,7 +420,7 @@ func (gc *gasComputation) computeGasProvidedByTxV1(
 }
 
 func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
-	return txType == process.RelayedTx || txType == process.RelayedTxV2
+	return txType == process.RelayedTx || txType == process.RelayedTxV2 || txType == process.RelayedTxV3
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

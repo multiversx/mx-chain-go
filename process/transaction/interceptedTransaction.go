@@ -210,24 +210,26 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	return nil
 }
 
-func isRelayedTx(funcName string, innerTx []byte) bool {
+func isRelayedTx(funcName string, innerTx *transaction.Transaction) bool {
 	return core.RelayedTransaction == funcName ||
 		core.RelayedTransactionV2 == funcName ||
-		len(innerTx) > 0
+		innerTx != nil
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
-	if len(tx.InnerTransaction) == 0 {
+	if tx.InnerTransaction == nil {
 		return nil
 	}
 
-	innerTx := &transaction.Transaction{}
-	err := inTx.signMarshalizer.Unmarshal(innerTx, tx.InnerTransaction)
-	if err != nil {
-		return err
+	innerTx := tx.InnerTransaction
+	if !bytes.Equal(innerTx.SndAddr, tx.RcvAddr) {
+		return process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver
+	}
+	if len(innerTx.RelayedAddr) == 0 {
+		return process.ErrRelayedTxV3EmptyRelayer
 	}
 
-	err = inTx.integrity(innerTx)
+	err := inTx.integrity(innerTx)
 	if err != nil {
 		return fmt.Errorf("inner transaction: %w", err)
 	}

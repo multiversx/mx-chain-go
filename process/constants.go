@@ -58,6 +58,8 @@ func (transactionType TransactionType) String() string {
 		return "RelayedTx"
 	case RelayedTxV2:
 		return "RelayedTxV2"
+	case RelayedTxV3:
+		return "RelayedTxV3"
 	case RewardTx:
 		return "RewardTx"
 	case InvalidTransaction:

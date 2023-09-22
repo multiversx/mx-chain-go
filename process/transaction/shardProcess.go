@@ -621,25 +621,26 @@ func (txProc *txProcessor) processRelayedTxV3(
 	if !txProc.enableEpochsHandler.IsRelayedTransactionsV3FlagEnabled() {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3Disabled)
 	}
-
-	innerTx := &transaction.Transaction{}
-	innerTxBuff := tx.GetInnerTransaction()
-	err := txProc.signMarshalizer.Unmarshal(innerTx, innerTxBuff)
-	if err != nil {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
+	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3ZeroVal)
 	}
 
-	if !bytes.Equal(tx.RcvAddr, innerTx.SndAddr) {
+	userTx := tx.GetInnerTransaction()
+	if !bytes.Equal(tx.RcvAddr, userTx.SndAddr) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver)
 	}
-	if tx.GasPrice != innerTx.GasPrice {
+	if len(userTx.RelayedAddr) == 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3EmptyRelayer)
+	}
+	if tx.GasPrice != userTx.GasPrice {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedV3GasPriceMismatch)
 	}
-	if tx.GasLimit < innerTx.GasLimit {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3GasLimitLowerThanInnerTx)
+	remainingGasLimit := tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
+	if userTx.GasLimit != remainingGasLimit {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3GasLimitMismatch)
 	}
 
-	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, innerTx)
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
 }
 
 func (txProc *txProcessor) processRelayedTxV2(

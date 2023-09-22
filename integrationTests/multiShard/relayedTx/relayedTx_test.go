@@ -70,10 +70,18 @@ func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 		receiverAddress2 := []byte("12345678901234567890123456789011")
 
 		nrRoundsToTest := int64(5)
+
+		txsSentEachRound := big.NewInt(2) // 2 relayed txs each round
+		txsSentPerPlayer := big.NewInt(0).Mul(txsSentEachRound, big.NewInt(nrRoundsToTest))
+		initialPlayerFunds := big.NewInt(0).Mul(sendValue, txsSentPerPlayer)
+		integrationTests.MintAllPlayers(nodes, players, initialPlayerFunds)
+
 		for i := int64(0); i < nrRoundsToTest; i++ {
 			for _, player := range players {
 				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+				player.Balance.Sub(player.Balance, sendValue)
 				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+				player.Balance.Sub(player.Balance, sendValue)
 			}
 
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -340,10 +348,12 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
+		integrationTests.MintAllPlayers(nodes, players, registerValue)
+
 		uniqueIDs := make([]string, len(players))
 		for i, player := range players {
 			uniqueIDs[i] = core.UniqueIdentifier()
-			_ = CreateAndSendRelayedAndUserTx(nodes, relayer, player, scAddress, registerValue,
+			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, registerValue,
 				registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
 		}
 		time.Sleep(time.Second)
@@ -369,6 +379,8 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		}
+
+		integrationTests.MintAllPlayers(nodes, players, registerValue)
 
 		for i, player := range players {
 			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
@@ -426,7 +438,7 @@ func checkPlayerBalances(
 	players []*integrationTests.TestWalletAccount) {
 	for _, player := range players {
 		userAcc := GetUserAccount(nodes, player.Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(player.Balance), 0)
+		assert.Equal(t, 0, userAcc.GetBalance().Cmp(player.Balance))
 		assert.Equal(t, userAcc.GetNonce(), player.Nonce)
 	}
 }

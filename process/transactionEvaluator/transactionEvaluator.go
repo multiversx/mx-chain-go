@@ -103,7 +103,7 @@ func (ate *apiTransactionEvaluator) ComputeTransactionGasLimit(tx *transaction.T
 	switch txTypeOnSender {
 	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall, process.MoveBalance:
 		return ate.simulateTransactionCost(tx, txTypeOnSender)
-	case process.RelayedTx, process.RelayedTxV2:
+	case process.RelayedTx, process.RelayedTxV2, process.RelayedTxV3:
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
 			GasUnits:      0,

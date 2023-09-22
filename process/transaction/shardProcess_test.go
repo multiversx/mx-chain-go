@@ -2031,7 +2031,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 	tx.RcvAddr = userAddr
 	tx.Value = big.NewInt(0)
 	tx.GasPrice = 1
-	tx.GasLimit = 4
+	tx.GasLimit = 8
 
 	userTx := &transaction.Transaction{}
 	userTx.Nonce = 0
@@ -2040,9 +2040,10 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 	userTx.Value = big.NewInt(0)
 	userTx.Data = []byte("execute@param1")
 	userTx.GasPrice = 1
-	userTx.GasLimit = 2
+	userTx.GasLimit = 4
+	userTx.RelayedAddr = tx.SndAddr
 
-	tx.InnerTransaction, _ = marshaller.Marshal(userTx)
+	tx.InnerTransaction = userTx
 
 	t.Run("flag not active should error", func(t *testing.T) {
 		t.Parallel()
@@ -2100,11 +2101,11 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		assert.Equal(t, process.ErrFailedTransaction, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
-	t.Run("dummy inner txs on relayed tx should error", func(t *testing.T) {
+	t.Run("value on relayed tx should error", func(t *testing.T) {
 		t.Parallel()
 
 		txCopy := *tx
-		txCopy.InnerTransaction = []byte("dummy")
+		txCopy.Value = big.NewInt(1)
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
 	t.Run("different sender on inner tx should error", func(t *testing.T) {
@@ -2112,6 +2113,15 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 
 		txCopy := *tx
 		txCopy.RcvAddr = userTx.RcvAddr
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("empty relayer on inner tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		userTxCopy := *userTx
+		userTxCopy.RelayedAddr = nil
+		txCopy.InnerTransaction = &userTxCopy
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
 	t.Run("different gas price on inner tx should error", func(t *testing.T) {
@@ -2192,6 +2202,18 @@ func testProcessRelayedTransactionV3(
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRelayedTransactionsV3FlagEnabledField: true,
 	}
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(4)
+		},
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(4)
+		},
+		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+			return 4
+		},
+	}
+
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(tx)

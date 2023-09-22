@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -15,6 +16,10 @@ import (
 )
 
 var _ process.TxTypeHandler = (*txTypeHandler)(nil)
+
+type relayedV3TransactionHandler interface {
+	GetInnerTransaction() *transaction.Transaction
+}
 
 type txTypeHandler struct {
 	pubkeyConv          core.PubkeyConverter
@@ -190,12 +195,12 @@ func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
 }
 
 func (tth *txTypeHandler) isRelayedTransactionV3(tx data.TransactionHandler) bool {
-	rtx, ok := tx.(data.RelayedV3TransactionHandler)
+	rtx, ok := tx.(relayedV3TransactionHandler)
 	if !ok {
 		return false
 	}
 
-	return len(rtx.GetInnerTransaction()) > 0
+	return rtx.GetInnerTransaction() != nil
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {

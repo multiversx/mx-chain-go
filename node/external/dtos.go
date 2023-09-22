@@ -1,5 +1,7 @@
 package external
 
+import "github.com/multiversx/mx-chain-core-go/data/transaction"
+
 // ArgsCreateTransaction defines arguments for creating a transaction
 type ArgsCreateTransaction struct {
 	Nonce            uint64
@@ -17,5 +19,6 @@ type ArgsCreateTransaction struct {
 	Options          uint32
 	Guardian         string
 	GuardianSigHex   string
-	InnerTransaction []byte
+	Relayer          string
+	InnerTransaction *transaction.Transaction
 }

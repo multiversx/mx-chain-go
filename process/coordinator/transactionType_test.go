@@ -452,7 +452,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedV3(t *testing.T) {
 	tx.SndAddr = []byte("000")
 	tx.RcvAddr = []byte("001")
 	tx.Value = big.NewInt(45)
-	tx.InnerTransaction = []byte("some inner tx")
+	tx.InnerTransaction = &transaction.Transaction{Nonce: 1}
 
 	arg := createMockArguments()
 	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
