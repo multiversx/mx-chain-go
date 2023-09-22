@@ -150,6 +150,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 	assert.Equal(t, core.MetachainShardId, irt.SenderShardId())
 	assert.Equal(t, &rewTx, irt.Transaction())
 	assert.True(t, irt.IsForCurrentShard())
+	assert.Nil(t, irt.UserTransaction())
 
 	txHash := irt.Hasher().Compute(string(txBuff))
 	assert.Equal(t, txHash, irt.Hash())

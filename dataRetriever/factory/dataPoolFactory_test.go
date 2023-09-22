@@ -59,6 +59,13 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), "the cache for the transactions"))
 
 	args = getGoodArgs()
+	args.Config.RelayedInnerTxDataPool.Capacity = 0
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.True(t, errors.Is(err, dataRetriever.ErrCacheConfigInvalidSize))
+	require.True(t, strings.Contains(err.Error(), "the cache for the relayed inner transactions"))
+
+	args = getGoodArgs()
 	args.Config.UnsignedTransactionDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)

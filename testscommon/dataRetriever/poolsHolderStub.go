@@ -8,22 +8,23 @@ import (
 
 // PoolsHolderStub -
 type PoolsHolderStub struct {
-	HeadersCalled                func() dataRetriever.HeadersPool
-	TransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
-	RewardTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
-	MiniBlocksCalled             func() storage.Cacher
-	MetaBlocksCalled             func() storage.Cacher
-	CurrBlockTxsCalled           func() dataRetriever.TransactionCacher
-	CurrEpochValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
-	TrieNodesCalled              func() storage.Cacher
-	TrieNodesChunksCalled        func() storage.Cacher
-	PeerChangesBlocksCalled      func() storage.Cacher
-	SmartContractsCalled         func() storage.Cacher
-	PeerAuthenticationsCalled    func() storage.Cacher
-	HeartbeatsCalled             func() storage.Cacher
-	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
-	CloseCalled                  func() error
+	HeadersCalled                  func() dataRetriever.HeadersPool
+	TransactionsCalled             func() dataRetriever.ShardedDataCacherNotifier
+	RelayedInnerTransactionsCalled func() dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled       func() dataRetriever.ShardedDataCacherNotifier
+	MiniBlocksCalled               func() storage.Cacher
+	MetaBlocksCalled               func() storage.Cacher
+	CurrBlockTxsCalled             func() dataRetriever.TransactionCacher
+	CurrEpochValidatorInfoCalled   func() dataRetriever.ValidatorInfoCacher
+	TrieNodesCalled                func() storage.Cacher
+	TrieNodesChunksCalled          func() storage.Cacher
+	PeerChangesBlocksCalled        func() storage.Cacher
+	SmartContractsCalled           func() storage.Cacher
+	PeerAuthenticationsCalled      func() storage.Cacher
+	HeartbeatsCalled               func() storage.Cacher
+	ValidatorsInfoCalled           func() dataRetriever.ShardedDataCacherNotifier
+	CloseCalled                    func() error
 }
 
 // NewPoolsHolderStub -
@@ -44,6 +45,15 @@ func (holder *PoolsHolderStub) Headers() dataRetriever.HeadersPool {
 func (holder *PoolsHolderStub) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	if holder.TransactionsCalled != nil {
 		return holder.TransactionsCalled()
+	}
+
+	return testscommon.NewShardedDataStub()
+}
+
+// RelayedInnerTransactions -
+func (holder *PoolsHolderStub) RelayedInnerTransactions() dataRetriever.ShardedDataCacherNotifier {
+	if holder.RelayedInnerTransactionsCalled != nil {
+		return holder.RelayedInnerTransactionsCalled()
 	}
 
 	return testscommon.NewShardedDataStub()

@@ -1139,6 +1139,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, recvShard, txi.ReceiverShardId())
 	assert.False(t, txi.IsForCurrentShard())
 	assert.Equal(t, tx, txi.Transaction())
+	assert.Nil(t, txi.UserTransaction())
 }
 
 func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *testing.T) {
@@ -1403,6 +1404,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)
+	assert.NotNil(t, txi.UserTransaction())
 
 	userTx.Signature = []byte("notOk")
 	userTxData, _ = marshalizer.Marshal(userTx)
@@ -1495,6 +1497,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)
+	assert.NotNil(t, txi.UserTransaction())
 }
 
 // ------- IsInterfaceNil

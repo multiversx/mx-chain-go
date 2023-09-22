@@ -18,20 +18,21 @@ import (
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	smartContracts         storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	transactions             dataRetriever.ShardedDataCacherNotifier
+	relayedInnerTransactions dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions     dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions       dataRetriever.ShardedDataCacherNotifier
+	headers                  dataRetriever.HeadersPool
+	miniBlocks               storage.Cacher
+	peerChangesBlocks        storage.Cacher
+	trieNodes                storage.Cacher
+	trieNodesChunks          storage.Cacher
+	smartContracts           storage.Cacher
+	currBlockTxs             dataRetriever.TransactionCacher
+	currEpochValidatorInfo   dataRetriever.ValidatorInfoCacher
+	peerAuthentications      storage.Cacher
+	heartbeats               storage.Cacher
+	validatorsInfo           dataRetriever.ShardedDataCacherNotifier
 }
 
 // NewPoolsHolderMock -
@@ -40,6 +41,25 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder := &PoolsHolderMock{}
 
 	holder.transactions, err = txpool.NewShardedTxPool(
+		txpool.ArgShardedTxPool{
+			Config: storageunit.CacheConfig{
+				Capacity:             100000,
+				SizePerSender:        1000,
+				SizeInBytes:          1000000000,
+				SizeInBytesPerSender: 10000000,
+				Shards:               16,
+			},
+			TxGasHandler: &txcachemocks.TxGasHandlerMock{
+				MinimumGasMove:       50000,
+				MinimumGasPrice:      200000000000,
+				GasProcessingDivisor: 100,
+			},
+			NumberOfShards: 1,
+		},
+	)
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.relayedInnerTransactions, err = txpool.NewShardedTxPool(
 		txpool.ArgShardedTxPool{
 			Config: storageunit.CacheConfig{
 				Capacity:             100000,
@@ -125,6 +145,11 @@ func (holder *PoolsHolderMock) CurrentEpochValidatorInfo() dataRetriever.Validat
 // Transactions -
 func (holder *PoolsHolderMock) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return holder.transactions
+}
+
+// RelayedInnerTransactions -
+func (holder *PoolsHolderMock) RelayedInnerTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return holder.relayedInnerTransactions
 }
 
 // UnsignedTransactions -

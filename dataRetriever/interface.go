@@ -180,6 +180,7 @@ type ShardedDataCacherNotifier interface {
 	ClearShardStore(cacheId string)
 	GetCounts() counting.CountsWithSize
 	Keys() [][]byte
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -227,6 +228,7 @@ type ValidatorInfoCacher interface {
 // PoolsHolder defines getters for data pools
 type PoolsHolder interface {
 	Transactions() ShardedDataCacherNotifier
+	RelayedInnerTransactions() ShardedDataCacherNotifier
 	UnsignedTransactions() ShardedDataCacherNotifier
 	RewardTransactions() ShardedDataCacherNotifier
 	Headers() HeadersPool

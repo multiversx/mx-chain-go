@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/disabled"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
@@ -273,7 +274,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: bicf.dataPool.Transactions(),
+		UserShardedPool:  bicf.dataPool.RelayedInnerTransactions(),
 		TxValidator:      txValidator,
+		ShardCoordinator: bicf.shardCoordinator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -316,7 +319,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: bicf.dataPool.UnsignedTransactions(),
+		UserShardedPool:  disabled.NewShardedDataCacherNotifier(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardCoordinator: bicf.shardCoordinator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -359,7 +364,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: bicf.dataPool.RewardTransactions(),
+		UserShardedPool:  disabled.NewShardedDataCacherNotifier(),
 		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardCoordinator: bicf.shardCoordinator,
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
