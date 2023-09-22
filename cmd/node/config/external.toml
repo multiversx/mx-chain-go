@@ -59,7 +59,7 @@
     # The duration in seconds to wait for an acknowledgment message, after this time passes an error will be returned
     AcknowledgeTimeoutInSec = 60
 
-    # Currently, only "json" is supported. In the future, "gogo protobuf" could also be supported
+    # This flag defines the marshaller type. Currently supported: "json", "gogo protobuf"
     MarshallerType = "json"
 
     # The number of seconds when the client will try again to send the data
