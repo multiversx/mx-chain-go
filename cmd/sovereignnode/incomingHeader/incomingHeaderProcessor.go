@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -70,6 +71,11 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
+
+	if check.IfNil(header) || check.IfNil(header.GetHeaderHandler()) {
+		return data.ErrNilHeader
+	}
+
 	round := header.GetHeaderHandler().GetRound()
 	if round < ihp.startRound {
 		log.Debug("do not notarize incoming header, round lower than start round",

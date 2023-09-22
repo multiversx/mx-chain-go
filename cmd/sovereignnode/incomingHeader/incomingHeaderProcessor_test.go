@@ -39,6 +39,22 @@ func requireErrorIsInvalidNumTopics(t *testing.T, err error, idx int, numTopics 
 	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", numTopics)))
 }
 
+func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.IncomingHeaderHandler {
+	ret := make([]sovereign.IncomingHeaderHandler, numRounds+1)
+
+	for i := uint64(0); i <= numRounds; i++ {
+		ret[i] = &sovereign.IncomingHeader{
+			Header: &block.HeaderV2{
+				Header: &block.Header{
+					Round: i,
+				},
+			},
+		}
+	}
+
+	return ret
+}
+
 func TestNewIncomingHeaderHandler(t *testing.T) {
 	t.Parallel()
 
@@ -88,6 +104,48 @@ func TestNewIncomingHeaderHandler(t *testing.T) {
 
 func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 	t.Parallel()
+
+	t.Run("nil header, should return error", func(t *testing.T) {
+		args := createArgs()
+		handler, _ := NewIncomingHeaderProcessor(args)
+
+		err := handler.AddHeader([]byte("hash"), nil)
+		require.Equal(t, data.ErrNilHeader, err)
+
+		incomingHeader := &sovereignTests.IncomingHeaderStub{
+			GetHeaderHandlerCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		require.Equal(t, data.ErrNilHeader, err)
+	})
+
+	t.Run("should not add header before start round", func(t *testing.T) {
+		startRound := uint64(11)
+
+		args := createArgs()
+		args.StartRound = startRound
+		wasHeaderAdded := false
+		args.HeadersPool = &mock.HeadersCacherStub{
+			AddCalled: func(_ []byte, header data.HeaderHandler) {
+				wasHeaderAdded = true
+				require.Equal(t, header.GetRound(), startRound)
+			},
+		}
+		handler, _ := NewIncomingHeaderProcessor(args)
+		headers := createIncomingHeadersWithIncrementalRound(startRound)
+
+		for i := 0; i < len(headers)-1; i++ {
+			err := handler.AddHeader([]byte("hash"), headers[i])
+			require.Nil(t, err)
+			require.False(t, wasHeaderAdded)
+		}
+
+		err := handler.AddHeader([]byte("hash"), headers[startRound])
+		require.Nil(t, err)
+		require.True(t, wasHeaderAdded)
+	})
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
 		args := createArgs()
