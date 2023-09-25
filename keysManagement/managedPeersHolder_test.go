@@ -550,6 +550,7 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 		args.IsMainMachine = true
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
+		pInfo := holder.GetPeerInfo(pkBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -559,10 +560,10 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 				}
 			}()
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes1, pInfo.Pid())
 		})
 		t.Run("existing public key", func(t *testing.T) {
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0, pInfo.Pid())
 
 			pInfoRecovered := holder.GetPeerInfo(pkBytes0)
 			assert.Zero(t, pInfoRecovered.GetRoundsWithoutReceivedMessages())
@@ -573,6 +574,7 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 		args.IsMainMachine = false
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
+		pInfo := holder.GetPeerInfo(pkBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -582,7 +584,7 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 				}
 			}()
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes1, pInfo.Pid())
 		})
 		t.Run("existing public key should reset", func(t *testing.T) {
 			pInfoRecovered := holder.GetPeerInfo(pkBytes0)
@@ -592,7 +594,7 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
 			assert.Equal(t, 1, pInfoRecovered.GetRoundsWithoutReceivedMessages())
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0, "random pid")
 
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
 			assert.Equal(t, 0, pInfoRecovered.GetRoundsWithoutReceivedMessages())
@@ -603,7 +605,7 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
 			assert.Equal(t, 3, pInfoRecovered.GetRoundsWithoutReceivedMessages())
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0, "random pid")
 
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
 			assert.Equal(t, 0, pInfoRecovered.GetRoundsWithoutReceivedMessages())
@@ -682,6 +684,7 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 		args.MaxRoundsWithoutReceivedMessages = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
+		pInfo := holder.GetPeerInfo(pkBytes0)
 
 		t.Run("foreign public key should return false", func(t *testing.T) {
 			isManaged := holder.IsKeyManagedByCurrentNode(pkBytes1)
@@ -699,9 +702,16 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.True(t, isManaged)
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
-			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
-			assert.False(t, isManaged)
+			t.Run("reset called from the same pid should not reset", func(t *testing.T) {
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0, pInfo.Pid())
+				isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
+				assert.True(t, isManaged)
+			})
+			t.Run("reset called from the another pid should reset", func(t *testing.T) {
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0, "random pid")
+				isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
+				assert.False(t, isManaged)
+			})
 		})
 	})
 }
@@ -858,7 +868,7 @@ func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 			case 4:
 				holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			case 5:
-				holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0, pid)
 			case 6:
 				_ = holder.GetManagedKeysByCurrentNode()
 			case 7:

@@ -1,6 +1,7 @@
 package keysManagement
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -257,13 +258,16 @@ func (holder *managedPeersHolder) IncrementRoundsWithoutReceivedMessages(pkBytes
 }
 
 // ResetRoundsWithoutReceivedMessages resets the number of rounds without received messages on a provided public key
-func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte) {
+func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
 	if holder.isMainMachine {
 		return
 	}
 
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
+		return
+	}
+	if bytes.Equal(pInfo.pid.Bytes(), pid.Bytes()) {
 		return
 	}
 
