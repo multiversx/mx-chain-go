@@ -182,6 +182,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		UserAccountsDB:      vmf.userAccountsDB,
 		ChanceComputer:      vmf.chanceComputer,
 		EnableEpochsHandler: vmf.enableEpochsHandler,
+		ShardCoordinator:    vmf.shardCoordinator,
 	}
 	systemEI, err := systemSmartContracts.NewVMContext(vmContextArgs)
 	if err != nil {
