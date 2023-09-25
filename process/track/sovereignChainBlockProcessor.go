@@ -1,7 +1,6 @@
 package track
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -52,7 +51,7 @@ func (scbp *sovereignChainBlockProcessor) shouldProcessReceivedHeader(headerHand
 
 	_, isExtendedShardHeaderReceived := headerHandler.(*block.ShardHeaderExtended)
 	if isExtendedShardHeaderReceived {
-		lastNotarizedHeader, _, err = scbp.crossNotarizer.GetLastNotarizedHeader(core.SovereignChainShardId)
+		lastNotarizedHeader, _, err = scbp.crossNotarizer.GetLastNotarizedHeader(core.MainChainShardId)
 		if err != nil {
 			log.Warn("shouldProcessReceivedHeader: crossNotarizer.GetLastNotarizedHeader",
 				"shard", headerHandler.GetShardID(), "error", err.Error())
@@ -74,7 +73,7 @@ func (scbp *sovereignChainBlockProcessor) shouldProcessReceivedHeader(headerHand
 func (scbp *sovereignChainBlockProcessor) processReceivedHeader(headerHandler data.HeaderHandler) {
 	_, isExtendedShardHeaderReceived := headerHandler.(*block.ShardHeaderExtended)
 	if isExtendedShardHeaderReceived {
-		scbp.doJobOnReceivedCrossNotarizedHeaderFunc(core.SovereignChainShardId)
+		scbp.doJobOnReceivedCrossNotarizedHeaderFunc(core.MainChainShardId)
 		return
 	}
 
@@ -89,9 +88,9 @@ func (scbp *sovereignChainBlockProcessor) doJobOnReceivedCrossNotarizedHeader(sh
 }
 
 func (scbp *sovereignChainBlockProcessor) requestHeaderWithShardAndNonce(shardID uint32, nonce uint64, lastNotarizedHeader data.HeaderHandler) {
-	if bytes.Equal(lastNotarizedHeader.GetChainID(), mainChainID) {
-		scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
-	} else {
+	if shardID == core.SovereignChainShardId { //bytes.Equal(lastNotarizedHeader.GetChainID(), mainChainID) {
 		scbp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+	} else {
+		scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
 	}
 }

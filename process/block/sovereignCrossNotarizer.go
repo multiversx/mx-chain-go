@@ -10,7 +10,7 @@ type sovereignShardCrossNotarizer struct {
 }
 
 func (scn *sovereignShardCrossNotarizer) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
-	bootstrapHeaderInfo := scn.getLastCrossNotarizedHeadersForShard(core.SovereignChainShardId)
+	bootstrapHeaderInfo := scn.getLastCrossNotarizedHeadersForShard(core.MainChainShardId)
 	if bootstrapHeaderInfo == nil {
 		return nil
 	}

@@ -1380,6 +1380,10 @@ func (sp *shardProcessor) getLastSelfNotarizedHeaderByMetachain() (data.HeaderHa
 
 func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs []data.HeaderHandler) error {
 	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := sp.blockTracker.GetLastCrossNotarizedHeader(shardId)
+	if err == process.ErrNotarizedHeadersSliceForShardIsNil {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
