@@ -221,6 +221,8 @@ func (cns *ConsensusState) IsSelfJobDone(currentSubroundId int) bool {
 func (cns *ConsensusState) IsSubroundFinished(subroundID int) bool {
 	isSubroundFinished := cns.Status(subroundID) == SsFinished
 
+	log.Debug("JLS IsSubroundFinished", "isSubroundFinished", isSubroundFinished)
+
 	return isSubroundFinished
 }
 
@@ -255,15 +257,18 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
 		selfJobDone = cns.IsSelfJobDone(currentSubroundId)
 	}
+	log.Debug("JLS: node not in consensus group")
 	multiKeyJobDone := true
 	if cns.IsMultiKeyInConsensusGroup() {
 		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundId)
 	}
+	log.Debug("JLS: multikey not in consensus group", "selfJobDone", selfJobDone, "multiKeyJobDone", multiKeyJobDone)
 
 	if selfJobDone && multiKeyJobDone {
 		return false
 	}
 
+	log.Debug("JLS: calling IsSubroundFinished")
 	if cns.IsSubroundFinished(currentSubroundId) {
 		return false
 	}

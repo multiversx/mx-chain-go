@@ -140,9 +140,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			sr.ConsensusGroup(),
 			sr.RoundHandler().Index(),
 		)
-		if sr.NodeRedundancyHandler().IsMainMachineActive() {
-			return false
-		}
 	}
 
 	leader, err := sr.GetLeader()
@@ -158,7 +155,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
 		msg = " (my turn in multi-key)"
 	}
-	if leader == sr.SelfPubKey() {
+	if leader == sr.SelfPubKey() && sr.shouldUseTheProvidedPrivateKey() {
 		msg = " (my turn)"
 	}
 	if len(msg) != 0 {
@@ -183,7 +180,8 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		}
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if leader != sr.SelfPubKey() && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+		isLeader := leader == sr.SelfPubKey() && sr.shouldUseTheProvidedPrivateKey()
+		if !isLeader && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
@@ -218,16 +216,26 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	return true
 }
 
+func (sr *subroundStartRound) shouldUseTheProvidedPrivateKey() bool {
+	isMainMachine := !sr.NodeRedundancyHandler().IsRedundancyNode()
+	if isMainMachine {
+		return true
+	}
+	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
+
+	return isMainMachineInactive
+}
+
 func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []string) int {
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
 		if sr.IsKeyManagedByCurrentNode(pkBytes) {
-			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
+		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 	}
 
 	if numMultiKeysInConsensusGroup > 0 {
