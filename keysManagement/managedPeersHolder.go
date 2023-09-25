@@ -364,9 +364,12 @@ func (holder *managedPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, 
 	pInfo.setNextPeerAuthenticationTime(nextTime)
 }
 
-// IsMultiKeyMode returns true if the node has at least one managed key
+// IsMultiKeyMode returns true if the node has at least one managed key, regardless it was set as a main machine or a backup machine
 func (holder *managedPeersHolder) IsMultiKeyMode() bool {
-	return len(holder.GetManagedKeysByCurrentNode()) > 0
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
+	return len(holder.data) > 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

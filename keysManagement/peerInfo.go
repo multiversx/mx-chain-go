@@ -38,7 +38,10 @@ func (pInfo *peerInfo) isNodeActiveOnMainMachine(maxRoundsWithoutReceivedMessage
 	pInfo.mutChangeableData.RLock()
 	defer pInfo.mutChangeableData.RUnlock()
 
-	return pInfo.roundsWithoutReceivedMessages < maxRoundsWithoutReceivedMessages
+	// since the redundancy mechanism works by first incrementing the counters in the start round and if some messages
+	// are received in that round, we reset the values, the normal operating values oscillate between 0 and 1. We need to
+	// add an extra unit to the max rounds without received message in order to make this mechanism work as expected
+	return pInfo.roundsWithoutReceivedMessages < maxRoundsWithoutReceivedMessages+1
 }
 
 func (pInfo *peerInfo) isNodeValidator() bool {

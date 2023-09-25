@@ -649,6 +649,7 @@ func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 		})
 		t.Run("MaxRoundsWithoutReceivedMessages reached, should return failed pk", func(t *testing.T) {
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			result := holder.GetManagedKeysByCurrentNode()
 			testManagedKeys(t, result, pkBytes0)
@@ -698,6 +699,7 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.False(t, isManaged)
 
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.True(t, isManaged)
@@ -828,12 +830,24 @@ func TestManagedPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
 func TestManagedPeersHolder_IsMultiKeyMode(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsManagedPeersHolder()
-	holder, _ := keysManagement.NewManagedPeersHolder(args)
-	assert.False(t, holder.IsMultiKeyMode())
+	t.Run("main machine mode", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		assert.False(t, holder.IsMultiKeyMode())
 
-	_ = holder.AddManagedPeer(skBytes0)
-	assert.True(t, holder.IsMultiKeyMode())
+		_ = holder.AddManagedPeer(skBytes0)
+		assert.True(t, holder.IsMultiKeyMode())
+	})
+	t.Run("backup machine mode", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.IsMainMachine = false
+		args.MaxRoundsWithoutReceivedMessages = 1
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		assert.False(t, holder.IsMultiKeyMode())
+
+		_ = holder.AddManagedPeer(skBytes0)
+		assert.True(t, holder.IsMultiKeyMode())
+	})
 }
 
 func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
