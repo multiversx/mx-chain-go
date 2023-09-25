@@ -19,7 +19,10 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var rootHash = "uncomputed root hash"
+var (
+	rootHash    = "uncomputed root hash"
+	mainChainID = []byte("1")
+)
 
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
@@ -669,6 +672,10 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 
 func (scbp *sovereignChainBlockProcessor) checkAndRequestIfExtendedShardHeadersMissing() {
 	orderedExtendedShardHeaders, _ := scbp.blockTracker.GetTrackedHeaders(core.SovereignChainShardId)
+	if len(orderedExtendedShardHeaders) > 0 && !bytes.Equal(orderedExtendedShardHeaders[0].GetChainID(), mainChainID) {
+		log.Debug("checkAndRequestIfExtendedShardHeadersMissing skip requesting missing header")
+		return
+	}
 
 	err := scbp.requestHeadersIfMissing(orderedExtendedShardHeaders, core.SovereignChainShardId)
 	if err != nil {
