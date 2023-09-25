@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -15,6 +16,11 @@ import (
 var _ process.TxValidator = (*txValidator)(nil)
 
 var log = logger.GetOrCreate("process/dataValidators")
+
+type relayedV3TransactionHandler interface {
+	GetInnerTransaction() *transaction.Transaction
+	GetRelayerAddr() []byte
+}
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
@@ -115,6 +121,12 @@ func (txv *txValidator) getSenderUserAccount(
 }
 
 func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
+	rTx, ok := interceptedTx.Transaction().(relayedV3TransactionHandler)
+	if ok && len(rTx.GetRelayerAddr()) > 0 {
+		// early return if this is a user tx of relayed v3, no need to check balance
+		return nil
+	}
+
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {

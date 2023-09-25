@@ -390,26 +390,76 @@ func TestTxValidator_CheckTxValidityWrongAccountTypeShouldReturnFalse(t *testing
 func TestTxValidator_CheckTxValidityTxIsOkShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	accountNonce := uint64(0)
-	accountBalance := big.NewInt(10)
-	adb := getAccAdapter(accountNonce, accountBalance)
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, _ := dataValidators.NewTxValidator(
-		adb,
-		shardCoordinator,
-		&testscommon.WhiteListHandlerStub{},
-		testscommon.NewPubkeyConverterMock(32),
-		&testscommon.TxVersionCheckerStub{},
-		maxNonceDeltaAllowed,
-	)
+	t.Run("regular tx should work", func(t *testing.T) {
+		t.Parallel()
 
-	addressMock := []byte("address")
-	currentShard := uint32(0)
-	txValidatorHandler := getInterceptedTxHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
+		accountNonce := uint64(0)
+		accountBalance := big.NewInt(10)
+		adb := getAccAdapter(accountNonce, accountBalance)
+		shardCoordinator := createMockCoordinator("_", 0)
+		maxNonceDeltaAllowed := 100
+		txValidator, _ := dataValidators.NewTxValidator(
+			adb,
+			shardCoordinator,
+			&testscommon.WhiteListHandlerStub{},
+			testscommon.NewPubkeyConverterMock(32),
+			&testscommon.TxVersionCheckerStub{},
+			maxNonceDeltaAllowed,
+		)
 
-	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.Nil(t, result)
+		addressMock := []byte("address")
+		currentShard := uint32(0)
+		txValidatorHandler := getInterceptedTxHandler(currentShard, currentShard, 1, addressMock, big.NewInt(0))
+
+		result := txValidator.CheckTxValidity(txValidatorHandler)
+		assert.Nil(t, result)
+	})
+	t.Run("user tx should work and skip balance checks", func(t *testing.T) {
+		t.Parallel()
+
+		accountNonce := uint64(0)
+		accountBalance := big.NewInt(10)
+		adb := getAccAdapter(accountNonce, accountBalance)
+		shardCoordinator := createMockCoordinator("_", 0)
+		maxNonceDeltaAllowed := 100
+		txValidator, _ := dataValidators.NewTxValidator(
+			adb,
+			shardCoordinator,
+			&testscommon.WhiteListHandlerStub{},
+			testscommon.NewPubkeyConverterMock(32),
+			&testscommon.TxVersionCheckerStub{},
+			maxNonceDeltaAllowed,
+		)
+
+		addressMock := []byte("address")
+		currentShard := uint32(0)
+		interceptedTx := &mock.InterceptedTxHandlerStub{
+			SenderShardIdCalled: func() uint32 {
+				return currentShard
+			},
+			ReceiverShardIdCalled: func() uint32 {
+				return currentShard
+			},
+			NonceCalled: func() uint64 {
+				return 1
+			},
+			SenderAddressCalled: func() []byte {
+				return addressMock
+			},
+			FeeCalled: func() *big.Int {
+				assert.Fail(t, "should have not been called")
+				return big.NewInt(0)
+			},
+			TransactionCalled: func() data.TransactionHandler {
+				return &transaction.Transaction{
+					RelayerAddr: []byte("relayer"),
+				}
+			},
+		}
+
+		result := txValidator.CheckTxValidity(interceptedTx)
+		assert.Nil(t, result)
+	})
 }
 
 func Test_getTxData(t *testing.T) {
