@@ -195,7 +195,6 @@ type processComponentsFactory struct {
 	statusComponents     factory.StatusComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	runTypeComponents    factory.RunTypeComponentsHolder
-	chainRunType         common.ChainRunType
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -232,7 +231,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:   args.StatusCoreComponents,
 		flagsConfig:            args.FlagsConfig,
 		runTypeComponents:      args.RunTypeComponents,
-		chainRunType:           args.ChainRunType,
 	}, nil
 }
 
@@ -869,29 +867,29 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
-		Core:                 pcf.coreData,
-		Data:                 pcf.data,
-		GenesisTime:          uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
-		StartEpochNum:        pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-		Accounts:             pcf.state.AccountsAdapter(),
-		InitialNodesSetup:    pcf.coreData.GenesisNodesSetup(),
-		Economics:            pcf.coreData.EconomicsData(),
-		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
-		AccountsParser:       pcf.accountsParser,
-		SmartContractParser:  pcf.smartContractParser,
-		ValidatorAccounts:    pcf.state.PeerAccounts(),
-		GasSchedule:          pcf.gasSchedule,
-		VirtualMachineConfig: genesisVmConfig,
-		TxLogsProcessor:      pcf.txLogsProcessor,
-		HardForkConfig:       pcf.config.Hardfork,
-		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
-		SystemSCConfig:       *pcf.systemSCConfig,
-		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
-		GenesisString:        pcf.config.GeneralSettings.GenesisString,
-		GenesisNodePrice:     genesisNodePrice,
-		RoundConfig:          &pcf.roundConfig,
-		EpochConfig:          &pcf.epochConfig,
-		ChainRunType:         pcf.chainRunType,
+		Core:                         pcf.coreData,
+		Data:                         pcf.data,
+		GenesisTime:                  uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
+		StartEpochNum:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		InitialNodesSetup:            pcf.coreData.GenesisNodesSetup(),
+		Economics:                    pcf.coreData.EconomicsData(),
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		AccountsParser:               pcf.accountsParser,
+		SmartContractParser:          pcf.smartContractParser,
+		ValidatorAccounts:            pcf.state.PeerAccounts(),
+		GasSchedule:                  pcf.gasSchedule,
+		VirtualMachineConfig:         genesisVmConfig,
+		TxLogsProcessor:              pcf.txLogsProcessor,
+		HardForkConfig:               pcf.config.Hardfork,
+		TrieStorageManagers:          pcf.state.TrieStorageManagers(),
+		SystemSCConfig:               *pcf.systemSCConfig,
+		BlockSignKeyGen:              pcf.crypto.BlockSignKeyGen(),
+		GenesisString:                pcf.config.GeneralSettings.GenesisString,
+		GenesisNodePrice:             genesisNodePrice,
+		RoundConfig:                  &pcf.roundConfig,
+		EpochConfig:                  &pcf.epochConfig,
+		BlockChainHookHandlerCreator: pcf.runTypeComponents.BlockChainHookHandlerCreator(),
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -2023,7 +2021,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
 	}
-
+	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCResultsPreProcessorCreator)
+	}
 	return nil
 }
 

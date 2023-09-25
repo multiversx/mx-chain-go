@@ -529,7 +529,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
-		ChainRunType:             chainRunType,
+		ChainRunType:               chainRunType,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -1727,7 +1727,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ChainRunType:                 tpn.ChainRunType,
 	}
 	fact, _ := shard.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()

@@ -33,7 +33,6 @@ type DataComponentsFactoryArgs struct {
 	CreateTrieEpochRootHashStorer   bool
 	NodeProcessingMode              common.NodeProcessingMode
 	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
-	ChainRunType                    common.ChainRunType
 }
 
 type dataComponentsFactory struct {
@@ -47,7 +46,6 @@ type dataComponentsFactory struct {
 	currentEpoch                    uint32
 	createTrieEpochRootHashStorer   bool
 	nodeProcessingMode              common.NodeProcessingMode
-	chainRunType                    common.ChainRunType
 	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
@@ -91,7 +89,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		nodeProcessingMode:              args.NodeProcessingMode,
 		crypto:                          args.Crypto,
 		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
-		chainRunType:                    args.ChainRunType,
 	}, nil
 }
 

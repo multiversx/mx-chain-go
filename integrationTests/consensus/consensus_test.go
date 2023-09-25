@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
@@ -174,7 +173,7 @@ func startNodesWithCommitBlock(
 			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:       n.Node.IsInImportMode(),
 			ConsensusModel:       consensusModel,
-			ChainRunType:         common.ChainRunTypeRegular,
+			RunTypeComponents:    n.Node.GetRunTypeComponents(),
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

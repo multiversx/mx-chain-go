@@ -12,12 +12,15 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -31,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	outportMocks "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -161,8 +165,19 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ScheduledProcessor:    &consensusMocks.ScheduledProcessorStub{},
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
-		ChainRunType:          common.ChainRunTypeRegular,
-		ConsensusModel:        consensus.ConsensusModelV1,
+		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryStub{
+				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+					return &processMock.StorageBootstrapperMock{}, nil
+				},
+			},
+			BootstrapperFactory: &factoryMocks.BootstrapperFactoryStub{
+				CreateBootstrapperCalled: func(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+					return &processMock.BootstrapperStub{}, nil
+				},
+			},
+		},
+		ConsensusModel: consensus.ConsensusModelV1,
 	}
 }
 
@@ -407,22 +422,6 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
-}
-
-func TestNewConsensusComponentsFactory_IncompatibleArguments(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	args.ChainRunType = common.ChainRunTypeSovereign
-	args.ConsensusModel = consensus.ConsensusModelV1
-
-	ccf, err := consensusComp.NewConsensusComponentsFactory(args)
-	assert.Nil(t, ccf)
-	assert.ErrorIs(t, err, customErrors.ErrIncompatibleArgumentsProvided)
 }
 
 func TestConsensusComponentsFactory_Create(t *testing.T) {
@@ -982,7 +981,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeRegular
+		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
 
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
@@ -996,27 +995,12 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
-		args.ConsensusModel = consensus.ConsensusModelV2
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
 
 		require.NotNil(t, cc)
 		assert.Nil(t, err)
-	})
-
-	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.ChainRunType = "X"
-
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
-		cc, err := ccf.Create()
-
-		assert.Nil(t, cc)
-		require.True(t, errors.Is(err, errorsMx.ErrUnimplementedChainRunType))
 	})
 }

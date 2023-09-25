@@ -17,10 +17,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -31,6 +33,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -179,7 +182,11 @@ func createMockArgument(
 				},
 			},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		BlockChainHookHandlerCreator: &factory.BlockChainHookHandlerFactoryStub{
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+				return &testscommon.BlockChainHookStub{}, nil
+			},
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -413,6 +420,16 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, genesis.ErrNilSmartContractParser))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil BlockchainHookHandlerCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.SmartContractParser = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, mxErrors.ErrNilBlockChainHookHandlerCreator))
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {

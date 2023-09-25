@@ -470,6 +470,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -858,6 +859,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTYpeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -886,7 +888,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 		ConsensusModel:        consensus.ConsensusModelV1,
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents:     runTYpeComponents,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1296,7 +1298,6 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		FlagsConfigs:                    *configs.FlagsConfig,
 		NodeProcessingMode:              common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
-		ChainRunType:                    common.ChainRunTypeRegular,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

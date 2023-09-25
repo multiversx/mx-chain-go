@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -92,6 +93,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.bootstrapperFromStorageCreator) {
 		return errors.ErrNilBootstrapperFromStorageCreator
 	}
+	if check.IfNil(mrc.bootstrapperCreator) {
+		return errors.ErrNilBootstrapperCreator
+	}
 	if check.IfNil(mrc.blockTrackerCreator) {
 		return errors.ErrNilBlockTrackerCreator
 	}
@@ -121,6 +125,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.scProcessorCreator) {
 		return errors.ErrNilSCProcessorCreator
+	}
+	if check.IfNil(mrc.scResultPreProcessorCreator) {
+		return errors.ErrNilSCResultsPreProcessorCreator
 	}
 	return nil
 }
@@ -171,6 +178,18 @@ func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() storageBoo
 	}
 
 	return mrc.runTypeComponents.bootstrapperFromStorageCreator
+}
+
+// BootstrapperCreator returns the bootstrapper creator
+func (mrc *managedRunTypeComponents) BootstrapperCreator() storageBootstrap.BootstrapperCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.bootstrapperCreator
 }
 
 // BlockTrackerCreator returns the block tracker creator
@@ -279,6 +298,30 @@ func (mrc *managedRunTypeComponents) SCProcessorCreator() scrCommon.SCProcessorC
 	}
 
 	return mrc.runTypeComponents.scProcessorCreator
+}
+
+// SCResultsPreProcessorCreator returns the smart contract result pre-processor creator
+func (mrc *managedRunTypeComponents) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.scResultPreProcessorCreator
+}
+
+// ConsensusModel returns the consensus model
+func (mrc *managedRunTypeComponents) ConsensusModel() consensus.ConsensusModel {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return consensus.ConsensusModelInvalid
+	}
+
+	return mrc.runTypeComponents.consensusModel
 }
 
 // IsInterfaceNil returns true if the interface is nil

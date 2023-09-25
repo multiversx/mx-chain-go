@@ -455,7 +455,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl, err := hooks.CreateBlockChainHook(arg.ChainRunType, argsHook)
+	blockChainHookImpl, err := arg.BlockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -627,28 +627,28 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
 	argsPreProc := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:             arg.ShardCoordinator,
-		Store:                        arg.Data.StorageService(),
-		Marshaller:                   arg.Core.InternalMarshalizer(),
-		Hasher:                       arg.Core.Hasher(),
-		DataPool:                     arg.Data.Datapool(),
-		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
-		Accounts:                     arg.Accounts,
-		RequestHandler:               disabledRequestHandler,
-		TxProcessor:                  transactionProcessor,
-		ScProcessor:                  scProcessorProxy,
-		ScResultProcessor:            scProcessorProxy,
-		RewardsTxProcessor:           rewardsTxProcessor,
-		EconomicsFee:                 arg.Economics,
-		GasHandler:                   gasHandler,
-		BlockTracker:                 disabledBlockTracker,
-		BlockSizeComputation:         disabledBlockSizeComputationHandler,
-		BalanceComputation:           disabledBalanceComputationHandler,
-		EnableEpochsHandler:          enableEpochsHandler,
-		TxTypeHandler:                txTypeHandler,
-		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
-		ChainRunType:                 arg.ChainRunType,
+		ShardCoordinator:                       arg.ShardCoordinator,
+		Store:                                  arg.Data.StorageService(),
+		Marshaller:                             arg.Core.InternalMarshalizer(),
+		Hasher:                                 arg.Core.Hasher(),
+		DataPool:                               arg.Data.Datapool(),
+		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
+		Accounts:                               arg.Accounts,
+		RequestHandler:                         disabledRequestHandler,
+		TxProcessor:                            transactionProcessor,
+		ScProcessor:                            scProcessorProxy,
+		ScResultProcessor:                      scProcessorProxy,
+		RewardsTxProcessor:                     rewardsTxProcessor,
+		EconomicsFee:                           arg.Economics,
+		GasHandler:                             gasHandler,
+		BlockTracker:                           disabledBlockTracker,
+		BlockSizeComputation:                   disabledBlockSizeComputationHandler,
+		BalanceComputation:                     disabledBalanceComputationHandler,
+		EnableEpochsHandler:                    enableEpochsHandler,
+		TxTypeHandler:                          txTypeHandler,
+		ScheduledTxsExecutionHandler:           disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
+		SmartContractResultPreProcessorCreator: arg.RunType.SmartContractResultPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -691,7 +691,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 	}
-	txCoordinator, err := createTransactionCoordinator(argsTransactionCoordinator, arg.ChainRunType)
+	txCoordinator, err := arg.RunType.TransactionCoordinatorCreator().CreateTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}

@@ -21,6 +21,7 @@ type RunTypeComponentsStub struct {
 	BlockProcessorFactory               block.BlockProcessorCreator
 	BlockTrackerFactory                 track.BlockTrackerCreator
 	BootstrapperFromStorageFactory      storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperFactory                 storageBootstrap.BootstrapperCreator
 	EpochStartBootstrapperFactory       bootstrap.EpochStartBootstrapperCreator
 	ForkDetectorFactory                 sync.ForkDetectorCreator
 	HeaderValidatorFactory              block.HeaderValidatorCreator
@@ -29,6 +30,7 @@ type RunTypeComponentsStub struct {
 	TransactionCoordinatorFactory       coordinator.TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorFactory peer.ValidatorStatisticsProcessorCreator
 	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
+	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory                  scrCommon.SCProcessorCreator
 }
 
@@ -70,6 +72,11 @@ func (r *RunTypeComponentsStub) BlockTrackerCreator() track.BlockTrackerCreator 
 // BootstrapperFromStorageCreator -
 func (r *RunTypeComponentsStub) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
 	return r.BootstrapperFromStorageFactory
+}
+
+// BootstrapperCreator -
+func (r *RunTypeComponentsStub) BootstrapperCreator() storageBootstrap.BootstrapperCreator {
+	return r.BootstrapperFactory
 }
 
 // EpochStartBootstrapperCreator -
@@ -115,6 +122,16 @@ func (r *RunTypeComponentsStub) AdditionalStorageServiceCreator() process.Additi
 // SCProcessorCreator -
 func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreator {
 	return r.SCProcessorFactory
+}
+
+// SCResultsPreProcessorCreator -
+func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
+	return r.SCResultsPreProcessorFactory
+}
+
+// SmartContractResultPreProcessorCreator -
+func (r *RunTypeComponentsStub) SmartContractResultPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
+	return r.SCResultsPreProcessorFactory
 }
 
 // IsInterfaceNil -

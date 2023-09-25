@@ -1,13 +1,12 @@
 package shard
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -47,7 +46,6 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 }
 
@@ -338,46 +336,34 @@ func TestPreProcessorsContainerFactory_CreateSCRPreprocessor(t *testing.T) {
 	t.Run("createSmartContractResultPreProcessor should create a main chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		ppcf, err := createMockPreProcessorContainerFactory()
+		args := createMockPreProcessorsContainerFactoryArguments()
+		args.SmartContractResultPreProcessorCreator, _ = preprocess.NewSmartContractResultPreProcessorFactory()
+		ppcf, err := NewPreProcessorsContainerFactory(args)
 		require.Nil(t, err)
 		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = common.ChainRunTypeRegular
 
 		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
 
 		assert.NotNil(t, preProc)
 		assert.Nil(t, errCreate)
+		assert.Equal(t, "*smartContract.scProcessor", fmt.Sprintf("%T", preProc))
 	})
 
 	t.Run("createSmartContractResultPreProcessor should create a sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		ppcf, err := createMockPreProcessorContainerFactory()
+		args := createMockPreProcessorsContainerFactoryArguments()
+		scrppf, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+		args.SmartContractResultPreProcessorCreator, _ = preprocess.NewSovereignSmartContractResultPreProcessorFactory(scrppf)
+		ppcf, err := NewPreProcessorsContainerFactory(args)
 		require.Nil(t, err)
 		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = common.ChainRunTypeSovereign
 
 		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
 
 		assert.NotNil(t, preProc)
 		assert.Nil(t, errCreate)
-	})
-
-	t.Run("createSmartContractResultPreProcessor should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		ppcf, err := createMockPreProcessorContainerFactory()
-		require.Nil(t, err)
-		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = "invalid"
-
-		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
-
-		assert.Nil(t, preProc)
-		assert.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
+		assert.Equal(t, "*smartContract.scProcessor", fmt.Sprintf("%T", preProc))
 	})
 }
 
@@ -400,8 +386,6 @@ func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
 	ppcf, err := createMockPreProcessorContainerFactory()
 	require.Nil(t, err)
 	require.NotNil(t, ppcf)
-
-	ppcf.chainRunType = common.ChainRunTypeRegular
 
 	preProc, errCreate := ppcf.createTxPreProcessor()
 
