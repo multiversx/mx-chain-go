@@ -297,7 +297,7 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 
 	if initialSupply.Cmp(zero) > 0 {
 		esdtTransferData := core.BuiltInFunctionESDTTransfer + "@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(initialSupply.Bytes())
-		err = e.eei.Transfer(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+		err = e.eei.ProcessBuiltInFunction(args.CallerAddr, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 		if err != nil {
 			e.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
@@ -927,7 +927,7 @@ func (e *esdt) toggleFreeze(args *vmcommon.ContractCallInput, builtInFunc string
 	}
 
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(args.Arguments[0])
-	err := e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	err := e.eei.ProcessBuiltInFunction(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -977,7 +977,7 @@ func (e *esdt) toggleFreezeSingleNFT(args *vmcommon.ContractCallInput, builtInFu
 
 	composedArg := append(args.Arguments[0], args.Arguments[1]...)
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(composedArg)
-	err := e.eei.Transfer(args.Arguments[2], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	err := e.eei.ProcessBuiltInFunction(args.Arguments[2], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1007,7 +1007,7 @@ func (e *esdt) wipeTokenFromAddress(
 	}
 
 	esdtTransferData := core.BuiltInFunctionESDTWipe + "@" + hex.EncodeToString(wipeArgument)
-	err := e.eei.Transfer(address, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
+	err := e.eei.ProcessBuiltInFunction(address, e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1993,7 +1993,7 @@ func (e *esdt) transferNFTCreateRole(args *vmcommon.ContractCallInput) vmcommon.
 
 	esdtTransferNFTCreateData := core.BuiltInFunctionESDTNFTCreateRoleTransfer + "@" +
 		hex.EncodeToString(args.Arguments[0]) + "@" + hex.EncodeToString(args.Arguments[2])
-	err = e.eei.Transfer(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferNFTCreateData), 0)
+	err = e.eei.ProcessBuiltInFunction(args.Arguments[1], e.eSDTSCAddress, big.NewInt(0), []byte(esdtTransferNFTCreateData), 0)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2051,7 +2051,7 @@ func (e *esdt) sendRoleChangeData(tokenID []byte, destination []byte, roles [][]
 		esdtSetRoleData += "@" + hex.EncodeToString(arg)
 	}
 
-	err := e.eei.Transfer(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
+	err := e.eei.ProcessBuiltInFunction(destination, e.eSDTSCAddress, big.NewInt(0), []byte(esdtSetRoleData), 0)
 	return err
 }
 

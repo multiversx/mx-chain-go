@@ -301,8 +301,6 @@ func (host *vmContext) ProcessBuiltInFunction(
 		return errors.New(vmOutput.ReturnMessage)
 	}
 
-	host.logs = append(host.logs, vmOutput.Logs...)
-
 	// add the SCR for the builtin function
 	return host.Transfer(destination, sender, value, input, gasLimit)
 }
