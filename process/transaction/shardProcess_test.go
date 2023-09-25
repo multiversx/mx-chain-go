@@ -2041,7 +2041,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 	userTx.Data = []byte("execute@param1")
 	userTx.GasPrice = 1
 	userTx.GasLimit = 4
-	userTx.RelayedAddr = tx.SndAddr
+	userTx.RelayerAddr = tx.SndAddr
 
 	tx.InnerTransaction = userTx
 
@@ -2120,7 +2120,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 
 		txCopy := *tx
 		userTxCopy := *userTx
-		userTxCopy.RelayedAddr = nil
+		userTxCopy.RelayerAddr = nil
 		txCopy.InnerTransaction = &userTxCopy
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})

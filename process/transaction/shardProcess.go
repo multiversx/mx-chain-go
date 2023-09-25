@@ -629,7 +629,7 @@ func (txProc *txProcessor) processRelayedTxV3(
 	if !bytes.Equal(tx.RcvAddr, userTx.SndAddr) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver)
 	}
-	if len(userTx.RelayedAddr) == 0 {
+	if len(userTx.RelayerAddr) == 0 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3EmptyRelayer)
 	}
 	if tx.GasPrice != userTx.GasPrice {

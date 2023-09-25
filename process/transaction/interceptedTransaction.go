@@ -225,7 +225,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 	if !bytes.Equal(innerTx.SndAddr, tx.RcvAddr) {
 		return process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver
 	}
-	if len(innerTx.RelayedAddr) == 0 {
+	if len(innerTx.RelayerAddr) == 0 {
 		return process.ErrRelayedTxV3EmptyRelayer
 	}
 
@@ -485,6 +485,11 @@ func (inTx *InterceptedTransaction) SenderAddress() []byte {
 // Fee returns the estimated cost of the transaction
 func (inTx *InterceptedTransaction) Fee() *big.Int {
 	return inTx.feeHandler.ComputeTxFee(inTx.tx)
+}
+
+// RelayerAddress returns the relayer address from transaction
+func (inTx *InterceptedTransaction) RelayerAddress() []byte {
+	return inTx.tx.RelayerAddr
 }
 
 // Type returns the type of this intercepted data

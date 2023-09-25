@@ -1274,6 +1274,31 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	assert.NotNil(t, result)
 }
 
+func TestInterceptedTransaction_GetRelayerAddress(t *testing.T) {
+	t.Parallel()
+
+	relayerAddr := []byte("34567890123456789012345678901234")
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:       0,
+		Value:       big.NewInt(2),
+		Data:        []byte("data"),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     recvAddress,
+		SndAddr:     senderAddress,
+		Signature:   sigOk,
+		ChainID:     chainID,
+		Version:     minTxVersion,
+		RelayerAddr: relayerAddr,
+	}
+
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
+	result := txi.RelayerAddress()
+	assert.Equal(t, relayerAddr, result)
+}
+
 func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testing.T) {
 	t.Parallel()
 
@@ -1513,7 +1538,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		Signature:   sigOk,
 		ChainID:     chainID,
 		Version:     minTxVersion,
-		RelayedAddr: senderAddress,
+		RelayerAddr: senderAddress,
 	}
 
 	tx := &dataTransaction.Transaction{
@@ -1532,11 +1557,11 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	err := txi.CheckValidity()
 	assert.Nil(t, err)
 
-	innerTx.RelayedAddr = nil
+	innerTx.RelayerAddr = nil
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Equal(t, process.ErrRelayedTxV3EmptyRelayer, err)
-	innerTx.RelayedAddr = senderAddress
+	innerTx.RelayerAddr = senderAddress
 
 	innerTx.SndAddr = []byte("34567890123456789012345678901234")
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
