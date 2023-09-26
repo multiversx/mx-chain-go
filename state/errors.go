@@ -138,3 +138,9 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilStateMetrics signals that a nil state metrics has been provided
+var ErrNilStateMetrics = errors.New("nil sstate metrics")
+
+// ErrNilChannelsProvider signals that a nil channels provider has been given
+var ErrNilChannelsProvider = errors.New("nil channels provider")

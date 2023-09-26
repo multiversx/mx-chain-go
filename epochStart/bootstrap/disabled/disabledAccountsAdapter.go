@@ -100,7 +100,7 @@ func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState -
-func (a *accountsAdapter) SnapshotState(_ []byte) {
+func (a *accountsAdapter) SnapshotState(_ []byte, _ uint32) {
 }
 
 // SetStateCheckpoint -

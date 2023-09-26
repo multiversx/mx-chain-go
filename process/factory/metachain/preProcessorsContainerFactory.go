@@ -37,6 +37,7 @@ type preProcessorsContainerFactory struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	txExecutionOrderHandler      common.TxExecutionOrderHandler
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
@@ -60,6 +61,7 @@ type ArgPreProcessorsContainerFactory struct {
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -89,6 +91,7 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
+		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 	}, nil
 }
 
@@ -140,6 +143,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxTypeHandler:                ppcf.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcf.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
@@ -164,6 +168,7 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcf.balanceComputation,
 		ppcf.enableEpochsHandler,
 		ppcf.processedMiniBlocksTracker,
+		ppcm.txExecutionOrderHandler,
 	)
 
 	return scrPreprocessor, err
@@ -231,6 +236,9 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	}
 	if check.IfNil(args.ProcessedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
 	}
 
 	return nil

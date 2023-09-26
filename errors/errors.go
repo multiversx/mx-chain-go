@@ -602,6 +602,9 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
 var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
+// ErrNilTxExecutionOrderHandler signals that a nil tx execution order handler has been provided
+var ErrNilTxExecutionOrderHandler = errors.New("nil tx execution order handler")
+
 // ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
 var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")
 

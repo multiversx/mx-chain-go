@@ -1453,8 +1453,8 @@ func (mp *metaProcessor) updateState(lastMetaBlock data.MetaHeaderHandler, lastM
 			"rootHash", lastMetaBlock.GetRootHash(),
 			"prevRootHash", prevMetaBlock.GetRootHash(),
 			"validatorStatsRootHash", lastMetaBlock.GetValidatorStatsRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash())
+		mp.accountsDB[state.UserAccountsState].SnapshotState(lastMetaBlock.GetRootHash(), lastMetaBlock.GetEpoch())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(lastMetaBlock.GetValidatorStatsRootHash(), lastMetaBlock.GetEpoch())
 		go func() {
 			metaBlock, ok := lastMetaBlock.(*block.MetaBlock)
 			if !ok {
