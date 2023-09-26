@@ -282,13 +282,13 @@ func TestNewSovereignSCRProcessor(t *testing.T) {
 		require.Nil(t, sovProc)
 		require.Equal(t, process.ErrNilSmartContractResultProcessor, err)
 	})
-	t.Run("nil SCProcessHelperHandler should err", func(t *testing.T) {
+	t.Run("nil SCProcessorHelperHandler should err", func(t *testing.T) {
 		args := createSSCProcessArgs()
-		args.SCProcessHelperHandler = nil
+		args.SCProcessorHelperHandler = nil
 
 		sovProc, err := NewSovereignSCRProcessor(args)
 		require.Nil(t, sovProc)
-		require.Equal(t, process.ErrNilSCProcessHelper, err)
+		require.Equal(t, process.ErrNilSCProcessorHelper, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		args := createSSCProcessArgs()
@@ -304,7 +304,7 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 
 	arguments := createSovereignSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
-	scpHelper, _ := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+	scpHelper, _ := scrCommon.NewSCProcessorHelper(scrCommon.SCProcessorHelperArgs{
 		Accounts:         arguments.AccountsDB,
 		ShardCoordinator: arguments.ShardCoordinator,
 		Marshalizer:      arguments.Marshalizer,
@@ -312,10 +312,10 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 		PubkeyConverter:  arguments.PubkeyConv,
 	})
 	sovProc, _ := NewSovereignSCRProcessor(SovereignSCProcessArgs{
-		ArgsParser:             arguments.ArgsParser,
-		TxTypeHandler:          arguments.TxTypeHandler,
-		SmartContractProcessor: sc,
-		SCProcessHelperHandler: scpHelper,
+		ArgsParser:               arguments.ArgsParser,
+		TxTypeHandler:            arguments.TxTypeHandler,
+		SmartContractProcessor:   sc,
+		SCProcessorHelperHandler: scpHelper,
 	})
 
 	scAddress := generateRandomBytes(32)
@@ -355,7 +355,7 @@ func TestSovereignSCProcessor_ProcessSmartContractResultIncomingSCR(t *testing.T
 func createSSCProcessArgs() SovereignSCProcessArgs {
 	arguments := createSovereignSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
-	scpHelper, _ := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+	scpHelper, _ := scrCommon.NewSCProcessorHelper(scrCommon.SCProcessorHelperArgs{
 		Accounts:         arguments.AccountsDB,
 		ShardCoordinator: arguments.ShardCoordinator,
 		Marshalizer:      arguments.Marshalizer,
@@ -363,9 +363,9 @@ func createSSCProcessArgs() SovereignSCProcessArgs {
 		PubkeyConverter:  arguments.PubkeyConv,
 	})
 	return SovereignSCProcessArgs{
-		ArgsParser:             arguments.ArgsParser,
-		TxTypeHandler:          arguments.TxTypeHandler,
-		SmartContractProcessor: sc,
-		SCProcessHelperHandler: scpHelper,
+		ArgsParser:               arguments.ArgsParser,
+		TxTypeHandler:            arguments.TxTypeHandler,
+		SmartContractProcessor:   sc,
+		SCProcessorHelperHandler: scpHelper,
 	}
 }

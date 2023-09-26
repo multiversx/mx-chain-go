@@ -32,7 +32,7 @@ func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewS
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	scpHelper, err := scrCommon.NewSCProcessHelper(scrCommon.SCProcessHelperArgs{
+	scpHelper, err := scrCommon.NewSCProcessorHelper(scrCommon.SCProcessorHelperArgs{
 		Accounts:         args.AccountsDB,
 		ShardCoordinator: args.ShardCoordinator,
 		Marshalizer:      args.Marshalizer,
@@ -45,10 +45,10 @@ func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewS
 	}
 
 	return NewSovereignSCRProcessor(SovereignSCProcessArgs{
-		ArgsParser:             args.ArgsParser,
-		TxTypeHandler:          args.TxTypeHandler,
-		SmartContractProcessor: scProc,
-		SCProcessHelperHandler: scpHelper,
+		ArgsParser:               args.ArgsParser,
+		TxTypeHandler:            args.TxTypeHandler,
+		SmartContractProcessor:   scProc,
+		SCProcessorHelperHandler: scpHelper,
 	})
 }
 

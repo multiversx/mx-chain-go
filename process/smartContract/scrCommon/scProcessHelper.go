@@ -14,7 +14,7 @@ import (
 
 var log = logger.GetOrCreate("process/smartcontract/scrCommon")
 
-type scProcessHelper struct {
+type scProcessorHelper struct {
 	accounts        state.AccountsAdapter
 	coordinator     sharding.Coordinator
 	marshalizer     marshal.Marshalizer
@@ -22,8 +22,8 @@ type scProcessHelper struct {
 	pubKeyConverter core.PubkeyConverter
 }
 
-// SCProcessHelperArgs represents the arguments needed to create a new accounts helper
-type SCProcessHelperArgs struct {
+// SCProcessorHelperArgs represents the arguments needed to create a new sc processor helper
+type SCProcessorHelperArgs struct {
 	Accounts         state.AccountsAdapter
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
@@ -31,8 +31,8 @@ type SCProcessHelperArgs struct {
 	PubkeyConverter  core.PubkeyConverter
 }
 
-// NewSCProcessHelper is a helper that provides methods for checking and processing SCs
-func NewSCProcessHelper(args SCProcessHelperArgs) (*scProcessHelper, error) {
+// NewSCProcessorHelper is a helper that provides methods for checking and processing SCs
+func NewSCProcessorHelper(args SCProcessorHelperArgs) (*scProcessorHelper, error) {
 	if check.IfNil(args.Accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
@@ -49,7 +49,7 @@ func NewSCProcessHelper(args SCProcessHelperArgs) (*scProcessHelper, error) {
 		return nil, process.ErrNilPubkeyConverter
 	}
 
-	return &scProcessHelper{
+	return &scProcessorHelper{
 		accounts:        args.Accounts,
 		coordinator:     args.ShardCoordinator,
 		marshalizer:     args.Marshalizer,
@@ -59,7 +59,7 @@ func NewSCProcessHelper(args SCProcessHelperArgs) (*scProcessHelper, error) {
 }
 
 // GetAccountFromAddress returns the account from the given address
-func (scph *scProcessHelper) GetAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
+func (scph *scProcessorHelper) GetAccountFromAddress(address []byte) (state.UserAccountHandler, error) {
 	shardForCurrentNode := scph.coordinator.SelfId()
 	shardForSrc := scph.coordinator.ComputeId(address)
 	if shardForCurrentNode != shardForSrc {
@@ -80,7 +80,7 @@ func (scph *scProcessHelper) GetAccountFromAddress(address []byte) (state.UserAc
 }
 
 // CheckSCRBeforeProcessing checks the smart contract result before processing it
-func (scph *scProcessHelper) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
+func (scph *scProcessorHelper) CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (process.ScrProcessingDataHandler, error) {
 	if check.IfNil(scr) {
 		return nil, process.ErrNilSmartContractResult
 	}
@@ -123,6 +123,6 @@ func (scph *scProcessHelper) CheckSCRBeforeProcessing(scr *smartContractResult.S
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (scph *scProcessHelper) IsInterfaceNil() bool {
+func (scph *scProcessorHelper) IsInterfaceNil() bool {
 	return scph == nil
 }

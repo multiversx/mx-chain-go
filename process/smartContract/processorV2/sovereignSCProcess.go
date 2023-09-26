@@ -13,18 +13,18 @@ import (
 
 // SovereignSCProcessArgs - arguments for creating a new sovereign smart contract processor
 type SovereignSCProcessArgs struct {
-	ArgsParser             process.ArgumentsParser
-	TxTypeHandler          process.TxTypeHandler
-	SCProcessHelperHandler process.SCProcessHelperHandler
-	SmartContractProcessor process.SmartContractProcessorFacade
+	ArgsParser               process.ArgumentsParser
+	TxTypeHandler            process.TxTypeHandler
+	SCProcessorHelperHandler process.SCProcessorHelperHandler
+	SmartContractProcessor   process.SmartContractProcessorFacade
 }
 
 type sovereignSCProcessor struct {
 	process.SmartContractProcessorFacade
 
-	argsParser      process.ArgumentsParser
-	txTypeHandler   process.TxTypeHandler
-	scProcessHelper process.SCProcessHelperHandler
+	argsParser        process.ArgumentsParser
+	txTypeHandler     process.TxTypeHandler
+	scProcessorHelper process.SCProcessorHelperHandler
 }
 
 // NewSovereignSCRProcessor creates a sovereign scr processor
@@ -38,8 +38,8 @@ func NewSovereignSCRProcessor(args SovereignSCProcessArgs) (*sovereignSCProcesso
 	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
-	if check.IfNil(args.SCProcessHelperHandler) {
-		return nil, process.ErrNilSCProcessHelper
+	if check.IfNil(args.SCProcessorHelperHandler) {
+		return nil, process.ErrNilSCProcessorHelper
 	}
 
 	if check.IfNil(args.ArgsParser) {
@@ -54,7 +54,7 @@ func NewSovereignSCRProcessor(args SovereignSCProcessArgs) (*sovereignSCProcesso
 		SmartContractProcessorFacade: args.SmartContractProcessor,
 		argsParser:                   args.ArgsParser,
 		txTypeHandler:                args.TxTypeHandler,
-		scProcessHelper:              args.SCProcessHelperHandler,
+		scProcessorHelper:            args.SCProcessorHelperHandler,
 	}, nil
 }
 
@@ -72,7 +72,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, fmt.Errorf("%w, expected ESDTSCAddress", errInvalidSenderAddress)
 	}
 
-	scrData, err := sc.scProcessHelper.CheckSCRBeforeProcessing(scr)
+	scrData, err := sc.scProcessorHelper.CheckSCRBeforeProcessing(scr)
 	if err != nil {
 		return returnCode, err
 	}

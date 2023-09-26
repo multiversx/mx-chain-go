@@ -1254,5 +1254,5 @@ var ErrNilPreProcessorCreator = errors.New("nil pre processor creator")
 // ErrNilSCProcessorCreator signals that a nil sc processor creator was provided
 var ErrNilSCProcessorCreator = errors.New("nil sc processor creator")
 
-// ErrNilSCProcessHelper signals that a nil sc processor helper was provided
-var ErrNilSCProcessHelper = errors.New("nil sc processor helper")
+// ErrNilSCProcessorHelper signals that a nil sc processor helper was provided
+var ErrNilSCProcessorHelper = errors.New("nil sc processor helper")
