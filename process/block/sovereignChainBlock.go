@@ -661,10 +661,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 // checkExtendedShardHeadersValidity checks if used extended shard headers are valid as construction
 func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() error {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-	if err == process.ErrNotarizedHeadersSliceForShardIsNil {
-		return nil
-	}
-
 	if err != nil {
 		return err
 	}
@@ -690,10 +686,6 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 
 func (scbp *sovereignChainBlockProcessor) checkAndRequestIfExtendedShardHeadersMissing() {
 	orderedExtendedShardHeaders, _ := scbp.blockTracker.GetTrackedHeaders(core.MainChainShardId)
-	//if len(orderedExtendedShardHeaders) > 0 && !bytes.Equal(orderedExtendedShardHeaders[0].GetChainID(), mainChainID) {
-	//	log.Debug("checkAndRequestIfExtendedShardHeadersMissing skip requesting missing header")
-	//	return
-	//}
 
 	err := scbp.requestHeadersIfMissing(orderedExtendedShardHeaders, core.MainChainShardId)
 	if err != nil {
@@ -704,11 +696,7 @@ func (scbp *sovereignChainBlockProcessor) checkAndRequestIfExtendedShardHeadersM
 func (scbp *sovereignChainBlockProcessor) requestMissingHeaders(missingNonces []uint64, shardId uint32) {
 	for _, nonce := range missingNonces {
 		scbp.addHeaderIntoTrackerPool(nonce, shardId)
-		//if shardId == scbp.shardCoordinator.SelfId() {
-		//	go scbp.requestHandler.RequestShardHeaderByNonce(shardId, nonce)
-		//} else {
 		go scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
-		//}
 	}
 }
 
@@ -993,6 +981,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	// if len(processedExtendedShardHdrs) > 0
 	err = scbp.saveLastNotarizedHeader(core.MainChainShardId, processedExtendedShardHdrs)
 	if err != nil {
 		return err

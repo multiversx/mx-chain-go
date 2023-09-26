@@ -39,10 +39,10 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 	scsbt.doReceivedHeaderJobFunc = scsbt.doReceivedHeaderJob
 	scsbt.getFinalHeaderFunc = scsbt.getFinalHeader
 
-	//err = scsbt.initCrossNotarizedStartHeaders()
-	//if err != nil {
-	//	return nil, err
-	//}
+	err = scsbt.initCrossNotarizedStartHeaders()
+	if err != nil {
+		return nil, err
+	}
 
 	return scsbt, nil
 }

@@ -425,7 +425,12 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	if check.IfNil(latestValidHeader) {
 		return
 	}
+	if _, isExtendedHeader := latestValidHeader.(data.ShardHeaderExtendedHandler); isExtendedHeader {
+		log.Error("requestHeadersIfNothingNewIsReceived.isExtended")
+		return
+	}
 
+	//(11 <= lastNotarizedHeaderNonce) && lastNotarizedHeaderNonce != 0
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
