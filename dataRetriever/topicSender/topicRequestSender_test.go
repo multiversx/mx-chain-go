@@ -778,6 +778,51 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		assert.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
 		assert.True(t, sentToPid1)
 	})
+	t.Run("should work and try on both networks", func(t *testing.T) {
+		t.Parallel()
+
+		crossPid := core.PeerID("cross peer")
+		intraPid := core.PeerID("intra peer")
+		cnt := 0
+
+		arg := createMockArgTopicRequestSender()
+		arg.MainMessenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				cnt++
+
+				return nil
+			},
+		}
+		arg.PeerListCreator = &mock.PeerListCreatorStub{
+			CrossShardPeerListCalled: func() []core.PeerID {
+				return []core.PeerID{crossPid}
+			},
+			IntraShardPeerListCalled: func() []core.PeerID {
+				return []core.PeerID{intraPid}
+			},
+		}
+		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
+			ConnectedPeersCalled: func() []core.PeerID {
+				return []core.PeerID{} // empty list, so it will fallback to the main network
+			},
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should have not been called")
+
+				return nil
+			},
+		}
+		arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+				return false // force the full archive network
+			},
+		}
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+		assert.NotNil(t, trs)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, cnt)
+	})
 }
 
 func TestTopicRequestSender_NumPeersToQuery(t *testing.T) {
