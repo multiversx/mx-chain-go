@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -113,6 +114,7 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		false,
 		&hashingMocks.HasherMock{},
 		txVerChecker,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 }
 
@@ -156,6 +158,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 }
 
@@ -199,6 +202,9 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(tx.Version),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsRelayedTransactionsV3FlagEnabledField: true,
+		},
 	)
 }
 
@@ -223,6 +229,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -248,6 +255,7 @@ func TestNewInterceptedTransaction_NilArgsParser(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -273,6 +281,7 @@ func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		nil,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -298,6 +307,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -323,6 +333,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -348,6 +359,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -373,6 +385,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -398,6 +411,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -423,6 +437,7 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -448,6 +463,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -473,6 +489,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -498,6 +515,7 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -523,6 +541,7 @@ func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -548,10 +567,37 @@ func TestNewInterceptedTransaction_NilTxSignHasherShouldErr(t *testing.T) {
 		false,
 		nil,
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
 	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewInterceptedTransaction_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubKeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&economicsmocks.EconomicsHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		false,
+		&hashingMocks.HasherMock{},
+		versioning.NewTxVersionChecker(1),
+		nil,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
@@ -579,6 +625,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, txi)
@@ -1049,6 +1096,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	err := txi.CheckValidity()
@@ -1109,6 +1157,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShouldWork(t *testing
 		true,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	err := txi.CheckValidity()
@@ -1194,6 +1243,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -1358,6 +1408,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	require.Nil(t, err)
 
@@ -1596,6 +1647,35 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)
+
+	marshalizer := &mock.MarshalizerMock{}
+	txBuff, _ := marshalizer.Marshal(tx)
+	txi, _ = transaction.NewInterceptedTransaction(
+		txBuff,
+		marshalizer,
+		marshalizer,
+		&hashingMocks.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		&testscommon.PubkeyConverterStub{
+			LenCalled: func() int {
+				return 32
+			},
+		},
+		mock.NewMultipleShardsCoordinatorMock(),
+		createFreeTxFeeHandler(),
+		&testscommon.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		tx.ChainID,
+		false,
+		&hashingMocks.HasherMock{},
+		versioning.NewTxVersionChecker(0),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	)
+
+	assert.NotNil(t, txi)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRelayedTxV3Disabled, err)
 }
 
 // ------- IsInterfaceNil
@@ -1727,6 +1807,7 @@ func TestInterceptedTransaction_Fee(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(0),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, big.NewInt(0), txin.Fee())
@@ -1770,6 +1851,7 @@ func TestInterceptedTransaction_String(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(0),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	expectedFormat := fmt.Sprintf(

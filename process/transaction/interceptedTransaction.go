@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -42,6 +43,7 @@ type InterceptedTransaction struct {
 	sndShard               uint32
 	isForCurrentShard      bool
 	enableSignedTxWithHash bool
+	enableEpochsHandler    common.EnableEpochsHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -61,6 +63,7 @@ func NewInterceptedTransaction(
 	enableSignedTxWithHash bool,
 	txSignHasher hashing.Hasher,
 	txVersionChecker process.TxVersionCheckerHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -105,6 +108,9 @@ func NewInterceptedTransaction(
 	if check.IfNil(txVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -127,6 +133,7 @@ func NewInterceptedTransaction(
 		enableSignedTxWithHash: enableSignedTxWithHash,
 		txVersionChecker:       txVersionChecker,
 		txSignHasher:           txSignHasher,
+		enableEpochsHandler:    enableEpochsHandler,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -219,6 +226,9 @@ func isRelayedTx(funcName string, innerTx *transaction.Transaction) bool {
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
 	if tx.InnerTransaction == nil {
 		return nil
+	}
+	if !inTx.enableEpochsHandler.IsRelayedTransactionsV3FlagEnabled() {
+		return process.ErrRelayedTxV3Disabled
 	}
 
 	innerTx := tx.InnerTransaction
