@@ -222,19 +222,6 @@ func (scbp *sovereignChainBlockProcessor) createIncomingMiniBlocksDestMe(haveTim
 	orderedExtendedShardHeaders, orderedExtendedShardHeadersHashes, err := scbp.extendedShardHeaderTracker.ComputeLongestExtendedShardChainFromLastNotarized()
 	sw.Stop("ComputeLongestExtendedShardChainFromLastNotarized")
 	log.Debug("measurements", sw.GetMeasurements()...)
-	if err == process.ErrNotarizedHeadersSliceForShardIsNil {
-		return &createAndProcessMiniBlocksDestMeInfo{
-			haveTime: haveTime,
-			haveAdditionalTime: func() bool {
-				return false
-			},
-			miniBlocks:                 make(block.MiniBlockSlice, 0),
-			allProcessedMiniBlocksInfo: make(map[string]*processedMb.ProcessedMiniBlockInfo),
-			numTxsAdded:                uint32(0),
-			numHdrsAdded:               uint32(0),
-			scheduledMode:              true,
-		}, nil
-	}
 
 	if err != nil {
 		return nil, err
@@ -733,9 +720,6 @@ func (scbp *sovereignChainBlockProcessor) verifyCrossShardMiniBlockDstMe(soverei
 
 func (scbp *sovereignChainBlockProcessor) getAllMiniBlockDstMeFromExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) (map[string][]byte, error) {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-	if err == process.ErrNotarizedHeadersSliceForShardIsNil {
-		return make(map[string][]byte), nil
-	}
 	if err != nil {
 		return nil, err
 	}

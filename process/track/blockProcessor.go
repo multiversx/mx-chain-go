@@ -429,7 +429,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		log.Error("requestHeadersIfNothingNewIsReceived.isExtended")
 		return
 	}
-
+	log.Error("requestHeadersIfNothingNewIsReceived.NOT EXTENDED")
 	//(11 <= lastNotarizedHeaderNonce) && lastNotarizedHeaderNonce != 0
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
