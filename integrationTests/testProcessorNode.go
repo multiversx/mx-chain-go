@@ -339,7 +339,7 @@ type TestProcessorNode struct {
 	TxProcessor            process.TransactionProcessor
 	TxCoordinator          process.TransactionCoordinator
 	ScrForwarder           process.IntermediateTransactionHandler
-	BlockchainHook         process.BlockChainHookHandler
+	BlockchainHook         process.BlockChainHookWithAccountsAdapter
 	VMFactory              process.VirtualMachinesContainerFactory
 	VMContainer            process.VirtualMachinesContainer
 	ArgsParser             process.ArgumentsParser
