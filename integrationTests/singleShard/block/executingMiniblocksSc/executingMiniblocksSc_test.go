@@ -3,8 +3,8 @@ package executingMiniblocksSc
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -20,7 +20,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	scCode, err := ioutil.ReadFile("../../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scCode, err := os.ReadFile("../../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
 	assert.Nil(t, err)
 
 	maxShards := uint32(1)

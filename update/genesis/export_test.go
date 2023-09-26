@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -405,7 +404,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 
 	var nodesSetup sharding.NodesSetup
 
-	nsBytes, err := ioutil.ReadFile(filepath.Join(testFolderName, common.NodesSetupJsonFileName))
+	nsBytes, err := os.ReadFile(filepath.Join(testFolderName, common.NodesSetupJsonFileName))
 	require.NoError(t, err)
 
 	err = json.Unmarshal(nsBytes, &nodesSetup)

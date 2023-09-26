@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -392,6 +393,8 @@ func (ap *accountsParser) setScrsTxsPool(
 ) {
 	for _, id := range indexingData {
 		for txHash, tx := range id.ScrsTxs {
+			hexEncodedTxHash := hex.EncodeToString([]byte(txHash))
+
 			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
 			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
@@ -401,11 +404,11 @@ func (ap *accountsParser) setScrsTxsPool(
 			}
 			scrTx.GasLimit = uint64(0)
 
-			txsPoolPerShard[senderShardID].SmartContractResults[txHash] = &outportcore.SCRInfo{
+			txsPoolPerShard[senderShardID].SmartContractResults[hexEncodedTxHash] = &outportcore.SCRInfo{
 				SmartContractResult: scrTx,
 				FeeInfo:             &outportcore.FeeInfo{Fee: big.NewInt(0)},
 			}
-			txsPoolPerShard[receiverShardID].SmartContractResults[txHash] = &outportcore.SCRInfo{
+			txsPoolPerShard[receiverShardID].SmartContractResults[hexEncodedTxHash] = &outportcore.SCRInfo{
 				SmartContractResult: scrTx,
 				FeeInfo:             &outportcore.FeeInfo{Fee: big.NewInt(0)},
 			}
@@ -457,15 +460,19 @@ func (ap *accountsParser) setTxPoolAndMiniBlock(
 	tx.Signature = []byte(common.GenesisTxSignatureString)
 	tx.GasLimit = uint64(0)
 
-	txsPoolPerShard[senderShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
+	txsPoolPerShard[senderShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
 		Transaction: tx,
-		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
-	}
+		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0),
+	InitialPaidFee: big.NewInt(0),
+			},
+		}
 
-	txsPoolPerShard[receiverShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
+	txsPoolPerShard[receiverShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
 		Transaction: tx,
-		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
-	}
+		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0),
+	InitialPaidFee: big.NewInt(0),
+			},
+		}
 
 	for _, miniBlock := range miniBlocks {
 		if senderShardID == miniBlock.GetSenderShardID() &&

@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -141,13 +143,13 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 			},
 		},
 		queryService: &nodeMock.SCQueryServiceStub{
-			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				require.Equal(t, &process.SCQuery{
 					ScAddress: vm.StakingSCAddress,
 					FuncName:  "isStaked",
 					Arguments: [][]byte{initialNode.PubKeyBytes()}}, query)
 
-				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, holders.NewBlockInfo(nil, 0, nil), nil
 			},
 		},
 	}

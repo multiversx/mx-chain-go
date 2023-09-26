@@ -313,6 +313,13 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		},
 		AccumulatedFees: big.NewInt(100),
 		DeveloperFees:   big.NewInt(50),
+		PubKeysBitmap:   []byte("010101"),
+		Signature:       []byte("sig"),
+		LeaderSignature: []byte("leader"),
+		ChainID:         []byte("1"),
+		SoftwareVersion: []byte("2"),
+		ReceiptsHash:    []byte("recHash"),
+		Reserved:        []byte("res"),
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -337,6 +344,13 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		AccumulatedFees: "100",
 		DeveloperFees:   "50",
 		Status:          BlockStatusOnChain,
+		PubKeyBitmap:    "303130313031",
+		Signature:       "736967",
+		LeaderSignature: "6c6561646572",
+		ChainID:         "1",
+		SoftwareVersion: "32",
+		ReceiptsHash:    "72656348617368",
+		Reserved:        []byte("res"),
 	}
 
 	blk, err := shardAPIBlockProcessor.GetBlockByNonce(1, api.BlockQueryOptions{})

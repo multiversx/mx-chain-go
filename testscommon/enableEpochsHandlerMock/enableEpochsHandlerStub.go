@@ -119,6 +119,7 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsScToScEventLogEnabledField                                 bool
 	IsRelayedNonceFixEnabledField                                bool
 	IsDeterministicSortOnValidatorsInfoFixEnabledField           bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
@@ -127,6 +128,7 @@ type EnableEpochsHandlerStub struct {
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 	IsConsensusModelV2EnabledField                               bool
 }
 
@@ -1017,6 +1019,14 @@ func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bo
 	return stub.IsMaxBlockchainHookCountersFlagEnabledField
 }
 
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (stub *EnableEpochsHandlerStub) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
 // IsWipeSingleNFTLiquidityDecreaseEnabled -
 func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	stub.RLock()
@@ -1039,6 +1049,14 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsSetGuardianEnabledField
+}
+
+// IsScToScEventLogEnabled -
+func (stub *EnableEpochsHandlerStub) IsScToScEventLogEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsScToScEventLogEnabledField
 }
 
 // IsRelayedNonceFixEnabled -

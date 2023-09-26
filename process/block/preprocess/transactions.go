@@ -93,6 +93,7 @@ type ArgsTransactionPreProcessor struct {
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -153,6 +154,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.ProcessedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
@@ -168,6 +172,7 @@ func NewTransactionPreprocessor(
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
+		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 	}
 
 	txs := &transactions{
@@ -892,14 +897,18 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	dstShardId uint32,
 ) error {
 
+	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 	if isTxTargetedForDeletion {
+		txs.txExecutionOrderHandler.Remove(txHash)
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(txHash, strCache)
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
+		txs.txExecutionOrderHandler.Remove(txHash)
+
 		return err
 	}
 
@@ -1647,6 +1656,7 @@ func (txs *transactions) processInNormalMode(
 
 	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash)
 
+	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	if err != nil {
 		txs.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, txHash)

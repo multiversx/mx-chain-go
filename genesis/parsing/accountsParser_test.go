@@ -608,8 +608,8 @@ func TestAccountsParser_setScrsTxsPool(t *testing.T) {
 
 	ap.SetScrsTxsPool(sharder, indexingDataMap, txsPoolPerShard)
 	assert.Equal(t, 1, len(txsPoolPerShard))
-	assert.Equal(t, uint64(0), txsPoolPerShard[0].SmartContractResults["hash"].SmartContractResult.GetGasLimit())
-	assert.Equal(t, uint64(1), txsPoolPerShard[0].SmartContractResults["hash"].SmartContractResult.GetNonce())
+	assert.Equal(t, uint64(0), txsPoolPerShard[0].SmartContractResults[hex.EncodeToString([]byte("hash"))].SmartContractResult.GetGasLimit())
+	assert.Equal(t, uint64(1), txsPoolPerShard[0].SmartContractResults[hex.EncodeToString([]byte("hash"))].SmartContractResult.GetNonce())
 }
 
 func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
@@ -729,7 +729,6 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 		Signature: []byte(common.GenesisTxSignatureString),
 	}
 	hashHex := "cef3536e36ae01d3c84c97b0e6fae577f34c12c0cfdb51a04a2668afd5f5efe7"
-	txHash, err := hex.DecodeString(hashHex)
 	require.Nil(t, err)
 
 	indexingDataMap := make(map[uint32]*genesis.IndexingData)
@@ -746,7 +745,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 	assert.Equal(t, 1, len(txsPoolPerShard[0].Transactions))
 
 	for hashString, v := range txsPoolPerShard[0].Transactions {
-		assert.Equal(t, txHash, []byte(hashString))
+		assert.Equal(t, hashHex, hashString)
 		assert.Equal(t, tx, v.Transaction)
 	}
 }

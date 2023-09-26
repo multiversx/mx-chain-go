@@ -141,10 +141,17 @@ func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc
 		IsSender:       markedAccount.isSender,
 		BalanceChanged: markedAccount.balanceChanged,
 		UserName:       string(userAccount.GetUserName()),
+		CodeMetadata:   userAccount.GetCodeMetadata(),
+		RootHash:       userAccount.GetRootHash(),
+	}
+
+	isSC := core.IsSmartContractAddress(userAccount.AddressBytes())
+	if isSC {
+		alteredAcc.AdditionalData.CodeHash = userAccount.GetCodeHash()
 	}
 
 	ownerAddressBytes := userAccount.GetOwnerAddress()
-	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
+	if isSC && len(ownerAddressBytes) == aap.addressConverter.Len() {
 		alteredAcc.AdditionalData.CurrentOwner = aap.addressConverter.SilentEncode(ownerAddressBytes, log)
 	}
 	developerRewards := userAccount.GetDeveloperReward()
@@ -359,17 +366,17 @@ func (aap *alteredAccountsProvider) IsInterfaceNil() bool {
 	return aap == nil
 }
 
-func checkArgAlteredAccountsProvider(arg ArgsAlteredAccountsProvider) error {
-	if check.IfNil(arg.ShardCoordinator) {
+func checkArgAlteredAccountsProvider(args ArgsAlteredAccountsProvider) error {
+	if check.IfNil(args.ShardCoordinator) {
 		return errNilShardCoordinator
 	}
-	if check.IfNil(arg.AddressConverter) {
+	if check.IfNil(args.AddressConverter) {
 		return ErrNilPubKeyConverter
 	}
-	if check.IfNil(arg.AccountsDB) {
+	if check.IfNil(args.AccountsDB) {
 		return ErrNilAccountsDB
 	}
-	if check.IfNil(arg.EsdtDataStorageHandler) {
+	if check.IfNil(args.EsdtDataStorageHandler) {
 		return ErrNilESDTDataStorageHandler
 	}
 

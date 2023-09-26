@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -11,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -18,15 +18,19 @@ import (
 )
 
 func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
@@ -126,15 +130,19 @@ func TestAsyncESDTTransferWithSCCallShouldWork(t *testing.T) {
 }
 
 func TestAsyncESDTTransferWithSCCallSecondContractAnotherToken(t *testing.T) {
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 

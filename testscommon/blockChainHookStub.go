@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -52,6 +53,7 @@ type BlockChainHookStub struct {
 	IsLimitedTransferCalled                 func(_ []byte) bool
 	ExecuteSmartContractCallOnOtherVMCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SetVMContainerCalled                    func(vmContainer process.VirtualMachinesContainer) error
+	GetAccountsAdapterCalled                func() state.AccountsAdapter
 }
 
 // GetCode -
@@ -433,4 +435,12 @@ func (stub *BlockChainHookStub) IsLimitedTransfer(arg []byte) bool {
 	}
 
 	return false
+}
+
+// GetAccountsAdapter -
+func (stub *BlockChainHookStub) GetAccountsAdapter() state.AccountsAdapter {
+	if stub.GetAccountsAdapterCalled != nil {
+		return stub.GetAccountsAdapterCalled()
+	}
+	return nil
 }
