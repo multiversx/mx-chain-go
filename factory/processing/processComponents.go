@@ -351,24 +351,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	scheduledSCRSStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.ScheduledSCRsUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	scheduledTxsExecutionHandler, err := preprocess.NewScheduledTxsExecution(
-		&disabled.TxProcessor{},
-		&disabled.TxCoordinator{},
-		scheduledSCRSStorer,
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.txExecutionOrderHandler,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	pcf.txLogsProcessor = txLogsProcessor
 	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
@@ -779,6 +761,7 @@ func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (proce
 			pcf.coreData.InternalMarshalizer(),
 			pcf.coreData.Hasher(),
 			pcf.bootstrapComponents.ShardCoordinator(),
+			pcf.txExecutionOrderHandler,
 		)
 	case common.ChainRunTypeSovereign:
 		return &processDisabled.ScheduledTxsExecutionHandler{}, nil

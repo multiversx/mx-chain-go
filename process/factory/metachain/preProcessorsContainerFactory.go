@@ -143,7 +143,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxTypeHandler:                ppcf.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcf.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
-		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
+		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
 	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
@@ -168,7 +168,7 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcf.balanceComputation,
 		ppcf.enableEpochsHandler,
 		ppcf.processedMiniBlocksTracker,
-		ppcm.txExecutionOrderHandler,
+		ppcf.txExecutionOrderHandler,
 	)
 
 	return scrPreprocessor, err

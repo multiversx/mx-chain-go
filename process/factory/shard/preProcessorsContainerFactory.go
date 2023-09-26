@@ -103,7 +103,7 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		chainRunType:                 args.ChainRunType,
-		txExecutionOrderHandler:      txExecutionOrderHandler,
+		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 	}, nil
 }
 
@@ -175,7 +175,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxTypeHandler:                ppcf.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcf.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
-		TxExecutionOrderHandler:      ppcm.txExecutionOrderHandler,
+		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
 	return preprocess.NewTransactionPreprocessor(args)
@@ -198,7 +198,7 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcf.balanceComputation,
 		ppcf.enableEpochsHandler,
 		ppcf.processedMiniBlocksTracker,
-		ppcm.txExecutionOrderHandler,
+		ppcf.txExecutionOrderHandler,
 	)
 
 	switch ppcf.chainRunType {
@@ -226,7 +226,7 @@ func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 		ppcf.blockSizeComputation,
 		ppcf.balanceComputation,
 		ppcf.processedMiniBlocksTracker,
-		ppcm.txExecutionOrderHandler,
+		ppcf.txExecutionOrderHandler,
 	)
 
 	return rewardTxPreprocessor, err
@@ -314,8 +314,8 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	if check.IfNil(args.ProcessedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
 	}
-	if check.IfNil(txExecutionOrderHandler) {
-		return nil, process.ErrNilTxExecutionOrderHandler
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
 	}
 
 	return nil
