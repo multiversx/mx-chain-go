@@ -332,3 +332,11 @@ func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []by
 func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 }
+
+func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
+	return sr.sentSignatureTracker
+}
+
+func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
+	return sr.sentSignatureTracker
+}
