@@ -69,7 +69,7 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 	}
 }
 
-// AddHeaderInShard adds header in pool as specified shard id
+// AddHeaderInShard adds header in pool by specified shard id
 func (pool *headersPool) AddHeaderInShard(headerHash []byte, header data.HeaderHandler, shardID uint32) {
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return
