@@ -132,7 +132,9 @@ func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
-	pool.SetEvictionHandler(func(txHash []byte) {})
+	secondPoolAsInterface, _ := newTxPoolToTest()
+	secondPool := secondPoolAsInterface.(*shardedTxPool)
+	pool.SetEvictionHandler(secondPool)
 
 	fooGenericCache := pool.ShardDataStore("foo")
 	fooTxCache := pool.getTxCache("foo")
