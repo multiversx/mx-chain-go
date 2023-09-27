@@ -119,8 +119,8 @@ func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedDat
 		return fmt.Errorf("sovereignHeaderInterceptorProcessor.Save error: %w", process.ErrWrongTypeAssertion)
 	}
 
-	extendedHeaderNonce := interceptedHdr.GetExtendedHeader().GetNonce()
 	extendedHeaderHash := interceptedHdr.Hash()
+	extendedHeaderNonce := interceptedHdr.GetExtendedHeader().GetNonce()
 	_, hashes, err := hip.headersPool.GetHeadersByNonceAndShardId(extendedHeaderNonce, core.MainChainShardId)
 
 	// do not add header again + create scrs and mbs if already received
@@ -134,8 +134,8 @@ func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedDat
 }
 
 func contains(hashes [][]byte, hash []byte) bool {
-	for _, h := range hashes {
-		if bytes.Equal(h, hash) {
+	for _, currHash := range hashes {
+		if bytes.Equal(currHash, hash) {
 			return true
 		}
 	}
