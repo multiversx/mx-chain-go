@@ -347,10 +347,37 @@ func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 
 	holder, _ := keysManagement.NewManagedPeersHolder(args)
 	_ = holder.AddManagedPeer(skBytes0)
+
+	testName := "test name"
+	testIdentity := "test identity"
+
 	t.Run("public key not added should error", func(t *testing.T) {
 		skRecovered, err := holder.GetPrivateKey(pkBytes1)
 		assert.Nil(t, skRecovered)
 		assert.True(t, errors.Is(err, keysManagement.ErrMissingPublicKeyDefinition))
+	})
+	t.Run("identity provided but not the actual key should not provide a nil key", func(t *testing.T) {
+		argsLocal := createMockArgsManagedPeersHolder()
+		blsKey := "aabb1122"
+		namedIdentity := config.NamedIdentity{
+			Identity: testIdentity,
+			NodeName: testName,
+			BLSKeys:  []string{blsKey},
+		}
+
+		argsLocal.PrefsConfig.NamedIdentity = append(argsLocal.PrefsConfig.NamedIdentity, namedIdentity)
+		holderLocal, err := keysManagement.NewManagedPeersHolder(argsLocal)
+		assert.Nil(t, err)
+
+		keyUnhexed, _ := hex.DecodeString(blsKey)
+		skRecovered, err := holderLocal.GetPrivateKey(keyUnhexed)
+		assert.Nil(t, skRecovered)
+		assert.ErrorIs(t, err, keysManagement.ErrMissingPublicKeyDefinition)
+
+		name, identity, err := holderLocal.GetNameAndIdentity(keyUnhexed)
+		assert.ErrorIs(t, err, keysManagement.ErrMissingPublicKeyDefinition)
+		assert.Empty(t, name)
+		assert.Empty(t, identity)
 	})
 	t.Run("public key exists should return the private key", func(t *testing.T) {
 		skRecovered, err := holder.GetPrivateKey(pkBytes0)
@@ -358,6 +385,29 @@ func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 
 		skBytesRecovered, _ := skRecovered.ToByteArray()
 		assert.Equal(t, skBytes0, skBytesRecovered)
+	})
+	t.Run("identity provided and the actual key should work", func(t *testing.T) {
+		argsLocal := createMockArgsManagedPeersHolder()
+		namedIdentity := config.NamedIdentity{
+			Identity: testIdentity,
+			NodeName: testName,
+			BLSKeys:  []string{hex.EncodeToString(pkBytes0)},
+		}
+
+		argsLocal.PrefsConfig.NamedIdentity = append(argsLocal.PrefsConfig.NamedIdentity, namedIdentity)
+		holderLocal, err := keysManagement.NewManagedPeersHolder(argsLocal)
+		assert.Nil(t, err)
+
+		_ = holderLocal.AddManagedPeer(skBytes0)
+		skRecovered, err := holderLocal.GetPrivateKey(pkBytes0)
+		skBytesRecovered, _ := skRecovered.ToByteArray()
+		assert.Equal(t, skBytes0, skBytesRecovered)
+		assert.Nil(t, err)
+
+		name, identity, err := holderLocal.GetNameAndIdentity(pkBytes0)
+		assert.Nil(t, err)
+		assert.Equal(t, testName+"-00", name)
+		assert.Equal(t, testIdentity, identity)
 	})
 }
 
