@@ -120,7 +120,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		"AggregateSignature", cnsDta.AggregateSignature,
 		"LeaderSignature", cnsDta.LeaderSignature)
 
-	signers := ComputeSignersPublicKeys(sr.ConsensusGroup(), cnsDta.PubKeysBitmap)
+	signers := computeSignersPublicKeys(sr.ConsensusGroup(), cnsDta.PubKeysBitmap)
 	sr.sentSignatureTracker.ReceivedActualSigners(signers)
 
 	sr.PeerHonestyHandler().ChangeScore(
@@ -853,8 +853,8 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	return false
 }
 
-// ComputeSignersPublicKeys will extract from the provided consensus group slice only the strings that matched with the bitmap
-func ComputeSignersPublicKeys(consensusGroup []string, bitmap []byte) []string {
+// computeSignersPublicKeys will extract from the provided consensus group slice only the strings that matched with the bitmap
+func computeSignersPublicKeys(consensusGroup []string, bitmap []byte) []string {
 	nbBitsBitmap := len(bitmap) * 8
 	consensusGroupSize := len(consensusGroup)
 	size := consensusGroupSize
@@ -879,7 +879,7 @@ func ComputeSignersPublicKeys(consensusGroup []string, bitmap []byte) []string {
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	consensusGroup := sr.ConsensusGroup()
-	signers := ComputeSignersPublicKeys(consensusGroup, bitmap)
+	signers := computeSignersPublicKeys(consensusGroup, bitmap)
 	for _, pubKey := range signers {
 		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
 		if err != nil {
