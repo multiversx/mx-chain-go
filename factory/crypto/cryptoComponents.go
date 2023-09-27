@@ -52,7 +52,6 @@ type CryptoComponentsFactoryArgs struct {
 	ActivateBLSPubKeyMessageVerification bool
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
-	NoKeyProvided                        bool
 	P2pKeyPemFileName                    string
 }
 
@@ -69,7 +68,6 @@ type cryptoComponentsFactory struct {
 	keyLoader                            factory.KeyLoaderHandler
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
-	noKeyProvided                        bool
 	p2pKeyPemFileName                    string
 }
 
@@ -135,7 +133,6 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
 		enableEpochs:                         args.EnableEpochs,
-		noKeyProvided:                        args.NoKeyProvided,
 		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
 		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
 	}
@@ -334,14 +331,16 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 
 		return ccf.generateCryptoParams(keygen, "in import mode", handledPrivateKeys)
 	}
-	if ccf.noKeyProvided {
-		return ccf.generateCryptoParams(keygen, "with no-key flag enabled", make([][]byte, 0))
-	}
-	if len(handledPrivateKeys) > 0 {
-		return ccf.generateCryptoParams(keygen, "running with a provided allValidatorsKeys.pem", handledPrivateKeys)
+	cp, err := ccf.readCryptoParams(keygen)
+	if err == nil {
+		cp.handledPrivateKeys = handledPrivateKeys
+
+		return cp, nil
 	}
 
-	return ccf.readCryptoParams(keygen)
+	log.Debug("failure while reading the BLS key, will autogenerate one", "error", err)
+
+	return ccf.generateCryptoParams(keygen, "running without a provided BLS key", handledPrivateKeys)
 }
 
 func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
