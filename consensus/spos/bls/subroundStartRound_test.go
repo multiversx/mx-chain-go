@@ -367,7 +367,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 	sr := *initSubroundStartRoundWithContainer(container)
 	sentTrackerInterface := sr.GetSentSignatureTracker()
 	sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
-	startRoundCalled := true
+	startRoundCalled := false
 	sentTracker.StartRoundCalled = func() {
 		startRoundCalled = true
 	}

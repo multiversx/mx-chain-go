@@ -152,6 +152,11 @@ func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
+// GetSentSignatureTracker returns the subroundStartRound's SentSignaturesTracker instance
+func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
+	return sr.sentSignatureTracker
+}
+
 // subroundBlock
 
 // SubroundBlock defines a type for the subroundBlock structure
@@ -332,11 +337,6 @@ func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
 	return sr.getMinConsensusGroupIndexOfManagedKeys()
 }
 
-// GetStringValue calls the unexported getStringValue function
-func GetStringValue(messageType consensus.MessageType) string {
-	return getStringValue(messageType)
-}
-
 // CreateAndBroadcastInvalidSigners calls the unexported createAndBroadcastInvalidSigners function
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
 	sr.createAndBroadcastInvalidSigners(invalidSigners)
@@ -352,7 +352,7 @@ func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker
 	return sr.sentSignatureTracker
 }
 
-// GetSentSignatureTracker returns the subroundStartRound's SentSignaturesTracker instance
-func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
-	return sr.sentSignatureTracker
+// GetStringValue calls the unexported getStringValue function
+func GetStringValue(messageType consensus.MessageType) string {
+	return getStringValue(messageType)
 }
