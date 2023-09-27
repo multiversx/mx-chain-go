@@ -881,3 +881,6 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
+
+// FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
+const FullArchiveMetricSuffix = "_full_archive"
