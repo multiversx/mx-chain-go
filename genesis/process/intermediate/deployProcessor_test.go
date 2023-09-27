@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
@@ -221,8 +222,8 @@ func TestDeployProcessor_DeployExecuteQueryFailureShouldError(t *testing.T) {
 		},
 	}
 	arg.QueryService = &mock.QueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			return nil, expectedErr
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return nil, nil, expectedErr
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)
@@ -275,10 +276,10 @@ func TestDeployProcessor_DeployExecuteQueryReturnsMultipleReturnDataShouldError(
 		},
 	}
 	arg.QueryService = &mock.QueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			return &vmcommon.VMOutput{
 				ReturnData: [][]byte{[]byte("return data 1"), []byte("return data 2")},
-			}, nil
+			}, nil, nil
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)
@@ -357,10 +358,10 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 		},
 	}
 	arg.QueryService = &mock.QueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			return &vmcommon.VMOutput{
 				ReturnData: [][]byte{[]byte(version)},
-			}, nil
+			}, nil, nil
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)

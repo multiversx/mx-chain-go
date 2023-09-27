@@ -14,11 +14,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -248,7 +250,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 		assert.Equal(t, skBytes0, skBytesRecovered)
 		assert.Equal(t, 10, len(pInfo.MachineID()))
 		assert.Equal(t, defaultIdentity, pInfo.NodeIdentity())
-		assert.Equal(t, defaultName, pInfo.NodeName())
+		assert.Equal(t, defaultName+"-00", pInfo.NodeName())
 	})
 	t.Run("should work for a new pk with identity from config", func(t *testing.T) {
 		providedAddress := []byte("erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th")
@@ -292,7 +294,7 @@ func TestManagedPeersHolder_AddManagedPeer(t *testing.T) {
 		assert.Equal(t, providedAddress, skBytesRecovered)
 		assert.Equal(t, 10, len(pInfo.MachineID()))
 		assert.Equal(t, providedIdentity, pInfo.NodeIdentity())
-		assert.Equal(t, providedName, pInfo.NodeName())
+		assert.Equal(t, providedName+"-00", pInfo.NodeName())
 	})
 	t.Run("should error when trying to add the same pk", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
@@ -413,9 +415,68 @@ func TestManagedPeersHolder_GetNameAndIdentity(t *testing.T) {
 	t.Run("public key exists should return name and identity", func(t *testing.T) {
 		name, identity, err := holder.GetNameAndIdentity(pkBytes0)
 		assert.Nil(t, err)
-		assert.Equal(t, defaultName, name)
+		assert.Equal(t, defaultName+"-00", name)
 		assert.Equal(t, defaultIdentity, identity)
 	})
+	t.Run("complex scenarios with multiple identities should work", func(t *testing.T) {
+		argsLocal := createMockArgsManagedPeersHolder()
+		argsLocal.PrefsConfig.NamedIdentity = []config.NamedIdentity{
+			{
+				Identity: "identity1",
+				NodeName: "name1",
+				BLSKeys: []string{
+					hex.EncodeToString([]byte("public key 0")),
+					"",
+					hex.EncodeToString([]byte("public key 1")),
+				},
+			},
+			{
+				Identity: "identity2",
+				NodeName: "name2",
+				BLSKeys: []string{
+					"",
+					hex.EncodeToString([]byte("public key 2")),
+					hex.EncodeToString([]byte("public key 3")),
+				},
+			},
+			{
+				Identity: "identity3",
+				NodeName: "",
+				BLSKeys: []string{
+					hex.EncodeToString([]byte("public key 4")),
+					"",
+					hex.EncodeToString([]byte("public key 5")),
+				},
+			},
+		}
+
+		holderLocal, err := keysManagement.NewManagedPeersHolder(argsLocal)
+		require.Nil(t, err)
+
+		for i := 0; i < 10; i++ {
+			_ = holderLocal.AddManagedPeer([]byte(fmt.Sprintf("private key %d", i)))
+		}
+
+		checkNameIdentity(t, holderLocal, "public key 0", "identity1", "name1-00")
+		checkNameIdentity(t, holderLocal, "public key 1", "identity1", "name1-01")
+
+		checkNameIdentity(t, holderLocal, "public key 2", "identity2", "name2-00")
+		checkNameIdentity(t, holderLocal, "public key 3", "identity2", "name2-01")
+
+		checkNameIdentity(t, holderLocal, "public key 4", "identity3", "")
+		checkNameIdentity(t, holderLocal, "public key 5", "identity3", "")
+
+		checkNameIdentity(t, holderLocal, "public key 6", defaultIdentity, defaultName+"-00")
+		checkNameIdentity(t, holderLocal, "public key 7", defaultIdentity, defaultName+"-01")
+		checkNameIdentity(t, holderLocal, "public key 8", defaultIdentity, defaultName+"-02")
+	})
+}
+
+func checkNameIdentity(tb testing.TB, holder common.ManagedPeersHolder, pk string, expectedIdentity string, expectedName string) {
+	name, identity, err := holder.GetNameAndIdentity([]byte(pk))
+	assert.Nil(tb, err)
+	assert.Equal(tb, expectedIdentity, identity)
+	assert.Equal(tb, expectedName, name)
 }
 
 func TestManagedPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T) {

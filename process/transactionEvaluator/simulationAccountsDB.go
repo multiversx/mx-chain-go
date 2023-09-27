@@ -139,7 +139,7 @@ func (r *simulationAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifi
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
-func (r *simulationAccountsDB) SnapshotState(_ []byte) {
+func (r *simulationAccountsDB) SnapshotState(_ []byte, _ uint32) {
 }
 
 // SetStateCheckpoint won't do anything as write operations are disabled on this component

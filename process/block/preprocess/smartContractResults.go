@@ -49,6 +49,7 @@ func NewSmartContractResultPreprocessor(
 	balanceComputation BalanceComputationHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -96,6 +97,9 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -111,6 +115,7 @@ func NewSmartContractResultPreprocessor(
 		pubkeyConverter:            pubkeyConverter,
 		enableEpochsHandler:        enableEpochsHandler,
 		processedMiniBlocksTracker: processedMiniBlocksTracker,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	scr := &smartContractResults{
@@ -335,6 +340,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return nil, err
 			}
 
+			scr.txExecutionOrderHandler.Add(txHash)
 			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return nil, err
@@ -623,6 +629,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		}
 
 		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+
+		scr.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
 			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])

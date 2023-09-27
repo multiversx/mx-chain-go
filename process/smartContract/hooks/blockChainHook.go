@@ -909,6 +909,11 @@ func (bh *BlockChainHookImpl) GetCounterValues() map[string]uint64 {
 	return bh.counter.GetCounterValues()
 }
 
+// GetAccountsAdapter returns the managed accounts adapter
+func (bh *BlockChainHookImpl) GetAccountsAdapter() state.AccountsAdapter {
+	return bh.accounts
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bh *BlockChainHookImpl) IsInterfaceNil() bool {
 	return bh == nil

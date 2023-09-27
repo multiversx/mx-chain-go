@@ -22,7 +22,9 @@ import (
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -490,6 +492,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 			RoundConfig:             &roundConfig,
 			ChainRunType:            common.ChainRunTypeRegular,
 			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),

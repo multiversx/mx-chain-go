@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -38,6 +39,7 @@ func createMockPreProcessorsContainerFactoryArguments() metachain.ArgPreProcesso
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &common.TxExecutionOrderHandlerStub{},
 	}
 }
 
@@ -236,6 +238,17 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 	ppcf, err := metachain.NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
+	assert.Nil(t, ppcf)
+}
+
+func TestPreProcessorsContainerFactory_CreateErrTxExecutionOrderHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	args.TxExecutionOrderHandler = nil
+	ppcf, err := metachain.NewPreProcessorsContainerFactory(args)
+
+	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 	assert.Nil(t, ppcf)
 }
 

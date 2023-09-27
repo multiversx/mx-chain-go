@@ -294,7 +294,7 @@ func CheckNumCallBacks(
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{},
 		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, err := node.SCQueryService.ExecuteQuery(scQuery)
 		require.Nil(t, err)
 		require.NotNil(t, vmOutput)
 		require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
@@ -325,7 +325,7 @@ func CheckForwarderRawSavedCallbackArgs(
 				{byte(callbackIndex)},
 			},
 		}
-		vmOutputArgs, err := node.SCQueryService.ExecuteQuery(scQueryArgs)
+		vmOutputArgs, _, err := node.SCQueryService.ExecuteQuery(scQueryArgs)
 		require.Nil(t, err)
 		require.Equal(t, vmcommon.Ok, vmOutputArgs.ReturnCode)
 		require.GreaterOrEqual(t, len(vmOutputArgs.ReturnData), 1)
@@ -364,7 +364,7 @@ func CheckForwarderRawSavedCallbackPayments(
 		if node.ShardCoordinator.SelfId() != contractID {
 			continue
 		}
-		vmOutputPayment, err := node.SCQueryService.ExecuteQuery(scQueryPayment)
+		vmOutputPayment, _, err := node.SCQueryService.ExecuteQuery(scQueryPayment)
 		require.Nil(t, err)
 		require.Equal(t, vmcommon.Ok, vmOutputPayment.ReturnCode)
 

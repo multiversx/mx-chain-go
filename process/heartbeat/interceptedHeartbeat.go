@@ -70,7 +70,12 @@ func createHeartbeat(marshaller marshal.Marshalizer, buff []byte) (*heartbeat.He
 		return nil, nil, err
 	}
 
-	log.Trace("interceptedHeartbeat successfully created")
+	log.Trace("interceptedHeartbeat successfully created",
+		"pubkey", hb.Pubkey,
+		"identity", hb.Identity,
+		"node name", hb.NodeDisplayName,
+		"version", hb.VersionNumber,
+		"timestamp", payload.Timestamp)
 
 	return hb, payload, nil
 }

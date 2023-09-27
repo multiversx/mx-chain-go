@@ -4849,13 +4849,17 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 
-	assert.Len(t, eei.logs, 2)
+	assert.Len(t, eei.logs, 3)
 	assert.Equal(t, []byte("delegate"), eei.logs[0].Identifier)
 	assert.Equal(t, []byte("second123"), eei.logs[0].Address)
-	assert.Len(t, eei.logs, 2)
+
 	assert.Equal(t, []byte(withdraw), eei.logs[1].Identifier)
 	assert.Equal(t, []byte("ownerAddr"), eei.logs[1].Address)
 	assert.Equal(t, boolToSlice(true), eei.logs[1].Topics[4])
+
+	assert.Equal(t, []byte(core.BuiltInFunctionChangeOwnerAddress), eei.logs[2].Identifier)
+	assert.Equal(t, []byte("addr"), eei.logs[2].Address)
+	assert.Equal(t, []byte("second123"), eei.logs[2].Topics[0])
 
 	eei.logs = nil
 	vmInput.CallerAddr = []byte("second123")
@@ -4867,13 +4871,17 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 	assert.Equal(t, eei.storageUpdate[string(d.delegationMgrSCAddress)]["ownerAddr"], vmInput.RecipientAddr)
 	assert.Equal(t, eei.storageUpdate[string(d.delegationMgrSCAddress)]["second123"], []byte{})
 
-	assert.Len(t, eei.logs, 2)
+	assert.Len(t, eei.logs, 3)
 	assert.Equal(t, []byte("delegate"), eei.logs[0].Identifier)
 	assert.Equal(t, []byte("ownerAddr"), eei.logs[0].Address)
-	assert.Len(t, eei.logs, 2)
+
 	assert.Equal(t, []byte(withdraw), eei.logs[1].Identifier)
 	assert.Equal(t, []byte("second123"), eei.logs[1].Address)
 	assert.Equal(t, boolToSlice(true), eei.logs[1].Topics[4])
+
+	assert.Equal(t, []byte(core.BuiltInFunctionChangeOwnerAddress), eei.logs[2].Identifier)
+	assert.Equal(t, []byte("addr"), eei.logs[2].Address)
+	assert.Equal(t, []byte("ownerAddr"), eei.logs[2].Topics[0])
 }
 
 func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
