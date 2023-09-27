@@ -11,7 +11,7 @@ import (
 // SystemEIStub -
 type SystemEIStub struct {
 	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte) error
-	ProcessBuiltInCalled                func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	ProcessBuiltInCalled                func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	GetBalanceCalled                    func(addr []byte) *big.Int
 	SetStorageCalled                    func(key []byte, value []byte)
 	AddReturnMessageCalled              func(msg string)
@@ -212,9 +212,9 @@ func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.In
 }
 
 // ProcessBuiltInFunction -
-func (s *SystemEIStub) ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
+func (s *SystemEIStub) ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 	if s.ProcessBuiltInCalled != nil {
-		return s.ProcessBuiltInCalled(destination, sender, value, input)
+		return s.ProcessBuiltInCalled(destination, sender, value, input, gasLimit)
 	}
 	return nil
 }
