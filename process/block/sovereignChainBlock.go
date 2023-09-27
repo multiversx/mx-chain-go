@@ -83,6 +83,8 @@ func NewSovereignChainBlockProcessor(
 	scbp.requestMissingHeadersFunc = scbp.requestMissingHeaders
 	scbp.cleanupPoolsForCrossShardFunc = scbp.cleanupPoolsForCrossShard
 	scbp.cleanupBlockTrackerPoolsForShardFunc = scbp.cleanupBlockTrackerPoolsForShard
+	scbp.getExtraMissingNoncesToRequestFunc = scbp.getExtraMissingNoncesToRequest
+
 	scbp.crossNotarizer = &sovereignShardCrossNotarizer{
 		baseBlockNotarizer: &baseBlockNotarizer{
 			blockTracker: scbp.blockTracker,
@@ -685,6 +687,10 @@ func (scbp *sovereignChainBlockProcessor) requestMissingHeaders(missingNonces []
 		scbp.addHeaderIntoTrackerPool(nonce, shardId)
 		go scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
 	}
+}
+
+func (scbp *sovereignChainBlockProcessor) getExtraMissingNoncesToRequest(_ data.HeaderHandler, _ uint64) []uint64 {
+	return make([]uint64, 0)
 }
 
 func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBlockByNonce() []data.HeaderHandler {
