@@ -308,13 +308,13 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		prevHdr = currHdr
 	}
 
-	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
-	if maxNumNoncesToAdd > 0 {
-		lastRound := bp.roundHandler.Index() - 1
-		roundsDiff := lastRound - int64(prevHdr.GetRound())
-		nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
-		missingNonces = append(missingNonces, nonces...)
-	}
+	//maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
+	//if maxNumNoncesToAdd > 0 {
+	//	lastRound := bp.roundHandler.Index() - 1
+	//	roundsDiff := lastRound - int64(prevHdr.GetRound())
+	//	nonces := addMissingNonces(roundsDiff, prevHdr.GetNonce(), maxNumNoncesToAdd)
+	//	missingNonces = append(missingNonces, nonces...)
+	//}
 
 	bp.requestMissingHeadersFunc(missingNonces, shardId)
 
