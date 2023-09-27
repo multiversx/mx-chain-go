@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-var mainChainID = []byte("1")
-
 type extendedShardHeaderRequestHandler interface {
 	RequestExtendedShardHeaderByNonce(nonce uint64)
 }

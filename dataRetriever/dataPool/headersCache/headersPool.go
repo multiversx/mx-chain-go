@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -63,6 +64,21 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 
 	added := pool.cache.addHeader(headerHash, header)
 
+	if added {
+		pool.callAddedDataHandlers(header, headerHash)
+	}
+}
+
+// AddHeaderInShard adds header in pool as specified shard id
+func (pool *headersPool) AddHeaderInShard(headerHash []byte, header data.HeaderHandler, shardID uint32) {
+	if check.IfNil(header) || len(headerHash) == 0 {
+		return
+	}
+
+	pool.mutHeadersPool.Lock()
+	defer pool.mutHeadersPool.Unlock()
+
+	added := pool.cache.addHeaderByShardID(headerHash, header, shardID)
 	if added {
 		pool.callAddedDataHandlers(header, headerHash)
 	}

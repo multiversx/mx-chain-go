@@ -968,7 +968,6 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	// if len(processedExtendedShardHdrs) > 0
 	err = scbp.saveLastNotarizedHeader(core.MainChainShardId, processedExtendedShardHdrs)
 	if err != nil {
 		return err

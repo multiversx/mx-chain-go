@@ -955,7 +955,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
@@ -1818,7 +1818,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
@@ -1888,7 +1888,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
@@ -2031,7 +2031,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()

@@ -74,6 +74,6 @@ func (ehp *extendedHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.
 		return err
 	}
 
-	ehp.headersPool.AddHeader(extendedHeaderHash, extendedHeader)
+	ehp.headersPool.AddHeaderInShard(extendedHeaderHash, extendedHeader, core.MainChainShardId)
 	return nil
 }
