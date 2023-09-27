@@ -19,10 +19,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var (
-	rootHash    = "uncomputed root hash"
-	mainChainID = []byte("1")
-)
+var rootHash = "uncomputed root hash"
 
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)

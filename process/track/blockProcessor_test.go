@@ -1001,7 +1001,7 @@ func TestRequestHeaders_ShouldAddAndRequestForShardHeaders(t *testing.T) {
 	shardID := uint32(1)
 	fromNonce := uint64(1)
 
-	bp.RequestHeaders(shardID, fromNonce, &dataBlock.HeaderV2{})
+	bp.RequestHeaders(shardID, fromNonce)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -1055,7 +1055,7 @@ func TestRequestHeaders_ShouldAddAndRequestForMetaHeaders(t *testing.T) {
 	shardID := core.MetachainShardId
 	fromNonce := uint64(1)
 
-	bp.RequestHeaders(shardID, fromNonce, &dataBlock.HeaderV2{})
+	bp.RequestHeaders(shardID, fromNonce)
 
 	time.Sleep(100 * time.Millisecond)
 
