@@ -168,3 +168,42 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 
 	return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, allMBsProcessed, nil
 }
+
+// CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
+func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
+	haveTime func() bool,
+	randomness []byte,
+) block.MiniBlockSlice {
+
+	numMiniBlocksProcessed := 0
+	miniBlocks := make(block.MiniBlockSlice, 0)
+
+	defer func() {
+		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
+			"num mini blocks processed", numMiniBlocksProcessed,
+			"total gas provided", sctc.gasHandler.TotalGasProvided(),
+			"total gas provided as scheduled", sctc.gasHandler.TotalGasProvidedAsScheduled(),
+			"total gas refunded", sctc.gasHandler.TotalGasRefunded(),
+			"total gas penalized", sctc.gasHandler.TotalGasPenalized())
+	}()
+
+	for _, blockType := range sctc.keysTxPreProcs {
+		txPreProc := sctc.getPreProcessor(blockType)
+		if check.IfNil(txPreProc) {
+			return nil
+		}
+
+		mbs, err := txPreProc.CreateAndProcessMiniBlocks(haveTime, randomness)
+		if err != nil {
+			log.Debug("CreateAndProcessMiniBlocks", "error", err.Error())
+		}
+
+		if len(mbs) > 0 {
+			miniBlocks = append(miniBlocks, mbs...)
+		}
+
+		numMiniBlocksProcessed += len(mbs)
+	}
+
+	return miniBlocks
+}
