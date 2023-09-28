@@ -26,7 +26,8 @@ func newPayloadProcessor(log core.Logger) (*payloadProcessor, error) {
 }
 
 // ProcessPayload will process the provided payload based on the topic
-func (p *payloadProcessor) ProcessPayload(_ []byte, topic string) error {
+// TODO: use the version (last param)
+func (p *payloadProcessor) ProcessPayload(_ []byte, topic string, _ uint32) error {
 	p.mutex.RLock()
 	handlerFunc, found := p.handlerFuncs[topic]
 	p.mutex.RUnlock()
