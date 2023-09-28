@@ -455,7 +455,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	blockChainHookImpl, err := arg.BlockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
+	blockChainHookImpl, err := arg.RunType.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -648,7 +648,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                          txTypeHandler,
 		ScheduledTxsExecutionHandler:           disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
-		SmartContractResultPreProcessorCreator: arg.RunType.SmartContractResultPreProcessorCreator(),
+		SmartContractResultPreProcessorCreator: arg.RunType.SCResultsPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {

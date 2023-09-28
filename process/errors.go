@@ -28,6 +28,9 @@ var ErrNilCryptoComponentsHolder = errors.New("nil crypto components holder")
 // ErrNilDataComponentsHolder signals that a nil data components holder was provided
 var ErrNilDataComponentsHolder = errors.New("nil data components holder")
 
+// ErrNilRunTypeComponentsHolder signals that a nil run type components holder was provided
+var ErrNilRunTypeComponentsHolder = errors.New("nil run type components holder")
+
 // ErrNilHasher signals that an operation has been attempted to or with a nil hasher implementation
 var ErrNilHasher = errors.New("nil Hasher")
 

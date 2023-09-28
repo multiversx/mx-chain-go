@@ -3,19 +3,16 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // BootstrapperFactoryStub -
 type BootstrapperFactoryStub struct {
-	CreateBootstrapperCalled func(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error)
 }
 
 // CreateBootstrapper -
-func (b *BootstrapperFactoryStub) CreateBootstrapper(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
-	if b.CreateBootstrapperCalled != nil {
-		return b.CreateBootstrapperCalled(argsBaseBootstrapper)
-	}
-	return nil, nil
+func (b *BootstrapperFactoryStub) CreateBootstrapper(_ sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+	return &testscommon.BootstrapperMock{}, nil
 }
 
 // IsInterfaceNil -

@@ -5,13 +5,13 @@ import (
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 )
 
-// BlockProcessorFactoryStub -
-type BlockProcessorFactoryStub struct {
+// BlockProcessorFactoryMock -
+type BlockProcessorFactoryMock struct {
 	CreateBlockProcessorCalled func(argumentsBaseProcessor processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
 }
 
 // CreateBlockProcessor -
-func (b *BlockProcessorFactoryStub) CreateBlockProcessor(args processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
+func (b *BlockProcessorFactoryMock) CreateBlockProcessor(args processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
 	if b.CreateBlockProcessorCalled != nil {
 		return b.CreateBlockProcessorCalled(args)
 	}
@@ -19,6 +19,6 @@ func (b *BlockProcessorFactoryStub) CreateBlockProcessor(args processBlock.ArgBa
 }
 
 // IsInterfaceNil -
-func (b *BlockProcessorFactoryStub) IsInterfaceNil() bool {
+func (b *BlockProcessorFactoryMock) IsInterfaceNil() bool {
 	return b == nil
 }

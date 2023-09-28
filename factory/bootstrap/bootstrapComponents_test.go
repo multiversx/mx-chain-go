@@ -115,7 +115,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 
 		argsCopy := args
 		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryStub{},
+			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryMock{},
 			AdditionalStorageServiceFactory: nil,
 		}
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)

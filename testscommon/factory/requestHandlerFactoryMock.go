@@ -5,13 +5,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// RequestHandlerFactoryStub -
-type RequestHandlerFactoryStub struct {
+// RequestHandlerFactoryMock -
+type RequestHandlerFactoryMock struct {
 	CreateRequestHandlerCalled func(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
 }
 
 // CreateRequestHandler -
-func (r *RequestHandlerFactoryStub) CreateRequestHandler(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error) {
+func (r *RequestHandlerFactoryMock) CreateRequestHandler(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error) {
 	if r.CreateRequestHandlerCalled != nil {
 		return r.CreateRequestHandlerCalled(args)
 	}
@@ -19,6 +19,6 @@ func (r *RequestHandlerFactoryStub) CreateRequestHandler(args requestHandlers.Re
 }
 
 // IsInterfaceNil -
-func (r *RequestHandlerFactoryStub) IsInterfaceNil() bool {
+func (r *RequestHandlerFactoryMock) IsInterfaceNil() bool {
 	return r == nil
 }

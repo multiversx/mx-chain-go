@@ -1705,30 +1705,40 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	args := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:             tpn.ShardCoordinator,
-		Store:                        tpn.Storage,
-		Marshaller:                   TestMarshalizer,
-		Hasher:                       TestHasher,
-		DataPool:                     tpn.DataPool,
-		PubkeyConverter:              TestAddressPubkeyConverter,
-		Accounts:                     tpn.AccntState,
-		RequestHandler:               tpn.RequestHandler,
-		TxProcessor:                  tpn.TxProcessor,
-		ScProcessor:                  tpn.ScProcessor,
-		ScResultProcessor:            tpn.ScProcessor,
-		RewardsTxProcessor:           tpn.RewardsProcessor,
-		EconomicsFee:                 tpn.EconomicsData,
-		GasHandler:                   tpn.GasHandler,
-		BlockTracker:                 tpn.BlockTracker,
-		BlockSizeComputation:         TestBlockSizeComputationHandler,
-		BalanceComputation:           TestBalanceComputationHandler,
-		EnableEpochsHandler:          tpn.EnableEpochsHandler,
-		TxTypeHandler:                txTypeHandler,
-		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+	scrPreProcessor, err := preprocess.NewSmartContractResultPreProcessorFactory()
+	if err != nil {
+		panic(err)
 	}
-	fact, _ := shard.NewPreProcessorsContainerFactory(args)
+
+	args := shard.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:                       tpn.ShardCoordinator,
+		Store:                                  tpn.Storage,
+		Marshaller:                             TestMarshalizer,
+		Hasher:                                 TestHasher,
+		DataPool:                               tpn.DataPool,
+		PubkeyConverter:                        TestAddressPubkeyConverter,
+		Accounts:                               tpn.AccntState,
+		RequestHandler:                         tpn.RequestHandler,
+		TxProcessor:                            tpn.TxProcessor,
+		ScProcessor:                            tpn.ScProcessor,
+		ScResultProcessor:                      tpn.ScProcessor,
+		RewardsTxProcessor:                     tpn.RewardsProcessor,
+		EconomicsFee:                           tpn.EconomicsData,
+		GasHandler:                             tpn.GasHandler,
+		BlockTracker:                           tpn.BlockTracker,
+		BlockSizeComputation:                   TestBlockSizeComputationHandler,
+		BalanceComputation:                     TestBalanceComputationHandler,
+		EnableEpochsHandler:                    tpn.EnableEpochsHandler,
+		TxTypeHandler:                          txTypeHandler,
+		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
+		SmartContractResultPreProcessorCreator: scrPreProcessor,
+	}
+	fact, err := shard.NewPreProcessorsContainerFactory(args)
+	if err != nil {
+		log.Info(err.Error())
+		panic(err)
+	}
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{

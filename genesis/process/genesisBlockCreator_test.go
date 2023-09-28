@@ -33,9 +33,9 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -64,6 +64,9 @@ func createMockArgument(
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
+
+	runType := getRunTypeComponentsMock()
+	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
@@ -182,11 +185,7 @@ func createMockArgument(
 				},
 			},
 		},
-		BlockChainHookHandlerCreator: &factory.BlockChainHookHandlerFactoryStub{
-			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
-				return &testscommon.BlockChainHookStub{}, nil
-			},
-		},
+		RunType: runType,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -422,14 +421,36 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.True(t, errors.Is(err, genesis.ErrNilSmartContractParser))
 		require.Nil(t, gbc)
 	})
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.RunType = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, mxErrors.ErrNilRunTypeComponents))
+		require.Nil(t, gbc)
+	})
 	t.Run("nil BlockchainHookHandlerCreator should error", func(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.SmartContractParser = nil
+		rtComponents := getRunTypeComponentsMock()
+		rtComponents.BlockChainHookHandlerFactory = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilBlockChainHookHandlerCreator))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil SCResultsPreProcessorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := getRunTypeComponentsMock()
+		rtComponents.SCResultsPreProcessorFactory = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, mxErrors.ErrNilSCResultsPreProcessorCreator))
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {
@@ -907,4 +928,8 @@ func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
 		assert.Zero(t, block.GetRound())
 		assert.Zero(t, block.GetEpoch())
 	}
+}
+
+func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
+	return mainFactoryMocks.NewRunTypeComponentsStub()
 }

@@ -12,7 +12,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/process"
@@ -21,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -490,7 +490,7 @@ func hardForkImport(
 				},
 			},
 			RoundConfig: &roundConfig,
-			ChainRunType: common.ChainRunTypeRegular,
+			RunType:     componentsMock.GetRunTypeComponents(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

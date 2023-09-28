@@ -5,13 +5,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 )
 
-// ScheduledTxsExecutionFactoryStub -
-type ScheduledTxsExecutionFactoryStub struct {
+// ScheduledTxsExecutionFactoryMock -
+type ScheduledTxsExecutionFactoryMock struct {
 	CreateScheduledTxsExecutionHandlerCalled func(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
 }
 
 // CreateScheduledTxsExecutionHandler -
-func (s *ScheduledTxsExecutionFactoryStub) CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error) {
+func (s *ScheduledTxsExecutionFactoryMock) CreateScheduledTxsExecutionHandler(args preprocess.ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error) {
 	if s.CreateScheduledTxsExecutionHandlerCalled != nil {
 		return s.CreateScheduledTxsExecutionHandlerCalled(args)
 	}
@@ -19,6 +19,6 @@ func (s *ScheduledTxsExecutionFactoryStub) CreateScheduledTxsExecutionHandler(ar
 }
 
 // IsInterfaceNil -
-func (s *ScheduledTxsExecutionFactoryStub) IsInterfaceNil() bool {
+func (s *ScheduledTxsExecutionFactoryMock) IsInterfaceNil() bool {
 	return s == nil
 }

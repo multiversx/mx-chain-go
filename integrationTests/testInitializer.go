@@ -719,7 +719,23 @@ func CreateFullGenesisBlocks(
 			EnableEpochs: enableEpochsConfig,
 		},
 		RoundConfig: &roundsConfig,
-		RunType:     &mainFactoryMocks.RunTypeComponentsStub{},
+		RunType:     &mainFactoryMocks.RunTypeComponentsStub{
+			//BlockChainHookHandlerFactory:        factory2.BlockChainHookHandlerFactoryStub{},
+			//BlockProcessorFactory:               nil,
+			//BlockTrackerFactory:                 nil,
+			//BootstrapperFromStorageFactory:      nil,
+			//BootstrapperFactory:                 nil,
+			//EpochStartBootstrapperFactory:       nil,
+			//ForkDetectorFactory:                 nil,
+			//HeaderValidatorFactory:              nil,
+			//RequestHandlerFactory:               nil,
+			//ScheduledTxsExecutionFactory:        nil,
+			//TransactionCoordinatorFactory:       nil,
+			//ValidatorStatisticsProcessorFactory: nil,
+			//AdditionalStorageServiceFactory:     nil,
+			//SCResultsPreProcessorFactory:        nil,
+			//SCProcessorFactory:                  nil,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)

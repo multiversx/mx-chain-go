@@ -5,13 +5,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 )
 
-// ForkDetectorFactoryStub -
-type ForkDetectorFactoryStub struct {
+// ForkDetectorFactoryMock -
+type ForkDetectorFactoryMock struct {
 	CreateForkDetectorCalled func(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error)
 }
 
 // CreateForkDetector -
-func (f *ForkDetectorFactoryStub) CreateForkDetector(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error) {
+func (f *ForkDetectorFactoryMock) CreateForkDetector(args sync.ForkDetectorFactoryArgs) (process.ForkDetector, error) {
 	if f.CreateForkDetectorCalled != nil {
 		return f.CreateForkDetectorCalled(args)
 	}
@@ -19,6 +19,6 @@ func (f *ForkDetectorFactoryStub) CreateForkDetector(args sync.ForkDetectorFacto
 }
 
 // IsInterfaceNil -
-func (f *ForkDetectorFactoryStub) IsInterfaceNil() bool {
+func (f *ForkDetectorFactoryMock) IsInterfaceNil() bool {
 	return f == nil
 }

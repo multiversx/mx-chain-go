@@ -4,13 +4,13 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 )
 
-// EpochStartBootstrapperFactoryStub -
-type EpochStartBootstrapperFactoryStub struct {
+// EpochStartBootstrapperFactoryMock -
+type EpochStartBootstrapperFactoryMock struct {
 	CreateEpochStartBootstrapperCalled func(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error)
 }
 
 // CreateEpochStartBootstrapper -
-func (e *EpochStartBootstrapperFactoryStub) CreateEpochStartBootstrapper(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error) {
+func (e *EpochStartBootstrapperFactoryMock) CreateEpochStartBootstrapper(args bootstrap.ArgsEpochStartBootstrap) (bootstrap.EpochStartBootstrapper, error) {
 	if e.CreateEpochStartBootstrapperCalled != nil {
 		return e.CreateEpochStartBootstrapperCalled(args)
 	}
@@ -18,6 +18,6 @@ func (e *EpochStartBootstrapperFactoryStub) CreateEpochStartBootstrapper(args bo
 }
 
 // IsInterfaceNil -
-func (e *EpochStartBootstrapperFactoryStub) IsInterfaceNil() bool {
+func (e *EpochStartBootstrapperFactoryMock) IsInterfaceNil() bool {
 	return e == nil
 }

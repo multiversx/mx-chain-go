@@ -166,12 +166,12 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
 		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{
-			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{
 				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 					return &processMock.StorageBootstrapperMock{}, nil
 				},
 			},
-			BootstrapperFactory: &factoryMocks.BootstrapperFactoryStub{
+			BootstrapperFactory: &factoryMocks.BootstrapperFactoryMock{
 				CreateBootstrapperCalled: func(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
 					return &processMock.BootstrapperStub{}, nil
 				},

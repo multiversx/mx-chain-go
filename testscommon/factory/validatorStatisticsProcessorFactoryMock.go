@@ -5,13 +5,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/peer"
 )
 
-// ValidatorStatisticsProcessorFactoryStub -
-type ValidatorStatisticsProcessorFactoryStub struct {
+// ValidatorStatisticsProcessorFactoryMock -
+type ValidatorStatisticsProcessorFactoryMock struct {
 	CreateValidatorStatisticsProcessorCalled func(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error)
 }
 
 // CreateValidatorStatisticsProcessor -
-func (v *ValidatorStatisticsProcessorFactoryStub) CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
+func (v *ValidatorStatisticsProcessorFactoryMock) CreateValidatorStatisticsProcessor(args peer.ArgValidatorStatisticsProcessor) (process.ValidatorStatisticsProcessor, error) {
 	if v.CreateValidatorStatisticsProcessorCalled != nil {
 		return v.CreateValidatorStatisticsProcessorCalled(args)
 	}
@@ -19,6 +19,6 @@ func (v *ValidatorStatisticsProcessorFactoryStub) CreateValidatorStatisticsProce
 }
 
 // IsInterfaceNil -
-func (v *ValidatorStatisticsProcessorFactoryStub) IsInterfaceNil() bool {
+func (v *ValidatorStatisticsProcessorFactoryMock) IsInterfaceNil() bool {
 	return v == nil
 }

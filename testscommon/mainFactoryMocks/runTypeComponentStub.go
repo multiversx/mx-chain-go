@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 )
 
 // RunTypeComponentsStub -
@@ -32,6 +33,27 @@ type RunTypeComponentsStub struct {
 	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
 	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory                  scrCommon.SCProcessorCreator
+}
+
+// NewRunTypeComponentsStub -
+func NewRunTypeComponentsStub() *RunTypeComponentsStub {
+	return &RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        &testFactory.BlockChainHookHandlerFactorySub{},
+		BlockProcessorFactory:               &testFactory.BlockProcessorFactoryMock{},
+		BlockTrackerFactory:                 &testFactory.BlockTrackerFactoryMock{},
+		BootstrapperFromStorageFactory:      &testFactory.BootstrapperFromStorageFactoryMock{},
+		BootstrapperFactory:                 &testFactory.BootstrapperFactoryMock{},
+		EpochStartBootstrapperFactory:       &testFactory.EpochStartBootstrapperFactoryMock{},
+		ForkDetectorFactory:                 &testFactory.ForkDetectorFactoryMock{},
+		HeaderValidatorFactory:              &testFactory.HeaderValidatorFactoryMock{},
+		RequestHandlerFactory:               &testFactory.RequestHandlerFactoryMock{},
+		ScheduledTxsExecutionFactory:        &testFactory.ScheduledTxsExecutionFactoryMock{},
+		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryStub{},
+		ValidatorStatisticsProcessorFactory: &testFactory.ValidatorStatisticsProcessorFactoryMock{},
+		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryStub{},
+		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryStub{},
+		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
+	}
 }
 
 // Create -
@@ -126,11 +148,6 @@ func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreato
 
 // SCResultsPreProcessorCreator -
 func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
-	return r.SCResultsPreProcessorFactory
-}
-
-// SmartContractResultPreProcessorCreator -
-func (r *RunTypeComponentsStub) SmartContractResultPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
 	return r.SCResultsPreProcessorFactory
 }
 
