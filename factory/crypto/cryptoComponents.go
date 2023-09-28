@@ -35,8 +35,7 @@ import (
 )
 
 const (
-	disabledSigChecking        = "disabled"
-	mainMachineRedundancyLevel = 0
+	disabledSigChecking = "disabled"
 )
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
@@ -322,23 +321,30 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 		return nil, err
 	}
 
+	handledKeysInfo := "running in single-key mode"
+	if len(handledPrivateKeys) > 0 {
+		handledKeysInfo = fmt.Sprintf("running in multi-key mode, managing %d keys", len(handledPrivateKeys))
+	}
+
 	if ccf.isInImportMode {
 		if len(handledPrivateKeys) > 0 {
 			return nil, fmt.Errorf("invalid node configuration: import-db mode and allValidatorsKeys.pem file provided")
 		}
 
-		return ccf.generateCryptoParams(keygen, "in import mode", handledPrivateKeys)
+		return ccf.generateCryptoParams(keygen, "in import-db mode", make([][]byte, 0))
 	}
 	cp, err := ccf.readCryptoParams(keygen)
 	if err == nil {
 		cp.handledPrivateKeys = handledPrivateKeys
+
+		log.Info(fmt.Sprintf("the node loaded the validatorKey.pem file and is %s", handledKeysInfo))
 
 		return cp, nil
 	}
 
 	log.Debug("failure while reading the BLS key, will autogenerate one", "error", err)
 
-	return ccf.generateCryptoParams(keygen, "running without a provided BLS key", handledPrivateKeys)
+	return ccf.generateCryptoParams(keygen, handledKeysInfo, handledPrivateKeys)
 }
 
 func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
@@ -378,7 +384,7 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(
 	reason string,
 	handledPrivateKeys [][]byte,
 ) (*cryptoParams, error) {
-	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", reason))
+	log.Info(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", reason))
 	cp := &cryptoParams{}
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 

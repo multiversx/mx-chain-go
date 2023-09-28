@@ -31,7 +31,7 @@ GLOBAL OPTIONS:
    --round-config [path]                     The [path] for the round configuration file. This TOML file contains activation round configurations (default: "./config/enableRounds.toml")
    --gas-costs-config [path]                 The [path] for the gas costs configuration directory. (default: "./config/gasSchedules")
    --sk-index value                          The index in the PEM file of the private key to be used by the node. (default: 0)
-   --validator-key-pem-file filepath         The filepath for the PEM file which contains the secret keys for the validator key. If the file does not exists or can not be loaded, the node will autogenerate and use a random key (default: "./config/validatorKey.pem")
+   --validator-key-pem-file filepath         The filepath for the PEM file which contains the secret keys to be used by this node. If the file does not exists or can not be loaded, the node will autogenerate and use a random key. The key may or may not be registered to be a consensus validator. (default: "./config/validatorKey.pem")
    --all-validator-keys-pem-file filepath    The filepath for the PEM file which contains all the secret keys managed by the current node. (default: "./config/allValidatorsKeys.pem")
    --port [p2p port]                         The [p2p port] number on which the application will start. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "0")
    --full-archive-port [p2p port]            The [p2p port] number on which the application will start the second network when running in full archive mode. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "0")

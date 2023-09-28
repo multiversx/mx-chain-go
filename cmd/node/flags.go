@@ -219,8 +219,9 @@ var (
 	// validatorKeyPemFile defines a flag for the path to the validator key used in block signing
 	validatorKeyPemFile = cli.StringFlag{
 		Name: "validator-key-pem-file",
-		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key. If the file " +
-			"does not exists or can not be loaded, the node will autogenerate and use a random key",
+		Usage: "The `filepath` for the PEM file which contains the secret keys to be used by this node. If the file " +
+			"does not exists or can not be loaded, the node will autogenerate and use a random key. The key may or may not " +
+			"be registered to be a consensus validator.",
 		Value: "./config/validatorKey.pem",
 	}
 	// allValidatorKeysPemFile defines a flag for the path to the file that hold all validator keys used in block signing
