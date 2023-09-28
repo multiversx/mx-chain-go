@@ -8,6 +8,14 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
+type redundancyHandler interface {
+	IsRedundancyNode(maxRoundsOfInactivity int) bool
+	IncrementRoundsOfInactivity()
+	ResetRoundsOfInactivity()
+	IsMainMachineActive(maxRoundsOfInactivity int) bool
+	RoundsOfInactivity() int
+}
+
 type peerInfo struct {
 	pid                core.PeerID
 	p2pPrivateKeyBytes []byte
@@ -16,32 +24,29 @@ type peerInfo struct {
 	nodeName           string
 	nodeIdentity       string
 
-	mutChangeableData             sync.RWMutex
-	roundsWithoutReceivedMessages int
-	nextPeerAuthenticationTime    time.Time
-	isValidator                   bool
+	mutChangeableData          sync.RWMutex
+	handler                    redundancyHandler
+	nextPeerAuthenticationTime time.Time
+	isValidator                bool
 }
 
 func (pInfo *peerInfo) incrementRoundsWithoutReceivedMessages() {
 	pInfo.mutChangeableData.Lock()
-	pInfo.roundsWithoutReceivedMessages++
+	pInfo.handler.IncrementRoundsOfInactivity()
 	pInfo.mutChangeableData.Unlock()
 }
 
 func (pInfo *peerInfo) resetRoundsWithoutReceivedMessages() {
 	pInfo.mutChangeableData.Lock()
-	pInfo.roundsWithoutReceivedMessages = 0
+	pInfo.handler.ResetRoundsOfInactivity()
 	pInfo.mutChangeableData.Unlock()
 }
 
-func (pInfo *peerInfo) isNodeActiveOnMainMachine(maxRoundsWithoutReceivedMessages int) bool {
+func (pInfo *peerInfo) isNodeActiveOnMainMachine(maxRoundsOfInactivity int) bool {
 	pInfo.mutChangeableData.RLock()
 	defer pInfo.mutChangeableData.RUnlock()
 
-	// since the redundancy mechanism works by first incrementing the counters in the start round and if some messages
-	// are received in that round, we reset the values, the normal operating values oscillate between 0 and 1. We need to
-	// add an extra unit to the max rounds without received message in order to make this mechanism work as expected
-	return pInfo.roundsWithoutReceivedMessages < maxRoundsWithoutReceivedMessages+1
+	return pInfo.handler.IsMainMachineActive(maxRoundsOfInactivity)
 }
 
 func (pInfo *peerInfo) isNodeValidator() bool {
