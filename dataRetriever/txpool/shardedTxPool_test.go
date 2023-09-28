@@ -515,7 +515,7 @@ func BenchmarkNewShardedTxPool(b *testing.B) {
 			removeDataFromPool(txPool, i, numberOfShards)
 		}
 	})
-	b.Run("inner tx pool with different senders, all txs are relayed", func(b *testing.B) {
+	b.Run("inner tx pool, all txs are relayed, different senders", func(b *testing.B) {
 		innerTxPool.Clear()
 		txPool.Clear()
 		txPool.SetEvictionHandler(innerTxPool)
@@ -528,7 +528,7 @@ func BenchmarkNewShardedTxPool(b *testing.B) {
 			removeDataFromPool(txPool, i, numberOfShards)
 		}
 	})
-	b.Run("inner tx pool with different senders, half txs are relayed", func(b *testing.B) {
+	b.Run("inner tx pool, half txs are relayed, different senders, ", func(b *testing.B) {
 		innerTxPool.Clear()
 		txPool.Clear()
 		txPool.SetEvictionHandler(innerTxPool)
@@ -541,7 +541,7 @@ func BenchmarkNewShardedTxPool(b *testing.B) {
 			removeDataFromPool(txPool, i, numberOfShards)
 		}
 	})
-	b.Run("inner tx pool with same sender, all txs are relayed from less senders", func(b *testing.B) {
+	b.Run("inner tx pool, all txs are relayed, less senders", func(b *testing.B) {
 		innerTxPool.Clear()
 		txPool.Clear()
 		txPool.SetEvictionHandler(innerTxPool)
