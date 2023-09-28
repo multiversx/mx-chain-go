@@ -191,6 +191,10 @@ func Test_AddData(t *testing.T) {
 	require.True(t, ok)
 	_, ok = cache.GetByTxHash([]byte("hash-y"))
 	require.True(t, ok)
+
+	pool.NotifyEviction([]byte("hash-x"))
+	_, ok = cache.GetByTxHash([]byte("hash-x"))
+	require.False(t, ok)
 }
 
 func Test_AddData_NoPanic_IfNotATransaction(t *testing.T) {
