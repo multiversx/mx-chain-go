@@ -234,6 +234,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
+	runTypeComponents := GetDefaultRunTypeComponents()
+
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
@@ -337,6 +339,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	var err error
 	tcn.Node, err = node.NewNode(
+		node.WithRunTypeComponents(runTypeComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),

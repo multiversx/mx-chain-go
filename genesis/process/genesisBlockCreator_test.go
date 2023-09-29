@@ -22,6 +22,8 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -67,6 +69,8 @@ func createMockArgument(
 
 	runType := getRunTypeComponentsMock()
 	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
+	runType.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
+	runType.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
@@ -437,6 +441,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		rtComponents := getRunTypeComponentsMock()
 		rtComponents.BlockChainHookHandlerFactory = nil
+		arg.RunType = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilBlockChainHookHandlerCreator))
@@ -448,9 +453,22 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		rtComponents := getRunTypeComponentsMock()
 		rtComponents.SCResultsPreProcessorFactory = nil
+		arg.RunType = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilSCResultsPreProcessorCreator))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil TransactionCoordinatorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := getRunTypeComponentsMock()
+		rtComponents.TransactionCoordinatorFactory = nil
+		arg.RunType = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, mxErrors.ErrNilTransactionCoordinatorCreator))
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {

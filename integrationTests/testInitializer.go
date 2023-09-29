@@ -40,9 +40,12 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	txProc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -652,6 +655,10 @@ func CreateFullGenesisBlocks(
 	dataComponents.BlockChain = blkc
 
 	roundsConfig := GetDefaultRoundsConfig()
+	runTypeComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
+	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
+	runTypeComponents.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
@@ -719,23 +726,7 @@ func CreateFullGenesisBlocks(
 			EnableEpochs: enableEpochsConfig,
 		},
 		RoundConfig: &roundsConfig,
-		RunType:     &mainFactoryMocks.RunTypeComponentsStub{
-			//BlockChainHookHandlerFactory:        factory2.BlockChainHookHandlerFactoryStub{},
-			//BlockProcessorFactory:               nil,
-			//BlockTrackerFactory:                 nil,
-			//BootstrapperFromStorageFactory:      nil,
-			//BootstrapperFactory:                 nil,
-			//EpochStartBootstrapperFactory:       nil,
-			//ForkDetectorFactory:                 nil,
-			//HeaderValidatorFactory:              nil,
-			//RequestHandlerFactory:               nil,
-			//ScheduledTxsExecutionFactory:        nil,
-			//TransactionCoordinatorFactory:       nil,
-			//ValidatorStatisticsProcessorFactory: nil,
-			//AdditionalStorageServiceFactory:     nil,
-			//SCResultsPreProcessorFactory:        nil,
-			//SCProcessorFactory:                  nil,
-		},
+		RunType:     runTypeComponents,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
