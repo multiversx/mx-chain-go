@@ -33,7 +33,7 @@ func CheckMaxRoundsOfInactivity(maxRoundsOfInactivity int) error {
 	return nil
 }
 
-// IsMainNode returns true if the provided maxRoundsOfInactivity value is equal than the
+// IsMainNode returns true if the provided maxRoundsOfInactivity value is equal with the
 // roundsOfInactivityForMainMachine constant (0)
 func IsMainNode(maxRoundsOfInactivity int) bool {
 	return maxRoundsOfInactivity == roundsOfInactivityForMainMachine
