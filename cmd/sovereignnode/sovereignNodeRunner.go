@@ -1685,7 +1685,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 func createIncomingHeaderProcessor(
 	config *sovereignConfig.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
-) (notifierProcess.IncomingHeaderSubscriber, error) {
+) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
 		return nil, err

@@ -305,9 +305,10 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 
 	wasAddedInHeaderPool := false
 	args.HeadersPool = &mock.HeadersCacherStub{
-		AddCalled: func(headerHash []byte, header data.HeaderHandler) {
+		AddHeaderInShardCalled: func(headerHash []byte, header data.HeaderHandler, shardID uint32) {
 			require.Equal(t, extendedHeaderHash, headerHash)
 			require.Equal(t, extendedHeader, header)
+			require.Equal(t, core.MainChainShardId, shardID)
 
 			wasAddedInHeaderPool = true
 		},

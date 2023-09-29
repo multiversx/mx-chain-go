@@ -25,7 +25,7 @@ import (
 func createMockHeadersSyncHandlerArgs() ArgsNewHeadersSyncHandler {
 	return ArgsNewHeadersSyncHandler{
 		StorageService:   &storageStubs.ChainStorerStub{},
-		Cache:            &mock.HeadersCacherStub{},
+		Cache:            &testscommon.HeadersCacherStub{},
 		Marshalizer:      &mock.MarshalizerFake{},
 		Hasher:           &hashingMocks.HasherMock{},
 		EpochHandler:     &mock.EpochStartTriggerStub{},

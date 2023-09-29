@@ -64,7 +64,7 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
-	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
+	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
 
 	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {

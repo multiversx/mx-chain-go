@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
+const sovUniqueHeadersSuffix = "sovHdr"
+
 type sovereignResolverRequestHandler struct {
 	*resolverRequestHandler
 }
@@ -27,7 +29,7 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 
 // RequestExtendedShardHeaderByNonce method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(nonce uint64) {
-	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, srrh.shardID)
+	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, srrh.shardID)
 	key := []byte(fmt.Sprintf("%d-%d", srrh.shardID, nonce))
 	if !srrh.testIfRequestIsNeeded(key, suffix) {
 		return
@@ -83,7 +85,7 @@ func (srrh *sovereignResolverRequestHandler) getExtendedShardHeaderRequester() (
 
 // RequestExtendedShardHeader method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []byte) {
-	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, srrh.shardID)
+	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, srrh.shardID)
 	if !srrh.testIfRequestIsNeeded(hash, suffix) {
 		return
 	}

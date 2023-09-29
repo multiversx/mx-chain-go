@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	sovereignData "github.com/multiversx/mx-chain-core-go/data/sovereign"
@@ -287,6 +288,11 @@ func TestSovereignHeaderInterceptorProcessor_Save(t *testing.T) {
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				require.Equal(t, extendedHdrHash, hash)
 				return nil, nil
+			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				require.Equal(t, extendedHeader.GetNonce(), hdrNonce)
+				require.Equal(t, core.MainChainShardId, shardId)
+				return nil, [][]byte{extendedHdrHash, []byte("another hash")}, nil
 			},
 		}
 		args.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{

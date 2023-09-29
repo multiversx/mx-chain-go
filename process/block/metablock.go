@@ -185,6 +185,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.requestMissingHeadersFunc = mp.requestMissingHeaders
 	mp.cleanupBlockTrackerPoolsForShardFunc = mp.cleanupBlockTrackerPoolsForShard
 	mp.cleanupPoolsForCrossShardFunc = mp.cleanupPoolsForCrossShard
+	mp.getExtraMissingNoncesToRequestFunc = mp.getExtraMissingNoncesToRequest
 
 	return &mp, nil
 }

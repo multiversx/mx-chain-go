@@ -119,15 +119,28 @@ func (hip *sovereignHeaderInterceptorProcessor) Save(data process.InterceptedDat
 		return fmt.Errorf("sovereignHeaderInterceptorProcessor.Save error: %w", process.ErrWrongTypeAssertion)
 	}
 
+	extendedHeaderHash := interceptedHdr.Hash()
+	extendedHeaderNonce := interceptedHdr.GetExtendedHeader().GetNonce()
+	_, hashes, err := hip.headersPool.GetHeadersByNonceAndShardId(extendedHeaderNonce, core.MainChainShardId)
+
 	// do not add header again + create scrs and mbs if already received
-	_, err := hip.headersPool.GetHeaderByHash(interceptedHdr.Hash())
-	if err == nil {
+	if err == nil && contains(hashes, extendedHeaderHash) {
 		log.Debug("sovereignHeaderInterceptorProcessor.Save skipping already received extended header",
-			"hash", hex.EncodeToString(interceptedHdr.Hash()))
+			"nonce", extendedHeaderNonce, "hash", hex.EncodeToString(extendedHeaderHash))
 		return nil
 	}
 
-	return hip.incomingHeaderSubscriber.AddHeader(interceptedHdr.Hash(), interceptedHdr.GetExtendedHeader())
+	return hip.incomingHeaderSubscriber.AddHeader(extendedHeaderHash, interceptedHdr.GetExtendedHeader())
+}
+
+func contains(hashes [][]byte, hash []byte) bool {
+	for _, currHash := range hashes {
+		if bytes.Equal(currHash, hash) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // RegisterHandler does nothing

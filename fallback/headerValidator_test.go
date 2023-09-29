@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/fallback"
 	"github.com/multiversx/mx-chain-go/fallback/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilHeadersDataPool(t *testing.T) {
 func TestNewFallbackHeaderValidator_ShouldErrNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	storageService := &storage.ChainStorerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, nil, storageService)
@@ -41,7 +42,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilMarshalizer(t *testing.T) {
 func TestNewFallbackHeaderValidator_ShouldErrNilStorage(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 
 	fhv, err := fallback.NewFallbackHeaderValidator(headersPool, marshalizer, nil)
@@ -52,7 +53,7 @@ func TestNewFallbackHeaderValidator_ShouldErrNilStorage(t *testing.T) {
 func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 
@@ -64,7 +65,7 @@ func TestNewFallbackHeaderValidator_ShouldWork(t *testing.T) {
 func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenHeaderIsNil(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 
@@ -75,7 +76,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenHeaderIsNil(t *testin
 func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotMetachainBlock(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 	header := &block.Header{}
@@ -87,7 +88,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotMetachainBlock(t
 func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotStartOfEpochMetachainBlock(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 	metaBlock := &block.MetaBlock{}
@@ -99,7 +100,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenIsNotStartOfEpochMeta
 func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenPreviousHeaderIsNotFound(t *testing.T) {
 	t.Parallel()
 
-	headersPool := &mock.HeadersCacherStub{}
+	headersPool := &testscommon.HeadersCacherStub{}
 	marshalizer := &mock.MarshalizerStub{}
 	storageService := &storage.ChainStorerStub{}
 	epochStartShardData := block.EpochStartShardData{}
@@ -119,7 +120,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnFalseWhenRoundIsNotTooOld(t *t
 	t.Parallel()
 
 	prevHash := []byte("prev_hash")
-	headersPool := &mock.HeadersCacherStub{
+	headersPool := &testscommon.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 			if bytes.Equal(hash, prevHash) {
 				return &block.MetaBlock{}, nil
@@ -148,7 +149,7 @@ func TestShouldApplyFallbackConsensus_ShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
 	prevHash := []byte("prev_hash")
-	headersPool := &mock.HeadersCacherStub{
+	headersPool := &testscommon.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 			if bytes.Equal(hash, prevHash) {
 				return &block.MetaBlock{}, nil
