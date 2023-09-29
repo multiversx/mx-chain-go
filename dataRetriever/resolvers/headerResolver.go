@@ -178,7 +178,7 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 		var hdrBytes []byte
 		hdrBytes, err = hdrRes.searchInCache(nonce)
 		if err != nil {
-			log.Debug("resolveHeaderFromNonce: did not find headers in cache", "nonce", nonce, "error", err)
+			log.Trace("resolveHeaderFromNonce: did not find headers in cache", "nonce", nonce, "error", err)
 			return nil, err
 		}
 
