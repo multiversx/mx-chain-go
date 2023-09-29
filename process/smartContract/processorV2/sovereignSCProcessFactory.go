@@ -21,18 +21,35 @@ func NewSovereignSCProcessFactory(creator scrCommon.SCProcessorCreator) (*sovere
 }
 
 // CreateSCProcessor creates a new smart contract processor
-func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier process.EpochNotifier) (scrCommon.SCRProcessorHandler, error) {
-	sp, err := scpf.scrProcessorCreator.CreateSCProcessor(args, epochNotifier)
+func (scpf *sovereignSCProcessFactory) CreateSCProcessor(args scrCommon.ArgsNewSmartContractProcessor) (scrCommon.SCRProcessorHandler, error) {
+	sp, err := scpf.scrProcessorCreator.CreateSCProcessor(args)
 	if err != nil {
 		return nil, err
 	}
 
-	scProc, ok := sp.(*scProcessor)
+	scProc, ok := sp.(process.SmartContractProcessorFacade)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return NewSovereignSCRProcessor(scProc)
+	scpHelper, err := scrCommon.NewSCProcessorHelper(scrCommon.SCProcessorHelperArgs{
+		Accounts:         args.AccountsDB,
+		ShardCoordinator: args.ShardCoordinator,
+		Marshalizer:      args.Marshalizer,
+		Hasher:           args.Hasher,
+		PubkeyConverter:  args.PubkeyConv,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSovereignSCRProcessor(SovereignSCProcessArgs{
+		ArgsParser:               args.ArgsParser,
+		TxTypeHandler:            args.TxTypeHandler,
+		SmartContractProcessor:   scProc,
+		SCProcessorHelperHandler: scpHelper,
+	})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

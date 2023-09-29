@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
@@ -362,9 +361,10 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		VMOutputCacher:      vmOutputCacher,
 		WasmVMChangeLocker:  pcf.coreData.WasmVMChangeLocker(),
 		IsGenesisProcessing: false,
+		EpochNotifier:       pcf.epochNotifier,
 	}
 
-	scProcessor, err := processorV2.CreateSCRProcessor(pcf.chainRunType, scProcArgs)
+	scProcessor, err := pcf.runTypeComponents.SCProcessorCreator().CreateSCProcessor(scProcArgs)
 	if err != nil {
 		return args, nil, nil, err
 	}

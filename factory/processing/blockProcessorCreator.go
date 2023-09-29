@@ -33,7 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -256,8 +255,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
+		EpochNotifier:       pcf.epochNotifier,
 	}
-	scProcessorProxy, err := processorV2.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
+	scProcessorProxy, err := pcf.runTypeComponents.SCProcessorCreator().CreateSCProcessor(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -588,9 +588,10 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  wasmVMChangeLocker,
+		EpochNotifier:       pcf.epochNotifier,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}

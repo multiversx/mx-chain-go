@@ -668,5 +668,8 @@ var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statis
 // ErrNilAdditionalStorageServiceCreator signals that a nil additional storage service creator has been provided
 var ErrNilAdditionalStorageServiceCreator = errors.New("nil additional storage service creator")
 
+// ErrNilSCProcessorCreator signals that a nil sc processor creator has been provided
+var ErrNilSCProcessorCreator = errors.New("nil sc processor creator")
+
 // ErrNilFunction signals that a nil function has been provided
 var ErrNilFunction = errors.New("nil function")

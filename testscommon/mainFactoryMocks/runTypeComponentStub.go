@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
@@ -28,6 +29,7 @@ type RunTypeComponentsStub struct {
 	TransactionCoordinatorFactory       coordinator.TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorFactory peer.ValidatorStatisticsProcessorCreator
 	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
+	SCProcessorFactory                  scrCommon.SCProcessorCreator
 }
 
 // Create -
@@ -108,6 +110,11 @@ func (r *RunTypeComponentsStub) ValidatorStatisticsProcessorCreator() peer.Valid
 // AdditionalStorageServiceCreator -
 func (r *RunTypeComponentsStub) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
 	return r.AdditionalStorageServiceFactory
+}
+
+// SCProcessorCreator -
+func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreator {
+	return r.SCProcessorFactory
 }
 
 // IsInterfaceNil -

@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,16 +20,25 @@ func TestNewSCProcessFactory(t *testing.T) {
 func TestSCProcessFactory_CreateSCProcessor(t *testing.T) {
 	t.Parallel()
 
-	fact, _ := processorV2.NewSCProcessFactory()
+	t.Run("Nil EpochNotifier should not fail because it is not used", func(t *testing.T) {
+		fact, _ := processorV2.NewSCProcessFactory()
 
-	scProcessor, err := fact.CreateSCProcessor(scrCommon.ArgsNewSmartContractProcessor{}, nil)
-	require.NotNil(t, err)
-	require.Nil(t, scProcessor)
+		args := processorV2.CreateMockSmartContractProcessorArguments()
+		args.EpochNotifier = nil
+		scProcessor, err := fact.CreateSCProcessor(args)
+		require.Nil(t, err)
+		require.NotNil(t, scProcessor)
+	})
 
-	scProcessor, err = fact.CreateSCProcessor(processorV2.CreateMockSmartContractProcessorArguments(), &epochNotifier.EpochNotifierStub{})
-	require.Nil(t, err)
-	require.NotNil(t, scProcessor)
-	require.Implements(t, new(scrCommon.SCRProcessorHandler), scProcessor)
+	t.Run("CreateSCProcessor should work", func(t *testing.T) {
+		fact, _ := processorV2.NewSCProcessFactory()
+
+		args := processorV2.CreateMockSmartContractProcessorArguments()
+		scProcessor, err := fact.CreateSCProcessor(args)
+		require.Nil(t, err)
+		require.NotNil(t, scProcessor)
+		require.Implements(t, new(scrCommon.SCRProcessorHandler), scProcessor)
+	})
 }
 
 func TestSCProcessFactory_IsInterfaceNil(t *testing.T) {

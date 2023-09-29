@@ -1351,3 +1351,18 @@ type AdditionalStorageServiceCreator interface {
 	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
 	IsInterfaceNil() bool
 }
+
+// ScrProcessingDataHandler is an interface for scr data to be processed after validation checks
+type ScrProcessingDataHandler interface {
+	GetHash() []byte
+	GetSnapshot() int
+	GetSender() state.UserAccountHandler
+	GetDestination() state.UserAccountHandler
+}
+
+// SCProcessorHelperHandler is an interface for smart contract processor helper
+type SCProcessorHelperHandler interface {
+	GetAccountFromAddress(address []byte) (state.UserAccountHandler, error)
+	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
+	IsInterfaceNil() bool
+}

@@ -2020,6 +2020,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ValidatorStatisticsProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorStatisticsProcessorCreator)
 	}
+	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
+	}
 
 	return nil
 }
