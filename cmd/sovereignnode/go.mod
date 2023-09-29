@@ -119,7 +119,7 @@ require (
 	github.com/multiversx/mx-chain-crypto-go v1.2.8 // indirect
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.13 // indirect
 	github.com/multiversx/mx-chain-storage-go v1.0.13 // indirect
-	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230926121108-7dc685af9574 // indirect
+	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230929121356-3eff7906005b // indirect
 	github.com/multiversx/mx-chain-vm-go v1.5.10 // indirect
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.61 // indirect
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.62 // indirect
