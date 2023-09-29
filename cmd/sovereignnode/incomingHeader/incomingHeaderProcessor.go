@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -70,7 +69,7 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
-	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash))
+	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
 
 	if check.IfNil(header) || check.IfNil(header.GetHeaderHandler()) {
 		return data.ErrNilHeader
@@ -84,17 +83,16 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return nil
 	}
 
-	headerV2, castOk := header.GetHeaderHandler().(*block.HeaderV2)
-	if !castOk {
-		return errInvalidHeaderType
-	}
-
 	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
 
-	extendedHeader := createExtendedHeader(headerV2, incomingSCRs)
+	extendedHeader, err := createExtendedHeader(header, incomingSCRs)
+	if err != nil {
+		return err
+	}
+
 	err = ihp.extendedHeaderProc.addExtendedHeaderToPool(extendedHeader)
 	if err != nil {
 		return err
@@ -102,6 +100,16 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 
 	ihp.scrProc.addSCRsToPool(incomingSCRs)
 	return nil
+}
+
+// CreateExtendedHeader will create an extended shard header with incoming scrs and mbs from the events of the received header
+func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
+	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	if err != nil {
+		return nil, err
+	}
+
+	return createExtendedHeader(header, incomingSCRs)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

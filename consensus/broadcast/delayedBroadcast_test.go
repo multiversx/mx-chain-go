@@ -97,7 +97,7 @@ func createMetaBlock() *block.MetaBlock {
 }
 
 func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaster {
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
 	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
 		ShardCoordinator:      &mock.ShardCoordinatorMock{},
