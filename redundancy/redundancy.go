@@ -81,11 +81,11 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 	}
 
 	if nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity) {
-		log.Debug("main or lower level redundancy machines are active",
+		log.Debug("main or lower level redundancy machines are active for single-key operation",
 			"max rounds of inactivity", nr.maxRoundsOfInactivity,
 			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
 	} else {
-		log.Warn("main or lower level redundancy machines are inactive",
+		log.Warn("main or lower level redundancy machines are inactive for single-key operation",
 			"max rounds of inactivity", nr.maxRoundsOfInactivity,
 			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
 	}
