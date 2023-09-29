@@ -817,6 +817,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
 	ScToScLogEventEnableEpoch = 88
 
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 89
+
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 69
 
@@ -840,37 +843,35 @@ func TestEnableEpochConfig(t *testing.T) {
 
 	expectedCfg := EpochConfig{
 		EnableEpochs: EnableEpochs{
-			SCDeployEnableEpoch:                    1,
-			BuiltInFunctionsEnableEpoch:            2,
-			RelayedTransactionsEnableEpoch:         3,
-			PenalizedTooMuchGasEnableEpoch:         4,
-			SwitchJailWaitingEnableEpoch:           5,
-			BelowSignedThresholdEnableEpoch:        6,
-			SwitchHysteresisForMinNodesEnableEpoch: 7,
-			TransactionSignedWithTxHashEnableEpoch: 8,
-			MetaProtectionEnableEpoch:              9,
-			AheadOfTimeGasUsageEnableEpoch:         10,
-			GasPriceModifierEnableEpoch:            11,
-			RepairCallbackEnableEpoch:              12,
-			BlockGasAndFeesReCheckEnableEpoch:      13,
-			BalanceWaitingListsEnableEpoch:         14,
-			ReturnDataToLastTransferEnableEpoch:    15,
-			SenderInOutTransferEnableEpoch:         16,
-			StakeEnableEpoch:                       17,
-			StakingV2EnableEpoch:                   18,
-
-			DoubleKeyProtectionEnableEpoch:     19,
-			ESDTEnableEpoch:                    20,
-			GovernanceEnableEpoch:              21,
-			DelegationManagerEnableEpoch:       22,
-			DelegationSmartContractEnableEpoch: 23,
-			CorrectLastUnjailedEnableEpoch:     24,
-
-			RelayedTransactionsV2EnableEpoch:   25,
-			UnbondTokensV2EnableEpoch:          26,
-			SaveJailedAlwaysEnableEpoch:        27,
-			ReDelegateBelowMinCheckEnableEpoch: 28, ValidatorToDelegationEnableEpoch: 29,
-
+			SCDeployEnableEpoch:                               1,
+			BuiltInFunctionsEnableEpoch:                       2,
+			RelayedTransactionsEnableEpoch:                    3,
+			PenalizedTooMuchGasEnableEpoch:                    4,
+			SwitchJailWaitingEnableEpoch:                      5,
+			BelowSignedThresholdEnableEpoch:                   6,
+			SwitchHysteresisForMinNodesEnableEpoch:            7,
+			TransactionSignedWithTxHashEnableEpoch:            8,
+			MetaProtectionEnableEpoch:                         9,
+			AheadOfTimeGasUsageEnableEpoch:                    10,
+			GasPriceModifierEnableEpoch:                       11,
+			RepairCallbackEnableEpoch:                         12,
+			BlockGasAndFeesReCheckEnableEpoch:                 13,
+			BalanceWaitingListsEnableEpoch:                    14,
+			ReturnDataToLastTransferEnableEpoch:               15,
+			SenderInOutTransferEnableEpoch:                    16,
+			StakeEnableEpoch:                                  17,
+			StakingV2EnableEpoch:                              18,
+			DoubleKeyProtectionEnableEpoch:                    19,
+			ESDTEnableEpoch:                                   20,
+			GovernanceEnableEpoch:                             21,
+			DelegationManagerEnableEpoch:                      22,
+			DelegationSmartContractEnableEpoch:                23,
+			CorrectLastUnjailedEnableEpoch:                    24,
+			RelayedTransactionsV2EnableEpoch:                  25,
+			UnbondTokensV2EnableEpoch:                         26,
+			SaveJailedAlwaysEnableEpoch:                       27,
+			ReDelegateBelowMinCheckEnableEpoch:                28,
+			ValidatorToDelegationEnableEpoch:                  29,
 			WaitingListFixEnableEpoch:                         30,
 			IncrementSCRNonceInMultiTransferEnableEpoch:       31,
 			ESDTMultiTransferEnableEpoch:                      32,
@@ -928,7 +929,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeUsernameEnableEpoch:                    85,
 			ConsistentTokensValuesLengthCheckEnableEpoch: 86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch: 87,
-			ScToScLogEventEnableEpoch:                    88,
+			ScToScLogEventEnableEpoch:                    88,NFTStopCreateEnableEpoch:                          89,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
