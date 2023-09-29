@@ -1721,6 +1721,7 @@ func createSovereignWsReceiver(
 			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
 			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
 			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
+			Version:            config.WebSocketConfig.Version,
 		},
 		SovereignNotifier: sovereignNotifier,
 	}

@@ -110,6 +110,7 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 			BlockingAckOnError:         false,
 			DropMessagesIfNoConnection: false,
 			AcknowledgeTimeoutInSec:    60,
+			Version:                    1,
 		},
 		Marshaller: marshaller,
 		Log:        log,
