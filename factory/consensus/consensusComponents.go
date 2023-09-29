@@ -53,7 +53,6 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
-	ConsensusModel        consensus.ConsensusModel
 }
 
 type consensusComponentsFactory struct {
@@ -72,7 +71,6 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	consensusModel        consensus.ConsensusModel
 }
 
 type consensusComponents struct {
@@ -107,7 +105,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-		consensusModel:        args.ConsensusModel,
 		runTypeComponents:     args.RunTypeComponents,
 	}, nil
 }
@@ -277,7 +274,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		ccf.consensusModel,
+		ccf.runTypeComponents.ConsensusModel(),
 		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {

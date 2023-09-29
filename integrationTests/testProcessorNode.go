@@ -3227,7 +3227,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 	}
 }
 
-func GetDefaultRunTypeComponents() *mainFactoryMocks.RunTypeComponentsStub {
+func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
 	rt := components.GetRunTypeComponents()
 	return &mainFactoryMocks.RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
@@ -3245,6 +3245,7 @@ func GetDefaultRunTypeComponents() *mainFactoryMocks.RunTypeComponentsStub {
 		SCProcessorFactory:                  rt.SCProcessorCreator(),
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		ConsensusModelType:                  consensusModel,
 	}
 }
 

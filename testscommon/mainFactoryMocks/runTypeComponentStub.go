@@ -1,6 +1,7 @@
 package mainFactoryMocks
 
 import (
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
@@ -33,6 +34,7 @@ type RunTypeComponentsStub struct {
 	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
 	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory                  scrCommon.SCProcessorCreator
+	ConsensusModelType                  consensus.ConsensusModel
 }
 
 // NewRunTypeComponentsStub -
@@ -53,6 +55,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryStub{},
 		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryStub{},
 		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
+		ConsensusModelType:                  consensus.ConsensusModelV1,
 	}
 }
 
@@ -149,6 +152,11 @@ func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreato
 // SCResultsPreProcessorCreator -
 func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
 	return r.SCResultsPreProcessorFactory
+}
+
+// ConsensusModel -
+func (r *RunTypeComponentsStub) ConsensusModel() consensus.ConsensusModel {
+	return r.ConsensusModelType
 }
 
 // IsInterfaceNil -

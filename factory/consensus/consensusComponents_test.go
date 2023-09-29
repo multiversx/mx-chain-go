@@ -176,8 +176,8 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
+			ConsensusModelType: consensus.ConsensusModelV1,
 		},
-		ConsensusModel: consensus.ConsensusModelV1,
 	}
 }
 

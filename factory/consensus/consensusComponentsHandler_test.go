@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/consensus"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 
@@ -160,7 +159,6 @@ func TestManagedConsensusComponents_CreateShouldWorkForSovereign(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
 	args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
-	args.ConsensusModel = consensus.ConsensusModelV2
 
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)

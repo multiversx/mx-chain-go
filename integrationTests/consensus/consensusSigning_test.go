@@ -20,6 +20,7 @@ func initNodesWithTestSigner(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
+	consensusModel consensus.ConsensusModel,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -31,6 +32,7 @@ func initNodesWithTestSigner(
 		roundTime,
 		consensusType,
 		1,
+		consensusModel,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -87,7 +89,7 @@ func runConsensusWithInvalidSigners(t *testing.T, consensusModel consensus.Conse
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType, consensusModel)
 
 	defer func() {
 		for shardID := range nodes {
@@ -107,7 +109,7 @@ func runConsensusWithInvalidSigners(t *testing.T, consensusModel consensus.Conse
 		nonceForRoundMap := make(map[uint64]uint64)
 		totalCalled := 0
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled, consensusModel)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
 		assert.Nil(t, err)
 
 		chDone := make(chan bool)

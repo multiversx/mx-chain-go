@@ -585,6 +585,7 @@ type RunTypeComponentsHolder interface {
 	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	ConsensusModel() consensus.ConsensusModel
 	Close() error
 	IsInterfaceNil() bool
 }
