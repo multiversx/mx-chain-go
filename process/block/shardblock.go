@@ -158,6 +158,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.requestMissingHeadersFunc = sp.requestMissingHeaders
 	sp.cleanupPoolsForCrossShardFunc = sp.cleanupPoolsForCrossShard
 	sp.cleanupBlockTrackerPoolsForShardFunc = sp.cleanupBlockTrackerPoolsForShard
+	sp.getExtraMissingNoncesToRequestFunc = sp.getExtraMissingNoncesToRequest
 
 	return &sp, nil
 }

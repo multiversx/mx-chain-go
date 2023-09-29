@@ -123,6 +123,7 @@ type baseProcessor struct {
 	requestMissingHeadersFunc            func(missingNonces []uint64, shardID uint32)
 	cleanupBlockTrackerPoolsForShardFunc func(shardID uint32, noncesToPrevFinal uint64)
 	cleanupPoolsForCrossShardFunc        func(shardID uint32, noncesToPrevFinal uint64)
+	getExtraMissingNoncesToRequestFunc   func(prevHdr data.HeaderHandler, lastNotarizedHdrNonce uint64) []uint64
 
 	crossNotarizer crossNotarizer
 }
@@ -308,6 +309,18 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		prevHdr = currHdr
 	}
 
+	extraMissingNonces := bp.getExtraMissingNoncesToRequestFunc(prevHdr, lastNotarizedHdrNonce)
+	if len(extraMissingNonces) > 0 {
+		missingNonces = append(missingNonces, extraMissingNonces...)
+	}
+
+	bp.requestMissingHeadersFunc(missingNonces, shardId)
+	return nil
+}
+
+func (bp *baseProcessor) getExtraMissingNoncesToRequest(prevHdr data.HeaderHandler, lastNotarizedHdrNonce uint64) []uint64 {
+	missingNonces := make([]uint64, 0)
+
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
 		lastRound := bp.roundHandler.Index() - 1
@@ -316,9 +329,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		missingNonces = append(missingNonces, nonces...)
 	}
 
-	bp.requestMissingHeadersFunc(missingNonces, shardId)
-
-	return nil
+	return missingNonces
 }
 
 func (bp *baseProcessor) requestMissingHeaders(missingNonces []uint64, shardId uint32) {

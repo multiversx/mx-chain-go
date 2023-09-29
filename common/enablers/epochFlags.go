@@ -102,6 +102,7 @@ type epochFlagsHolder struct {
 	autoBalanceDataTriesFlag                    *atomic.Flag
 	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
+	nftStopCreateFlag                           *atomic.Flag
 	consensusModelV2Flag                        *atomic.Flag
 }
 
@@ -204,6 +205,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                    &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
+		nftStopCreateFlag:                           &atomic.Flag{},
 		consensusModelV2Flag:                        &atomic.Flag{},
 	}
 }
@@ -696,7 +698,7 @@ func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
 }
 
-// IsScToScLogEventFlagEnabled returns true if scToScLogEventFlag is enabled
+// IsScToScEventLogEnabled returns true if scToScLogEventFlag is enabled
 func (holder *epochFlagsHolder) IsScToScEventLogEnabled() bool {
 	return holder.scToScLogEventFlag.IsSet()
 }
@@ -744,6 +746,11 @@ func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool 
 // IsDynamicGasCostForDataTrieStorageLoadEnabled returns true if dynamicGasCostForDataTrieStorageLoadFlag is enabled
 func (holder *epochFlagsHolder) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	return holder.dynamicGasCostForDataTrieStorageLoadFlag.IsSet()
+}
+
+// NFTStopCreateEnabled returns true if the fix for nft stop create is enabled
+func (holder *epochFlagsHolder) NFTStopCreateEnabled() bool {
+	return holder.nftStopCreateFlag.IsSet()
 }
 
 // IsConsensusModelV2Enabled returns true if consensusModelV2Flag is enabled

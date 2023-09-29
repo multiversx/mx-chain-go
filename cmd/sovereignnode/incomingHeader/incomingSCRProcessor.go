@@ -27,7 +27,6 @@ type scrProcessor struct {
 	txPool     TransactionPool
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
-	nonce      uint64
 }
 
 func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
@@ -45,9 +44,10 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 				errInvalidNumTopicsIncomingEvent, idx, len(topics))
 		}
 
+		eventNonce := big.NewInt(0).SetBytes(event.GetData())
 		scr := &smartContractResult.SmartContractResult{
-			Nonce:          sp.nonce, // TODO:  Save this nonce in storage + load in from storage in MX-14320 task
-			OriginalTxHash: nil,      // TODO:  Implement this in MX-14321 task
+			Nonce:          eventNonce.Uint64(),
+			OriginalTxHash: nil, // TODO:  Implement this in MX-14321 task
 			RcvAddr:        topics[0],
 			SndAddr:        core.ESDTSCAddress,
 			Data:           createSCRData(topics),
@@ -59,8 +59,6 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 			return nil, err
 		}
 
-		// TODO: Should we revert nonce incrementation if processing fails later in code?
-		sp.nonce++
 		scrs = append(scrs, &scrInfo{
 			scr:  scr,
 			hash: hash,
