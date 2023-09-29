@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
@@ -413,6 +414,8 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(pr.Config.FlagsConfig.DbDir, common.DefaultDBPath), pr.Config.FlagsConfig.Version)
 	require.Nil(tb, err)
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
@@ -441,6 +444,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		BootstrapComponents:                   pr.BootstrapComponents,
 		StatusComponents:                      pr.StatusComponents,
 		StatusCoreComponents:                  pr.StatusCoreComponents,
+		TxExecutionOrderHandler:    txExecutionOrderHandler,
 		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),

@@ -196,6 +196,12 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if arg.RoundConfig == nil {
 		return genesis.ErrNilRoundConfig
 	}
+	if check.IfNil(arg.HistoryRepository) {
+		return process.ErrNilHistoryRepository
+	}
+	if check.IfNil(arg.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
+	}
 
 	return nil
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -1050,6 +1051,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 	shardNotarizedHeader data.ShardHeaderHandler,
 ) (*dataToSync, error) {
 
+	orderedCollection := ordering.NewOrderedCollection()
 	scheduledTxsHandler, err := preprocess.NewScheduledTxsExecution(
 		&factoryDisabled.TxProcessor{},
 		&factoryDisabled.TxCoordinator{},
@@ -1057,6 +1059,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		e.coreComponentsHolder.InternalMarshalizer(),
 		e.coreComponentsHolder.Hasher(),
 		e.shardCoordinator,
+		orderedCollection,
 	)
 	if err != nil {
 		return nil, err

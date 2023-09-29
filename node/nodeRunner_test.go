@@ -1,10 +1,8 @@
 //go:build !race
-// +build !race
 
 package node
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"syscall"
@@ -96,17 +94,17 @@ func TestCopyDirectory(t *testing.T) {
 	//   +- dir2
 	//         +- file4
 
-	err := ioutil.WriteFile(path.Join(tempDir, file1Name), file1Contents, os.ModePerm)
+	err := os.WriteFile(path.Join(tempDir, file1Name), file1Contents, os.ModePerm)
 	require.Nil(t, err)
 	err = os.MkdirAll(path.Join(tempDir, "src", "dir1"), os.ModePerm)
 	require.Nil(t, err)
 	err = os.MkdirAll(path.Join(tempDir, "src", "dir2"), os.ModePerm)
 	require.Nil(t, err)
-	err = ioutil.WriteFile(path.Join(tempDir, "src", file2Name), file2Contents, os.ModePerm)
+	err = os.WriteFile(path.Join(tempDir, "src", file2Name), file2Contents, os.ModePerm)
 	require.Nil(t, err)
-	err = ioutil.WriteFile(path.Join(tempDir, "src", "dir1", file3Name), file3Contents, os.ModePerm)
+	err = os.WriteFile(path.Join(tempDir, "src", "dir1", file3Name), file3Contents, os.ModePerm)
 	require.Nil(t, err)
-	err = ioutil.WriteFile(path.Join(tempDir, "src", "dir2", file4Name), file4Contents, os.ModePerm)
+	err = os.WriteFile(path.Join(tempDir, "src", "dir2", file4Name), file4Contents, os.ModePerm)
 	require.Nil(t, err)
 
 	err = copyDirectory(path.Join(tempDir, "src"), path.Join(tempDir, "dst"))
@@ -114,19 +112,19 @@ func TestCopyDirectory(t *testing.T) {
 	copySingleFile(path.Join(tempDir, "dst"), path.Join(tempDir, file1Name))
 
 	// after copy, check that the files are the same
-	buff, err := ioutil.ReadFile(path.Join(tempDir, "dst", file1Name))
+	buff, err := os.ReadFile(path.Join(tempDir, "dst", file1Name))
 	require.Nil(t, err)
 	assert.Equal(t, file1Contents, buff)
 
-	buff, err = ioutil.ReadFile(path.Join(tempDir, "dst", file2Name))
+	buff, err = os.ReadFile(path.Join(tempDir, "dst", file2Name))
 	require.Nil(t, err)
 	assert.Equal(t, file2Contents, buff)
 
-	buff, err = ioutil.ReadFile(path.Join(tempDir, "dst", "dir1", file3Name))
+	buff, err = os.ReadFile(path.Join(tempDir, "dst", "dir1", file3Name))
 	require.Nil(t, err)
 	assert.Equal(t, file3Contents, buff)
 
-	buff, err = ioutil.ReadFile(path.Join(tempDir, "dst", "dir2", file4Name))
+	buff, err = os.ReadFile(path.Join(tempDir, "dst", "dir2", file4Name))
 	require.Nil(t, err)
 	assert.Equal(t, file4Contents, buff)
 }

@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -477,6 +478,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ChainRunType:                 common.ChainRunTypeRegular,
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := factory.Create()
@@ -700,6 +702,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2606,6 +2609,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ChainRunType:                 common.ChainRunTypeRegular,
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := factory.Create()
@@ -2715,6 +2719,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -3110,6 +3115,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -3293,6 +3299,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)

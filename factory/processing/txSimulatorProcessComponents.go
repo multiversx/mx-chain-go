@@ -3,6 +3,7 @@ package processing
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/disabled"
 	bootstrapDisabled "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -105,14 +106,15 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	args := transactionEvaluator.ArgsTxSimulator{}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
-		Store:               bootstrapDisabled.NewChainStorer(),
-		PoolsHolder:         pcf.data.Datapool(),
-		EconomicsFee:        &processDisabled.FeeHandler{},
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		PubkeyConverter:         pcf.coreData.AddressPubKeyConverter(),
+		Store:                   bootstrapDisabled.NewChainStorer(),
+		PoolsHolder:             pcf.data.Datapool(),
+		EconomicsFee:            &processDisabled.FeeHandler{},
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		TxExecutionOrderHandler: disabled.NewOrderedCollection(),
 	}
 	intermediateProcessorsFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
@@ -249,14 +251,15 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	args := transactionEvaluator.ArgsTxSimulator{}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConverter:     pcf.coreData.AddressPubKeyConverter(),
-		Store:               bootstrapDisabled.NewChainStorer(),
-		PoolsHolder:         pcf.data.Datapool(),
-		EconomicsFee:        &processDisabled.FeeHandler{},
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		PubkeyConverter:         pcf.coreData.AddressPubKeyConverter(),
+		Store:                   bootstrapDisabled.NewChainStorer(),
+		PoolsHolder:             pcf.data.Datapool(),
+		EconomicsFee:            &processDisabled.FeeHandler{},
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
+		TxExecutionOrderHandler: disabled.NewOrderedCollection(),
 	}
 
 	intermediateProcessorsFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
