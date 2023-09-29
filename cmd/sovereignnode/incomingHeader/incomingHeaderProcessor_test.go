@@ -125,7 +125,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		startRound := uint64(11)
 
 		args := createArgs()
-		args.StartRound = startRound
+		args.MainChainNotarizationStartRound = startRound
 		wasHeaderAdded := false
 		args.HeadersPool = &mock.HeadersCacherStub{
 			AddCalled: func(_ []byte, header data.HeaderHandler) {

@@ -27,4 +27,4 @@
 
 [MainChainNotarization]
     # This defines the starting round from which all sovereign chain nodes should starting notarizing main chain headers
-    StartRound = 16
+    MainChainNotarizationStartRound = 16

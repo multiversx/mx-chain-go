@@ -7,6 +7,7 @@ type SovereignConfig struct {
 	MainChainNotarization            MainChainNotarization `toml:"MainChainNotarization"`
 }
 
+// MainChainNotarization defines necessary data to start main chain notarization on a sovereign shard
 type MainChainNotarization struct {
-	StartRound uint64 `toml:"StartRound"`
+	MainChainNotarizationStartRound uint64 `toml:"MainChainNotarizationStartRound"`
 }
