@@ -50,14 +50,12 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		return nil, err
 	}
 
-	handler := common.NewRedundancyHandler()
-
 	holder := &managedPeersHolder{
 		defaultPeerInfoCurrentIndex: 0,
 		pids:                        make(map[core.PeerID]struct{}),
 		keyGenerator:                args.KeyGenerator,
 		p2pKeyGenerator:             args.P2PKeyGenerator,
-		isMainMachine:               !handler.IsRedundancyNode(args.MaxRoundsOfInactivity),
+		isMainMachine:               common.IsMainNode(args.MaxRoundsOfInactivity),
 		maxRoundsOfInactivity:       args.MaxRoundsOfInactivity,
 		defaultName:                 args.PrefsConfig.Preferences.NodeDisplayName,
 		defaultIdentity:             args.PrefsConfig.Preferences.Identity,
@@ -285,8 +283,7 @@ func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypt
 
 	allManagedKeys := make(map[string]crypto.PrivateKey)
 	for pk, pInfo := range holder.data {
-		isSlaveAndMainFailed := !holder.isMainMachine && !pInfo.isNodeActiveOnMainMachine(holder.maxRoundsOfInactivity)
-		shouldAddToMap := holder.isMainMachine || isSlaveAndMainFailed
+		shouldAddToMap := pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
 		if !shouldAddToMap {
 			continue
 		}
@@ -304,11 +301,7 @@ func (holder *managedPeersHolder) IsKeyManagedByCurrentNode(pkBytes []byte) bool
 		return false
 	}
 
-	if holder.isMainMachine {
-		return true
-	}
-
-	return !pInfo.isNodeActiveOnMainMachine(holder.maxRoundsOfInactivity)
+	return pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
 }
 
 // IsKeyRegistered returns true if the key is registered (not necessarily managed by the current node)

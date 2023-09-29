@@ -33,10 +33,10 @@ func CheckMaxRoundsOfInactivity(maxRoundsOfInactivity int) error {
 	return nil
 }
 
-// IsRedundancyNode returns true if the provided maxRoundsOfInactivity value is higher than the
+// IsMainNode returns true if the provided maxRoundsOfInactivity value is equal than the
 // roundsOfInactivityForMainMachine constant (0)
-func (handler *redundancyHandler) IsRedundancyNode(maxRoundsOfInactivity int) bool {
-	return maxRoundsOfInactivity != roundsOfInactivityForMainMachine
+func IsMainNode(maxRoundsOfInactivity int) bool {
+	return maxRoundsOfInactivity == roundsOfInactivityForMainMachine
 }
 
 // IncrementRoundsOfInactivity will increment the rounds of inactivity
@@ -49,9 +49,28 @@ func (handler *redundancyHandler) ResetRoundsOfInactivity() {
 	handler.roundsOfInactivity = 0
 }
 
-// IsMainMachineActive returns true if the main machine is still active
+// IsMainMachineActive returns true if the main machine is still active in case of a backup or the machine is the
+// main machine
 func (handler *redundancyHandler) IsMainMachineActive(maxRoundsOfInactivity int) bool {
-	return handler.roundsOfInactivity < maxRoundsOfInactivity
+	if IsMainNode(maxRoundsOfInactivity) {
+		return true
+	}
+
+	return handler.mainMachineIsActive(maxRoundsOfInactivity)
+}
+
+func (handler *redundancyHandler) mainMachineIsActive(maxRoundsOfInactivity int) bool {
+	return handler.roundsOfInactivity <= maxRoundsOfInactivity
+}
+
+// ShouldActAsValidator returns true if either the machine is a main machine or the machine is a backup machine but the
+// main machine failed
+func (handler *redundancyHandler) ShouldActAsValidator(maxRoundsOfInactivity int) bool {
+	if IsMainNode(maxRoundsOfInactivity) {
+		return true
+	}
+
+	return !handler.mainMachineIsActive(maxRoundsOfInactivity)
 }
 
 // RoundsOfInactivity returns the inner roundsOfInactivity value

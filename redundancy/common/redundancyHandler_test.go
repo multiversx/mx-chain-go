@@ -79,40 +79,117 @@ func TestRedundancyHandler_ResetRoundsOfInactivity(t *testing.T) {
 	assert.Equal(t, 0, redundancy.RoundsOfInactivity())
 }
 
-func TestRedundancyHandler_IsRedundancyNode(t *testing.T) {
+func TestIsMainNode(t *testing.T) {
 	t.Parallel()
 
-	redundancy := NewRedundancyHandler()
-	assert.False(t, redundancy.IsRedundancyNode(0)) // main machine
-	assert.True(t, redundancy.IsRedundancyNode(-1)) // invalid setup
-	assert.True(t, redundancy.IsRedundancyNode(1))  // invalid setup
+	assert.True(t, IsMainNode(0))   // main machine
+	assert.False(t, IsMainNode(-1)) // invalid setup
+	assert.False(t, IsMainNode(1))  // invalid setup
 	for i := 2; i < 10; i++ {
-		assert.True(t, redundancy.IsRedundancyNode(i)) // backup machine
+		assert.False(t, IsMainNode(i)) // backup machine
 	}
 }
 
 func TestRedundancyHandler_IsMainMachineActive(t *testing.T) {
 	t.Parallel()
 
-	redundancy := NewRedundancyHandler()
-	t.Run("running on the backup machine, the main machine is active", func(t *testing.T) {
-		assert.True(t, redundancy.IsMainMachineActive(2))
+	t.Run("running as backup", func(t *testing.T) {
+		t.Parallel()
+
+		redundancy := NewRedundancyHandler()
+		t.Run("running on the backup machine, the main machine is active", func(t *testing.T) {
+			assert.True(t, redundancy.IsMainMachineActive(2))
+		})
+		t.Run("running on the backup machine, the main machine lost one round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.True(t, redundancy.IsMainMachineActive(2))
+		})
+		t.Run("running on the backup machine, the main machine lost the second round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.True(t, redundancy.IsMainMachineActive(2))
+		})
+		t.Run("running on the backup machine, the main machine lost the third round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.False(t, redundancy.IsMainMachineActive(2))
+		})
+		t.Run("running on the backup machine, the main machine lost the fourth round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.False(t, redundancy.IsMainMachineActive(2))
+		})
+		t.Run("running on the backup machine, the main machine recovered", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			redundancy.ResetRoundsOfInactivity()
+			assert.True(t, redundancy.IsMainMachineActive(2))
+		})
 	})
-	t.Run("running on the backup machine, the main machine lost one round", func(t *testing.T) {
-		redundancy.IncrementRoundsOfInactivity()
-		assert.True(t, redundancy.IsMainMachineActive(2))
+	t.Run("running as main", func(t *testing.T) {
+		t.Parallel()
+
+		redundancy := NewRedundancyHandler()
+		t.Run("running on the main machine, no rounds increased", func(t *testing.T) {
+			assert.True(t, redundancy.IsMainMachineActive(0))
+		})
+		t.Run("running on the main machine, increasing counter due to a bug", func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				redundancy.IncrementRoundsOfInactivity()
+				assert.True(t, redundancy.IsMainMachineActive(0))
+			}
+		})
+		t.Run("running on the main machine, resetting counter due to a bug", func(t *testing.T) {
+			redundancy.ResetRoundsOfInactivity()
+			assert.True(t, redundancy.IsMainMachineActive(0))
+		})
 	})
-	t.Run("running on the backup machine, the main machine lost the second round", func(t *testing.T) {
-		redundancy.IncrementRoundsOfInactivity()
-		assert.False(t, redundancy.IsMainMachineActive(2))
+}
+
+func TestRedundancyHandler_ShouldActAsValidator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("running as backup", func(t *testing.T) {
+		t.Parallel()
+
+		redundancy := NewRedundancyHandler()
+		t.Run("running on the backup machine, the main machine is active", func(t *testing.T) {
+			assert.False(t, redundancy.ShouldActAsValidator(2))
+		})
+		t.Run("running on the backup machine, the main machine lost one round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.False(t, redundancy.ShouldActAsValidator(2))
+		})
+		t.Run("running on the backup machine, the main machine lost the second round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.False(t, redundancy.ShouldActAsValidator(2))
+		})
+		t.Run("running on the backup machine, the main machine lost the third round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.True(t, redundancy.ShouldActAsValidator(2))
+		})
+		t.Run("running on the backup machine, the main machine lost the fourth round", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			assert.True(t, redundancy.ShouldActAsValidator(2))
+		})
+		t.Run("running on the backup machine, the main machine recovered", func(t *testing.T) {
+			redundancy.IncrementRoundsOfInactivity()
+			redundancy.ResetRoundsOfInactivity()
+			assert.False(t, redundancy.ShouldActAsValidator(2))
+		})
 	})
-	t.Run("running on the backup machine, the main machine lost the third round", func(t *testing.T) {
-		redundancy.IncrementRoundsOfInactivity()
-		assert.False(t, redundancy.IsMainMachineActive(2))
-	})
-	t.Run("running on the backup machine, the main machine recovered", func(t *testing.T) {
-		redundancy.IncrementRoundsOfInactivity()
-		redundancy.ResetRoundsOfInactivity()
-		assert.True(t, redundancy.IsMainMachineActive(2))
+	t.Run("running as main", func(t *testing.T) {
+		t.Parallel()
+
+		redundancy := NewRedundancyHandler()
+		t.Run("running on the main machine, no rounds increased", func(t *testing.T) {
+			assert.True(t, redundancy.ShouldActAsValidator(0))
+		})
+		t.Run("running on the main machine, increasing counter due to a bug", func(t *testing.T) {
+			for i := 0; i < 10; i++ {
+				redundancy.IncrementRoundsOfInactivity()
+				assert.True(t, redundancy.ShouldActAsValidator(0))
+			}
+		})
+		t.Run("running on the main machine, resetting counter due to a bug", func(t *testing.T) {
+			redundancy.ResetRoundsOfInactivity()
+			assert.True(t, redundancy.ShouldActAsValidator(0))
+		})
 	})
 }

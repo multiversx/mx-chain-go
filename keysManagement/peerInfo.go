@@ -9,10 +9,9 @@ import (
 )
 
 type redundancyHandler interface {
-	IsRedundancyNode(maxRoundsOfInactivity int) bool
 	IncrementRoundsOfInactivity()
 	ResetRoundsOfInactivity()
-	IsMainMachineActive(maxRoundsOfInactivity int) bool
+	ShouldActAsValidator(maxRoundsOfInactivity int) bool
 	RoundsOfInactivity() int
 }
 
@@ -42,11 +41,11 @@ func (pInfo *peerInfo) resetRoundsWithoutReceivedMessages() {
 	pInfo.mutChangeableData.Unlock()
 }
 
-func (pInfo *peerInfo) isNodeActiveOnMainMachine(maxRoundsOfInactivity int) bool {
+func (pInfo *peerInfo) shouldActAsValidator(maxRoundsOfInactivity int) bool {
 	pInfo.mutChangeableData.RLock()
 	defer pInfo.mutChangeableData.RUnlock()
 
-	return pInfo.handler.IsMainMachineActive(maxRoundsOfInactivity)
+	return pInfo.handler.ShouldActAsValidator(maxRoundsOfInactivity)
 }
 
 func (pInfo *peerInfo) isNodeValidator() bool {

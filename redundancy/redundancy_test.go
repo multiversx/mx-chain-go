@@ -133,9 +133,12 @@ func TestIsMainMachineActive_ShouldWork(t *testing.T) {
 		assert.True(t, nr.IsMainMachineActive())
 
 		nr.SetRoundsOfInactivity(2)
-		assert.False(t, nr.IsMainMachineActive())
+		assert.True(t, nr.IsMainMachineActive())
 
 		nr.SetRoundsOfInactivity(3)
+		assert.False(t, nr.IsMainMachineActive())
+
+		nr.SetRoundsOfInactivity(4)
 		assert.False(t, nr.IsMainMachineActive())
 
 		nr.SetRoundsOfInactivity(0)

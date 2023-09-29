@@ -13,7 +13,6 @@ import (
 var log = logger.GetOrCreate("redundancy")
 
 type redundancyHandler interface {
-	IsRedundancyNode(maxRoundsOfInactivity int) bool
 	IncrementRoundsOfInactivity()
 	ResetRoundsOfInactivity()
 	IsMainMachineActive(maxRoundsOfInactivity int) bool
@@ -61,7 +60,7 @@ func NewNodeRedundancy(arg ArgNodeRedundancy) (*nodeRedundancy, error) {
 
 // IsRedundancyNode returns true if the current instance is used as a redundancy node
 func (nr *nodeRedundancy) IsRedundancyNode() bool {
-	return nr.handler.IsRedundancyNode(nr.maxRoundsOfInactivity)
+	return !common.IsMainNode(nr.maxRoundsOfInactivity)
 }
 
 // IsMainMachineActive returns true if the main or lower level redundancy machines are active
@@ -69,7 +68,7 @@ func (nr *nodeRedundancy) IsMainMachineActive() bool {
 	nr.mutNodeRedundancy.RLock()
 	defer nr.mutNodeRedundancy.RUnlock()
 
-	return nr.isMainMachineActive()
+	return nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity)
 }
 
 // AdjustInactivityIfNeeded increments rounds of inactivity for main or lower level redundancy machines if needed
@@ -81,7 +80,7 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 		return
 	}
 
-	if nr.isMainMachineActive() {
+	if nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity) {
 		log.Debug("main or lower level redundancy machines are active",
 			"max rounds of inactivity", nr.maxRoundsOfInactivity,
 			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
@@ -113,14 +112,6 @@ func (nr *nodeRedundancy) ResetInactivityIfNeeded(selfPubKey string, consensusMs
 	nr.mutNodeRedundancy.Lock()
 	nr.handler.ResetRoundsOfInactivity()
 	nr.mutNodeRedundancy.Unlock()
-}
-
-func (nr *nodeRedundancy) isMainMachineActive() bool {
-	if !nr.handler.IsRedundancyNode(nr.maxRoundsOfInactivity) {
-		return true
-	}
-
-	return nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity)
 }
 
 // ObserverPrivateKey returns the stored private key by this instance. This key will be used whenever a new key,
