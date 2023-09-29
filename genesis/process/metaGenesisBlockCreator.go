@@ -16,10 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -376,14 +378,15 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	genesisFeeHandler := &disabled.FeeHandler{}
 	argsFactory := metachain.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    arg.ShardCoordinator,
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		Hasher:              arg.Core.Hasher(),
-		PubkeyConverter:     arg.Core.AddressPubKeyConverter(),
-		Store:               arg.Data.StorageService(),
-		PoolsHolder:         arg.Data.Datapool(),
-		EconomicsFee:        genesisFeeHandler,
-		EnableEpochsHandler: enableEpochsHandler,
+		ShardCoordinator:        arg.ShardCoordinator,
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		Hasher:                  arg.Core.Hasher(),
+		PubkeyConverter:         arg.Core.AddressPubKeyConverter(),
+		Store:                   arg.Data.StorageService(),
+		PoolsHolder:             arg.Data.Datapool(),
+		EconomicsFee:            genesisFeeHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		TxExecutionOrderHandler: arg.TxExecutionOrderHandler,
 	}
 	interimProcFactory, err := metachain.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
@@ -504,6 +507,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 	}
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -545,8 +549,14 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlockchain, err := blockchain.NewMetaChain(disabledCommon.NewAppStatusHandler())
 	if err != nil {
 		return nil, err
 	}
@@ -555,10 +565,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		VmContainer:              vmContainer,
 		EconomicsFee:             arg.Economics,
 		BlockChainHook:           virtualMachineFactory.BlockChainHookImpl(),
-		BlockChain:               arg.Data.Blockchain(),
+		MainBlockChain:           arg.Data.Blockchain(),
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        arg.HistoryRepository,
+		ShardCoordinator:         arg.ShardCoordinator,
+		StorageService:           arg.Data.StorageService(),
+		Marshaller:               arg.Core.InternalMarshalizer(),
+		Hasher:                   arg.Core.Hasher(),
+		Uint64ByteSliceConverter: arg.Core.Uint64ByteSliceConverter(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -606,7 +623,7 @@ func deploySystemSmartContracts(
 			RcvAddr:   rcvAddress,
 			SndAddr:   address,
 			GasPrice:  0,
-			GasLimit:  math.MaxUint64,
+			GasLimit:  math.MaxInt64,
 			Data:      []byte(deployTxData),
 			Signature: nil,
 		}
@@ -651,7 +668,7 @@ func setStakedData(
 			RcvAddr:   vm.ValidatorSCAddress,
 			SndAddr:   nodeInfo.AddressBytes(),
 			GasPrice:  0,
-			GasLimit:  math.MaxUint64,
+			GasLimit:  math.MaxInt64,
 			Data:      []byte("stake@" + oneEncoded + "@" + hex.EncodeToString(nodeInfo.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
 			Signature: nil,
 		}
@@ -664,7 +681,7 @@ func setStakedData(
 		}
 
 		scQueryBlsKeys.Arguments = [][]byte{nodeInfo.PubKeyBytes()}
-		vmOutput, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
+		vmOutput, _, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
 		if err != nil {
 			return nil, err
 		}

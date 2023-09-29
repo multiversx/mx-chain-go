@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -30,7 +29,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	vmhost "github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,11 +59,12 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
-			GovernanceEnableEpoch:                   unreachableEpoch,
-			WaitingListFixEnableEpoch:               unreachableEpoch,
-			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
-			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
-			MaxBlockchainHookCountersEnableEpoch:    unreachableEpoch,
+			GovernanceEnableEpoch:                           unreachableEpoch,
+			WaitingListFixEnableEpoch:                       unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:            unreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
@@ -90,7 +90,9 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -261,7 +263,9 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -321,9 +325,9 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 	senderBalance = big.NewInt(10000000)
 	gasLimit = uint64(30000)
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, localEsdtBalance)
 
 	txData := txDataBuilder.NewBuilder()
 	valueToSendToSc := int64(1000)

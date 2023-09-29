@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -1210,6 +1211,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:         importStartHandler,
 		HistoryRepo:                historyRepository,
 		FlagsConfig:                *configs.FlagsConfig,
+		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
 		ChainRunType:               common.ChainRunTypeSovereign,
 		ShardCoordinatorFactory:    sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
