@@ -324,6 +324,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 	args := createMockPreProcessorsContainerFactoryArguments()
 	args.DataPool = dataPool
+	args.SmartContractResultPreProcessorCreator, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 	ppcf, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
