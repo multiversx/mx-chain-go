@@ -24,11 +24,17 @@ type blockProcessor struct {
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
 
-	blockFinality                           uint64
-	shouldProcessReceivedHeaderFunc         func(headerHandler data.HeaderHandler) bool
-	processReceivedHeaderFunc               func(header data.HeaderHandler)
-	doJobOnReceivedCrossNotarizedHeaderFunc func(shardID uint32)
-	requestHeaderWithShardAndNonceFunc      func(shardID uint32, nonce uint64)
+	blockFinality                            uint64
+	shouldProcessReceivedHeaderFunc          func(headerHandler data.HeaderHandler) bool
+	processReceivedHeaderFunc                func(header data.HeaderHandler)
+	doJobOnReceivedCrossNotarizedHeaderFunc  func(shardID uint32)
+	requestHeaderWithShardAndNonceFunc       func(shardID uint32, nonce uint64)
+	requestHeadersIfNothingNewIsReceivedFunc func(
+		lastNotarizedHeaderNonce uint64,
+		latestValidHeader data.HeaderHandler,
+		highestRoundInReceivedHeaders uint64,
+		shardID uint32,
+	)
 }
 
 // NewBlockProcessor creates a block processor object which implements blockProcessorHandler interface
@@ -57,6 +63,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 	bp.processReceivedHeaderFunc = bp.processReceivedHeader
 	bp.doJobOnReceivedCrossNotarizedHeaderFunc = bp.doJobOnReceivedCrossNotarizedHeader
 	bp.requestHeaderWithShardAndNonceFunc = bp.requestHeaderWithShardAndNonce
+	bp.requestHeadersIfNothingNewIsReceivedFunc = bp.requestHeadersIfNothingNewIsReceived
 
 	return &bp, nil
 }
@@ -352,7 +359,7 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 		if !shouldRequestHeaders {
 			latestValidHeader := bp.getLatestValidHeader(lastNotarizedHeader, longestChainHeaders)
 			highestRound := bp.getHighestRoundInReceivedHeaders(latestValidHeader, sortedReceivedHeaders)
-			bp.requestHeadersIfNothingNewIsReceived(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound, shardID)
+			bp.requestHeadersIfNothingNewIsReceivedFunc(lastNotarizedHeader.GetNonce(), latestValidHeader, highestRound, shardID)
 		}
 	}()
 
@@ -426,6 +433,15 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		return
 	}
 
+	bp.baseRequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders, shardID)
+}
+
+func (bp *blockProcessor) baseRequestHeadersIfNothingNewIsReceived(
+	lastNotarizedHeaderNonce uint64,
+	latestValidHeader data.HeaderHandler,
+	highestRoundInReceivedHeaders uint64,
+	shardID uint32,
+) {
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {

@@ -23,7 +23,7 @@ func TestSovereignShardCrossNotarizer_getLastCrossNotarizedHeaders(t *testing.T)
 		&baseBlockNotarizer{
 			blockTracker: &mock.BlockTrackerStub{
 				GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-					require.Equal(t, core.SovereignChainShardId, shardID)
+					require.Equal(t, core.MainChainShardId, shardID)
 					return header, hash, nil
 				},
 			},

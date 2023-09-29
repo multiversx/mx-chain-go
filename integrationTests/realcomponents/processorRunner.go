@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryBootstrap "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -34,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -422,30 +425,33 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:             accountsParser,
-		SmartContractParser:        smartContractParser,
-		GasSchedule:                gasScheduleNotifier,
-		NodesCoordinator:           pr.NodesCoordinator,
-		RequestedItemsHandler:      requestedItemsHandler,
-		WhiteListHandler:           whiteListRequest,
-		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
-		MaxRating:                  pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:             pr.Config.SystemSCConfig,
-		ImportStartHandler:         importStartHandler,
-		HistoryRepo:                historyRepository,
-		Data:                       pr.DataComponents,
-		CoreData:                   pr.CoreComponents,
-		Crypto:                     pr.CryptoComponents,
-		State:                      pr.StateComponents,
-		Network:                    pr.NetworkComponents,
-		BootstrapComponents:        pr.BootstrapComponents,
-		StatusComponents:           pr.StatusComponents,
-		StatusCoreComponents:       pr.StatusCoreComponents,
+		AccountsParser:                        accountsParser,
+		SmartContractParser:                   smartContractParser,
+		GasSchedule:                           gasScheduleNotifier,
+		NodesCoordinator:                      pr.NodesCoordinator,
+		RequestedItemsHandler:                 requestedItemsHandler,
+		WhiteListHandler:                      whiteListRequest,
+		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
+		MaxRating:                             pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                        pr.Config.SystemSCConfig,
+		ImportStartHandler:                    importStartHandler,
+		HistoryRepo:                           historyRepository,
+		Data:                                  pr.DataComponents,
+		CoreData:                              pr.CoreComponents,
+		Crypto:                                pr.CryptoComponents,
+		State:                                 pr.StateComponents,
+		Network:                               pr.NetworkComponents,
+		BootstrapComponents:                   pr.BootstrapComponents,
+		StatusComponents:                      pr.StatusComponents,
+		StatusCoreComponents:                  pr.StatusCoreComponents,
 		TxExecutionOrderHandler:    txExecutionOrderHandler,
-		ChainRunType:               common.ChainRunTypeRegular,
-		ShardCoordinatorFactory:    sharding.NewMultiShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    factoryProcessing.NewGenesisMetaBlockChecker(),
+		ChainRunType:                          common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:               factoryProcessing.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

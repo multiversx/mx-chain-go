@@ -145,7 +145,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		return 0
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
@@ -176,7 +176,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		return core.MetachainShardId
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
@@ -199,7 +199,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
@@ -226,7 +226,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 37
 	}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
