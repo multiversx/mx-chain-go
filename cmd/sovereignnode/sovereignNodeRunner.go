@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -424,6 +425,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		configs.NotifierConfig,
 		managedDataComponents.Datapool(),
+		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -1220,6 +1222,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:                    importStartHandler,
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
+		TxExecutionOrderHandler:               ordering.NewOrderedCollection(),
 		ChainRunType:                          common.ChainRunTypeSovereign,
 		ShardCoordinatorFactory:               sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
@@ -1685,6 +1688,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 func createIncomingHeaderProcessor(
 	config *sovereignConfig.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
+	mainChainNotarizationStartRound uint64,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1696,10 +1700,11 @@ func createIncomingHeaderProcessor(
 	}
 
 	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
-		HeadersPool: dataPool.Headers(),
-		TxPool:      dataPool.UnsignedTransactions(),
-		Marshaller:  marshaller,
-		Hasher:      hasher,
+		HeadersPool:                     dataPool.Headers(),
+		TxPool:                          dataPool.UnsignedTransactions(),
+		Marshaller:                      marshaller,
+		Hasher:                          hasher,
+		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
@@ -1734,6 +1739,7 @@ func createSovereignWsReceiver(
 			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
 			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
 			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
+			Version:            config.WebSocketConfig.Version,
 		},
 		SovereignNotifier: sovereignNotifier,
 	}

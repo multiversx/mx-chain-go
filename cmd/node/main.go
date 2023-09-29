@@ -47,12 +47,12 @@ VERSION:
 // Usage examples:
 // linux/mac:
 //
-//	go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+//	go build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
 //
 // windows:
 //
 //	for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
-//	go build -i -v -ldflags="-X main.appVersion=%VERS%"
+//	go build -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = common.UnVersionedAppString
 
 func main() {

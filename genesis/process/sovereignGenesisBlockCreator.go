@@ -261,7 +261,7 @@ func setSovereignStakedData(
 		}
 
 		scQueryBlsKeys.Arguments = [][]byte{nodeInfo.PubKeyBytes()}
-		vmOutput, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
+		vmOutput, _, err := processors.queryService.ExecuteQuery(scQueryBlsKeys)
 		if err != nil {
 			return nil, err
 		}

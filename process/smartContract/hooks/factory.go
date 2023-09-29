@@ -9,7 +9,7 @@ import (
 )
 
 // CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
-func CreateBlockChainHook(chainRunType common.ChainRunType, args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+func CreateBlockChainHook(chainRunType common.ChainRunType, args ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 	bh, err := NewBlockChainHookImpl(args)
 
 	switch chainRunType {

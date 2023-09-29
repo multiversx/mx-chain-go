@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -37,11 +36,11 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	balance := big.NewInt(100000000)
 	senderAddr := []byte("12345678901234567890123456789011")
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
-	_, _ = vm.CreateAccount(testContext.Accounts, senderAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, balance)
+	_, _ = vm.CreateAccount(testContext.Accounts, senderAddr, 0, balance)
 
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
@@ -94,9 +93,9 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(1000000000000)
+	balance := big.NewInt(1000000000000)
 	ownerAddr := []byte("12345678901234567890123456789011")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, balance)
 
 	token := []byte("miiutoken")
 	roles := [][]byte{[]byte(core.ESDTRoleNFTCreate)}
@@ -152,8 +151,9 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   100000, // fix not activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, newContractCode)
@@ -166,8 +166,9 @@ func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(newContractCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   0, // fix activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnUpgrade(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, newContractCode)
@@ -286,8 +287,9 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(firstSCCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 100000, // fix not activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   100000, // fix not activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, pathToSecondSC)
@@ -300,8 +302,9 @@ func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
 			gasScheduleNotifier.LatestGasSchedule()[common.BaseOperationCost]["AoTPreparePerByte"]*uint64(len(secondSCCode))/2
 
 		enableEpoch := config.EnableEpochs{
-			RuntimeCodeSizeFixEnableEpoch: 0, // fix activated
-			SCProcessorV2EnableEpoch:      integrationTests.UnreachableEpoch,
+			RuntimeCodeSizeFixEnableEpoch:                   0, // fix activated
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 100000,
+			SCProcessorV2EnableEpoch:                        integrationTests.UnreachableEpoch,
 		}
 
 		testAsyncCallsOnInitFunctionOnDeploy(t, enableEpoch, expectedGasLimit, gasScheduleNotifier, pathToSecondSC)

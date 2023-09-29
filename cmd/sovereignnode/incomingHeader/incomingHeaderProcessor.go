@@ -16,15 +16,17 @@ var log = logger.GetOrCreate("headerSubscriber")
 
 // ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
 type ArgsIncomingHeaderProcessor struct {
-	HeadersPool HeadersPool
-	TxPool      TransactionPool
-	Marshaller  marshal.Marshalizer
-	Hasher      hashing.Hasher
+	HeadersPool                     HeadersPool
+	TxPool                          TransactionPool
+	Marshaller                      marshal.Marshalizer
+	Hasher                          hashing.Hasher
+	MainChainNotarizationStartRound uint64
 }
 
 type incomingHeaderProcessor struct {
-	scrProc            *scrProcessor
-	extendedHeaderProc *extendedHeaderProcessor
+	scrProc                         *scrProcessor
+	extendedHeaderProc              *extendedHeaderProcessor
+	mainChainNotarizationStartRound uint64
 }
 
 // NewIncomingHeaderProcessor creates an incoming header processor which should be able to receive incoming headers and events
@@ -56,15 +58,30 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		hasher:      args.Hasher,
 	}
 
+	log.Debug("NewIncomingHeaderProcessor", "starting round to notarize main chain headers", args.MainChainNotarizationStartRound)
+
 	return &incomingHeaderProcessor{
-		scrProc:            scrProc,
-		extendedHeaderProc: extendedHearProc,
+		scrProc:                         scrProc,
+		extendedHeaderProc:              extendedHearProc,
+		mainChainNotarizationStartRound: args.MainChainNotarizationStartRound,
 	}, nil
 }
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
 	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
+
+	if check.IfNil(header) || check.IfNil(header.GetHeaderHandler()) {
+		return data.ErrNilHeader
+	}
+
+	round := header.GetHeaderHandler().GetRound()
+	if round < ihp.mainChainNotarizationStartRound {
+		log.Debug("do not notarize incoming header, round lower than main chain notarization start round",
+			"round", round,
+			"start round", ihp.mainChainNotarizationStartRound)
+		return nil
+	}
 
 	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
 	if err != nil {

@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -716,6 +717,7 @@ func (nr *nodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		StatusComponents:     currentNode.statusComponents,
+		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ChainRunType:         common.ChainRunTypeRegular,
 	}
 
@@ -1220,6 +1222,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
@@ -1245,6 +1249,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:                    importStartHandler,
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
+		TxExecutionOrderHandler:    txExecutionOrderHandler,
 		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
@@ -1523,6 +1528,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
+		PrefsConfig:                          *configs.PreferencesConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            core.NewKeyLoader(),
