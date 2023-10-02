@@ -639,6 +639,8 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 		bn.setVersionForChild(0, childPos)
 		bn.EncodedChildren[childPos] = nil
 
+		bn.revertChildrenVersionSlice()
+
 		return nil
 	}
 
@@ -647,8 +649,21 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 		return err
 	}
 	bn.setVersionForChild(childVersion, childPos)
+	if childVersion == core.NotSpecified {
+		bn.revertChildrenVersionSlice()
+	}
 
 	return nil
+}
+
+func (bn *branchNode) revertChildrenVersionSlice() {
+	for i := range bn.ChildrenVersion {
+		if bn.ChildrenVersion[i] == 1 {
+			return
+		}
+	}
+
+	bn.ChildrenVersion = []byte(nil)
 }
 
 func (bn *branchNode) reduceNode(pos int) (node, bool, error) {

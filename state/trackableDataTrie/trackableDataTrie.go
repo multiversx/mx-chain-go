@@ -241,8 +241,8 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 
 		index++
 
-		isMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
-		if isMigration && len(newKey) != 0 {
+		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
+		if isFirstMigration && len(newKey) != 0 {
 			oldValues = append(oldValues, core.TrieData{
 				Key:   newKey,
 				Value: nil,
