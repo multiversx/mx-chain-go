@@ -288,6 +288,31 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("ValidateTransaction error should adapt error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
+				return nil, nil, nil
+			},
+			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
+				return fmt.Errorf("account not found for address alice and shard 1")
+			},
+			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
+				require.Fail(t, "should have not been called")
+				return 0, nil
+			},
+		}
+		testTransactionsGroup(
+			t,
+			facade,
+			"/transaction/send",
+			"POST",
+			&groups.SendTxRequest{Sender: "alice"},
+			http.StatusBadRequest,
+			fmt.Errorf("insufficient balance for address alice"),
+		)
+	})
 	t.Run("SendBulkTransactions error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -614,6 +639,31 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			&groups.SendTxRequest{},
 			http.StatusBadRequest,
 			expectedErr,
+		)
+	})
+	t.Run("ValidateTransactionForSimulation error should adapt error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
+				return nil, nil, nil
+			},
+			ValidateTransactionForSimulationHandler: func(tx *dataTx.Transaction, bypassSignature bool) error {
+				return fmt.Errorf("account not found for address alice and shard 1")
+			},
+			SimulateTransactionExecutionHandler: func(tx *dataTx.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+				require.Fail(t, "should have not been called")
+				return nil, nil
+			},
+		}
+		testTransactionsGroup(
+			t,
+			facade,
+			"/transaction/simulate",
+			"POST",
+			&groups.SendTxRequest{Sender: "alice"},
+			http.StatusBadRequest,
+			fmt.Errorf("insufficient balance for address alice"),
 		)
 	})
 	t.Run("SimulateTransactionExecution error should error", func(t *testing.T) {
