@@ -123,6 +123,11 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 	return keys
 }
 
+// Close -
+func (mock *ShardedDataCacheNotifierMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (mock *ShardedDataCacheNotifierMock) IsInterfaceNil() bool {
 	return mock == nil

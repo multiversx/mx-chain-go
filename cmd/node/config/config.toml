@@ -416,6 +416,15 @@
     Type = "TxCache"
     Shards = 16
 
+[RelayedInnerTxDataPool]
+    Name = "RelayedInnerTxDataPool"
+    Capacity = 75000
+    SizePerSender = 2500
+    SizeInBytes = 52428800 #50MB
+    SizeInBytesPerSender = 1536000
+    Type = "TxCache"
+    Shards = 4
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400

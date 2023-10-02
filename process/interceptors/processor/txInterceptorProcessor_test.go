@@ -18,7 +18,9 @@ import (
 func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
 		ShardedDataCache: testscommon.NewShardedDataStub(),
+		UserShardedPool:  testscommon.NewShardedDataStub(),
 		TxValidator:      &mock.TxValidatorStub{},
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 	}
 }
 
@@ -39,7 +41,18 @@ func TestNewTxInterceptorProcessor_NilDataPoolShouldErr(t *testing.T) {
 	txip, err := processor.NewTxInterceptorProcessor(arg)
 
 	assert.Nil(t, txip)
-	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+	assert.True(t, errors.Is(err, process.ErrNilDataPoolHolder))
+}
+
+func TestNewTxInterceptorProcessor_NilDataPoolForUserShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockTxArgument()
+	arg.UserShardedPool = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
+
+	assert.Nil(t, txip)
+	assert.True(t, errors.Is(err, process.ErrNilDataPoolHolder))
 }
 
 func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
@@ -51,6 +64,17 @@ func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
 
 	assert.Nil(t, txip)
 	assert.Equal(t, process.ErrNilTxValidator, err)
+}
+
+func TestNewTxInterceptorProcessor_NilShardCoordinatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockTxArgument()
+	arg.ShardCoordinator = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
+
+	assert.Nil(t, txip)
+	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
 func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
@@ -151,12 +175,20 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 			TransactionCalled: func() data.TransactionHandler {
 				return &transaction.Transaction{}
 			},
+			UserTransactionCalled: func() data.TransactionHandler {
+				return &transaction.Transaction{}
+			},
 		},
 	}
 	arg := createMockTxArgument()
 	shardedDataCache := arg.ShardedDataCache.(*testscommon.ShardedDataStub)
 	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 		addedWasCalled = true
+	}
+	userAddedWasCalled := false
+	userShardedDataCache := arg.UserShardedPool.(*testscommon.ShardedDataStub)
+	userShardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
+		userAddedWasCalled = true
 	}
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
@@ -165,6 +197,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)
+	assert.True(t, userAddedWasCalled)
 }
 
 //------- IsInterfaceNil

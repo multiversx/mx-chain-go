@@ -12,25 +12,27 @@ var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
 var log = logger.GetOrCreate("dataRetriever/dataPool")
 
 type dataPool struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	smartContracts         storage.Cacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	transactions             dataRetriever.ShardedDataCacherNotifier
+	relayedInnerTransactions dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions     dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions       dataRetriever.ShardedDataCacherNotifier
+	headers                  dataRetriever.HeadersPool
+	miniBlocks               storage.Cacher
+	peerChangesBlocks        storage.Cacher
+	trieNodes                storage.Cacher
+	trieNodesChunks          storage.Cacher
+	currBlockTxs             dataRetriever.TransactionCacher
+	currEpochValidatorInfo   dataRetriever.ValidatorInfoCacher
+	smartContracts           storage.Cacher
+	peerAuthentications      storage.Cacher
+	heartbeats               storage.Cacher
+	validatorsInfo           dataRetriever.ShardedDataCacherNotifier
 }
 
 // DataPoolArgs represents the data pool's constructor structure
 type DataPoolArgs struct {
 	Transactions              dataRetriever.ShardedDataCacherNotifier
+	RelayedInnerTransactions  dataRetriever.ShardedDataCacherNotifier
 	UnsignedTransactions      dataRetriever.ShardedDataCacherNotifier
 	RewardTransactions        dataRetriever.ShardedDataCacherNotifier
 	Headers                   dataRetriever.HeadersPool
@@ -50,6 +52,9 @@ type DataPoolArgs struct {
 func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.Transactions) {
 		return nil, dataRetriever.ErrNilTxDataPool
+	}
+	if check.IfNil(args.RelayedInnerTransactions) {
+		return nil, dataRetriever.ErrNilRelayedInnerTxDataPool
 	}
 	if check.IfNil(args.UnsignedTransactions) {
 		return nil, dataRetriever.ErrNilUnsignedTransactionPool
@@ -92,20 +97,21 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	}
 
 	return &dataPool{
-		transactions:           args.Transactions,
-		unsignedTransactions:   args.UnsignedTransactions,
-		rewardTransactions:     args.RewardTransactions,
-		headers:                args.Headers,
-		miniBlocks:             args.MiniBlocks,
-		peerChangesBlocks:      args.PeerChangesBlocks,
-		trieNodes:              args.TrieNodes,
-		trieNodesChunks:        args.TrieNodesChunks,
-		currBlockTxs:           args.CurrentBlockTransactions,
-		currEpochValidatorInfo: args.CurrentEpochValidatorInfo,
-		smartContracts:         args.SmartContracts,
-		peerAuthentications:    args.PeerAuthentications,
-		heartbeats:             args.Heartbeats,
-		validatorsInfo:         args.ValidatorsInfo,
+		transactions:             args.Transactions,
+		relayedInnerTransactions: args.RelayedInnerTransactions,
+		unsignedTransactions:     args.UnsignedTransactions,
+		rewardTransactions:       args.RewardTransactions,
+		headers:                  args.Headers,
+		miniBlocks:               args.MiniBlocks,
+		peerChangesBlocks:        args.PeerChangesBlocks,
+		trieNodes:                args.TrieNodes,
+		trieNodesChunks:          args.TrieNodesChunks,
+		currBlockTxs:             args.CurrentBlockTransactions,
+		currEpochValidatorInfo:   args.CurrentEpochValidatorInfo,
+		smartContracts:           args.SmartContracts,
+		peerAuthentications:      args.PeerAuthentications,
+		heartbeats:               args.Heartbeats,
+		validatorsInfo:           args.ValidatorsInfo,
 	}, nil
 }
 
@@ -122,6 +128,11 @@ func (dp *dataPool) CurrentEpochValidatorInfo() dataRetriever.ValidatorInfoCache
 // Transactions returns the holder for transactions
 func (dp *dataPool) Transactions() dataRetriever.ShardedDataCacherNotifier {
 	return dp.transactions
+}
+
+// RelayedInnerTransactions returns the holder for relayed inner transactions
+func (dp *dataPool) RelayedInnerTransactions() dataRetriever.ShardedDataCacherNotifier {
+	return dp.relayedInnerTransactions
 }
 
 // UnsignedTransactions returns the holder for unsigned transactions (cross shard result entities)
@@ -196,6 +207,24 @@ func (dp *dataPool) Close() error {
 		err := dp.peerAuthentications.Close()
 		if err != nil {
 			log.Error("failed to close peer authentications data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(dp.transactions) {
+		log.Debug("closing transactions data pool....")
+		err := dp.transactions.Close()
+		if err != nil {
+			log.Error("failed to close transactions data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(dp.relayedInnerTransactions) {
+		log.Debug("closing relayed inner transactions data pool....")
+		err := dp.relayedInnerTransactions.Close()
+		if err != nil {
+			log.Error("failed to close relayed inner transactions data pool", "error", err.Error())
 			lastError = err
 		}
 	}

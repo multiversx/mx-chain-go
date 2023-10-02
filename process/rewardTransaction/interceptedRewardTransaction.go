@@ -119,6 +119,11 @@ func (inRTx *InterceptedRewardTransaction) Transaction() data.TransactionHandler
 	return inRTx.rTx
 }
 
+// UserTransaction returns nil
+func (inRTx *InterceptedRewardTransaction) UserTransaction() data.TransactionHandler {
+	return nil
+}
+
 // Hash gets the hash of this transaction
 func (inRTx *InterceptedRewardTransaction) Hash() []byte {
 	return inRTx.hash

@@ -14,6 +14,7 @@ type InterceptedTxHandlerStub struct {
 	SenderAddressCalled                        func() []byte
 	FeeCalled                                  func() *big.Int
 	TransactionCalled                          func() data.TransactionHandler
+	UserTransactionCalled                      func() data.TransactionHandler
 	GetTxMessageForSignatureVerificationCalled func() ([]byte, error)
 }
 
@@ -61,6 +62,14 @@ func (iths *InterceptedTxHandlerStub) Fee() *big.Int {
 func (iths *InterceptedTxHandlerStub) Transaction() data.TransactionHandler {
 	if iths.TransactionCalled != nil {
 		return iths.TransactionCalled()
+	}
+	return nil
+}
+
+// UserTransaction -
+func (iths *InterceptedTxHandlerStub) UserTransaction() data.TransactionHandler {
+	if iths.UserTransactionCalled != nil {
+		return iths.UserTransactionCalled()
 	}
 	return nil
 }

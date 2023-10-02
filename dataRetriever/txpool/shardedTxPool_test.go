@@ -132,6 +132,10 @@ func Test_ShardDataStore_Or_GetTxCache(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
 
+	secondPoolAsInterface, _ := newTxPoolToTest()
+	secondPool := secondPoolAsInterface.(*shardedTxPool)
+	pool.SetEvictionHandler(secondPool)
+
 	fooGenericCache := pool.ShardDataStore("foo")
 	fooTxCache := pool.getTxCache("foo")
 	require.Equal(t, fooGenericCache, fooTxCache)
@@ -187,6 +191,10 @@ func Test_AddData(t *testing.T) {
 	require.True(t, ok)
 	_, ok = cache.GetByTxHash([]byte("hash-y"))
 	require.True(t, ok)
+
+	pool.NotifyEviction([]byte("hash-x"))
+	_, ok = cache.GetByTxHash([]byte("hash-x"))
+	require.False(t, ok)
 }
 
 func Test_AddData_NoPanic_IfNotATransaction(t *testing.T) {

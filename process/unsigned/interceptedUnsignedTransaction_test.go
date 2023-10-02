@@ -326,6 +326,7 @@ func TestInterceptedUnsignedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, nonce, txi.Nonce())
 	assert.Equal(t, big.NewInt(0), txi.Fee())
 	assert.Equal(t, senderAddress, txi.SenderAddress())
+	assert.Nil(t, txi.UserTransaction())
 }
 
 // ------- IsInterfaceNil

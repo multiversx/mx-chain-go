@@ -22,6 +22,7 @@ type ShardedDataStub struct {
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
+	CloseCalled                            func() error
 }
 
 // NewShardedDataStub -
@@ -123,6 +124,14 @@ func (sd *ShardedDataStub) Keys() [][]byte {
 		return sd.KeysCalled()
 	}
 
+	return nil
+}
+
+// Close -
+func (sd *ShardedDataStub) Close() error {
+	if sd.CloseCalled != nil {
+		return sd.CloseCalled()
+	}
 	return nil
 }
 

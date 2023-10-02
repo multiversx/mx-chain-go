@@ -356,6 +356,18 @@ func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard
 
 	txsForSender := txCache.GetTransactionsPoolForSender(sender)
 
+	// search user txs for this sender as well
+	// this should return all user txs from user pool
+	userTxsCache := atp.dataPool.RelayedInnerTransactions().ShardDataStore(cacheId)
+	txCache, ok = userTxsCache.(*txcache.TxCache)
+	if !ok {
+		log.Warn("fetchTxsForSender could not cast relayed inner txs cache to TxCache")
+		return txsForSender
+	}
+
+	userTxsForSender := txCache.GetTransactionsPoolForSender(sender)
+	txsForSender = append(txsForSender, userTxsForSender...)
+
 	sort.Slice(txsForSender, func(i, j int) bool {
 		return txsForSender[i].Tx.GetNonce() < txsForSender[j].Tx.GetNonce()
 	})

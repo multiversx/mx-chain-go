@@ -24,6 +24,7 @@ var _ process.InterceptedData = (*InterceptedTransaction)(nil)
 // InterceptedTransaction holds and manages a transaction based struct with extended functionality
 type InterceptedTransaction struct {
 	tx                     *transaction.Transaction
+	userTx                 *transaction.Transaction
 	protoMarshalizer       marshal.Marshalizer
 	signMarshalizer        marshal.Marshalizer
 	hasher                 hashing.Hasher
@@ -202,7 +203,36 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 
+	// at this point, we can extract the user tx as the transaction was already validated
+	inTx.extractUserTx()
+
 	return nil
+}
+
+func (inTx *InterceptedTransaction) extractUserTx() {
+	tx := inTx.tx
+	funcName, userTxArgs, err := inTx.argsParser.ParseCallData(string(tx.Data))
+	if err != nil {
+		return
+	}
+
+	if core.RelayedTransactionV2 == funcName {
+		inTx.userTx, err = createRelayedV2(tx, userTxArgs)
+		if err != nil {
+			return
+		}
+	}
+
+	if core.RelayedTransaction == funcName {
+		if len(userTxArgs) != 1 {
+			return
+		}
+
+		inTx.userTx, err = createTx(inTx.signMarshalizer, userTxArgs[0])
+		if err != nil {
+			return
+		}
+	}
 }
 
 func isRelayedTx(funcName string) bool {
@@ -447,6 +477,12 @@ func (inTx *InterceptedTransaction) IsForCurrentShard() bool {
 // Transaction returns the transaction pointer that actually holds the data
 func (inTx *InterceptedTransaction) Transaction() data.TransactionHandler {
 	return inTx.tx
+}
+
+// UserTransaction returns the transaction pointer that holds the user transaction
+// this method returns nil before parent tx validation
+func (inTx *InterceptedTransaction) UserTransaction() data.TransactionHandler {
+	return inTx.userTx
 }
 
 // Hash gets the hash of this transaction
