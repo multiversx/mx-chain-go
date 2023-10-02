@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -17,6 +18,8 @@ import (
 )
 
 var _ = node(&branchNode{})
+
+var emptyChildrenVersionSlice = make([]byte, nrOfChildren)
 
 func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, error) {
 	if check.IfNil(marshalizer) {
@@ -54,6 +57,10 @@ func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos 
 	}
 
 	bn.ChildrenVersion[int(childPos)] = byte(version)
+
+	if version == core.NotSpecified {
+		bn.revertChildrenVersionSliceIfNeeded()
+	}
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -639,8 +646,6 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 		bn.setVersionForChild(core.NotSpecified, childPos)
 		bn.EncodedChildren[childPos] = nil
 
-		bn.revertChildrenVersionSlice()
-
 		return nil
 	}
 
@@ -649,21 +654,14 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 		return err
 	}
 	bn.setVersionForChild(childVersion, childPos)
-	if childVersion == core.NotSpecified {
-		bn.revertChildrenVersionSlice()
-	}
 
 	return nil
 }
 
-func (bn *branchNode) revertChildrenVersionSlice() {
-	for i := range bn.ChildrenVersion {
-		if bn.ChildrenVersion[i] != byte(core.NotSpecified) {
-			return
-		}
+func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
+	if bytes.Equal(bn.ChildrenVersion, emptyChildrenVersionSlice) {
+		bn.ChildrenVersion = []byte(nil)
 	}
-
-	bn.ChildrenVersion = []byte(nil)
 }
 
 func (bn *branchNode) reduceNode(pos int) (node, bool, error) {
