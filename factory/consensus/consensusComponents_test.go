@@ -111,7 +111,11 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return []byte("genesis hash")
 				},
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
-					return &testscommon.HeaderHandlerStub{}
+					return &testscommon.HeaderHandlerStub{
+						GetRandSeedCalled: func() []byte {
+							return []byte("rand seed")
+						},
+					}
 				},
 			},
 			MbProvider: &testsMocks.MiniBlocksProviderStub{},
@@ -556,22 +560,26 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
-		require.True(t, ok)
-		cnt := 0
-		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
-			cnt++
-			if cnt > 3 {
-				return nil // NewShardStorageBootstrapper fails
-			}
-			return testscommon.NewMultiShardsCoordinatorMock(2)
+		createShardBootStrapperErr := errors.New("expected error")
+		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{
+				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+					return nil, expectedErr
+				},
+			},
+			BootstrapperFactory: &factoryMocks.BootstrapperFactoryMock{
+				CreateBootstrapperCalled: func(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+					return &processMock.BootstrapperStub{}, nil
+				},
+			},
+			ConsensusModelType: consensus.ConsensusModelV1,
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
 		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "shard coordinator"))
+		require.Equal(t, createShardBootStrapperErr, err)
 		require.Nil(t, cc)
 	})
 	t.Run("createUserAccountsSyncer fails due to missing UserAccountTrie should error", func(t *testing.T) {
