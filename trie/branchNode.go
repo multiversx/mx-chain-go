@@ -636,7 +636,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	bn.hash = nil
 	bn.children[childPos] = newNode
 	if check.IfNil(newNode) {
-		bn.setVersionForChild(0, childPos)
+		bn.setVersionForChild(core.NotSpecified, childPos)
 		bn.EncodedChildren[childPos] = nil
 
 		bn.revertChildrenVersionSlice()
@@ -658,7 +658,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 
 func (bn *branchNode) revertChildrenVersionSlice() {
 	for i := range bn.ChildrenVersion {
-		if bn.ChildrenVersion[i] == 1 {
+		if bn.ChildrenVersion[i] != byte(core.NotSpecified) {
 			return
 		}
 	}
