@@ -955,3 +955,8 @@
         Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3
