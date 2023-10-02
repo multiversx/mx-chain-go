@@ -3097,9 +3097,10 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	userAcc := acc.(state.UserAccountHandler)
 	key := []byte("key")
 	err = userAcc.SaveKeyValue(key, []byte("value"))
-	err = userAcc.SaveKeyValue([]byte("key1"), []byte("value"))
-
 	require.Nil(t, err)
+	err = userAcc.SaveKeyValue([]byte("key1"), []byte("value"))
+	require.Nil(t, err)
+
 	err = adb.SaveAccount(userAcc)
 	userAccRootHash := userAcc.GetRootHash()
 	require.Nil(t, err)
