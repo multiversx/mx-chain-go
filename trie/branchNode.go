@@ -1,7 +1,6 @@
 package trie
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -18,8 +17,6 @@ import (
 )
 
 var _ = node(&branchNode{})
-
-var emptyChildrenVersionSlice = make([]byte, nrOfChildren)
 
 func newBranchNode(marshalizer marshal.Marshalizer, hasher hashing.Hasher) (*branchNode, error) {
 	if check.IfNil(marshalizer) {
@@ -659,9 +656,14 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 }
 
 func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
-	if bytes.Equal(bn.ChildrenVersion, emptyChildrenVersionSlice) {
-		bn.ChildrenVersion = []byte(nil)
+	notSpecifiedVersion := byte(core.NotSpecified)
+	for i := range bn.ChildrenVersion {
+		if bn.ChildrenVersion[i] != notSpecifiedVersion {
+			return
+		}
 	}
+
+	bn.ChildrenVersion = []byte(nil)
 }
 
 func (bn *branchNode) reduceNode(pos int) (node, bool, error) {
