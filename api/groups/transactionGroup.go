@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -253,7 +252,6 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 
 	start = time.Now()
 	err = tg.getFacade().ValidateTransactionForSimulation(tx, checkSignature)
-	err = adjustTxValidatorErrorIfNeeded(err, gtx.Sender)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: ValidateTransactionForSimulation")
 	if err != nil {
 		c.JSON(
@@ -344,7 +342,6 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 	start = time.Now()
 	err = tg.getFacade().ValidateTransaction(tx)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: ValidateTransaction")
-	err = adjustTxValidatorErrorIfNeeded(err, gtx.Sender)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -466,20 +463,6 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
-}
-
-func adjustTxValidatorErrorIfNeeded(err error, address string) error {
-	if err == nil {
-		return nil
-	}
-
-	// TODO: might move these errors from the process package so they can be used here as well
-
-	if !strings.Contains(err.Error(), "account not found") {
-		return err
-	}
-
-	return fmt.Errorf("insufficient balance for address %s", address)
 }
 
 // getTransaction returns transaction details for a given txhash
