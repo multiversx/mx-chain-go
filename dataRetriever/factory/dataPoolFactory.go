@@ -80,7 +80,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
 	}
 
-	txPool.SetEvictionHandler(relayedInnerTxPool.RemoveDataFromAllShards)
+	txPool.SetEvictionHandler(relayedInnerTxPool)
 
 	uTxPool, err := shardedData.NewShardedData(dataRetriever.UnsignedTxPoolName, factory.GetCacherFromConfig(mainConfig.UnsignedTransactionDataPool))
 	if err != nil {

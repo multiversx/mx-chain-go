@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -12,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
@@ -19,10 +21,8 @@ var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 var log = logger.GetOrCreate("txpool")
 
 type txCacheWithEviction interface {
-	RegisterEvictionHandler(handler func(hash []byte)) error
+	RegisterEvictionHandler(handler types.EvictionNotifier) error
 }
-
-type evictionHandler = func(txHash []byte)
 
 // shardedTxPool holds transaction caches organised by source & destination shard
 type shardedTxPool struct {
@@ -35,7 +35,7 @@ type shardedTxPool struct {
 	selfShardID                  uint32
 	txGasHandler                 txcache.TxGasHandler
 	mutEvictionHandler           sync.RWMutex
-	evictionHandler              evictionHandler
+	evictionHandler              types.EvictionNotifier
 }
 
 type txPoolShard struct {
@@ -119,7 +119,7 @@ func (txPool *shardedTxPool) getOrCreateShard(cacheID string) *txPoolShard {
 	// no need to continue if the eviction handler was not set
 	txPool.mutEvictionHandler.RLock()
 	defer txPool.mutEvictionHandler.RUnlock()
-	if txPool.evictionHandler == nil {
+	if check.IfNil(txPool.evictionHandler) {
 		return shard
 	}
 
@@ -182,7 +182,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 }
 
 // SetEvictionHandler sets the eviction handler
-func (txPool *shardedTxPool) SetEvictionHandler(handler evictionHandler) {
+func (txPool *shardedTxPool) SetEvictionHandler(handler types.EvictionNotifier) {
 	txPool.mutEvictionHandler.Lock()
 	txPool.evictionHandler = handler
 	txPool.mutEvictionHandler.Unlock()
@@ -385,6 +385,11 @@ func (txPool *shardedTxPool) Diagnose(deep bool) {
 	for _, shard := range txPool.backingMap {
 		shard.Cache.Diagnose(deep)
 	}
+}
+
+// NotifyEviction will be called when a transaction is removed from the main tx pool
+func (txPool *shardedTxPool) NotifyEviction(txHash []byte) {
+	txPool.removeTxFromAllShards(txHash)
 }
 
 // Close closes all shards
