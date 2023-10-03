@@ -288,8 +288,8 @@ func (host *vmContext) ProcessBuiltInFunction(
 	input []byte,
 	gasLimit uint64,
 ) error {
-	isIntraBuiltIn, vmInput := host.isIntraShardBuiltInCall(destination, sender, value, input, gasLimit)
-	if !isIntraBuiltIn {
+	vmInput := host.createVMInputIfIsIntraShardBuiltInCall(destination, sender, value, input, gasLimit)
+	if vmInput == nil {
 		return host.Transfer(destination, sender, value, input, gasLimit)
 	}
 
@@ -305,21 +305,21 @@ func (host *vmContext) ProcessBuiltInFunction(
 	return host.Transfer(destination, sender, value, input, gasLimit)
 }
 
-func (host *vmContext) isIntraShardBuiltInCall(destination []byte,
+func (host *vmContext) createVMInputIfIsIntraShardBuiltInCall(destination []byte,
 	sender []byte,
 	value *big.Int,
 	input []byte,
 	gasLimit uint64,
-) (bool, *vmcommon.ContractCallInput) {
+) *vmcommon.ContractCallInput {
 	if !host.shardCoordinator.SameShard(sender, destination) {
-		return false, nil
+		return nil
 	}
 	function, arguments, err := host.inputParser.ParseData(string(input))
 	if err != nil {
-		return false, nil
+		return nil
 	}
 	if !host.blockChainHook.IsBuiltinFunctionName(function) {
-		return false, nil
+		return nil
 	}
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -334,7 +334,7 @@ func (host *vmContext) isIntraShardBuiltInCall(destination []byte,
 		Function:      function,
 	}
 
-	return true, vmInput
+	return vmInput
 }
 
 // GetLogs returns the logs
