@@ -1,18 +1,22 @@
 package redundancy
 
-// GetMaxRoundsOfInactivityAccepted -
-func GetMaxRoundsOfInactivityAccepted() uint64 {
-	return maxRoundsOfInactivityAccepted
+// NewNilNodeRedundancy -
+func NewNilNodeRedundancy() *nodeRedundancy {
+	return nil
 }
 
 // GetRoundsOfInactivity -
-func (nr *nodeRedundancy) GetRoundsOfInactivity() uint64 {
-	return nr.roundsOfInactivity
+func (nr *nodeRedundancy) GetRoundsOfInactivity() int {
+	return nr.handler.RoundsOfInactivity()
 }
 
 // SetRoundsOfInactivity -
-func (nr *nodeRedundancy) SetRoundsOfInactivity(roundsOfInactivity uint64) {
-	nr.roundsOfInactivity = roundsOfInactivity
+func (nr *nodeRedundancy) SetRoundsOfInactivity(roundsOfInactivity int) {
+	nr.handler.ResetRoundsOfInactivity()
+
+	for i := 0; i < roundsOfInactivity; i++ {
+		nr.handler.IncrementRoundsOfInactivity()
+	}
 }
 
 // GetLastRoundIndexCheck -

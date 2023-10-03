@@ -57,7 +57,6 @@ func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.Cryp
 		ActivateBLSPubKeyMessageVerification: true,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		NoKeyProvided:                        false,
 
 		P2pKeyPemFileName:           "",
 		ValidatorKeyPemFileName:     args.ValidatorKeyPemFileName,

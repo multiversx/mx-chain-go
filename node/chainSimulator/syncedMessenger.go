@@ -344,6 +344,11 @@ func (messenger *syncedMessenger) AddPeerTopicNotifier(_ p2p.PeerTopicNotifier) 
 	return nil
 }
 
+// SetDebugger will set the provided debugger
+func (messenger *syncedMessenger) SetDebugger(_ p2p.Debugger) error {
+	return nil
+}
+
 // Close does nothing and returns nil
 func (messenger *syncedMessenger) Close() error {
 	return nil

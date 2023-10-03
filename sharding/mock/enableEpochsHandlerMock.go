@@ -628,6 +628,11 @@ func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabl
 	return false
 }
 
+// NFTStopCreateEnabled -
+func (mock *EnableEpochsHandlerMock) NFTStopCreateEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil
