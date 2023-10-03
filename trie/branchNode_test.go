@@ -1436,7 +1436,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 		}
 		newBn, _, err := bn.insert(data, &testscommon.MemDbMock{})
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(newBn.(*branchNode).ChildrenVersion))
+		assert.Equal(t, []byte(nil), newBn.(*branchNode).ChildrenVersion)
 	})
 
 	t.Run("remove migrated child", func(t *testing.T) {
@@ -1449,7 +1449,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 
 		_, newBn, _, err := bn.delete(childKey, &testscommon.MemDbMock{})
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(newBn.(*branchNode).ChildrenVersion))
+		assert.Equal(t, []byte(nil), newBn.(*branchNode).ChildrenVersion)
 	})
 }
 
@@ -1489,6 +1489,6 @@ func TestBranchNode_revertChildrenVersionSliceIfNeeded(t *testing.T) {
 		}
 
 		bn.revertChildrenVersionSliceIfNeeded()
-		assert.Equal(t, 0, len(bn.ChildrenVersion))
+		assert.Equal(t, []byte(nil), bn.ChildrenVersion)
 	})
 }
