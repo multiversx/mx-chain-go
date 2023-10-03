@@ -49,6 +49,12 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.AutoBalanceDataTriesFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &trackableDataTrie{
 		tr:                  nil,
@@ -248,7 +254,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
-	if tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
 		valWithMetadata, depth, err := tdt.tr.Get(hashedKey)
 		if err != nil {
@@ -321,7 +327,7 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 }
 
 func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) error {
-	if !tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		return nil
 	}
 

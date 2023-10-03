@@ -73,6 +73,12 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.GovernanceFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	baseProposalCost, okConvert := big.NewInt(0).SetString(args.GovernanceConfig.V1.ProposalCost, conversionBase)
 	if !okConvert || baseProposalCost.Cmp(zero) < 0 {
@@ -122,7 +128,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if !g.enableEpochsHandler.IsGovernanceFlagEnabled() {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}
@@ -202,11 +208,12 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 // changeConfig allows the owner to change the configuration for requesting proposals
-//  args.Arguments[0] - proposalFee - as string
-//  args.Arguments[1] - lostProposalFee - as string
-//  args.Arguments[2] - minQuorum - 0-10000 - represents percentage
-//  args.Arguments[3] - minVeto   - 0-10000 - represents percentage
-//  args.Arguments[4] - minPass   - 0-10000 - represents percentage
+//
+//	args.Arguments[0] - proposalFee - as string
+//	args.Arguments[1] - lostProposalFee - as string
+//	args.Arguments[2] - minQuorum - 0-10000 - represents percentage
+//	args.Arguments[3] - minVeto   - 0-10000 - represents percentage
+//	args.Arguments[4] - minPass   - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
@@ -355,8 +362,9 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 }
 
 // vote casts a vote for a validator/delegation. This function receives 2 parameters and will vote with its full delegation + validator amount
-//  args.Arguments[0] - reference - nonce as string
-//  args.Arguments[1] - vote option (yes, no, veto, abstain)
+//
+//	args.Arguments[0] - reference - nonce as string
+//	args.Arguments[1] - vote option (yes, no, veto, abstain)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage("function is not payable")
@@ -407,10 +415,11 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 }
 
 // delegateVote casts a vote from a validator run by WASM SC and delegates it to someone else. This function receives 4 parameters:
-//  args.Arguments[0] - proposal reference - nonce of proposal
-//  args.Arguments[1] - vote option (yes, no, veto)
-//  args.Arguments[2] - delegatedTo
-//  args.Arguments[3] - balance to vote
+//
+//	args.Arguments[0] - proposal reference - nonce of proposal
+//	args.Arguments[1] - vote option (yes, no, veto)
+//	args.Arguments[2] - delegatedTo
+//	args.Arguments[3] - balance to vote
 func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 4 {
 		g.eei.AddReturnMessage("invalid number of arguments")
@@ -852,7 +861,8 @@ func (g *governanceContract) addNewVote(vote string, power *big.Int, proposal *G
 }
 
 // computeVotingPower returns the voting power for a value. The value can be either a balance or
-//  the staked value for a validator
+//
+//	the staked value for a validator
 func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error) {
 	minValue, err := g.getMinValueToVote()
 	if err != nil {

@@ -335,7 +335,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 	for _, node := range nodes {
 		node.EconomicsData.SetGasPerDataByte(0)
-		node.EconomicsData.SetMinGasLimit(0)
+		node.EconomicsData.SetMinGasLimit(0, 0)
 		node.EconomicsData.SetMinGasPrice(0)
 	}
 

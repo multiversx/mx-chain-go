@@ -820,7 +820,7 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	header data.HeaderHandler,
 ) []*data.MiniBlockInfo {
 
-	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return crossMiniBlockInfos
 	}
 
@@ -1100,7 +1100,7 @@ func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
 }
 
 func (tc *transactionCoordinator) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return headerHandler.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, tc.shardCoordinator.SelfId())
@@ -1167,7 +1167,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
-		tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled(),
+		tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag),
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
 	)
@@ -1200,7 +1200,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
-			if tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled() {
+			if tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 				processedMbInfo.FullyProcessed = false
 			}
@@ -1493,7 +1493,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
-	if header.GetEpoch() < tc.enableEpochsHandler.BlockGasAndFeesReCheckEnableEpoch() {
+	if header.GetEpoch() < tc.enableEpochsHandler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag) {
 		return nil
 	}
 
@@ -1544,7 +1544,7 @@ func (tc *transactionCoordinator) verifyGasLimit(
 		if miniBlock.Type == block.SmartContractResultBlock {
 			continue
 		}
-		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+		if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1611,7 +1611,7 @@ func (tc *transactionCoordinator) verifyFees(
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
 
-	if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, scheduledGasAndFees.AccumulatedFees)
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
@@ -1626,7 +1626,7 @@ func (tc *transactionCoordinator) verifyFees(
 		if miniBlock.Type == block.PeerBlock {
 			continue
 		}
-		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+		if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1761,6 +1761,14 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ScheduledMiniBlocksFlag,
+		common.MiniBlockPartialExecutionFlag,
+		common.BlockGasAndFeesReCheckFlag,
+	})
+	if err != nil {
+		return err
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
