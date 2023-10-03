@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -722,32 +721,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		vmContainersFactory: vmFactoryImpl,
 		vmContainer:         vmContainer,
 	}, nil
-}
-
-func createTransactionCoordinator(
-	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
-	chainRunType common.ChainRunType,
-) (process.TransactionCoordinator, error) {
-	stcf, err := coordinator.NewShardTransactionCoordinatorFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: remove assignment of parameter and switch
-	var tempTransactionCoordinatorCreator TransactionCoordinatorCreator
-	switch chainRunType {
-	case common.ChainRunTypeRegular:
-		tempTransactionCoordinatorCreator = stcf
-	case common.ChainRunTypeSovereign:
-		tempTransactionCoordinatorCreator, err = coordinator.NewSovereignTransactionCoordinatorFactory(stcf)
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
-	}
-
-	return tempTransactionCoordinatorCreator.CreateTransactionCoordinator(argsTransactionCoordinator)
 }
 
 func deployInitialSmartContracts(
