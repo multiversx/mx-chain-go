@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -444,7 +445,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		BootstrapComponents:                   pr.BootstrapComponents,
 		StatusComponents:                      pr.StatusComponents,
 		StatusCoreComponents:                  pr.StatusCoreComponents,
-		TxExecutionOrderHandler:    txExecutionOrderHandler,
+		TxExecutionOrderHandler:               txExecutionOrderHandler,
 		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
@@ -452,6 +453,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

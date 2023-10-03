@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
@@ -66,6 +67,7 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
 	ChainRunType            common.ChainRunType
 
 	GenesisNodePrice *big.Int

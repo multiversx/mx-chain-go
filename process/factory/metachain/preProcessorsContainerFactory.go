@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -38,6 +39,7 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
+	txPreprocessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
@@ -62,6 +64,7 @@ type ArgPreProcessorsContainerFactory struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
+	TxPreprocessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -92,6 +95,7 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
+		txPreprocessorCreator:        args.TxPreprocessorCreator,
 	}, nil
 }
 
@@ -146,9 +150,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
-	txPreprocessor, _ := preprocess.NewTransactionPreprocessor(args)
-
-	return preprocess.NewSovereignChainTransactionPreprocessor(txPreprocessor)
+	return ppcf.txPreprocessorCreator.CreateTxProcessor(args)
 }
 
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
@@ -239,6 +241,9 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	}
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(args.TxPreprocessorCreator) {
+		return errors.ErrNilTxPreProcessorCreator
 	}
 
 	return nil

@@ -57,6 +57,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -1249,7 +1250,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ImportStartHandler:                    importStartHandler,
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
-		TxExecutionOrderHandler:    txExecutionOrderHandler,
+		TxExecutionOrderHandler:               txExecutionOrderHandler,
 		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
@@ -1257,6 +1258,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

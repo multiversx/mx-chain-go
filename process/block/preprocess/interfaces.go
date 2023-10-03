@@ -3,6 +3,7 @@ package preprocess
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
@@ -53,5 +54,10 @@ type BalanceComputationHandler interface {
 	SubBalanceFromAddress(address []byte, value *big.Int) bool
 	IsAddressSet(address []byte) bool
 	AddressHasEnoughBalance(address []byte, value *big.Int) bool
+	IsInterfaceNil() bool
+}
+
+type TxPreProcessorCreator interface {
+	CreateTxProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error)
 	IsInterfaceNil() bool
 }

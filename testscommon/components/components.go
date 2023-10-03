@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -573,7 +574,7 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxExecutionOrderHandler:               &commonMocks.TxExecutionOrderHandlerStub{},
 		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
@@ -581,6 +582,7 @@ func GetProcessArgs(
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
 	}
 }
 

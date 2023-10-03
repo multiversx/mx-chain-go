@@ -31,6 +31,7 @@ import (
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -243,7 +244,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
-		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
 		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
@@ -251,6 +252,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockCommon "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -49,6 +50,7 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &mockCommon.TxExecutionOrderHandlerStub{},
+		TxPreprocessorCreator:        preprocess.NewTxPreprocessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 }

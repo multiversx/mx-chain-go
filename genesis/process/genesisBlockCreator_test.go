@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -185,6 +186,7 @@ func createMockArgument(
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		ChainRunType:            common.ChainRunTypeRegular,
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+		TxPreprocessorCreator:   preprocess.NewTxPreprocessorCreator(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
