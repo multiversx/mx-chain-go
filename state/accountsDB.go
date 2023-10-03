@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -1039,7 +1040,7 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie, error) {
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	mainTrie := adb.getMainTrie()
 	err := mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
@@ -1070,7 +1071,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		}
 	}
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -1148,7 +1149,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	stats := newSnapshotStatistics(1, 1)
 
@@ -1168,7 +1169,7 @@ func (adb *AccountsDB) SnapshotState(rootHash []byte) {
 		stats.SnapshotFinished()
 	}()
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	go adb.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, accountMetricsInstance, epoch)
 
@@ -1259,7 +1260,7 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	stats *snapshotStatistics,
 	trieStorageManager common.StorageManager,
 	missingNodesCh chan []byte,
-	errChan chan error,
+	errChan common.BufferedErrChan,
 	rootHash []byte,
 	metrics *accountMetrics,
 	epoch uint32,
@@ -1269,34 +1270,35 @@ func (adb *AccountsDB) processSnapshotCompletion(
 	defer func() {
 		adb.isSnapshotInProgress.Reset()
 		adb.updateMetricsOnSnapshotCompletion(metrics, stats)
+		errChan.Close()
 	}()
 
-	containsErrorDuringSnapshot := emptyErrChanReturningHadContained(errChan)
-	shouldNotMarkActive := trieStorageManager.IsClosed() || containsErrorDuringSnapshot
+	errorDuringSnapshot := errChan.ReadFromChanNonBlocking()
+	shouldNotMarkActive := trieStorageManager.IsClosed() || errorDuringSnapshot != nil
 	if shouldNotMarkActive {
 		log.Debug("will not set activeDB in epoch as the snapshot might be incomplete",
 			"epoch", epoch, "trie storage manager closed", trieStorageManager.IsClosed(),
-			"errors during snapshot found", containsErrorDuringSnapshot)
+			"errors during snapshot found", errorDuringSnapshot)
 		return
 	}
 
 	err := trieStorageManager.Remove([]byte(lastSnapshotStarted))
-	handleLoggingWhenError("could not set lastSnapshotStarted", err, "rootHash", rootHash)
+	handleLoggingWhenError("could not remove lastSnapshotStarted", err, "rootHash", rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
 }
 
-func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *snapshotStatistics, syncer AccountsDBSyncer) {
+func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, errChan common.BufferedErrChan, stats *snapshotStatistics, syncer AccountsDBSyncer) {
 	defer stats.SyncFinished()
 
 	if check.IfNil(syncer) {
-		log.Error("nil trie syncer")
+		log.Error("can not sync missing nodes", "error", ErrNilTrieSyncer.Error())
 		for missingNode := range missingNodesChan {
 			log.Warn("could not sync node", "hash", missingNode)
 		}
-
+		errChan.WriteInChanNonBlocking(ErrNilTrieSyncer)
 		return
 	}
 
@@ -1307,6 +1309,7 @@ func (adb *AccountsDB) syncMissingNodes(missingNodesChan chan []byte, stats *sna
 				"missing node hash", missingNode,
 				"error", err,
 			)
+			errChan.WriteInChanNonBlocking(err)
 		}
 	}
 }
@@ -1374,7 +1377,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
 	stats := newSnapshotStatistics(1, 1)
@@ -1386,7 +1389,7 @@ func (adb *AccountsDB) setStateCheckpoint(rootHash []byte) {
 		stats.SnapshotFinished()
 	}()
 
-	go adb.syncMissingNodes(missingNodesChannel, stats, adb.trieSyncer)
+	go adb.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, adb.trieSyncer)
 
 	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
 	//  that will be present in the errChan var
@@ -1440,7 +1443,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, leavesChannelSize),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 	err := mainTrie.GetAllLeavesOnChannel(iteratorChannels, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
 	if err != nil {
@@ -1463,7 +1466,7 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 		collectStats(tr, stats, account.RootHash, address)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}

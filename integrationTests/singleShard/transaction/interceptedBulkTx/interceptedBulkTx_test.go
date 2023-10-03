@@ -148,7 +148,7 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 		Version:  integrationTests.MinTransactionVersion,
 	}
 
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	err := node.Node.ValidateTransaction(tx)

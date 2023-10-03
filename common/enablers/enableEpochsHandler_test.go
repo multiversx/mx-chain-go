@@ -93,6 +93,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		AlwaysSaveTokenMetaDataEnableEpoch:                76,
 		RuntimeCodeSizeFixEnableEpoch:                     77,
 		RelayedNonceFixEnableEpoch:                        78,
+		DeterministicSortOnValidatorsInfoEnableEpoch:      79,
 	}
 }
 
@@ -216,6 +217,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsRelayedNonceFixEnabled())
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabled())
 	})
 	t.Run("flags with == condition should be set, along with all >=", func(t *testing.T) {
 		t.Parallel()
@@ -317,6 +319,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.True(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.True(t, handler.IsRelayedNonceFixEnabled())
+		assert.True(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -413,5 +416,6 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsAlwaysSaveTokenMetaDataEnabled())
 		assert.False(t, handler.IsRuntimeCodeSizeFixEnabled())
 		assert.False(t, handler.IsRelayedNonceFixEnabled())
+		assert.False(t, handler.IsDeterministicSortOnValidatorsInfoFixEnabled())
 	})
 }

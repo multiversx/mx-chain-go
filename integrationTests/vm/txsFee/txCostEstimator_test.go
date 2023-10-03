@@ -39,7 +39,6 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -86,7 +85,6 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, senderAddr, 0, egldBalance)
 
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(2000)
 
@@ -173,7 +171,6 @@ func TestAsyncESDTTransfer(t *testing.T) {
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 

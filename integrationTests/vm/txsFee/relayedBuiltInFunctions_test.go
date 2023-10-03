@@ -34,7 +34,6 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
@@ -81,7 +80,6 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789113")
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
@@ -127,7 +125,6 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("invalidAddress")
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
@@ -193,7 +190,6 @@ func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
 	gasLimit := uint64(len(txData) - 1)
@@ -238,7 +234,6 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	newOwner := []byte("12345678901234567890123456789112")
-	gasPrice := uint64(10)
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
 	gasLimit := uint64(len(txData) + 1)

@@ -90,7 +90,9 @@ type epochFlagsHolder struct {
 	maxBlockchainHookCountersFlag               *atomic.Flag
 	wipeSingleNFTLiquidityDecreaseFlag          *atomic.Flag
 	alwaysSaveTokenMetaDataFlag                 *atomic.Flag
+	setGuardianFlag                             *atomic.Flag
 	relayedNonceFixFlag                         *atomic.Flag
+	deterministicSortOnValidatorsInfoFixFlag    *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -180,7 +182,9 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		maxBlockchainHookCountersFlag:               &atomic.Flag{},
 		wipeSingleNFTLiquidityDecreaseFlag:          &atomic.Flag{},
 		alwaysSaveTokenMetaDataFlag:                 &atomic.Flag{},
+		setGuardianFlag:                             &atomic.Flag{},
 		relayedNonceFixFlag:                         &atomic.Flag{},
+		deterministicSortOnValidatorsInfoFixFlag:    &atomic.Flag{},
 	}
 }
 
@@ -662,7 +666,17 @@ func (holder *epochFlagsHolder) IsAlwaysSaveTokenMetaDataEnabled() bool {
 	return holder.alwaysSaveTokenMetaDataFlag.IsSet()
 }
 
+// IsSetGuardianEnabled returns true if setGuardianFlag is enabled
+func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
+	return holder.setGuardianFlag.IsSet()
+}
+
 // IsRelayedNonceFixEnabled returns true if relayedNonceFixFlag is enabled
 func (holder *epochFlagsHolder) IsRelayedNonceFixEnabled() bool {
 	return holder.relayedNonceFixFlag.IsSet()
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled returns true if deterministicSortOnValidatorsInfoFix is enabled
+func (holder *epochFlagsHolder) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	return holder.deterministicSortOnValidatorsInfoFixFlag.IsSet()
 }

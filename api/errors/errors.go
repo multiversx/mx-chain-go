@@ -31,6 +31,9 @@ var ErrGetKeyValuePairs = errors.New("get key-value pairs error")
 // ErrGetESDTBalance signals an error in getting esdt balance for given address
 var ErrGetESDTBalance = errors.New("get esdt balance for account error")
 
+// ErrGetGuardianData signals an error in getting the guardian data for given address
+var ErrGetGuardianData = errors.New("get guardian data for account error")
+
 // ErrGetRolesForAccount signals an error in getting esdt tokens and roles for a given address
 var ErrGetRolesForAccount = errors.New("get roles for account error")
 

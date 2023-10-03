@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -37,6 +38,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const setGuardianCost = 250000
 
 func generateEmptyByteSlice(size int) []byte {
 	buff := make([]byte, size)
@@ -67,6 +70,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 	gasSchedule[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	gasSchedule[common.BuiltInCost] = make(map[string]uint64)
 	gasSchedule[common.BuiltInCost][core.BuiltInFunctionESDTTransfer] = 2000
+	gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian] = setGuardianCost
 
 	return ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
@@ -86,7 +90,7 @@ func createMockSmartContractProcessorArguments() ArgsNewSmartContractProcessor {
 		BadTxForwarder:   &mock.IntermediateTransactionHandlerMock{},
 		TxFeeHandler:     &mock.FeeAccumulatorStub{},
 		TxLogsProcessor:  &mock.TxLogsProcessorStub{},
-		EconomicsFee: &mock.FeeHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
 			DeveloperPercentageCalled: func() float64 {
 				return 0.0
 			},
@@ -973,7 +977,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		},
@@ -1187,7 +1191,7 @@ func TestScProcessor_DeploySmartContractUpdateDeveloperRewardsFails(t *testing.T
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
 	arguments.AccountsDB = accntState
-	economicsFee := &mock.FeeHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerStub{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
@@ -1930,7 +1934,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 1000
 		},
@@ -2371,7 +2375,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	txFee := big.NewInt(25)
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		DeveloperPercentageCalled: func() float64 {
 			return 0.0
 		},
@@ -2492,7 +2496,7 @@ func TestScProcessor_RefundGasToSender(t *testing.T) {
 
 	minGasPrice := uint64(10)
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
@@ -2532,7 +2536,7 @@ func TestScProcessor_DoNotRefundGasToSenderForAsyncCall(t *testing.T) {
 
 	minGasPrice := uint64(10)
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EconomicsFee = &mock.FeeHandlerStub{MinGasPriceCalled: func() uint64 {
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{MinGasPriceCalled: func() uint64 {
 		return minGasPrice
 	}}
 	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{}
@@ -3637,7 +3641,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	shardCoordinator := &mock.CoordinatorStub{ComputeIdCalled: func(address []byte) uint32 {
 		return 0
 	}}
-	feeHandler := &mock.FeeHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerStub{
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 0
 		},
@@ -3853,7 +3857,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 		return big.NewInt(100)
 	}}
 	sc, _ := NewSmartContractProcessor(arguments)
@@ -3943,7 +3947,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
@@ -3982,7 +3986,7 @@ func TestProcessIfErrorCheckBackwardsCompatibilityProcessTransactionFeeCalledSho
 			return 0
 		}}
 	arguments.ShardCoordinator = shardCoordinator
-	arguments.EconomicsFee = &mock.FeeHandlerStub{
+	arguments.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(100)
 		},
@@ -4208,11 +4212,13 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerMetaMiniBlock: "15000000000",
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
+						ExtraGasLimitGuardedTx:      "50000",
 					},
 				},
-				GasPerDataByte:   "1500",
-				MinGasPrice:      "1000000000",
-				GasPriceModifier: 0.01,
+				GasPerDataByte:         "1500",
+				MinGasPrice:            "1000000000",
+				GasPriceModifier:       0.01,
+				MaxGasPriceSetGuardian: "100000",
 			},
 		},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
@@ -4220,6 +4226,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			IsGasPriceModifierFlagEnabledField: true,
 		},
 		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	}
 }
 
@@ -4351,4 +4358,156 @@ func TestScProcessor_TooMuchGasProvidedMessage(t *testing.T) {
 	returnMessage = "@" + fmt.Sprintf("%s for processing: gas provided = %d, gas used = %d",
 		TooMuchGasProvidedMessage, 11, 1)
 	assert.Equal(t, vmOutput.ReturnMessage, returnMessage)
+}
+
+func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	expectedErr := errors.New("expected error")
+
+	t.Run("nil transaction should error", func(t *testing.T) {
+		sc, _ := NewSmartContractProcessor(arguments)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", nil)
+		require.Equal(t, process.ErrNilTransaction, err)
+	})
+	t.Run("args parser error should error", func(t *testing.T) {
+		tx := &transaction.Transaction{}
+		sc, _ := NewSmartContractProcessor(arguments)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", tx)
+		require.Error(t, err)
+	})
+	t.Run("", func(t *testing.T) {
+		argsCopy := arguments
+		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "", nil, expectedErr
+			},
+		}
+		sc, _ := NewSmartContractProcessor(argsCopy)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", &transaction.Transaction{})
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("expected builtin function different than the parsed function name should return error", func(t *testing.T) {
+		argsCopy := arguments
+		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "differentFunction", nil, nil
+			},
+		}
+		sc, _ := NewSmartContractProcessor(argsCopy)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", &transaction.Transaction{})
+		require.Equal(t, process.ErrBuiltinFunctionMismatch, err)
+	})
+	t.Run("prepare gas provided with error should error", func(t *testing.T) {
+		argsCopy := arguments
+		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "SetGuardian", nil, nil
+			},
+		}
+		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return setGuardianCost
+			},
+		}
+		sc, _ := NewSmartContractProcessor(argsCopy)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", &transaction.Transaction{
+			GasLimit: setGuardianCost - 100,
+		})
+		require.Equal(t, process.ErrNotEnoughGas, err)
+	})
+	t.Run("builtin function not found should error", func(t *testing.T) {
+		argsCopy := arguments
+		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "SetGuardian", nil, nil
+			},
+		}
+		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return setGuardianCost
+			},
+		}
+		sc, _ := NewSmartContractProcessor(argsCopy)
+		err := sc.CheckBuiltinFunctionIsExecutable(
+			"SetGuardian",
+			&transaction.Transaction{
+				GasLimit: setGuardianCost + 1000,
+			})
+
+		require.Equal(t, process.ErrBuiltinFunctionNotExecutable, err)
+	})
+	t.Run("builtin function not supporting executable check should error", func(t *testing.T) {
+		argsCopy := arguments
+		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "SetGuardian", nil, nil
+			},
+		}
+		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return setGuardianCost
+			},
+		}
+		// BuiltInFunctionStub is not supporting executable check
+		_ = argsCopy.BuiltInFunctions.Add("SetGuardian", &mock.BuiltInFunctionStub{})
+		sc, _ := NewSmartContractProcessor(argsCopy)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", &transaction.Transaction{
+			GasLimit: setGuardianCost + 1000,
+		})
+		require.Equal(t, process.ErrBuiltinFunctionNotExecutable, err)
+	})
+	t.Run("OK", func(t *testing.T) {
+		argsCopy := arguments
+		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				return "SetGuardian", nil, nil
+			},
+		}
+		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return setGuardianCost
+			},
+		}
+		argsCopy.BuiltInFunctions = builtInFunctions.NewBuiltInFunctionContainer()
+		// BuiltInFunctionExecutableStub is supporting executable check
+		_ = argsCopy.BuiltInFunctions.Add("SetGuardian", &vmcommonMocks.BuiltInFunctionExecutableStub{})
+		sc, _ := NewSmartContractProcessor(argsCopy)
+		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", &transaction.Transaction{
+			GasLimit: setGuardianCost + 1000,
+		})
+		require.Nil(t, err)
+	})
+}
+
+func Test_createExecutableCheckersMap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty builtInFunctions should return empty map", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		builtinFuncs := arguments.BuiltInFunctions
+		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		require.NotNil(t, executableCheckersMap)
+		require.Equal(t, 0, len(executableCheckersMap))
+	})
+	t.Run("no builtinFunctions implementing ExecutableChecker interface should return empty map", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		builtinFuncs := arguments.BuiltInFunctions
+		_ = builtinFuncs.Add("SetGuardian", &mock.BuiltInFunctionStub{})
+		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		require.NotNil(t, executableCheckersMap)
+		require.Equal(t, 0, len(executableCheckersMap))
+	})
+	t.Run("one builtinFunctions implementing ExecutableChecker interface should return map with one entry that builtin func", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		expectedExecutableChecker := &vmcommonMocks.BuiltInFunctionExecutableStub{}
+		builtinFuncs := arguments.BuiltInFunctions
+		_ = builtinFuncs.Add("SetGuardian", expectedExecutableChecker)
+		_ = builtinFuncs.Add("SetGuardian2", &mock.BuiltInFunctionStub{})
+		executableCheckersMap := createExecutableCheckersMap(builtinFuncs)
+		require.NotNil(t, executableCheckersMap)
+		require.Equal(t, 1, len(executableCheckersMap))
+		require.Equal(t, expectedExecutableChecker, executableCheckersMap["SetGuardian"])
+	})
 }

@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("state/evictionWaitingList")
