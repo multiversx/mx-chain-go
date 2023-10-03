@@ -234,10 +234,9 @@ func NewTestHeartbeatNode(
 	thn.MainPeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
 	argsKeysManagement := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:                     TestBLSKeyGenerator,
-		P2PKeyGenerator:                  TestP2PKeyGenerator,
-		IsMainMachine:                    true,
-		MaxRoundsWithoutReceivedMessages: 0,
+		KeyGenerator:          TestBLSKeyGenerator,
+		P2PKeyGenerator:       TestP2PKeyGenerator,
+		MaxRoundsOfInactivity: 0,
 		PrefsConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				NodeDisplayName: DefaultNodeName,

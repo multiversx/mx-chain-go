@@ -1,6 +1,8 @@
 package enableEpochsHandlerMock
 
-import "sync"
+import (
+	"sync"
+)
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
@@ -129,6 +131,7 @@ type EnableEpochsHandlerStub struct {
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
+	IsNFTStopCreateEnabledField                                  bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1120,6 +1123,14 @@ func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() 
 	defer stub.RUnlock()
 
 	return stub.FixDelegationChangeOwnerOnAccountEnabledField
+}
+
+// NFTStopCreateEnabled -
+func (stub *EnableEpochsHandlerStub) NFTStopCreateEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsNFTStopCreateEnabledField
 }
 
 // IsInterfaceNil -

@@ -115,13 +115,9 @@ func (handler *keysHandler) IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool {
 	return bytes.Equal(pkBytes, handler.publicKeyBytes)
 }
 
-// UpdatePublicKeyLiveness update the provided public key liveness if the provided pid is not managed by the current node
-func (handler *keysHandler) UpdatePublicKeyLiveness(pkBytes []byte, pid core.PeerID) {
-	if bytes.Equal(handler.pid.Bytes(), pid.Bytes()) {
-		return
-	}
-
-	handler.managedPeersHolder.ResetRoundsWithoutReceivedMessages(pkBytes)
+// ResetRoundsWithoutReceivedMessages calls the ResetRoundsWithoutReceivedMessages on the managed peers holder
+func (handler *keysHandler) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
+	handler.managedPeersHolder.ResetRoundsWithoutReceivedMessages(pkBytes, pid)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
