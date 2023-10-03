@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -97,11 +98,19 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	accounts, err := createAccountAdapter(
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:              coreComponents.Hasher(),
+		Marshaller:          coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
+
+	adb, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		factoryState.NewAccountCreator(),
+		accCreator,
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		coreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
 
@@ -118,15 +127,15 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 					return nil
 				},
 				LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-					return state.NewEmptyPeerAccount(), nil
+					return accounts.NewPeerAccount(address)
 				},
 			}
 		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
-			return accounts
+			return adb
 		},
 		AccountsAdapterAPICalled: func() state.AccountsAdapter {
-			return accounts
+			return adb
 		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &trieMock.TriesHolderStub{
@@ -182,8 +191,9 @@ func createAccountAdapter(
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
+	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, 5)
 	if err != nil {
 		return nil, err
 	}

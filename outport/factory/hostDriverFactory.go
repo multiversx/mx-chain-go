@@ -11,7 +11,7 @@ import (
 )
 
 type ArgsHostDriverFactory struct {
-	HostConfig config.HostDriverConfig
+	HostConfig config.HostDriversConfig
 	Marshaller marshal.Marshalizer
 }
 
@@ -21,11 +21,14 @@ var log = logger.GetOrCreate("outport/factory/hostdriver")
 func CreateHostDriver(args ArgsHostDriverFactory) (outport.Driver, error) {
 	wsHost, err := factory.CreateWebSocketHost(factory.ArgsWebSocketHost{
 		WebSocketConfig: data.WebSocketConfig{
-			URL:                args.HostConfig.URL,
-			WithAcknowledge:    args.HostConfig.WithAcknowledge,
-			Mode:               args.HostConfig.Mode,
-			RetryDurationInSec: args.HostConfig.RetryDurationInSec,
-			BlockingAckOnError: args.HostConfig.BlockingAckOnError,
+			URL:                        args.HostConfig.URL,
+			WithAcknowledge:            args.HostConfig.WithAcknowledge,
+			Mode:                       args.HostConfig.Mode,
+			RetryDurationInSec:         args.HostConfig.RetryDurationInSec,
+			BlockingAckOnError:         args.HostConfig.BlockingAckOnError,
+			DropMessagesIfNoConnection: args.HostConfig.DropMessagesIfNoConnection,
+			AcknowledgeTimeoutInSec:    args.HostConfig.AcknowledgeTimeoutInSec,
+			Version:                    args.HostConfig.Version,
 		},
 		Marshaller: args.Marshaller,
 		Log:        log,

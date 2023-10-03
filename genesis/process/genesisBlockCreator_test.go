@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO reinstate test after Wasm VM pointer fix
 
@@ -20,14 +19,19 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -37,7 +41,7 @@ import (
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -71,7 +75,7 @@ func createMockArgument(
 			Chain:                    "chainID",
 			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
-			EnableEpochsHandlerField: &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &storageCommon.ChainStorerStub{
@@ -89,7 +93,34 @@ func createMockArgument(
 				{StartEpoch: 0, Version: "*"},
 			},
 		},
-		HardForkConfig: config.HardforkConfig{},
+		HardForkConfig: config.HardforkConfig{
+			ImportKeysStorageConfig: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 1,
+					MaxBatchSize:      1,
+					MaxOpenFiles:      10,
+				},
+			},
+			ImportStateStorageConfig: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+					Shards:   1,
+				},
+				DB: config.DBConfig{
+					Type:              "MemoryDB",
+					BatchDelaySeconds: 1,
+					MaxBatchSize:      1,
+					MaxOpenFiles:      10,
+				},
+			},
+		},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "5000000000000000000000",
@@ -133,7 +164,6 @@ func createMockArgument(
 		},
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
-		ImportStartHandler:  &mock.ImportStartHandlerStub{},
 		GenesisNodePrice:    nodePrice,
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
@@ -143,6 +173,15 @@ func createMockArgument(
 				PenalizedTooMuchGasEnableEpoch: 0,
 			},
 		},
+		RoundConfig: &config.RoundConfig{
+			RoundActivations: map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "18446744073709551615",
+				},
+			},
+		},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -150,13 +189,21 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	var err error
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	require.Nil(t, err)
+
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		factoryState.NewAccountCreator(),
+		accCreator,
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	require.Nil(t, err)
 
@@ -171,7 +218,7 @@ func createMockArgument(
 			return nil
 		},
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewEmptyPeerAccount(), nil
+			return accounts.NewPeerAccount(address)
 		},
 	}
 
@@ -183,7 +230,7 @@ func createMockArgument(
 			return entireSupply
 		},
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
-			return math.MaxUint64
+			return math.MaxInt64
 		},
 	}
 	arg.Economics = ted
@@ -211,6 +258,213 @@ func createMockArgument(
 	arg.InitialNodesSetup = initialNodes
 
 	return arg
+}
+
+func TestNewGenesisBlockCreator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil Accounts should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Accounts = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil Core should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Core = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilCoreComponentsHolder))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil Data should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Data = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilDataComponentsHolder))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil AddressPubKeyConverter should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Core = &mock.CoreComponentsMock{
+			AddrPubKeyConv: nil,
+		}
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil InitialNodesSetup should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.InitialNodesSetup = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilNodesSetup))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil Economics should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Economics = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilEconomicsData))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil ShardCoordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.ShardCoordinator = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilShardCoordinator))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil StorageService should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Data = &mock.DataComponentsMock{
+			Storage: nil,
+		}
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilStore))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil InternalMarshalizer should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Core = &mock.CoreComponentsMock{
+			AddrPubKeyConv: testscommon.NewPubkeyConverterMock(32),
+			IntMarsh:       nil,
+		}
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilMarshalizer))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil Hasher should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Core = &mock.CoreComponentsMock{
+			AddrPubKeyConv: testscommon.NewPubkeyConverterMock(32),
+			IntMarsh:       &mock.MarshalizerMock{},
+			Hash:           nil,
+		}
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilHasher))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil DataPool should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Data = &mock.DataComponentsMock{
+			Storage:  &storageCommon.ChainStorerStub{},
+			DataPool: nil,
+		}
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilPoolsHolder))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil AccountsParser should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.AccountsParser = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, genesis.ErrNilAccountsParser))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil GasSchedule should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.GasSchedule = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilGasSchedule))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil SmartContractParser should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.SmartContractParser = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, genesis.ErrNilSmartContractParser))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.TrieStorageManagers = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, genesis.ErrNilTrieStorageManager))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil EpochConfig should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.EpochConfig = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, genesis.ErrNilEpochConfig))
+		require.Nil(t, gbc)
+	})
+	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice = "0"
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, genesis.ErrInvalidInitialNodePrice))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil HistoryRepository should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.HistoryRepository = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilHistoryRepository))
+		require.Nil(t, gbc)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.NoError(t, err)
+		require.NotNil(t, gbc)
+	})
 }
 
 func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResultingAddresses(t *testing.T) {
@@ -628,5 +882,24 @@ func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler 
 		MinNumberOfNodesCalled: func() uint32 {
 			return 1
 		},
+	}
+}
+
+func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	arg.StartEpochNum = 1
+	gbc, err := NewGenesisBlockCreator(arg)
+	require.NoError(t, err)
+	require.NotNil(t, gbc)
+
+	blocks, err := gbc.CreateGenesisBlocks()
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(blocks))
+	for _, block := range blocks {
+		assert.Zero(t, block.GetNonce())
+		assert.Zero(t, block.GetRound())
+		assert.Zero(t, block.GetEpoch())
 	}
 }

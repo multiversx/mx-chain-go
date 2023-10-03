@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -58,7 +60,7 @@ func (t *trieAccountsIterator) Process(handlers ...TrieAccountIteratorHandler) e
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = t.accounts.GetAllLeaves(iteratorChannels, context.Background(), rootHash)
+	err = t.accounts.GetAllLeaves(iteratorChannels, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	if err != nil {
 		return err
 	}
@@ -96,7 +98,7 @@ func (t *trieAccountsIterator) iterateOverHandlers(iteratorChannels *common.Trie
 }
 
 func (t *trieAccountsIterator) getAddress(kv core.KeyValueHolder) ([]byte, bool) {
-	userAccount := &state.UserAccountData{}
+	userAccount := &accounts.UserAccountData{}
 	errUnmarshal := t.marshaller.Unmarshal(userAccount, kv.Value())
 	if errUnmarshal != nil {
 		// probably a code node

@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -54,18 +53,18 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalanceRelayer := big.NewInt(25760)
+	expectedBalanceRelayer := big.NewInt(16610)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(4240), accumulatedFees)
+	require.Equal(t, big.NewInt(13390), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(0), developerFees)
+	require.Equal(t, big.NewInt(915), developerFees)
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
@@ -103,7 +102,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 	expectedBalanceRelayer := big.NewInt(16610)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 1, expectedBalance)
 
 	// check accumulated fees
@@ -147,7 +146,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 	expectedBalanceRelayer := big.NewInt(17330)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -159,7 +158,25 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
+		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
+			config.EnableEpochs{
+				RelayedNonceFixEnableEpoch: 1000,
+			})
+	})
+	t.Run("nonce fix is enabled, should still increase the sender's nonce", func(t *testing.T) {
+		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
+			config.EnableEpochs{
+				RelayedNonceFixEnableEpoch: 0,
+			})
+	})
+}
+
+func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(
+	t *testing.T,
+	enableEpochs config.EnableEpochs,
+) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -191,7 +208,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	expectedBalanceRelayer := big.NewInt(25810)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -235,7 +252,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 	expectedBalanceRelayer := big.NewInt(25790)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(89030)
+	expectedBalance := big.NewInt(88100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees

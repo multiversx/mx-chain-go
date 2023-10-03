@@ -14,12 +14,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("outport/process/outportDataProvider")
 
 // ArgOutportDataProvider holds the arguments needed for creating a new instance of outportDataProvider
 type ArgOutportDataProvider struct {
@@ -31,8 +36,9 @@ type ArgOutportDataProvider struct {
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	GasConsumedProvider      GasConsumedProvider
 	EconomicsData            EconomicsDataHandler
-	ExecutionOrderHandler    ExecutionOrderHandler
 	Marshaller               marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	ExecutionOrderHandler    common.ExecutionOrderGetter
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -50,7 +56,6 @@ type ArgPrepareOutportSaveBlockData struct {
 }
 
 type outportDataProvider struct {
-	isImportDBMode           bool
 	shardID                  uint32
 	numOfShards              uint32
 	alteredAccountsProvider  AlteredAccountsProviderHandler
@@ -59,8 +64,9 @@ type outportDataProvider struct {
 	nodesCoordinator         nodesCoordinator.NodesCoordinator
 	gasConsumedProvider      GasConsumedProvider
 	economicsData            EconomicsDataHandler
-	executionOrderHandler    ExecutionOrderHandler
+	executionOrderHandler    common.ExecutionOrderGetter
 	marshaller               marshal.Marshalizer
+	hasher                   hashing.Hasher
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -76,16 +82,17 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		economicsData:            arg.EconomicsData,
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
+		hasher:                   arg.Hasher,
 	}, nil
 }
 
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
 func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
 	if check.IfNil(arg.Header) {
-		return nil, errNilHeaderHandler
+		return nil, ErrNilHeaderHandler
 	}
 	if check.IfNil(arg.Body) {
-		return nil, errNilBodyHandler
+		return nil, ErrNilBodyHandler
 	}
 
 	pool, err := odp.createPool(arg.RewardsTxs)
@@ -98,13 +105,17 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	scheduledExecutedSCRsHashesPrevBlock, scheduledExecutedInvalidTxsHashesPrevBlock, err := odp.executionOrderHandler.PutExecutionOrderInTransactionPool(pool, arg.Header, arg.Body, arg.PreviousHeader)
+	orderedTxHashes, foundTxHashes := odp.setExecutionOrderInTransactionPool(pool)
+
+	executedTxs, err := collectExecutedTxHashes(arg.Body, arg.Header)
 	if err != nil {
-		return nil, fmt.Errorf("executionOrderHandler.PutExecutionOrderInTransactionPool %w", err)
+		log.Warn("PrepareOutportSaveBlockData - collectExecutedTxHashes", "error", err)
 	}
 
-	pool.ScheduledExecutedInvalidTxsHashesPrevBlock = scheduledExecutedInvalidTxsHashesPrevBlock
-	pool.ScheduledExecutedSCRSHashesPrevBlock = scheduledExecutedSCRsHashesPrevBlock
+	err = checkTxOrder(orderedTxHashes, executedTxs, foundTxHashes)
+	if err != nil {
+		log.Warn("PrepareOutportSaveBlockData - checkTxOrder", "error", err.Error())
+	}
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 		WithAdditionalOutportData: true,
@@ -118,8 +129,14 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	intraMiniBlocks, err := odp.getIntraShardMiniBlocks(arg.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
+			ShardID:         odp.shardID,
 			BlockData:       nil, // this will be filled with specific data for each driver
 			TransactionPool: pool,
 			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
@@ -137,11 +154,130 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			HighestFinalBlockHash:  arg.HighestFinalBlockHash,
 		},
 		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
-			Body:       arg.Body,
-			Header:     arg.Header,
-			HeaderHash: arg.HeaderHash,
+			Body:                 arg.Body,
+			Header:               arg.Header,
+			HeaderHash:           arg.HeaderHash,
+			IntraShardMiniBlocks: intraMiniBlocks,
 		},
 	}, nil
+}
+
+func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
+	executedTxHashes := make(map[string]struct{})
+	mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	miniBlocks := body.GetMiniBlocks()
+	if len(miniBlocks) != len(mbHeaders) {
+		return nil, ErrMiniBlocksHeadersMismatch
+	}
+
+	var err error
+	for i, mbHeader := range mbHeaders {
+		err = extractExecutedTxsFromMb(mbHeader, miniBlocks[i], executedTxHashes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return executedTxHashes, nil
+}
+
+func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, executedTxHashes map[string]struct{}) error {
+	if mbHeader == nil {
+		return ErrNilMiniBlockHeaderHandler
+	}
+	if miniBlock == nil {
+		return ErrNilMiniBlock
+	}
+	if executedTxHashes == nil {
+		return ErrNilExecutedTxHashes
+	}
+	if mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
+		return nil
+	}
+	if mbHeader.GetProcessingType() == int32(block.Processed) {
+		return nil
+	}
+
+	if int(mbHeader.GetIndexOfLastTxProcessed()) > len(miniBlock.TxHashes) {
+		return ErrIndexOutOfBounds
+	}
+	for index := mbHeader.GetIndexOfFirstTxProcessed(); index <= mbHeader.GetIndexOfLastTxProcessed(); index++ {
+		txHash := miniBlock.TxHashes[index]
+		executedTxHashes[string(txHash)] = struct{}{}
+	}
+
+	return nil
+}
+
+func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
+	pool *outportcore.TransactionPool,
+) ([][]byte, int) {
+	orderedTxHashes := odp.executionOrderHandler.GetItems()
+	if pool == nil {
+		return orderedTxHashes, 0
+	}
+
+	txGroups := map[string]data.TxWithExecutionOrderHandler{}
+	for txHash, txInfo := range pool.Transactions {
+		txGroups[txHash] = txInfo
+	}
+	for scrHash, scrInfo := range pool.SmartContractResults {
+		txGroups[scrHash] = scrInfo
+	}
+	for invalidTxHash, invalidTxInfo := range pool.InvalidTxs {
+		txGroups[invalidTxHash] = invalidTxInfo
+	}
+	for txHash, rewardInfo := range pool.Rewards {
+		txGroups[txHash] = rewardInfo
+	}
+
+	foundTxHashes := 0
+	for order, txHash := range orderedTxHashes {
+		tx, found := txGroups[hex.EncodeToString(txHash)]
+		if found {
+			tx.SetExecutionOrder(uint32(order))
+			foundTxHashes++
+		}
+	}
+
+	return orderedTxHashes, foundTxHashes
+}
+
+func checkTxOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}, foundTxHashes int) error {
+	if len(orderedTxHashes) > foundTxHashes {
+		return fmt.Errorf("%w for numOrderedTx %d, foundTxsInPool %d",
+			ErrOrderedTxNotFound, len(orderedTxHashes), foundTxHashes,
+		)
+	}
+
+	if len(executedTxHashes) == 0 {
+		return nil
+	}
+
+	return checkBodyTransactionsHaveOrder(orderedTxHashes, executedTxHashes)
+}
+
+func checkBodyTransactionsHaveOrder(orderedTxHashes [][]byte, executedTxHashes map[string]struct{}) error {
+	if executedTxHashes == nil {
+		return ErrNilExecutedTxHashes
+	}
+
+	orderedTxHashesMap := make(map[string]struct{})
+	for _, txHash := range orderedTxHashes {
+		orderedTxHashesMap[string(txHash)] = struct{}{}
+	}
+
+	for executedTxHash := range executedTxHashes {
+		if _, ok := orderedTxHashesMap[executedTxHash]; !ok {
+			return fmt.Errorf("%w for txHash %s", ErrExecutedTxNotFoundInOrderedTxs, hex.EncodeToString([]byte(executedTxHash)))
+		}
+	}
+	return nil
 }
 
 func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
@@ -358,4 +494,40 @@ func getLogs(logs []*data.LogData) ([]*outportcore.LogData, error) {
 // IsInterfaceNil returns true if there is no value under the interface
 func (odp *outportDataProvider) IsInterfaceNil() bool {
 	return odp == nil
+}
+
+func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler) ([]*block.MiniBlock, error) {
+	body, err := outportcore.GetBody(bodyHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return odp.filterOutDuplicatedMiniBlocks(body.MiniBlocks, odp.txCoordinator.GetCreatedInShardMiniBlocks())
+}
+
+func (odp *outportDataProvider) filterOutDuplicatedMiniBlocks(miniBlocksFromBody []*block.MiniBlock, intraMiniBlocks []*block.MiniBlock) ([]*block.MiniBlock, error) {
+	filteredMiniBlocks := make([]*block.MiniBlock, 0, len(intraMiniBlocks))
+	mapMiniBlocksFromBody := make(map[string]struct{})
+	for _, mb := range miniBlocksFromBody {
+		mbHash, err := core.CalculateHash(odp.marshaller, odp.hasher, mb)
+		if err != nil {
+			return nil, err
+		}
+		mapMiniBlocksFromBody[string(mbHash)] = struct{}{}
+	}
+
+	for _, mb := range intraMiniBlocks {
+		mbHash, err := core.CalculateHash(odp.marshaller, odp.hasher, mb)
+		if err != nil {
+			return nil, err
+		}
+
+		_, found := mapMiniBlocksFromBody[string(mbHash)]
+		if found {
+			continue
+		}
+		filteredMiniBlocks = append(filteredMiniBlocks, mb)
+	}
+
+	return filteredMiniBlocks, nil
 }

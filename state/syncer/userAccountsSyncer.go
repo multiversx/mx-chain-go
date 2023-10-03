@@ -15,8 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -67,6 +67,9 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, ErrNilPubkeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	timeoutHandler, err := common.NewTimeoutHandler(args.Timeout)
 	if err != nil {
@@ -82,7 +85,6 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		timeoutHandler:                    timeoutHandler,
 		shardId:                           args.ShardId,
 		cacher:                            args.Cacher,
-		rootHash:                          nil,
 		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
 		name:                              fmt.Sprintf("user accounts for shard %s", core.GetShardIDString(args.ShardId)),
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
@@ -90,6 +92,7 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
+		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
 	u := &userAccountsSyncer{
@@ -121,23 +124,40 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.
 
 	go u.printStatisticsAndUpdateMetrics(ctx)
 
-	mainTrie, err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx)
-	if err != nil {
-		return err
+	leavesChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelSyncCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
 
-	defer func() {
-		_ = mainTrie.Close()
+	wgSyncMainTrie := &sync.WaitGroup{}
+	wgSyncMainTrie.Add(1)
+
+	go func() {
+		err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels.LeavesChan)
+		if err != nil {
+			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
+		}
+
+		common.CloseKeyValueHolderChan(leavesChannels.LeavesChan)
+
+		wgSyncMainTrie.Done()
 	}()
 
-	log.Debug("main trie synced, starting to sync data tries", "num data tries", len(u.dataTries))
-
-	err = u.syncAccountDataTries(mainTrie, ctx)
+	err := u.syncAccountDataTries(leavesChannels, ctx)
 	if err != nil {
 		return err
 	}
 
-	storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	wgSyncMainTrie.Wait()
+
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+	if err != nil {
+		return err
+	}
+
+	storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
+
+	log.Debug("main trie and data tries synced", "main trie root hash", rootHash, "num data tries", len(u.dataTries))
 
 	return nil
 }
@@ -180,6 +200,7 @@ func (u *userAccountsSyncer) createAndStartSyncer(
 		TimeoutHandler:            u.timeoutHandler,
 		MaxHardCapForMissingNodes: u.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          checkNodesOnDisk,
+		LeavesChan:                nil, // not used for data tries
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, u.trieSyncerVersion)
 	if err != nil {
@@ -216,40 +237,27 @@ func (u *userAccountsSyncer) updateDataTrieStatistics(trieSyncer trie.TrieSyncer
 }
 
 func (u *userAccountsSyncer) syncAccountDataTries(
-	mainTrie common.Trie,
+	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
+	if leavesChannels == nil {
+		return trie.ErrNilTrieIteratorChannels
+	}
+
 	defer u.printDataTrieStatistics()
 
-	mainRootHash, err := mainTrie.RootHash()
-	if err != nil {
-		return err
-	}
-
-	leavesChannels := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = mainTrie.GetAllLeavesOnChannel(leavesChannels, context.Background(), mainRootHash, keyBuilder.NewDisabledKeyBuilder())
-	if err != nil {
-		return err
-	}
-
-	var errFound error
-	errMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
-
 	for leaf := range leavesChannels.LeavesChan {
 		u.resetTimeoutHandlerWatchdog()
 
-		account := state.NewEmptyUserAccount()
-		err = u.marshalizer.Unmarshal(account, leaf.Value())
+		accountData := &accounts.UserAccountData{}
+		err := u.marshalizer.Unmarshal(accountData, leaf.Value())
 		if err != nil {
-			log.Trace("this must be a leaf with code", "err", err)
+			log.Trace("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
 			continue
 		}
 
-		if len(account.RootHash) == 0 {
+		if common.IsEmptyTrie(accountData.RootHash) {
 			continue
 		}
 
@@ -266,26 +274,19 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			defer u.throttler.EndProcessing()
 
 			log.Trace("sync data trie", "roothash", trieRootHash)
-			newErr := u.syncDataTrie(trieRootHash, address, ctx)
-			if newErr != nil {
-				errMutex.Lock()
-				errFound = newErr
-				errMutex.Unlock()
+			err := u.syncDataTrie(trieRootHash, address, ctx)
+			if err != nil {
+				leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
 			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
-		}(account.RootHash, account.Address)
+		}(accountData.RootHash, accountData.Address)
 	}
 
 	wg.Wait()
 
-	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
-	if err != nil {
-		return err
-	}
-
-	return errFound
+	return nil
 }
 
 func (u *userAccountsSyncer) printDataTrieStatistics() {

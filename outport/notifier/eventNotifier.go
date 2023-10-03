@@ -13,6 +13,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+// TODO: remove custom http event notifier integration in the following iterations
+
 var log = logger.GetOrCreate("outport/eventNotifier")
 
 const (
@@ -147,6 +149,16 @@ func (en *eventNotifier) IsInterfaceNil() bool {
 
 // Close returns nil
 func (en *eventNotifier) Close() error {
+	return nil
+}
+
+// RegisterHandler will do nothing
+func (en *eventNotifier) RegisterHandler(_ func() error, _ string) error {
+	return nil
+}
+
+// SetCurrentSettings will do nothing
+func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
 	return nil
 }
 

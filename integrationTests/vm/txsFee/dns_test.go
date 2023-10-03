@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -29,7 +28,9 @@ import (
 const returnOkData = "@6f6b"
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 10,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -54,13 +55,14 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9299330))
+	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9721810))
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(700670), accumulatedFees)
+	require.Equal(t, big.NewInt(278190), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(70023), developerFees)
+	require.Equal(t, big.NewInt(27775), developerFees)
+
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	// create username for receiver
@@ -74,13 +76,13 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9299330))
+	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9721810))
 	// check accumulated fees
 	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(1401340), accumulatedFees)
+	require.Equal(t, big.NewInt(556380), accumulatedFees)
 
 	developerFees = testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(140046), developerFees)
+	require.Equal(t, big.NewInt(55550), developerFees)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", userName)
 	dnsUserNameAddr := ret.ReturnData[0]
@@ -115,13 +117,25 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
 	enableEpochs := config.EnableEpochs{
 		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
+		SCProcessorV2EnableEpoch:  1000,
 	}
 
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
+	vmConfig := vm.CreateVMConfigWithVersion("v1.4")
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
+		1,
+		enableEpochs,
+		integrationTests.GetDefaultRoundsConfig(),
+		vmConfig,
+	)
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
+		2,
+		enableEpochs,
+		integrationTests.GetDefaultRoundsConfig(),
+		vmConfig,
+	)
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
 
@@ -151,7 +165,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	scrs, retCode, err := processRegisterThroughRelayedTxs(t, args)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, retCode)
-	assert.Equal(t, 4, len(scrs))
+	assert.Equal(t, 3, len(scrs))
 
 	expectedTotalBalance := big.NewInt(0).Set(initialBalance)
 	expectedTotalBalance.Sub(expectedTotalBalance, big.NewInt(10)) // due to a bug, some fees were burnt
@@ -177,14 +191,17 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 }
 
 func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testing.T) {
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
-
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
 	fmt.Println(scAddress)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextForDNSContract)
@@ -211,7 +228,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 	scrs, retCode, err := processRegisterThroughRelayedTxs(t, args)
 	require.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, retCode)
-	assert.Equal(t, 4, len(scrs))
+	assert.Equal(t, 3, len(scrs))
 
 	// check username
 	acc, _ := testContextForRelayerAndUser.Accounts.GetExistingAccount(userAddress)

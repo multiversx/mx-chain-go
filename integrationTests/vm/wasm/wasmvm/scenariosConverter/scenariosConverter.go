@@ -10,9 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
+	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	mge "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-vm-v1_4-go/scenarios/util"
 )
 
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")

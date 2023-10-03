@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -64,6 +63,34 @@ type queryResponse struct {
 type epochStartResponse struct {
 	Data struct {
 		common.EpochStartDataAPI `json:"epochStart"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedKeysCountResponse struct {
+	Data struct {
+		Count int `json:"count"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedKeysResponse struct {
+	Data struct {
+		ManagedKeys []string `json:"managedKeys"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedEligibleKeysResponse struct {
+	Data struct {
+		Keys []string `json:"eligibleKeys"`
+	} `json:"data"`
+	generalResponse
+}
+
+type managedWaitingKeysResponse struct {
+	Data struct {
+		Keys []string `json:"waitingKeys"`
 	} `json:"data"`
 	generalResponse
 }
@@ -134,8 +161,6 @@ func TestHeartbeatStatus(t *testing.T) {
 }
 
 func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -164,8 +189,6 @@ func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -194,8 +217,6 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -242,7 +263,7 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -252,42 +273,48 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	assert.True(t, valuesFound)
 }
 
-func TestBootstrapGetConnectedPeersRatings_ShouldWork(t *testing.T) {
-	providedRatings := map[string]string{
-		"pid1": "100",
-		"pid2": "-50",
-		"pid3": "-5",
-	}
-	buff, _ := json.Marshal(providedRatings)
-	facade := mock.FacadeStub{
-		GetConnectedPeersRatingsCalled: func() string {
-			return string(buff)
-		},
-	}
+func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
+	t.Parallel()
 
-	nodeGroup, err := groups.NewNodeGroup(&facade)
-	require.NoError(t, err)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+		providedRatings := map[string]string{
+			"pid1": "100",
+			"pid2": "-50",
+			"pid3": "-5",
+		}
+		buff, _ := json.Marshal(providedRatings)
+		facade := mock.FacadeStub{
+			GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
+				return string(buff), nil
+			},
+		}
 
-	req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
 
-	response := &shared.GenericAPIResponse{}
-	loadResponse(resp.Body, response)
-	respMap, ok := response.Data.(map[string]interface{})
-	assert.True(t, ok)
-	ratings, ok := respMap["ratings"].(string)
-	assert.True(t, ok)
-	assert.Equal(t, string(buff), ratings)
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+		respMap, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok)
+		ratings, ok := respMap["ratings"].(string)
+		assert.True(t, ok)
+		assert.Equal(t, string(buff), ratings)
+	})
 }
 
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
-	value := "test-details-value"
-	statusMetricsProvider.SetStringValue(key, value)
+	val := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, val)
 
 	p2pKey := "a_p2p_specific_key"
 	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
@@ -306,11 +333,11 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, val)
 	assert.True(t, keyAndValueFoundInResponse)
 	assert.False(t, strings.Contains(respStr, p2pKey))
 }
@@ -318,8 +345,8 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
-	value := "test-details-value"
-	statusMetricsProvider.SetStringValue(key, value)
+	val := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, val)
 
 	p2pKey := "a_p2p_specific_key"
 	p2pValue := "p2p value"
@@ -339,7 +366,7 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -367,11 +394,11 @@ func TestQueryDebug_ShouldBindJSONErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &generalResponse{}
-	loadResponse(resp.Body, queryResponse)
+	queryResp := &generalResponse{}
+	loadResponse(resp.Body, queryResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, queryResponse.Error, apiErrors.ErrValidation.Error())
+	assert.Contains(t, queryResp.Error, apiErrors.ErrValidation.Error())
 }
 
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
@@ -395,11 +422,11 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &generalResponse{}
-	loadResponse(resp.Body, queryResponse)
+	queryResp := &generalResponse{}
+	loadResponse(resp.Body, queryResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, queryResponse.Error, expectedErr.Error())
+	assert.Contains(t, queryResp.Error, expectedErr.Error())
 }
 
 func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
@@ -433,14 +460,14 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	queryResponse := queryResponse{}
+	queryResp := queryResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
-	_ = json.Unmarshal(mapResponseDataBytes, &queryResponse)
+	_ = json.Unmarshal(mapResponseDataBytes, &queryResp)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Contains(t, queryResponse.Result, str1)
-	assert.Contains(t, queryResponse.Result, str2)
+	assert.Contains(t, queryResp.Result, str1)
+	assert.Contains(t, queryResp.Result, str2)
 }
 
 func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
@@ -594,8 +621,6 @@ func TestEpochStartData_ShouldWork(t *testing.T) {
 }
 
 func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -626,8 +651,8 @@ func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-key"
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
+	val := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, val)
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -643,12 +668,187 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestNodeGroup_ManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	providedCount := 1000
+	facade := mock.FacadeStub{
+		GetManagedKeysCountCalled: func() int {
+			return providedCount
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/managed-keys/count", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &managedKeysCountResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, providedCount, response.Data.Count)
+}
+
+func TestNodeGroup_ManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedKeys := []string{
+		"pk1",
+		"pk2",
+	}
+	facade := mock.FacadeStub{
+		GetManagedKeysCalled: func() []string {
+			return providedKeys
+		},
+	}
+
+	nodeGroup, err := groups.NewNodeGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/node/managed-keys", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := &managedKeysResponse{}
+	loadResponse(resp.Body, response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, "", response.Error)
+	assert.Equal(t, providedKeys, response.Data.ManagedKeys)
+}
+
+func TestNodeGroup_ManagedKeysEligible(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetEligibleManagedKeysCalled: func() ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := []string{
+			"key1",
+			"key2",
+			"key3",
+		}
+		facade := mock.FacadeStub{
+			GetEligibleManagedKeysCalled: func() ([]string, error) {
+				return providedKeys, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/eligible", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &managedEligibleKeysResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedKeys, response.Data.Keys)
+	})
+}
+
+func TestNodeGroup_ManagedKeysWaiting(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetWaitingManagedKeysCalled: func() ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := []string{
+			"key1",
+			"key2",
+			"key3",
+		}
+		facade := mock.FacadeStub{
+			GetWaitingManagedKeysCalled: func() ([]string, error) {
+				return providedKeys, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/managed-keys/waiting", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &managedWaitingKeysResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedKeys, response.Data.Keys)
+	})
 }
 
 func TestNodeGroup_UpdateFacade(t *testing.T) {
@@ -677,8 +877,8 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 
 		statusMetricsProvider := statusHandler.NewStatusMetrics()
 		key := "test-key"
-		value := uint64(37)
-		statusMetricsProvider.SetUInt64Value(key, value)
+		val := uint64(37)
+		statusMetricsProvider.SetUInt64Value(key, val)
 
 		facade := mock.FacadeStub{}
 		facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -694,10 +894,10 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
-		respBytes, _ := ioutil.ReadAll(resp.Body)
+		respBytes, _ := io.ReadAll(resp.Body)
 		respStr := string(respBytes)
 		assert.Equal(t, resp.Code, http.StatusOK)
-		keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+		keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 		assert.True(t, keyAndValueFoundInResponse)
 
 		newFacade := mock.FacadeStub{
@@ -735,7 +935,7 @@ func TestNodeGroup_IsInterfaceNil(t *testing.T) {
 }
 
 func loadResponseAsString(rsp io.Reader, response *statusResponse) {
-	buff, err := ioutil.ReadAll(rsp)
+	buff, err := io.ReadAll(rsp)
 	if err != nil {
 		logError(err)
 		return
@@ -758,6 +958,10 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/epoch-start/:epoch", Open: true},
 					{Name: "/bootstrapstatus", Open: true},
 					{Name: "/connected-peers-ratings", Open: true},
+					{Name: "/managed-keys/count", Open: true},
+					{Name: "/managed-keys", Open: true},
+					{Name: "/managed-keys/eligible", Open: true},
+					{Name: "/managed-keys/waiting", Open: true},
 				},
 			},
 		},

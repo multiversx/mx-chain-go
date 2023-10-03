@@ -6,15 +6,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgBaseRequester() ArgBaseRequester {
 	return ArgBaseRequester{
 		RequestSender: &dataRetrieverMocks.TopicRequestSenderStub{},
-		Marshaller:    &testscommon.MarshalizerStub{},
+		Marshaller:    &marshallerMock.MarshalizerStub{},
 	}
 }
 
@@ -33,7 +33,7 @@ func Test_checkArgBase(t *testing.T) {
 
 		err := checkArgBase(ArgBaseRequester{
 			RequestSender: nil,
-			Marshaller:    &testscommon.MarshalizerStub{},
+			Marshaller:    &marshallerMock.MarshalizerStub{},
 		})
 		assert.Equal(t, err, dataRetriever.ErrNilRequestSender)
 	})
@@ -73,7 +73,7 @@ func TestBaseRequester_RequestDataFromHash(t *testing.T) {
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
 		RequestSender: requestSender,
-		Marshaller:    &testscommon.MarshalizerStub{},
+		Marshaller:    &marshallerMock.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
@@ -99,7 +99,7 @@ func TestBaseRequester_NumPeersToQuery(t *testing.T) {
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
 		RequestSender: requestSender,
-		Marshaller:    &testscommon.MarshalizerStub{},
+		Marshaller:    &marshallerMock.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 
@@ -126,7 +126,7 @@ func TestBaseRequester_SetDebugHandler(t *testing.T) {
 	}
 	baseHandler := createBaseRequester(ArgBaseRequester{
 		RequestSender: requestSender,
-		Marshaller:    &testscommon.MarshalizerStub{},
+		Marshaller:    &marshallerMock.MarshalizerStub{},
 	})
 	assert.False(t, check.IfNilReflect(baseHandler))
 

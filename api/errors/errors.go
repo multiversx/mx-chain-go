@@ -162,3 +162,12 @@ var ErrRegisteredNFTTokenIDs = errors.New("getting registered nft token ids erro
 
 // ErrInvalidRole signals that an invalid role was provided
 var ErrInvalidRole = errors.New("invalid role")
+
+// ErrIsDataTrieMigrated signals that an error occurred while trying to verify the migration status of the data trie
+var ErrIsDataTrieMigrated = errors.New("could not verify the migration status of the data trie")
+
+// ErrGetEligibleManagedKeys signals that an error occurred while getting the eligible managed keys
+var ErrGetEligibleManagedKeys = errors.New("error getting the eligible managed keys")
+
+// ErrGetWaitingManagedKeys signals that an error occurred while getting the waiting managed keys
+var ErrGetWaitingManagedKeys = errors.New("error getting the waiting managed keys")

@@ -109,7 +109,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	sm := inf.StatusMetrics()
 	assert.NotNil(t, sm)
 
-	vo, err := inf.ExecuteSCQuery(nil)
+	vo, _, err := inf.ExecuteSCQuery(nil)
 	assert.Nil(t, vo)
 	assert.Equal(t, errNodeStarting, err)
 
@@ -232,6 +232,10 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, api.GuardianData{}, guardianData)
 	assert.Equal(t, errNodeStarting, err)
 
+	isMigrated, err := inf.IsDataTrieMigrated("", api.AccountQueryOptions{})
+	assert.False(t, isMigrated)
+	assert.Equal(t, errNodeStarting, err)
+
 	mainTrieResponse, dataTrieResponse, err := inf.GetProofDataTrie("", "", "")
 	assert.Nil(t, mainTrieResponse)
 	assert.Nil(t, dataTrieResponse)
@@ -251,8 +255,9 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, stakeValue)
 	assert.Equal(t, errNodeStarting, err)
 
-	ratings := inf.GetConnectedPeersRatings()
+	ratings, err := inf.GetConnectedPeersRatingsOnMainNetwork()
 	assert.Equal(t, "", ratings)
+	assert.Equal(t, errNodeStarting, err)
 
 	epochStartData, err := inf.GetEpochStartDataAPI(0)
 	assert.Nil(t, epochStartData)

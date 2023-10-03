@@ -14,10 +14,13 @@ import (
 	txproc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -35,11 +38,16 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	return args
+}
+
+func createUserAcc(address []byte) state.UserAccountHandler {
+	acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
+	return acc
 }
 
 // ------- NewMetaTxProcessor
@@ -160,10 +168,8 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr)
-	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
-	assert.Nil(t, err)
+	acntSrc := createUserAcc(tx.SndAddr)
+	acntDst := createUserAcc(tx.RcvAddr)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 
@@ -171,7 +177,7 @@ func TestMetaTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	args.Accounts = adb
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = txProc.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -186,10 +192,8 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	tx.RcvAddr = []byte("DST")
 	tx.Value = big.NewInt(0)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr)
-	assert.Nil(t, err)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
-	assert.Nil(t, err)
+	acntSrc := createUserAcc(tx.SndAddr)
+	acntDst := createUserAcc(tx.RcvAddr)
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
 	adb.SaveAccountCalled = func(account vmcommon.AccountHandler) error {
@@ -208,7 +212,7 @@ func TestMetaTxProcessor_ProcessMoveBalancesShouldCallProcessIfError(t *testing.
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = txProc.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
 	assert.True(t, called)
 }
@@ -226,13 +230,10 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr)
-	assert.Nil(t, err)
+	acntSrc := createUserAcc(tx.SndAddr)
+	acntDst := createUserAcc(tx.RcvAddr)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
-	assert.Nil(t, err)
-
-	acntSrc.Balance = big.NewInt(46)
+	_ = acntSrc.AddToBalance(big.NewInt(46))
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -258,7 +259,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = txProc.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -275,11 +276,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	tx.RcvAddr = generateRandomByteSlice(createMockPubKeyConverter().Len())
 	tx.Value = big.NewInt(45)
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr)
-	assert.Nil(t, err)
-	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
-	assert.Nil(t, err)
+	acntSrc := createUserAcc(tx.SndAddr)
+	_ = acntSrc.AddToBalance(big.NewInt(45))
+	acntDst := createUserAcc(tx.RcvAddr)
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -306,7 +305,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = txProc.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.Equal(t, process.ErrNoVM, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -333,11 +332,9 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		return 0
 	}
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr)
-	assert.Nil(t, err)
-	acntSrc.Balance = big.NewInt(45)
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
-	assert.Nil(t, err)
+	acntSrc := createUserAcc(tx.SndAddr)
+	_ = acntSrc.AddToBalance(big.NewInt(45))
+	acntDst := createUserAcc(tx.RcvAddr)
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -365,7 +362,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
@@ -378,7 +375,7 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 	args.ShardCoordinator = shardCoordinator
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = txProc.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.Equal(t, nil, err)
 	assert.False(t, wasCalled)
 	assert.True(t, calledIfError)
@@ -397,13 +394,10 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntSrc, err := state.NewUserAccount(tx.SndAddr)
-	assert.Nil(t, err)
+	acntSrc := createUserAcc(tx.SndAddr)
+	acntDst := createUserAcc(tx.RcvAddr)
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
-	assert.Nil(t, err)
-
-	acntSrc.Balance = big.NewInt(46)
+	_ = acntSrc.AddToBalance(big.NewInt(46))
 	acntDst.SetCode([]byte{65})
 
 	adb := createAccountStub(tx.SndAddr, tx.RcvAddr, acntSrc, acntDst)
@@ -427,14 +421,14 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
+	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsBuiltInFunctionOnMetaFlagEnabledField: false,
 		IsESDTFlagEnabledField:                  true,
 	}
 	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
-	_, err = txProc.ProcessTransaction(&tx)
+	_, err := txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
@@ -465,7 +459,7 @@ func TestMetaTxProcessor_ProcessTransactionWithInvalidUsernameShouldNotError(t *
 	tx.GasPrice = 1
 	tx.GasLimit = 1
 
-	acntDst, err := state.NewUserAccount(tx.RcvAddr)
+	acntDst, err := accounts.NewUserAccount(tx.RcvAddr, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 	assert.Nil(t, err)
 
 	called := false

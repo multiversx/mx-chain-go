@@ -12,10 +12,14 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	coreEsdt "github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -26,7 +30,7 @@ import (
 func getTokensSuppliesProcessorArgs() ArgsTokensSuppliesProcessor {
 	return ArgsTokensSuppliesProcessor{
 		StorageService: &genericMocks.ChainStorerMock{},
-		Marshaller:     &testscommon.MarshalizerMock{},
+		Marshaller:     &marshallerMock.MarshalizerMock{},
 	}
 }
 
@@ -115,11 +119,15 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
 		expectedErr := errors.New("error")
-		userAcc, _ := state.NewUserAccount([]byte("addr"))
+
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 				return expectedErr
+			},
+			RootCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
 			},
 		})
 
@@ -134,47 +142,22 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := state.NewUserAccount([]byte("addr"))
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"))
 
 				close(leavesChannels.LeavesChan)
 				return nil
 			},
-		})
-
-		err := tsp.HandleTrieAccountIteration(userAcc)
-		require.NoError(t, err)
-		require.Empty(t, tsp.tokensSupplies)
-	})
-
-	t.Run("should return error if trie value cannot be extracted", func(t *testing.T) {
-		t.Parallel()
-
-		args := getTokensSuppliesProcessorArgs()
-		tsp, _ := NewTokensSuppliesProcessor(args)
-
-		userAcc, _ := state.NewUserAccount([]byte("addr"))
-		userAcc.SetRootHash([]byte("rootHash"))
-		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
-				esToken := &esdt.ESDigitalToken{
-					Value: big.NewInt(37),
-				}
-				esBytes, _ := args.Marshaller.Marshal(esToken)
-				tknKey := []byte("ELRONDesdtTKN-00aacc")
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, esBytes)
-
-				close(leavesChannels.LeavesChan)
-				return nil
+			RootCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
 			},
 		})
 
 		err := tsp.HandleTrieAccountIteration(userAcc)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "suffix is not present or the position is incorrect")
+		require.NoError(t, err)
 		require.Empty(t, tsp.tokensSupplies)
 	})
 
@@ -184,10 +167,10 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := state.NewUserAccount(vmcommon.SystemAccountAddress)
+		userAcc, _ := accounts.NewUserAccount(vmcommon.SystemAccountAddress, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 				esToken := &esdt.ESDigitalToken{
 					Value: big.NewInt(37),
 				}
@@ -213,10 +196,12 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		userAcc, _ := state.NewUserAccount([]byte("addr"))
+		dtt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("addr"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
-			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
 				esToken := &esdt.ESDigitalToken{
 					Value: big.NewInt(37),
 				}
@@ -224,7 +209,9 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 				tknKey := []byte("ELRONDesdtTKN-00aacc")
 				value := append(esBytes, tknKey...)
 				value = append(value, []byte("addr")...)
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, value)
+				leaf, err := leafParser.ParseLeaf(tknKey, value, 0)
+				require.Nil(t, err)
+				leavesChannels.LeavesChan <- leaf
 
 				sft := &esdt.ESDigitalToken{
 					Value: big.NewInt(1),
@@ -234,10 +221,15 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 				sftKey = append(sftKey, big.NewInt(37).Bytes()...)
 				value = append(sftBytes, sftKey...)
 				value = append(value, []byte("addr")...)
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(sftKey, value)
+				leaf, err = leafParser.ParseLeaf(sftKey, value, 0)
+				require.Nil(t, err)
+				leavesChannels.LeavesChan <- leaf
 
 				close(leavesChannels.LeavesChan)
 				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
 			},
 		})
 

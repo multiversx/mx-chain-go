@@ -354,6 +354,32 @@ func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
 	})
 }
 
+func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
+	t.Parallel()
+
+	RemoveFromAllActiveEpochsCalled := false
+	removeFromCheckpointCalled := false
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		MemDbMock: testscommon.NewMemDbMock(),
+		RemoveFromAllActiveEpochsCalled: func(key []byte) error {
+			RemoveFromAllActiveEpochsCalled = true
+			return nil
+		},
+	}
+	args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
+		RemoveCalled: func(bytes []byte) {
+			removeFromCheckpointCalled = true
+		},
+	}
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	err := ts.RemoveFromAllActiveEpochs([]byte("key"))
+	assert.Nil(t, err)
+	assert.True(t, RemoveFromAllActiveEpochsCalled)
+	assert.True(t, removeFromCheckpointCalled)
+}
+
 func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
 	t.Parallel()
 
@@ -518,6 +544,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.MainStorer = testscommon.CreateMemUnit()
 		ts, _ := trie.NewTrieStorageManager(args)
 
 		assert.False(t, ts.ShouldTakeSnapshot())
@@ -529,40 +556,6 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return []byte(common.TrieSyncedVal), nil
-			},
-			MemDbMock: testscommon.NewMemDbMock(),
-		}
-		ts, _ := trie.NewTrieStorageManager(args)
-
-		assert.False(t, ts.ShouldTakeSnapshot())
-	})
-	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled error should return false", func(t *testing.T) {
-		t.Parallel()
-
-		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr // isTrieSynced returns false
-			},
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
-				return nil, core.OptionalUint32{}, storageMx.ErrDBIsClosed
-			},
-			MemDbMock: testscommon.NewMemDbMock(),
-		}
-		ts, _ := trie.NewTrieStorageManager(args)
-
-		assert.False(t, ts.ShouldTakeSnapshot())
-	})
-	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns non ActiveDBVal should return false", func(t *testing.T) {
-		t.Parallel()
-
-		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
-				return []byte("response"), nil
-			},
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
-				return []byte("response"), core.OptionalUint32{}, nil
 			},
 			MemDbMock: testscommon.NewMemDbMock(),
 		}

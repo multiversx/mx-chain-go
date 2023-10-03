@@ -12,7 +12,8 @@ import (
 
 // ArgBootstrapSender represents the arguments for the bootstrap bootstrapSender
 type ArgBootstrapSender struct {
-	Messenger                          heartbeat.P2PMessenger
+	MainMessenger                      heartbeat.P2PMessenger
+	FullArchiveMessenger               heartbeat.P2PMessenger
 	Marshaller                         marshal.Marshalizer
 	HeartbeatTopic                     string
 	HeartbeatTimeBetweenSends          time.Duration
@@ -39,7 +40,8 @@ type bootstrapSender struct {
 func NewBootstrapSender(args ArgBootstrapSender) (*bootstrapSender, error) {
 	hbs, err := newHeartbeatSender(argHeartbeatSender{
 		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
+			mainMessenger:             args.MainMessenger,
+			fullArchiveMessenger:      args.FullArchiveMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,

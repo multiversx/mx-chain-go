@@ -29,7 +29,8 @@ var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 type vmContainerFactory struct {
 	chanceComputer         nodesCoordinator.ChanceComputer
 	validatorAccountsDB    state.AccountsAdapter
-	blockChainHook         process.BlockChainHookHandler
+	userAccountsDB         state.AccountsAdapter
+	blockChainHook         process.BlockChainHookWithAccountsAdapter
 	cryptoHook             vmcommon.CryptoHook
 	systemContracts        vm.SystemSCContainer
 	economics              process.EconomicsDataHandler
@@ -55,10 +56,11 @@ type ArgsNewVMContainerFactory struct {
 	Marshalizer         marshal.Marshalizer
 	SystemSCConfig      *config.SystemSmartContractsConfig
 	ValidatorAccountsDB state.AccountsAdapter
+	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
-	BlockChainHook      process.BlockChainHookHandler
+	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	EnableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -84,6 +86,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	}
 	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilValidatorAccountsDB)
+	}
+	if check.IfNil(args.UserAccountsDB) {
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilUserAccountsDB)
 	}
 	if check.IfNil(args.ChanceComputer) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", vm.ErrNilChanceComputer)
@@ -117,6 +122,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		marshalizer:            args.Marshalizer,
 		systemSCConfig:         args.SystemSCConfig,
 		validatorAccountsDB:    args.ValidatorAccountsDB,
+		userAccountsDB:         args.UserAccountsDB,
 		chanceComputer:         args.ChanceComputer,
 		addressPubKeyConverter: args.PubkeyConv,
 		shardCoordinator:       args.ShardCoordinator,
@@ -173,6 +179,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		CryptoHook:          vmf.cryptoHook,
 		InputParser:         atArgumentParser,
 		ValidatorAccountsDB: vmf.validatorAccountsDB,
+		UserAccountsDB:      vmf.userAccountsDB,
 		ChanceComputer:      vmf.chanceComputer,
 		EnableEpochsHandler: vmf.enableEpochsHandler,
 	}
@@ -256,7 +263,7 @@ func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionH
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl
-func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
+func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookWithAccountsAdapter {
 	return vmf.blockChainHook
 }
 

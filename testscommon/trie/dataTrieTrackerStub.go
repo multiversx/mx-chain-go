@@ -1,16 +1,23 @@
 package trie
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // DataTrieTrackerStub -
 type DataTrieTrackerStub struct {
-	RetrieveValueCalled func(key []byte) ([]byte, uint32, error)
-	SaveKeyValueCalled  func(key []byte, value []byte) error
-	SetDataTrieCalled   func(tr common.Trie)
-	DataTrieCalled      func() common.Trie
-	SaveDirtyDataCalled func(trie common.Trie) (map[string][]byte, error)
+	dataTrie common.Trie
+
+	RetrieveValueCalled         func(key []byte) ([]byte, uint32, error)
+	SaveKeyValueCalled          func(key []byte, value []byte) error
+	SetDataTrieCalled           func(tr common.Trie)
+	DataTrieCalled              func() common.Trie
+	SaveDirtyDataCalled         func(trie common.Trie) ([]core.TrieData, error)
+	SaveTrieDataCalled          func(trieData core.TrieData) error
+	MigrateDataTrieLeavesCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
 
 // RetrieveValue -
@@ -36,6 +43,8 @@ func (dtts *DataTrieTrackerStub) SetDataTrie(tr common.Trie) {
 	if dtts.SetDataTrieCalled != nil {
 		dtts.SetDataTrieCalled(tr)
 	}
+
+	dtts.dataTrie = tr
 }
 
 // DataTrie -
@@ -44,16 +53,29 @@ func (dtts *DataTrieTrackerStub) DataTrie() common.DataTrieHandler {
 		return dtts.DataTrieCalled()
 	}
 
+	if !check.IfNil(dtts.dataTrie) {
+		return dtts.dataTrie
+	}
+
 	return nil
 }
 
 // SaveDirtyData -
-func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) (map[string][]byte, error) {
+func (dtts *DataTrieTrackerStub) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
 	if dtts.SaveDirtyDataCalled != nil {
 		return dtts.SaveDirtyDataCalled(mainTrie)
 	}
 
-	return map[string][]byte{}, nil
+	return make([]core.TrieData, 0), nil
+}
+
+// MigrateDataTrieLeaves -
+func (dtts *DataTrieTrackerStub) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error {
+	if dtts.MigrateDataTrieLeavesCalled != nil {
+		return dtts.MigrateDataTrieLeavesCalled(args)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

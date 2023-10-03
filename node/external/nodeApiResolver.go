@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -27,7 +28,7 @@ var log = logger.GetOrCreate("node/external")
 type ArgNodeApiResolver struct {
 	SCQueryService           SCQueryService
 	StatusMetricsHandler     StatusMetricsHandler
-	TxCostHandler            TransactionCostHandler
+	APITransactionEvaluator  TransactionEvaluator
 	TotalStakedValueHandler  TotalStakedValueHandler
 	DirectStakedListHandler  DirectStakedListHandler
 	DelegatedListHandler     DelegatedListHandler
@@ -38,13 +39,14 @@ type ArgNodeApiResolver struct {
 	ValidatorPubKeyConverter core.PubkeyConverter
 	AccountsParser           genesis.AccountsParser
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
+	ManagedPeersMonitor      common.ManagedPeersMonitor
 }
 
 // nodeApiResolver can resolve API requests
 type nodeApiResolver struct {
 	scQueryService           SCQueryService
 	statusMetricsHandler     StatusMetricsHandler
-	txCostHandler            TransactionCostHandler
+	apiTransactionEvaluator  TransactionEvaluator
 	totalStakedValueHandler  TotalStakedValueHandler
 	directStakedListHandler  DirectStakedListHandler
 	delegatedListHandler     DelegatedListHandler
@@ -55,6 +57,7 @@ type nodeApiResolver struct {
 	validatorPubKeyConverter core.PubkeyConverter
 	accountsParser           genesis.AccountsParser
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
+	managedPeersMonitor      common.ManagedPeersMonitor
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -65,8 +68,8 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.StatusMetricsHandler) {
 		return nil, ErrNilStatusMetrics
 	}
-	if check.IfNil(arg.TxCostHandler) {
-		return nil, ErrNilTransactionCostHandler
+	if check.IfNil(arg.APITransactionEvaluator) {
+		return nil, ErrNilAPITransactionEvaluator
 	}
 	if check.IfNil(arg.TotalStakedValueHandler) {
 		return nil, ErrNilTotalStakedValueHandler
@@ -98,11 +101,14 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.GasScheduleNotifier) {
 		return nil, ErrNilGasScheduler
 	}
+	if check.IfNil(arg.ManagedPeersMonitor) {
+		return nil, ErrNilManagedPeersMonitor
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
 		statusMetricsHandler:     arg.StatusMetricsHandler,
-		txCostHandler:            arg.TxCostHandler,
+		apiTransactionEvaluator:  arg.APITransactionEvaluator,
 		totalStakedValueHandler:  arg.TotalStakedValueHandler,
 		directStakedListHandler:  arg.DirectStakedListHandler,
 		delegatedListHandler:     arg.DelegatedListHandler,
@@ -113,11 +119,12 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 		accountsParser:           arg.AccountsParser,
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
+		managedPeersMonitor:      arg.ManagedPeersMonitor,
 	}, nil
 }
 
 // ExecuteSCQuery retrieves data stored in a SC account through a VM
-func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	return nar.scQueryService.ExecuteQuery(query)
 }
 
@@ -128,7 +135,12 @@ func (nar *nodeApiResolver) StatusMetrics() StatusMetricsHandler {
 
 // ComputeTransactionGasLimit will calculate how many gas a transaction will consume
 func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
+	return nar.apiTransactionEvaluator.ComputeTransactionGasLimit(tx)
+}
+
+// SimulateTransactionExecution will simulate the provided transaction and return the simulation results
+func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return nar.apiTransactionEvaluator.SimulateTransactionExecution(tx)
 }
 
 // Close closes all underlying components
@@ -320,6 +332,46 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 // GetGasConfigs return currently used gas schedule config
 func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
 	return nar.gasScheduleNotifier.LatestGasScheduleCopy()
+}
+
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetManagedKeysCount() int {
+	return nar.managedPeersMonitor.GetManagedKeysCount()
+}
+
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nar *nodeApiResolver) GetManagedKeys() []string {
+	managedKeys := nar.managedPeersMonitor.GetManagedKeys()
+	return nar.parseKeys(managedKeys)
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetEligibleManagedKeys() ([]string, error) {
+	eligibleKeys, err := nar.managedPeersMonitor.GetEligibleManagedKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.parseKeys(eligibleKeys), nil
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetWaitingManagedKeys() ([]string, error) {
+	waitingKeys, err := nar.managedPeersMonitor.GetWaitingManagedKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.parseKeys(waitingKeys), nil
+}
+
+func (nar *nodeApiResolver) parseKeys(keys [][]byte) []string {
+	keysSlice := make([]string, len(keys))
+	for i, key := range keys {
+		keysSlice[i] = nar.validatorPubKeyConverter.SilentEncode(key, log)
+	}
+
+	return keysSlice
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
