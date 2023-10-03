@@ -25,9 +25,8 @@ type ContextFlagsConfig struct {
 	ForceStartFromNetwork        bool
 	DisableConsensusWatchdog     bool
 	SerializeSnapshots           bool
-	NoKeyProvided                bool
-	SnapshotsEnabled             bool
 	OperationMode                string
+	RepopulateTokensSupplies     bool
 }
 
 // ImportDbConfig will hold the import-db parameters

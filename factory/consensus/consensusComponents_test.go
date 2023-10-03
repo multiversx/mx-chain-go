@@ -25,15 +25,17 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	outportMocks "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +45,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		Config:              testscommon.GetGeneralConfig(),
 		BootstrapRoundIndex: 0,
 		CoreComponents: &mock.CoreComponentsMock{
-			IntMarsh: &testscommon.MarshalizerStub{},
+			IntMarsh: &marshallerMock.MarshalizerStub{},
 			Hash: &testscommon.HasherStub{
 				SizeCalled: func() int {
 					return 1
@@ -63,8 +65,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return 2
 				},
 			},
-			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			StartTime:           time.Time{},
+			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
+			StartTime:                time.Time{},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},
@@ -114,7 +117,8 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
 			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
-			PeerMapper:                    &testsMocks.PeerShardMapperStub{},
+			MainPeerMapper:                &testsMocks.PeerShardMapperStub{},
+			FullArchivePeerMapper:         &testsMocks.PeerShardMapperStub{},
 			ShardCoord:                    testscommon.NewMultiShardsCoordinatorMock(2),
 			RoundHandlerField: &testscommon.RoundHandlerMock{
 				TimeDurationCalled: func() time.Duration {
@@ -136,13 +140,14 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 		},
-		StateComponents: &testscommon.StateComponentsMock{
+		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{
-				trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-				trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+				retriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},
+				retriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 			},
-			Accounts: &stateMocks.AccountsStub{},
-			PeersAcc: &stateMocks.AccountsStub{},
+			Accounts:             &stateMocks.AccountsStub{},
+			PeersAcc:             &stateMocks.AccountsStub{},
+			MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		},
 		StatusComponents: &testsMocks.StatusComponentsStub{
 			Outport: &outportMocks.OutportStub{},
@@ -553,7 +558,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		stateCompStub, ok := args.StateComponents.(*testscommon.StateComponentsMock)
+		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = make(map[string]common.StorageManager) // missing UserAccountTrie
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
@@ -604,7 +609,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		stateCompStub, ok := args.StateComponents.(*testscommon.StateComponentsMock)
+		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = make(map[string]common.StorageManager) // missing UserAccountTrie
 		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
@@ -625,10 +630,10 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		stateCompStub, ok := args.StateComponents.(*testscommon.StateComponentsMock)
+		stateCompStub, ok := args.StateComponents.(*factoryMocks.StateComponentsMock)
 		require.True(t, ok)
 		stateCompStub.StorageManagers = map[string]common.StorageManager{
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
+			retriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		} // missing PeerAccountTrie
 		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
 		require.True(t, ok)

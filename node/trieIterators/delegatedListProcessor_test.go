@@ -9,16 +9,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,8 +60,8 @@ func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldEr
 	expectedErr := errors.New("expected error")
 	arg := createMockArgs()
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			return nil, expectedErr
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return nil, nil, expectedErr
 		},
 	}
 	dlp, _ := NewDelegatedListProcessor(arg)
@@ -75,10 +72,10 @@ func TestDelegatedListProc_GetDelegatorsListGetAllContractAddressesFailsShouldEr
 
 	arg = createMockArgs()
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			return &vmcommon.VMOutput{
 				ReturnCode: vmcommon.UserError,
-			}, nil
+			}, nil, nil
 		},
 	}
 	dlp, _ = NewDelegatedListProcessor(arg)
@@ -97,29 +94,29 @@ func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch query.FuncName {
 			case "getAllContractAddresses":
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
-				}, nil
+				}, nil, nil
 			case "getUserActiveStake":
 				for index, delegator := range delegators {
 					if bytes.Equal(delegator, query.Arguments[0]) {
 						value := big.NewInt(int64(index + 1))
 						return &vmcommon.VMOutput{
 							ReturnData: [][]byte{value.Bytes()},
-						}, nil
+						}, nil, nil
 					}
 				}
 			}
 
-			return nil, fmt.Errorf("not an expected call")
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createDelegationScAccount(addressContainer, delegators, addressContainer, time.Second), nil
+			return createScAccount(addressContainer, delegators, addressContainer, time.Second), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -144,29 +141,29 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	delegationSc := [][]byte{[]byte("delegationSc1"), []byte("delegationSc2")}
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch query.FuncName {
 			case "getAllContractAddresses":
 				return &vmcommon.VMOutput{
 					ReturnData: delegationSc,
-				}, nil
+				}, nil, nil
 			case "getUserActiveStake":
 				for index, delegator := range delegators {
 					if bytes.Equal(delegator, query.Arguments[0]) {
 						value := big.NewInt(int64(index + 1))
 						return &vmcommon.VMOutput{
 							ReturnData: [][]byte{value.Bytes()},
-						}, nil
+						}, nil, nil
 					}
 				}
 			}
 
-			return nil, fmt.Errorf("not an expected call")
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return createDelegationScAccount(addressContainer, delegators, addressContainer, 0), nil
+			return createScAccount(addressContainer, delegators, addressContainer, 0), nil
 		},
 		RecreateTrieCalled: func(rootHash []byte) error {
 			return nil
@@ -233,29 +230,4 @@ func TestDelegatedListProcessor_IsInterfaceNil(t *testing.T) {
 
 	dlp, _ = NewDelegatedListProcessor(createMockArgs())
 	require.False(t, dlp.IsInterfaceNil())
-}
-
-func createDelegationScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	acc, _ := state.NewUserAccount(address)
-	acc.SetDataTrie(&trieMock.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return rootHash, nil
-		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder) error {
-			go func() {
-				time.Sleep(timeSleep)
-				for _, leafBuff := range leaves {
-					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					leavesChannels.LeavesChan <- leaf
-				}
-
-				close(leavesChannels.LeavesChan)
-				leavesChannels.ErrChan.Close()
-			}()
-
-			return nil
-		},
-	})
-
-	return acc
 }

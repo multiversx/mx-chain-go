@@ -11,7 +11,7 @@ type BootstrapperStub struct {
 	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
 	AddSyncStateListenerCalled      func(func(bool))
 	GetNodeStateCalled              func() common.NodeState
-	StartSyncingBlocksCalled        func()
+	StartSyncingBlocksCalled        func() error
 }
 
 // CreateAndCommitEmptyBlock -
@@ -40,8 +40,12 @@ func (boot *BootstrapperStub) GetNodeState() common.NodeState {
 }
 
 // StartSyncingBlocks -
-func (boot *BootstrapperStub) StartSyncingBlocks() {
-	boot.StartSyncingBlocksCalled()
+func (boot *BootstrapperStub) StartSyncingBlocks() error {
+	if boot.StartSyncingBlocksCalled != nil {
+		return boot.StartSyncingBlocksCalled()
+	}
+
+	return nil
 }
 
 // Close -

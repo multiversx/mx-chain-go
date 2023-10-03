@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,6 +20,7 @@ type vmContext struct {
 	blockChainHook      vm.BlockchainHook
 	cryptoHook          vmcommon.CryptoHook
 	validatorAccountsDB state.AccountsAdapter
+	userAccountsDB      state.AccountsAdapter
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
 	chanceComputer      nodesCoordinator.ChanceComputer
@@ -33,6 +35,7 @@ type vmContext struct {
 	logs          []*vmcommon.LogEntry
 
 	enableEpochsHandler common.EnableEpochsHandler
+	crtTransferIndex    uint32
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
@@ -41,6 +44,7 @@ type VMContextArgs struct {
 	CryptoHook          vmcommon.CryptoHook
 	InputParser         vm.ArgumentsParser
 	ValidatorAccountsDB state.AccountsAdapter
+	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	EnableEpochsHandler common.EnableEpochsHandler
 }
@@ -59,6 +63,9 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.ValidatorAccountsDB) {
 		return nil, vm.ErrNilValidatorAccountsDB
 	}
+	if check.IfNil(args.UserAccountsDB) {
+		return nil, vm.ErrNilUserAccountsDB
+	}
 	if check.IfNil(args.ChanceComputer) {
 		return nil, vm.ErrNilChanceComputer
 	}
@@ -71,6 +78,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 		cryptoHook:          args.CryptoHook,
 		inputParser:         args.InputParser,
 		validatorAccountsDB: args.ValidatorAccountsDB,
+		userAccountsDB:      args.UserAccountsDB,
 		chanceComputer:      args.ChanceComputer,
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}
@@ -161,8 +169,7 @@ func (host *vmContext) SetStorage(key []byte, value []byte) {
 
 // GetBalance returns the balance of the given address
 func (host *vmContext) GetBalance(addr []byte) *big.Int {
-	strAdr := string(addr)
-	outAcc, exists := host.outputAccounts[strAdr]
+	outAcc, exists := host.outputAccounts[string(addr)]
 	if exists {
 		actualBalance := big.NewInt(0).Add(outAcc.Balance, outAcc.BalanceDelta)
 		return actualBalance
@@ -197,6 +204,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 				BalanceDelta: big.NewInt(0),
 			}
 		}
+		outputTransfer.Index = host.NextOutputTransferIndex()
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
@@ -249,6 +257,7 @@ func (host *vmContext) Transfer(
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
+		Index:    host.NextOutputTransferIndex(),
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
@@ -414,21 +423,19 @@ func createDirectCallInput(
 	return input
 }
 
-func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte) error {
+func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
 	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
 		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
-	if callInput.CallValue.Cmp(zero) > 0 {
-		logEntry := &vmcommon.LogEntry{
-			Identifier: []byte(transferValueOnly),
-			Address:    callInput.RecipientAddr,
-			Topics:     [][]byte{sender, callInput.RecipientAddr, callInput.CallValue.Bytes()},
-			Data:       []byte{},
-		}
-		host.AddLogEntry(logEntry)
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(transferValueOnly),
+		Address:    sender,
+		Topics:     [][]byte{callInput.CallValue.Bytes(), callInput.RecipientAddr},
+		Data:       vmcommon.FormatLogDataForCall(callType, callInput.Function, callInput.Arguments),
 	}
+	host.AddLogEntry(logEntry)
 
 	return nil
 }
@@ -451,7 +458,7 @@ func (host *vmContext) DeploySystemSC(
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 
-	err := host.transferBeforeInternalExec(callInput, host.scAddress)
+	err := host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
 	if err != nil {
 		return vmcommon.ExecutionFailed, err
 	}
@@ -508,7 +515,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.transferBeforeInternalExec(callInput, sender)
+	err = host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
 	if err != nil {
 		return nil, err
 	}
@@ -597,6 +604,7 @@ func (host *vmContext) CleanCache() {
 	host.returnMessage = ""
 	host.gasRemaining = 0
 	host.logs = make([]*vmcommon.LogEntry, 0)
+	host.crtTransferIndex = 1
 }
 
 // SetGasProvided sets the provided gas
@@ -622,6 +630,19 @@ func (host *vmContext) softCleanCache() {
 	host.outputAccounts = make(map[string]*vmcommon.OutputAccount)
 	host.output = make([][]byte, 0)
 	host.returnMessage = ""
+}
+
+// UpdateCodeDeployerAddress will try to update the owner of an existing account stored in this vmContext instance.
+// Errors if the account is not found because that is a programming error
+func (host *vmContext) UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error {
+	outAcc, found := host.outputAccounts[scAddress]
+	if !found {
+		return vm.ErrInternalErrorWhileSettingNewOwner
+	}
+
+	outAcc.CodeDeployerAddress = newOwner
+
+	return nil
 }
 
 // CreateVMOutput adapts vm output and all saved data from sc run into VM Output
@@ -729,6 +750,27 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
 }
 
+// SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through
+// SC processor is not possible
+func (host *vmContext) SetOwnerOperatingOnAccount(newOwner []byte) error {
+	scAccount, err := host.userAccountsDB.LoadAccount(host.scAddress)
+	if err != nil {
+		return err
+	}
+
+	scAccountHandler, okCast := scAccount.(state.UserAccountHandler)
+	if !okCast {
+		return fmt.Errorf("%w, not a user account handler", vm.ErrWrongTypeAssertion)
+	}
+
+	if len(newOwner) != len(host.scAddress) {
+		return vm.ErrWrongNewOwnerAddress
+	}
+	scAccountHandler.SetOwnerAddress(newOwner)
+
+	return host.userAccountsDB.SaveAccount(scAccountHandler)
+}
+
 // IsValidator returns true if the validator is in eligible or waiting list
 func (host *vmContext) IsValidator(blsKey []byte) bool {
 	acc, err := host.validatorAccountsDB.GetExistingAccount(blsKey)
@@ -796,6 +838,18 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 // CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
 func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
+}
+
+// NextOutputTransferIndex returns next available output transfer index
+func (host *vmContext) NextOutputTransferIndex() uint32 {
+	index := host.crtTransferIndex
+	host.crtTransferIndex++
+	return index
+}
+
+// GetCrtTransferIndex returns the current output transfer index
+func (host *vmContext) GetCrtTransferIndex() uint32 {
+	return host.crtTransferIndex
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

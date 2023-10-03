@@ -32,7 +32,6 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 // 3. Do a ClaimDeveloperReward (cross shard call , the transaction will be executed on the source shard and the destination shard)
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
 		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
@@ -40,7 +39,8 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			PenalizedTooMuchGasEnableEpoch:                  integrationTests.UnreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -48,13 +48,14 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			PenalizedTooMuchGasEnableEpoch:                  integrationTests.UnreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
-	pathToContract := "../../wasm/testdata/counter/output/counter.wasm"
-	scAddr, owner := utils.DoDeploy(t, testContextDst, pathToContract)
+	pathToContract := "../../wasm/testdata/counter/output/counter_old.wasm"
+	scAddr, owner := utils.DoDeployOldCounter(t, testContextDst, pathToContract)
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(scAddr))
 	require.Equal(t, uint32(1), testContextDst.ShardCoordinator.ComputeId(owner))
 	gasAndFees := getZeroGasAndFees()
@@ -79,7 +80,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	utils.CheckOwnerAddr(t, testContextDst, scAddr, newOwner)
 
 	accumulatedFees := testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(850), accumulatedFees)
+	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
@@ -107,10 +108,10 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	vm.TestAccount(t, testContextDst.Accounts, sndAddr, 1, expectedBalance)
 
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(4720), accumulatedFees)
+	require.Equal(t, big.NewInt(13870), accumulatedFees)
 
 	developerFees := testContextDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(377), developerFees)
+	require.Equal(t, big.NewInt(1292), developerFees)
 
 	// call get developer rewards
 	gasLimit = 500
@@ -123,14 +124,15 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	expectedBalance = big.NewInt(9770)
+	expectedBalance = big.NewInt(5000)
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
 
 	accumulatedFees = testContextSource.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(230), accumulatedFees)
+	require.Equal(t, big.NewInt(5000), accumulatedFees)
 
 	developerFees = testContextSource.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(0), developerFees)
+	require.Equal(t, big.NewInt(477), developerFees)
+
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextDst)
 
 	// execute claim on destination shard
@@ -143,7 +145,7 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
-	expectedBalance = big.NewInt(9771 + 376 + currentSCDevBalance.Int64())
+	expectedBalance = big.NewInt(5001 + 376 + currentSCDevBalance.Int64())
 	utils.TestAccount(t, testContextSource.Accounts, newOwner, 1, expectedBalance)
 
 }

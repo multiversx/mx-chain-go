@@ -21,12 +21,14 @@ type HeadersPoolConfig struct {
 
 // DBConfig will map the database configuration
 type DBConfig struct {
-	FilePath          string
-	Type              string
-	BatchDelaySeconds int
-	MaxBatchSize      int
-	MaxOpenFiles      int
-	UseTmpAsFilePath  bool
+	FilePath            string
+	Type                string
+	BatchDelaySeconds   int
+	MaxBatchSize        int
+	MaxOpenFiles        int
+	UseTmpAsFilePath    bool
+	ShardIDProviderType string
+	NumShards           int32
 }
 
 // StorageConfig will map the storage unit configuration
@@ -218,6 +220,7 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
+	Redundancy          RedundancyConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -292,6 +295,7 @@ type FacadeConfig struct {
 type StateTriesConfig struct {
 	CheckpointRoundsModulus     uint
 	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
@@ -421,6 +425,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -566,7 +571,8 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *p2pConfig.P2PConfig
+	MainP2pConfig            *p2pConfig.P2PConfig
+	FullArchiveP2pConfig     *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -583,7 +589,8 @@ type ConfigurationPathsHolder struct {
 	Ratings                  string
 	Preferences              string
 	External                 string
-	P2p                      string
+	MainP2p                  string
+	FullArchiveP2p           string
 	GasScheduleDirectoryName string
 	Nodes                    string
 	Genesis                  string
@@ -614,4 +621,9 @@ type RequesterConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
+}
+
+// RedundancyConfig represents the config options to be used when setting the redundancy configuration
+type RedundancyConfig struct {
+	MaxRoundsOfInactivityAccepted int
 }

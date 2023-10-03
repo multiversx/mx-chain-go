@@ -3,8 +3,8 @@ package polynetworkbridge
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -30,13 +30,17 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
 		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
 	}
-	nodes := integrationTests.CreateNodesWithEnableEpochs(
+	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
+	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
+	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		enableEpochs,
+		vmConfig,
 	)
 
 	ownerNode := nodes[0]
@@ -67,7 +71,6 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	nonce++
 
 	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
 
 	blockChainHook := ownerNode.BlockchainHook
@@ -77,7 +80,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		factory.WasmVirtualMachine,
 	)
 
-	scCode, err := ioutil.ReadFile(tokenManagerPath)
+	scCode, err := os.ReadFile(tokenManagerPath)
 	if err != nil {
 		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
 	}
@@ -107,7 +110,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 8, nonce, round, idxProposers)
 
 	scQuery := &process.SCQuery{
 		CallerAddr: ownerNode.OwnAccount.Address,
@@ -115,7 +118,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		FuncName:   "getWrappedEgldTokenIdentifier",
 		Arguments:  [][]byte{},
 	}
-	vmOutput, err := ownerNode.SCQueryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := ownerNode.SCQueryService.ExecuteQuery(scQuery)
 	require.Nil(t, err)
 	require.NotNil(t, vmOutput)
 	require.NotZero(t, len(vmOutput.ReturnData[0]))
@@ -135,7 +138,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		integrationTests.AdditionalGasLimit,
 	)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 6, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
 
 	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, valueToBurn)
 }

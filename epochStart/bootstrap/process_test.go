@@ -32,9 +32,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
@@ -77,7 +79,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -100,11 +102,12 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger: &p2pmocks.MessengerStub{
+		MainMessenger: &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
 			},
 		},
+		FullArchiveMessenger: &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
@@ -241,11 +244,21 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilShardCoordinator))
 	})
-	t.Run("nil messenger", func(t *testing.T) {
+	t.Run("nil main messenger", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
-		args.Messenger = nil
+		args.MainMessenger = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.FullArchiveMessenger = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
@@ -1003,7 +1016,6 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		},
 	}
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1023,7 +1035,6 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1050,7 +1061,6 @@ func TestSyncUserAccountsState(t *testing.T) {
 	}
 
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		false,
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
@@ -1242,7 +1252,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1376,7 +1386,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1670,14 +1680,14 @@ func TestRequestAndProcessing(t *testing.T) {
 		assert.Error(t, err)
 		assert.True(t, strings.Contains(err.Error(), nodesCoordinator.ErrInvalidNumberOfShards.Error()))
 	})
-	t.Run("failed to create messenger topic", func(t *testing.T) {
+	t.Run("failed to create main messenger topic", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
 		args.GenesisNodesConfig = getNodesConfigMock(1)
 
 		expectedErr := errors.New("expected error")
-		args.Messenger = &p2pmocks.MessengerStub{
+		args.MainMessenger = &p2pmocks.MessengerStub{
 			CreateTopicCalled: func(topic string, identifier bool) error {
 				return expectedErr
 			},

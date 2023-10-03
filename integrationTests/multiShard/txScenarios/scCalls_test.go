@@ -2,7 +2,7 @@ package txScenarios
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -24,8 +24,8 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 
 	net.Increment()
 
-	scPath := "./../../vm/wasm/testdata/counter/counter.wasm"
-	scCode, err := ioutil.ReadFile(scPath)
+	scPath := "./../../vm/wasm/testdata/counter/counter_old.wasm"
+	scCode, err := os.ReadFile(scPath)
 
 	if err != nil {
 		panic(fmt.Sprintf("cannotReadContractCode: %s", err))

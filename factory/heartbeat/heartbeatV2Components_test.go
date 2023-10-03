@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -43,7 +44,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 		},
 		CoreComponents: &factory.CoreComponentsHolderStub{
 			InternalMarshalizerCalled: func() marshal.Marshalizer {
-				return &testscommon.MarshalizerStub{}
+				return &marshallerMock.MarshalizerStub{}
 			},
 			HardforkTriggerPubKeyCalled: func() []byte {
 				return []byte("hardfork pub key")
@@ -64,7 +65,8 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			BlockChain: &testscommon.ChainHandlerStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
-			Messenger: &p2pmocks.MessengerStub{},
+			Messenger:                        &p2pmocks.MessengerStub{},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		},
 		CryptoComponents: &testsMocks.CryptoComponentsStub{
 			PrivKey:                 &cryptoMocks.PrivateKeyStub{},
@@ -78,7 +80,8 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
 			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
-			PeerMapper:                    &testsMocks.PeerShardMapperStub{},
+			MainPeerMapper:                &testsMocks.PeerShardMapperStub{},
+			FullArchivePeerMapper:         &testsMocks.PeerShardMapperStub{},
 			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
@@ -188,7 +191,19 @@ func TestNewHeartbeatV2ComponentsFactory(t *testing.T) {
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.Nil(t, hcf)
-		assert.Equal(t, errorsMx.ErrNilMessenger, err)
+		assert.True(t, errors.Is(err, errorsMx.ErrNilMessenger))
+	})
+	t.Run("nil FullArchiveNetworkMessenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
+			Messenger:                        &p2pmocks.MessengerStub{},
+			FullArchiveNetworkMessengerField: nil,
+		}
+		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
+		assert.Nil(t, hcf)
+		assert.True(t, errors.Is(err, errorsMx.ErrNilMessenger))
 	})
 	t.Run("nil CryptoComponents should error", func(t *testing.T) {
 		t.Parallel()
@@ -234,7 +249,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
-	t.Run("messenger does not have PeerAuthenticationTopic and fails to create it", func(t *testing.T) {
+	t.Run("main messenger does not have PeerAuthenticationTopic and fails to create it", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2ComponentsFactoryArgs()
@@ -255,6 +270,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					return nil
 				},
 			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
@@ -264,7 +280,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		assert.Nil(t, hc)
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("messenger does not have HeartbeatV2Topic and fails to create it", func(t *testing.T) {
+	t.Run("main messenger does not have HeartbeatV2Topic and fails to create it", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockHeartbeatV2ComponentsFactoryArgs()
@@ -281,6 +297,65 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					return nil
 				},
 			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
+		}
+		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
+		assert.NotNil(t, hcf)
+		assert.NoError(t, err)
+
+		hc, err := hcf.Create()
+		assert.Nil(t, hc)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("full archive messenger does not have PeerAuthenticationTopic and fails to create it", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{
+				HasTopicCalled: func(name string) bool {
+					if name == common.PeerAuthenticationTopic {
+						return false
+					}
+					assert.Fail(t, "should not have been called")
+					return true
+				},
+				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+					if name == common.PeerAuthenticationTopic {
+						return expectedErr
+					}
+					assert.Fail(t, "should not have been called")
+					return nil
+				},
+			},
+			Messenger: &p2pmocks.MessengerStub{},
+		}
+		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
+		assert.NotNil(t, hcf)
+		assert.NoError(t, err)
+
+		hc, err := hcf.Create()
+		assert.Nil(t, hc)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("full archive messenger does not have HeartbeatV2Topic and fails to create it", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{
+				HasTopicCalled: func(name string) bool {
+					return name != common.HeartbeatV2Topic
+				},
+				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+					if name == common.HeartbeatV2Topic {
+						return expectedErr
+					}
+					assert.Fail(t, "should not have been called")
+					return nil
+				},
+			},
+			Messenger: &p2pmocks.MessengerStub{},
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
@@ -411,7 +486,8 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 			EpochNotifier:                 processComp.EpochStartNotifier(),
 			NodeRedundancyHandlerInternal: processComp.NodeRedundancyHandler(),
 			HardforkTriggerField:          processComp.HardforkTrigger(),
-			PeerMapper:                    processComp.PeerShardMapper(),
+			MainPeerMapper:                processComp.PeerShardMapper(),
+			FullArchivePeerMapper:         processComp.FullArchivePeerShardMapper(),
 			ShardCoordinatorCalled: func() sharding.Coordinator {
 				cnt++
 				if cnt > 3 {
@@ -438,6 +514,7 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 					return expectedErr
 				},
 			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
@@ -457,7 +534,22 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 			}
 		}()
 
+		topicsCreated := make(map[string][]string)
 		args := createMockHeartbeatV2ComponentsFactoryArgs()
+		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
+			Messenger: &p2pmocks.MessengerStub{
+				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+					topicsCreated["main"] = append(topicsCreated["main"], name)
+					return nil
+				},
+			},
+			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{
+				CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+					topicsCreated["full_archive"] = append(topicsCreated["full_archive"], name)
+					return nil
+				},
+			},
+		}
 		args.Prefs.Preferences.FullArchive = true // coverage only
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
@@ -467,6 +559,14 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		assert.NotNil(t, hc)
 		assert.NoError(t, err)
 		assert.NoError(t, hc.Close())
+
+		assert.Equal(t, 2, len(topicsCreated))
+		assert.Equal(t, 2, len(topicsCreated["main"]))
+		assert.Equal(t, 2, len(topicsCreated["full_archive"]))
+		for _, messengerTopics := range topicsCreated {
+			assert.Contains(t, messengerTopics, common.HeartbeatV2Topic)
+			assert.Contains(t, messengerTopics, common.PeerAuthenticationTopic)
+		}
 	})
 }
 

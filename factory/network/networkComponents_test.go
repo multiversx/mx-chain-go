@@ -6,7 +6,6 @@ import (
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
-	"github.com/multiversx/mx-chain-go/p2p"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
@@ -49,6 +48,16 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
 		require.Nil(t, ncf)
 		require.Equal(t, errorsMx.ErrNilCryptoComponentsHolder, err)
+	})
+	t.Run("invalid node operation mode should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetNetworkFactoryArgs()
+		args.NodeOperationMode = "invalid"
+
+		ncf, err := networkComp.NewNetworkComponentsFactory(args)
+		require.Equal(t, errorsMx.ErrInvalidNodeOperationMode, err)
+		require.Nil(t, ncf)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -142,7 +151,6 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 
 		args := componentsMock.GetNetworkFactoryArgs()
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
-		ncf.SetListenAddress(p2p.ListenLocalhostAddrWithIp4AndTcp)
 
 		nc, err := ncf.Create()
 		require.NoError(t, err)
@@ -157,8 +165,9 @@ func TestNetworkComponents_Close(t *testing.T) {
 	args := componentsMock.GetNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 
-	nc, _ := ncf.Create()
+	nc, err := ncf.Create()
+	require.Nil(t, err)
 
-	err := nc.Close()
+	err = nc.Close()
 	require.NoError(t, err)
 }

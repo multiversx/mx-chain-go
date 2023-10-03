@@ -37,8 +37,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -220,16 +220,11 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return tokens, nil
 	}
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +240,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 			continue
 		}
 
-		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
 		if !okGet {
 			continue
 		}
@@ -267,16 +262,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	return tokens, nil
 }
 
-func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder, userAccount state.UserAccountHandler) (*systemSmartContracts.ESDTDataV2, bool) {
+func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContracts.ESDTDataV2, bool) {
 	esdtToken := &systemSmartContracts.ESDTDataV2{}
-	suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-	value, errVal := leaf.ValueWithoutSuffix(suffix)
-	if errVal != nil {
-		log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-		return nil, false
-	}
 
-	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, value)
+	err := n.coreComponents.InternalMarshalizer().Unmarshal(esdtToken, leaf.Value())
 	if err != nil {
 		log.Warn("cannot unmarshal esdt data", "err", err)
 		return nil, false
@@ -301,30 +290,18 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return map[string]string{}, api.BlockInfo{}, nil
 	}
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
 
 	mapToReturn := make(map[string]string)
 	for leaf := range chLeaves.LeavesChan {
-		suffix := append(leaf.Key(), userAccount.AddressBytes()...)
-		value, errVal := leaf.ValueWithoutSuffix(suffix)
-		if errVal != nil {
-			log.Warn("cannot get value without suffix", "error", errVal, "key", leaf.Key())
-			continue
-		}
-
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(value)
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
 	}
 
 	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
@@ -475,16 +452,11 @@ func (n *Node) getTokensIDsWithFilter(
 		return tokens, api.BlockInfo{}, nil
 	}
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -495,7 +467,7 @@ func (n *Node) getTokensIDsWithFilter(
 			continue
 		}
 
-		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf, userAccount)
+		esdtToken, okGet := n.getEsdtDataFromLeaf(leaf)
 		if !okGet {
 			continue
 		}
@@ -577,9 +549,10 @@ func (n *Node) GetTokenSupply(token string) (*api.ESDTSupply, error) {
 	}
 
 	return &api.ESDTSupply{
-		Supply: bigToString(esdtSupply.Supply),
-		Burned: bigToString(esdtSupply.Burned),
-		Minted: bigToString(esdtSupply.Minted),
+		Supply:           bigToString(esdtSupply.Supply),
+		Burned:           bigToString(esdtSupply.Burned),
+		Minted:           bigToString(esdtSupply.Minted),
+		RecomputedSupply: esdtSupply.RecomputedSupply,
 	}, nil
 }
 
@@ -616,16 +589,11 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	esdtPrefix := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
 	lenESDTPrefix := len(esdtPrefix)
 
-	rootHash, err := userAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = userAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -1027,7 +995,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
-func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (n *Node) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
@@ -1124,9 +1092,9 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetConnectedPeersRatings returns the connected peers ratings
-func (n *Node) GetConnectedPeersRatings() string {
-	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
+// GetConnectedPeersRatingsOnMainNetwork returns the connected peers ratings on the main network
+func (n *Node) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings(n.networkComponents.NetworkMessenger())
 }
 
 // GetEpochStartDataAPI returns epoch start data of a given epoch
@@ -1368,9 +1336,13 @@ func (n *Node) GetProofDataTrie(rootHash string, address string, key string) (*c
 		return nil, nil, err
 	}
 
-	dataTrieProofResponse, err := n.getProof(dataTrieRootHash, keyBytes)
+	dataTrieKey := n.coreComponents.Hasher().Compute(string(keyBytes))
+	dataTrieProofResponse, err := n.getProof(dataTrieRootHash, dataTrieKey)
 	if err != nil {
-		return nil, nil, err
+		dataTrieProofResponse, err = n.getProof(dataTrieRootHash, keyBytes)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	dataTrieProofResponse.Value = value
@@ -1396,6 +1368,21 @@ func (n *Node) VerifyProof(rootHash string, address string, proof [][]byte) (boo
 	}
 
 	return mpv.VerifyProof(rootHashBytes, key, proof)
+}
+
+// IsDataTrieMigrated returns true if the data trie for the given address is migrated
+func (n *Node) IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error) {
+	accountHandler, _, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		return false, err
+	}
+
+	acc, ok := accountHandler.(accountHandlerWithDataTrieMigrationStatus)
+	if !ok {
+		return false, fmt.Errorf("wrong type assertion for address %s, account type %T", address, accountHandler)
+	}
+
+	return acc.IsDataTrieMigrated()
 }
 
 func (n *Node) getRootHashAndAddressAsBytes(rootHash string, address string) ([]byte, []byte, error) {
