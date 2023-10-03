@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -22,6 +21,44 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
+
+func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
+		config.EnableEpochs{
+			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
+		})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+
+	newOwner := []byte("12345678901234567890123456789112")
+	gasLimit := uint64(1000)
+
+	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
+	tx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddress, gasPrice, gasLimit, txData)
+	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, returnCode)
+
+	_, err = testContext.Accounts.Commit()
+	require.Nil(t, err)
+
+	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
+
+	expectedBalance := big.NewInt(87250)
+	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
+
+	// check accumulated fees
+	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(850), accumulatedFees)
+
+	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
+	require.Equal(t, big.NewInt(0), developerFees)
+}
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
@@ -49,15 +86,15 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(88180)
+	expectedBalance := big.NewInt(78100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(850), accumulatedFees)
+	require.Equal(t, big.NewInt(10000), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(0), developerFees)
+	require.Equal(t, big.NewInt(915), developerFees)
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
@@ -120,7 +157,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(79030)
+	expectedBalance := big.NewInt(78100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -156,7 +193,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(100000)
+	expectedBalance := big.NewInt(99070)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -191,7 +228,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(88190)
+	expectedBalance := big.NewInt(87260)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -207,7 +244,8 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
 		config.EnableEpochs{
-			CleanUpInformativeSCRsEnableEpoch: 10,
+			CleanUpInformativeSCRsEnableEpoch: integrationTests.UnreachableEpoch,
+			SCProcessorV2EnableEpoch:          integrationTests.UnreachableEpoch,
 		}, shardCoord)
 	require.Nil(t, err)
 	defer testContext.Close()

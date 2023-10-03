@@ -3,8 +3,8 @@ package txScenarios
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -31,8 +31,8 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scPath := "./../../vm/wasm/testdata/counter/counter.wasm"
-	scCode, err := ioutil.ReadFile(scPath)
+	scPath := "./../../vm/wasm/testdata/counter/counter_old.wasm"
+	scCode, err := os.ReadFile(scPath)
 
 	if err != nil {
 		panic(fmt.Sprintf("cannotReadContractCode: %s", err))

@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -53,8 +53,13 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := factory.NewPersisterFactory(dbConfig)
-	tempDir, err := ioutil.TempDir("", "integrationTest")
+	dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	tempDir, err := os.MkdirTemp("", "integrationTest")
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +108,12 @@ func RunDelegationStressTest(
 	}
 
 	delegationAddr, err := node.BlockchainHook.NewAddress(node.OwnAccount.Address, node.OwnAccount.Nonce, []byte{5, 0})
-	log.Debug("delegation contract", "address", integrationTests.TestAddressPubkeyConverter.Encode(delegationAddr))
+	encodedDelegationAddr, err := integrationTests.TestAddressPubkeyConverter.Encode(delegationAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("delegation contract", "address", encodedDelegationAddr)
 
 	err = deployDelegationSC(node, delegationFilename)
 	if err != nil {
@@ -149,14 +159,14 @@ func RunDelegationStressTest(
 					getClaimableRewards.Arguments = [][]byte{copiedAddresses[j]}
 					getUserStakeByType.Arguments = [][]byte{copiedAddresses[j]}
 
-					_, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
+					_, _, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
 						mutExecutionError.Unlock()
 					}
 
-					_, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
+					_, _, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
@@ -208,7 +218,7 @@ func deployDelegationSC(node *integrationTests.TestProcessorNode, delegationFile
 	blocksBeforeUnBond := 60
 	value := big.NewInt(10)
 
-	contractBytes, err := ioutil.ReadFile(delegationFilename)
+	contractBytes, err := os.ReadFile(delegationFilename)
 	if err != nil {
 		return err
 	}

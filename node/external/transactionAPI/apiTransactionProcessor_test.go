@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreMock "github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -46,7 +45,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        &dblookupextMock.HistoryRepositoryStub{},
 		StorageService:           &storageStubs.ChainStorerStub{},
@@ -446,7 +445,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:         &mock.ShardCoordinatorMock{},
 		HistoryRepository:        historyRepo,
 		StorageService:           chainStorer,
@@ -749,6 +748,7 @@ func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransact
 	tx := &transaction.Transaction{
 		SndAddr: []byte(sender),
 		Nonce:   nonce,
+		Value:   big.NewInt(100000 + int64(nonce)),
 	}
 
 	return &txcache.WrappedTransaction{
@@ -805,11 +805,14 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			}
 		},
 	}
-	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
+		},
+		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
 			return string(pkBytes)
 		},
 	}
@@ -822,11 +825,13 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPoolForSender(sender, "sender")
+	res, err := atp.GetTransactionsPoolForSender(sender, "sender,value")
 	require.NoError(t, err)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
+	expectedValues := []string{"100001", "100002", "100003", "100004", "100005"}
 	for i, tx := range res.Transactions {
 		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
+		require.Equal(t, expectedValues[i], tx.TxFields[valueField])
 		require.Equal(t, sender, tx.TxFields["sender"])
 	}
 
@@ -871,12 +876,12 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 			}
 		},
 	}
-	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 	}
 	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
@@ -945,12 +950,12 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			}
 		},
 	}
-	args.AddressPubKeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubKeyConverter = &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return []byte(humanReadable), nil
 		},
-		EncodeCalled: func(pkBytes []byte) string {
-			return string(pkBytes)
+		EncodeCalled: func(pkBytes []byte) (string, error) {
+			return string(pkBytes), nil
 		},
 	}
 	args.ShardCoordinator = &processMocks.ShardCoordinatorStub{
@@ -1012,7 +1017,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		RoundDuration:            0,
 		GenesisTime:              time.Time{},
 		Marshalizer:              &mock.MarshalizerFake{},
-		AddressPubKeyConverter:   &mock.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:         createShardCoordinator(),
 		HistoryRepository:        historyRepo,
 		StorageService:           chainStorer,
@@ -1082,11 +1087,10 @@ func TestPrepareUnsignedTx(t *testing.T) {
 	}
 
 	n, _, _, _ := createAPITransactionProc(t, 0, true)
-	n.txUnmarshaller.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
-	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, &coreMock.LoggerMock{})
+	n.txUnmarshaller.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, "erd")
+	n.addressPubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addrSize, "erd")
 
-	scrResult1, err := n.txUnmarshaller.prepareUnsignedTx(scr1)
-	assert.Nil(t, err)
+	scrResult1 := n.txUnmarshaller.prepareUnsignedTx(scr1)
 	expectedScr1 := &transaction.ApiTransactionResult{
 		Tx:             scr1,
 		Nonce:          1,
@@ -1107,8 +1111,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 		OriginalSender: bytes.Repeat([]byte{7}, addrSize),
 	}
 
-	scrResult2, err := n.txUnmarshaller.prepareUnsignedTx(scr2)
-	assert.Nil(t, err)
+	scrResult2 := n.txUnmarshaller.prepareUnsignedTx(scr2)
 	expectedScr2 := &transaction.ApiTransactionResult{
 		Tx:             scr2,
 		Nonce:          3,

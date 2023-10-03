@@ -85,9 +85,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
 	}
-	if check.IfNil(args.StatusCoreComponents) {
-		return nil, errors.ErrNilStatusCoreComponents
-	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
@@ -165,12 +162,15 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	unitOpener := createUnitOpener(
+	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
 		storage.DefaultEpochString,
 		storage.DefaultShardString,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	dataSyncerFactory := bootstrap.NewScheduledDataSyncerFactory()
 
@@ -188,7 +188,8 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
-		Messenger:                  bcf.networkComponents.NetworkMessenger(),
+		MainMessenger:              bcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:       bcf.networkComponents.FullArchiveNetworkMessenger(),
 		GeneralConfig:              bcf.config,
 		PrefsConfig:                bcf.prefConfig.Preferences,
 		FlagsConfig:                bcf.flagsConfig,
@@ -337,7 +338,7 @@ func createUnitOpener(
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
 	defaultEpochString string,
 	defaultShardString string,
-) storage.UnitOpenerHandler {
+) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,

@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/resolvers"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -24,8 +24,8 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateMetaHeader(headerNonce, integrationTests.ChainID)
@@ -44,9 +44,9 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingShard(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	requester, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -61,8 +61,8 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateMetaHeader(headerNonce, integrationTests.ChainID)
@@ -81,9 +81,9 @@ func TestRequestResolveMetaHeadersByHashRequestingMetaResolvingShard(t *testing.
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	requester, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -98,8 +98,8 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateMetaHeader(headerNonce, integrationTests.ChainID)
@@ -118,9 +118,9 @@ func TestRequestResolveMetaHeadersByHashRequestingShardResolvingMeta(t *testing.
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	requester, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -137,8 +137,8 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateMetaHeader(headerNonce, integrationTests.ChainID)
@@ -157,11 +157,11 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingShard(t *testin
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	requester, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerRequester, ok := requester.(requestHandlers.HeaderRequester)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
+	err = headerRequester.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -176,8 +176,8 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardId, core.MetachainShardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateMetaHeader(headerNonce, integrationTests.ChainID)
@@ -196,11 +196,11 @@ func TestRequestResolveMetaHeadersByNonceRequestingMetaResolvingShard(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	requester, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerRequester, ok := requester.(requestHandlers.HeaderRequester)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
+	err = headerRequester.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()
@@ -215,8 +215,8 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 	shardId := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(core.MetachainShardId, shardId)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	headerNonce := uint64(0)
 	header, hash := resolvers.CreateMetaHeader(headerNonce, integrationTests.ChainID)
@@ -235,11 +235,11 @@ func TestRequestResolveMetaHeadersByNonceRequestingShardResolvingMeta(t *testing
 	)
 
 	//request by hash should work
-	resolver, err := nRequester.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	requester, err := nRequester.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	resolvers.Log.LogIfError(err)
-	headerResolver, ok := resolver.(dataRetriever.HeaderResolver)
+	headerRequester, ok := requester.(requestHandlers.HeaderRequester)
 	assert.True(t, ok)
-	err = headerResolver.RequestDataFromNonce(headerNonce, 0)
+	err = headerRequester.RequestDataFromNonce(headerNonce, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()

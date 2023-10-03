@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -7,8 +6,8 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -41,11 +40,16 @@ const setGuardianGas = uint64(250000)
 const transferGas = uint64(1000)
 
 var (
-	alice         = []byte("alice-12345678901234567890123456")
-	bob           = []byte("bob-1234567890123456789012345678")
-	charlie       = []byte("charlie-123456789012345678901234")
-	david         = []byte("david-12345678901234567890123456")
-	allAddresses  = [][]byte{alice, bob, charlie, david}
+	alice        = []byte("alice-12345678901234567890123456")
+	bob          = []byte("bob-1234567890123456789012345678")
+	charlie      = []byte("charlie-123456789012345678901234")
+	david        = []byte("david-12345678901234567890123456")
+	allAddresses = map[string][]byte{
+		"alice":   alice,
+		"bob":     bob,
+		"charlie": charlie,
+		"david":   david,
+	}
 	uuid          = []byte("uuid")
 	transferValue = big.NewInt(2000000)
 	initialMint   = big.NewInt(1000000000000000000)
@@ -92,7 +96,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	require.Nil(tb, err)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                   unreachableEpoch,
 			WaitingListFixEnableEpoch:               unreachableEpoch,
@@ -102,6 +106,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
+		integrationTests.GetDefaultRoundsConfig(),
 	)
 	require.Nil(tb, err)
 
@@ -109,7 +114,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 }
 
 func getLatestGasScheduleVersion(tb testing.TB, directoryToSearch string) string {
-	fileInfoSlice, err := ioutil.ReadDir(directoryToSearch)
+	fileInfoSlice, err := os.ReadDir(directoryToSearch)
 	require.Nil(tb, err)
 
 	gasSchedulePrefix := "gasScheduleV"
@@ -136,7 +141,10 @@ func getLatestGasScheduleVersion(tb testing.TB, directoryToSearch string) string
 	return gasSchedule
 }
 
-func mintAddress(tb testing.TB, testContext *vm.VMTestContext, address []byte, value *big.Int) {
+func mintAddress(tb testing.TB, testContext *vm.VMTestContext, address []byte, value *big.Int, addressDescription string) {
+	addressString := integrationTests.TestAddressPubkeyConverter.SilentEncode(address, log)
+	log.Info("minting "+addressDescription+" address", "address", addressString, "value", value)
+
 	accnt, err := testContext.Accounts.LoadAccount(address)
 	require.Nil(tb, err)
 
@@ -327,7 +335,9 @@ func testGuardianData(
 	}
 
 	require.NotNil(tb, guardian)
-	assert.Equal(tb, info.address, guardian.Address)
+	expectedAddress := integrationTests.TestAddressPubkeyConverter.SilentEncode(info.address, log)
+	providedAddress := integrationTests.TestAddressPubkeyConverter.SilentEncode(guardian.Address, log)
+	assert.Equal(tb, expectedAddress, providedAddress)
 	assert.Equal(tb, info.uuid, guardian.ServiceUID)
 	assert.Equal(tb, info.epoch, guardian.ActivationEpoch)
 }
@@ -345,7 +355,7 @@ func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *tes
 	defer testContext.Close()
 
 	// alice is the user, bob is the guardian
-	mintAddress(t, testContext, alice, initialMint)
+	mintAddress(t, testContext, alice, initialMint, "alice")
 
 	expectedStatus := createUnGuardedAccountStatus()
 	testGuardianStatus(t, testContext, alice, expectedStatus)
@@ -362,7 +372,7 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	defer testContext.Close()
 
 	// alice is the user, bob is the guardian
-	mintAddress(t, testContext, alice, initialMint)
+	mintAddress(t, testContext, alice, initialMint, "alice")
 
 	expectedStatus := createUnGuardedAccountStatus()
 	testGuardianStatus(t, testContext, alice, expectedStatus)
@@ -388,9 +398,11 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	event := allLogs[0].LogHandler.GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
-		Address:    alice,
-		Identifier: []byte(core.BuiltInFunctionSetGuardian),
-		Topics:     [][]byte{bob, uuid},
+		Address:        alice,
+		Identifier:     []byte(core.BuiltInFunctionSetGuardian),
+		Topics:         [][]byte{bob, uuid},
+		Data:           nil,
+		AdditionalData: nil,
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 
@@ -418,10 +430,11 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	event = allLogs[0].LogHandler.GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
-		Address:    alice,
-		Identifier: []byte(core.SignalErrorOperation),
-		Topics:     [][]byte{alice, []byte("account has no active guardian")},
-		Data:       []byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e"),
+		Address:        alice,
+		Identifier:     []byte(core.SignalErrorOperation),
+		Topics:         [][]byte{alice, []byte("account has no active guardian")},
+		Data:           []byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e"),
+		AdditionalData: [][]byte{[]byte("@6163636f756e7420686173206e6f2061637469766520677561726469616e")},
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 
@@ -446,8 +459,10 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 
 	event = allLogs[0].LogHandler.GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
-		Address:    alice,
-		Identifier: []byte(core.BuiltInFunctionGuardAccount),
+		Address:        alice,
+		Identifier:     []byte(core.BuiltInFunctionGuardAccount),
+		Data:           nil,
+		AdditionalData: nil,
 	}, event)
 	testContext.TxsLogsProcessor.Clean()
 }
@@ -457,7 +472,7 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 	defer testContext.Close()
 
 	// alice is the user, bob is the guardian, charlie is the receiver, david is the wrong guardian
-	mintAddress(t, testContext, alice, initialMint)
+	mintAddress(t, testContext, alice, initialMint, "alice")
 
 	expectedStatus := createUnGuardedAccountStatus()
 	testGuardianStatus(t, testContext, alice, expectedStatus)
@@ -582,8 +597,8 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 	defer testContext.Close()
 
 	// step 1 -  mint addresses
-	for _, address := range allAddresses {
-		mintAddress(t, testContext, address, initialMint)
+	for addressDescription, address := range allAddresses {
+		mintAddress(t, testContext, address, initialMint, addressDescription)
 	}
 	expectedStatus := createUnGuardedAccountStatus()
 	for _, address := range allAddresses {
@@ -906,8 +921,8 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 	defer testContext.Close()
 
 	// step 1 -  mint addresses
-	for _, address := range allAddresses {
-		mintAddress(t, testContext, address, initialMint)
+	for addressDescription, address := range allAddresses {
+		mintAddress(t, testContext, address, initialMint, addressDescription)
 	}
 	expectedStatus := createUnGuardedAccountStatus()
 	for _, address := range allAddresses {
@@ -1026,8 +1041,8 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	defer testContext.Close()
 
 	// step 1 -  mint addresses
-	for _, address := range allAddresses {
-		mintAddress(t, testContext, address, initialMint)
+	for addressDescription, address := range allAddresses {
+		mintAddress(t, testContext, address, initialMint, addressDescription)
 	}
 	expectedStatus := createUnGuardedAccountStatus()
 	for _, address := range allAddresses {

@@ -91,6 +91,9 @@ func TestPidQueue_PromoteTwoElementsShouldWork(t *testing.T) {
 	pq.Push(pid0)
 	pq.Push(pid1)
 
+	pq.Promote(-1) // early return
+	pq.Promote(2)  // early return
+
 	pq.Promote(0)
 
 	assert.Equal(t, 0, pq.IndexOf(pid1))
@@ -235,4 +238,14 @@ func TestPidQueue_TestConcurrency(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestPidQueue_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pq *pidQueue
+	assert.True(t, pq.IsInterfaceNil())
+
+	pq = NewPidQueue()
+	assert.False(t, pq.IsInterfaceNil())
 }

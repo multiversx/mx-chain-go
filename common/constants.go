@@ -5,7 +5,16 @@ import (
 	"time"
 )
 
-// PeerType represents the type of a peer
+// NodeOperation defines the p2p node operation
+type NodeOperation string
+
+// NormalOperation defines the normal mode operation: either seeder, observer or validator
+const NormalOperation NodeOperation = "normal operation"
+
+// FullArchiveMode defines the node operation as a full archive mode
+const FullArchiveMode NodeOperation = "full archive mode"
+
+// PeerType represents the type of peer
 type PeerType string
 
 // EligibleList represents the list of peers who participate in consensus inside a shard
@@ -603,6 +612,9 @@ const (
 
 	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
 	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+
+	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
 )
 
 const (
@@ -648,9 +660,6 @@ const MetricP2PIntraShardObservers = "erd_p2p_intra_shard_observers"
 
 // MetricP2PCrossShardObservers is the metric that outputs the cross-shard connected observers
 const MetricP2PCrossShardObservers = "erd_p2p_cross_shard_observers"
-
-// MetricP2PFullHistoryObservers is the metric that outputs the full-history connected observers
-const MetricP2PFullHistoryObservers = "erd_p2p_full_history_observers"
 
 // MetricP2PUnknownPeers is the metric that outputs the unknown-shard connected peers
 const MetricP2PUnknownPeers = "erd_p2p_unknown_shard_peers"
@@ -730,6 +739,9 @@ const InvalidMessageBlacklistDuration = time.Second * 3600
 // rating to a minimum threshold due to improper messages
 const PublicKeyBlacklistDuration = time.Second * 7200
 
+// InvalidSigningBlacklistDuration defines the time to keep a peer id in blacklist if it signs a message with invalid signature
+const InvalidSigningBlacklistDuration = time.Second * 7200
+
 // MaxWaitingTimeToReceiveRequestedItem represents the maximum waiting time in seconds needed to receive the requested items
 const MaxWaitingTimeToReceiveRequestedItem = 5 * time.Second
 
@@ -766,9 +778,6 @@ const HardforkResolversIdentifier = "hardfork resolver"
 
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
-
-// GetNodeFromDBErrorString represents the string which is returned when a getting node from DB returns an error
-const GetNodeFromDBErrorString = "getNodeFromDB error"
 
 // TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
 const TimeoutGettingTrieNodes = 2 * time.Minute // to consider syncing a very large trie node of 64MB at ~1MB/s
@@ -807,6 +816,10 @@ const (
 	// TrieLeavesChannelDefaultCapacity represents the default value to be used as capacity for getting all trie leaves on
 	// a channel
 	TrieLeavesChannelDefaultCapacity = 100
+
+	// TrieLeavesChannelSyncCapacity represents the value to be used as capacity for getting main trie
+	// leaf nodes for trie sync
+	TrieLeavesChannelSyncCapacity = 1000
 )
 
 // ApiOutputFormat represents the format type returned by api
@@ -818,6 +831,28 @@ const (
 
 	// ApiOutputFormatProto outport format returns the bytes of the proto object
 	ApiOutputFormatProto ApiOutputFormat = 1
+)
+
+// BlockProcessingCutoffMode represents the type to be used to identify the mode of the block processing cutoff
+type BlockProcessingCutoffMode string
+
+const (
+	// BlockProcessingCutoffModePause represents the mode where the node will pause the processing at the given coordinates
+	BlockProcessingCutoffModePause = "pause"
+	// BlockProcessingCutoffModeProcessError represents the mode where the node will reprocess with error the block at the given coordinates
+	BlockProcessingCutoffModeProcessError = "process-error"
+)
+
+// BlockProcessingCutoffTrigger represents the trigger of the cutoff potentially used in block processing
+type BlockProcessingCutoffTrigger string
+
+const (
+	// BlockProcessingCutoffByNonce represents the cutoff by nonce
+	BlockProcessingCutoffByNonce BlockProcessingCutoffTrigger = "nonce"
+	// BlockProcessingCutoffByRound represents the cutoff by round
+	BlockProcessingCutoffByRound BlockProcessingCutoffTrigger = "round"
+	// BlockProcessingCutoffByEpoch represents the cutoff by epoch
+	BlockProcessingCutoffByEpoch BlockProcessingCutoffTrigger = "epoch"
 )
 
 // MaxIndexOfTxInMiniBlock defines the maximum index of a tx inside one mini block
@@ -846,3 +881,6 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
+
+// FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
+const FullArchiveMetricSuffix = "_full_archive"

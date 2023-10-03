@@ -46,4 +46,5 @@ func TestCommon_isLogRouteEnabled(t *testing.T) {
 		},
 	}
 	require.True(t, isLogRouteEnabled(routesConfig))
+	require.False(t, isLogRouteEnabled(config.ApiRoutesConfig{}))
 }

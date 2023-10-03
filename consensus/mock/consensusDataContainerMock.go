@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -24,8 +23,6 @@ type ConsensusCoreMock struct {
 	chronologyHandler       consensus.ChronologyHandler
 	hasher                  hashing.Hasher
 	marshalizer             marshal.Marshalizer
-	blsPrivateKey           crypto.PrivateKey
-	blsSingleSigner         crypto.SingleSigner
 	multiSignerContainer    cryptoCommon.MultiSignerContainer
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
@@ -38,7 +35,9 @@ type ConsensusCoreMock struct {
 	fallbackHeaderValidator consensus.FallbackHeaderValidator
 	nodeRedundancyHandler   consensus.NodeRedundancyHandler
 	scheduledProcessor      consensus.ScheduledProcessor
-	signatureHandler        consensus.SignatureHandler
+	messageSigningHandler   consensus.P2PSigningHandler
+	peerBlacklistHandler    consensus.PeerBlacklistHandler
+	signingHandler          consensus.SigningHandler
 }
 
 // GetAntiFloodHandler -
@@ -121,11 +120,6 @@ func (ccm *ConsensusCoreMock) SetBlockchain(blockChain data.ChainHandler) {
 	ccm.blockChain = blockChain
 }
 
-// SetSingleSigner -
-func (ccm *ConsensusCoreMock) SetSingleSigner(signer crypto.SingleSigner) {
-	ccm.blsSingleSigner = signer
-}
-
 // SetBlockProcessor -
 func (ccm *ConsensusCoreMock) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	ccm.blockProcessor = blockProcessor
@@ -181,16 +175,6 @@ func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector n
 	ccm.validatorGroupSelector = validatorGroupSelector
 }
 
-// PrivateKey -
-func (ccm *ConsensusCoreMock) PrivateKey() crypto.PrivateKey {
-	return ccm.blsPrivateKey
-}
-
-// SingleSigner returns the bls single signer stored in the ConsensusStore
-func (ccm *ConsensusCoreMock) SingleSigner() crypto.SingleSigner {
-	return ccm.blsSingleSigner
-}
-
 // PeerHonestyHandler -
 func (ccm *ConsensusCoreMock) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return ccm.peerHonestyHandler
@@ -231,14 +215,29 @@ func (ccm *ConsensusCoreMock) SetNodeRedundancyHandler(nodeRedundancyHandler con
 	ccm.nodeRedundancyHandler = nodeRedundancyHandler
 }
 
-// SignatureHandler -
-func (ccm *ConsensusCoreMock) SignatureHandler() consensus.SignatureHandler {
-	return ccm.signatureHandler
+// MessageSigningHandler -
+func (ccm *ConsensusCoreMock) MessageSigningHandler() consensus.P2PSigningHandler {
+	return ccm.messageSigningHandler
 }
 
-// SetSignatureHandler -
-func (ccm *ConsensusCoreMock) SetSignatureHandler(signatureHandler consensus.SignatureHandler) {
-	ccm.signatureHandler = signatureHandler
+// SetMessageSigningHandler -
+func (ccm *ConsensusCoreMock) SetMessageSigningHandler(messageSigningHandler consensus.P2PSigningHandler) {
+	ccm.messageSigningHandler = messageSigningHandler
+}
+
+// PeerBlacklistHandler will return the peer blacklist handler
+func (ccm *ConsensusCoreMock) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
+	return ccm.peerBlacklistHandler
+}
+
+// SigningHandler -
+func (ccm *ConsensusCoreMock) SigningHandler() consensus.SigningHandler {
+	return ccm.signingHandler
+}
+
+// SetSigningHandler -
+func (ccm *ConsensusCoreMock) SetSigningHandler(signingHandler consensus.SigningHandler) {
+	ccm.signingHandler = signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

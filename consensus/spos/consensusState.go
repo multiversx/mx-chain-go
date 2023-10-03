@@ -5,11 +5,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+// IndexOfLeaderInConsensusGroup represents the index of the leader in the consensus group
+const IndexOfLeaderInConsensusGroup = 0
 
 var log = logger.GetOrCreate("consensus/spos")
 
@@ -23,6 +28,9 @@ type ConsensusState struct {
 
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
+
+	receivedMessagesWithSignature    map[string]p2p.MessageP2P
+	mutReceivedMessagesWithSignature sync.RWMutex
 
 	RoundIndex                  int64
 	RoundTimeStamp              time.Time
@@ -63,6 +71,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.Data = nil
 
 	cns.initReceivedHeaders()
+	cns.initReceivedMessagesWithSig()
 
 	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
@@ -76,6 +85,12 @@ func (cns *ConsensusState) initReceivedHeaders() {
 	cns.mutReceivedHeaders.Lock()
 	cns.receivedHeaders = make([]data.HeaderHandler, 0)
 	cns.mutReceivedHeaders.Unlock()
+}
+
+func (cns *ConsensusState) initReceivedMessagesWithSig() {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	cns.receivedMessagesWithSignature = make(map[string]p2p.MessageP2P)
+	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
@@ -94,11 +109,27 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 	return receivedHeaders
 }
 
+// AddMessageWithSignature will add the p2p message to received list of messages
+func (cns *ConsensusState) AddMessageWithSignature(key string, message p2p.MessageP2P) {
+	cns.mutReceivedMessagesWithSignature.Lock()
+	cns.receivedMessagesWithSignature[key] = message
+	cns.mutReceivedMessagesWithSignature.Unlock()
+}
+
+// GetMessageWithSignature will get the p2p message based on key
+func (cns *ConsensusState) GetMessageWithSignature(key string) (p2p.MessageP2P, bool) {
+	cns.mutReceivedMessagesWithSignature.RLock()
+	defer cns.mutReceivedMessagesWithSignature.RUnlock()
+
+	val, ok := cns.receivedMessagesWithSignature[key]
+	return val, ok
+}
+
 // IsNodeLeaderInCurrentRound method checks if the given node is leader in the current round
 func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 	leader, err := cns.GetLeader()
 	if err != nil {
-		log.Debug("GetLeader", "error", err.Error())
+		log.Debug("IsNodeLeaderInCurrentRound.GetLeader", "error", err.Error())
 		return false
 	}
 
@@ -120,7 +151,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 		return "", ErrEmptyConsensusGroup
 	}
 
-	return cns.consensusGroup[0], nil
+	return cns.consensusGroup[IndexOfLeaderInConsensusGroup], nil
 }
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
@@ -220,7 +251,16 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 		return false
 	}
 
-	if cns.IsSelfJobDone(currentSubroundId) {
+	selfJobDone := true
+	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
+		selfJobDone = cns.IsSelfJobDone(currentSubroundId)
+	}
+	multiKeyJobDone := true
+	if cns.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundId)
+	}
+
+	if selfJobDone && multiKeyJobDone {
 		return false
 	}
 
@@ -299,4 +339,49 @@ func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 // GetData gets the Data of the consensusState
 func (cns *ConsensusState) GetData() []byte {
 	return cns.Data
+}
+
+// IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
+// is leader in the current round
+func (cns *ConsensusState) IsMultiKeyLeaderInCurrentRound() bool {
+	leader, err := cns.GetLeader()
+	if err != nil {
+		log.Debug("IsMultiKeyLeaderInCurrentRound.GetLeader", "error", err.Error())
+		return false
+	}
+
+	return cns.IsKeyManagedByCurrentNode([]byte(leader))
+}
+
+// IsLeaderJobDone method returns true if the leader job for the current subround is done and false otherwise
+func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
+	leader, err := cns.GetLeader()
+	if err != nil {
+		log.Debug("GetLeader", "error", err.Error())
+		return false
+	}
+
+	return cns.IsJobDone(leader, currentSubroundId)
+}
+
+// IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
+// the current subround and false otherwise
+func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
+	for _, validator := range cns.consensusGroup {
+		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
+			continue
+		}
+
+		if !cns.IsJobDone(validator, currentSubroundId) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ResetRoundsWithoutReceivedMessages will reset the rounds received without a message for a specified public key by
+// providing also the peer ID from the received message
+func (cns *ConsensusState) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
+	cns.keysHandler.ResetRoundsWithoutReceivedMessages(pkBytes, pid)
 }

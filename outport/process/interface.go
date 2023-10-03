@@ -4,19 +4,20 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 )
 
 // AlteredAccountsProviderHandler defines the functionality needed for provisioning of altered accounts when indexing data
 type AlteredAccountsProviderHandler interface {
-	ExtractAlteredAccountsFromPool(txPool *outport.Pool, options shared.AlteredAccountsOptions) (map[string]*outport.AlteredAccount, error)
+	ExtractAlteredAccountsFromPool(txPool *outport.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error)
 	IsInterfaceNil() bool
 }
 
 // TransactionsFeeHandler defines the functionality needed for computation of the transaction fee and gas used
 type TransactionsFeeHandler interface {
-	PutFeeAndGasUsed(pool *outport.Pool) error
+	PutFeeAndGasUsed(pool *outport.TransactionPool) error
 	IsInterfaceNil() bool
 }
 
@@ -36,14 +37,4 @@ type EconomicsDataHandler interface {
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64
-}
-
-// ExecutionOrderHandler defines the interface for the execution order handler
-type ExecutionOrderHandler interface {
-	PutExecutionOrderInTransactionPool(
-		pool *outport.Pool,
-		header data.HeaderHandler,
-		body data.BodyHandler,
-		prevHeader data.HeaderHandler,
-	) ([]string, []string, error)
 }
