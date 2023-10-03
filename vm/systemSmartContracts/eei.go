@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -24,6 +26,7 @@ type vmContext struct {
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
 	chanceComputer      nodesCoordinator.ChanceComputer
+	shardCoordinator    sharding.Coordinator
 	scAddress           []byte
 
 	storageUpdate  map[string]map[string][]byte
@@ -47,6 +50,7 @@ type VMContextArgs struct {
 	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	EnableEpochsHandler common.EnableEpochsHandler
+	ShardCoordinator    sharding.Coordinator
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -72,6 +76,9 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, vm.ErrNilShardCoordinator
+	}
 
 	vmc := &vmContext{
 		blockChainHook:      args.BlockChainHook,
@@ -81,6 +88,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 		userAccountsDB:      args.UserAccountsDB,
 		chanceComputer:      args.ChanceComputer,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		shardCoordinator:    args.ShardCoordinator,
 	}
 	vmc.CleanCache()
 
@@ -270,6 +278,63 @@ func (host *vmContext) Transfer(
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
 
 	return nil
+}
+
+// ProcessBuiltInFunction will execute process if sender and destination is same shard/sovereign
+func (host *vmContext) ProcessBuiltInFunction(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
+	vmInput := host.createVMInputIfIsIntraShardBuiltInCall(destination, sender, value, input, gasLimit)
+	if vmInput == nil {
+		return host.Transfer(destination, sender, value, input, gasLimit)
+	}
+
+	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return errors.New(vmOutput.ReturnMessage)
+	}
+
+	// add the SCR for the builtin function
+	return host.Transfer(destination, sender, value, input, gasLimit)
+}
+
+func (host *vmContext) createVMInputIfIsIntraShardBuiltInCall(destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) *vmcommon.ContractCallInput {
+	if !host.shardCoordinator.SameShard(sender, destination) {
+		return nil
+	}
+	function, arguments, err := host.inputParser.ParseData(string(input))
+	if err != nil {
+		return nil
+	}
+	if !host.blockChainHook.IsBuiltinFunctionName(function) {
+		return nil
+	}
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  sender,
+			Arguments:   arguments,
+			CallValue:   value,
+			GasProvided: gasLimit,
+			CallType:    vmData.ESDTTransferAndExecute,
+		},
+		RecipientAddr: destination,
+		Function:      function,
+	}
+
+	return vmInput
 }
 
 // GetLogs returns the logs

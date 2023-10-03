@@ -38,6 +38,7 @@ type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
+	ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
@@ -129,4 +130,6 @@ type BlockchainHook interface {
 	GetSnapshot() int
 	RevertToSnapshot(snapshot int) error
 	IsBuiltinFunctionName(functionName string) bool
+	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	IsInterfaceNil() bool
 }
