@@ -142,6 +142,9 @@ func TestTomlParser(t *testing.T) {
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
 		},
+		Redundancy: RedundancyConfig{
+			MaxRoundsOfInactivityAccepted: 3,
+		},
 	}
 	testString := `
 [MiniBlocksStorage]
@@ -236,6 +239,11 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 

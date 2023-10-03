@@ -14,7 +14,7 @@ type KeysHandlerStub struct {
 	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte)
 	GetAssociatedPidCalled                       func(pkBytes []byte) core.PeerID
 	IsOriginalPublicKeyOfTheNodeCalled           func(pkBytes []byte) bool
-	UpdatePublicKeyLivenessCalled                func(pkBytes []byte, pid core.PeerID)
+	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte, pid core.PeerID)
 }
 
 // GetHandledPrivateKey -
@@ -69,10 +69,10 @@ func (stub *KeysHandlerStub) IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool {
 	return true
 }
 
-// UpdatePublicKeyLiveness -
-func (stub *KeysHandlerStub) UpdatePublicKeyLiveness(pkBytes []byte, pid core.PeerID) {
-	if stub.UpdatePublicKeyLivenessCalled != nil {
-		stub.UpdatePublicKeyLivenessCalled(pkBytes, pid)
+// ResetRoundsWithoutReceivedMessages -
+func (stub *KeysHandlerStub) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
+	if stub.ResetRoundsWithoutReceivedMessagesCalled != nil {
+		stub.ResetRoundsWithoutReceivedMessagesCalled(pkBytes, pid)
 	}
 }
 

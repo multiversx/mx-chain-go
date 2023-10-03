@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-go/config"
 	errErd "github.com/multiversx/mx-chain-go/errors"
@@ -166,7 +165,7 @@ func TestCryptoComponentsFactory_CreateWithAutoGenerateKey(t *testing.T) {
 
 	coreComponents := componentsMock.GetCoreComponents()
 	args := componentsMock.GetCryptoArgs(coreComponents)
-	args.NoKeyProvided = true
+	args.P2pKeyPemFileName = ""
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	cc, err := ccf.Create()
@@ -266,7 +265,7 @@ func TestCryptoComponentsFactory_GetSuiteOK(t *testing.T) {
 	require.NotNil(t, suite)
 }
 
-func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArrayShouldErr(t *testing.T) {
+func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArrayShouldNotError(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := componentsMock.GetCoreComponents()
@@ -278,26 +277,28 @@ func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArraySho
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
-	require.Nil(t, cryptoParams)
-	require.Equal(t, crypto.ErrInvalidParam, err)
+	require.NotNil(t, cryptoParams)
+	require.Nil(t, err)
 }
 
-func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldErr(t *testing.T) {
+func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldNotError(t *testing.T) {
 	t.Parallel()
 
 	expectedError := errors.New("expected error")
 
 	coreComponents := componentsMock.GetCoreComponents()
 	args := componentsMock.GetCryptoArgs(coreComponents)
-	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: componentsMock.DummyLoadSkPkFromPemFile([]byte{}, "", expectedError)}
+	args.KeyLoader = &mock.KeyLoaderStub{
+		LoadKeyCalled: componentsMock.DummyLoadSkPkFromPemFile([]byte{}, "", expectedError),
+	}
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
 	suite, _ := ccf.GetSuite()
 	blockSignKeyGen := signing.NewKeyGenerator(suite)
 
 	cryptoParams, err := ccf.CreateCryptoParams(blockSignKeyGen)
-	require.Nil(t, cryptoParams)
-	require.Equal(t, expectedError, err)
+	require.NotNil(t, cryptoParams)
+	require.Nil(t, err)
 }
 
 func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
