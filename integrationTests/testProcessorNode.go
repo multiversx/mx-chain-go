@@ -48,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	hdrFactory "github.com/multiversx/mx-chain-go/factory/block"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
@@ -963,7 +964,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
-		blockChainHookImpl, _ := hooks.CreateBlockChainHook(tpn.ChainRunType, argsHook)
+		blockChainHookImpl, _ := CreateBlockChainHook(tpn.ChainRunType, argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:              *vmConfig,
 			BlockChainHook:      blockChainHookImpl,
@@ -1603,7 +1604,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	blockChainHookImpl, _ := hooks.CreateBlockChainHook(tpn.ChainRunType, argsHook)
+	blockChainHookImpl, _ := CreateBlockChainHook(tpn.ChainRunType, argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:              *vmConfig,
@@ -3560,4 +3561,29 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 			},
 		},
 	}
+}
+
+// CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
+func CreateBlockChainHook(chainRunType common.ChainRunType, args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+	factory, err := hooks.NewBlockChainHookFactory()
+	if err != nil {
+		return nil, err
+	}
+
+	var bhhc hooks.BlockChainHookHandlerCreator
+
+	switch chainRunType {
+	case common.ChainRunTypeRegular:
+		bhhc = factory
+	case common.ChainRunTypeSovereign:
+		sovereignFactory, sovErr := hooks.NewSovereignBlockChainHookFactory(factory)
+		if sovErr != nil {
+			return nil, sovErr
+		}
+		bhhc = sovereignFactory
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, chainRunType)
+	}
+
+	return bhhc.CreateBlockChainHookHandler(args)
 }

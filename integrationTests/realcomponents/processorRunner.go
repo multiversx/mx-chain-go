@@ -450,7 +450,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:       pr.StatusComponents,
 		StatusCoreComponents:   pr.StatusCoreComponents,
 		RunTypeComponents:      pr.RunTypeComponents,
-		ChainRunType:           common.ChainRunTypeRegular,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)
