@@ -170,3 +170,11 @@ type PeerBlackListCacher interface {
 	Sweep()
 	IsInterfaceNil() bool
 }
+
+// SentSignaturesTracker defines a component able to handle sent signature from self
+type SentSignaturesTracker interface {
+	StartRound()
+	SignatureSent(pkBytes []byte)
+	ReceivedActualSigners(signersPks []string)
+	IsInterfaceNil() bool
+}
