@@ -755,6 +755,12 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents) {
 		return errors.ErrNilRunTypeComponents
 	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperCreator()) {
+		return errors.ErrNilBootstrapperCreator
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
+		return errors.ErrNilBootstrapperFromStorageCreator
+	}
 	return nil
 }
 

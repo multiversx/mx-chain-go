@@ -54,8 +54,7 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-//
-//	over the None struct.
+// over the None struct.
 type Option func(*Node) error
 
 type filter interface {

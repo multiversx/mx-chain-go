@@ -2,6 +2,7 @@ package consensus_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -426,6 +427,42 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.RunTypeComponents = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
+	})
+	t.Run("nil BootstrapperFromStorageFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: nil,
+			BootstrapperFactory:            &factoryMocks.BootstrapperFactoryMock{},
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBootstrapperFromStorageCreator, err)
+	})
+	t.Run("nil BootstrapperFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{},
+			BootstrapperFactory:            nil,
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBootstrapperCreator, err)
+	})
 }
 
 func TestConsensusComponentsFactory_Create(t *testing.T) {
@@ -560,7 +597,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		createShardBootStrapperErr := errors.New("expected error")
+		createShardBootstrapperErr := errors.New("expected error")
 		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
 			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{
 				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
@@ -579,7 +616,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 
 		cc, err := ccf.Create()
 		require.Error(t, err)
-		require.Equal(t, createShardBootStrapperErr, err)
+		require.Equal(t, createShardBootstrapperErr, err)
 		require.Nil(t, cc)
 	})
 	t.Run("createUserAccountsSyncer fails due to missing UserAccountTrie should error", func(t *testing.T) {
@@ -996,6 +1033,8 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 
 		require.NotNil(t, cc)
 		assert.Nil(t, err)
+
+		assert.Equal(t, "*sync.ShardBootstrap", fmt.Sprintf("%T", cc.BootStrapper()))
 	})
 
 	t.Run("should create a shard storage and sync bootstrapper sovereign chain instance", func(t *testing.T) {
@@ -1010,5 +1049,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 
 		require.NotNil(t, cc)
 		assert.Nil(t, err)
+
+		assert.Equal(t, "*sync.SovereignChainShardBootstrap", fmt.Sprintf("%T", cc.BootStrapper()))
 	})
 }

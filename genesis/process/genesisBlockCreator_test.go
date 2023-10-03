@@ -67,7 +67,7 @@ func createMockArgument(
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
 
-	runType := getRunTypeComponentsMock()
+	runType := mainFactoryMocks.NewRunTypeComponentsStub()
 	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
 	runType.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
 	runType.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
@@ -439,7 +439,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := getRunTypeComponentsMock()
+		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtComponents.BlockChainHookHandlerFactory = nil
 		arg.RunType = rtComponents
 
@@ -451,7 +451,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := getRunTypeComponentsMock()
+		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtComponents.SCResultsPreProcessorFactory = nil
 		arg.RunType = rtComponents
 
@@ -463,7 +463,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := getRunTypeComponentsMock()
+		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtComponents.TransactionCoordinatorFactory = nil
 		arg.RunType = rtComponents
 
@@ -946,8 +946,4 @@ func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
 		assert.Zero(t, block.GetRound())
 		assert.Zero(t, block.GetEpoch())
 	}
-}
-
-func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
-	return mainFactoryMocks.NewRunTypeComponentsStub()
 }
