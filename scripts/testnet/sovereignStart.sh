@@ -14,9 +14,12 @@ source "$MULTIVERSXTESTNETSCRIPTSDIR/include/tools.sh"
 
 prepareFolders
 
-# Phase 1: build seednode and sovereign node executables
+# Phase 1: build seednode and sovereign node executables. Also, prepare Elasticsearch if needed
 buildSeednode
 buildSovereignNode
+if [ $USE_ELASTICSEARCH -eq 1 ]; then
+  prepareElasticsearch
+fi
 
 # Phase 2: generate configuration
 if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then

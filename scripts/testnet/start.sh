@@ -17,6 +17,9 @@ prepareFolders
 # Phase 1: build seednode and node executables
 buildSeednode
 buildNode
+if [ $USE_ELASTICSEARCH -eq 1 ]; then
+  prepareElasticsearch
+fi
 
 # Phase 2: generate configuration
 if [ $ALWAYS_UPDATE_CONFIGS -eq 1 ]; then

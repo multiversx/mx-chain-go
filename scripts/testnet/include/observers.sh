@@ -107,10 +107,10 @@ assembleCommand_startObserverNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
   local nodeCommand="./node \
-        -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
-        -destination-shard-as-observer $SHARD \
-        -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR -config ./config/config_observer.toml $EXTRA_OBSERVERS_FLAGS"
+        -port $PORT --profile-mode --log-save --log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service --rest-api-interface localhost:$RESTAPIPORT \
+        --destination-shard-as-observer $SHARD \
+        --sk-index $KEY_INDEX \
+        --working-directory $WORKING_DIR --config-external ./config/external_observer.toml --config ./config/config_observer.toml $EXTRA_OBSERVERS_FLAGS"
 
   if [ -n "$NODE_NICENESS" ]
   then

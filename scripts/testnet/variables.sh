@@ -14,6 +14,11 @@ export USE_PROXY=1
 # repository (mx-chain-txgen-go).
 export USE_TXGEN=0
 
+# Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
+# It will also change the external.toml files for observers, so they can index data into it
+# docker must be accessible without using 'sudo'
+export USE_ELASTICSEARCH=0
+
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.
