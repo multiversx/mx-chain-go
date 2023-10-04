@@ -169,7 +169,7 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 	return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, allMBsProcessed, nil
 }
 
-// CreateMbsAndProcessTransactionsFromMe creates miniblocks and processes transactions from pool
+// CreateMbsAndProcessTransactionsFromMe should only create miniblocks and not process transactions
 func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	haveTime func() bool,
 	randomness []byte,
