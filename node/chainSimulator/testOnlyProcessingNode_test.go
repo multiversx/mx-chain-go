@@ -113,8 +113,10 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 
 		genesis, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(0, 0)
 		assert.Nil(t, err)
+
 		err = node.ChainHandler.SetGenesisHeader(genesis)
 		assert.Nil(t, err)
+
 		err = node.ChainHandler.SetCurrentBlockHeaderAndRootHash(genesis, []byte("root"))
 		assert.Nil(t, err)
 
@@ -124,6 +126,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
 			return true
 		})
+		assert.Nil(t, err)
 		require.NotNil(t, header)
 		require.NotNil(t, block)
 
