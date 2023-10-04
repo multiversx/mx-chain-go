@@ -395,7 +395,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}
 
-	lastEpoch := bootInfos[len(bootInfos)-1].GetLastHeader().Epoch
+	lastEpoch := bootInfos[0].GetLastHeader().Epoch
 	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey, lastEpoch)
 	if err != nil {
 		log.Debug("cannot load nodes coordinator state", "error", err.Error())
