@@ -19,7 +19,8 @@ const maxThresholdBetweenSends = 1.00 // 100%
 
 // argBaseSender represents the arguments for base sender
 type argBaseSender struct {
-	messenger                 heartbeat.P2PMessenger
+	mainMessenger             heartbeat.P2PMessenger
+	fullArchiveMessenger      heartbeat.P2PMessenger
 	marshaller                marshal.Marshalizer
 	topic                     string
 	timeBetweenSends          time.Duration
@@ -31,7 +32,8 @@ type argBaseSender struct {
 
 type baseSender struct {
 	timerHandler
-	messenger                 heartbeat.P2PMessenger
+	mainMessenger             heartbeat.P2PMessenger
+	fullArchiveMessenger      heartbeat.P2PMessenger
 	marshaller                marshal.Marshalizer
 	topic                     string
 	timeBetweenSends          time.Duration
@@ -45,7 +47,8 @@ type baseSender struct {
 
 func createBaseSender(args argBaseSender) baseSender {
 	bs := baseSender{
-		messenger:                 args.messenger,
+		mainMessenger:             args.mainMessenger,
+		fullArchiveMessenger:      args.fullArchiveMessenger,
 		marshaller:                args.marshaller,
 		topic:                     args.topic,
 		timeBetweenSends:          args.timeBetweenSends,
@@ -64,8 +67,11 @@ func createBaseSender(args argBaseSender) baseSender {
 }
 
 func checkBaseSenderArgs(args argBaseSender) error {
-	if check.IfNil(args.messenger) {
-		return heartbeat.ErrNilMessenger
+	if check.IfNil(args.mainMessenger) {
+		return fmt.Errorf("%w for main", heartbeat.ErrNilMessenger)
+	}
+	if check.IfNil(args.fullArchiveMessenger) {
+		return fmt.Errorf("%w for full archive", heartbeat.ErrNilMessenger)
 	}
 	if check.IfNil(args.marshaller) {
 		return heartbeat.ErrNilMarshaller
@@ -80,7 +86,7 @@ func checkBaseSenderArgs(args argBaseSender) error {
 		return fmt.Errorf("%w for timeBetweenSendsWhenError", heartbeat.ErrInvalidTimeDuration)
 	}
 	if args.thresholdBetweenSends < minThresholdBetweenSends || args.thresholdBetweenSends > maxThresholdBetweenSends {
-		return fmt.Errorf("%w for thresholdBetweenSends, receieved %f, min allowed %f, max allowed %f",
+		return fmt.Errorf("%w for thresholdBetweenSends, received %f, min allowed %f, max allowed %f",
 			heartbeat.ErrInvalidThreshold, args.thresholdBetweenSends, minThresholdBetweenSends, maxThresholdBetweenSends)
 	}
 	if check.IfNil(args.privKey) {

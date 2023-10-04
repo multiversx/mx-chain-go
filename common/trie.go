@@ -1,6 +1,10 @@
 package common
 
-import "bytes"
+import (
+	"bytes"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+)
 
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
@@ -14,4 +18,18 @@ func IsEmptyTrie(root []byte) bool {
 		return true
 	}
 	return false
+}
+
+// TrimSuffixFromValue returns the value without the suffix
+func TrimSuffixFromValue(value []byte, suffixLength int) ([]byte, error) {
+	if suffixLength == 0 {
+		return value, nil
+	}
+
+	dataLength := len(value) - suffixLength
+	if dataLength < 0 {
+		return nil, core.ErrSuffixNotPresentOrInIncorrectPosition
+	}
+
+	return value[:dataLength], nil
 }

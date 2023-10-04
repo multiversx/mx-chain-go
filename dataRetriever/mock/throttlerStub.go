@@ -1,12 +1,15 @@
 package mock
 
+import "sync"
+
 // ThrottlerStub -
 type ThrottlerStub struct {
 	CanProcessCalled      func() bool
 	StartProcessingCalled func()
 	EndProcessingCalled   func()
-	StartWasCalled        bool
-	EndWasCalled          bool
+	mutState              sync.RWMutex
+	startWasCalled        bool
+	endWasCalled          bool
 }
 
 // CanProcess -
@@ -20,7 +23,10 @@ func (ts *ThrottlerStub) CanProcess() bool {
 
 // StartProcessing -
 func (ts *ThrottlerStub) StartProcessing() {
-	ts.StartWasCalled = true
+	ts.mutState.Lock()
+	ts.startWasCalled = true
+	ts.mutState.Unlock()
+
 	if ts.StartProcessingCalled != nil {
 		ts.StartProcessingCalled()
 	}
@@ -28,10 +34,29 @@ func (ts *ThrottlerStub) StartProcessing() {
 
 // EndProcessing -
 func (ts *ThrottlerStub) EndProcessing() {
-	ts.EndWasCalled = true
+	ts.mutState.Lock()
+	ts.endWasCalled = true
+	ts.mutState.Unlock()
+
 	if ts.EndProcessingCalled != nil {
 		ts.EndProcessingCalled()
 	}
+}
+
+// StartWasCalled -
+func (ts *ThrottlerStub) StartWasCalled() bool {
+	ts.mutState.RLock()
+	defer ts.mutState.RUnlock()
+
+	return ts.startWasCalled
+}
+
+// EndWasCalled -
+func (ts *ThrottlerStub) EndWasCalled() bool {
+	ts.mutState.RLock()
+	defer ts.mutState.RUnlock()
+
+	return ts.endWasCalled
 }
 
 // IsInterfaceNil -

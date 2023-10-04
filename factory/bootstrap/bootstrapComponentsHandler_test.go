@@ -4,9 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,21 +30,25 @@ func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 	mbc, err := bootstrap.NewManagedBootstrapComponents(nil)
 
 	require.Nil(t, mbc)
-	require.Equal(t, errorsErd.ErrNilBootstrapComponentsFactory, err)
+	require.Equal(t, errorsMx.ErrNilBootstrapComponentsFactory, err)
 }
 
-func TestManagedBootstrapComponents_CheckSubcomponentsNoCreate(t *testing.T) {
+func TestManagedBootstrapComponents_MethodsNoCreate(t *testing.T) {
 	t.Parallel()
 
 	args := componentsMock.GetBootStrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 	err := mbc.CheckSubcomponents()
+	require.Equal(t, errorsMx.ErrNilBootstrapComponentsHolder, err)
 
-	require.Equal(t, errorsErd.ErrNilBootstrapComponentsHolder, err)
+	assert.Nil(t, mbc.EpochStartBootstrapper())
+	assert.Nil(t, mbc.EpochBootstrapParams())
+	assert.Nil(t, mbc.Close())
+	assert.Equal(t, factory.BootstrapComponentsName, mbc.String())
 }
 
-func TestManagedBootstrapComponents_Create(t *testing.T) {
+func TestManagedBootstrapComponents_MethodsCreate(t *testing.T) {
 	t.Parallel()
 
 	args := componentsMock.GetBootStrapFactoryArgs()
@@ -54,6 +60,17 @@ func TestManagedBootstrapComponents_Create(t *testing.T) {
 
 	err = mbc.CheckSubcomponents()
 	require.Nil(t, err)
+
+	assert.NotNil(t, mbc.EpochStartBootstrapper())
+	params := mbc.EpochBootstrapParams()
+	require.NotNil(t, mbc)
+	assert.Equal(t, uint32(0), params.Epoch())
+	assert.Equal(t, uint32(0), params.SelfShardID())
+	assert.Equal(t, uint32(2), params.NumOfShards())
+	assert.Nil(t, params.NodesConfig())
+
+	assert.Nil(t, mbc.Close())
+	assert.Equal(t, factory.BootstrapComponentsName, mbc.String())
 }
 
 func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
@@ -67,7 +84,7 @@ func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
 	coreComponents.IntMarsh = nil
 
 	err := mbc.Create()
-	require.True(t, errors.Is(err, errorsErd.ErrBootstrapDataComponentsFactoryCreate))
+	require.True(t, errors.Is(err, errorsMx.ErrBootstrapDataComponentsFactoryCreate))
 }
 
 func TestManagedBootstrapComponents_Close(t *testing.T) {
@@ -83,4 +100,16 @@ func TestManagedBootstrapComponents_Close(t *testing.T) {
 
 	_ = mbc.Close()
 	require.Nil(t, mbc.EpochBootstrapParams())
+}
+
+func TestManagedBootstrapComponents_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	mbc, _ := bootstrap.NewManagedBootstrapComponents(nil)
+	require.True(t, mbc.IsInterfaceNil())
+
+	args := componentsMock.GetBootStrapFactoryArgs()
+	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+	mbc, _ = bootstrap.NewManagedBootstrapComponents(bcf)
+	require.False(t, mbc.IsInterfaceNil())
 }

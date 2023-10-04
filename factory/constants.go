@@ -13,8 +13,6 @@ const (
 	CryptoComponentsName = "managedCryptoComponents"
 	// DataComponentsName is the data components identifier
 	DataComponentsName = "managedDataComponents"
-	// HeartbeatComponentsName is the heartbeat components identifier
-	HeartbeatComponentsName = "managedHeartbeatComponents"
 	// HeartbeatV2ComponentsName is the heartbeat V2 components identifier
 	HeartbeatV2ComponentsName = "managedHeartbeatV2Components"
 	// NetworkComponentsName is the network components identifier

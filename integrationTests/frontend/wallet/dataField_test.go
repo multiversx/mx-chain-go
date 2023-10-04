@@ -7,11 +7,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -60,6 +59,7 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 	}
 
 	sig1 := sign(tx1, singleSigner, sk)
+
 	sig2 := sign(tx2, singleSigner, sk)
 
 	fmt.Println("sig1: " + hex.EncodeToString(sig1))
@@ -70,13 +70,17 @@ func TestTxDataFieldContainingUTF8Characters(t *testing.T) {
 
 func sign(tx *transaction.Transaction, signer crypto.SingleSigner, sk crypto.PrivateKey) []byte {
 	marshalizer := &marshal.JsonMarshalizer{}
-	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	converter, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+
+	receiverAddress, _ := converter.Encode(tx.RcvAddr)
+
+	senderAddress, _ := converter.Encode(tx.SndAddr)
 
 	ftx := &transaction.FrontendTransaction{
 		Nonce:            tx.Nonce,
 		Value:            tx.Value.String(),
-		Receiver:         converter.Encode(tx.RcvAddr),
-		Sender:           converter.Encode(tx.RcvAddr),
+		Receiver:         receiverAddress,
+		Sender:           senderAddress,
 		SenderUsername:   nil,
 		ReceiverUsername: nil,
 		GasPrice:         tx.GasPrice,

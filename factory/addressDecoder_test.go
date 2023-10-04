@@ -4,10 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process/mock"
-
 	chainError "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +23,7 @@ func Test_DecodeAddressesError(t *testing.T) {
 	t.Run("decode error", func(t *testing.T) {
 		t.Parallel()
 		pkError := errors.New("pkerror")
-		pkConverter := &mock.PubkeyConverterStub{
+		pkConverter := &testscommon.PubkeyConverterStub{
 			DecodeCalled: func(humanReadable string) ([]byte, error) {
 				return nil, pkError
 			}}
@@ -46,7 +45,7 @@ func Test_DecodeAddressesShouldWork(t *testing.T) {
 	decodeMap["addr1"] = decodedAddr1
 	decodeMap["addr2"] = decodedAddr2
 
-	pkConverter := &mock.PubkeyConverterStub{
+	pkConverter := &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return decodeMap[humanReadable], nil
 		}}

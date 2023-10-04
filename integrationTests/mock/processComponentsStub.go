@@ -17,10 +17,15 @@ import (
 // ProcessComponentsStub -
 type ProcessComponentsStub struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
+	NodesCoordinatorCalled               func() nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
+	ShardCoordinatorCalled               func() sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	FullArchiveIntContainer              process.InterceptorsContainer
+	ResContainer                         dataRetriever.ResolversContainer
+	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
+	RoundHandlerCalled                   func() consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
 	ForkDetect                           process.ForkDetector
@@ -36,8 +41,9 @@ type ProcessComponentsStub struct {
 	ReqHandler                           process.RequestHandler
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
-	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
+	MainPeerMapper                       process.NetworkShardingCollector
+	FullArchivePeerMapper                process.NetworkShardingCollector
+	TxCostSimulator                      factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
@@ -72,11 +78,17 @@ func (pcs *ProcessComponentsStub) CheckSubcomponents() error {
 
 // NodesCoordinator -
 func (pcs *ProcessComponentsStub) NodesCoordinator() nodesCoordinator.NodesCoordinator {
+	if pcs.NodesCoordinatorCalled != nil {
+		return pcs.NodesCoordinatorCalled()
+	}
 	return pcs.NodesCoord
 }
 
 // ShardCoordinator -
 func (pcs *ProcessComponentsStub) ShardCoordinator() sharding.Coordinator {
+	if pcs.ShardCoordinatorCalled != nil {
+		return pcs.ShardCoordinatorCalled()
+	}
 	return pcs.ShardCoord
 }
 
@@ -85,13 +97,26 @@ func (pcs *ProcessComponentsStub) InterceptorsContainer() process.InterceptorsCo
 	return pcs.IntContainer
 }
 
-// ResolversFinder -
-func (pcs *ProcessComponentsStub) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcs.ResFinder
+// FullArchiveInterceptorsContainer -
+func (pcs *ProcessComponentsStub) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
+	return pcs.FullArchiveIntContainer
+}
+
+// ResolversContainer -
+func (pcs *ProcessComponentsStub) ResolversContainer() dataRetriever.ResolversContainer {
+	return pcs.ResContainer
+}
+
+// RequestersFinder -
+func (pcs *ProcessComponentsStub) RequestersFinder() dataRetriever.RequestersFinder {
+	return pcs.ReqFinder
 }
 
 // RoundHandler -
 func (pcs *ProcessComponentsStub) RoundHandler() consensus.RoundHandler {
+	if pcs.RoundHandlerCalled != nil {
+		return pcs.RoundHandlerCalled()
+	}
 	return pcs.RoundHandlerField
 }
 
@@ -172,7 +197,12 @@ func (pcs *ProcessComponentsStub) HeaderConstructionValidator() process.HeaderCo
 
 // PeerShardMapper -
 func (pcs *ProcessComponentsStub) PeerShardMapper() process.NetworkShardingCollector {
-	return pcs.PeerMapper
+	return pcs.MainPeerMapper
+}
+
+// FullArchivePeerShardMapper -
+func (pcs *ProcessComponentsStub) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	return pcs.FullArchivePeerMapper
 }
 
 // FallbackHeaderValidator -
@@ -180,9 +210,9 @@ func (pcs *ProcessComponentsStub) FallbackHeaderValidator() process.FallbackHead
 	return pcs.FallbackHdrValidator
 }
 
-// TransactionSimulatorProcessor -
-func (pcs *ProcessComponentsStub) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
-	return pcs.TxSimulatorProcessor
+// APITransactionEvaluator -
+func (pcs *ProcessComponentsStub) APITransactionEvaluator() factory.TransactionEvaluator {
+	return pcs.TxCostSimulator
 }
 
 // WhiteListHandler -

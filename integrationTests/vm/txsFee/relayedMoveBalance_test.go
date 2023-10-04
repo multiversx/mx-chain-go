@@ -350,10 +350,3 @@ func executeRelayedTransaction(
 	assert.Equal(tb, 1, len(events))
 	assert.Equal(tb, core.SignalErrorOperation, string(events[0].GetIdentifier()))
 }
-
-func getAccount(tb testing.TB, testContext *vm.VMTestContext, address []byte) vmcommon.UserAccountHandler {
-	account, err := testContext.Accounts.LoadAccount(address)
-	require.Nil(tb, err)
-
-	return account.(vmcommon.UserAccountHandler)
-}

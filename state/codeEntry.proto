@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message CodeEntry {
+  bytes   Code             = 1 [(gogoproto.jsontag) = "code,omitempty"];
+  uint32  NumReferences    = 2 [(gogoproto.jsontag) = "numReferences"];
+}

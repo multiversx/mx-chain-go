@@ -12,7 +12,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandlerWithGasUsedAndFee) bool {
+func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandler) bool {
 	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
 
 	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
@@ -37,16 +37,16 @@ func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.Transacti
 	return isESDTTransferOperation && isReceiverSC && hasFunction
 }
 
-func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHash []byte, tx data.TransactionHandlerWithGasUsedAndFee) bool {
+func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHashHex string, tx data.TransactionHandler) bool {
 	isForSender := bytes.Equal(scr.RcvAddr, tx.GetSndAddr())
 	isRightNonce := scr.Nonce == tx.GetNonce()+1
-	isFromCurrentTx := bytes.Equal(scr.PrevTxHash, txHash)
+	isFromCurrentTx := hex.EncodeToString(scr.PrevTxHash) == txHashHex
 	isScrDataOk := isDataOk(scr.Data)
 
 	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk
 }
 
-func isRefundForRelayed(dbScResult *smartContractResult.SmartContractResult, tx data.TransactionHandlerWithGasUsedAndFee) bool {
+func isRefundForRelayed(dbScResult *smartContractResult.SmartContractResult, tx data.TransactionHandler) bool {
 	isForRelayed := string(dbScResult.ReturnMessage) == core.GasRefundForRelayerMessage
 	isForSender := bytes.Equal(dbScResult.RcvAddr, tx.GetSndAddr())
 	differentHash := !bytes.Equal(dbScResult.OriginalTxHash, dbScResult.PrevTxHash)
@@ -73,7 +73,7 @@ func isSCRWithRefundNoTx(scr *smartContractResult.SmartContractResult) bool {
 }
 
 func isRelayedTx(tx *transactionWithResults) bool {
-	txData := string(tx.GetData())
+	txData := string(tx.GetTxHandler().GetData())
 	isRelayed := strings.HasPrefix(txData, core.RelayedTransaction) || strings.HasPrefix(txData, core.RelayedTransactionV2)
 	return isRelayed && len(tx.scrs) > 0
 }

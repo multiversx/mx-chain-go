@@ -23,6 +23,7 @@ func GetSubroundsFactory(
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
 	outportHandler outport.OutportHandler,
+	sentSignatureTracker spos.SentSignaturesTracker,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
@@ -35,6 +36,7 @@ func GetSubroundsFactory(
 			chainID,
 			currentPid,
 			appStatusHandler,
+			sentSignatureTracker,
 		)
 		if err != nil {
 			return nil, err
@@ -64,11 +66,11 @@ func GetBroadcastMessenger(
 	hasher hashing.Hasher,
 	messenger consensus.P2PMessenger,
 	shardCoordinator sharding.Coordinator,
-	privateKey crypto.PrivateKey,
 	peerSignatureHandler crypto.PeerSignatureHandler,
 	headersSubscriber consensus.HeadersPoolSubscriber,
 	interceptorsContainer process.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
+	keysHandler consensus.KeysHandler,
 ) (consensus.BroadcastMessenger, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -79,7 +81,6 @@ func GetBroadcastMessenger(
 		Marshalizer:                marshalizer,
 		Hasher:                     hasher,
 		Messenger:                  messenger,
-		PrivateKey:                 privateKey,
 		ShardCoordinator:           shardCoordinator,
 		PeerSignatureHandler:       peerSignatureHandler,
 		HeadersSubscriber:          headersSubscriber,
@@ -87,6 +88,7 @@ func GetBroadcastMessenger(
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
+		KeysHandler:                keysHandler,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

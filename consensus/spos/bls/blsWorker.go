@@ -44,6 +44,7 @@ func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus
 	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
 	receivedMessages[MtSignature] = make([]*consensus.Message, 0)
 	receivedMessages[MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
+	receivedMessages[MtInvalidSigners] = make([]*consensus.Message, 0)
 
 	return receivedMessages
 }
@@ -88,13 +89,19 @@ func (wrk *worker) IsMessageWithFinalInfo(msgType consensus.MessageType) bool {
 	return msgType == MtBlockHeaderFinalInfo
 }
 
+//IsMessageWithInvalidSigners returns if the current messageType is about invalid signers
+func (wrk *worker) IsMessageWithInvalidSigners(msgType consensus.MessageType) bool {
+	return msgType == MtInvalidSigners
+}
+
 //IsMessageTypeValid returns if the current messageType is valid
 func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
 	isMessageTypeValid := msgType == MtBlockBodyAndHeader ||
 		msgType == MtBlockBody ||
 		msgType == MtBlockHeader ||
 		msgType == MtSignature ||
-		msgType == MtBlockHeaderFinalInfo
+		msgType == MtBlockHeaderFinalInfo ||
+		msgType == MtInvalidSigners
 
 	return isMessageTypeValid
 }
@@ -113,7 +120,7 @@ func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	var v []consensus.MessageType
 
-	for i := MtBlockBodyAndHeader; i <= MtBlockHeaderFinalInfo; i++ {
+	for i := MtBlockBodyAndHeader; i <= MtInvalidSigners; i++ {
 		v = append(v, i)
 	}
 
@@ -132,6 +139,8 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 	case MtSignature:
 		return consensusState.Status(SrBlock) == spos.SsFinished
 	case MtBlockHeaderFinalInfo:
+		return consensusState.Status(SrSignature) == spos.SsFinished
+	case MtInvalidSigners:
 		return consensusState.Status(SrSignature) == spos.SsFinished
 	}
 

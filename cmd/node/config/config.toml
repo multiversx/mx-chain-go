@@ -324,6 +324,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -337,6 +339,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 1000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [AccountsTrieCheckpointsStorage]
     [AccountsTrieCheckpointsStorage.Cache]
@@ -594,6 +598,8 @@
     TrieOperationsDeadlineMilliseconds = 10000
     # GetAddressesBulkMaxSize represents the maximum number of addresses to be fetched in a bulk per API request. 0 means unlimited
     GetAddressesBulkMaxSize = 100
+    # VmQueryDelayAfterStartInSec represents the number of seconds to wait when starting node before accepting vm query requests
+    VmQueryDelayAfterStartInSec = 120
     # EndpointsThrottlers represents a map for maximum simultaneous go routines for an endpoint
     EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                            { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
@@ -604,6 +610,7 @@
     Length = 32
     Type = "bech32"
     SignatureLength = 64
+    Hrp = "erd"
 
 [ValidatorPubkeyConverter]
     Length = 96
@@ -689,6 +696,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.Querying]
@@ -698,6 +706,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
+            { StartEpoch = 2, Version = "v1.5" },
         ]
 
     [VirtualMachine.GasConfig]
@@ -713,6 +722,9 @@
         "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
     ]
     MaxNumAddressesInTransferRole = 100
+    DNSV2Addresses =[
+        "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+    ]
 
 [Hardfork]
     EnableTrigger = true
@@ -912,33 +924,39 @@
     TrieSyncerVersion         = 3
     CheckNodesOnDisk          = false
 
-[Resolvers]
+[Requesters]
     NumCrossShardPeers  = 2
     NumTotalPeers       = 3 # NumCrossShardPeers + num intra shard
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    PeerAuthenticationTimeBetweenSendsInSec          = 600  # 10min TODO: change this for mainnet/devnet/testnet
-    PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60   # 1min
-    PeerAuthenticationThresholdBetweenSends          = 0.1  # 10%
-    HeartbeatTimeBetweenSendsInSec                   = 60   # 1min
-    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60   # 1min
-    HeartbeatTimeBetweenSendsWhenErrorInSec          = 60   # 1min
-    HeartbeatThresholdBetweenSends                   = 0.1  # 10%
-    HeartbeatExpiryTimespanInSec                     = 3600 # 1h
-    MinPeersThreshold                                = 0.8  # 80%
-    DelayBetweenRequestsInSec                        = 5    # 10sec
-    MaxTimeoutInSec                                  = 7200 # 2h
-    PeerShardTimeBetweenSendsInSec                   = 7200 # 2h
-    PeerShardThresholdBetweenSends                   = 0.1  # 10%
-    MaxMissingKeysInRequest                          = 500
-    MaxDurationPeerUnresponsiveInSec                 = 900  # 15min
-    HideInactiveValidatorIntervalInSec               = 3600 # 1h
-    HardforkTimeBetweenSendsInSec                    = 60   # 1min
-    TimeBetweenConnectionsMetricsUpdateInSec         = 30   # 30sec
-    TimeToReadDirectConnectionsInSec                 = 15   # 15sec
+    PeerAuthenticationTimeBetweenSendsInSec          = 600   # 10min TODO: change this for mainnet/devnet/testnet
+    PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60    # 1min
+    PeerAuthenticationTimeThresholdBetweenSends      = 0.1   # 10%   # max random threshold between messages, representing a percent of PeerAuthenticationTimeBetweenSendsInSec
+    HeartbeatTimeBetweenSendsInSec                   = 60    # 1min
+    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60    # 1min
+    HeartbeatTimeBetweenSendsWhenErrorInSec          = 60    # 1min
+    HeartbeatTimeThresholdBetweenSends               = 0.1   # 10%        # max random threshold between messages, representing a percent of HeartbeatTimeBetweenSendsInSec
+    HeartbeatExpiryTimespanInSec                     = 3600  # 1h         # heartbeat message max age allowed
+    MinPeersThreshold                                = 0.8   # 80%        # min threshold of peers to consider enough peer auths received
+    DelayBetweenPeerAuthenticationRequestsInSec      = 5     # 5sec       # delay between requests
+    PeerAuthenticationMaxTimeoutForRequestsInSec     = 7200  # 2h         # max timeout allowed to receive peer auth messages from peers
+    PeerShardTimeBetweenSendsInSec                   = 7200  # 2h
+    PeerShardTimeThresholdBetweenSends               = 0.1   # 10%        # max random threshold between messages, representing a percent of PeerShardTimeBetweenSendsInSec
+    MaxMissingKeysInRequest                          = 500                # max number of missing keys allowed in a request
+    MaxDurationPeerUnresponsiveInSec                 = 900   # 15min      # max duration after which a peer is considered inactive
+    HideInactiveValidatorIntervalInSec               = 3600  # 1h         # time that an inactive validator is returned through api
+    HardforkTimeBetweenSendsInSec                    = 60    # 1min       # time between hardfork messages
+    TimeBetweenConnectionsMetricsUpdateInSec         = 30    # 30sec      # time between consecutive connections metrics updates
+    TimeToReadDirectConnectionsInSec                 = 15    # 15sec      # time between consecutive peer shard mapper updates with direct connections
+    PeerAuthenticationTimeBetweenChecksInSec         = 6     # 6sec
     [HeartbeatV2.HeartbeatPool]
         Name = "HeartbeatPool"
         Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3

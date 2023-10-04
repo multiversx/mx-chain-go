@@ -11,8 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
@@ -21,7 +21,7 @@ import (
 )
 
 func TestNewGuardedAccount(t *testing.T) {
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	en := &epochNotifier.EpochNotifierStub{}
 	ga, err := NewGuardedAccount(marshaller, en, 10)
 	require.Nil(t, err)
@@ -138,7 +138,7 @@ func TestGuardedAccount_getConfiguredGuardians(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		ga := createGuardedAccountWithEpoch(10)
-		ga.marshaller = &testscommon.MarshalizerStub{
+		ga.marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedErr
 			},
@@ -188,7 +188,7 @@ func TestGuardedAccount_saveAccountGuardians(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		ga := createGuardedAccountWithEpoch(10)
-		ga.marshaller = &testscommon.MarshalizerStub{
+		ga.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1158,14 +1158,14 @@ func TestGuardedAccount_IsInterfaceNil(t *testing.T) {
 	var ga *guardedAccount
 	require.True(t, check.IfNil(ga))
 
-	ga, _ = NewGuardedAccount(&testscommon.MarshalizerMock{}, &epochNotifier.EpochNotifierStub{}, 10)
+	ga, _ = NewGuardedAccount(&marshallerMock.MarshalizerMock{}, &epochNotifier.EpochNotifierStub{}, 10)
 	require.False(t, check.IfNil(ga))
 }
 
 func TestGuardedAccount_EpochConcurrency(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	currentEpoch := uint32(0)
 	en := forking.NewGenericEpochNotifier()
 	ga, _ := NewGuardedAccount(marshaller, en, 2)
@@ -1204,7 +1204,7 @@ func TestGuardedAccount_EpochConcurrency(t *testing.T) {
 }
 
 func createGuardedAccountWithEpoch(epoch uint32) *guardedAccount {
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	en := &epochNotifier.EpochNotifierStub{
 		RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 			handler.EpochConfirmed(epoch, 0)
