@@ -125,12 +125,14 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
 			return true
 		})
+		assert.Nil(t, err)
 		require.NotNil(t, header)
 		require.NotNil(t, block)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
+		assert.Nil(t, err)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)
 		assert.Nil(t, err)
