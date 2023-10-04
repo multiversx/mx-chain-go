@@ -206,9 +206,9 @@ func (n *Node) GetCodeHash(address string, options api.AccountQueryOptions) ([]b
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
-	//if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-	//	return nil, ErrMetachainOnlyEndpoint
-	//}
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return nil, ErrMetachainOnlyEndpoint
+	}
 
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
@@ -439,9 +439,9 @@ func (n *Node) getTokensIDsWithFilter(
 	options api.AccountQueryOptions,
 	ctx context.Context,
 ) ([]string, api.BlockInfo, error) {
-	//if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
-	//	return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
-	//}
+	if n.processComponents.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
+	}
 
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
 	if err != nil {
