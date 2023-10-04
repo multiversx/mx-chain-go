@@ -93,7 +93,7 @@ func (messenger *syncedMessenger) CreateTopic(name string, _ bool) error {
 		return fmt.Errorf("programming error in syncedMessenger.CreateTopic, %w for topic %s", errTopicAlreadyCreated, name)
 	}
 
-	messenger.topics[name] = make(map[string]p2p.MessageProcessor, 0)
+	messenger.topics[name] = make(map[string]p2p.MessageProcessor)
 
 	return nil
 }
@@ -120,8 +120,8 @@ func (messenger *syncedMessenger) RegisterMessageProcessor(topic string, identif
 
 	handlers, found := messenger.topics[topic]
 	if !found {
-		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, %w for topic %s",
-			errTopicNotCreated, topic)
+		handlers = make(map[string]p2p.MessageProcessor)
+		messenger.topics[topic] = handlers
 	}
 
 	_, found = handlers[identifier]

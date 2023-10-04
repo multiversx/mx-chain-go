@@ -185,8 +185,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EpochConfig:              args.EpochConfig,
 		ConfigurationPathsHolder: args.ConfigurationPathsHolder,
 		NodesCoordinator:         instance.NodesCoordinator,
-
-		DataComponents: nil,
+		DataComponents:           instance.DataComponentsHolder,
 	})
 	if err != nil {
 		return nil, err

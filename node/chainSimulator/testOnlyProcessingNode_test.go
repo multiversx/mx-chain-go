@@ -3,16 +3,22 @@ package chainSimulator
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 )
 
-const pathForMainConfig = "../../cmd/node/config/config.toml"
-const pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
-const pathForGasSchedules = "../../cmd/node/config/gasSchedules"
-const nodesSetupConfig = "../../cmd/node/config/nodesSetup.json"
-const pathForPrefsConfig = "../../cmd/node/config/prefs.toml"
-const validatorPemFile = "../../cmd/node/config/testKeys/validatorKey.pem"
+const (
+	pathTestData           = "./testdata/"
+	pathToConfigFolder     = "../../cmd/node/config/"
+	pathForMainConfig      = "../../cmd/node/config/config.toml"
+	pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
+	pathForGasSchedules    = "../../cmd/node/config/gasSchedules"
+	nodesSetupConfig       = "../../cmd/node/config/nodesSetup.json"
+	pathForPrefsConfig     = "../../cmd/node/config/prefs.toml"
+	validatorPemFile       = "../../cmd/node/config/testKeys/validatorKey.pem"
+	pathSystemSCConfig     = "../../cmd/node/config/systemSmartContractsConfig.toml"
+)
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	mainConfig := config.Config{}
@@ -30,16 +36,19 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
 	assert.Nil(t, err)
 
+	systemSCConfig := config.SystemSmartContractsConfig{}
+	err = LoadConfigFromFile(pathSystemSCConfig, &systemSCConfig)
+	assert.Nil(t, err)
+
 	workingDir := t.TempDir()
 
+	epochConfig := config.EpochConfig{}
+	err = LoadConfigFromFile(pathToConfigFolder+"enableEpochs.toml", &epochConfig)
+
 	return ArgsTestOnlyProcessingNode{
-		Config:     mainConfig,
-		WorkingDir: workingDir,
-		EnableEpochsConfig: config.EnableEpochs{
-			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{
-				{EnableEpoch: 0, Type: "KOSK"},
-			},
-		},
+		Config:      mainConfig,
+		WorkingDir:  workingDir,
+		EpochConfig: epochConfig,
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
@@ -58,7 +67,15 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		ImportDBConfig:         config.ImportDbConfig{},
 		ContextFlagsConfig: config.ContextFlagsConfig{
 			WorkingDir: workingDir,
+			Version:    "1",
 		},
+		ConfigurationPathsHolder: config.ConfigurationPathsHolder{
+			GasScheduleDirectoryName: pathToConfigFolder + "gasSchedules",
+			Genesis:                  pathToConfigFolder + "genesis.json",
+			SmartContracts:           pathTestData + "genesisSmartContracts.json",
+		},
+		SystemSCConfig:      systemSCConfig,
+		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 	}
 }
 
