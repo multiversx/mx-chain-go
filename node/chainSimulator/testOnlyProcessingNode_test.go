@@ -2,10 +2,12 @@ package chainSimulator
 
 import (
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -99,5 +101,38 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
 		assert.NotNil(t, node)
+	})
+
+	t.Run("try commit a block", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsTestOnlyProcessingNode(t)
+		node, err := NewTestOnlyProcessingNode(args)
+		assert.Nil(t, err)
+		assert.NotNil(t, node)
+
+		genesis, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(0, 0)
+		assert.Nil(t, err)
+		err = node.ChainHandler.SetGenesisHeader(genesis)
+		assert.Nil(t, err)
+		err = node.ChainHandler.SetCurrentBlockHeaderAndRootHash(genesis, []byte("root"))
+		assert.Nil(t, err)
+
+		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
+		assert.Nil(t, err)
+
+		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
+			return true
+		})
+		require.NotNil(t, header)
+		require.NotNil(t, block)
+
+		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
+			return time.Hour
+		})
+		assert.Nil(t, err)
+
+		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)
+		assert.Nil(t, err)
 	})
 }
