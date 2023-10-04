@@ -2035,6 +2035,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxPreprocessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 	}
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(args)

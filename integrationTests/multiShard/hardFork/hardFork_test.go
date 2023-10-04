@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -497,6 +498,7 @@ func hardForkImport(
 			RoundConfig:             &roundConfig,
 			ChainRunType:            common.ChainRunTypeRegular,
 			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+			TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
