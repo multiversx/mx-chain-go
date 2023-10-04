@@ -160,7 +160,6 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	RunTypeComponents    factory.RunTypeComponentsHolder
-	ChainRunType         common.ChainRunType
 }
 
 type processComponentsFactory struct {

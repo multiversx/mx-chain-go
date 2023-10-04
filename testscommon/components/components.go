@@ -565,7 +565,6 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		ChainRunType:      common.ChainRunTypeRegular,
 		RunTypeComponents: GetRunTypeComponents(),
 	}
 }

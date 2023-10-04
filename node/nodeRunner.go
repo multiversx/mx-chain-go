@@ -706,19 +706,19 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
-		CoreComponents:       currentNode.coreComponents,
-		DataComponents:       currentNode.dataComponents,
-		StateComponents:      currentNode.stateComponents,
-		BootstrapComponents:  currentNode.bootstrapComponents,
-		CryptoComponents:     currentNode.cryptoComponents,
-		ProcessComponents:    currentNode.processComponents,
-		StatusCoreComponents: currentNode.statusCoreComponents,
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     currentNode.statusComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		Configs:               configs,
+		CoreComponents:        currentNode.coreComponents,
+		DataComponents:        currentNode.dataComponents,
+		StateComponents:       currentNode.stateComponents,
+		BootstrapComponents:   currentNode.bootstrapComponents,
+		CryptoComponents:      currentNode.cryptoComponents,
+		ProcessComponents:     currentNode.processComponents,
+		StatusCoreComponents:  currentNode.statusCoreComponents,
+		GasScheduleNotifier:   gasScheduleNotifier,
+		Bootstrapper:          currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:    allowVMQueriesChan,
+		StatusComponents:      currentNode.statusComponents,
+		BlockChainHookCreator: currentNode.runTypeComponents.BlockChainHookHandlerCreator(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1249,7 +1249,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
 		RunTypeComponents:      runTypeComponents,
-		ChainRunType:           common.ChainRunTypeRegular,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
