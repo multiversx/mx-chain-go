@@ -396,6 +396,7 @@ type EnableEpochsHandler interface {
 	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 	IsRelayedTransactionsV3FlagEnabled() bool
+	IsFixRelayedMoveBalanceFlagEnabled() bool
 
 	IsInterfaceNil() bool
 }

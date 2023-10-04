@@ -633,6 +633,11 @@ func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsV3FlagEnabled() bool {
 	return false
 }
 
+// IsFixRelayedMoveBalanceFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixRelayedMoveBalanceFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

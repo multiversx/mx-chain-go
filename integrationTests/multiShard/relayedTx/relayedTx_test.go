@@ -21,7 +21,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type createAndSendRelayedAndUserTxFuncType = func([]*integrationTests.TestProcessorNode, *integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount, []byte, *big.Int, uint64, []byte) *transaction.Transaction
+type createAndSendRelayedAndUserTxFuncType = func(
+	nodes []*integrationTests.TestProcessorNode,
+	relayer *integrationTests.TestWalletAccount,
+	player *integrationTests.TestWalletAccount,
+	rcvAddr []byte,
+	value *big.Int,
+	gasLimit uint64,
+	txData []byte,
+) (*transaction.Transaction, *transaction.Transaction)
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTx))
@@ -78,10 +86,8 @@ func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 
 		for i := int64(0); i < nrRoundsToTest; i++ {
 			for _, player := range players {
-				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-				player.Balance.Sub(player.Balance, sendValue)
-				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-				player.Balance.Sub(player.Balance, sendValue)
+				_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+				_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
 			}
 
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -174,9 +180,9 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 			for _, player := range players {
-				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0),
+				_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0),
 					transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress1)+"@00"+hex.EncodeToString(sendValue.Bytes())))
-				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0),
+				_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0),
 					transferTokenFullGas, []byte("transferToken@"+hex.EncodeToString(receiverAddress2)+"@00"+hex.EncodeToString(sendValue.Bytes())))
 			}
 
@@ -273,8 +279,8 @@ func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
 		nrRoundsToTest := int64(5)
 		for i := int64(0); i < nrRoundsToTest; i++ {
 			for _, player := range players {
-				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
-				_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
+				_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress1, big.NewInt(0), transferTokenFullGas, []byte(txData))
+				_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, receiverAddress2, big.NewInt(0), transferTokenFullGas, []byte(txData))
 			}
 
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -353,7 +359,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 		uniqueIDs := make([]string, len(players))
 		for i, player := range players {
 			uniqueIDs[i] = core.UniqueIdentifier()
-			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, registerValue,
+			_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, registerValue,
 				registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
 		}
 		time.Sleep(time.Second)
@@ -383,9 +389,9 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 		integrationTests.MintAllPlayers(nodes, players, registerValue)
 
 		for i, player := range players {
-			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
+			_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, big.NewInt(0), attestVMGas,
 				[]byte("attest@"+hex.EncodeToString([]byte(uniqueIDs[i]))+"@"+hex.EncodeToString([]byte(privateInfos[i]))))
-			_ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, registerValue,
+			_, _ = createAndSendRelayedAndUserTxFunc(nodes, relayer, player, scAddress, registerValue,
 				registerVMGas, []byte("register@"+hex.EncodeToString([]byte(uniqueIDs[i]))))
 		}
 		time.Sleep(time.Second)

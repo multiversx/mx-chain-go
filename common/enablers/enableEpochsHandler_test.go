@@ -105,6 +105,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DeterministicSortOnValidatorsInfoEnableEpoch:      79,
 		ScToScLogEventEnableEpoch:                         88,
 		RelayedTransactionsV3EnableEpoch:                  89,
+		FixRelayedMoveBalanceEnableEpoch:                  90,
 	}
 }
 
@@ -249,6 +250,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.True(t, handler.IsRelayedTransactionsV3FlagEnabled())
+		assert.True(t, handler.IsFixRelayedMoveBalanceFlagEnabled())
 	})
 	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
@@ -369,6 +371,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.True(t, handler.IsRelayedTransactionsV3FlagEnabled())
+		assert.True(t, handler.IsFixRelayedMoveBalanceFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -484,6 +487,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsESDTNFTImprovementV1FlagEnabled())
 		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.False(t, handler.IsRelayedTransactionsV3FlagEnabled())
+		assert.False(t, handler.IsFixRelayedMoveBalanceFlagEnabled())
 	})
 }
 

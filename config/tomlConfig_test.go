@@ -820,6 +820,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
     RelayedTransactionsV3EnableEpoch = 89
 
+    # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
+    FixRelayedMoveBalanceEnableEpoch = 90
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -929,6 +932,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 			ScToScLogEventEnableEpoch:                         88,
 			RelayedTransactionsV3EnableEpoch:                  89,
+			FixRelayedMoveBalanceEnableEpoch:                  90,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

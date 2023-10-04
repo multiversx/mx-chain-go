@@ -130,6 +130,7 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 	IsRelayedTransactionsV3FlagEnabledField                      bool
+	IsFixRelayedMoveBalanceFlagEnabledField                      bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1129,6 +1130,14 @@ func (stub *EnableEpochsHandlerStub) IsRelayedTransactionsV3FlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsRelayedTransactionsV3FlagEnabledField
+}
+
+// IsFixRelayedMoveBalanceFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsFixRelayedMoveBalanceFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsFixRelayedMoveBalanceFlagEnabledField
 }
 
 // IsInterfaceNil -

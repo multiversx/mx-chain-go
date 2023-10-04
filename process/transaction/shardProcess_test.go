@@ -88,7 +88,8 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledField: true,
+			IsPenalizedTooMuchGasFlagEnabledField:   true,
+			IsFixRelayedMoveBalanceFlagEnabledField: true,
 		},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -481,7 +482,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 
 	acnt1.IncreaseNonce(6)
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil, false)
+	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil, false, process.InvalidTransaction)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -495,7 +496,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 	acnt1.IncreaseNonce(6)
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil, false)
+	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil, false, process.InvalidTransaction)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
@@ -509,7 +510,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	_ = acnt1.AddToBalance(big.NewInt(67))
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil, false)
+	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil, false, process.InvalidTransaction)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -529,7 +530,7 @@ func TestTxProcessor_CheckTxValuesMismatchedSenderUsernamesShouldErr(t *testing.
 		SndUserName: []byte("notCorrect"),
 	}
 
-	err := execTx.CheckTxValues(tx, senderAcc, nil, false)
+	err := execTx.CheckTxValues(tx, senderAcc, nil, false, process.InvalidTransaction)
 	assert.Equal(t, process.ErrUserNameDoesNotMatch, err)
 }
 
@@ -549,7 +550,7 @@ func TestTxProcessor_CheckTxValuesMismatchedReceiverUsernamesShouldErr(t *testin
 		RcvUserName: []byte("notCorrect"),
 	}
 
-	err := execTx.CheckTxValues(tx, nil, receiverAcc, false)
+	err := execTx.CheckTxValues(tx, nil, receiverAcc, false, process.InvalidTransaction)
 	assert.Equal(t, process.ErrUserNameDoesNotMatchInCrossShardTx, err)
 }
 
@@ -574,7 +575,7 @@ func TestTxProcessor_CheckTxValuesCorrectUserNamesShouldWork(t *testing.T) {
 		RcvUserName: recvAcc.GetUserName(),
 	}
 
-	err := execTx.CheckTxValues(tx, senderAcc, recvAcc, false)
+	err := execTx.CheckTxValues(tx, senderAcc, recvAcc, false, process.InvalidTransaction)
 	assert.Nil(t, err)
 }
 
@@ -588,7 +589,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	_ = acnt1.AddToBalance(big.NewInt(67))
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil, false)
+	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil, false, process.MoveBalance)
 	assert.Nil(t, err)
 }
 
@@ -1456,8 +1457,8 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 
 	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, true)
 	assert.Nil(t, err)
-	assert.True(t, cost.Cmp(processingFee) == 0)
-	assert.True(t, totalCost.Cmp(processingFee) == 0)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
 }
 
 func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
