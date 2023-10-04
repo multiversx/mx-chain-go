@@ -9,23 +9,28 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/factory"
+	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Config                 config.Config
-	EnableEpochsConfig     config.EnableEpochs
-	EconomicsConfig        config.EconomicsConfig
-	RoundsConfig           config.RoundConfig
-	PreferencesConfig      config.Preferences
-	ImportDBConfig         config.ImportDbConfig
-	ContextFlagsConfig     config.ContextFlagsConfig
+	Config                   config.Config
+	EpochConfig              config.EpochConfig
+	EconomicsConfig          config.EconomicsConfig
+	RoundsConfig             config.RoundConfig
+	PreferencesConfig        config.Preferences
+	ImportDBConfig           config.ImportDbConfig
+	ContextFlagsConfig       config.ContextFlagsConfig
+	SystemSCConfig           config.SystemSmartContractsConfig
+	ConfigurationPathsHolder config.ConfigurationPathsHolder
+
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 	GasScheduleFilename    string
@@ -44,7 +49,10 @@ type testOnlyProcessingNode struct {
 	CryptoComponentsHolder    factory.CryptoComponentsHolder
 	NetworkComponentsHolder   factory.NetworkComponentsHolder
 	BootstrapComponentsHolder factory.BootstrapComponentsHolder
+	ProcessComponentsHolder   factory.ProcessComponentsHolder
+	DataComponentsHolder      factory.DataComponentsHolder
 
+	NodesCoordinator            nodesCoordinator.NodesCoordinator
 	ChainHandler                chainData.ChainHandler
 	ShardCoordinator            sharding.Coordinator
 	ArgumentsParser             process.ArgumentsParser
@@ -68,7 +76,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 
 	instance.CoreComponentsHolder, err = CreateCoreComponentsHolder(ArgsCoreComponentsHolder{
 		Config:              args.Config,
-		EnableEpochsConfig:  args.EnableEpochsConfig,
+		EnableEpochsConfig:  args.EpochConfig.EnableEpochs,
 		RoundsConfig:        args.RoundsConfig,
 		EconomicsConfig:     args.EconomicsConfig,
 		ChanStopNodeProcess: args.ChanStopNodeProcess,
@@ -107,7 +115,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 	instance.CryptoComponentsHolder, err = CreateCryptoComponentsHolder(ArgsCryptoComponentsHolder{
 		Config:                  args.Config,
-		EnableEpochsConfig:      args.EnableEpochsConfig,
+		EnableEpochsConfig:      args.EpochConfig.EnableEpochs,
 		Preferences:             args.PreferencesConfig,
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
 		ValidatorKeyPemFileName: args.ValidatorPemFile,
@@ -141,6 +149,45 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 	err = instance.createTransactionLogProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createNodesCoordinator(args.PreferencesConfig.Preferences, args.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.DataComponentsHolder, err = CreateDataComponentsHolder(ArgsDataComponentsHolder{
+		Chain:              instance.ChainHandler,
+		StorageService:     instance.StoreService,
+		DataPool:           instance.DataPool,
+		InternalMarshaller: instance.CoreComponentsHolder.InternalMarshalizer(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	instance.ProcessComponentsHolder, err = CreateProcessComponentsHolder(ArgsProcessComponentsHolder{
+		CoreComponents:           instance.CoreComponentsHolder,
+		CryptoComponents:         instance.CryptoComponentsHolder,
+		NetworkComponents:        instance.NetworkComponentsHolder,
+		BootstrapComponents:      instance.BootstrapComponentsHolder,
+		StateComponents:          instance.StateComponentsHolder,
+		StatusComponents:         instance.StatusComponentsHolder,
+		StatusCoreComponents:     instance.StatusCoreComponents,
+		FlagsConfig:              args.ContextFlagsConfig,
+		ImportDBConfig:           args.ImportDBConfig,
+		PrefsConfig:              args.PreferencesConfig,
+		Config:                   args.Config,
+		EconomicsConfig:          args.EconomicsConfig,
+		SystemSCConfig:           args.SystemSCConfig,
+		EpochConfig:              args.EpochConfig,
+		ConfigurationPathsHolder: args.ConfigurationPathsHolder,
+		NodesCoordinator:         instance.NodesCoordinator,
+
+		DataComponents: nil,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -204,4 +251,45 @@ func (node *testOnlyProcessingNode) createTransactionLogProcessor() error {
 	node.TxLogsProcessor, err = transactionLog.NewTxLogProcessor(argsTxLogProcessor)
 
 	return err
+}
+
+func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.PreferencesConfig, generalConfig config.Config) error {
+	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(
+		node.CoreComponentsHolder.GenesisNodesSetup(),
+		generalConfig.EpochStartConfig,
+		node.CoreComponentsHolder.ChanStopNodeProcess(),
+	)
+	if err != nil {
+		return err
+	}
+
+	bootstrapStorer, err := node.StoreService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
+
+	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
+		nodesShufflerOut,
+		node.CoreComponentsHolder.GenesisNodesSetup(),
+		pref,
+		node.CoreComponentsHolder.EpochStartNotifierWithConfirm(),
+		node.CryptoComponentsHolder.PublicKey(),
+		node.CoreComponentsHolder.InternalMarshalizer(),
+		node.CoreComponentsHolder.Hasher(),
+		node.CoreComponentsHolder.Rater(),
+		bootstrapStorer,
+		node.CoreComponentsHolder.NodesShuffler(),
+		node.ShardCoordinator.SelfId(),
+		node.BootstrapComponentsHolder.EpochBootstrapParams(),
+		node.BootstrapComponentsHolder.EpochBootstrapParams().Epoch(),
+		node.CoreComponentsHolder.ChanStopNodeProcess(),
+		node.CoreComponentsHolder.NodeTypeProvider(),
+		node.CoreComponentsHolder.EnableEpochsHandler(),
+		node.DataPool.CurrentEpochValidatorInfo(),
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
