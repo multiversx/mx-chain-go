@@ -1,7 +1,6 @@
 package crypto_test
 
 import (
-	"strings"
 	"testing"
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -9,6 +8,7 @@ import (
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +35,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, managedCryptoComponents.BlockSignKeyGen())
 	})
-	t.Run("pub key mismatch", func(t *testing.T) {
+	t.Run("pub key mismatch will not return critical error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
@@ -45,7 +45,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 		managedCryptoComponents, err := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
 		require.NoError(t, err)
 		err = managedCryptoComponents.Create()
-		require.True(t, strings.Contains(err.Error(), errorsMx.ErrPublicKeyMismatch.Error()))
+		assert.Nil(t, err)
 	})
 	t.Run("should work with activateBLSPubKeyMessageVerification", func(t *testing.T) {
 		t.Parallel()
