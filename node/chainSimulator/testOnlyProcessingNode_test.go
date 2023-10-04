@@ -44,6 +44,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 
 	epochConfig := config.EpochConfig{}
 	err = LoadConfigFromFile(pathToConfigFolder+"enableEpochs.toml", &epochConfig)
+	assert.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
 		Config:      mainConfig,
