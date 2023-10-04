@@ -50,7 +50,7 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &mockCommon.TxExecutionOrderHandlerStub{},
-		TxPreprocessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 }
@@ -284,6 +284,17 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 	assert.Nil(t, ppcf)
+}
+
+func TestNewPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	args.TxPreProcessorCreator = nil
+	ppcf, err := NewPreProcessorsContainerFactory(args)
+
+	require.Equal(t, customErrors.ErrNilTxPreProcessorCreator, err)
+	require.Nil(t, ppcf)
 }
 
 func TestNewPreProcessorsContainerFactory(t *testing.T) {

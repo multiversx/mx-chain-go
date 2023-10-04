@@ -1232,7 +1232,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		IncomingHeaderSubscriber:              incomingHeaderHandler,
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
-		TxPreprocessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
+		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

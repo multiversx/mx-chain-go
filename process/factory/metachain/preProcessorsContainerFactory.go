@@ -64,7 +64,7 @@ type ArgPreProcessorsContainerFactory struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxPreprocessorCreator        preprocess.TxPreProcessorCreator
+	TxPreProcessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -95,7 +95,7 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
-		txPreprocessorCreator:        args.TxPreprocessorCreator,
+		txPreprocessorCreator:        args.TxPreProcessorCreator,
 	}, nil
 }
 
@@ -242,7 +242,7 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
 	}
-	if check.IfNil(args.TxPreprocessorCreator) {
+	if check.IfNil(args.TxPreProcessorCreator) {
 		return errors.ErrNilTxPreProcessorCreator
 	}
 

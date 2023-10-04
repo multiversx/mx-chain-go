@@ -171,7 +171,7 @@ type ProcessComponentsFactoryArgs struct {
 	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
 	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
-	TxPreprocessorCreator                 preprocess.TxPreProcessorCreator
+	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 }
 
 type processComponentsFactory struct {
@@ -260,7 +260,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
 		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
-		txPreprocessorCreator:                 args.TxPreprocessorCreator,
+		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 	}, nil
 }
 
@@ -2107,7 +2107,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
 	}
-	if check.IfNil(args.TxPreprocessorCreator) {
+	if check.IfNil(args.TxPreProcessorCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
 

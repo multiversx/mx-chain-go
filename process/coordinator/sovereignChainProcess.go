@@ -179,7 +179,7 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessTransaction
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	defer func() {
-		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
+		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
 			"num mini blocks processed", numMiniBlocksProcessed,
 			"total gas provided", sctc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", sctc.gasHandler.TotalGasProvidedAsScheduled(),

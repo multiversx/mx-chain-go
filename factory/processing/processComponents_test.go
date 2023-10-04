@@ -252,7 +252,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreprocessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -636,6 +636,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.ShardResolversContainerFactoryCreator = nil
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil tx pre processor creator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.TxPreProcessorCreator = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

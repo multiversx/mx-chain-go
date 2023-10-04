@@ -1258,7 +1258,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreprocessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
