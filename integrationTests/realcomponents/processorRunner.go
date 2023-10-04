@@ -453,7 +453,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

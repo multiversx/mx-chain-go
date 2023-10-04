@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -39,6 +40,7 @@ func createMockPreProcessorsContainerFactoryArguments() metachain.ArgPreProcesso
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxPreprocessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		TxExecutionOrderHandler:      &common.TxExecutionOrderHandlerStub{},
 	}
 }

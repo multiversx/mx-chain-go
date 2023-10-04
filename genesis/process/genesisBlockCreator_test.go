@@ -186,7 +186,7 @@ func createMockArgument(
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		ChainRunType:            common.ChainRunTypeRegular,
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
-		TxPreprocessorCreator:   preprocess.NewTxPreprocessorCreator(),
+		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

@@ -5,8 +5,8 @@ import "github.com/multiversx/mx-chain-go/process"
 type txPreProcessorCreator struct {
 }
 
-// NewTxPreprocessorCreator creates a tx processor creator
-func NewTxPreprocessorCreator() *txPreProcessorCreator {
+// NewTxPreProcessorCreator creates a tx processor creator
+func NewTxPreProcessorCreator() *txPreProcessorCreator {
 	return &txPreProcessorCreator{}
 }
 

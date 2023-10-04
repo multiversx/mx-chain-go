@@ -252,7 +252,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)

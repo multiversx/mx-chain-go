@@ -50,7 +50,7 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &mockCommon.TxExecutionOrderHandlerStub{},
-		TxPreprocessorCreator:        preprocess.NewTxPreprocessorCreator(),
+		TxPreprocessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 }

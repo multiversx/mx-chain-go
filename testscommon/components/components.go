@@ -582,7 +582,7 @@ func GetProcessArgs(
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreprocessorCreator:                 preprocess.NewTxPreprocessorCreator(),
+		TxPreprocessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 	}
 }
 

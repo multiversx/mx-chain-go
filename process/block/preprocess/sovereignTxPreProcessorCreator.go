@@ -5,8 +5,8 @@ import "github.com/multiversx/mx-chain-go/process"
 type sovereignTxPreProcessorCreator struct {
 }
 
-// NewSovereignTxPreprocessorCreator creates a sovereign tx processor creator
-func NewSovereignTxPreprocessorCreator() *sovereignTxPreProcessorCreator {
+// NewSovereignTxPreProcessorCreator creates a sovereign tx processor creator
+func NewSovereignTxPreProcessorCreator() *sovereignTxPreProcessorCreator {
 	return &sovereignTxPreProcessorCreator{}
 }
 
