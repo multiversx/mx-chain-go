@@ -54,6 +54,10 @@ func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos 
 	}
 
 	bn.ChildrenVersion[int(childPos)] = byte(version)
+
+	if version == core.NotSpecified {
+		bn.revertChildrenVersionSliceIfNeeded()
+	}
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -636,7 +640,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	bn.hash = nil
 	bn.children[childPos] = newNode
 	if check.IfNil(newNode) {
-		bn.setVersionForChild(0, childPos)
+		bn.setVersionForChild(core.NotSpecified, childPos)
 		bn.EncodedChildren[childPos] = nil
 
 		return nil
@@ -649,6 +653,17 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	bn.setVersionForChild(childVersion, childPos)
 
 	return nil
+}
+
+func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
+	notSpecifiedVersion := byte(core.NotSpecified)
+	for i := range bn.ChildrenVersion {
+		if bn.ChildrenVersion[i] != notSpecifiedVersion {
+			return
+		}
+	}
+
+	bn.ChildrenVersion = []byte(nil)
 }
 
 func (bn *branchNode) reduceNode(pos int) (node, bool, error) {
