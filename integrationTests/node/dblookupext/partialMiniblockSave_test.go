@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	dblookupext2 "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func createMockHistoryRepositoryArguments() dblookupext.HistoryRepositoryArgumen
 		EventsHashesByTxHashStorer:  testscommon.CreateMemUnit(),
 		Marshalizer:                 integrationtests.TestMarshalizer,
 		Hasher:                      integrationtests.TestHasher,
-		ESDTSuppliesHandler:         &dblookupext2.SuppliesHandlerStub{},
+		ESDTSuppliesHandler:         &dblookupextMock.SuppliesHandlerStub{},
 	}
 }
 
