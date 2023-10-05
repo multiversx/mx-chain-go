@@ -99,8 +99,8 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	res := vm.GetIntValueFromSC(nil, testContextFirstContract.Accounts, firstScAddress, "numCalled")
 	require.Equal(t, big.NewInt(1), res)
 
-	require.Equal(t, big.NewInt(2900), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(290), testContextFirstContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(5540), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(554), testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextFirstContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
@@ -109,13 +109,11 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	scr = intermediateTxs[0]
 	utils.ProcessSCRResult(t, testContextSecondContract, scr, vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(49993150), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(4999315), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(49990510), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4999051), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
-
-	// 50 000 000 fee = 120 + 2011170 + 2900 + 290
 }
 
 func TestAsyncCallDisabled(t *testing.T) {

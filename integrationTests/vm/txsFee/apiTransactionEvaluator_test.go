@@ -69,7 +69,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(849), res.GasUnits)
+	require.Equal(t, uint64(1960), res.GasUnits)
 }
 
 func TestAsyncCallsTransactionCost(t *testing.T) {
@@ -100,7 +100,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 	tx := vm.CreateTransaction(1, big.NewInt(0), senderAddr, secondSCAddress, 0, 0, []byte("doSomething"))
 	resWithCost, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(99991601), resWithCost.GasUnits)
+	require.Equal(t, uint64(99984751), resWithCost.GasUnits)
 }
 
 func TestBuiltInFunctionTransactionCost(t *testing.T) {
