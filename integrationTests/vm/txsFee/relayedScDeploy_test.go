@@ -86,7 +86,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(31830)
+	expectedBalanceRelayer := big.NewInt(17030)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -94,7 +94,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(18170), accumulatedFees)
+	require.Equal(t, big.NewInt(32970), accumulatedFees)
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
@@ -125,7 +125,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(31930)
+	expectedBalanceRelayer := big.NewInt(17130)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -133,7 +133,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(18070), accumulatedFees)
+	require.Equal(t, big.NewInt(32870), accumulatedFees)
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
@@ -165,7 +165,7 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(31230)
+	expectedBalanceRelayer := big.NewInt(16430)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -173,5 +173,5 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(18770), accumulatedFees)
+	require.Equal(t, big.NewInt(33570), accumulatedFees)
 }

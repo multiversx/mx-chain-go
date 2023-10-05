@@ -140,7 +140,7 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 }
 
 func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
-	firstContractCode := wasm.GetSCCode("./testdata/first/first.wasm")
+	firstContractCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm")
 
 	t.Run("backwards compatibility for unset flag", func(t *testing.T) {
@@ -209,7 +209,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 	scAddress, owner := utils.DoDeployWithCustomParams(
 		t,
 		testContextShard1,
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		big.NewInt(100000000000),
 		2000,
 		nil,
@@ -275,7 +275,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 }
 
 func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
-	firstSCCode := wasm.GetSCCode("./testdata/first/first.wasm")
+	firstSCCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	pathToSecondSC := "./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm"
 	secondSCCode := wasm.GetSCCode(pathToSecondSC)
 
@@ -343,7 +343,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 	scAddressFirst, firstOwner := utils.DoDeployWithCustomParams(
 		t,
 		testContextShard1,
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		big.NewInt(100000000000),
 		2000,
 		nil,
