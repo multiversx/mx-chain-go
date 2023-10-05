@@ -189,6 +189,6 @@ type KeysHandler interface {
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	GetAssociatedPid(pkBytes []byte) core.PeerID
 	IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool
-	UpdatePublicKeyLiveness(pkBytes []byte, pid core.PeerID)
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
 }

@@ -251,26 +251,20 @@ func TestKeysHandler_GetAssociatedPid(t *testing.T) {
 	})
 }
 
-func TestKeysHandler_UpdatePublicKeyLiveness(t *testing.T) {
+func TestKeysHandler_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 	t.Parallel()
 
 	mapResetCalled := make(map[string]int)
 	args := createMockArgsKeysHandler()
 	args.ManagedPeersHolder = &testscommon.ManagedPeersHolderStub{
-		ResetRoundsWithoutReceivedMessagesCalled: func(pkBytes []byte) {
+		ResetRoundsWithoutReceivedMessagesCalled: func(pkBytes []byte, pid core.PeerID) {
 			mapResetCalled[string(pkBytes)]++
 		},
 	}
 	handler, _ := keysManagement.NewKeysHandler(args)
 
-	t.Run("same pid should not call reset", func(t *testing.T) {
-		handler.UpdatePublicKeyLiveness(randomPublicKeyBytes, pid)
-		assert.Zero(t, len(mapResetCalled))
-	})
-	t.Run("another pid should call reset", func(t *testing.T) {
-		randomPid := core.PeerID("random pid")
-		handler.UpdatePublicKeyLiveness(randomPublicKeyBytes, randomPid)
-		assert.Equal(t, 1, len(mapResetCalled))
-		assert.Equal(t, 1, mapResetCalled[string(randomPublicKeyBytes)])
-	})
+	randomPid := core.PeerID("random pid")
+	handler.ResetRoundsWithoutReceivedMessages(randomPublicKeyBytes, randomPid)
+	assert.Equal(t, 1, len(mapResetCalled))
+	assert.Equal(t, 1, mapResetCalled[string(randomPublicKeyBytes)])
 }
