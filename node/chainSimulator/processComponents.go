@@ -20,12 +20,10 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -146,18 +144,12 @@ func CreateProcessComponentsHolder(args ArgsProcessComponentsHolder) (factory.Pr
 		return nil, err
 	}
 
-	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(args.Config.WhiteListPool))
-	if err != nil {
-		return nil, err
-	}
-	// TODO check if this is needed
-	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO check if this is needed
-	whiteListerVerifiedTxs, err := createWhiteListerVerifiedTxs(&args.Config)
+	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
 	if err != nil {
 		return nil, err
 	}
@@ -269,14 +261,6 @@ func CreateProcessComponentsHolder(args ArgsProcessComponentsHolder) (factory.Pr
 	}
 
 	return instance, nil
-}
-
-func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteListHandler, error) {
-	whiteListCacheVerified, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(generalConfig.WhiteListerVerifiedTxs))
-	if err != nil {
-		return nil, err
-	}
-	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
 }
 
 // NodesCoordinator will return the nodes coordinator
