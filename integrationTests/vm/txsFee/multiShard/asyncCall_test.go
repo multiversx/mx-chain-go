@@ -56,7 +56,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	deployGasLimit := uint64(50000)
 	firstAccount, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 
-	pathToContract := "../testdata/first/first.wasm"
+	pathToContract := "../testdata/first/output/first.wasm"
 	firstScAddress := utils.DoDeploySecond(t, testContextFirstContract, pathToContract, firstAccount, gasPrice, deployGasLimit, nil, big.NewInt(50))
 
 	args := [][]byte{[]byte(hex.EncodeToString(firstScAddress))}
@@ -166,7 +166,7 @@ func TestAsyncCallDisabled(t *testing.T) {
 	deployGasLimit := uint64(50000)
 	firstAccount, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 
-	pathToContract := "../testdata/first/first.wasm"
+	pathToContract := "../testdata/first/output/first.wasm"
 	firstScAddress := utils.DoDeploySecond(t, testContextFirstContract, pathToContract, firstAccount, gasPrice, deployGasLimit, nil, big.NewInt(50))
 
 	args := [][]byte{[]byte(hex.EncodeToString(firstScAddress))}

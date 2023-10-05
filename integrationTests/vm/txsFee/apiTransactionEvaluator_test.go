@@ -90,7 +90,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(2000)
 
-	pathToContract := "testdata/first/first.wasm"
+	pathToContract := "testdata/first/output/first.wasm"
 	firstScAddress, _ := utils.DoDeployNoChecks(t, testContext, pathToContract)
 
 	args := [][]byte{[]byte(hex.EncodeToString(firstScAddress))}

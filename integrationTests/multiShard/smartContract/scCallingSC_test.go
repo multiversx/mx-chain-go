@@ -78,7 +78,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -922,7 +922,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 
 	// deploy the smart contracts
 	_ = putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
