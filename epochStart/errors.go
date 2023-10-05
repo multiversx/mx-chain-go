@@ -328,3 +328,6 @@ var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrNilExecutionOrderHandler signals that a nil execution order handler has been provided
+var ErrNilExecutionOrderHandler = errors.New("nil execution order handler")

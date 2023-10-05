@@ -1504,13 +1504,13 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
+		PrefsConfig:                          *configs.PreferencesConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            core.NewKeyLoader(),
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
-		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 
