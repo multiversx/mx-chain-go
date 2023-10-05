@@ -33,7 +33,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/trieStoreAndLoad/storage.wasm")
+	scAddress, _ := utils.DoDeployNoChecks(t, testContext, "../wasm/testdata/trieStoreAndLoad/output/storage.wasm")
 	acc := getAccount(t, testContext, scAddress)
 	require.Nil(t, acc.DataTrie())
 
@@ -47,15 +47,17 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	dataTrieInstance := getAccountDataTrie(t, testContext, scAddress)
 	trieKeysDepth := getTrieDepthForKeys(t, dataTrieInstance, keys)
 
+	// Question for review: is this all right?
+	initCost := 35
 	apiCallsCost := 3
 	loadValCost := 32
 	wasmOpsCost := 14
 
-	contractCode := wasm.GetSCCode("../wasm/testdata/trieStoreAndLoad/storage.wasm")
+	contractCode := wasm.GetSCCode("../wasm/testdata/trieStoreAndLoad/output/storage.wasm")
 	latestGasSchedule := gasScheduleNotifier.LatestGasSchedule()
 	aotPrepare := latestGasSchedule[common.BaseOperationCost]["AoTPreparePerByte"] * uint64(len(contractCode)) / 2
 
-	gasCost := int64(apiCallsCost+loadValCost+wasmOpsCost) + int64(aotPrepare)
+	gasCost := int64(initCost) + int64(apiCallsCost+loadValCost+wasmOpsCost) + int64(aotPrepare)
 
 	for i, key := range keys {
 		trieLoadCost := getExpectedConsumedGasForTrieLoad(testContext, int64(trieKeysDepth[i]))
