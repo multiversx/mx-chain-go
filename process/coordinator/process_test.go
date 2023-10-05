@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
@@ -547,6 +548,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -649,6 +651,7 @@ func createPreProcessorContainerWithDataPool(
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -920,6 +923,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -1109,6 +1113,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1221,6 +1226,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1762,6 +1768,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1892,6 +1899,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2034,6 +2042,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2177,6 +2186,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ChainRunType:                 common.ChainRunTypeRegular,
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)

@@ -1775,6 +1775,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		ChainRunType:                 tpn.ChainRunType,
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 	}
 	fact, _ := shard.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
@@ -2034,6 +2035,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 	}
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(args)

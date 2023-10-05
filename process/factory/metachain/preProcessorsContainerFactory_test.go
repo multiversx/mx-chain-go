@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -16,6 +18,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockPreProcessorsContainerFactoryArguments() metachain.ArgPreProcessorsContainerFactory {
@@ -39,6 +42,7 @@ func createMockPreProcessorsContainerFactoryArguments() metachain.ArgPreProcesso
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		TxExecutionOrderHandler:      &common.TxExecutionOrderHandlerStub{},
 	}
 }
@@ -250,6 +254,17 @@ func TestPreProcessorsContainerFactory_CreateErrTxExecutionOrderHandler(t *testi
 
 	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 	assert.Nil(t, ppcf)
+}
+
+func TestPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	args.TxPreProcessorCreator = nil
+	ppcf, err := metachain.NewPreProcessorsContainerFactory(args)
+
+	require.Equal(t, errors.ErrNilTxPreProcessorCreator, err)
+	require.Nil(t, ppcf)
 }
 
 func TestNewPreProcessorsContainerFactory(t *testing.T) {
