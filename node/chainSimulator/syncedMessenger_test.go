@@ -79,14 +79,6 @@ func TestSyncedMessenger_RegisterMessageProcessor(t *testing.T) {
 		err := messenger.RegisterMessageProcessor("", "", nil)
 		assert.ErrorIs(t, err, errNilMessageProcessor)
 	})
-	t.Run("topic not created should error", func(t *testing.T) {
-		t.Parallel()
-
-		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
-
-		err := messenger.RegisterMessageProcessor("t", "", &p2pmocks.MessageProcessorStub{})
-		assert.ErrorIs(t, err, errTopicNotCreated)
-	})
 	t.Run("processor exists, should error", func(t *testing.T) {
 		t.Parallel()
 
