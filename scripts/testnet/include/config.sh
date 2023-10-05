@@ -69,6 +69,13 @@ updateSeednodeConfig() {
   popd
 }
 
+prepareElasticsearch() {
+  echo "Starting Elasticsearch Docker container..."
+  pwd
+  export ES_CONTAINER_ID=$(docker run -d -p 9200:9200 -p 9301:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
+  echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
+}
+
 copyNodeConfig() {
   pushd $TESTNETDIR
   cp $NODEDIR/config/api.toml ./node/config
@@ -77,7 +84,8 @@ copyNodeConfig() {
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
-  cp $NODEDIR/config/external.toml ./node/config
+  cp $NODEDIR/config/external.toml ./node/config/external_validator.toml
+  cp $NODEDIR/config/external.toml ./node/config/external_observer.toml
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/fullArchiveP2P.toml ./node/config
   cp $NODEDIR/config/enableEpochs.toml ./node/config
@@ -134,6 +142,10 @@ updateNodeConfig() {
     sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
 	fi
 
+	if [ $USE_ELASTICSEARCH -eq 1 ]; then
+	  sed -i '/^\[ElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
+	fi
+
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 
@@ -154,7 +166,7 @@ copyProxyConfig() {
   cp -r $PROXYDIR/config/apiConfig ./proxy/config
 
   cp ./node/config/economics.toml ./proxy/config/
-  cp ./node/config/external.toml ./proxy/config/
+  cp ./node/config/external_validator.toml ./proxy/config/external.toml
   cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
