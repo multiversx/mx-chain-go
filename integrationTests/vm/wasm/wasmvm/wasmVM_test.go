@@ -217,7 +217,7 @@ func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
 		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+2,
-		big.NewInt(99999100))
+		big.NewInt(99997989))
 
 	vm.TestAccount(
 		t,

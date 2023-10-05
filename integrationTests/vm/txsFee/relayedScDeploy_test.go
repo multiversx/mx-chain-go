@@ -26,7 +26,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(1960)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(50000))
@@ -45,7 +45,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(28440)
+	expectedBalanceRelayer := big.NewInt(2530)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -53,7 +53,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(21560), accumulatedFees)
+	require.Equal(t, big.NewInt(47470), accumulatedFees)
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
