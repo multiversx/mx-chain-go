@@ -196,8 +196,3 @@ func (mh *miniblocksHandler) saveMiniblocksMetadata(miniblockHash []byte, multip
 
 	return mh.miniblocksMetadataStorer.PutInEpoch(miniblockHash, buff, epoch)
 }
-
-// blockReverted is called whenever a block is reverted
-func (mh *miniblocksHandler) blockReverted(header data.HeaderHandler, blockBody *block.Body) error {
-	panic("TODO implement this")
-}
