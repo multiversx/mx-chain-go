@@ -5,13 +5,13 @@ import "github.com/multiversx/mx-chain-go/process"
 type txPreProcessorCreator struct {
 }
 
-// NewTxPreProcessorCreator creates a tx processor creator
+// NewTxPreProcessorCreator creates a tx pre-processor creator
 func NewTxPreProcessorCreator() *txPreProcessorCreator {
 	return &txPreProcessorCreator{}
 }
 
-// CreateTxProcessor creates a tx processor creator for regular chain(meta+shard)
-func (tpc *txPreProcessorCreator) CreateTxProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error) {
+// CreateTxPreProcessor creates a tx pre-processor for regular chain(meta+shard)
+func (tpc *txPreProcessorCreator) CreateTxPreProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error) {
 	return NewTransactionPreprocessor(args)
 }
 

@@ -609,9 +609,11 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	if scbp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("sovereignChainBlockProcessor.ProcessBlock first entry", "stack", string(scbp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return nil, nil, process.ErrAccountStateDirty
+	for _, accounts := range scbp.accountsDB {
+		if accounts.JournalLen() != 0 {
+			log.Error("sovereignChainBlockProcessor.ProcessBlock first entry", "stack", string(accounts.GetStackDebugFirstEntry()))
+			return nil, nil, process.ErrAccountStateDirty
+		}
 	}
 
 	defer func() {

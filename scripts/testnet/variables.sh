@@ -62,6 +62,7 @@ export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # If set to true, this will deploy nodes in a sovereign shard.
 # All variables from metashard structure(validators, observers, consensus) should be set to zero and SHARDCOUNT to 1
+# For now, make sure that you checkout feat/sovereign branch from mx-chain-deploy repo when using these scripts
 export SOVEREIGN_DEPLOY=true
 
 # Shard structure

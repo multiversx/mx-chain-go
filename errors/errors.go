@@ -653,5 +653,5 @@ var ErrNilShardResolversContainerFactoryCreator = errors.New("nil shard resolver
 // ErrInvalidReceivedExtendedShardHeader signals that an invalid extended shard header has been intercepted when requested
 var ErrInvalidReceivedExtendedShardHeader = errors.New("invalid extended shard header has been intercepted")
 
-// ErrNilTxPreProcessorCreator signals that a nil tx pre-processor has been provided
-var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor has been provided")
+// ErrNilTxPreProcessorCreator signals that a nil tx pre-processor creator has been provided
+var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor creator has been provided")
