@@ -24,3 +24,27 @@ message MiniblockMetadata {
     int32 Type                                  = 13;
 }
 
+// MiniblockMetadataV2 is the second variant of message used to store information about a history transaction
+message MiniblockMetadataV2 {
+    bytes    MiniblockHash                           = 1;
+    uint32   SourceShardID                           = 2;
+    uint32   DestinationShardID                      = 3;
+    int32    Type                                    = 4;
+    int32    NumTxHashesInMiniblock                  = 5;
+    repeated MiniblockMetadataOnBlock MiniblocksInfo = 6;
+}
+
+// MiniblockMetadataOnBlock defines the coordinates of a miniblock in regards with a header
+message MiniblockMetadataOnBlock {
+    uint64 Round                             = 1;
+    uint64 HeaderNonce                       = 2;
+    bytes  HeaderHash                        = 3;
+    uint32 Epoch                             = 4;
+    uint64 NotarizedAtSourceInMetaNonce      = 5;
+    uint64 NotarizedAtDestinationInMetaNonce = 6;
+    bytes NotarizedAtSourceInMetaHash        = 7;
+    bytes NotarizedAtDestinationInMetaHash   = 8;
+    repeated bytes TxHashesWhenPartial       = 9;
+    int32 IndexOfFirstTxProcessed            = 10;
+}
+
