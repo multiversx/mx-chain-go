@@ -166,6 +166,7 @@ copyProxyConfig() {
   cp -r $PROXYDIR/config/apiConfig ./proxy/config
 
   cp ./node/config/economics.toml ./proxy/config/
+  cp ./node/config/external_validator.toml ./proxy/config/external.toml
   cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
