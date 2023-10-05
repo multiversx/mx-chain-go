@@ -181,7 +181,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
-	return ppcf.txPreprocessorCreator.CreateTxProcessor(args)
+	return ppcf.txPreprocessorCreator.CreateTxPreProcessor(args)
 }
 
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {

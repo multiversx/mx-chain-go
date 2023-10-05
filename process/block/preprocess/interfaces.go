@@ -59,6 +59,6 @@ type BalanceComputationHandler interface {
 
 // TxPreProcessorCreator defines a tx pre processor creator
 type TxPreProcessorCreator interface {
-	CreateTxProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error)
+	CreateTxPreProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error)
 	IsInterfaceNil() bool
 }

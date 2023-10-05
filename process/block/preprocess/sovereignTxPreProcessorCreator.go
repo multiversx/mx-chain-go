@@ -5,13 +5,13 @@ import "github.com/multiversx/mx-chain-go/process"
 type sovereignTxPreProcessorCreator struct {
 }
 
-// NewSovereignTxPreProcessorCreator creates a sovereign tx processor creator
+// NewSovereignTxPreProcessorCreator creates a sovereign tx pre-processor creator
 func NewSovereignTxPreProcessorCreator() *sovereignTxPreProcessorCreator {
 	return &sovereignTxPreProcessorCreator{}
 }
 
-// CreateTxProcessor creates a tx processor creator for sovereign chain
-func (tpc *sovereignTxPreProcessorCreator) CreateTxProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error) {
+// CreateTxPreProcessor creates a tx pre-processor for sovereign chain
+func (tpc *sovereignTxPreProcessorCreator) CreateTxPreProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error) {
 	txPreProc, err := NewTransactionPreprocessor(args)
 	if err != nil {
 		return nil, err

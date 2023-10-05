@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -256,14 +256,14 @@ func TestPreProcessorsContainerFactory_CreateErrTxExecutionOrderHandler(t *testi
 	assert.Nil(t, ppcf)
 }
 
-func TestPreProcessorsContainerFactory_NilErrNilTxPreProcessorCreator(t *testing.T) {
+func TestPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T) {
 	t.Parallel()
 
 	args := createMockPreProcessorsContainerFactoryArguments()
 	args.TxPreProcessorCreator = nil
 	ppcf, err := metachain.NewPreProcessorsContainerFactory(args)
 
-	require.Equal(t, errorsMx.ErrNilTxPreProcessorCreator, err)
+	require.Equal(t, errors.ErrNilTxPreProcessorCreator, err)
 	require.Nil(t, ppcf)
 }
 
