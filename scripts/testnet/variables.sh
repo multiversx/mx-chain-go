@@ -14,6 +14,11 @@ export USE_PROXY=1
 # repository (mx-chain-txgen-go).
 export USE_TXGEN=0
 
+# Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
+# It will also change the external.toml files for observers, so they can index data into it.
+# Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
+export USE_ELASTICSEARCH=0
+
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.
@@ -61,14 +66,14 @@ export OBSERVERS_ANTIFLOOD_DISABLE=0
 export SOVEREIGN_DEPLOY=true
 
 # Shard structure
-export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=3
+export SHARDCOUNT=1
+export SHARD_VALIDATORCOUNT=2
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=3
+export SHARD_CONSENSUS_SIZE=2
 
 # Metashard structure
-export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=1
+export META_VALIDATORCOUNT=0
+export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
