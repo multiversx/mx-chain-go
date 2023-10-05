@@ -1,10 +1,16 @@
 #include "../chain/context.h"
-#include "../chain/test_utils.h"
-#include "../chain/args.h"
+#include "../mxvm/test_utils.h"
+#include "../mxvm/args.h"
 
 byte childGeneratedAddress[32] = {};
 byte childCode[5000] = {};
 byte childMetadata[16] = {};
+
+byte deploymentValue[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42};
+
+void init()
+{
+}
 
 byte deploymentValue[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42};
 
