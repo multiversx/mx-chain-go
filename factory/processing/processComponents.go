@@ -171,6 +171,7 @@ type ProcessComponentsFactoryArgs struct {
 	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
 	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 }
 
 type processComponentsFactory struct {
@@ -214,6 +215,7 @@ type processComponentsFactory struct {
 	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
 	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
+	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -258,6 +260,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
 		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
+		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 	}, nil
 }
 
@@ -957,6 +960,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 		ChainRunType:            pcf.chainRunType,
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
+		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 	}
 
@@ -2102,6 +2106,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
+	}
+	if check.IfNil(args.TxPreProcessorCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
 
 	return nil

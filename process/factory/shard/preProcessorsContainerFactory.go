@@ -44,6 +44,7 @@ type preProcessorsContainerFactory struct {
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	chainRunType                 common.ChainRunType
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
+	txPreprocessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
@@ -71,6 +72,7 @@ type ArgPreProcessorsContainerFactory struct {
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	ChainRunType                 common.ChainRunType
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
+	TxPreProcessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -104,6 +106,7 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		chainRunType:                 args.ChainRunType,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
+		txPreprocessorCreator:        args.TxPreProcessorCreator,
 	}, nil
 }
 
@@ -178,7 +181,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
-	return preprocess.NewTransactionPreprocessor(args)
+	return ppcf.txPreprocessorCreator.CreateTxPreProcessor(args)
 }
 
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
@@ -316,6 +319,9 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	}
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(args.TxPreProcessorCreator) {
+		return customErrors.ErrNilTxPreProcessorCreator
 	}
 
 	return nil
