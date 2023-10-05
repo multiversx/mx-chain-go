@@ -185,6 +185,11 @@ func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.
 	return nil
 }
 
+// SetDebugger returns nil as it is disabled
+func (netMes *networkMessenger) SetDebugger(_ p2p.Debugger) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (netMes *networkMessenger) IsInterfaceNil() bool {
 	return netMes == nil

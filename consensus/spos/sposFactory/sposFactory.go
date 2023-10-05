@@ -23,6 +23,7 @@ func GetSubroundsFactory(
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
 	outportHandler outport.OutportHandler,
+	sentSignatureTracker spos.SentSignaturesTracker,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
@@ -35,6 +36,7 @@ func GetSubroundsFactory(
 			chainID,
 			currentPid,
 			appStatusHandler,
+			sentSignatureTracker,
 		)
 		if err != nil {
 			return nil, err

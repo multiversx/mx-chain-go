@@ -376,7 +376,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return err
 	}
 
-	wrk.consensusState.UpdatePublicKeyLiveness(cnsMsg.GetPubKey(), message.Peer())
+	wrk.consensusState.ResetRoundsWithoutReceivedMessages(cnsMsg.GetPubKey(), message.Peer())
 
 	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
 		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(

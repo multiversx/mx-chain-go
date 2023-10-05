@@ -118,12 +118,6 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 		}, nil
 	}
 
-	// asyncParams, err := contexts.RemoveAsyncContextArguments(&input.VMInput)
-	// if err != nil {
-	// 	log.Debug("run smart contract call error (async params extraction)", "error", err.Error())
-	// 	return nil, vm.ErrInputAsyncParamsMissing
-	// }
-
 	returnCode := contract.Execute(input)
 	var vmOutput *vmcommon.VMOutput
 	if returnCode == vmcommon.Ok {
@@ -137,8 +131,6 @@ func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmc
 	}
 
 	vmOutput.ReturnCode = returnCode
-
-	// input.VMInput.Arguments = append(asyncParams, input.VMInput.Arguments...)
 
 	return vmOutput, nil
 }
