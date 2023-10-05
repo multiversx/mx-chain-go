@@ -554,6 +554,33 @@ func BenchmarkNewShardedTxPool(b *testing.B) {
 			removeDataFromPool(txPool, i, numberOfShards)
 		}
 	})
+	b.Run("inner tx pool, all txs are relayed, 1 sender", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		numOfSenders := 1
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, numOfTxsInPool, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("inner tx pool, all txs are relayed, different senders, with eviction", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		localNumOfTxs := numOfTxsInPool * 2
+		numOfSenders := localNumOfTxs
+		populatePool(txPool, localNumOfTxs, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, localNumOfTxs, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
 }
 
 func populatePool(txPool dataRetriever.ShardedDataCacherNotifier, numTxsInMainPool int, numOfShards uint32, numOfSenders int) {

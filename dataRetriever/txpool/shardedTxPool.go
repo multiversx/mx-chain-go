@@ -392,6 +392,12 @@ func (txPool *shardedTxPool) NotifyEviction(txHash []byte) {
 	txPool.removeTxFromAllShards(txHash)
 }
 
+// ShouldNotifyEviction calls returns true if the provided data exists in any shard
+func (txPool *shardedTxPool) ShouldNotifyEviction(txHash []byte) bool {
+	_, has := txPool.SearchFirstData(txHash)
+	return has
+}
+
 // Close closes all shards
 func (txPool *shardedTxPool) Close() error {
 	txPool.mutexBackingMap.RLock()
