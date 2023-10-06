@@ -30,4 +30,7 @@ screen -L -Logfile txgenBasicLog.txt -d -m -S txgenBasicScreen ./sovereign-txgen
 echo -e "${GREEN}Starting sending the erc20 scenario transactions...${NC}"
 screen -L -Logfile txgenErc20Log.txt -d -m -S txgenErc20Screen ./sovereign-txgen-erc20.sh
 
+echo -e "${GREEN}Starting sending the esdt scenario transactions...${NC}"
+screen -L -Logfile txgenEsdtLog.txt -d -m -S txgenEsdtScreen ./sovereign-txgen-esdt.sh
+
 echo -e "${GREEN}Finished the sovereign chain deployment. Don't forget to stop it with ./stop.sh at the end.${NC}"

@@ -52,6 +52,16 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 		return nil, err
 	}
 
+	acc, err := gbc.arg.Accounts.LoadAccount(core.SystemAccountAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	err = gbc.arg.Accounts.SaveAccount(acc)
+	if err != nil {
+		return nil, err
+	}
+
 	return gbc.createSovereignHeaders(argsCreateBlock)
 }
 
