@@ -40,7 +40,6 @@ type patriciaMerkleTrie struct {
 	hasher                  hashing.Hasher
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
-	stateStatsHandler       common.StateStatisticsHandler
 	mutOperation            sync.RWMutex
 
 	oldHashes            [][]byte
@@ -268,17 +267,6 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	}
 
 	return nil
-}
-
-// GetStorageStats will returns trie storage operations statistics as string
-func (tr *patriciaMerkleTrie) GetStorageStats() string {
-	dbWithStats, ok := tr.trieStorage.(storageManagerWithStats)
-	if !ok {
-		log.Warn(fmt.Sprintf("invalid trie storage type %T", tr.trieStorage))
-		return ""
-	}
-
-	return dbWithStats.GetStatsCollector().ToString()
 }
 
 // Recreate returns a new trie that has the given root hash and database

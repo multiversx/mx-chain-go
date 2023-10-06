@@ -385,15 +385,6 @@ func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestPatriciaMerkleTree_GetStorageStats(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	stats := tr.GetStorageStats()
-	assert.NotEmpty(t, stats)
-}
-
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	t.Parallel()
 
