@@ -217,36 +217,38 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	return nil
 }
 
-func isRelayedTx(funcName string, innerTx *transaction.Transaction) bool {
+func isRelayedTx(funcName string, innerTxs []*transaction.Transaction) bool {
 	return core.RelayedTransaction == funcName ||
 		core.RelayedTransactionV2 == funcName ||
-		innerTx != nil
+		len(innerTxs) > 0
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
-	if tx.InnerTransaction == nil {
+	if len(tx.InnerTransactions) == 0 {
 		return nil
 	}
 	if !inTx.enableEpochsHandler.IsRelayedTransactionsV3FlagEnabled() {
 		return process.ErrRelayedTxV3Disabled
 	}
 
-	innerTx := tx.InnerTransaction
-	if !bytes.Equal(innerTx.SndAddr, tx.RcvAddr) {
-		return process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver
-	}
-	if len(innerTx.RelayerAddr) == 0 {
-		return process.ErrRelayedTxV3EmptyRelayer
-	}
+	innerTxs := tx.InnerTransactions
+	for _, innerTx := range innerTxs {
+		if !bytes.Equal(innerTx.SndAddr, tx.RcvAddr) {
+			return process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver
+		}
+		if len(innerTx.RelayerAddr) == 0 {
+			return process.ErrRelayedTxV3EmptyRelayer
+		}
 
-	err := inTx.integrity(innerTx)
-	if err != nil {
-		return fmt.Errorf("inner transaction: %w", err)
-	}
+		err := inTx.integrity(innerTx)
+		if err != nil {
+			return fmt.Errorf("inner transaction: %w", err)
+		}
 
-	err = inTx.verifyUserTx(innerTx)
-	if err != nil {
-		return fmt.Errorf("inner transaction: %w", err)
+		err = inTx.verifyUserTx(innerTx)
+		if err != nil {
+			return fmt.Errorf("inner transaction: %w", err)
+		}
 	}
 
 	return nil
@@ -316,7 +318,7 @@ func (inTx *InterceptedTransaction) verifyUserTx(userTx *transaction.Transaction
 	}
 
 	// recursive relayed transactions are not allowed
-	if isRelayedTx(funcName, userTx.InnerTransaction) {
+	if isRelayedTx(funcName, userTx.InnerTransactions) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 

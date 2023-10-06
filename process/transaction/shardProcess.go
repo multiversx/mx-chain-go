@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -625,22 +626,72 @@ func (txProc *txProcessor) processRelayedTxV3(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3ZeroVal)
 	}
 
-	userTx := tx.GetInnerTransaction()
-	if !bytes.Equal(tx.RcvAddr, userTx.SndAddr) {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver)
+	totalGasLimit := uint64(0)
+	userTxs := tx.GetInnerTransactions()
+	for _, userTx := range userTxs {
+		if !bytes.Equal(tx.RcvAddr, userTx.SndAddr) {
+			return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver)
+		}
+		if len(userTx.RelayerAddr) == 0 {
+			return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3EmptyRelayer)
+		}
+		if tx.GasPrice != userTx.GasPrice {
+			return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedV3GasPriceMismatch)
+		}
+		totalGasLimit += userTx.GasLimit
 	}
-	if len(userTx.RelayerAddr) == 0 {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3EmptyRelayer)
-	}
-	if tx.GasPrice != userTx.GasPrice {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedV3GasPriceMismatch)
-	}
+
 	remainingGasLimit := tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
-	if userTx.GasLimit != remainingGasLimit {
+	if totalGasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3GasLimitMismatch)
 	}
 
-	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
+	return txProc.processUserTxs(tx, userTxs, relayerAcnt, acntDst)
+}
+
+func (txProc *txProcessor) processUserTxs(
+	tx *transaction.Transaction,
+	userTxs []*transaction.Transaction,
+	relayerAcnt, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	computedFees := txProc.computeRelayedTxFees(tx)
+	txHash, err := txProc.processTxAtRelayer(relayerAcnt, computedFees.totalFee, computedFees.relayerFee, tx)
+	if err != nil {
+		return 0, err
+	}
+
+	if check.IfNil(acntDst) {
+		return vmcommon.Ok, nil
+	}
+
+	err = txProc.addFeeAndValueToDest(acntDst, tx, computedFees.remainingFee)
+	if err != nil {
+		return 0, err
+	}
+
+	sort.Slice(userTxs, func(i, j int) bool {
+		return userTxs[i].Nonce <= userTxs[j].Nonce
+	})
+
+	numTxs := len(userTxs)
+	for i := 0; i < numTxs; i++ {
+		userTx := userTxs[i]
+
+		nonceBefore := acntDst.GetNonce()
+		result, processErr := txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, txHash)
+		currentNonce := acntDst.GetNonce()
+		nonceConsumed := currentNonce > nonceBefore
+		processFailed := processErr != nil || result != vmcommon.Ok
+		if processFailed && !nonceConsumed {
+			log.Warn("failed to process user tx, nonce not consumed",
+				"nonce", userTx.Nonce,
+				"processed", i,
+				"not processed", numTxs-i)
+			return result, process.ErrInnerTxProcessFailed
+		}
+	}
+
+	return vmcommon.Ok, nil
 }
 
 func (txProc *txProcessor) processRelayedTxV2(

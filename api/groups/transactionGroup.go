@@ -161,23 +161,23 @@ type MultipleTxRequest struct {
 
 // SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
 type SendTxRequest struct {
-	Sender            string         `form:"sender" json:"sender"`
-	Receiver          string         `form:"receiver" json:"receiver"`
-	SenderUsername    []byte         `json:"senderUsername,omitempty"`
-	ReceiverUsername  []byte         `json:"receiverUsername,omitempty"`
-	Value             string         `form:"value" json:"value"`
-	Data              []byte         `form:"data" json:"data"`
-	Nonce             uint64         `form:"nonce" json:"nonce"`
-	GasPrice          uint64         `form:"gasPrice" json:"gasPrice"`
-	GasLimit          uint64         `form:"gasLimit" json:"gasLimit"`
-	Signature         string         `form:"signature" json:"signature"`
-	ChainID           string         `form:"chainID" json:"chainID"`
-	Version           uint32         `form:"version" json:"version"`
-	Options           uint32         `json:"options,omitempty"`
-	GuardianAddr      string         `json:"guardian,omitempty"`
-	GuardianSignature string         `json:"guardianSignature,omitempty"`
-	Relayer           string         `json:"relayer,omitempty"`
-	InnerTransaction  *SendTxRequest `json:"innerTransaction,omitempty"`
+	Sender            string           `form:"sender" json:"sender"`
+	Receiver          string           `form:"receiver" json:"receiver"`
+	SenderUsername    []byte           `json:"senderUsername,omitempty"`
+	ReceiverUsername  []byte           `json:"receiverUsername,omitempty"`
+	Value             string           `form:"value" json:"value"`
+	Data              []byte           `form:"data" json:"data"`
+	Nonce             uint64           `form:"nonce" json:"nonce"`
+	GasPrice          uint64           `form:"gasPrice" json:"gasPrice"`
+	GasLimit          uint64           `form:"gasLimit" json:"gasLimit"`
+	Signature         string           `form:"signature" json:"signature"`
+	ChainID           string           `form:"chainID" json:"chainID"`
+	Version           uint32           `form:"version" json:"version"`
+	Options           uint32           `json:"options,omitempty"`
+	GuardianAddr      string           `json:"guardian,omitempty"`
+	GuardianSignature string           `json:"guardianSignature,omitempty"`
+	Relayer           string           `json:"relayer,omitempty"`
+	InnerTransactions []*SendTxRequest `json:"innerTransactions,omitempty"`
 }
 
 // TxResponse represents the structure on which the response will be validated against
@@ -219,23 +219,27 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
-	var innerTx *transaction.Transaction
-	if gtx.InnerTransaction != nil {
-		innerTx, _, err = tg.createTransaction(gtx.InnerTransaction, nil)
-		if err != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
+	innerTxs := make([]*transaction.Transaction, 0)
+	if len(gtx.InnerTransactions) > 0 {
+		for _, receivedInnerTx := range gtx.InnerTransactions {
+			innerTx, _, errCreate := tg.createTransaction(receivedInnerTx, nil)
+			if errCreate != nil {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errCreate.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
+
+			innerTxs = append(innerTxs, innerTx)
 		}
 	}
 
-	tx, txHash, err := tg.createTransaction(&gtx, innerTx)
+	tx, txHash, err := tg.createTransaction(&gtx, innerTxs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -305,23 +309,27 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
-	var innerTx *transaction.Transaction
-	if gtx.InnerTransaction != nil {
-		innerTx, _, err = tg.createTransaction(gtx.InnerTransaction, nil)
-		if err != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
+	innerTxs := make([]*transaction.Transaction, 0)
+	if len(gtx.InnerTransactions) > 0 {
+		for _, receivedInnerTx := range gtx.InnerTransactions {
+			innerTx, _, errCreate := tg.createTransaction(receivedInnerTx, nil)
+			if errCreate != nil {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errCreate.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
+
+			innerTxs = append(innerTxs, innerTx)
 		}
 	}
 
-	tx, txHash, err := tg.createTransaction(&gtx, innerTx)
+	tx, txHash, err := tg.createTransaction(&gtx, innerTxs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -400,23 +408,27 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	var start time.Time
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range gtx {
-		var innerTx *transaction.Transaction
-		if receivedTx.InnerTransaction != nil {
-			innerTx, _, err = tg.createTransaction(receivedTx.InnerTransaction, nil)
-			if err != nil {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
+		innerTxs := make([]*transaction.Transaction, 0)
+		if len(receivedTx.InnerTransactions) > 0 {
+			for _, receivedInnerTx := range receivedTx.InnerTransactions {
+				innerTx, _, errCreate := tg.createTransaction(receivedInnerTx, nil)
+				if errCreate != nil {
+					c.JSON(
+						http.StatusBadRequest,
+						shared.GenericAPIResponse{
+							Data:  nil,
+							Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errCreate.Error()),
+							Code:  shared.ReturnCodeRequestError,
+						},
+					)
+					return
+				}
+
+				innerTxs = append(innerTxs, innerTx)
 			}
 		}
 
-		tx, txHash, err = tg.createTransaction(&receivedTx, innerTx)
+		tx, txHash, err = tg.createTransaction(&receivedTx, innerTxs)
 		if err != nil {
 			continue
 		}
@@ -527,23 +539,27 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	var innerTx *transaction.Transaction
-	if gtx.InnerTransaction != nil {
-		innerTx, _, err = tg.createTransaction(gtx.InnerTransaction, nil)
-		if err != nil {
-			c.JSON(
-				http.StatusInternalServerError,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: err.Error(),
-					Code:  shared.ReturnCodeInternalError,
-				},
-			)
-			return
+	innerTxs := make([]*transaction.Transaction, 0)
+	if len(gtx.InnerTransactions) > 0 {
+		for _, receivedInnerTx := range gtx.InnerTransactions {
+			innerTx, _, errCreate := tg.createTransaction(receivedInnerTx, nil)
+			if errCreate != nil {
+				c.JSON(
+					http.StatusInternalServerError,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: errCreate.Error(),
+						Code:  shared.ReturnCodeInternalError,
+					},
+				)
+				return
+			}
+
+			innerTxs = append(innerTxs, innerTx)
 		}
 	}
 
-	tx, _, err := tg.createTransaction(&gtx, innerTx)
+	tx, _, err := tg.createTransaction(&gtx, innerTxs)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -753,25 +769,25 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 	)
 }
 
-func (tg *transactionGroup) createTransaction(receivedTx *SendTxRequest, innerTx *transaction.Transaction) (*transaction.Transaction, []byte, error) {
+func (tg *transactionGroup) createTransaction(receivedTx *SendTxRequest, innerTxs []*transaction.Transaction) (*transaction.Transaction, []byte, error) {
 	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            receivedTx.Nonce,
-		Value:            receivedTx.Value,
-		Receiver:         receivedTx.Receiver,
-		ReceiverUsername: receivedTx.ReceiverUsername,
-		Sender:           receivedTx.Sender,
-		SenderUsername:   receivedTx.SenderUsername,
-		GasPrice:         receivedTx.GasPrice,
-		GasLimit:         receivedTx.GasLimit,
-		DataField:        receivedTx.Data,
-		SignatureHex:     receivedTx.Signature,
-		ChainID:          receivedTx.ChainID,
-		Version:          receivedTx.Version,
-		Options:          receivedTx.Options,
-		Guardian:         receivedTx.GuardianAddr,
-		GuardianSigHex:   receivedTx.GuardianSignature,
-		Relayer:          receivedTx.Relayer,
-		InnerTransaction: innerTx,
+		Nonce:             receivedTx.Nonce,
+		Value:             receivedTx.Value,
+		Receiver:          receivedTx.Receiver,
+		ReceiverUsername:  receivedTx.ReceiverUsername,
+		Sender:            receivedTx.Sender,
+		SenderUsername:    receivedTx.SenderUsername,
+		GasPrice:          receivedTx.GasPrice,
+		GasLimit:          receivedTx.GasLimit,
+		DataField:         receivedTx.Data,
+		SignatureHex:      receivedTx.Signature,
+		ChainID:           receivedTx.ChainID,
+		Version:           receivedTx.Version,
+		Options:           receivedTx.Options,
+		Guardian:          receivedTx.GuardianAddr,
+		GuardianSigHex:    receivedTx.GuardianSignature,
+		Relayer:           receivedTx.Relayer,
+		InnerTransactions: innerTxs,
 	}
 	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)

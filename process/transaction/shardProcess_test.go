@@ -2043,7 +2043,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 	userTx.GasLimit = 4
 	userTx.RelayerAddr = tx.SndAddr
 
-	tx.InnerTransaction = userTx
+	tx.InnerTransactions = []*transaction.Transaction{userTx}
 
 	t.Run("flag not active should error", func(t *testing.T) {
 		t.Parallel()
@@ -2121,7 +2121,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		userTxCopy := *userTx
 		userTxCopy.RelayerAddr = nil
-		txCopy.InnerTransaction = &userTxCopy
+		txCopy.InnerTransactions = []*transaction.Transaction{&userTxCopy}
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
 	t.Run("different gas price on inner tx should error", func(t *testing.T) {
@@ -2137,6 +2137,17 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.GasLimit = userTx.GasLimit - 1
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("one tx fails without consuming nonce should error and not continue", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		txCopy.GasLimit = 12
+		userTxCopy1 := *userTx
+		userTxCopy2 := *userTx
+		userTxCopy2.Nonce = 10
+		txCopy.InnerTransactions = []*transaction.Transaction{&userTxCopy2, &userTxCopy1}
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrInnerTxProcessFailed, vmcommon.UserError)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -2201,6 +2212,7 @@ func testProcessRelayedTransactionV3(
 	args.ArgsParser = smartContract.NewArgumentParser()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRelayedTransactionsV3FlagEnabledField: true,
+		IsRelayedNonceFixEnabledField:           true,
 	}
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {

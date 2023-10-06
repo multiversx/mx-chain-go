@@ -1241,3 +1241,6 @@ var ErrRelayedTxV3EmptyRelayer = errors.New("empty relayer on inner tx of relaye
 
 // ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
 var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
+
+// ErrInnerTxProcessFailed signals that an inner tx failed to process
+var ErrInnerTxProcessFailed = errors.New("inner tx process failed")

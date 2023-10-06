@@ -1591,18 +1591,31 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		Version:     minTxVersion,
 		RelayerAddr: senderAddress,
 	}
+	innerTx2 := &dataTransaction.Transaction{
+		Nonce:       2,
+		Value:       big.NewInt(2),
+		Data:        []byte("data inner tx 2"),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     []byte("34567890123456789012345678901234"),
+		SndAddr:     recvAddress,
+		Signature:   sigOk,
+		ChainID:     chainID,
+		Version:     minTxVersion,
+		RelayerAddr: senderAddress,
+	}
 
 	tx := &dataTransaction.Transaction{
-		Nonce:            1,
-		Value:            big.NewInt(0),
-		GasLimit:         10,
-		GasPrice:         4,
-		RcvAddr:          recvAddress,
-		SndAddr:          senderAddress,
-		Signature:        sigOk,
-		ChainID:          chainID,
-		Version:          minTxVersion,
-		InnerTransaction: innerTx,
+		Nonce:             1,
+		Value:             big.NewInt(0),
+		GasLimit:          10,
+		GasPrice:          4,
+		RcvAddr:           recvAddress,
+		SndAddr:           senderAddress,
+		Signature:         sigOk,
+		ChainID:           chainID,
+		Version:           minTxVersion,
+		InnerTransactions: []*dataTransaction.Transaction{innerTx, innerTx2},
 	}
 	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
 	err := txi.CheckValidity()
@@ -1630,10 +1643,10 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)
 
-	innerTx2 := &dataTransaction.Transaction{
-		Nonce:     2,
+	innerTx3 := &dataTransaction.Transaction{
+		Nonce:     3,
 		Value:     big.NewInt(3),
-		Data:      []byte("data inner tx 2"),
+		Data:      []byte("data inner tx 3"),
 		GasLimit:  3,
 		GasPrice:  4,
 		RcvAddr:   recvAddress,
@@ -1642,8 +1655,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		ChainID:   chainID,
 		Version:   minTxVersion,
 	}
-	innerTx.InnerTransaction = innerTx2
-	tx.InnerTransaction = innerTx
+	innerTx.InnerTransactions = []*dataTransaction.Transaction{innerTx3}
+	tx.InnerTransactions = []*dataTransaction.Transaction{innerTx}
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)

@@ -109,7 +109,7 @@ func CreateAndSendRelayedAndUserTxV3(
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData, relayer.Address)
-	relayedTx := createRelayedTxV3(txDispatcherNode.EconomicsData, relayer, userTx)
+	relayedTx := createRelayedTxV3(txDispatcherNode.EconomicsData, relayer, []*transaction.Transaction{userTx})
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
 	if err != nil {
@@ -208,21 +208,21 @@ func createRelayedTxV2(
 func createRelayedTxV3(
 	economicsFee process.FeeHandler,
 	relayer *integrationTests.TestWalletAccount,
-	userTx *transaction.Transaction,
+	userTxs []*transaction.Transaction,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:            relayer.Nonce,
-		Value:            big.NewInt(0),
-		RcvAddr:          userTx.SndAddr,
-		SndAddr:          relayer.Address,
-		GasPrice:         integrationTests.MinTxGasPrice,
-		Data:             []byte(""),
-		ChainID:          userTx.ChainID,
-		Version:          userTx.Version,
-		InnerTransaction: userTx,
+		Nonce:             relayer.Nonce,
+		Value:             big.NewInt(0),
+		RcvAddr:           userTxs[0].SndAddr,
+		SndAddr:           relayer.Address,
+		GasPrice:          integrationTests.MinTxGasPrice,
+		Data:              []byte(""),
+		ChainID:           userTxs[0].ChainID,
+		Version:           userTxs[0].Version,
+		InnerTransactions: userTxs,
 	}
 	gasLimit := economicsFee.ComputeGasLimit(tx)
-	tx.GasLimit = userTx.GasLimit + gasLimit
+	tx.GasLimit = userTxs[0].GasLimit + gasLimit
 
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)

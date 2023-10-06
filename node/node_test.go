@@ -1847,22 +1847,22 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 
 func getDefaultTransactionArgs() *external.ArgsCreateTransaction {
 	return &external.ArgsCreateTransaction{
-		Nonce:            uint64(0),
-		Value:            new(big.Int).SetInt64(10).String(),
-		Receiver:         "rcv",
-		ReceiverUsername: []byte("rcvrUsername"),
-		Sender:           "snd",
-		SenderUsername:   []byte("sndrUsername"),
-		GasPrice:         uint64(10),
-		GasLimit:         uint64(20),
-		DataField:        []byte("-"),
-		SignatureHex:     hex.EncodeToString(bytes.Repeat([]byte{0}, 10)),
-		ChainID:          "chainID",
-		Version:          1,
-		Options:          0,
-		Guardian:         "",
-		GuardianSigHex:   "",
-		InnerTransaction: nil,
+		Nonce:             uint64(0),
+		Value:             new(big.Int).SetInt64(10).String(),
+		Receiver:          "rcv",
+		ReceiverUsername:  []byte("rcvrUsername"),
+		Sender:            "snd",
+		SenderUsername:    []byte("sndrUsername"),
+		GasPrice:          uint64(10),
+		GasLimit:          uint64(20),
+		DataField:         []byte("-"),
+		SignatureHex:      hex.EncodeToString(bytes.Repeat([]byte{0}, 10)),
+		ChainID:           "chainID",
+		Version:           1,
+		Options:           0,
+		Guardian:          "",
+		GuardianSigHex:    "",
+		InnerTransactions: nil,
 	}
 }
 

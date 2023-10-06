@@ -2571,22 +2571,22 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		guardianAddress = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
 	}
 	createTxArgs := &external.ArgsCreateTransaction{
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         encodedRcvAddr,
-		ReceiverUsername: nil,
-		Sender:           encodedSndAddr,
-		SenderUsername:   nil,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		DataField:        tx.Data,
-		SignatureHex:     hex.EncodeToString(tx.Signature),
-		ChainID:          string(tx.ChainID),
-		Version:          tx.Version,
-		Options:          tx.Options,
-		Guardian:         guardianAddress,
-		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
-		InnerTransaction: tx.InnerTransaction,
+		Nonce:             tx.Nonce,
+		Value:             tx.Value.String(),
+		Receiver:          encodedRcvAddr,
+		ReceiverUsername:  nil,
+		Sender:            encodedSndAddr,
+		SenderUsername:    nil,
+		GasPrice:          tx.GasPrice,
+		GasLimit:          tx.GasLimit,
+		DataField:         tx.Data,
+		SignatureHex:      hex.EncodeToString(tx.Signature),
+		ChainID:           string(tx.ChainID),
+		Version:           tx.Version,
+		Options:           tx.Options,
+		Guardian:          guardianAddress,
+		GuardianSigHex:    hex.EncodeToString(tx.GuardianSignature),
+		InnerTransactions: tx.InnerTransactions,
 	}
 	tx, txHash, err := tpn.Node.CreateTransaction(createTxArgs)
 	if err != nil {

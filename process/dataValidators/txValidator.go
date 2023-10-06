@@ -18,7 +18,7 @@ var _ process.TxValidator = (*txValidator)(nil)
 var log = logger.GetOrCreate("process/dataValidators")
 
 type relayedV3TransactionHandler interface {
-	GetInnerTransaction() *transaction.Transaction
+	GetInnerTransactions() []*transaction.Transaction
 	GetRelayerAddr() []byte
 }
 
