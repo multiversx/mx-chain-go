@@ -1,16 +1,13 @@
 package state
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // LastSnapshotStarted -
-const LastSnapshotStarted = lastSnapshot
+const LastSnapshotStarted = "lastSnapshot"
 
 // LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
@@ -90,21 +87,6 @@ func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
 	defer sm.mutex.RUnlock()
 
 	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
-}
-
-// GetStorageEpochChangeWaitArgs -
-func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
-	return storageEpochChangeWaitArgs{
-		Epoch:                         1,
-		WaitTimeForSnapshotEpochCheck: time.Millisecond * 100,
-		SnapshotWaitTimeout:           time.Second,
-		TrieStorageManager:            &storageManager.StorageManagerStub{},
-	}
-}
-
-// WaitForStorageEpochChange
-func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
-	return sm.waitForStorageEpochChange(args)
 }
 
 // NewNilSnapshotsManager -

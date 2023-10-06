@@ -1026,7 +1026,7 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 
 	mut.RLock()
 	defer mut.RUnlock()
-	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
 }
 
@@ -1065,11 +1065,14 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 
 					return nil
 				},
+				GetLatestStorageEpochCalled: func() (uint32, error) {
+					return 1, nil
+				},
 			}
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"), 0)
+	adb.SnapshotState([]byte("roothash"), 1)
 	time.Sleep(time.Second)
 
 	mut.RLock()
@@ -1211,18 +1214,21 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{
 				GetLatestStorageEpochCalled: func() (uint32, error) {
-					return 0, nil
+					return uint32(mathRand.Intn(5)), nil
 				},
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
 					takeSnapshotCalled++
 					close(iteratorChannels.LeavesChan)
 					stats.SnapshotFinished()
+					for numPutInEpochCalled != 4 {
+						time.Sleep(time.Millisecond * 10)
+					}
 					snapshotMutex.Unlock()
 				},
 				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
 					assert.Equal(t, []byte(state.LastSnapshotStarted), key)
-					assert.Equal(t, rootHashes[epoch], val)
+					assert.Equal(t, rootHashes[epoch-1], val)
 
 					numPutInEpochCalled++
 					return nil
@@ -1232,7 +1238,8 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 	}
 	adb := generateAccountDBFromTrie(trieStub)
 
-	for epoch, rootHash := range rootHashes {
+	for i, rootHash := range rootHashes {
+		epoch := i + 1
 		adb.SnapshotState(rootHash, uint32(epoch))
 	}
 	for adb.IsSnapshotInProgress() {

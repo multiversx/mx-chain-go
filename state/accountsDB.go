@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -28,11 +29,8 @@ import (
 )
 
 const (
-	leavesChannelSize             = 100
-	missingNodesChannelSize       = 100
-	lastSnapshot                  = "lastSnapshot"
-	waitTimeForSnapshotEpochCheck = time.Millisecond * 100
-	snapshotWaitTimeout           = time.Minute
+	leavesChannelSize       = 100
+	missingNodesChannelSize = 100
 )
 
 type loadingMeasurements struct {
@@ -138,6 +136,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		StateMetrics:             sm,
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		AccountFactory:           args.AccountFactory,
+		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
 	}
 	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
 	if err != nil {
