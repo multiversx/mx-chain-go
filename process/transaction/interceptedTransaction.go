@@ -238,6 +238,9 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 	if len(innerTx.RelayerAddr) == 0 {
 		return process.ErrRelayedTxV3EmptyRelayer
 	}
+	if !bytes.Equal(innerTx.RelayerAddr, tx.SndAddr) {
+		return process.ErrRelayedTxV3RelayerMismatch
+	}
 
 	err := inTx.integrity(innerTx)
 	if err != nil {

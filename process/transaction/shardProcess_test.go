@@ -2124,6 +2124,15 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy.InnerTransaction = &userTxCopy
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
+	t.Run("different relayer on inner tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		userTxCopy := *userTx
+		userTxCopy.RelayerAddr = []byte("other")
+		txCopy.InnerTransaction = &userTxCopy
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
 	t.Run("different gas price on inner tx should error", func(t *testing.T) {
 		t.Parallel()
 
