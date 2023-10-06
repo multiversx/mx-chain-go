@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -44,6 +45,10 @@ func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte, epoch uint32) err
 func (ihnc *indexHashedNodesCoordinator) nodesConfigFromStaticStorer(
 	epoch uint32,
 ) (*epochNodesConfig, error) {
+	log.Debug("creating nodes config from static storer", "epoch", epoch)
+
+	debug.PrintStack()
+
 	metaBlock, err := ihnc.metaBlockFromStaticStorer(epoch)
 	if err != nil {
 		return nil, err
@@ -216,6 +221,8 @@ func GetNodesCoordinatorRegistry(
 	if lastEpoch >= numStoredEpochs {
 		minEpoch = int(lastEpoch) - int(numStoredEpochs) + 1
 	}
+
+	debug.PrintStack()
 
 	epochsConfig := make(map[string]*EpochValidators)
 
@@ -407,6 +414,8 @@ func SaveNodesCoordinatorRegistry(
 	if nodesConfig == nil {
 		return ErrNilNodesCoordinatorRegistry
 	}
+
+	debug.PrintStack()
 
 	for epoch, config := range nodesConfig.EpochsConfig {
 		epochsConfig := make(map[string]*EpochValidators)
