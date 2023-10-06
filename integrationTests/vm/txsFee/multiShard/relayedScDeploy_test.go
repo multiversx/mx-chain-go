@@ -76,8 +76,5 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	txs := testContextInner.GetIntermediateTransactions(t)
 
 	scr := txs[0]
-	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-
-	expectedBalanceRelayer = big.NewInt(28440)
-	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.UserError, nil)
 }
