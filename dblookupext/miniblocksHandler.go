@@ -2,6 +2,7 @@ package dblookupext
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -76,7 +77,7 @@ func (mh *miniblocksHandler) findMiniblockHandler(header data.HeaderHandler, min
 
 // commitExecutedTransactions will save only the transactions between the start and end index of the provided miniblockHeader
 func (mh *miniblocksHandler) commitExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, miniblockHash []byte, mb *block.MiniBlock, epoch uint32) error {
-	txHashes := mh.getExecutedTxHashes(miniblockHeader, mb)
+	txHashes := mh.getOrderedExecutedTxHashes(miniblockHeader, mb)
 	for _, txHash := range txHashes {
 		err := mh.miniblockHashByTxHashIndexStorer.PutInEpoch(txHash, miniblockHash, epoch)
 		if err != nil {
@@ -87,7 +88,7 @@ func (mh *miniblocksHandler) commitExecutedTransactions(miniblockHeader data.Min
 	return nil
 }
 
-func (mh *miniblocksHandler) getExecutedTxHashes(miniblockHeader data.MiniBlockHeaderHandler, mb *block.MiniBlock) [][]byte {
+func (mh *miniblocksHandler) getOrderedExecutedTxHashes(miniblockHeader data.MiniBlockHeaderHandler, mb *block.MiniBlock) [][]byte {
 	txHashes := make([][]byte, 0, len(mb.TxHashes))
 	for index := miniblockHeader.GetIndexOfFirstTxProcessed(); index <= miniblockHeader.GetIndexOfLastTxProcessed(); index++ {
 		txHash := mb.TxHashes[index]
@@ -112,7 +113,7 @@ func (mh *miniblocksHandler) commitMiniblockMetadata(
 		NumTxHashesInMiniblock: int32(len(mb.TxHashes)),
 	}
 
-	var txHasheshenPartial [][]byte
+	var txHashesWhenPartial [][]byte
 
 	if miniblockHeader.GetConstructionState() == int32(block.PartialExecuted) {
 		loadedMiniblockMetadata, err := mh.loadExistingMiniblocksMetadata(miniblockHash, header.GetEpoch())
@@ -123,7 +124,7 @@ func (mh *miniblocksHandler) commitMiniblockMetadata(
 			// rewrite, we found an existing info in storage
 			miniblockMetaData = loadedMiniblockMetadata
 		}
-		txHasheshenPartial = mh.getExecutedTxHashes(miniblockHeader, mb)
+		txHashesWhenPartial = mh.getOrderedExecutedTxHashes(miniblockHeader, mb)
 	}
 
 	miniblockOnHeader := &MiniblockMetadataOnBlock{
@@ -131,7 +132,7 @@ func (mh *miniblocksHandler) commitMiniblockMetadata(
 		HeaderNonce:             header.GetNonce(),
 		HeaderHash:              headerHash,
 		Epoch:                   header.GetEpoch(),
-		TxHashesWhenPartial:     txHasheshenPartial,
+		TxHashesWhenPartial:     txHashesWhenPartial,
 		IndexOfFirstTxProcessed: miniblockHeader.GetIndexOfFirstTxProcessed(),
 	}
 
@@ -141,21 +142,21 @@ func (mh *miniblocksHandler) commitMiniblockMetadata(
 }
 
 func (mh *miniblocksHandler) loadExistingMiniblocksMetadata(miniblockHash []byte, epoch uint32) (*MiniblockMetadataV2, error) {
-	multipleMiniblockMetadata := &MiniblockMetadataV2{}
+	miniblockMetadata := &MiniblockMetadataV2{}
 	buff, err := mh.miniblocksMetadataStorer.GetFromEpoch(miniblockHash, epoch)
-	if err == storage.ErrKeyNotFound {
-		return multipleMiniblockMetadata, nil
+	if errors.Is(err, storage.ErrKeyNotFound) {
+		return miniblockMetadata, nil
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	err = mh.marshaller.Unmarshal(multipleMiniblockMetadata, buff)
+	err = mh.marshaller.Unmarshal(miniblockMetadata, buff)
 	if err != nil {
 		return mh.tryLegacyUnmarshal(buff)
 	}
 
-	return multipleMiniblockMetadata, err
+	return miniblockMetadata, err
 }
 
 func (mh *miniblocksHandler) tryLegacyUnmarshal(buff []byte) (*MiniblockMetadataV2, error) {
@@ -188,8 +189,8 @@ func (mh *miniblocksHandler) tryLegacyUnmarshal(buff []byte) (*MiniblockMetadata
 	}, nil
 }
 
-func (mh *miniblocksHandler) saveMiniblocksMetadata(miniblockHash []byte, multipleMiniblocksMetadata *MiniblockMetadataV2, epoch uint32) error {
-	buff, err := mh.marshaller.Marshal(multipleMiniblocksMetadata)
+func (mh *miniblocksHandler) saveMiniblocksMetadata(miniblockHash []byte, miniblockMetadata *MiniblockMetadataV2, epoch uint32) error {
+	buff, err := mh.marshaller.Marshal(miniblockMetadata)
 	if err != nil {
 		return err
 	}
