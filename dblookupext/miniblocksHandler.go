@@ -243,7 +243,7 @@ func (mh *miniblocksHandler) revertMiniblock(header data.HeaderHandler, headerHa
 
 // removeExecutedTransactions will remove only the transactions between the start and end index of the provided miniblockHeader
 func (mh *miniblocksHandler) removeExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, mb *block.MiniBlock) error {
-	txHashes := mh.getExecutedTxHashes(miniblockHeader, mb)
+	txHashes := mh.getOrderedExecutedTxHashes(miniblockHeader, mb)
 	for _, txHash := range txHashes {
 		err := mh.miniblockHashByTxHashIndexStorer.Remove(txHash)
 		if err != nil {

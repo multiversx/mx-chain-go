@@ -497,76 +497,12 @@ func TestMiniblocksHandler_loadExistingMiniblocksMetadataWithLegacy(t *testing.T
 func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	t.Parallel()
 
-	completeMiniblock := &block.MiniBlock{
-		TxHashes: [][]byte{
-			[]byte("txHashCompleted1"),
-			[]byte("txHashCompleted2"),
-			[]byte("txHashCompleted3"),
-		},
-	}
-	completeMiniblockHash, _ := core.CalculateHash(testMarshaller, testHasher, completeMiniblock)
-	completeMiniblockHeader := &block.MiniBlockHeader{
-		Hash:     completeMiniblockHash,
-		TxCount:  uint32(len(completeMiniblock.TxHashes)),
-		Type:     0,
-		Reserved: nil,
-	}
-	_ = completeMiniblockHeader.SetConstructionState(int32(block.Final))
-	_ = completeMiniblockHeader.SetIndexOfFirstTxProcessed(0)
-	_ = completeMiniblockHeader.SetIndexOfLastTxProcessed(int32(len(completeMiniblock.TxHashes) - 1))
-
-	partialMiniblock := &block.MiniBlock{
-		TxHashes: [][]byte{
-			[]byte("txHashPartial1"),
-			[]byte("txHashPartial2"),
-			[]byte("txHashPartial3"),
-			[]byte("txHashPartial4"),
-			[]byte("txHashPartial5"),
-			[]byte("txHashPartial6"),
-		},
-	}
-	partialMiniblockHash, _ := core.CalculateHash(testMarshaller, testHasher, partialMiniblock)
-	partialMiniblockHeader1 := &block.MiniBlockHeader{
-		Hash:     partialMiniblockHash,
-		TxCount:  uint32(len(completeMiniblock.TxHashes)),
-		Type:     0,
-		Reserved: nil,
-	}
-	_ = partialMiniblockHeader1.SetConstructionState(int32(block.PartialExecuted))
-	_ = partialMiniblockHeader1.SetIndexOfFirstTxProcessed(0)
-	_ = partialMiniblockHeader1.SetIndexOfLastTxProcessed(1)
-
-	partialMiniblockHeader2 := &block.MiniBlockHeader{
-		Hash:     partialMiniblockHash,
-		TxCount:  uint32(len(completeMiniblock.TxHashes)),
-		Type:     0,
-		Reserved: nil,
-	}
-	_ = partialMiniblockHeader2.SetConstructionState(int32(block.PartialExecuted))
-	_ = partialMiniblockHeader2.SetIndexOfFirstTxProcessed(2)
-	_ = partialMiniblockHeader2.SetIndexOfLastTxProcessed(3)
-
-	partialMiniblockHeader3 := &block.MiniBlockHeader{
-		Hash:     partialMiniblockHash,
-		TxCount:  uint32(len(completeMiniblock.TxHashes)),
-		Type:     0,
-		Reserved: nil,
-	}
-	_ = partialMiniblockHeader3.SetConstructionState(int32(block.PartialExecuted))
-	_ = partialMiniblockHeader3.SetIndexOfFirstTxProcessed(4)
-	_ = partialMiniblockHeader3.SetIndexOfLastTxProcessed(5)
+	completeMiniblock, completeMiniblockHash, completeMiniblockHeader := generateTestCompletedMiniblock()
+	partialMiniblock, partialMiniblockHash, partialMiniblockHeaders := generateTestPartialMiniblock()
 
 	mbHandler := createMockMiniblocksHandler()
 
-	header1 := &block.Header{
-		Epoch: 37,
-		Nonce: 22933,
-		Round: 28927,
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			*completeMiniblockHeader,
-			*partialMiniblockHeader1,
-		},
-	}
+	header1 := generateHeader(37, 22933, *completeMiniblockHeader, *partialMiniblockHeaders[0])
 	body1 := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			completeMiniblock,
@@ -576,14 +512,7 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	headerHash1, err := core.CalculateHash(testMarshaller, testHasher, header1)
 	assert.Nil(t, err)
 
-	header2 := &block.Header{
-		Epoch: 37,
-		Nonce: 22934,
-		Round: 28928,
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			*partialMiniblockHeader2,
-		},
-	}
+	header2 := generateHeader(37, 22934, *partialMiniblockHeaders[1])
 	body2 := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			partialMiniblock,
@@ -592,14 +521,7 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	headerHash2, err := core.CalculateHash(testMarshaller, testHasher, header2)
 	assert.Nil(t, err)
 
-	header3 := &block.Header{
-		Epoch: 38,
-		Nonce: 22935,
-		Round: 28929,
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			*partialMiniblockHeader3,
-		},
-	}
+	header3 := generateHeader(38, 22935, *partialMiniblockHeaders[2])
 	body3 := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			partialMiniblock,
