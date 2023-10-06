@@ -261,7 +261,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 	t.Run("should not start snapshot if another snapshot is in progress, lastSnapshot should be saved", func(t *testing.T) {
 		t.Parallel()
 
-		putInEpochCalled := false
+		putInEpochCalled := atomic.Flag{}
 
 		args := getDefaultSnapshotManagerArgs()
 		args.StateMetrics = &stateTest.StateMetricsStub{
@@ -277,7 +277,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				assert.Equal(t, []byte("lastSnapshot"), key)
 				assert.Equal(t, rootHash, val)
 				assert.Equal(t, epoch, e)
-				putInEpochCalled = true
+				putInEpochCalled.SetValue(true)
 				return nil
 			},
 			EnterPruningBufferingModeCalled: func() {
@@ -289,21 +289,21 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		}
 
 		sm.SnapshotState(rootHash, epoch, tsm)
-		for putInEpochCalled == false {
+		for !putInEpochCalled.IsSet() {
 			time.Sleep(10 * time.Millisecond)
 		}
 	})
 	t.Run("starting snapshot sets some parameters", func(t *testing.T) {
 		t.Parallel()
 
-		putInEpochCalled := false
+		putInEpochCalled := atomic.Flag{}
 		enterPruningBufferingModeCalled := false
-		getSnapshotMessageCalled := false
+		getSnapshotMessageCalled := atomic.Flag{}
 
 		args := getDefaultSnapshotManagerArgs()
 		args.StateMetrics = &stateTest.StateMetricsStub{
 			GetSnapshotMessageCalled: func() string {
-				getSnapshotMessageCalled = true
+				getSnapshotMessageCalled.SetValue(true)
 				return ""
 			},
 		}
@@ -313,12 +313,12 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				assert.Equal(t, []byte("lastSnapshot"), key)
 				assert.Equal(t, rootHash, val)
 				assert.Equal(t, epoch, e)
-				putInEpochCalled = true
+				putInEpochCalled.SetValue(true)
 				return nil
 			},
 			EnterPruningBufferingModeCalled: func() {
 				enterPruningBufferingModeCalled = true
-				for putInEpochCalled == false {
+				for !putInEpochCalled.IsSet() {
 					time.Sleep(10 * time.Millisecond)
 				}
 			},
@@ -328,8 +328,8 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		}
 
 		sm.SnapshotState(rootHash, epoch, tsm)
-		assert.True(t, getSnapshotMessageCalled)
-		assert.True(t, putInEpochCalled)
+		assert.True(t, getSnapshotMessageCalled.IsSet())
+		assert.True(t, putInEpochCalled.IsSet())
 		assert.True(t, enterPruningBufferingModeCalled)
 		assert.True(t, sm.IsSnapshotInProgress())
 
@@ -341,7 +341,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("some error")
-		getLatestStorageEpochCalled := false
+		getLatestStorageEpochCalled := atomic.Flag{}
 
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
 		enterPruningBufferingModeCalled := atomic.Flag{}
@@ -351,7 +351,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				for !sm.IsSnapshotInProgress() {
 					time.Sleep(10 * time.Millisecond)
 				}
-				getLatestStorageEpochCalled = true
+				getLatestStorageEpochCalled.SetValue(true)
 				return 0, expectedErr
 			},
 			ShouldTakeSnapshotCalled: func() bool {
@@ -371,7 +371,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 			time.Sleep(10 * time.Millisecond)
 		}
 
-		assert.True(t, getLatestStorageEpochCalled)
+		assert.True(t, getLatestStorageEpochCalled.IsSet())
 		assert.True(t, enterPruningBufferingModeCalled.IsSet())
 		assert.True(t, exitPruningBufferingModeCalled.IsSet())
 	})
