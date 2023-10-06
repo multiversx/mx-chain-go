@@ -193,7 +193,7 @@ func Test_AddData(t *testing.T) {
 	_, ok = cache.GetByTxHash([]byte("hash-y"))
 	require.True(t, ok)
 
-	pool.NotifyEviction([]byte("hash-x"))
+	pool.NotifyEviction([]byte("hash-x"), "")
 	_, ok = cache.GetByTxHash([]byte("hash-x"))
 	require.False(t, ok)
 }
