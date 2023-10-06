@@ -166,6 +166,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	//TODO: refactor this with creators and runTypeComponents
 	if pcf.chainRunType == common.ChainRunTypeSovereign {
 		err = pcf.addSystemVMToContainer(vmContainer, builtInFuncFactory)
 		if err != nil {
