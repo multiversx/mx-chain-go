@@ -211,6 +211,10 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		if len(inTx.tx.RelayerAddr) > 0 {
+			return fmt.Errorf("%w, relayer address found on transaction", process.ErrWrongTransaction)
+		}
+
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 

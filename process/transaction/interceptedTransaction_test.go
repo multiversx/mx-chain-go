@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -1040,6 +1041,32 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 	err := txi.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedTransaction_CheckValidityRelayerAddressShouldError(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:       1,
+		Value:       big.NewInt(2),
+		Data:        []byte("data"),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     recvAddress,
+		SndAddr:     senderAddress,
+		Signature:   sigOk,
+		ChainID:     chainID,
+		Version:     minTxVersion,
+		RelayerAddr: []byte("45678901234567890123456789012345"),
+	}
+	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
+
+	err := txi.CheckValidity()
+
+	assert.True(t, errors.Is(err, process.ErrWrongTransaction))
+	assert.True(t, strings.Contains(err.Error(), "relayer address found on transaction"))
 }
 
 func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *testing.T) {
