@@ -163,40 +163,245 @@ func (m *MiniblockMetadata) GetType() int32 {
 	return 0
 }
 
+// MiniblockMetadataV2 is the second variant of message used to store information about a history transaction
+type MiniblockMetadataV2 struct {
+	MiniblockHash          []byte                      `protobuf:"bytes,1,opt,name=MiniblockHash,proto3" json:"MiniblockHash,omitempty"`
+	SourceShardID          uint32                      `protobuf:"varint,2,opt,name=SourceShardID,proto3" json:"SourceShardID,omitempty"`
+	DestinationShardID     uint32                      `protobuf:"varint,3,opt,name=DestinationShardID,proto3" json:"DestinationShardID,omitempty"`
+	Type                   int32                       `protobuf:"varint,4,opt,name=Type,proto3" json:"Type,omitempty"`
+	NumTxHashesInMiniblock int32                       `protobuf:"varint,5,opt,name=NumTxHashesInMiniblock,proto3" json:"NumTxHashesInMiniblock,omitempty"`
+	MiniblocksInfo         []*MiniblockMetadataOnBlock `protobuf:"bytes,6,rep,name=MiniblocksInfo,proto3" json:"MiniblocksInfo,omitempty"`
+}
+
+func (m *MiniblockMetadataV2) Reset()      { *m = MiniblockMetadataV2{} }
+func (*MiniblockMetadataV2) ProtoMessage() {}
+func (*MiniblockMetadataV2) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cd82f29831cbb1fe, []int{1}
+}
+func (m *MiniblockMetadataV2) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MiniblockMetadataV2) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *MiniblockMetadataV2) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MiniblockMetadataV2.Merge(m, src)
+}
+func (m *MiniblockMetadataV2) XXX_Size() int {
+	return m.Size()
+}
+func (m *MiniblockMetadataV2) XXX_DiscardUnknown() {
+	xxx_messageInfo_MiniblockMetadataV2.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MiniblockMetadataV2 proto.InternalMessageInfo
+
+func (m *MiniblockMetadataV2) GetMiniblockHash() []byte {
+	if m != nil {
+		return m.MiniblockHash
+	}
+	return nil
+}
+
+func (m *MiniblockMetadataV2) GetSourceShardID() uint32 {
+	if m != nil {
+		return m.SourceShardID
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataV2) GetDestinationShardID() uint32 {
+	if m != nil {
+		return m.DestinationShardID
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataV2) GetType() int32 {
+	if m != nil {
+		return m.Type
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataV2) GetNumTxHashesInMiniblock() int32 {
+	if m != nil {
+		return m.NumTxHashesInMiniblock
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataV2) GetMiniblocksInfo() []*MiniblockMetadataOnBlock {
+	if m != nil {
+		return m.MiniblocksInfo
+	}
+	return nil
+}
+
+// MiniblockMetadataOnBlock defines the coordinates of a miniblock in regards with a header
+type MiniblockMetadataOnBlock struct {
+	Round                             uint64   `protobuf:"varint,1,opt,name=Round,proto3" json:"Round,omitempty"`
+	HeaderNonce                       uint64   `protobuf:"varint,2,opt,name=HeaderNonce,proto3" json:"HeaderNonce,omitempty"`
+	HeaderHash                        []byte   `protobuf:"bytes,3,opt,name=HeaderHash,proto3" json:"HeaderHash,omitempty"`
+	Epoch                             uint32   `protobuf:"varint,4,opt,name=Epoch,proto3" json:"Epoch,omitempty"`
+	NotarizedAtSourceInMetaNonce      uint64   `protobuf:"varint,5,opt,name=NotarizedAtSourceInMetaNonce,proto3" json:"NotarizedAtSourceInMetaNonce,omitempty"`
+	NotarizedAtDestinationInMetaNonce uint64   `protobuf:"varint,6,opt,name=NotarizedAtDestinationInMetaNonce,proto3" json:"NotarizedAtDestinationInMetaNonce,omitempty"`
+	NotarizedAtSourceInMetaHash       []byte   `protobuf:"bytes,7,opt,name=NotarizedAtSourceInMetaHash,proto3" json:"NotarizedAtSourceInMetaHash,omitempty"`
+	NotarizedAtDestinationInMetaHash  []byte   `protobuf:"bytes,8,opt,name=NotarizedAtDestinationInMetaHash,proto3" json:"NotarizedAtDestinationInMetaHash,omitempty"`
+	TxHashesWhenPartial               [][]byte `protobuf:"bytes,9,rep,name=TxHashesWhenPartial,proto3" json:"TxHashesWhenPartial,omitempty"`
+	IndexOfFirstTxProcessed           int32    `protobuf:"varint,10,opt,name=IndexOfFirstTxProcessed,proto3" json:"IndexOfFirstTxProcessed,omitempty"`
+}
+
+func (m *MiniblockMetadataOnBlock) Reset()      { *m = MiniblockMetadataOnBlock{} }
+func (*MiniblockMetadataOnBlock) ProtoMessage() {}
+func (*MiniblockMetadataOnBlock) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cd82f29831cbb1fe, []int{2}
+}
+func (m *MiniblockMetadataOnBlock) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MiniblockMetadataOnBlock) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *MiniblockMetadataOnBlock) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MiniblockMetadataOnBlock.Merge(m, src)
+}
+func (m *MiniblockMetadataOnBlock) XXX_Size() int {
+	return m.Size()
+}
+func (m *MiniblockMetadataOnBlock) XXX_DiscardUnknown() {
+	xxx_messageInfo_MiniblockMetadataOnBlock.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MiniblockMetadataOnBlock proto.InternalMessageInfo
+
+func (m *MiniblockMetadataOnBlock) GetRound() uint64 {
+	if m != nil {
+		return m.Round
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataOnBlock) GetHeaderNonce() uint64 {
+	if m != nil {
+		return m.HeaderNonce
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataOnBlock) GetHeaderHash() []byte {
+	if m != nil {
+		return m.HeaderHash
+	}
+	return nil
+}
+
+func (m *MiniblockMetadataOnBlock) GetEpoch() uint32 {
+	if m != nil {
+		return m.Epoch
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataOnBlock) GetNotarizedAtSourceInMetaNonce() uint64 {
+	if m != nil {
+		return m.NotarizedAtSourceInMetaNonce
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataOnBlock) GetNotarizedAtDestinationInMetaNonce() uint64 {
+	if m != nil {
+		return m.NotarizedAtDestinationInMetaNonce
+	}
+	return 0
+}
+
+func (m *MiniblockMetadataOnBlock) GetNotarizedAtSourceInMetaHash() []byte {
+	if m != nil {
+		return m.NotarizedAtSourceInMetaHash
+	}
+	return nil
+}
+
+func (m *MiniblockMetadataOnBlock) GetNotarizedAtDestinationInMetaHash() []byte {
+	if m != nil {
+		return m.NotarizedAtDestinationInMetaHash
+	}
+	return nil
+}
+
+func (m *MiniblockMetadataOnBlock) GetTxHashesWhenPartial() [][]byte {
+	if m != nil {
+		return m.TxHashesWhenPartial
+	}
+	return nil
+}
+
+func (m *MiniblockMetadataOnBlock) GetIndexOfFirstTxProcessed() int32 {
+	if m != nil {
+		return m.IndexOfFirstTxProcessed
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*MiniblockMetadata)(nil), "proto.MiniblockMetadata")
+	proto.RegisterType((*MiniblockMetadataV2)(nil), "proto.MiniblockMetadataV2")
+	proto.RegisterType((*MiniblockMetadataOnBlock)(nil), "proto.MiniblockMetadataOnBlock")
 }
 
 func init() { proto.RegisterFile("miniblockMetadata.proto", fileDescriptor_cd82f29831cbb1fe) }
 
 var fileDescriptor_cd82f29831cbb1fe = []byte{
-	// 406 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x92, 0x4f, 0x6e, 0xda, 0x40,
-	0x18, 0xc5, 0x3d, 0xd4, 0xa6, 0xed, 0x00, 0x52, 0x3b, 0xaa, 0xd4, 0x51, 0x5b, 0x8d, 0xdc, 0xaa,
-	0x0b, 0x6f, 0x6a, 0x16, 0xbd, 0x40, 0x8b, 0x40, 0x82, 0xaa, 0xb0, 0x30, 0x5d, 0x75, 0x37, 0xb6,
-	0x27, 0xd8, 0x02, 0x3c, 0x96, 0x19, 0x4b, 0x49, 0x56, 0x39, 0x42, 0x8e, 0x91, 0xa3, 0x64, 0xc9,
-	0x92, 0x65, 0x3c, 0x6c, 0xb2, 0xe4, 0x08, 0x91, 0x3f, 0x2b, 0x91, 0xc9, 0x1f, 0x58, 0x31, 0xef,
-	0x7d, 0x3f, 0xde, 0x7c, 0xf3, 0x64, 0xfc, 0x71, 0x19, 0x27, 0xb1, 0xbf, 0x90, 0xc1, 0x7c, 0x2c,
-	0x14, 0x0f, 0xb9, 0xe2, 0x6e, 0x9a, 0x49, 0x25, 0x89, 0x05, 0x3f, 0x9f, 0x7e, 0xcc, 0x62, 0x15,
-	0xe5, 0xbe, 0x1b, 0xc8, 0x65, 0x77, 0x26, 0x67, 0xb2, 0x0b, 0xb6, 0x9f, 0x9f, 0x80, 0x02, 0x01,
-	0xa7, 0xea, 0x5f, 0xdf, 0x0a, 0x13, 0xbf, 0x1f, 0x3f, 0x4e, 0x24, 0xdf, 0x71, 0x67, 0x2a, 0xf3,
-	0x2c, 0x10, 0xd3, 0x88, 0x67, 0xe1, 0xa8, 0x4f, 0x91, 0x8d, 0x9c, 0x8e, 0xb7, 0x6f, 0x12, 0x17,
-	0x93, 0xbe, 0x58, 0xa9, 0x38, 0xe1, 0x2a, 0x96, 0xc9, 0x3d, 0xda, 0x00, 0xf4, 0x99, 0x09, 0xf9,
-	0x80, 0x2d, 0x4f, 0xe6, 0x49, 0x48, 0x5f, 0xd9, 0xc8, 0x31, 0xbd, 0x4a, 0x10, 0x1b, 0xb7, 0x86,
-	0x82, 0x87, 0x22, 0x9b, 0xc8, 0x24, 0x10, 0xd4, 0x84, 0x59, 0xdd, 0x22, 0x0c, 0xe3, 0x4a, 0x0e,
-	0xf9, 0x2a, 0xa2, 0x96, 0x8d, 0x9c, 0xb6, 0x57, 0x73, 0xca, 0x6d, 0x1f, 0x9e, 0x00, 0x48, 0x13,
-	0x90, 0x7d, 0x93, 0xb8, 0xf8, 0x5d, 0x5f, 0xa4, 0x99, 0x08, 0xb8, 0x12, 0xe1, 0x54, 0x71, 0x95,
-	0xaf, 0xe8, 0xeb, 0x12, 0xec, 0x35, 0x28, 0xf2, 0x9e, 0xcc, 0xca, 0x6d, 0x07, 0xa9, 0x0c, 0x22,
-	0xfa, 0x06, 0x1e, 0x54, 0x09, 0xd2, 0xc3, 0x5f, 0x26, 0x52, 0xf1, 0x2c, 0x3e, 0x17, 0xe1, 0x6f,
-	0x55, 0xf5, 0x31, 0x4a, 0xca, 0xe2, 0xaa, 0xf5, 0xdf, 0xc2, 0xfa, 0x07, 0x19, 0xf2, 0x17, 0x7f,
-	0xad, 0xcd, 0x6b, 0x45, 0xd5, 0x83, 0x30, 0x04, 0x1d, 0x07, 0xc9, 0x2f, 0xfc, 0xf9, 0x85, 0xdb,
-	0xa0, 0x8b, 0x16, 0x74, 0x71, 0x08, 0x21, 0x7f, 0xb0, 0x7d, 0xe8, 0x1a, 0x88, 0x69, 0x43, 0xcc,
-	0x51, 0x8e, 0x10, 0x6c, 0xfe, 0x3b, 0x4b, 0x05, 0xed, 0xd8, 0xc8, 0xb1, 0x3c, 0x38, 0xf7, 0x06,
-	0xeb, 0x82, 0x19, 0x9b, 0x82, 0x19, 0xbb, 0x82, 0xa1, 0x0b, 0xcd, 0xd0, 0x95, 0x66, 0xe8, 0x5a,
-	0x33, 0xb4, 0xd6, 0x0c, 0x6d, 0x34, 0x43, 0x37, 0x9a, 0xa1, 0x5b, 0xcd, 0x8c, 0x9d, 0x66, 0xe8,
-	0x72, 0xcb, 0x8c, 0xf5, 0x96, 0x19, 0x9b, 0x2d, 0x33, 0xfe, 0xb7, 0x42, 0x7f, 0x21, 0xe5, 0x3c,
-	0x4f, 0xc5, 0xa9, 0xf2, 0x9b, 0xf0, 0xc5, 0xfe, 0xbc, 0x0b, 0x00, 0x00, 0xff, 0xff, 0x36, 0xbd,
-	0xc5, 0xb9, 0x02, 0x03, 0x00, 0x00,
+	// 584 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x53, 0xcd, 0x6e, 0xd3, 0x4c,
+	0x14, 0xf5, 0x24, 0x76, 0xda, 0x4e, 0x92, 0x4f, 0x1f, 0x53, 0x44, 0x47, 0x80, 0x06, 0x13, 0xb1,
+	0xf0, 0x86, 0x14, 0x15, 0x09, 0xb1, 0x84, 0x28, 0x85, 0x06, 0xd1, 0xb4, 0x72, 0x22, 0x90, 0xd8,
+	0x4d, 0xec, 0x49, 0x62, 0x35, 0x99, 0x89, 0xec, 0xb1, 0x14, 0x58, 0xf1, 0x08, 0x2c, 0x78, 0x06,
+	0xc4, 0xa3, 0xb0, 0xcc, 0x32, 0x4b, 0xe2, 0x6c, 0x58, 0xf6, 0x11, 0x90, 0xc7, 0x4a, 0x9a, 0xd6,
+	0xf9, 0x29, 0x52, 0x56, 0xf6, 0xb9, 0xe7, 0xf8, 0xce, 0x99, 0xeb, 0x73, 0xe1, 0x41, 0xdf, 0xe3,
+	0x5e, 0xab, 0x27, 0x9c, 0x8b, 0x53, 0x26, 0xa9, 0x4b, 0x25, 0x2d, 0x0f, 0x7c, 0x21, 0x05, 0x32,
+	0xd4, 0xe3, 0xfe, 0xd3, 0x8e, 0x27, 0xbb, 0x61, 0xab, 0xec, 0x88, 0xfe, 0x61, 0x47, 0x74, 0xc4,
+	0xa1, 0x2a, 0xb7, 0xc2, 0xb6, 0x42, 0x0a, 0xa8, 0xb7, 0xe4, 0xab, 0xd2, 0x44, 0x87, 0x77, 0x4e,
+	0x6f, 0x76, 0x44, 0x4f, 0x60, 0xb1, 0x21, 0x42, 0xdf, 0x61, 0x8d, 0x2e, 0xf5, 0xdd, 0x5a, 0x15,
+	0x03, 0x13, 0x58, 0x45, 0xfb, 0x7a, 0x11, 0x95, 0x21, 0xaa, 0xb2, 0x40, 0x7a, 0x9c, 0x4a, 0x4f,
+	0xf0, 0x99, 0x34, 0xa3, 0xa4, 0x4b, 0x18, 0x74, 0x17, 0x1a, 0xb6, 0x08, 0xb9, 0x8b, 0xb3, 0x26,
+	0xb0, 0x74, 0x3b, 0x01, 0xc8, 0x84, 0xf9, 0x13, 0x46, 0x5d, 0xe6, 0xd7, 0x05, 0x77, 0x18, 0xd6,
+	0x15, 0xb7, 0x58, 0x42, 0x04, 0xc2, 0x04, 0x9e, 0xd0, 0xa0, 0x8b, 0x0d, 0x13, 0x58, 0x05, 0x7b,
+	0xa1, 0x12, 0xbb, 0x9d, 0x5f, 0x41, 0x49, 0x72, 0x4a, 0x72, 0xbd, 0x88, 0xca, 0xf0, 0xff, 0x2a,
+	0x1b, 0xf8, 0xcc, 0xa1, 0x92, 0xb9, 0x0d, 0x49, 0x65, 0x18, 0xe0, 0x9d, 0x58, 0x58, 0xc9, 0x60,
+	0x60, 0xa7, 0xb8, 0xd8, 0xed, 0xf1, 0x40, 0x38, 0x5d, 0xbc, 0xab, 0x2e, 0x94, 0x00, 0x54, 0x81,
+	0x0f, 0xeb, 0x42, 0x52, 0xdf, 0xfb, 0xc2, 0xdc, 0xd7, 0x32, 0x99, 0x47, 0x8d, 0xc7, 0x83, 0x4b,
+	0xec, 0xef, 0x29, 0xfb, 0x6b, 0x35, 0xe8, 0x3d, 0x7c, 0xbc, 0xc0, 0x2f, 0x0c, 0x6a, 0xb1, 0x11,
+	0x54, 0x8d, 0x36, 0x0b, 0xd1, 0x2b, 0xf8, 0x60, 0xc5, 0x69, 0x6a, 0x16, 0x79, 0x35, 0x8b, 0x75,
+	0x12, 0xf4, 0x0e, 0x9a, 0xeb, 0x8e, 0x51, 0x6d, 0x0a, 0xaa, 0xcd, 0x46, 0x1d, 0x42, 0x50, 0x6f,
+	0x7e, 0x1e, 0x30, 0x5c, 0x34, 0x81, 0x65, 0xd8, 0xea, 0xbd, 0xf4, 0x23, 0x03, 0xf7, 0x53, 0x19,
+	0xfb, 0x70, 0x94, 0xfe, 0x6f, 0x60, 0xd9, 0x7f, 0x4b, 0x65, 0x31, 0x73, 0xfb, 0x2c, 0x66, 0x57,
+	0x66, 0x71, 0xe6, 0x53, 0xbf, 0xf2, 0x89, 0x5e, 0xc0, 0x7b, 0xf5, 0xb0, 0xdf, 0x1c, 0xc6, 0xc7,
+	0xb2, 0xa0, 0xc6, 0xe7, 0x3e, 0x54, 0xe6, 0x0c, 0x7b, 0x05, 0x8b, 0xde, 0xc2, 0xff, 0xe6, 0x20,
+	0xa8, 0xf1, 0xb6, 0xc0, 0x39, 0x33, 0x6b, 0xe5, 0x8f, 0x1e, 0x25, 0x3b, 0x56, 0x4e, 0xdd, 0xfd,
+	0x8c, 0x57, 0x62, 0x68, 0xdf, 0xf8, 0xac, 0xf4, 0x5d, 0x87, 0x78, 0x95, 0xf8, 0x6a, 0x7b, 0xc0,
+	0x9a, 0xed, 0xc9, 0x6c, 0xda, 0x9e, 0x6c, 0x6a, 0x7b, 0xe6, 0x39, 0xd7, 0xff, 0x25, 0xe7, 0xc6,
+	0xb6, 0x72, 0x9e, 0xdb, 0x52, 0xce, 0x77, 0xb6, 0x93, 0xf3, 0xdd, 0x5b, 0xe6, 0xfc, 0x19, 0xdc,
+	0x9f, 0x45, 0xe1, 0x63, 0x97, 0xf1, 0x73, 0xea, 0x4b, 0x8f, 0xf6, 0xf0, 0x9e, 0x99, 0xb5, 0x0a,
+	0xf6, 0x32, 0x0a, 0xbd, 0x84, 0x07, 0x35, 0xee, 0xb2, 0xe1, 0x59, 0xfb, 0x8d, 0xe7, 0x07, 0xb2,
+	0x39, 0x3c, 0xf7, 0x85, 0xc3, 0x82, 0x80, 0xb9, 0x6a, 0xd7, 0x0d, 0x7b, 0x15, 0x5d, 0x39, 0x1e,
+	0x4d, 0x88, 0x36, 0x9e, 0x10, 0xed, 0x72, 0x42, 0xc0, 0xd7, 0x88, 0x80, 0x9f, 0x11, 0x01, 0xbf,
+	0x22, 0x02, 0x46, 0x11, 0x01, 0xe3, 0x88, 0x80, 0xdf, 0x11, 0x01, 0x7f, 0x22, 0xa2, 0x5d, 0x46,
+	0x04, 0x7c, 0x9b, 0x12, 0x6d, 0x34, 0x25, 0xda, 0x78, 0x4a, 0xb4, 0x4f, 0x79, 0xb7, 0xd5, 0x13,
+	0xe2, 0x22, 0x1c, 0xb0, 0xa1, 0x6c, 0xe5, 0x54, 0x1a, 0x9f, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff,
+	0xad, 0xf4, 0x3b, 0x80, 0x42, 0x06, 0x00, 0x00,
 }
 
 func (this *MiniblockMetadata) Equal(that interface{}) bool {
@@ -259,6 +464,106 @@ func (this *MiniblockMetadata) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *MiniblockMetadataV2) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*MiniblockMetadataV2)
+	if !ok {
+		that2, ok := that.(MiniblockMetadataV2)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.MiniblockHash, that1.MiniblockHash) {
+		return false
+	}
+	if this.SourceShardID != that1.SourceShardID {
+		return false
+	}
+	if this.DestinationShardID != that1.DestinationShardID {
+		return false
+	}
+	if this.Type != that1.Type {
+		return false
+	}
+	if this.NumTxHashesInMiniblock != that1.NumTxHashesInMiniblock {
+		return false
+	}
+	if len(this.MiniblocksInfo) != len(that1.MiniblocksInfo) {
+		return false
+	}
+	for i := range this.MiniblocksInfo {
+		if !this.MiniblocksInfo[i].Equal(that1.MiniblocksInfo[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *MiniblockMetadataOnBlock) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*MiniblockMetadataOnBlock)
+	if !ok {
+		that2, ok := that.(MiniblockMetadataOnBlock)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Round != that1.Round {
+		return false
+	}
+	if this.HeaderNonce != that1.HeaderNonce {
+		return false
+	}
+	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
+		return false
+	}
+	if this.Epoch != that1.Epoch {
+		return false
+	}
+	if this.NotarizedAtSourceInMetaNonce != that1.NotarizedAtSourceInMetaNonce {
+		return false
+	}
+	if this.NotarizedAtDestinationInMetaNonce != that1.NotarizedAtDestinationInMetaNonce {
+		return false
+	}
+	if !bytes.Equal(this.NotarizedAtSourceInMetaHash, that1.NotarizedAtSourceInMetaHash) {
+		return false
+	}
+	if !bytes.Equal(this.NotarizedAtDestinationInMetaHash, that1.NotarizedAtDestinationInMetaHash) {
+		return false
+	}
+	if len(this.TxHashesWhenPartial) != len(that1.TxHashesWhenPartial) {
+		return false
+	}
+	for i := range this.TxHashesWhenPartial {
+		if !bytes.Equal(this.TxHashesWhenPartial[i], that1.TxHashesWhenPartial[i]) {
+			return false
+		}
+	}
+	if this.IndexOfFirstTxProcessed != that1.IndexOfFirstTxProcessed {
+		return false
+	}
+	return true
+}
 func (this *MiniblockMetadata) GoString() string {
 	if this == nil {
 		return "nil"
@@ -278,6 +583,42 @@ func (this *MiniblockMetadata) GoString() string {
 	s = append(s, "NotarizedAtSourceInMetaHash: "+fmt.Sprintf("%#v", this.NotarizedAtSourceInMetaHash)+",\n")
 	s = append(s, "NotarizedAtDestinationInMetaHash: "+fmt.Sprintf("%#v", this.NotarizedAtDestinationInMetaHash)+",\n")
 	s = append(s, "Type: "+fmt.Sprintf("%#v", this.Type)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *MiniblockMetadataV2) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&dblookupext.MiniblockMetadataV2{")
+	s = append(s, "MiniblockHash: "+fmt.Sprintf("%#v", this.MiniblockHash)+",\n")
+	s = append(s, "SourceShardID: "+fmt.Sprintf("%#v", this.SourceShardID)+",\n")
+	s = append(s, "DestinationShardID: "+fmt.Sprintf("%#v", this.DestinationShardID)+",\n")
+	s = append(s, "Type: "+fmt.Sprintf("%#v", this.Type)+",\n")
+	s = append(s, "NumTxHashesInMiniblock: "+fmt.Sprintf("%#v", this.NumTxHashesInMiniblock)+",\n")
+	if this.MiniblocksInfo != nil {
+		s = append(s, "MiniblocksInfo: "+fmt.Sprintf("%#v", this.MiniblocksInfo)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *MiniblockMetadataOnBlock) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 14)
+	s = append(s, "&dblookupext.MiniblockMetadataOnBlock{")
+	s = append(s, "Round: "+fmt.Sprintf("%#v", this.Round)+",\n")
+	s = append(s, "HeaderNonce: "+fmt.Sprintf("%#v", this.HeaderNonce)+",\n")
+	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
+	s = append(s, "Epoch: "+fmt.Sprintf("%#v", this.Epoch)+",\n")
+	s = append(s, "NotarizedAtSourceInMetaNonce: "+fmt.Sprintf("%#v", this.NotarizedAtSourceInMetaNonce)+",\n")
+	s = append(s, "NotarizedAtDestinationInMetaNonce: "+fmt.Sprintf("%#v", this.NotarizedAtDestinationInMetaNonce)+",\n")
+	s = append(s, "NotarizedAtSourceInMetaHash: "+fmt.Sprintf("%#v", this.NotarizedAtSourceInMetaHash)+",\n")
+	s = append(s, "NotarizedAtDestinationInMetaHash: "+fmt.Sprintf("%#v", this.NotarizedAtDestinationInMetaHash)+",\n")
+	s = append(s, "TxHashesWhenPartial: "+fmt.Sprintf("%#v", this.TxHashesWhenPartial)+",\n")
+	s = append(s, "IndexOfFirstTxProcessed: "+fmt.Sprintf("%#v", this.IndexOfFirstTxProcessed)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -387,6 +728,153 @@ func (m *MiniblockMetadata) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *MiniblockMetadataV2) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MiniblockMetadataV2) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MiniblockMetadataV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.MiniblocksInfo) > 0 {
+		for iNdEx := len(m.MiniblocksInfo) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.MiniblocksInfo[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintMiniblockMetadata(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x32
+		}
+	}
+	if m.NumTxHashesInMiniblock != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.NumTxHashesInMiniblock))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Type != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x20
+	}
+	if m.DestinationShardID != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.DestinationShardID))
+		i--
+		dAtA[i] = 0x18
+	}
+	if m.SourceShardID != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.SourceShardID))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.MiniblockHash) > 0 {
+		i -= len(m.MiniblockHash)
+		copy(dAtA[i:], m.MiniblockHash)
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(len(m.MiniblockHash)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MiniblockMetadataOnBlock) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MiniblockMetadataOnBlock) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MiniblockMetadataOnBlock) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.IndexOfFirstTxProcessed != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.IndexOfFirstTxProcessed))
+		i--
+		dAtA[i] = 0x50
+	}
+	if len(m.TxHashesWhenPartial) > 0 {
+		for iNdEx := len(m.TxHashesWhenPartial) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.TxHashesWhenPartial[iNdEx])
+			copy(dAtA[i:], m.TxHashesWhenPartial[iNdEx])
+			i = encodeVarintMiniblockMetadata(dAtA, i, uint64(len(m.TxHashesWhenPartial[iNdEx])))
+			i--
+			dAtA[i] = 0x4a
+		}
+	}
+	if len(m.NotarizedAtDestinationInMetaHash) > 0 {
+		i -= len(m.NotarizedAtDestinationInMetaHash)
+		copy(dAtA[i:], m.NotarizedAtDestinationInMetaHash)
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(len(m.NotarizedAtDestinationInMetaHash)))
+		i--
+		dAtA[i] = 0x42
+	}
+	if len(m.NotarizedAtSourceInMetaHash) > 0 {
+		i -= len(m.NotarizedAtSourceInMetaHash)
+		copy(dAtA[i:], m.NotarizedAtSourceInMetaHash)
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(len(m.NotarizedAtSourceInMetaHash)))
+		i--
+		dAtA[i] = 0x3a
+	}
+	if m.NotarizedAtDestinationInMetaNonce != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.NotarizedAtDestinationInMetaNonce))
+		i--
+		dAtA[i] = 0x30
+	}
+	if m.NotarizedAtSourceInMetaNonce != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.NotarizedAtSourceInMetaNonce))
+		i--
+		dAtA[i] = 0x28
+	}
+	if m.Epoch != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x20
+	}
+	if len(m.HeaderHash) > 0 {
+		i -= len(m.HeaderHash)
+		copy(dAtA[i:], m.HeaderHash)
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(len(m.HeaderHash)))
+		i--
+		dAtA[i] = 0x1a
+	}
+	if m.HeaderNonce != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.HeaderNonce))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Round != 0 {
+		i = encodeVarintMiniblockMetadata(dAtA, i, uint64(m.Round))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintMiniblockMetadata(dAtA []byte, offset int, v uint64) int {
 	offset -= sovMiniblockMetadata(v)
 	base := offset
@@ -451,6 +939,82 @@ func (m *MiniblockMetadata) Size() (n int) {
 	return n
 }
 
+func (m *MiniblockMetadataV2) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.MiniblockHash)
+	if l > 0 {
+		n += 1 + l + sovMiniblockMetadata(uint64(l))
+	}
+	if m.SourceShardID != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.SourceShardID))
+	}
+	if m.DestinationShardID != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.DestinationShardID))
+	}
+	if m.Type != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.Type))
+	}
+	if m.NumTxHashesInMiniblock != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.NumTxHashesInMiniblock))
+	}
+	if len(m.MiniblocksInfo) > 0 {
+		for _, e := range m.MiniblocksInfo {
+			l = e.Size()
+			n += 1 + l + sovMiniblockMetadata(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *MiniblockMetadataOnBlock) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Round != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.Round))
+	}
+	if m.HeaderNonce != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.HeaderNonce))
+	}
+	l = len(m.HeaderHash)
+	if l > 0 {
+		n += 1 + l + sovMiniblockMetadata(uint64(l))
+	}
+	if m.Epoch != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.Epoch))
+	}
+	if m.NotarizedAtSourceInMetaNonce != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.NotarizedAtSourceInMetaNonce))
+	}
+	if m.NotarizedAtDestinationInMetaNonce != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.NotarizedAtDestinationInMetaNonce))
+	}
+	l = len(m.NotarizedAtSourceInMetaHash)
+	if l > 0 {
+		n += 1 + l + sovMiniblockMetadata(uint64(l))
+	}
+	l = len(m.NotarizedAtDestinationInMetaHash)
+	if l > 0 {
+		n += 1 + l + sovMiniblockMetadata(uint64(l))
+	}
+	if len(m.TxHashesWhenPartial) > 0 {
+		for _, b := range m.TxHashesWhenPartial {
+			l = len(b)
+			n += 1 + l + sovMiniblockMetadata(uint64(l))
+		}
+	}
+	if m.IndexOfFirstTxProcessed != 0 {
+		n += 1 + sovMiniblockMetadata(uint64(m.IndexOfFirstTxProcessed))
+	}
+	return n
+}
+
 func sovMiniblockMetadata(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
 }
@@ -475,6 +1039,45 @@ func (this *MiniblockMetadata) String() string {
 		`NotarizedAtSourceInMetaHash:` + fmt.Sprintf("%v", this.NotarizedAtSourceInMetaHash) + `,`,
 		`NotarizedAtDestinationInMetaHash:` + fmt.Sprintf("%v", this.NotarizedAtDestinationInMetaHash) + `,`,
 		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *MiniblockMetadataV2) String() string {
+	if this == nil {
+		return "nil"
+	}
+	repeatedStringForMiniblocksInfo := "[]*MiniblockMetadataOnBlock{"
+	for _, f := range this.MiniblocksInfo {
+		repeatedStringForMiniblocksInfo += strings.Replace(f.String(), "MiniblockMetadataOnBlock", "MiniblockMetadataOnBlock", 1) + ","
+	}
+	repeatedStringForMiniblocksInfo += "}"
+	s := strings.Join([]string{`&MiniblockMetadataV2{`,
+		`MiniblockHash:` + fmt.Sprintf("%v", this.MiniblockHash) + `,`,
+		`SourceShardID:` + fmt.Sprintf("%v", this.SourceShardID) + `,`,
+		`DestinationShardID:` + fmt.Sprintf("%v", this.DestinationShardID) + `,`,
+		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
+		`NumTxHashesInMiniblock:` + fmt.Sprintf("%v", this.NumTxHashesInMiniblock) + `,`,
+		`MiniblocksInfo:` + repeatedStringForMiniblocksInfo + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *MiniblockMetadataOnBlock) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&MiniblockMetadataOnBlock{`,
+		`Round:` + fmt.Sprintf("%v", this.Round) + `,`,
+		`HeaderNonce:` + fmt.Sprintf("%v", this.HeaderNonce) + `,`,
+		`HeaderHash:` + fmt.Sprintf("%v", this.HeaderHash) + `,`,
+		`Epoch:` + fmt.Sprintf("%v", this.Epoch) + `,`,
+		`NotarizedAtSourceInMetaNonce:` + fmt.Sprintf("%v", this.NotarizedAtSourceInMetaNonce) + `,`,
+		`NotarizedAtDestinationInMetaNonce:` + fmt.Sprintf("%v", this.NotarizedAtDestinationInMetaNonce) + `,`,
+		`NotarizedAtSourceInMetaHash:` + fmt.Sprintf("%v", this.NotarizedAtSourceInMetaHash) + `,`,
+		`NotarizedAtDestinationInMetaHash:` + fmt.Sprintf("%v", this.NotarizedAtDestinationInMetaHash) + `,`,
+		`TxHashesWhenPartial:` + fmt.Sprintf("%v", this.TxHashesWhenPartial) + `,`,
+		`IndexOfFirstTxProcessed:` + fmt.Sprintf("%v", this.IndexOfFirstTxProcessed) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -834,6 +1437,504 @@ func (m *MiniblockMetadata) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.Type |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMiniblockMetadata(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MiniblockMetadataV2) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMiniblockMetadata
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MiniblockMetadataV2: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MiniblockMetadataV2: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MiniblockHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MiniblockHash = append(m.MiniblockHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.MiniblockHash == nil {
+				m.MiniblockHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SourceShardID", wireType)
+			}
+			m.SourceShardID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.SourceShardID |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field DestinationShardID", wireType)
+			}
+			m.DestinationShardID = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.DestinationShardID |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NumTxHashesInMiniblock", wireType)
+			}
+			m.NumTxHashesInMiniblock = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NumTxHashesInMiniblock |= int32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MiniblocksInfo", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.MiniblocksInfo = append(m.MiniblocksInfo, &MiniblockMetadataOnBlock{})
+			if err := m.MiniblocksInfo[len(m.MiniblocksInfo)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipMiniblockMetadata(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MiniblockMetadataOnBlock) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowMiniblockMetadata
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MiniblockMetadataOnBlock: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MiniblockMetadataOnBlock: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Round", wireType)
+			}
+			m.Round = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Round |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeaderNonce", wireType)
+			}
+			m.HeaderNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.HeaderNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field HeaderHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.HeaderHash = append(m.HeaderHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.HeaderHash == nil {
+				m.HeaderHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 4:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Epoch |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 5:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotarizedAtSourceInMetaNonce", wireType)
+			}
+			m.NotarizedAtSourceInMetaNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NotarizedAtSourceInMetaNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 6:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotarizedAtDestinationInMetaNonce", wireType)
+			}
+			m.NotarizedAtDestinationInMetaNonce = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NotarizedAtDestinationInMetaNonce |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 7:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotarizedAtSourceInMetaHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NotarizedAtSourceInMetaHash = append(m.NotarizedAtSourceInMetaHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.NotarizedAtSourceInMetaHash == nil {
+				m.NotarizedAtSourceInMetaHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 8:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NotarizedAtDestinationInMetaHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.NotarizedAtDestinationInMetaHash = append(m.NotarizedAtDestinationInMetaHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.NotarizedAtDestinationInMetaHash == nil {
+				m.NotarizedAtDestinationInMetaHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 9:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TxHashesWhenPartial", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMiniblockMetadata
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.TxHashesWhenPartial = append(m.TxHashesWhenPartial, make([]byte, postIndex-iNdEx))
+			copy(m.TxHashesWhenPartial[len(m.TxHashesWhenPartial)-1], dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 10:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IndexOfFirstTxProcessed", wireType)
+			}
+			m.IndexOfFirstTxProcessed = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMiniblockMetadata
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.IndexOfFirstTxProcessed |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
