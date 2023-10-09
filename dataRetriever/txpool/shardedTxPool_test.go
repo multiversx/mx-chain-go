@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
@@ -453,4 +454,150 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		SelfShardID:    0,
 	}
 	return NewShardedTxPool(args)
+}
+
+func BenchmarkNewShardedTxPool(b *testing.B) {
+	numberOfShards := uint32(3)
+	txGasHandler := &txcachemocks.TxGasHandlerMock{
+		MinimumGasMove:       50000,
+		MinimumGasPrice:      200000000000,
+		GasProcessingDivisor: 100,
+	}
+
+	numOfTxsInPool := 100000
+	mainCfg := storageunit.CacheConfig{
+		Name:                 "TxDataPool",
+		Type:                 "TxCache",
+		SizeInBytes:          26800000,
+		SizeInBytesPerSender: 268,
+		Capacity:             100000,
+		SizePerSender:        10,
+		Shards:               4,
+	}
+	innerCfg := mainCfg
+	innerCfg.Name = "RelayedInnerTxDataPool"
+
+	txPool, _ := NewShardedTxPool(ArgShardedTxPool{
+		Config:         mainCfg,
+		TxGasHandler:   txGasHandler,
+		NumberOfShards: numberOfShards,
+		SelfShardID:    0,
+	})
+
+	innerTxPool, _ := NewShardedTxPool(ArgShardedTxPool{
+		Config:         innerCfg,
+		TxGasHandler:   txGasHandler,
+		NumberOfShards: numberOfShards,
+		SelfShardID:    0,
+	})
+
+	b.Run("no inner tx pool", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(nil)
+
+		numOfSenders := numOfTxsInPool
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("empty inner tx pool", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		numOfSenders := numOfTxsInPool
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("inner tx pool, all txs are relayed, different senders", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		numOfSenders := numOfTxsInPool
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, numOfTxsInPool, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("inner tx pool, half txs are relayed, different senders, ", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		numOfSenders := numOfTxsInPool
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, numOfTxsInPool/2, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("inner tx pool, all txs are relayed, less senders", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		numOfSenders := 20
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, numOfTxsInPool, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("inner tx pool, all txs are relayed, 1 sender", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		numOfSenders := 1
+		populatePool(txPool, numOfTxsInPool, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, numOfTxsInPool, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+	b.Run("inner tx pool, all txs are relayed, different senders, with eviction", func(b *testing.B) {
+		innerTxPool.Clear()
+		txPool.Clear()
+		txPool.SetEvictionHandler(innerTxPool)
+
+		localNumOfTxs := numOfTxsInPool * 2
+		numOfSenders := localNumOfTxs
+		populatePool(txPool, localNumOfTxs, numberOfShards, numOfSenders)
+		populatePool(innerTxPool, localNumOfTxs, numberOfShards, numOfSenders)
+
+		for i := 0; i < b.N; i++ {
+			removeDataFromPool(txPool, i, numberOfShards)
+		}
+	})
+}
+
+func populatePool(txPool dataRetriever.ShardedDataCacherNotifier, numTxsInMainPool int, numOfShards uint32, numOfSenders int) {
+	for i := 0; i < numTxsInMainPool; i++ {
+		hash := []byte(fmt.Sprintf("hash_%d", i))
+		tx := transaction.Transaction{
+			Nonce:   uint64(i),
+			SndAddr: []byte(fmt.Sprintf("snd_%d", i%numOfSenders)),
+		}
+
+		cacherIdentifier := process.ShardCacherIdentifier(0, uint32(i)%numOfShards)
+		txPool.AddData(hash, tx, tx.Size(), cacherIdentifier)
+	}
+}
+
+func removeDataFromPool(txPool dataRetriever.ShardedDataCacherNotifier, i int, numOfShards uint32) {
+	hash := []byte(fmt.Sprintf("hash_%d", i))
+	cacherIdentifier := process.ShardCacherIdentifier(0, uint32(i)%numOfShards)
+	txPool.RemoveData(hash, cacherIdentifier)
 }
