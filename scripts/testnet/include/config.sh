@@ -151,6 +151,8 @@ updateNodeConfig() {
 	  sed -i '/^\[ElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
 	fi
 
+	sed -i '/^\[DbLookupExtensions\]/,/^\[/ s/Enabled *= *false/Enabled = true/' config_observer.toml
+
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 
