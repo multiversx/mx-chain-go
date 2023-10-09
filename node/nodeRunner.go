@@ -430,6 +430,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedBootstrapComponents,
 		managedProcessComponents,
+		managedStatusCoreComponents,
 	)
 	if err != nil {
 		return true, err
@@ -558,6 +559,7 @@ func addSyncersToAccountsDB(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) error {
 	selfId := bootstrapComponents.ShardCoordinator().SelfId()
 	if selfId == core.MetachainShardId {
@@ -567,6 +569,7 @@ func addSyncersToAccountsDB(
 			dataComponents,
 			stateComponents,
 			processComponents,
+			statusCoreComponents,
 		)
 		if err != nil {
 			return err
@@ -590,6 +593,7 @@ func addSyncersToAccountsDB(
 		stateComponents,
 		bootstrapComponents,
 		processComponents,
+		statusCoreComponents,
 	)
 	if err != nil {
 		return err
@@ -609,6 +613,7 @@ func getUserAccountSyncer(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
 	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
@@ -626,6 +631,7 @@ func getUserAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
+			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
@@ -642,6 +648,7 @@ func getValidatorAccountSyncer(
 	dataComponents mainFactory.DataComponentsHolder,
 	stateComponents mainFactory.StateComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
 	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
@@ -654,6 +661,7 @@ func getValidatorAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
+			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 	}
@@ -667,6 +675,7 @@ func getBaseAccountSyncerArgs(
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	storageManager common.StorageManager,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
@@ -683,6 +692,7 @@ func getBaseAccountSyncerArgs(
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
+		StateStatsHandler:                 statusCoreComponents.StateStatsHandler(),
 	}
 }
 

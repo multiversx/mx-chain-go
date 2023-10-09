@@ -51,6 +51,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		appStatusHandler:                  args.AppStatusHandler,
 		enableEpochsHandler:               args.EnableEpochsHandler,
+		stateStatsHandler:                 args.StateStatsHandler,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -77,6 +78,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker co
 		cancel()
 	}()
 
+	// v.stateStatsHandler.ResetSync()
+
 	go v.printStatisticsAndUpdateMetrics(ctx)
 
 	err := v.syncMainTrie(
@@ -88,6 +91,8 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker co
 	if err != nil {
 		return err
 	}
+
+	// v.stateStatsHandler.PrintSync()
 
 	storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
 

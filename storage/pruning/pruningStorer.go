@@ -455,7 +455,9 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
-		ps.stateStatsHandler.IncrPersisterOp()
+
+		ps.stateStatsHandler.IncrPersisterOp(ps.activePersisters[idx].epoch)
+
 		return val, nil
 	}
 

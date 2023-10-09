@@ -94,6 +94,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
+		ps.stateStatsHandler.IncrSnapshotCacheOp()
 		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
@@ -115,6 +116,9 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 			Value:    ps.activePersisters[idx].epoch,
 			HasValue: true,
 		}
+
+		ps.stateStatsHandler.IncrSnapshotPersisterOp(epoch.Value)
+
 		return val, epoch, nil
 	}
 

@@ -236,6 +236,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		trieSyncStatisticsProvider: args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:         args.NodeProcessingMode,
 		nodeOperationMode:          common.NormalOperation,
+		stateStatsHandler:          args.StateStatsHandler,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -795,6 +796,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -964,6 +966,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -1111,6 +1114,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 			AppStatusHandler:                  e.statusHandler,
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
+			StateStatsHandler:                 e.stateStatsHandler,
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1151,6 +1155,7 @@ func (e *epochStartBootstrap) createStorageService(
 			NodeProcessingMode:            e.nodeProcessingMode,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
+			StateStatsHandler:             e.stateStatsHandler,
 		})
 	if err != nil {
 		return nil, err
@@ -1183,6 +1188,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabledCommon.NewAppStatusHandler(),
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
+			StateStatsHandler:                 e.stateStatsHandler,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

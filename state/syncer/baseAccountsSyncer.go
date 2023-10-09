@@ -34,6 +34,7 @@ type baseAccountsSyncer struct {
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
 	appStatusHandler                  core.AppStatusHandler
 	enableEpochsHandler               common.EnableEpochsHandler
+	stateStatsHandler                 common.StateStatisticsHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -53,6 +54,7 @@ type ArgsNewBaseAccountsSyncer struct {
 	UserAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
 	AppStatusHandler                  core.AppStatusHandler
 	EnableEpochsHandler               common.EnableEpochsHandler
+	StateStatsHandler                 common.StateStatisticsHandler
 	MaxTrieLevelInMemory              uint
 	MaxHardCapForMissingNodes         int
 	TrieSyncerVersion                 int

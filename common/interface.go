@@ -56,7 +56,6 @@ type Trie interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	IsMigratedToLatestVersion() (bool, error)
-	GetStorageStats() string
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -223,10 +222,24 @@ type TriesStatisticsCollector interface {
 // StateStatisticsHandler defines the behaviour of a storage statistics handler
 type StateStatisticsHandler interface {
 	Reset()
+	ResetSync()
+	PrintSync() string
+	ResetSnapshot()
+
 	IncrCacheOp()
 	CacheOp() uint64
-	IncrPersisterOp()
-	PersisterOp() uint64
+	IncrSyncCacheOp()
+	SyncCacheOp() uint64
+	IncrSnapshotCacheOp()
+	SnapshotCacheOp() uint64
+
+	IncrPersisterOp(epoch uint32)
+	PersisterOp(epoch uint32) uint64
+	IncrSyncPersisterOp(epoch uint32)
+	SyncPersisterOp(epoch uint32) uint64
+	IncrSnapshotPersisterOp(epoch uint32)
+	SnapshotPersisterOp(epoch uint32) uint64
+
 	IncrTrieOp()
 	TrieOp() uint64
 	ToString() string

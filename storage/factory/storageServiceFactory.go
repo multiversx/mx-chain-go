@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
-	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -611,7 +610,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
 		PersistersTracker:         pruning.NewPersistersTracker(epochsData),
 		EpochsData:                epochsData,
-		StateStatsHandler:         disabledStatistics.NewStateStatistics(),
+		StateStatsHandler:         psf.stateStatsHandler,
 	}
 
 	return args, nil

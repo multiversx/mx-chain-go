@@ -38,6 +38,7 @@ func NewShardRequestersContainerFactory(
 		workingDir:               args.WorkingDirectory,
 		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		stateStatsHandler:        args.StateStatsHandler,
 	}
 
 	err := base.checkParams()
