@@ -2990,6 +2990,28 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
 }
 
+func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(getDefaultCoreComponents()),
+		node.WithBootstrapComponents(getDefaultBootstrapComponents()),
+		node.WithProcessComponents(getDefaultProcessComponents()),
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithCryptoComponents(getDefaultCryptoComponents()),
+	)
+
+	tx := &transaction.Transaction{
+		SndAddr:   bytes.Repeat([]byte("1"), 32),
+		RcvAddr:   bytes.Repeat([]byte("1"), 32),
+		Value:     big.NewInt(37),
+		Signature: []byte("signature"),
+		ChainID:   []byte("chainID"),
+	}
+	err := n.ValidateTransaction(tx)
+	require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+}
+
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
 	dataPool := dataRetrieverMock.NewPoolsHolderStub()
