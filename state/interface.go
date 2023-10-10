@@ -265,3 +265,10 @@ type SignRate interface {
 	GetNumSuccess() uint32
 	GetNumFailure() uint32
 }
+
+// StateStatsHandler defines the behaviour needed to handler state statistics
+type StateStatsHandler interface {
+	ResetSnapshot()
+	SnapshotStats() string
+	IsInterfaceNil() bool
+}

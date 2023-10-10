@@ -17,6 +17,11 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
+type stateStatsHandler interface {
+	ResetSync()
+	SyncStats() string
+}
+
 type baseAccountsSyncer struct {
 	hasher                            hashing.Hasher
 	marshalizer                       marshal.Marshalizer
@@ -34,7 +39,7 @@ type baseAccountsSyncer struct {
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
 	appStatusHandler                  core.AppStatusHandler
 	enableEpochsHandler               common.EnableEpochsHandler
-	stateStatsHandler                 common.StateStatisticsHandler
+	stateStatsHandler                 stateStatsHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32

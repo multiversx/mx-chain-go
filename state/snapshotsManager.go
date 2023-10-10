@@ -33,6 +33,7 @@ type ArgsNewSnapshotsManager struct {
 	StateMetrics             StateMetrics
 	AccountFactory           AccountFactory
 	ChannelsProvider         IteratorChannelsProvider
+	StateStatsHandler        StateStatsHandler
 }
 
 type snapshotsManager struct {
@@ -48,6 +49,7 @@ type snapshotsManager struct {
 	processStatusHandler common.ProcessStatusHandler
 	channelsProvider     IteratorChannelsProvider
 	accountFactory       AccountFactory
+	stateStatsHandler    StateStatsHandler
 	mutex                sync.RWMutex
 }
 
@@ -71,6 +73,9 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 	if check.IfNil(args.AccountFactory) {
 		return nil, ErrNilAccountFactory
 	}
+	if check.IfNil(args.StateStatsHandler) {
+		return nil, ErrNilStatsHandler
+	}
 
 	return &snapshotsManager{
 		isSnapshotInProgress:     atomic.Flag{},
@@ -85,6 +90,7 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 		channelsProvider:         args.ChannelsProvider,
 		mutex:                    sync.RWMutex{},
 		accountFactory:           args.AccountFactory,
+		stateStatsHandler:        args.StateStatsHandler,
 	}, nil
 }
 
@@ -229,6 +235,8 @@ func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieS
 	sm.lastSnapshot.epoch = epoch
 	trieStorageManager.EnterPruningBufferingMode()
 	stats := newSnapshotStatistics(1, 1)
+
+	sm.stateStatsHandler.ResetSnapshot()
 
 	return stats, false
 }
@@ -452,6 +460,8 @@ func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats common.Snapshot
 	sm.processStatusHandler.SetIdle()
 
 	stats.WaitForSnapshotsToFinish()
+
+	sm.stateStatsHandler.SnapshotStats()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

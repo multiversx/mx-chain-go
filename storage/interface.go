@@ -91,12 +91,6 @@ type StorerWithPutInEpoch interface {
 	SetEpochForPutOperation(epoch uint32)
 }
 
-// StorerWithStats is an extended storer with statistics for get operation
-type StorerWithStats interface {
-	Storer
-	GetWithStats(key []byte) ([]byte, bool, error)
-}
-
 // PathManagerHandler defines which actions should be done for generating paths for databases directories
 type PathManagerHandler interface {
 	PathForEpoch(shardId string, epoch uint32, identifier string) string
@@ -212,4 +206,12 @@ type DBConfigHandler interface {
 type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
+}
+
+// StateStatsHandler defines the behaviour needed to handler storage statistics
+type StateStatsHandler interface {
+	IncrCache()
+	IncrSnapshotCache()
+	IncrPersister(epoch uint32)
+	IncrSnapshotPersister(epoch uint32)
 }

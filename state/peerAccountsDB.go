@@ -38,6 +38,7 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		StateMetrics:             sm,
 		ChannelsProvider:         iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider(),
 		AccountFactory:           args.AccountFactory,
+		StateStatsHandler:        args.Trie.GetStorageManager().GetStateStatsHandler(),
 	}
 	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
 	if err != nil {

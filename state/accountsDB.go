@@ -138,6 +138,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		StateMetrics:             sm,
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		AccountFactory:           args.AccountFactory,
+		StateStatsHandler:        args.Trie.GetStorageManager().GetStateStatsHandler(),
 	}
 	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
 	if err != nil {

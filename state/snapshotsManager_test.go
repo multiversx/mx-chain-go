@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
@@ -29,6 +30,7 @@ func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
 		StateMetrics:             &stateTest.StateMetricsStub{},
 		AccountFactory:           &stateTest.AccountsFactoryStub{},
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		StateStatsHandler:        disabled.NewStateStatistics(),
 	}
 }
 
@@ -94,6 +96,16 @@ func TestNewSnapshotsManager(t *testing.T) {
 		sm, err := state.NewSnapshotsManager(args)
 		assert.Nil(t, sm)
 		assert.Equal(t, state.ErrNilAccountFactory, err)
+	})
+	t.Run("nil stats handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.StateStatsHandler = nil
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.Nil(t, sm)
+		assert.Equal(t, state.ErrNilStatsHandler, err)
 	})
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
