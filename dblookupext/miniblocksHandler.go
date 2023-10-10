@@ -34,7 +34,7 @@ func (mh *miniblocksHandler) blockCommitted(header data.HeaderHandler, blockBody
 			return fmt.Errorf("%w for miniblock at index %d, header hash %x", err, index, headerHash)
 		}
 
-		err = mh.handleMiniblock(header, headerHash, mb, miniblockHash)
+		err = mh.commitMiniblock(header, headerHash, mb, miniblockHash)
 		if err != nil {
 			return fmt.Errorf("%w for miniblock at index %d, mbHash %x, header hash %x", err, index, miniblockHash, headerHash)
 		}
@@ -43,7 +43,7 @@ func (mh *miniblocksHandler) blockCommitted(header data.HeaderHandler, blockBody
 	return nil
 }
 
-func (mh *miniblocksHandler) handleMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock, miniblockHash []byte) error {
+func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock, miniblockHash []byte) error {
 	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
 	if err != nil {
 		return err
@@ -57,12 +57,12 @@ func (mh *miniblocksHandler) handleMiniblock(header data.HeaderHandler, headerHa
 		}
 	}
 
-	err = mh.saveExecutedTransactions(miniblockHeader, miniblockHash, mb, header.GetEpoch())
+	err = mh.commitExecutedTransactions(miniblockHeader, miniblockHash, mb, header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
-	return mh.saveMiniblockMetadata(header, headerHash, miniblockHeader, miniblockHash, mb)
+	return mh.commitMiniblockMetadata(header, headerHash, miniblockHeader, miniblockHash, mb)
 }
 
 func (mh *miniblocksHandler) findMiniblockHandler(header data.HeaderHandler, miniblockHash []byte) (data.MiniBlockHeaderHandler, error) {
@@ -75,8 +75,8 @@ func (mh *miniblocksHandler) findMiniblockHandler(header data.HeaderHandler, min
 	return nil, errMiniblockHeaderNotFound
 }
 
-// saveExecutedTransactions will save only the transactions between the start and end index of the provided miniblockHeader
-func (mh *miniblocksHandler) saveExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, miniblockHash []byte, mb *block.MiniBlock, epoch uint32) error {
+// commitExecutedTransactions will save only the transactions between the start and end index of the provided miniblockHeader
+func (mh *miniblocksHandler) commitExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, miniblockHash []byte, mb *block.MiniBlock, epoch uint32) error {
 	txHashes := mh.getOrderedExecutedTxHashes(miniblockHeader, mb)
 	for _, txHash := range txHashes {
 		err := mh.miniblockHashByTxHashIndexStorer.PutInEpoch(txHash, miniblockHash, epoch)
@@ -98,7 +98,7 @@ func (mh *miniblocksHandler) getOrderedExecutedTxHashes(miniblockHeader data.Min
 	return txHashes
 }
 
-func (mh *miniblocksHandler) saveMiniblockMetadata(
+func (mh *miniblocksHandler) commitMiniblockMetadata(
 	header data.HeaderHandler,
 	headerHash []byte,
 	miniblockHeader data.MiniBlockHeaderHandler,
@@ -196,4 +196,87 @@ func (mh *miniblocksHandler) saveMiniblocksMetadata(miniblockHash []byte, minibl
 	}
 
 	return mh.miniblocksMetadataStorer.PutInEpoch(miniblockHash, buff, epoch)
+}
+
+func (mh *miniblocksHandler) blockReverted(header data.HeaderHandler, blockBody *block.Body) error {
+	headerHash, errCalculate := core.CalculateHash(mh.marshaller, mh.hasher, header)
+	if errCalculate != nil {
+		return fmt.Errorf("%w for header, header round %d", errCalculate, header.GetRound())
+	}
+
+	for index, mb := range blockBody.MiniBlocks {
+		miniblockHash, err := core.CalculateHash(mh.marshaller, mh.hasher, mb)
+		if err != nil {
+			return fmt.Errorf("%w for miniblock at index %d, header hash %x", err, index, headerHash)
+		}
+
+		err = mh.revertMiniblock(header, headerHash, mb, miniblockHash)
+		if err != nil {
+			return fmt.Errorf("%w for miniblock at index %d, mbHash %x, header hash %x", err, index, miniblockHash, headerHash)
+		}
+	}
+
+	return nil
+}
+
+func (mh *miniblocksHandler) revertMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock, miniblockHash []byte) error {
+	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
+	if err != nil {
+		return err
+	}
+
+	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
+		// we either revert a complete miniblock or the first partial executed miniblock header
+		err = mh.epochIndex.removeEpochByHash(miniblockHash)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = mh.removeExecutedTransactions(miniblockHeader, mb)
+	if err != nil {
+		return err
+	}
+
+	return mh.removeMiniblockMetadata(header, headerHash, miniblockHash)
+}
+
+// removeExecutedTransactions will remove only the transactions between the start and end index of the provided miniblockHeader
+func (mh *miniblocksHandler) removeExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, mb *block.MiniBlock) error {
+	txHashes := mh.getOrderedExecutedTxHashes(miniblockHeader, mb)
+	for _, txHash := range txHashes {
+		err := mh.miniblockHashByTxHashIndexStorer.Remove(txHash)
+		if err != nil {
+			return fmt.Errorf("%w for tx hash %x", err, txHash)
+		}
+	}
+
+	return nil
+}
+
+func (mh *miniblocksHandler) removeMiniblockMetadata(
+	header data.HeaderHandler,
+	headerHash []byte,
+	miniblockHash []byte,
+) error {
+	loadedMiniblockMetadata, err := mh.loadExistingMiniblocksMetadata(miniblockHash, header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	newMiniblocksInfo := make([]*MiniblockMetadataOnBlock, 0, len(loadedMiniblockMetadata.MiniblocksInfo))
+	for _, mbOnBlock := range loadedMiniblockMetadata.MiniblocksInfo {
+		if !bytes.Equal(mbOnBlock.HeaderHash, headerHash) {
+			newMiniblocksInfo = append(newMiniblocksInfo, mbOnBlock)
+		}
+	}
+	loadedMiniblockMetadata.MiniblocksInfo = newMiniblocksInfo
+
+	if len(loadedMiniblockMetadata.MiniblocksInfo) == 0 {
+		// we assume that the rollback is done in-sync with the node.
+		// TODO: refactor pruningStorer and add RemoveFromEpoch functionality
+		return mh.miniblocksMetadataStorer.RemoveFromCurrentEpoch(miniblockHash)
+	}
+
+	return mh.saveMiniblocksMetadata(miniblockHash, loadedMiniblockMetadata, header.GetEpoch())
 }
