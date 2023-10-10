@@ -155,5 +155,5 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	err := node.Node.ValidateTransaction(tx)
-	assert.True(t, errors.Is(err, process.ErrAccountNotFound))
+	assert.True(t, errors.Is(err, process.ErrInsufficientFunds))
 }
