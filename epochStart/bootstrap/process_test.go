@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -229,6 +230,7 @@ func createMockEpochStartBootstrapArgs(
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
 	}
 }
 
@@ -1020,6 +1022,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -1039,6 +1042,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(triesContainer.GetAll()))
@@ -1065,6 +1069,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
