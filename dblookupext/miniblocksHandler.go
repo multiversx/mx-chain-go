@@ -275,10 +275,8 @@ func (mh *miniblocksHandler) removeMiniblockMetadata(
 	if len(loadedMiniblockMetadata.MiniblocksInfo) == 0 {
 		// we assume that the rollback is done in-sync with the node.
 		// TODO: refactor pruningStorer and add RemoveFromEpoch functionality
-		err = mh.miniblocksMetadataStorer.RemoveFromCurrentEpoch(miniblockHash)
-	} else {
-		err = mh.saveMiniblocksMetadata(miniblockHash, loadedMiniblockMetadata, header.GetEpoch())
+		return mh.miniblocksMetadataStorer.RemoveFromCurrentEpoch(miniblockHash)
 	}
 
-	return err
+	return mh.saveMiniblocksMetadata(miniblockHash, loadedMiniblockMetadata, header.GetEpoch())
 }
