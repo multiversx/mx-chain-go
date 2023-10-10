@@ -69,11 +69,11 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
-	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
-
 	if check.IfNil(header) || check.IfNil(header.GetHeaderHandler()) {
 		return data.ErrNilHeader
 	}
+
+	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
 
 	round := header.GetHeaderHandler().GetRound()
 	if round < ihp.mainChainNotarizationStartRound {
