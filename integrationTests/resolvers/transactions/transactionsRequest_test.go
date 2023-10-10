@@ -49,7 +49,7 @@ func TestTransactionsRequestsShouldWorkForHigherMaxTxNonceDeltaAllowed(t *testin
 	txKeyGen := signing.NewKeyGenerator(txSuite)
 	sk, pk := txKeyGen.GeneratePair()
 	senderBytes, _ := pk.ToByteArray()
-	if nResolver.ShardCoordinator.ComputeId(senderBytes) != shardIdResolver {
+	for nResolver.ShardCoordinator.ComputeId(senderBytes) != shardIdResolver {
 		sk, pk = txKeyGen.GeneratePair()
 		senderBytes, _ = pk.ToByteArray()
 	}
