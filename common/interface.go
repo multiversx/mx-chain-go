@@ -223,26 +223,29 @@ type TriesStatisticsCollector interface {
 type StateStatisticsHandler interface {
 	Reset()
 	ResetSync()
-	PrintSync() string
 	ResetSnapshot()
 
-	IncrCacheOp()
-	CacheOp() uint64
-	IncrSyncCacheOp()
-	SyncCacheOp() uint64
-	IncrSnapshotCacheOp()
-	SnapshotCacheOp() uint64
+	IncrCache()
+	Cache() uint64
+	IncrSyncCache()
+	SyncCache() uint64
+	IncrSnapshotCache()
+	SnapshotCache() uint64
 
-	IncrPersisterOp(epoch uint32)
-	PersisterOp(epoch uint32) uint64
-	IncrSyncPersisterOp(epoch uint32)
-	SyncPersisterOp(epoch uint32) uint64
-	IncrSnapshotPersisterOp(epoch uint32)
-	SnapshotPersisterOp(epoch uint32) uint64
+	IncrPersister(epoch uint32)
+	Persister(epoch uint32) uint64
+	IncrSyncPersister(epoch uint32)
+	SyncPersister(epoch uint32) uint64
+	IncrSnapshotPersister(epoch uint32)
+	SnapshotPersister(epoch uint32) uint64
 
-	IncrTrieOp()
-	TrieOp() uint64
-	ToString() string
+	IncrTrie()
+	Trie() uint64
+
+	ProcessingStats() string
+	SyncStats() string
+	SnapshotStats() string
+
 	IsInterfaceNil() bool
 }
 

@@ -603,8 +603,8 @@ func TestTrieStorageManager_Get(t *testing.T) {
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.MainStorer = &storage.StorerStub{
-			GetWithStatsCalled: func(key []byte) ([]byte, bool, error) {
-				return nil, false, storageMx.ErrDBIsClosed
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, storageMx.ErrDBIsClosed
 			},
 		}
 		ts, _ := trie.NewTrieStorageManager(args)

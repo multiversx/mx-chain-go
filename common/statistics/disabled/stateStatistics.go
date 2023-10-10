@@ -7,88 +7,97 @@ func NewStateStatistics() *stateStatistics {
 	return &stateStatistics{}
 }
 
+// ResetAll does nothing
+func (s *stateStatistics) ResetAll() {
+}
+
 // Reset does nothing
 func (s *stateStatistics) Reset() {
 }
 
-// Reset does nothing
+// ResetSync does nothing
 func (s *stateStatistics) ResetSync() {
 }
 
-// PrintSync returns empty string
-func (s *stateStatistics) PrintSync() string {
-	return ""
-}
-
-// Reset does nothing
+// ResetSnapshot does nothing
 func (s *stateStatistics) ResetSnapshot() {
 }
 
-// IncrCacheOp does nothing
-func (s *stateStatistics) IncrCacheOp() {
+// IncrCache does nothing
+func (s *stateStatistics) IncrCache() {
 }
 
-// CacheOp returns zero
-func (s *stateStatistics) CacheOp() uint64 {
+// Cache returns zero
+func (s *stateStatistics) Cache() uint64 {
 	return 0
 }
 
-// IncrSyncCacheOp will increment cache counter
-func (s *stateStatistics) IncrSyncCacheOp() {
+// IncrSyncCache does nothing
+func (s *stateStatistics) IncrSyncCache() {
 }
 
-// SyncCacheOp returns the number of cached operations
-func (ss *stateStatistics) SyncCacheOp() uint64 {
+// SyncCache returns the number of cached operations
+func (ss *stateStatistics) SyncCache() uint64 {
 	return 0
 }
 
-// IncrSnapshotCacheOp will increment cache counter
-func (ss *stateStatistics) IncrSnapshotCacheOp() {
+// IncrSnapshotCache does nothing
+func (ss *stateStatistics) IncrSnapshotCache() {
 }
 
-// SnapshotCacheOp returns the number of cached operations
-func (ss *stateStatistics) SnapshotCacheOp() uint64 {
+// SnapshotCache returns the number of cached operations
+func (ss *stateStatistics) SnapshotCache() uint64 {
 	return 0
 }
 
-// IncrPersisterOp does nothing
-func (s *stateStatistics) IncrPersisterOp(epoch uint32) {
+// IncrPersister does nothing
+func (s *stateStatistics) IncrPersister(epoch uint32) {
 }
 
-// PersisterOp returns zero
-func (s *stateStatistics) PersisterOp(epoch uint32) uint64 {
+// Persister returns zero
+func (s *stateStatistics) Persister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrSyncPersisterOp will increment persister counter
-func (ss *stateStatistics) IncrSyncPersisterOp(epoch uint32) {
+// IncrSyncPersister does nothing
+func (ss *stateStatistics) IncrSyncPersister(epoch uint32) {
 }
 
-// SyncPersisterOp returns the number of persister operations
-func (ss *stateStatistics) SyncPersisterOp(epoch uint32) uint64 {
+// SyncPersister returns the number of persister operations
+func (ss *stateStatistics) SyncPersister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrSnapshotPersisterOp will increment persister counter
-func (ss *stateStatistics) IncrSnapshotPersisterOp(epoch uint32) {
+// IncrSnapshotPersister does nothing
+func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
 }
 
-// SyncPersisterOp returns the number of persister operations
-func (ss *stateStatistics) SnapshotPersisterOp(epoch uint32) uint64 {
+// SyncPersister returns the number of persister operations
+func (ss *stateStatistics) SnapshotPersister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrTrieOp does nothing
-func (s *stateStatistics) IncrTrieOp() {
+// IncrTrie does nothing
+func (s *stateStatistics) IncrTrie() {
 }
 
-// TrieOp returns zero
-func (s *stateStatistics) TrieOp() uint64 {
+// Trie returns zero
+func (s *stateStatistics) Trie() uint64 {
 	return 0
 }
 
-// ToString returns empty string
-func (s *stateStatistics) ToString() string {
+// ProcessingStats returns empty string
+func (s *stateStatistics) ProcessingStats() string {
+	return ""
+}
+
+// ProcessingStats returns empty string
+func (s *stateStatistics) SnapshotStats() string {
+	return ""
+}
+
+// ProcessingStats returns empty string
+func (s *stateStatistics) SyncStats() string {
 	return ""
 }
 

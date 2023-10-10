@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -41,6 +42,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StatsCollector:      disabled.NewStateStatistics(),
 	}
 }
 
@@ -207,6 +209,7 @@ func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 					return &storageStubs.StorerStub{}, nil
 				},
 			},
+			disabled.NewStateStatistics(),
 		)
 		require.NotNil(t, holder)
 		require.NotNil(t, storageManager)
@@ -234,7 +237,9 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 					}
 					return &storageStubs.StorerStub{}, nil
 				},
-			})
+			},
+			disabled.NewStateStatistics(),
+		)
 		require.True(t, check.IfNil(holder))
 		require.Nil(t, storageManager)
 		require.NotNil(t, err)

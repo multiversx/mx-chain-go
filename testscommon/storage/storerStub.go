@@ -20,7 +20,6 @@ type StorerStub struct {
 	GetOldestEpochCalled         func() (uint32, error)
 	RangeKeysCalled              func(handler func(key []byte, val []byte) bool)
 	GetIdentifierCalled          func() string
-	GetWithStatsCalled           func(key []byte) ([]byte, bool, error)
 	CloseCalled                  func() error
 }
 
@@ -132,15 +131,6 @@ func (ss *StorerStub) GetIdentifier() string {
 		return ss.GetIdentifierCalled()
 	}
 	return ""
-}
-
-// GetWithStats -
-func (ss *StorerStub) GetWithStats(key []byte) ([]byte, bool, error) {
-	if ss.GetWithStatsCalled != nil {
-		return ss.GetWithStatsCalled(key)
-	}
-
-	return nil, false, nil
 }
 
 // Close -

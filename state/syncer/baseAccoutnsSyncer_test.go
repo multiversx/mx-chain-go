@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -26,6 +27,7 @@ func getDefaultBaseAccSyncerArgs() syncer.ArgsNewBaseAccountsSyncer {
 		UserAccountsSyncStatisticsHandler: &testscommon.SizeSyncStatisticsHandlerStub{},
 		AppStatusHandler:                  &statusHandler.AppStatusHandlerStub{},
 		EnableEpochsHandler:               &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateStatsHandler:                 disabled.NewStateStatistics(),
 		MaxTrieLevelInMemory:              5,
 		MaxHardCapForMissingNodes:         100,
 		TrieSyncerVersion:                 3,

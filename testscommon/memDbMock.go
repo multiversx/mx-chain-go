@@ -13,12 +13,12 @@ import (
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
 // and a mutex to handle concurrent accesses to the map
 type MemDbMock struct {
-	db                      map[string][]byte
-	mutx                    sync.RWMutex
-	PutCalled               func(key, val []byte) error
-	GetCalled               func(key []byte) ([]byte, error)
-	GetIdentifierCalled     func() string
-	GetStatsCollectorCalled func() common.StateStatisticsHandler
+	db                         map[string][]byte
+	mutx                       sync.RWMutex
+	PutCalled                  func(key, val []byte) error
+	GetCalled                  func(key []byte) ([]byte, error)
+	GetIdentifierCalled        func() string
+	GetStateStatsHandlerCalled func() common.StateStatisticsHandler
 }
 
 // NewMemDbMock creates a new memorydb object
@@ -137,10 +137,10 @@ func (s *MemDbMock) GetIdentifier() string {
 	return ""
 }
 
-// GetStatsCollector -
-func (s *MemDbMock) GetStatsCollector() common.StateStatisticsHandler {
-	if s.GetStatsCollectorCalled != nil {
-		return s.GetStatsCollectorCalled()
+// StateStatsHandler -
+func (s *MemDbMock) GetStateStatsHandler() common.StateStatisticsHandler {
+	if s.GetStateStatsHandlerCalled != nil {
+		return s.GetStateStatsHandlerCalled()
 	}
 
 	return disabled.NewStateStatistics()

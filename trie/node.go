@@ -152,7 +152,7 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
 	if db != nil {
-		db.GetStateStatsHandler().IncrTrieOp()
+		db.GetStateStatsHandler().IncrTrie()
 	}
 }
 

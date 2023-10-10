@@ -25,17 +25,17 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		ss := NewStateStatistics()
 
-		assert.Equal(t, uint64(0), ss.TrieOp())
+		assert.Equal(t, uint64(0), ss.Trie())
 
-		ss.IncrTrieOp()
-		ss.IncrTrieOp()
-		assert.Equal(t, uint64(2), ss.TrieOp())
+		ss.IncrTrie()
+		ss.IncrTrie()
+		assert.Equal(t, uint64(2), ss.Trie())
 
-		ss.IncrTrieOp()
-		assert.Equal(t, uint64(3), ss.TrieOp())
+		ss.IncrTrie()
+		assert.Equal(t, uint64(3), ss.Trie())
 
 		ss.Reset()
-		assert.Equal(t, uint64(0), ss.TrieOp())
+		assert.Equal(t, uint64(0), ss.Trie())
 	})
 
 	t.Run("persister operations", func(t *testing.T) {
@@ -45,17 +45,17 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		epoch := uint32(1)
 
-		assert.Equal(t, uint64(0), ss.PersisterOp(epoch))
+		assert.Equal(t, uint64(0), ss.Persister(epoch))
 
-		ss.IncrPersisterOp(epoch)
-		ss.IncrPersisterOp(epoch)
-		assert.Equal(t, uint64(2), ss.PersisterOp(epoch))
+		ss.IncrPersister(epoch)
+		ss.IncrPersister(epoch)
+		assert.Equal(t, uint64(2), ss.Persister(epoch))
 
-		ss.IncrPersisterOp(epoch)
-		assert.Equal(t, uint64(3), ss.PersisterOp(epoch))
+		ss.IncrPersister(epoch)
+		assert.Equal(t, uint64(3), ss.Persister(epoch))
 
 		ss.Reset()
-		assert.Equal(t, uint64(0), ss.PersisterOp(epoch))
+		assert.Equal(t, uint64(0), ss.Persister(epoch))
 	})
 
 	t.Run("cache operations", func(t *testing.T) {
@@ -63,17 +63,17 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		ss := NewStateStatistics()
 
-		assert.Equal(t, uint64(0), ss.CacheOp())
+		assert.Equal(t, uint64(0), ss.Cache())
 
-		ss.IncrCacheOp()
-		ss.IncrCacheOp()
-		assert.Equal(t, uint64(2), ss.CacheOp())
+		ss.IncrCache()
+		ss.IncrCache()
+		assert.Equal(t, uint64(2), ss.Cache())
 
-		ss.IncrCacheOp()
-		assert.Equal(t, uint64(3), ss.CacheOp())
+		ss.IncrCache()
+		assert.Equal(t, uint64(3), ss.Cache())
 
 		ss.Reset()
-		assert.Equal(t, uint64(0), ss.CacheOp())
+		assert.Equal(t, uint64(0), ss.Cache())
 	})
 }
 
@@ -87,17 +87,17 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 
 		epoch := uint32(1)
 
-		assert.Equal(t, uint64(0), ss.SnapshotPersisterOp(epoch))
+		assert.Equal(t, uint64(0), ss.SnapshotPersister(epoch))
 
-		ss.IncrSnapshotPersisterOp(epoch)
-		ss.IncrSnapshotPersisterOp(epoch)
-		assert.Equal(t, uint64(2), ss.SnapshotPersisterOp(epoch))
+		ss.IncrSnapshotPersister(epoch)
+		ss.IncrSnapshotPersister(epoch)
+		assert.Equal(t, uint64(2), ss.SnapshotPersister(epoch))
 
-		ss.IncrSnapshotPersisterOp(epoch)
-		assert.Equal(t, uint64(3), ss.SnapshotPersisterOp(epoch))
+		ss.IncrSnapshotPersister(epoch)
+		assert.Equal(t, uint64(3), ss.SnapshotPersister(epoch))
 
 		ss.ResetSnapshot()
-		assert.Equal(t, uint64(0), ss.SnapshotPersisterOp(epoch))
+		assert.Equal(t, uint64(0), ss.SnapshotPersister(epoch))
 	})
 
 	t.Run("cache operations", func(t *testing.T) {
@@ -105,17 +105,17 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 
 		ss := NewStateStatistics()
 
-		assert.Equal(t, uint64(0), ss.CacheOp())
+		assert.Equal(t, uint64(0), ss.Cache())
 
-		ss.IncrSnapshotCacheOp()
-		ss.IncrSnapshotCacheOp()
-		assert.Equal(t, uint64(2), ss.SnapshotCacheOp())
+		ss.IncrSnapshotCache()
+		ss.IncrSnapshotCache()
+		assert.Equal(t, uint64(2), ss.SnapshotCache())
 
-		ss.IncrSnapshotCacheOp()
-		assert.Equal(t, uint64(3), ss.SnapshotCacheOp())
+		ss.IncrSnapshotCache()
+		assert.Equal(t, uint64(3), ss.SnapshotCache())
 
 		ss.ResetSnapshot()
-		assert.Equal(t, uint64(0), ss.SnapshotCacheOp())
+		assert.Equal(t, uint64(0), ss.SnapshotCache())
 	})
 }
 
@@ -126,27 +126,27 @@ func TestStateStatistics_Sync(t *testing.T) {
 
 	epoch := uint32(1)
 
-	assert.Equal(t, uint64(0), ss.SyncCacheOp())
-	assert.Equal(t, uint64(0), ss.SyncPersisterOp(epoch))
+	assert.Equal(t, uint64(0), ss.SyncCache())
+	assert.Equal(t, uint64(0), ss.SyncPersister(epoch))
 
-	ss.IncrPersisterOp(epoch)
-	ss.IncrPersisterOp(epoch)
+	ss.IncrPersister(epoch)
+	ss.IncrPersister(epoch)
 
-	ss.IncrCacheOp()
-	ss.IncrCacheOp()
+	ss.IncrCache()
+	ss.IncrCache()
 
 	ss.ResetSync()
 
-	assert.Equal(t, uint64(2), ss.SyncPersisterOp(epoch))
-	assert.Equal(t, uint64(2), ss.SyncCacheOp())
+	assert.Equal(t, uint64(2), ss.SyncPersister(epoch))
+	assert.Equal(t, uint64(2), ss.SyncCache())
 
-	ss.IncrPersisterOp(epoch)
-	ss.IncrPersisterOp(epoch)
+	ss.IncrPersister(epoch)
+	ss.IncrPersister(epoch)
 
-	ss.IncrCacheOp()
-	ss.IncrCacheOp()
+	ss.IncrCache()
+	ss.IncrCache()
 
-	cacheSync, persisterSync := ss.SyncStats()
+	cacheSync, persisterSync := ss.GetSyncStats()
 
 	assert.Equal(t, uint64(2), cacheSync)
 	assert.Equal(t, uint64(2), persisterSync[epoch])
@@ -177,19 +177,19 @@ func TestStateStatistics_ConcurrenyOperations(t *testing.T) {
 			case 0:
 				ss.Reset()
 			case 1:
-				ss.IncrCacheOp()
+				ss.IncrCache()
 			case 2:
-				ss.IncrPersisterOp(epoch)
+				ss.IncrPersister(epoch)
 			case 3:
-				ss.IncrTrieOp()
+				ss.IncrTrie()
 			case 7:
-				_ = ss.CacheOp()
+				_ = ss.Cache()
 			case 8:
-				_ = ss.PersisterOp(epoch)
+				_ = ss.Persister(epoch)
 			case 9:
-				_ = ss.TrieOp()
+				_ = ss.Trie()
 			case 10:
-				_ = ss.ToString()
+				_ = ss.ProcessingStats()
 			}
 
 			wg.Done()
