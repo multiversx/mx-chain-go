@@ -125,7 +125,3 @@ type IdleNodeProvider interface {
 type storageManagerExtension interface {
 	RemoveFromCheckpointHashesHolder(hash []byte)
 }
-
-type storageManagerWithStats interface {
-	GetStatsCollector() common.StateStatisticsHandler
-}

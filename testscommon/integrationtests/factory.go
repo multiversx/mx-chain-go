@@ -30,14 +30,13 @@ var TestHasher = sha256.NewSha256()
 const MaxTrieLevelInMemory = uint(5)
 
 // CreateMemUnit -
-func CreateMemUnit() storage.StorerWithStats {
+func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-
 	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
-	return testscommon.CreateMemStorerWithStats(unit)
+	return unit
 }
 
 // CreateStorer -
@@ -81,7 +80,7 @@ func CreateStorer(parentDir string) storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	return CreateAccountsDB(testscommon.CreateDefaultMemStorerWithStats(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return CreateAccountsDB(testscommon.CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 // CreateAccountsDB -

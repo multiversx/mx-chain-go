@@ -369,15 +369,14 @@ func ClosePeers(peers []p2p.Messenger) {
 
 // CreateMemUnit returns an in-memory storer implementation (the vast majority of tests do not require effective
 // disk I/O)
-func CreateMemUnit() storage.StorerWithStats {
+func CreateMemUnit() storage.Storer {
 	capacity := uint32(10)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(10000000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
-	return testscommon.CreateMemStorerWithStats(unit)
+	return unit
 }
 
 // CreateStore creates a storage service for shard nodes
@@ -838,7 +837,7 @@ func CreateGenesisMetaBlock(
 		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-		trieStorage, _ := CreateTrieStorageManager(testscommon.CreateDefaultMemStorerWithStats())
+		trieStorage, _ := CreateTrieStorageManager(testscommon.CreateMemUnit())
 		newAccounts, _ := CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorage, coreComponents.EnableEpochsHandler())
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator

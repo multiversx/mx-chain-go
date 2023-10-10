@@ -26,28 +26,5 @@ func CreateMemUnit() storage.Storer {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(100000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
 	return unit
-}
-
-// StorerWithStats -
-type StorerWithStats struct {
-	storage.Storer
-}
-
-// GetWithStats -
-func (ss *StorerWithStats) GetWithStats(key []byte) ([]byte, bool, error) {
-	v, err := ss.Get(key)
-	return v, false, err
-}
-
-// CreateDefaultMemStorerWithStats will create a new in-memory storer with stats component
-func CreateDefaultMemStorerWithStats() storage.StorerWithStats {
-	storerUnit := CreateMemUnit()
-	return &StorerWithStats{storerUnit}
-}
-
-// CreateMemStorerWithStats -
-func CreateMemStorerWithStats(storer storage.Storer) storage.StorerWithStats {
-	return &StorerWithStats{storer}
 }

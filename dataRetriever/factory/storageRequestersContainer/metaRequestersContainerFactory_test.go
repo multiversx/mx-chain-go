@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -121,6 +122,17 @@ func TestNewMetaRequestersContainerFactory_NilDataPackerShouldErr(t *testing.T) 
 
 	assert.Nil(t, rcf)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
+}
+
+func TestNewMetaRequestersContainerFactory_NilStateStatsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.StateStatsHandler = nil
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, statistics.ErrNilStateStatsHandler, err)
 }
 
 func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {

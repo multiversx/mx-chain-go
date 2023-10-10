@@ -397,7 +397,7 @@ func TestTrieStorageManager_PutInEpochInvalidStorer(t *testing.T) {
 	t.Parallel()
 
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = testscommon.CreateDefaultMemStorerWithStats()
+	args.MainStorer = testscommon.CreateMemUnit()
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	err := ts.PutInEpoch(providedKey, providedVal, 0)
@@ -427,7 +427,7 @@ func TestTrieStorageManager_GetLatestStorageEpochInvalidStorer(t *testing.T) {
 	t.Parallel()
 
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = testscommon.CreateDefaultMemStorerWithStats()
+	args.MainStorer = testscommon.CreateMemUnit()
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	val, err := ts.GetLatestStorageEpoch()
@@ -546,7 +546,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = testscommon.CreateDefaultMemStorerWithStats()
+		args.MainStorer = testscommon.CreateMemUnit()
 		ts, err := trie.NewTrieStorageManager(args)
 		require.Nil(t, err)
 

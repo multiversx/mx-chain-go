@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -149,7 +148,7 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 	return trieStorageManager
 }
 
-func getNewTrieStorage() storage.StorerWithStats {
+func getNewTrieStorage() storage.Storer {
 	batchDelaySeconds := 1
 	maxBatchSize := 40000
 	maxNumOpenedFiles := 10
@@ -167,5 +166,5 @@ func getNewTrieStorage() storage.StorerWithStats {
 		db,
 	)
 
-	return testscommon.CreateMemStorerWithStats(store)
+	return store
 }

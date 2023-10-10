@@ -24,20 +24,3 @@ func CreateMemUnit() storage.Storer {
 
 	return unit
 }
-
-// storerWithStats -
-type storerWithStats struct {
-	storage.Storer
-}
-
-// GetWithStats will trigger get operation with statistics
-func (ss *storerWithStats) GetWithStats(key []byte) ([]byte, bool, error) {
-	v, err := ss.Get(key)
-	return v, false, err
-}
-
-// CreateMemStorerWithStats -
-func CreateMemStorerWithStats() storage.StorerWithStats {
-	storerUnit := CreateMemUnit()
-	return &storerWithStats{storerUnit}
-}

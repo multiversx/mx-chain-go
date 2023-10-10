@@ -18,7 +18,7 @@ func TestNewSnapshotTrieStorageManagerInvalidStorerType(t *testing.T) {
 	t.Parallel()
 
 	args := GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = testscommon.CreateDefaultMemStorerWithStats()
+	args.MainStorer = testscommon.CreateMemUnit()
 	trieStorage, _ := NewTrieStorageManager(args)
 
 	stsm, err := newSnapshotTrieStorageManager(trieStorage, 0)
