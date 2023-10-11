@@ -47,7 +47,6 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	dataTrieInstance := getAccountDataTrie(t, testContext, scAddress)
 	trieKeysDepth := getTrieDepthForKeys(t, dataTrieInstance, keys)
 
-	// Question for review: is this all right?
 	initCost := 35
 	apiCallsCost := 3
 	loadValCost := 32
