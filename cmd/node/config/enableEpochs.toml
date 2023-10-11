@@ -278,6 +278,9 @@
     # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
     ScToScLogEventEnableEpoch = 3
 
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

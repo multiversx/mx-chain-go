@@ -46,3 +46,8 @@ func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint3
 
 	return randomShardID
 }
+
+// SuffixedMetric appends the suffix to the provided metric and returns it
+func SuffixedMetric(metric string, suffix string) string {
+	return fmt.Sprintf("%s%s", metric, suffix)
+}
