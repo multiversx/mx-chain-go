@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests
@@ -56,4 +57,9 @@ func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.Tr
 // SetChainRunType -
 func (pcf *processComponentsFactory) SetChainRunType(chainRunType common.ChainRunType) {
 	pcf.chainRunType = chainRunType
+}
+
+// AddSystemVMToContainer -
+func (pcf *processComponentsFactory) AddSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
+	return pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)
 }

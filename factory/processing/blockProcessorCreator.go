@@ -166,12 +166,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	//TODO: refactor this with creators and runTypeComponents
-	if pcf.chainRunType == common.ChainRunTypeSovereign {
-		err = pcf.addSystemVMToContainer(vmContainer, builtInFuncFactory)
-		if err != nil {
-			return nil, err
-		}
+	err = pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)
+	if err != nil {
+		return nil, err
 	}
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
@@ -460,7 +457,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}, nil
 }
 
-func (pcf *processComponentsFactory) addSystemVMToContainer(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
+func (pcf *processComponentsFactory) addSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
+	//TODO: refactor this with creators and runTypeComponents
+	if pcf.chainRunType != common.ChainRunTypeSovereign {
+		return nil
+	}
+
 	metaStorage := pcf.config.SmartContractsStorage
 	metaStorage.DB.FilePath = metaStorage.DB.FilePath + "_meta"
 
