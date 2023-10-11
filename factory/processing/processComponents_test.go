@@ -660,7 +660,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.NotNil(t, pcf)
 	})
 }
-func TestProcessComponentsFactory_AddSystemVMToContainer(t *testing.T) {
+func TestProcessComponentsFactory_AddSystemVMToContainerIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	testContainerKey := "testContainer"

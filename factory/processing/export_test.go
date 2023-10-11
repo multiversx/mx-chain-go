@@ -59,7 +59,7 @@ func (pcf *processComponentsFactory) SetChainRunType(chainRunType common.ChainRu
 	pcf.chainRunType = chainRunType
 }
 
-// AddSystemVMToContainer -
+// AddSystemVMToContainerIfNeeded -
 func (pcf *processComponentsFactory) AddSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
 	return pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)
 }
