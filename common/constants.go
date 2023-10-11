@@ -993,5 +993,6 @@ const (
 	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
 	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
+	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
