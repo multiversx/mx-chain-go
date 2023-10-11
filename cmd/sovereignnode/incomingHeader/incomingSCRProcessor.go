@@ -89,16 +89,18 @@ func getEventData(data []byte) (*eventData, error) {
 	}
 
 	tokens := strings.Split(string(data), "@")
-	if len(tokens) < minNumLogDataTokens {
-		return nil, errInvalidNumTopicsDataArgs
+	numTokens := len(tokens)
+	if numTokens < minNumLogDataTokens {
+		return nil, fmt.Errorf("%w, expected min: %d, received : %d",
+			errInvalidNumTokensOnLogData, minNumLogDataTokens, numTokens)
 	}
 
+	// TODO: Add validity checks
 	eventNonce := big.NewInt(0).SetBytes([]byte(tokens[0]))
-	gasLimit := big.NewInt(0).SetBytes([]byte(tokens[len(tokens)-1]))
+	gasLimit := big.NewInt(0).SetBytes([]byte(tokens[numTokens-1]))
 
-	functionCallWithArgs := make([]byte, 0)
-	functionCallWithArgs = append(functionCallWithArgs, []byte("@"+tokens[1])...)
-	for i := 2; i < len(tokens)-1; i++ {
+	functionCallWithArgs := []byte("@" + tokens[1])
+	for i := 2; i < numTokens-1; i++ {
 		functionCallWithArgs = append(functionCallWithArgs, []byte("@"+tokens[i])...)
 	}
 

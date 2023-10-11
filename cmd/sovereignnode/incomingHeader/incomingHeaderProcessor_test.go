@@ -40,6 +40,12 @@ func requireErrorIsInvalidNumTopics(t *testing.T, err error, idx int, numTopics 
 	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", numTopics)))
 }
 
+func requireErrorIsInvalidNumTokensOnLogData(t *testing.T, err error, receivedNumTokens int) {
+	require.True(t, strings.Contains(err.Error(), errInvalidNumTokensOnLogData.Error()))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", minNumLogDataTokens)))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", receivedNumTokens)))
+}
+
 func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.IncomingHeaderHandler {
 	ret := make([]sovereign.IncomingHeaderHandler, numRounds+1)
 
@@ -275,6 +281,38 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		require.Equal(t, errMarshaller, err)
 		require.Equal(t, 0, numSCRsAdded)
 	})
+}
+
+func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
+	t.Parallel()
+
+	input := []byte("")
+	ret, err := getEventData(input)
+	require.Nil(t, ret)
+	require.Equal(t, errEmptyLogData, err)
+
+	input = []byte("0a")
+	ret, err = getEventData(input)
+	require.Nil(t, ret)
+	requireErrorIsInvalidNumTokensOnLogData(t, err, 1)
+
+	input = []byte("0a@ffaa@bb")
+	ret, err = getEventData(input)
+	require.Nil(t, ret)
+	requireErrorIsInvalidNumTokensOnLogData(t, err, 3)
+
+	nonce := big.NewInt(49)
+	gasLimit := big.NewInt(94)
+
+	input = append(nonce.Bytes(), []byte("@ffaa@bb@")...)
+	input = append(input, gasLimit.Bytes()...)
+	ret, err = getEventData(input)
+	require.Nil(t, err)
+	require.Equal(t, &eventData{
+		nonce:                nonce.Uint64(),
+		functionCallWithArgs: []byte("@ffaa@bb"),
+		gasLimit:             gasLimit.Uint64(),
+	}, ret)
 }
 
 func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
