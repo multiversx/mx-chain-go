@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -667,11 +668,12 @@ func TestProcessComponentsFactory_AddSystemVMToContainer(t *testing.T) {
 	t.Run("sovereign should add systemVM", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 		processArgs.ChainRunType = common.ChainRunTypeSovereign
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
+
 		vms := make(map[string]vmcommon.VMExecutionHandler, 0)
 		vms[testContainerKey] = &processMock.VMExecutionHandlerStub{}
 		vmContainer := &processMock.VMContainerMock{
@@ -680,9 +682,8 @@ func TestProcessComponentsFactory_AddSystemVMToContainer(t *testing.T) {
 				return nil
 			},
 		}
-		builtInFunctions := &mock.BuiltInFunctionFactoryMock{}
 
-		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, builtInFunctions)
+		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, &testscommon.BuiltInFunctionFactoryMock{})
 
 		require.NoError(t, err)
 		require.NotNil(t, vmContainer)
@@ -700,6 +701,7 @@ func TestProcessComponentsFactory_AddSystemVMToContainer(t *testing.T) {
 		processArgs.ChainRunType = common.ChainRunTypeRegular
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
+
 		vms := make(map[string]vmcommon.VMExecutionHandler, 0)
 		vms[testContainerKey] = &processMock.VMExecutionHandlerStub{}
 		vmContainer := &processMock.VMContainerMock{
@@ -708,9 +710,8 @@ func TestProcessComponentsFactory_AddSystemVMToContainer(t *testing.T) {
 				return nil
 			},
 		}
-		builtInFunctions := &mock.BuiltInFunctionFactoryMock{}
 
-		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, builtInFunctions)
+		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, &testscommon.BuiltInFunctionFactoryMock{})
 
 		require.NoError(t, err)
 		require.NotNil(t, vmContainer)
@@ -1201,7 +1202,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 

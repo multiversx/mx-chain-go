@@ -1,19 +1,8 @@
-package mock
+package testscommon
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go"
 )
-
-// BuiltInFunctionFactory will handle built-in functions and components
-type BuiltInFunctionFactory interface {
-	ESDTGlobalSettingsHandler() vmcommon.ESDTGlobalSettingsHandler
-	NFTStorageHandler() vmcommon.SimpleESDTNFTStorageHandler
-	BuiltInFunctionContainer() vmcommon.BuiltInFunctionContainer
-	SetPayableHandler(handler vmcommon.PayableHandler) error
-	CreateBuiltInFunctionContainer() error
-	IsInterfaceNil() bool
-}
 
 // BuiltInFunctionFactoryMock -
 type BuiltInFunctionFactoryMock struct {
@@ -26,42 +15,42 @@ type BuiltInFunctionFactoryMock struct {
 
 // ESDTGlobalSettingsHandler -
 func (b *BuiltInFunctionFactoryMock) ESDTGlobalSettingsHandler() vmcommon.ESDTGlobalSettingsHandler {
-	if b.ESDTGlobalSettingsHandlerCalled == nil {
-		return &testscommon.ESDTGlobalSettingsHandlerStub{}
+	if b.ESDTGlobalSettingsHandlerCalled != nil {
+		return b.ESDTGlobalSettingsHandlerCalled()
 	}
-	return b.ESDTGlobalSettingsHandlerCalled()
+	return &ESDTGlobalSettingsHandlerStub{}
 }
 
 // NFTStorageHandler -
 func (b *BuiltInFunctionFactoryMock) NFTStorageHandler() vmcommon.SimpleESDTNFTStorageHandler {
-	if b.NFTStorageHandlerCalled == nil {
-		return &testscommon.SimpleNFTStorageHandlerStub{}
+	if b.NFTStorageHandlerCalled != nil {
+		return b.NFTStorageHandlerCalled()
 	}
-	return b.NFTStorageHandlerCalled()
+	return &SimpleNFTStorageHandlerStub{}
 }
 
 // BuiltInFunctionContainer -
 func (b *BuiltInFunctionFactoryMock) BuiltInFunctionContainer() vmcommon.BuiltInFunctionContainer {
-	if b.BuiltInFunctionContainerCalled == nil {
-		return &BuiltInFunctionContainerStub{}
+	if b.BuiltInFunctionContainerCalled != nil {
+		return b.BuiltInFunctionContainerCalled()
 	}
-	return b.BuiltInFunctionContainerCalled()
+	return &BuiltInFunctionContainerStub{}
 }
 
 // SetPayableHandler -
 func (b *BuiltInFunctionFactoryMock) SetPayableHandler(handler vmcommon.PayableHandler) error {
-	if b.SetPayableHandlerCalled == nil {
-		return nil
+	if b.SetPayableHandlerCalled != nil {
+		return b.SetPayableHandlerCalled(handler)
 	}
-	return b.SetPayableHandlerCalled(handler)
+	return nil
 }
 
 // CreateBuiltInFunctionContainer -
 func (b *BuiltInFunctionFactoryMock) CreateBuiltInFunctionContainer() error {
-	if b.CreateBuiltInFunctionContainerCalled == nil {
-		return nil
+	if b.CreateBuiltInFunctionContainerCalled != nil {
+		return b.CreateBuiltInFunctionContainerCalled()
 	}
-	return b.CreateBuiltInFunctionContainerCalled()
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

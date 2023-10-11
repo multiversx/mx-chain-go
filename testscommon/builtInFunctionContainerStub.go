@@ -1,12 +1,8 @@
-package mock
+package testscommon
 
 import (
-	"errors"
-
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go"
 )
-
-var errNotImplemented = errors.New("not implemented")
 
 // BuiltInFunctionContainerStub -
 type BuiltInFunctionContainerStub struct {
@@ -14,7 +10,7 @@ type BuiltInFunctionContainerStub struct {
 
 // Get returns nil and error
 func (bifc *BuiltInFunctionContainerStub) Get(_ string) (vmcommon.BuiltinFunction, error) {
-	return nil, errNotImplemented
+	return nil, ErrNotImplemented
 }
 
 // Add does nothing and returns nil error
