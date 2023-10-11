@@ -63,7 +63,7 @@ func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.Inc
 }
 
 func createEventData() []byte {
-	return []byte("0a@@66756e6332@61726731@ff")
+	return []byte("0a@66756e6332@61726731@ff")
 }
 
 func TestNewIncomingHeaderHandler(t *testing.T) {
