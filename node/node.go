@@ -54,7 +54,7 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-//  over the None struct.
+// over the None struct.
 type Option func(*Node) error
 
 type filter interface {
@@ -776,6 +776,7 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
+		n.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -869,25 +870,33 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:       txArgs.Nonce,
-		Value:       valAsBigInt,
-		RcvAddr:     receiverAddress,
-		RcvUserName: txArgs.ReceiverUsername,
-		SndAddr:     senderAddress,
-		SndUserName: txArgs.SenderUsername,
-		GasPrice:    txArgs.GasPrice,
-		GasLimit:    txArgs.GasLimit,
-		Data:        txArgs.DataField,
-		Signature:   signatureBytes,
-		ChainID:     []byte(txArgs.ChainID),
-		Version:     txArgs.Version,
-		Options:     txArgs.Options,
+		Nonce:            txArgs.Nonce,
+		Value:            valAsBigInt,
+		RcvAddr:          receiverAddress,
+		RcvUserName:      txArgs.ReceiverUsername,
+		SndAddr:          senderAddress,
+		SndUserName:      txArgs.SenderUsername,
+		GasPrice:         txArgs.GasPrice,
+		GasLimit:         txArgs.GasLimit,
+		Data:             txArgs.DataField,
+		Signature:        signatureBytes,
+		ChainID:          []byte(txArgs.ChainID),
+		Version:          txArgs.Version,
+		Options:          txArgs.Options,
+		InnerTransaction: txArgs.InnerTransaction,
 	}
 
 	if len(txArgs.Guardian) > 0 {
 		err = n.setTxGuardianData(txArgs.Guardian, txArgs.GuardianSigHex, tx)
 		if err != nil {
 			return nil, nil, err
+		}
+	}
+
+	if len(txArgs.Relayer) > 0 {
+		tx.RelayerAddr, err = addrPubKeyConverter.Decode(txArgs.Relayer)
+		if err != nil {
+			return nil, nil, errors.New("could not create relayer address from provided param")
 		}
 	}
 

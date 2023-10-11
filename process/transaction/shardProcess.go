@@ -228,6 +228,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return txProc.processRelayedTx(tx, acntSnd, acntDst)
 	case process.RelayedTxV2:
 		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+	case process.RelayedTxV3:
+		return txProc.processRelayedTxV3(tx, acntSnd, acntDst)
 	}
 
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
@@ -610,6 +612,38 @@ func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler
 	}
 
 	return txProc.accounts.SaveAccount(acntDst)
+}
+
+func (txProc *txProcessor) processRelayedTxV3(
+	tx *transaction.Transaction,
+	relayerAcnt, acntDst state.UserAccountHandler,
+) (vmcommon.ReturnCode, error) {
+	if !txProc.enableEpochsHandler.IsRelayedTransactionsV3FlagEnabled() {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3Disabled)
+	}
+	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3ZeroVal)
+	}
+
+	userTx := tx.GetInnerTransaction()
+	if !bytes.Equal(tx.RcvAddr, userTx.SndAddr) {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver)
+	}
+	if len(userTx.RelayerAddr) == 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3EmptyRelayer)
+	}
+	if !bytes.Equal(userTx.RelayerAddr, tx.SndAddr) {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3RelayerMismatch)
+	}
+	if tx.GasPrice != userTx.GasPrice {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedV3GasPriceMismatch)
+	}
+	remainingGasLimit := tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
+	if userTx.GasLimit != remainingGasLimit {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3GasLimitMismatch)
+	}
+
+	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
 }
 
 func (txProc *txProcessor) processRelayedTxV2(

@@ -1223,3 +1223,24 @@ var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
 // ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
+
+// ErrRelayedV3GasPriceMismatch signals that relayed v3 gas price is not equal with inner tx
+var ErrRelayedV3GasPriceMismatch = errors.New("relayed tx v3 gas price mismatch")
+
+// ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx v3
+var ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx v3")
+
+// ErrRelayedTxV3Disabled signals that the v3 version of relayed tx is disabled
+var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 is disabled")
+
+// ErrRelayedTxV3ZeroVal signals that the v3 version of relayed tx should be created with 0 as value
+var ErrRelayedTxV3ZeroVal = errors.New("relayed tx v3 value should be 0")
+
+// ErrRelayedTxV3EmptyRelayer signals that the inner tx of the relayed v3 does not have a relayer address set
+var ErrRelayedTxV3EmptyRelayer = errors.New("empty relayer on inner tx of relayed tx v3")
+
+// ErrRelayedTxV3RelayerMismatch signals that the relayer address of the inner tx does not match the real relayer
+var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
+
+// ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
+var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
