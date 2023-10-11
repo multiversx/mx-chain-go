@@ -240,12 +240,20 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 			return nil, err
 		}
 
-		err = tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
+		newKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
 		if err != nil {
 			return nil, err
 		}
 
 		index++
+
+		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
+		if isFirstMigration && len(newKey) != 0 {
+			oldValues = append(oldValues, core.TrieData{
+				Key:   newKey,
+				Value: nil,
+			})
+		}
 	}
 
 	tdt.dirtyData = make(map[string]dirtyData)
@@ -333,25 +341,26 @@ func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirty
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
+		log.Trace("delete old entry if migrated", "key", key)
 		return tdt.tr.Delete(key)
 	}
 
 	return nil
 }
 
-func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) error {
+func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
 	if len(dataEntry.value) == 0 {
-		return tdt.deleteFromTrie(oldVal, key, dtr)
+		return nil, tdt.deleteFromTrie(oldVal, key, dtr)
 	}
 
 	version := dataEntry.newVersion
 	newKey := tdt.getKeyForVersion(key, version)
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return dtr.UpdateWithVersion(newKey, value, version)
+	return newKey, dtr.UpdateWithVersion(newKey, value, version)
 }
 
 func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) error {

@@ -54,8 +54,7 @@ func createMockArgsManagedPeersHolder() keysManagement.ArgsManagedPeersHolder {
 					}
 			},
 		},
-		IsMainMachine:                    true,
-		MaxRoundsWithoutReceivedMessages: 1,
+		MaxRoundsOfInactivity: 0,
 		PrefsConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				Identity:        defaultIdentity,
@@ -130,13 +129,24 @@ func TestNewManagedPeersHolder(t *testing.T) {
 	t.Run("invalid MaxRoundsWithoutReceivedMessages should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsWithoutReceivedMessages = -2
-		holder, err := keysManagement.NewManagedPeersHolder(args)
+		t.Run("negative value", func(t *testing.T) {
+			args := createMockArgsManagedPeersHolder()
+			args.MaxRoundsOfInactivity = -2
+			holder, err := keysManagement.NewManagedPeersHolder(args)
 
-		assert.True(t, errors.Is(err, keysManagement.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "MaxRoundsWithoutReceivedMessages"))
-		assert.True(t, check.IfNil(holder))
+			assert.Nil(t, holder)
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), "for maxRoundsOfInactivity, minimum 2 (or 0), got -2")
+		})
+		t.Run("value of 1", func(t *testing.T) {
+			args := createMockArgsManagedPeersHolder()
+			args.MaxRoundsOfInactivity = 1
+			holder, err := keysManagement.NewManagedPeersHolder(args)
+
+			assert.Nil(t, holder)
+			assert.NotNil(t, err)
+			assert.Contains(t, err.Error(), "for maxRoundsOfInactivity, minimum 2 (or 0), got 1")
+		})
 	})
 	t.Run("invalid key from config should error", func(t *testing.T) {
 		t.Parallel()
@@ -347,10 +357,37 @@ func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 
 	holder, _ := keysManagement.NewManagedPeersHolder(args)
 	_ = holder.AddManagedPeer(skBytes0)
+
+	testName := "test name"
+	testIdentity := "test identity"
+
 	t.Run("public key not added should error", func(t *testing.T) {
 		skRecovered, err := holder.GetPrivateKey(pkBytes1)
 		assert.Nil(t, skRecovered)
 		assert.True(t, errors.Is(err, keysManagement.ErrMissingPublicKeyDefinition))
+	})
+	t.Run("identity provided but not the actual key should not provide a nil key", func(t *testing.T) {
+		argsLocal := createMockArgsManagedPeersHolder()
+		blsKey := "aabb1122"
+		namedIdentity := config.NamedIdentity{
+			Identity: testIdentity,
+			NodeName: testName,
+			BLSKeys:  []string{blsKey},
+		}
+
+		argsLocal.PrefsConfig.NamedIdentity = append(argsLocal.PrefsConfig.NamedIdentity, namedIdentity)
+		holderLocal, err := keysManagement.NewManagedPeersHolder(argsLocal)
+		assert.Nil(t, err)
+
+		keyUnhexed, _ := hex.DecodeString(blsKey)
+		skRecovered, err := holderLocal.GetPrivateKey(keyUnhexed)
+		assert.Nil(t, skRecovered)
+		assert.ErrorIs(t, err, keysManagement.ErrMissingPublicKeyDefinition)
+
+		name, identity, err := holderLocal.GetNameAndIdentity(keyUnhexed)
+		assert.ErrorIs(t, err, keysManagement.ErrMissingPublicKeyDefinition)
+		assert.Empty(t, name)
+		assert.Empty(t, identity)
 	})
 	t.Run("public key exists should return the private key", func(t *testing.T) {
 		skRecovered, err := holder.GetPrivateKey(pkBytes0)
@@ -358,6 +395,29 @@ func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 
 		skBytesRecovered, _ := skRecovered.ToByteArray()
 		assert.Equal(t, skBytes0, skBytesRecovered)
+	})
+	t.Run("identity provided and the actual key should work", func(t *testing.T) {
+		argsLocal := createMockArgsManagedPeersHolder()
+		namedIdentity := config.NamedIdentity{
+			Identity: testIdentity,
+			NodeName: testName,
+			BLSKeys:  []string{hex.EncodeToString(pkBytes0)},
+		}
+
+		argsLocal.PrefsConfig.NamedIdentity = append(argsLocal.PrefsConfig.NamedIdentity, namedIdentity)
+		holderLocal, err := keysManagement.NewManagedPeersHolder(argsLocal)
+		assert.Nil(t, err)
+
+		_ = holderLocal.AddManagedPeer(skBytes0)
+		skRecovered, err := holderLocal.GetPrivateKey(pkBytes0)
+		skBytesRecovered, _ := skRecovered.ToByteArray()
+		assert.Equal(t, skBytes0, skBytesRecovered)
+		assert.Nil(t, err)
+
+		name, identity, err := holderLocal.GetNameAndIdentity(pkBytes0)
+		assert.Nil(t, err)
+		assert.Equal(t, testName+"-00", name)
+		assert.Equal(t, testIdentity, identity)
 	})
 }
 
@@ -484,7 +544,6 @@ func TestManagedPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 
 	t.Run("is main machine should ignore the call", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = true
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -504,12 +563,12 @@ func TestManagedPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered := holder.GetPeerInfo(pkBytes0)
-			assert.Zero(t, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Zero(t, pInfoRecovered.GetRoundsOfInactivity())
 		})
 	})
 	t.Run("is secondary machine should increment, if existing", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = false
+		args.MaxRoundsOfInactivity = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -527,17 +586,17 @@ func TestManagedPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 		})
 		t.Run("existing public key should increment", func(t *testing.T) {
 			pInfoRecovered := holder.GetPeerInfo(pkBytes0)
-			assert.Zero(t, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Zero(t, pInfoRecovered.GetRoundsOfInactivity())
 
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
-			assert.Equal(t, 1, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Equal(t, 1, pInfoRecovered.GetRoundsOfInactivity())
 
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
-			assert.Equal(t, 2, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Equal(t, 2, pInfoRecovered.GetRoundsOfInactivity())
 		})
 	})
 }
@@ -547,9 +606,9 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 
 	t.Run("is main machine should ignore the call", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = true
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
+		pInfo := holder.GetPeerInfo(pkBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -559,20 +618,21 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 				}
 			}()
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes1, pInfo.Pid())
 		})
 		t.Run("existing public key", func(t *testing.T) {
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0, pInfo.Pid())
 
 			pInfoRecovered := holder.GetPeerInfo(pkBytes0)
-			assert.Zero(t, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Zero(t, pInfoRecovered.GetRoundsOfInactivity())
 		})
 	})
 	t.Run("is secondary machine should reset, if existing", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = false
+		args.MaxRoundsOfInactivity = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
+		pInfo := holder.GetPeerInfo(pkBytes0)
 
 		t.Run("missing public key should not panic", func(t *testing.T) {
 			defer func() {
@@ -582,31 +642,31 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 				}
 			}()
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes1)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes1, pInfo.Pid())
 		})
 		t.Run("existing public key should reset", func(t *testing.T) {
 			pInfoRecovered := holder.GetPeerInfo(pkBytes0)
-			assert.Zero(t, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Zero(t, pInfoRecovered.GetRoundsOfInactivity())
 
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
-			assert.Equal(t, 1, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Equal(t, 1, pInfoRecovered.GetRoundsOfInactivity())
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0, "random pid")
 
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
-			assert.Equal(t, 0, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Equal(t, 0, pInfoRecovered.GetRoundsOfInactivity())
 
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
-			assert.Equal(t, 3, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Equal(t, 3, pInfoRecovered.GetRoundsOfInactivity())
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+			holder.ResetRoundsWithoutReceivedMessages(pkBytes0, "random pid")
 
 			pInfoRecovered = holder.GetPeerInfo(pkBytes0)
-			assert.Equal(t, 0, pInfoRecovered.GetRoundsWithoutReceivedMessages())
+			assert.Equal(t, 0, pInfoRecovered.GetRoundsOfInactivity())
 		})
 	})
 }
@@ -616,7 +676,6 @@ func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 
 	t.Run("main machine should return all keys, always", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = true
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		_ = holder.AddManagedPeer(skBytes1)
@@ -630,8 +689,7 @@ func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 	})
 	t.Run("is secondary machine should return managed keys", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = false
-		args.MaxRoundsWithoutReceivedMessages = 2
+		args.MaxRoundsOfInactivity = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		_ = holder.AddManagedPeer(skBytes1)
@@ -646,6 +704,7 @@ func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 			testManagedKeys(t, result)
 		})
 		t.Run("MaxRoundsWithoutReceivedMessages reached, should return failed pk", func(t *testing.T) {
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 
 			result := holder.GetManagedKeysByCurrentNode()
@@ -663,7 +722,6 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 
 	t.Run("main machine", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = true
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -678,10 +736,10 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 	})
 	t.Run("secondary machine", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = false
-		args.MaxRoundsWithoutReceivedMessages = 2
+		args.MaxRoundsOfInactivity = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
+		pInfo := holder.GetPeerInfo(pkBytes0)
 
 		t.Run("foreign public key should return false", func(t *testing.T) {
 			isManaged := holder.IsKeyManagedByCurrentNode(pkBytes1)
@@ -696,12 +754,20 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 			assert.False(t, isManaged)
 
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
 			assert.True(t, isManaged)
 
-			holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
-			isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
-			assert.False(t, isManaged)
+			t.Run("reset called from the same pid should not reset", func(t *testing.T) {
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0, pInfo.Pid())
+				isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
+				assert.True(t, isManaged)
+			})
+			t.Run("reset called from the another pid should reset", func(t *testing.T) {
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0, "random pid")
+				isManaged = holder.IsKeyManagedByCurrentNode(pkBytes0)
+				assert.False(t, isManaged)
+			})
 		})
 	})
 }
@@ -711,7 +777,6 @@ func TestManagedPeersHolder_IsKeyRegistered(t *testing.T) {
 
 	t.Run("main machine", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = true
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -726,7 +791,7 @@ func TestManagedPeersHolder_IsKeyRegistered(t *testing.T) {
 	})
 	t.Run("secondary machine", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.IsMainMachine = false
+		args.MaxRoundsOfInactivity = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -745,7 +810,6 @@ func TestManagedPeersHolder_IsPidManagedByCurrentNode(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgsManagedPeersHolder()
-	args.IsMainMachine = true
 	holder, _ := keysManagement.NewManagedPeersHolder(args)
 
 	t.Run("empty holder should return false", func(t *testing.T) {
@@ -818,12 +882,23 @@ func TestManagedPeersHolder_GetNextPeerAuthenticationTime(t *testing.T) {
 func TestManagedPeersHolder_IsMultiKeyMode(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgsManagedPeersHolder()
-	holder, _ := keysManagement.NewManagedPeersHolder(args)
-	assert.False(t, holder.IsMultiKeyMode())
+	t.Run("main machine mode", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		assert.False(t, holder.IsMultiKeyMode())
 
-	_ = holder.AddManagedPeer(skBytes0)
-	assert.True(t, holder.IsMultiKeyMode())
+		_ = holder.AddManagedPeer(skBytes0)
+		assert.True(t, holder.IsMultiKeyMode())
+	})
+	t.Run("backup machine mode", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		assert.False(t, holder.IsMultiKeyMode())
+
+		_ = holder.AddManagedPeer(skBytes0)
+		assert.True(t, holder.IsMultiKeyMode())
+	})
 }
 
 func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
@@ -858,7 +933,7 @@ func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 			case 4:
 				holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			case 5:
-				holder.ResetRoundsWithoutReceivedMessages(pkBytes0)
+				holder.ResetRoundsWithoutReceivedMessages(pkBytes0, pid)
 			case 6:
 				_ = holder.GetManagedKeysByCurrentNode()
 			case 7:

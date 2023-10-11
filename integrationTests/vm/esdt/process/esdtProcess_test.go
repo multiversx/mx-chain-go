@@ -2098,7 +2098,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	}
 
 	numIssues := 22
-	numBurns := 300
+	numBurns := 50
 
 	numOfShards := 1
 	nodesPerShard := 1

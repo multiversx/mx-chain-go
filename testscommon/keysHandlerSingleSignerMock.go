@@ -63,8 +63,8 @@ func (mock *keysHandlerSingleSignerMock) IsOriginalPublicKeyOfTheNode(pkBytes []
 	return bytes.Equal(mock.pkBytes, pkBytes)
 }
 
-// UpdatePublicKeyLiveness -
-func (mock *keysHandlerSingleSignerMock) UpdatePublicKeyLiveness(_ []byte, _ core.PeerID) {
+// ResetRoundsWithoutReceivedMessages -
+func (mock *keysHandlerSingleSignerMock) ResetRoundsWithoutReceivedMessages(_ []byte, _ core.PeerID) {
 }
 
 // IsInterfaceNil -
