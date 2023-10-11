@@ -35,6 +35,7 @@ type vmContext struct {
 	logs          []*vmcommon.LogEntry
 
 	enableEpochsHandler common.EnableEpochsHandler
+	crtTransferIndex    uint32
 }
 
 // VMContextArgs holds the arguments needed to create a new vmContext
@@ -203,6 +204,7 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 				BalanceDelta: big.NewInt(0),
 			}
 		}
+		outputTransfer.Index = host.NextOutputTransferIndex()
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
@@ -255,6 +257,7 @@ func (host *vmContext) Transfer(
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
+		Index:    host.NextOutputTransferIndex(),
 		Value:    big.NewInt(0).Set(value),
 		GasLimit: gasLimit,
 		Data:     input,
@@ -420,21 +423,19 @@ func createDirectCallInput(
 	return input
 }
 
-func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte) error {
+func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
 	if !host.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
 		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
-	if callInput.CallValue.Cmp(zero) > 0 {
-		logEntry := &vmcommon.LogEntry{
-			Identifier: []byte(transferValueOnly),
-			Address:    callInput.RecipientAddr,
-			Topics:     [][]byte{sender, callInput.RecipientAddr, callInput.CallValue.Bytes()},
-			Data:       []byte{},
-		}
-		host.AddLogEntry(logEntry)
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(transferValueOnly),
+		Address:    sender,
+		Topics:     [][]byte{callInput.CallValue.Bytes(), callInput.RecipientAddr},
+		Data:       vmcommon.FormatLogDataForCall(callType, callInput.Function, callInput.Arguments),
 	}
+	host.AddLogEntry(logEntry)
 
 	return nil
 }
@@ -457,7 +458,7 @@ func (host *vmContext) DeploySystemSC(
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 
-	err := host.transferBeforeInternalExec(callInput, host.scAddress)
+	err := host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
 	if err != nil {
 		return vmcommon.ExecutionFailed, err
 	}
@@ -514,7 +515,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.transferBeforeInternalExec(callInput, sender)
+	err = host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
 	if err != nil {
 		return nil, err
 	}
@@ -603,6 +604,7 @@ func (host *vmContext) CleanCache() {
 	host.returnMessage = ""
 	host.gasRemaining = 0
 	host.logs = make([]*vmcommon.LogEntry, 0)
+	host.crtTransferIndex = 1
 }
 
 // SetGasProvided sets the provided gas
@@ -836,6 +838,18 @@ func (host *vmContext) IsBadRating(blsKey []byte) bool {
 // CleanStorageUpdates deletes all the storage updates, used especially to delete data which was only read not modified
 func (host *vmContext) CleanStorageUpdates() {
 	host.storageUpdate = make(map[string]map[string][]byte)
+}
+
+// NextOutputTransferIndex returns next available output transfer index
+func (host *vmContext) NextOutputTransferIndex() uint32 {
+	index := host.crtTransferIndex
+	host.crtTransferIndex++
+	return index
+}
+
+// GetCrtTransferIndex returns the current output transfer index
+func (host *vmContext) GetCrtTransferIndex() uint32 {
+	return host.crtTransferIndex
 }
 
 // IsInterfaceNil returns if the underlying implementation is nil

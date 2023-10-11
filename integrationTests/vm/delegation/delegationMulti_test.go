@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package delegation
 
@@ -254,7 +253,7 @@ func checkClaimMultiReturn(
 		CallValue:  big.NewInt(0),
 		Arguments:  arguments,
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	require.Equal(t, big.NewInt(expectedRewards).Bytes(), vmOutput.ReturnData[0])

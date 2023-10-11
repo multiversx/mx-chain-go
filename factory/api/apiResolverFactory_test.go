@@ -27,8 +27,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -103,6 +105,9 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		},
 		Bootstrapper:       disabled.NewDisabledBootstrapper(),
 		AllowVMQueriesChan: common.GetClosedUnbufferedChannel(),
+		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
+			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
+		},
 	}
 }
 
@@ -176,7 +181,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("DecodeAddresses fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.addressPublicKeyConverterFailingStep = 2
+		failingStepsInstance.addressPublicKeyConverterFailingStep = 3
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
@@ -192,7 +197,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewESDTTransferParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 4
+		failingStepsInstance.marshallerFailingStep = 5
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		println(err.Error())
@@ -217,7 +222,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createLogsFacade fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 5
+		failingStepsInstance.marshallerFailingStep = 9
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -225,7 +230,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewOperationDataFieldParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 6
+		failingStepsInstance.marshallerFailingStep = 10
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -233,7 +238,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewAPITransactionProcessor fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 7
+		failingStepsInstance.marshallerFailingStep = 11
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -257,7 +262,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createAPIBlockProcessorArgs fails because createLogsFacade fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 8
+		failingStepsInstance.marshallerFailingStep = 12
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -265,7 +270,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createAPIBlockProcessorArgs fails because NewAlteredAccountsProvider fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.addressPublicKeyConverterFailingStep = 9
+		failingStepsInstance.addressPublicKeyConverterFailingStep = 10
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
@@ -290,6 +295,25 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				Type:     "LRU",
 				Capacity: 100,
 			},
+			EvictionWaitingList: config.EvictionWaitingListConfig{
+				RootHashesSize: 100,
+				HashesSize:     10000,
+			},
+			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
+				SnapshotsGoroutineNum: 1,
+			},
+			StateTriesConfig: config.StateTriesConfig{
+				MaxStateTrieLevelInMemory: 5,
+			},
+			VirtualMachine: config.VirtualMachineServicesConfig{
+				Querying: config.QueryVirtualMachineConfig{
+					VirtualMachineConfig: config.VirtualMachineConfig{
+						WasmVMVersions: []config.WasmVMVersionByEpoch{
+							{StartEpoch: 0, Version: "*"},
+						},
+					},
+				},
+			},
 		},
 		EpochConfig: &config.EpochConfig{},
 		CoreComponents: &mock.CoreComponentsMock{
@@ -298,15 +322,17 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 					return []byte(humanReadable), nil
 				},
 			},
-			IntMarsh:                   &marshallerMock.MarshalizerStub{},
-			EpochChangeNotifier:        &epochNotifierMock.EpochNotifierStub{},
-			EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			UInt64ByteSliceConv:        &testsMocks.Uint64ByteSliceConverterMock{},
-			EconomicsHandler:           &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:                &testscommon.NodesSetupStub{},
-			Hash:                       &testscommon.HasherStub{},
-			RatingHandler:              &testscommon.RaterMock{},
-			WasmVMChangeLockerInternal: &sync.RWMutex{},
+			IntMarsh:                     &marshallerMock.MarshalizerStub{},
+			EpochChangeNotifier:          &epochNotifierMock.EpochNotifierStub{},
+			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			UInt64ByteSliceConv:          &testsMocks.Uint64ByteSliceConverterMock{},
+			EconomicsHandler:             &economicsmocks.EconomicsHandlerStub{},
+			NodesConfig:                  &testscommon.NodesSetupStub{},
+			Hash:                         &testscommon.HasherStub{},
+			RatingHandler:                &testscommon.RaterMock{},
+			WasmVMChangeLockerInternal:   &sync.RWMutex{},
+			PathHdl:                      &testscommon.PathManagerStub{},
+			ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		},
 		StateComponents: &mock.StateComponentsHolderStub{
 			AccountsAdapterAPICalled: func() state.AccountsAdapter {
@@ -316,8 +342,13 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				return &stateMocks.AccountsStub{}
 			},
 		},
+		StatusCoreComponents: &factory.StatusCoreComponentsStub{
+			AppStatusHandlerCalled: func() core.AppStatusHandler {
+				return &statusHandler.AppStatusHandlerStub{}
+			},
+		},
 		DataComponents: &mock.DataComponentsMock{
-			Storage:  &genericMocks.ChainStorerMock{},
+			Storage:  genericMocks.NewChainStorerMock(0),
 			Blkc:     &testscommon.ChainHandlerMock{},
 			DataPool: &dataRetriever.PoolsHolderMock{},
 		},
@@ -388,24 +419,6 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "lru"))
 		require.Nil(t, scQueryService)
 	})
-	t.Run("metachain - NewBlockChainHookImpl fails", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockSCQueryElementArgs()
-		args.ProcessComponents = &mock.ProcessComponentsMock{
-			ShardCoord: &testscommon.ShardsCoordinatorMock{
-				SelfIDCalled: func() uint32 {
-					return common.MetachainShardId
-				},
-			},
-		}
-		dataCompMock := args.DataComponents.(*mock.DataComponentsMock)
-		dataCompMock.Storage = nil
-		scQueryService, err := api.CreateScQueryElement(args)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "storage"))
-		require.Nil(t, scQueryService)
-	})
 	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
 
@@ -422,37 +435,6 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
-		require.Nil(t, scQueryService)
-	})
-	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockSCQueryElementArgs()
-		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.CoreComponents)
-		internalMarshaller := args.CoreComponents.InternalMarshalizer()
-		counter := 0
-		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
-			counter++
-			if counter > 2 {
-				return nil
-			}
-			return internalMarshaller
-		}
-		args.CoreComponents = coreCompStub
-		scQueryService, err := api.CreateScQueryElement(args)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
-		require.Nil(t, scQueryService)
-	})
-	t.Run("shard - NewBlockChainHookImpl fails", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockSCQueryElementArgs()
-		dataCompMock := args.DataComponents.(*mock.DataComponentsMock)
-		dataCompMock.Storage = nil
-		scQueryService, err := api.CreateScQueryElement(args)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "storage"))
 		require.Nil(t, scQueryService)
 	})
 	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {

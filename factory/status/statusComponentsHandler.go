@@ -102,6 +102,9 @@ func (msc *managedStatusComponents) CheckSubcomponents() error {
 	if check.IfNil(msc.statusHandler) {
 		return errors.ErrNilStatusHandler
 	}
+	if check.IfNil(msc.managedPeersMonitor) {
+		return errors.ErrNilManagedPeersMonitor
+	}
 
 	return nil
 }
@@ -165,6 +168,18 @@ func (msc *managedStatusComponents) SoftwareVersionChecker() statistics.Software
 	return msc.statusComponents.softwareVersion
 }
 
+// ManagedPeersMonitor returns the managed peers monitor
+func (msc *managedStatusComponents) ManagedPeersMonitor() common.ManagedPeersMonitor {
+	msc.mutStatusComponents.RLock()
+	defer msc.mutStatusComponents.RUnlock()
+
+	if msc.statusComponents == nil {
+		return nil
+	}
+
+	return msc.managedPeersMonitor
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (msc *managedStatusComponents) IsInterfaceNil() bool {
 	return msc == nil
@@ -210,13 +225,17 @@ func registerPollConnectedPeers(
 		if check.IfNil(networkComponents) {
 			return
 		}
-		netMessenger := networkComponents.NetworkMessenger()
-		if check.IfNil(netMessenger) {
+		mainNetMessenger := networkComponents.NetworkMessenger()
+		if check.IfNil(mainNetMessenger) {
 			return
 		}
+		computeMetricsForMessenger(appStatusHandler, mainNetMessenger, "")
 
-		computeNumConnectedPeers(appStatusHandler, netMessenger)
-		computeConnectedPeers(appStatusHandler, netMessenger)
+		fullArchiveNetMessenger := networkComponents.FullArchiveNetworkMessenger()
+		if check.IfNil(fullArchiveNetMessenger) {
+			return
+		}
+		computeMetricsForMessenger(appStatusHandler, fullArchiveNetMessenger, common.FullArchiveMetricSuffix)
 	}
 
 	err := appStatusPollingHandler.RegisterPollingFunc(p2pMetricsHandlerFunc)
@@ -248,42 +267,51 @@ func registerShardsInformation(
 	return nil
 }
 
+func computeMetricsForMessenger(
+	appStatusHandler core.AppStatusHandler,
+	netMessenger p2p.Messenger,
+	suffix string,
+) {
+	computeNumConnectedPeers(appStatusHandler, netMessenger, suffix)
+	computeConnectedPeers(appStatusHandler, netMessenger, suffix)
+}
+
 func computeNumConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
 	netMessenger p2p.Messenger,
+	suffix string,
 ) {
 	numOfConnectedPeers := uint64(len(netMessenger.ConnectedAddresses()))
-	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, numOfConnectedPeers)
+	appStatusHandler.SetUInt64Value(common.SuffixedMetric(common.MetricNumConnectedPeers, suffix), numOfConnectedPeers)
 }
 
 func computeConnectedPeers(
 	appStatusHandler core.AppStatusHandler,
 	netMessenger p2p.Messenger,
+	suffix string,
 ) {
 	peersInfo := netMessenger.GetConnectedPeersInfo()
 
-	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,fullObs:%d,unknown:%d,",
+	peerClassification := fmt.Sprintf("intraVal:%d,crossVal:%d,intraObs:%d,crossObs:%d,unknown:%d,",
 		len(peersInfo.IntraShardValidators),
 		len(peersInfo.CrossShardValidators),
 		len(peersInfo.IntraShardObservers),
 		len(peersInfo.CrossShardObservers),
-		len(peersInfo.FullHistoryObservers),
 		len(peersInfo.UnknownPeers),
 	)
-	appStatusHandler.SetStringValue(common.MetricNumConnectedPeersClassification, peerClassification)
-	appStatusHandler.SetStringValue(common.MetricP2PNumConnectedPeersClassification, peerClassification)
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricNumConnectedPeersClassification, suffix), peerClassification)
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PNumConnectedPeersClassification, suffix), peerClassification)
 
-	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo)
-	setCurrentP2pNodeAddresses(appStatusHandler, netMessenger)
+	setP2pConnectedPeersMetrics(appStatusHandler, peersInfo, suffix)
+	setCurrentP2pNodeAddresses(appStatusHandler, netMessenger, suffix)
 }
 
-func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo) {
-	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, sliceToString(info.UnknownPeers))
-	appStatusHandler.SetStringValue(common.MetricP2PIntraShardValidators, mapToString(info.IntraShardValidators))
-	appStatusHandler.SetStringValue(common.MetricP2PIntraShardObservers, mapToString(info.IntraShardObservers))
-	appStatusHandler.SetStringValue(common.MetricP2PCrossShardValidators, mapToString(info.CrossShardValidators))
-	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, mapToString(info.CrossShardObservers))
-	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, mapToString(info.FullHistoryObservers))
+func setP2pConnectedPeersMetrics(appStatusHandler core.AppStatusHandler, info *p2p.ConnectedPeersInfo, suffix string) {
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PUnknownPeers, suffix), sliceToString(info.UnknownPeers))
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PIntraShardValidators, suffix), mapToString(info.IntraShardValidators))
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PIntraShardObservers, suffix), mapToString(info.IntraShardObservers))
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PCrossShardValidators, suffix), mapToString(info.CrossShardValidators))
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PCrossShardObservers, suffix), mapToString(info.CrossShardObservers))
 }
 
 func sliceToString(input []string) string {
@@ -311,8 +339,9 @@ func mapToString(input map[uint32][]string) string {
 func setCurrentP2pNodeAddresses(
 	appStatusHandler core.AppStatusHandler,
 	netMessenger p2p.Messenger,
+	suffix string,
 ) {
-	appStatusHandler.SetStringValue(common.MetricP2PPeerInfo, sliceToString(netMessenger.Addresses()))
+	appStatusHandler.SetStringValue(common.SuffixedMetric(common.MetricP2PPeerInfo, suffix), sliceToString(netMessenger.Addresses()))
 }
 
 func registerPollProbableHighestNonce(

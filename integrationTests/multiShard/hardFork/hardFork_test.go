@@ -20,7 +20,9 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -28,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,7 +75,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	round := uint64(0)
@@ -144,7 +146,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)
@@ -403,6 +405,8 @@ func hardForkImport(
 		dataComponents.DataPool = node.DataPool
 		dataComponents.BlockChain = node.BlockChain
 
+		roundConfig := integrationTests.GetDefaultRoundsConfig()
+
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:       0,
 			StartEpochNum:     100,
@@ -486,6 +490,9 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			RoundConfig:             &roundConfig,
+			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -576,16 +583,22 @@ func createHardForkExporter(
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		}
 
+		networkComponents := integrationTests.GetDefaultNetworkComponents()
+		networkComponents.Messenger = node.MainMessenger
+		networkComponents.FullArchiveNetworkMessengerField = node.FullArchiveMessenger
+		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
+		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
 			StatusCoreComponents: statusCoreComponents,
+			NetworkComponents:    networkComponents,
 			HeaderValidator:      node.HeaderValidator,
 			DataPool:             node.DataPool,
 			StorageService:       node.Storage,
 			RequestHandler:       node.RequestHandler,
 			ShardCoordinator:     node.ShardCoordinator,
-			Messenger:            node.Messenger,
 			ActiveAccountsDBs:    accountsDBs,
 			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
@@ -602,21 +615,20 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			ExportStateStorageConfig: exportConfig,
-			ExportStateKeysConfig:    keysConfig,
-			MaxTrieLevelInMemory:     uint(5),
-			WhiteListHandler:         node.WhiteListHandler,
-			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:    node.InterceptorsContainer,
-			ExistingResolvers:        node.ResolversContainer,
-			ExistingRequesters:       node.RequestersContainer,
-			NodesCoordinator:         node.NodesCoordinator,
-			HeaderSigVerifier:        node.HeaderSigVerifier,
-			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
-			ValidityAttester:         node.BlockTracker,
-			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			RoundHandler:             &mock.RoundHandlerMock{},
+			ExportStateStorageConfig:         exportConfig,
+			ExportStateKeysConfig:            keysConfig,
+			MaxTrieLevelInMemory:             uint(5),
+			WhiteListHandler:                 node.WhiteListHandler,
+			WhiteListerVerifiedTxs:           node.WhiteListerVerifiedTxs,
+			MainInterceptorsContainer:        node.MainInterceptorsContainer,
+			FullArchiveInterceptorsContainer: node.FullArchiveInterceptorsContainer,
+			ExistingResolvers:                node.ResolversContainer,
+			ExistingRequesters:               node.RequestersContainer,
+			NodesCoordinator:                 node.NodesCoordinator,
+			HeaderSigVerifier:                node.HeaderSigVerifier,
+			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
+			ValidityAttester:                 node.BlockTracker,
+			RoundHandler:                     &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
 				EnablePrint:                true,
@@ -629,8 +641,8 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
-			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			NodeOperationMode:         node.NodeOperationMode,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

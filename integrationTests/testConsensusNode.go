@@ -44,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -76,16 +77,17 @@ type ArgsTestConsensusNode struct {
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
 type TestConsensusNode struct {
-	Node             *node.Node
-	Messenger        p2p.Messenger
-	NodesCoordinator nodesCoordinator.NodesCoordinator
-	ShardCoordinator sharding.Coordinator
-	ChainHandler     data.ChainHandler
-	BlockProcessor   *mock.BlockProcessorMock
-	RequestersFinder dataRetriever.RequestersFinder
-	AccountsDB       *state.AccountsDB
-	NodeKeys         *TestKeyPair
-	MultiSigner      *cryptoMocks.MultisignerMock
+	Node                 *node.Node
+	MainMessenger        p2p.Messenger
+	FullArchiveMessenger p2p.Messenger
+	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	ShardCoordinator     sharding.Coordinator
+	ChainHandler         data.ChainHandler
+	BlockProcessor       *mock.BlockProcessorMock
+	RequestersFinder     dataRetriever.RequestersFinder
+	AccountsDB           *state.AccountsDB
+	NodeKeys             *TestKeyPair
+	MultiSigner          *cryptoMocks.MultisignerMock
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -181,7 +183,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
-	tcn.Messenger = CreateMessengerWithNoDiscovery()
+	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
+	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
 
@@ -251,12 +254,11 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	}
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:                     args.KeyGen,
-		P2PKeyGenerator:                  args.P2PKeyGen,
-		IsMainMachine:                    true,
-		MaxRoundsWithoutReceivedMessages: 10,
-		PrefsConfig:                      config.Preferences{},
-		P2PKeyConverter:                  p2pFactory.NewP2PKeyConverter(),
+		KeyGenerator:          args.KeyGen,
+		P2PKeyGenerator:       args.P2PKeyGen,
+		MaxRoundsOfInactivity: 0,
+		PrefsConfig:           config.Preferences{},
+		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 
@@ -271,7 +273,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	argsKeysHandler := keysManagement.ArgsKeysHandler{
 		ManagedPeersHolder: keysHolder,
 		PrivateKey:         tcn.NodeKeys.Sk,
-		Pid:                tcn.Messenger.ID(),
+		Pid:                tcn.MainMessenger.ID(),
 	}
 	keysHandler, _ := keysManagement.NewKeysHandler(argsKeysHandler)
 
@@ -285,7 +287,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
 
 	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tcn.Messenger
+	networkComponents.Messenger = tcn.MainMessenger
 	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
@@ -313,7 +315,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
 	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
-	processComponents.PeerMapper = mock.NewNetworkShardingCollectorMock()
+	processComponents.MainPeerMapper = mock.NewNetworkShardingCollectorMock()
+	processComponents.FullArchivePeerMapper = mock.NewNetworkShardingCollectorMock()
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
@@ -511,22 +514,40 @@ func createTestStore() dataRetriever.StorageService {
 	return store
 }
 
-// ConnectTo will try to initiate a connection to the provided parameter
-func (tcn *TestConsensusNode) ConnectTo(connectable Connectable) error {
+// ConnectOnMain will try to initiate a connection to the provided parameter on the main messenger
+func (tcn *TestConsensusNode) ConnectOnMain(connectable Connectable) error {
 	if check.IfNil(connectable) {
 		return fmt.Errorf("trying to connect to a nil Connectable parameter")
 	}
 
-	return tcn.Messenger.ConnectToPeer(connectable.GetConnectableAddress())
+	return tcn.MainMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
 }
 
-// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
-func (tcn *TestConsensusNode) GetConnectableAddress() string {
+// ConnectOnFullArchive will try to initiate a connection to the provided parameter on the full archive messenger
+func (tcn *TestConsensusNode) ConnectOnFullArchive(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tcn.FullArchiveMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
+}
+
+// GetMainConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (tcn *TestConsensusNode) GetMainConnectableAddress() string {
 	if tcn == nil {
 		return "nil"
 	}
 
-	return GetConnectableAddress(tcn.Messenger)
+	return GetConnectableAddress(tcn.MainMessenger)
+}
+
+// GetFullArchiveConnectableAddress returns a non circuit, non windows default connectable p2p address of the full archive network
+func (tcn *TestConsensusNode) GetFullArchiveConnectableAddress() string {
+	if tcn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tcn.FullArchiveMessenger)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

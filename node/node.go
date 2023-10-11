@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -53,7 +54,8 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-//  over the None struct.
+//
+//	over the None struct.
 type Option func(*Node) error
 
 type filter interface {
@@ -704,7 +706,15 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	return txValidator.CheckTxValidity(intTx)
+	err = txValidator.CheckTxValidity(intTx)
+	if errors.Is(err, process.ErrAccountNotFound) {
+		return fmt.Errorf("%w for address %s",
+			process.ErrInsufficientFunds,
+			n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.SndAddr, log),
+		)
+	}
+
+	return err
 }
 
 // ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
@@ -994,7 +1004,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
-func (n *Node) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (n *Node) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
@@ -1091,9 +1101,9 @@ func (n *Node) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return peerInfoSlice, nil
 }
 
-// GetConnectedPeersRatings returns the connected peers ratings
-func (n *Node) GetConnectedPeersRatings() string {
-	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings()
+// GetConnectedPeersRatingsOnMainNetwork returns the connected peers ratings on the main network
+func (n *Node) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return n.networkComponents.PeersRatingMonitor().GetConnectedPeersRatings(n.networkComponents.NetworkMessenger())
 }
 
 // GetEpochStartDataAPI returns epoch start data of a given epoch

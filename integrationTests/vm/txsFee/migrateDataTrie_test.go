@@ -1,12 +1,10 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
 import (
-	"fmt"
 	"math"
 	"math/big"
 	"strconv"
@@ -86,7 +84,6 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		// do not start the migration process, not enough gas for at least one migration
 		gasLimit = uint64(50000)
 		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.UserError)
-		testGasConsumed(t, testContext, gasLimit, 50000)
 
 		// return after loading a branch node, not enough gas for the migration
 		gasLimit = uint64(70000)
@@ -272,7 +269,7 @@ func migrateDataTrie(
 	testContext.CleanIntermediateTransactions(t)
 
 	gasLocked := "00" //use all available gas
-	txData := core.BuiltInFunctionMigrateDataTrie + "@" + gasLocked
+	txData := core.BuiltInFunctionMigrateDataTrie + "@" + gasLocked + "@" + gasLocked + "@" + gasLocked
 
 	scr := &smartContractResult.SmartContractResult{
 		Value:    big.NewInt(0),
@@ -303,7 +300,5 @@ func testGasConsumed(
 	require.Equal(t, 1, len(intermediate))
 
 	gasConsumed := gasLimit - intermediate[0].GetGasLimit()
-	fmt.Println("gas consumed", gasConsumed)
-	fmt.Println("expected gas consumed", expectedGasConsumed)
 	require.Equal(t, expectedGasConsumed, gasConsumed)
 }

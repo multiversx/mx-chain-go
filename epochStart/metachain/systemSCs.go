@@ -776,7 +776,8 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 
 	blsPubKey := activeStorageUpdate.Offset
 	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
-	account, err := s.getPeerAccount(blsPubKey)
+
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(s.peerAccountsDB, blsPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -788,12 +789,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	if !isNew {
 		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
 		deleteNewValidatorIfExistsFromMap(validatorInfos, blsPubKey, account.GetShardId())
 	}
@@ -1329,11 +1325,6 @@ func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		err = peerAcc.SetBLSPublicKey(blsKey)
-		if err != nil {
-			return err
-		}
-
 		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(common.NewList), uint32(nonce))
 		peerAcc.SetTempRating(s.startRating)
 		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
@@ -1374,7 +1365,7 @@ func (s *systemSCProcessor) extractConfigFromESDTContract() ([][]byte, error) {
 			CallerAddr:  s.endOfEpochCallerAddress,
 			Arguments:   [][]byte{},
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		Function:      "getContractConfig",
 		RecipientAddr: vm.ESDTSCAddress,
@@ -1401,7 +1392,7 @@ func (s *systemSCProcessor) changeESDTOwner(currentConfigValues [][]byte) error 
 			CallerAddr:  s.endOfEpochCallerAddress,
 			Arguments:   [][]byte{s.esdtOwnerAddressBytes, baseIssuingCost, minTokenNameLength, maxTokenNameLength},
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		Function:      "configChange",
 		RecipientAddr: vm.ESDTSCAddress,

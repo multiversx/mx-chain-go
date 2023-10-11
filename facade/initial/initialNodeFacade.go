@@ -18,8 +18,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -141,7 +142,7 @@ func (inf *initialNodeFacade) ValidateTransactionForSimulation(_ *transaction.Tr
 }
 
 // ValidatorStatisticsApi returns nil and error
-func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return nil, errNodeStarting
 }
 
@@ -151,7 +152,7 @@ func (inf *initialNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 }
 
 // SimulateTransactionExecution returns nil and error
-func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nil, errNodeStarting
 }
 
@@ -201,8 +202,8 @@ func (inf *initialNodeFacade) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 // ExecuteSCQuery returns nil and error
-func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // PprofEnabled returns false
@@ -240,9 +241,9 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
-// GetConnectedPeersRatings returns empty string
-func (inf *initialNodeFacade) GetConnectedPeersRatings() string {
-	return ""
+// GetConnectedPeersRatingsOnMainNetwork returns empty string and error
+func (inf *initialNodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return "", errNodeStarting
 }
 
 // GetEpochStartDataAPI returns nil and error
@@ -403,6 +404,26 @@ func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, err
 // IsDataTrieMigrated returns false and error
 func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
 	return false, errNodeStarting
+}
+
+// GetManagedKeysCount returns 0
+func (inf *initialNodeFacade) GetManagedKeysCount() int {
+	return 0
+}
+
+// GetManagedKeys returns nil
+func (inf *initialNodeFacade) GetManagedKeys() []string {
+	return nil
+}
+
+// GetEligibleManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetWaitingManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

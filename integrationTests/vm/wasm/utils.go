@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,6 +38,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
@@ -45,9 +47,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -87,6 +91,8 @@ type TestContext struct {
 	GasSchedule map[string]map[string]uint64
 
 	EpochNotifier       process.EpochNotifier
+	EnableRoundsHandler process.EnableRoundsHandler
+	RoundNotifier       process.RoundNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	UnsignexTxHandler   process.TransactionFeeHandler
 	EconomicsFee        process.FeeHandler
@@ -97,7 +103,7 @@ type TestContext struct {
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
 	TxProcessor      process.TransactionProcessor
-	ScProcessor      *smartContract.TestScProcessor
+	ScProcessor      scrCommon.TestSmartContractProcessor
 	QueryService     external.SCQueryService
 	VMContainer      process.VirtualMachinesContainer
 	BlockchainHook   *hooks.BlockChainHookImpl
@@ -144,7 +150,11 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 	context.T = t
 	context.Round = 500
 	context.EpochNotifier = &epochNotifier.EpochNotifierStub{}
-	context.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{}, context.EpochNotifier)
+	context.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}, context.EpochNotifier)
+	context.RoundNotifier = &epochNotifier.RoundNotifierStub{}
+	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(integrationTests.GetDefaultRoundsConfig(), context.RoundNotifier)
 	context.WasmVMChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -159,10 +169,17 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 		VmContainer:              context.VMContainer,
 		EconomicsFee:             context.EconomicsFee,
 		BlockChainHook:           context.BlockchainHook,
-		BlockChain:               &testscommon.ChainHandlerStub{},
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
 		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             disabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Hasher:                   &testscommon.HasherStub{},
+		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -322,6 +339,9 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	context.VMContainer, err = vmFactory.Create()
 	require.Nil(context.T, err)
 
+	err = blockChainHookImpl.SetVMContainer(context.VMContainer)
+	require.Nil(context.T, err)
+
 	context.BlockchainHook = vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	_ = builtInFuncFactory.SetPayableHandler(context.BlockchainHook)
 }
@@ -346,7 +366,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
-	argsNewSCProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
 		Hasher:           hasher,
@@ -366,12 +386,13 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		},
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
 		TxLogsProcessor:     logsProcessor,
+		EnableRoundsHandler: context.EnableRoundsHandler,
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
-	sc, err := smartContract.NewSmartContractProcessor(argsNewSCProcessor)
-	context.ScProcessor = smartContract.NewTestScProcessor(sc)
+
+	context.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
@@ -389,9 +410,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler: context.EnableRoundsHandler,
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     logsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
@@ -593,7 +616,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 
 // GetSCCode -
 func GetSCCode(fileName string) string {
-	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	code, err := os.ReadFile(filepath.Clean(fileName))
 	if err != nil {
 		panic("Could not get SC code.")
 	}
@@ -716,7 +739,7 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 		Arguments: args,
 	}
 
-	vmOutput, err := context.QueryService.ExecuteQuery(&query)
+	vmOutput, _, err := context.QueryService.ExecuteQuery(&query)
 	require.Nil(context.T, err)
 
 	firstResult := vmOutput.ReturnData[0]

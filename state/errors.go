@@ -33,9 +33,6 @@ var ErrNilAccountsAdapter = errors.New("nil AccountsAdapter")
 // ErrNilAddress defines the error when trying to work with a nil address
 var ErrNilAddress = errors.New("nil address")
 
-// ErrEmptyAddress defines the error when trying to work with an empty address
-var ErrEmptyAddress = errors.New("empty Address")
-
 // ErrNilTrie signals that a trie is nil and no operation can be made
 var ErrNilTrie = errors.New("trie is nil")
 
@@ -44,9 +41,6 @@ var ErrNilHasher = errors.New("nil hasher")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil marshalizer")
-
-// ErrNegativeValue signals that an operation has been attempted with a negative value
-var ErrNegativeValue = errors.New("negative values are not permited")
 
 // ErrNilAccountFactory signals that a nil account factory was provided
 var ErrNilAccountFactory = errors.New("account factory is nil")
@@ -63,14 +57,8 @@ var ErrNilShardCoordinator = errors.New("shard coordinator is nil")
 // ErrWrongTypeAssertion signals that a wrong type assertion occurred
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
-// ErrNilTrackableDataTrie signals that a nil trackable data trie has been provided
-var ErrNilTrackableDataTrie = errors.New("nil trackable data trie")
-
 // ErrAccNotFound signals that account was not found in state trie
 var ErrAccNotFound = errors.New("account was not found")
-
-// ErrNilBLSPublicKey signals that the provided BLS public key is nil
-var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 
 // ErrNilOrEmptyDataTrieUpdates signals that there are no data trie updates
 var ErrNilOrEmptyDataTrieUpdates = errors.New("no data trie updates")
@@ -150,3 +138,9 @@ var ErrNilAddressConverter = errors.New("nil address converter")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilStateMetrics signals that a nil state metrics has been provided
+var ErrNilStateMetrics = errors.New("nil sstate metrics")
+
+// ErrNilChannelsProvider signals that a nil channels provider has been given
+var ErrNilChannelsProvider = errors.New("nil channels provider")

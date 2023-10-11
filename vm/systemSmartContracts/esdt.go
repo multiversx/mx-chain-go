@@ -694,13 +694,27 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		mintBurnable = false
 	}
 
+	topics := make([][]byte, 0)
+	nonce := big.NewInt(0)
+	topics = append(topics, tokenIdentifier, nonce.Bytes())
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(upgradeProperties),
+		Address:    callerAddr,
+	}
+
 	if len(args) == 0 {
+		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable), []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
+		logEntry.Topics = topics
+		e.eei.AddLogEntry(logEntry)
+
 		return nil
 	}
 	if len(args)%2 != 0 {
 		return vm.ErrInvalidNumOfArguments
 	}
 
+	isUpgradablePropertyInArgs := false
+	isCanAddSpecialRolePropertyInArgs := false
 	for i := 0; i < len(args); i += 2 {
 		optionalArg := string(args[i])
 		val, err := checkAndGetSetting(string(args[i+1]))
@@ -726,10 +740,12 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 			token.CanWipe = val
 		case upgradable:
 			token.Upgradable = val
+			isUpgradablePropertyInArgs = true
 		case canChangeOwner:
 			token.CanChangeOwner = val
 		case canAddSpecialRoles:
 			token.CanAddSpecialRoles = val
+			isCanAddSpecialRolePropertyInArgs = true
 		case canTransferNFTCreateRole:
 			token.CanTransferNFTCreateRole = val
 		case canCreateMultiShard:
@@ -748,15 +764,15 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		}
 	}
 
-	topics := make([][]byte, 0)
-	nonce := big.NewInt(0)
-	topics = append(topics, tokenIdentifier, nonce.Bytes())
 	topics = append(topics, args...)
-	logEntry := &vmcommon.LogEntry{
-		Identifier: []byte(upgradeProperties),
-		Address:    callerAddr,
-		Topics:     topics,
+	if !isUpgradablePropertyInArgs {
+		topics = append(topics, []byte(upgradable), boolToSlice(token.Upgradable))
 	}
+	if !isCanAddSpecialRolePropertyInArgs {
+		topics = append(topics, []byte(canAddSpecialRoles), boolToSlice(token.CanAddSpecialRoles))
+	}
+
+	logEntry.Topics = topics
 	e.eei.AddLogEntry(logEntry)
 
 	return nil
@@ -1625,6 +1641,11 @@ func (e *esdt) setRolesForTokenAndAddress(
 
 	if !token.CanAddSpecialRoles {
 		e.eei.AddReturnMessage("cannot add special roles")
+		return nil, vmcommon.UserError
+	}
+
+	if e.enableEpochsHandler.NFTStopCreateEnabled() && token.NFTCreateStopped && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleNFTCreate)) {
+		e.eei.AddReturnMessage("cannot add NFT create role as NFT creation was stopped")
 		return nil, vmcommon.UserError
 	}
 

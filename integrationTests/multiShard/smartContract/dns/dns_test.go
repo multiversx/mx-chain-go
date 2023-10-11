@@ -276,11 +276,11 @@ func checkUserNamesAreSetCorrectly(
 				continue
 			}
 
-			vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+			vmOutput, _, _ := node.SCQueryService.ExecuteQuery(scQuery)
 
 			require.NotNil(t, vmOutput)
-			require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-			require.Equal(t, len(vmOutput.ReturnData), 1)
+			require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+			require.Equal(t, 1, len(vmOutput.ReturnData))
 			assert.True(t, bytes.Equal(player.Address, vmOutput.ReturnData[0]))
 		}
 	}

@@ -1,6 +1,8 @@
 package enableEpochsHandlerMock
 
-import "sync"
+import (
+	"sync"
+)
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
@@ -110,6 +112,7 @@ type EnableEpochsHandlerStub struct {
 	IsSetSenderInEeiOutputTransferFlagEnabledField               bool
 	IsChangeDelegationOwnerFlagEnabledField                      bool
 	IsRefactorPeersMiniBlocksFlagEnabledField                    bool
+	IsSCProcessorV2FlagEnabledField                              bool
 	IsFixAsyncCallBackArgsListFlagEnabledField                   bool
 	IsFixOldTokenLiquidityEnabledField                           bool
 	IsRuntimeMemStoreLimitEnabledField                           bool
@@ -118,13 +121,17 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsScToScEventLogEnabledField                                 bool
 	IsRelayedNonceFixEnabledField                                bool
+	IsDeterministicSortOnValidatorsInfoFixEnabledField           bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
 	IsMultiClaimOnDelegationEnabledField                         bool
 	IsChangeUsernameEnabledField                                 bool
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
+	IsNFTStopCreateEnabledField                                  bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -966,6 +973,14 @@ func (stub *EnableEpochsHandlerStub) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	return stub.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
+// IsSCProcessorV2FlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsSCProcessorV2FlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsSCProcessorV2FlagEnabledField
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled -
 func (stub *EnableEpochsHandlerStub) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	stub.RLock()
@@ -1006,6 +1021,14 @@ func (stub *EnableEpochsHandlerStub) IsMaxBlockchainHookCountersFlagEnabled() bo
 	return stub.IsMaxBlockchainHookCountersFlagEnabledField
 }
 
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (stub *EnableEpochsHandlerStub) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMaxBlockchainHookCountersFlagEnabledField
+}
+
 // IsWipeSingleNFTLiquidityDecreaseEnabled -
 func (stub *EnableEpochsHandlerStub) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
 	stub.RLock()
@@ -1030,12 +1053,28 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	return stub.IsSetGuardianEnabledField
 }
 
+// IsScToScEventLogEnabled -
+func (stub *EnableEpochsHandlerStub) IsScToScEventLogEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsScToScEventLogEnabledField
+}
+
 // IsRelayedNonceFixEnabled -
 func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
 	stub.RLock()
 	defer stub.RUnlock()
 
 	return stub.IsRelayedNonceFixEnabledField
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (stub *EnableEpochsHandlerStub) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsDeterministicSortOnValidatorsInfoFixEnabledField
 }
 
 // IsKeepExecOrderOnCreatedSCRsEnabled -
@@ -1084,6 +1123,14 @@ func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() 
 	defer stub.RUnlock()
 
 	return stub.FixDelegationChangeOwnerOnAccountEnabledField
+}
+
+// NFTStopCreateEnabled -
+func (stub *EnableEpochsHandlerStub) NFTStopCreateEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsNFTStopCreateEnabledField
 }
 
 // IsInterfaceNil -

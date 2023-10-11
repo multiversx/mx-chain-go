@@ -25,8 +25,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -44,7 +45,6 @@ var log = logger.GetOrCreate("facade")
 type ArgNodeFacade struct {
 	Node                   NodeHandler
 	ApiResolver            ApiResolver
-	TxSimulatorProcessor   TransactionSimulatorProcessor
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
@@ -59,7 +59,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
 	endpointsThrottlers    map[string]core.Throttler
@@ -77,9 +76,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
-	}
-	if check.IfNil(arg.TxSimulatorProcessor) {
-		return nil, ErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
@@ -104,7 +100,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
-		txSimulatorProc:        arg.TxSimulatorProcessor,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
@@ -285,7 +280,7 @@ func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transacti
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
-func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return nf.node.ValidatorStatisticsApi()
 }
 
@@ -295,8 +290,8 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-	return nf.txSimulatorProc.ProcessTx(tx)
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return nf.apiResolver.SimulateTransactionExecution(tx)
 }
 
 // GetTransaction gets the transaction with a specified hash
@@ -417,13 +412,13 @@ func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
-	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
+func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, apiData.BlockInfo, error) {
+	vmOutput, blockInfo, err := nf.apiResolver.ExecuteSCQuery(query)
 	if err != nil {
-		return nil, err
+		return nil, apiData.BlockInfo{}, err
 	}
 
-	return nf.convertVmOutputToApiResponse(vmOutput), nil
+	return nf.convertVmOutputToApiResponse(vmOutput), queryBlockInfoToApiResource(blockInfo), nil
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application
@@ -466,9 +461,9 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
 }
 
-// GetConnectedPeersRatings returns the connected peers ratings
-func (nf *nodeFacade) GetConnectedPeersRatings() string {
-	return nf.node.GetConnectedPeersRatings()
+// GetConnectedPeersRatingsOnMainNetwork returns the connected peers ratings on the main network
+func (nf *nodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return nf.node.GetConnectedPeersRatingsOnMainNetwork()
 }
 
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
@@ -590,6 +585,26 @@ func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.Account
 	return nf.node.IsDataTrieMigrated(address, options)
 }
 
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetManagedKeysCount() int {
+	return nf.apiResolver.GetManagedKeysCount()
+}
+
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nf *nodeFacade) GetManagedKeys() []string {
+	return nf.apiResolver.GetManagedKeys()
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetEligibleManagedKeys()
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetWaitingManagedKeys()
+}
+
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
 	outputAccounts := make(map[string]*vm.OutputAccountApi)
 	for key, acc := range input.OutputAccounts {
@@ -652,10 +667,11 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		}
 
 		logs = append(logs, &vm.LogEntryApi{
-			Identifier: originalLog.Identifier,
-			Address:    logAddress,
-			Topics:     originalLog.Topics,
-			Data:       originalLog.Data,
+			Identifier:     originalLog.Identifier,
+			Address:        logAddress,
+			Topics:         originalLog.Topics,
+			Data:           originalLog.GetFirstDataItem(),
+			AdditionalData: originalLog.Data,
 		})
 	}
 
@@ -669,6 +685,18 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		DeletedAccounts: input.DeletedAccounts,
 		TouchedAccounts: input.TouchedAccounts,
 		Logs:            logs,
+	}
+}
+
+func queryBlockInfoToApiResource(info common.BlockInfo) apiData.BlockInfo {
+	if check.IfNil(info) {
+		return apiData.BlockInfo{}
+	}
+
+	return apiData.BlockInfo{
+		Nonce:    info.GetNonce(),
+		Hash:     hex.EncodeToString(info.GetHash()),
+		RootHash: hex.EncodeToString(info.GetRootHash()),
 	}
 }
 

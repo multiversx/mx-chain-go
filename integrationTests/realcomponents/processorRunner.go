@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -32,7 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -123,7 +123,6 @@ func (pr *ProcessorRunner) createCryptoComponents(tb testing.TB) {
 		ActivateBLSPubKeyMessageVerification: false,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		NoKeyProvided:                        true,
 		P2pKeyPemFileName:                    "",
 	}
 
@@ -167,7 +166,8 @@ func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 	argsNetwork := factoryNetwork.NetworkComponentsFactoryArgs{
-		P2pConfig:             *pr.Config.P2pConfig,
+		MainP2pConfig:         *pr.Config.MainP2pConfig,
+		FullArchiveP2pConfig:  *pr.Config.FullArchiveP2pConfig,
 		MainConfig:            *pr.Config.GeneralConfig,
 		RatingsConfig:         *pr.Config.RatingsConfig,
 		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),
@@ -175,7 +175,7 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 		Syncer:                pr.CoreComponents.SyncTimer(),
 		PreferredPeersSlices:  make([]string, 0),
 		BootstrapWaitTime:     1,
-		NodeOperationMode:     p2p.NormalOperation,
+		NodeOperationMode:     common.NormalOperation,
 		ConnectionWatcherType: "",
 		CryptoComponents:      pr.CryptoComponents,
 	}
@@ -233,9 +233,7 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
-		FlagsConfigs: config.ContextFlagsConfig{
-			SnapshotsEnabled: false,
-		},
+		FlagsConfigs:                  config.ContextFlagsConfig{},
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -260,7 +258,6 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		StorageService:           pr.DataComponents.StorageService(),
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
-		SnapshotsEnabled:         false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
 	}
 
@@ -321,6 +318,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		StatusCoreComponents: pr.StatusCoreComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StateComponents:      pr.StateComponents,
+		CryptoComponents:     pr.CryptoComponents,
 		IsInImportMode:       false,
 	}
 
@@ -403,35 +401,37 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(pr.Config.FlagsConfig.DbDir, common.DefaultDBPath), pr.Config.FlagsConfig.Version)
 	require.Nil(tb, err)
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
 		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{
-			Version:          "test",
-			WorkingDir:       pr.Config.FlagsConfig.WorkingDir,
-			SnapshotsEnabled: false,
+			Version:    "test",
+			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       pr.NodesCoordinator,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         pr.Config.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		Data:                   pr.DataComponents,
-		CoreData:               pr.CoreComponents,
-		Crypto:                 pr.CryptoComponents,
-		State:                  pr.StateComponents,
-		Network:                pr.NetworkComponents,
-		BootstrapComponents:    pr.BootstrapComponents,
-		StatusComponents:       pr.StatusComponents,
-		StatusCoreComponents:   pr.StatusCoreComponents,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        pr.NodesCoordinator,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          pr.Config.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		Data:                    pr.DataComponents,
+		CoreData:                pr.CoreComponents,
+		Crypto:                  pr.CryptoComponents,
+		State:                   pr.StateComponents,
+		Network:                 pr.NetworkComponents,
+		BootstrapComponents:     pr.BootstrapComponents,
+		StatusComponents:        pr.StatusComponents,
+		StatusCoreComponents:    pr.StatusCoreComponents,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

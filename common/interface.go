@@ -183,6 +183,8 @@ type SnapshotStatisticsHandler interface {
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	GetSnapshotDuration() int64
+	GetSnapshotNumNodes() uint64
 	IsInterfaceNil() bool
 }
 
@@ -374,6 +376,7 @@ type EnableEpochsHandler interface {
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
+	IsSCProcessorV2FlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
 	IsRuntimeMemStoreLimitEnabled() bool
@@ -382,13 +385,17 @@ type EnableEpochsHandler interface {
 	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
 	IsAlwaysSaveTokenMetaDataEnabled() bool
 	IsSetGuardianEnabled() bool
+	IsScToScEventLogEnabled() bool
 	IsRelayedNonceFixEnabled() bool
+	IsDeterministicSortOnValidatorsInfoFixEnabled() bool
 	IsKeepExecOrderOnCreatedSCRsEnabled() bool
 	IsMultiClaimOnDelegationEnabled() bool
 	IsChangeUsernameEnabled() bool
 	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
+	NFTStopCreateEnabled() bool
 
 	IsInterfaceNil() bool
 }
@@ -401,7 +408,7 @@ type ManagedPeersHolder interface {
 	GetMachineID(pkBytes []byte) (string, error)
 	GetNameAndIdentity(pkBytes []byte) (string, string, error)
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
-	ResetRoundsWithoutReceivedMessages(pkBytes []byte)
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
 	IsKeyManagedByCurrentNode(pkBytes []byte) bool
 	IsKeyRegistered(pkBytes []byte) bool
@@ -424,5 +431,38 @@ type MissingTrieNodesNotifier interface {
 // StateSyncNotifierSubscriber defines the operations of an entity that subscribes to a missing trie nodes notifier
 type StateSyncNotifierSubscriber interface {
 	MissingDataTrieNodeFound(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersMonitor defines the operations of an entity that monitors the managed peers holder
+type ManagedPeersMonitor interface {
+	GetManagedKeysCount() int
+	GetManagedKeys() [][]byte
+	GetEligibleManagedKeys() ([][]byte, error)
+	GetWaitingManagedKeys() ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TxExecutionOrderHandler is used to collect and provide the order of transactions execution
+type TxExecutionOrderHandler interface {
+	Add(txHash []byte)
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	Remove(txHash []byte)
+	RemoveMultiple(txHashes [][]byte)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Clear()
+	Len() int
+	IsInterfaceNil() bool
+}
+
+// ExecutionOrderGetter defines the functionality of a component that can return the execution order of a block transactions
+type ExecutionOrderGetter interface {
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Len() int
 	IsInterfaceNil() bool
 }

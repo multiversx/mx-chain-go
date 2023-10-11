@@ -4,7 +4,7 @@ package config
 type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
-	HostDriverConfig       HostDriverConfig
+	HostDriversConfig      []HostDriversConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -38,8 +38,8 @@ type CovalentConfig struct {
 	RouteAcknowledgeData string
 }
 
-// HostDriverConfig will hold the configuration for WebSocket driver
-type HostDriverConfig struct {
+// HostDriversConfig will hold the configuration for WebSocket driver
+type HostDriversConfig struct {
 	Enabled                    bool
 	WithAcknowledge            bool
 	BlockingAckOnError         bool
@@ -49,4 +49,5 @@ type HostDriverConfig struct {
 	Mode                       string
 	RetryDurationInSec         int
 	AcknowledgeTimeoutInSec    int
+	Version                    uint32
 }

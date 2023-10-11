@@ -1050,7 +1050,7 @@ func createAccounts(
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              integrationTests.TestHasher,
 		Marshaller:          integrationTests.TestMarshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -2331,11 +2331,9 @@ func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testin
 	_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
 	rootHash, err := addDataTriesForAccountsStartingWithIndex(0, 1, 1, adb)
 	assert.Nil(t, err)
-	err = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
-	assert.Nil(t, err)
 
-	adb.SnapshotState(rootHash)
-	for tsm.IsPruningBlocked() {
+	adb.SnapshotState(rootHash, 1)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -2515,7 +2513,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	maxTrieLevelInMemory := uint(5)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-	argsAccCreator := state.ArgsAccountCreation{
+	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              integrationTests.TestHasher,
 		Marshaller:          integrationTests.TestMarshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

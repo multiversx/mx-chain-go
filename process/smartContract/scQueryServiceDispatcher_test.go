@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -57,24 +58,24 @@ func TestScQueryServiceDispatcher_ExecuteQueryShouldCallInRoundRobinFashion(t *t
 	calledElement2 := 0
 	sqsd, _ := NewScQueryServiceDispatcher([]process.SCQueryService{
 		&mock.ScQueryStub{
-			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				calledElement1++
 
-				return nil, nil
+				return nil, nil, nil
 			},
 		},
 		&mock.ScQueryStub{
-			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				calledElement2++
 
-				return nil, nil
+				return nil, nil, nil
 			},
 		},
 	})
 
-	_, _ = sqsd.ExecuteQuery(nil)
-	_, _ = sqsd.ExecuteQuery(nil)
-	_, _ = sqsd.ExecuteQuery(nil)
+	_, _, _ = sqsd.ExecuteQuery(nil)
+	_, _, _ = sqsd.ExecuteQuery(nil)
+	_, _, _ = sqsd.ExecuteQuery(nil)
 
 	assert.Equal(t, 2, calledElement1)
 	assert.Equal(t, 1, calledElement2)
@@ -117,10 +118,10 @@ func TestScQueryServiceDispatcher_ShouldWorkInAConcurrentManner(t *testing.T) {
 	calledElement2 := uint32(0)
 	sqsd, _ := NewScQueryServiceDispatcher([]process.SCQueryService{
 		&mock.ScQueryStub{
-			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				atomic.AddUint32(&calledElement1, 1)
 
-				return nil, nil
+				return nil, nil, nil
 			},
 			ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (uint64, error) {
 				atomic.AddUint32(&calledElement1, 1)
@@ -129,10 +130,10 @@ func TestScQueryServiceDispatcher_ShouldWorkInAConcurrentManner(t *testing.T) {
 			},
 		},
 		&mock.ScQueryStub{
-			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				atomic.AddUint32(&calledElement2, 1)
 
-				return nil, nil
+				return nil, nil, nil
 			},
 			ComputeScCallGasLimitHandler: func(tx *transaction.Transaction) (uint64, error) {
 				atomic.AddUint32(&calledElement2, 1)
@@ -147,7 +148,7 @@ func TestScQueryServiceDispatcher_ShouldWorkInAConcurrentManner(t *testing.T) {
 	wg.Add(numCalls * 2)
 	for i := 0; i < numCalls; i++ {
 		go func() {
-			_, _ = sqsd.ExecuteQuery(nil)
+			_, _, _ = sqsd.ExecuteQuery(nil)
 			wg.Done()
 		}()
 		go func() {

@@ -38,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -87,6 +88,7 @@ type baseProcessor struct {
 	mutProcessDebugger      sync.RWMutex
 	processDebugger         process.Debugger
 	processStatusHandler    common.ProcessStatusHandler
+	managedPeersHolder      common.ManagedPeersHolder
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -103,6 +105,7 @@ type baseProcessor struct {
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
+	roundNotifier       process.RoundNotifier
 	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
@@ -509,7 +512,10 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arguments.EnableRoundsHandler) {
+	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
+		return process.ErrNilRoundNotifier
+	}
+	if check.IfNil(arguments.CoreComponents.EnableRoundsHandler()) {
 		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.StatusCoreComponents) {
@@ -541,6 +547,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockProcessingCutoffHandler) {
 		return process.ErrNilBlockProcessingCutoffHandler
+	}
+	if check.IfNil(arguments.ManagedPeersHolder) {
+		return process.ErrNilManagedPeersHolder
 	}
 
 	return nil
@@ -1385,7 +1394,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
 
-	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{HeaderHash: hdrHash})
+	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{ShardID: bp.shardCoordinator.SelfId(), HeaderHash: hdrHash})
 }
 
 func (bp *baseProcessor) updateStateStorage(
@@ -1755,8 +1764,19 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeAccounts := 0
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
+
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:              bp.hasher,
+		Marshaller:          bp.marshalizer,
+		EnableEpochsHandler: bp.enableEpochsHandler,
+	}
+	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
+	if err != nil {
+		return err
+	}
+
 	for leaf := range iteratorChannels.LeavesChan {
-		userAccount, errUnmarshal := bp.unmarshalUserAccount(leaf.Key(), leaf.Value())
+		userAccount, errUnmarshal := bp.unmarshalUserAccount(accountCreator, leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			numCodeLeaves++
 			totalSizeCodeLeaves += len(leaf.Value())
@@ -1827,21 +1847,22 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 }
 
 func (bp *baseProcessor) unmarshalUserAccount(
+	accountCreator state.AccountFactory,
 	address []byte,
 	userAccountsBytes []byte,
 ) (state.UserAccountHandler, error) {
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              bp.hasher,
-		Marshaller:          bp.marshalizer,
-		EnableEpochsHandler: bp.enableEpochsHandler,
-	}
-	userAccount, err := state.NewUserAccount(address, argsAccCreation)
+	account, err := accountCreator.CreateAccount(address)
 	if err != nil {
 		return nil, err
 	}
-	err = bp.marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	err = bp.marshalizer.Unmarshal(account, userAccountsBytes)
 	if err != nil {
 		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	return userAccount, nil

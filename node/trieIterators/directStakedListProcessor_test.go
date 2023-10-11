@@ -15,10 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -67,8 +65,8 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	arg := createMockArgs()
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			return nil, fmt.Errorf("not an expected call")
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
@@ -97,7 +95,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	arg := createMockArgs()
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch query.FuncName {
 			case "getTotalStakedTopUpStakedBlsKeys":
 				for index, validator := range validators {
@@ -107,12 +105,12 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 
 						return &vmcommon.VMOutput{
 							ReturnData: [][]byte{topUpValue.Bytes(), totalStakedValue.Bytes(), make([]byte, 0)},
-						}, nil
+						}, nil, nil
 					}
 				}
 			}
 
-			return nil, fmt.Errorf("not an expected call")
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
@@ -150,31 +148,31 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 }
 
 func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep time.Duration) state.UserAccountHandler {
-	argsAccCreation := state.ArgsAccountCreation{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	dtt := &trieMock.DataTrieTrackerStub{
+		DataTrieCalled: func() common.Trie {
+			return &trieMock.TrieStub{
+				RootCalled: func() ([]byte, error) {
+					return rootHash, nil
+				},
+				GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+					go func() {
+						time.Sleep(timeSleep)
+						for _, leafBuff := range leaves {
+							leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
+							leavesChannels.LeavesChan <- leaf
+						}
+
+						close(leavesChannels.LeavesChan)
+						leavesChannels.ErrChan.Close()
+					}()
+
+					return nil
+				},
+			}
+		},
 	}
-	acc, _ := state.NewUserAccount(address, argsAccCreation)
-	acc.SetDataTrie(&trieMock.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return rootHash, nil
-		},
-		GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
-			go func() {
-				time.Sleep(timeSleep)
-				for _, leafBuff := range leaves {
-					leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
-					leavesChannels.LeavesChan <- leaf
-				}
 
-				close(leavesChannels.LeavesChan)
-				leavesChannels.ErrChan.Close()
-			}()
-
-			return nil
-		},
-	})
+	acc, _ := accounts.NewUserAccount(address, dtt, &trieMock.TrieLeafParserStub{})
 
 	return acc
 }

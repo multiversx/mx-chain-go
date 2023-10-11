@@ -1,28 +1,16 @@
 package state
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // LastSnapshotStarted -
 const LastSnapshotStarted = lastSnapshot
-
-// NewEmptyBaseAccount -
-func NewEmptyBaseAccount(address []byte, tracker DataTrieTracker) *baseAccount {
-	return &baseAccount{
-		address:         address,
-		dataTrieTracker: tracker,
-	}
-}
-
-// IsSnapshotInProgress -
-func (adb *AccountsDB) IsSnapshotInProgress() *atomic.Flag {
-	return &adb.isSnapshotInProgress
-}
 
 // LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
@@ -42,11 +30,6 @@ func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, erro
 // GetObsoleteHashes -
 func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
-}
-
-// WaitForCompletionIfAppropriate -
-func (adb *AccountsDB) WaitForCompletionIfAppropriate(stats common.SnapshotStatisticsHandler) {
-	adb.waitForCompletionIfAppropriate(stats)
 }
 
 // GetCode -
@@ -85,27 +68,46 @@ func EmptyErrChanReturningHadContained(errChan chan error) bool {
 	return emptyErrChanReturningHadContained(errChan)
 }
 
-// DirtyData -
-type DirtyData struct {
-	Value      []byte
-	NewVersion core.TrieNodeVersion
+// SetSnapshotInProgress -
+func (sm *snapshotsManager) SetSnapshotInProgress() {
+	sm.isSnapshotInProgress.SetValue(true)
 }
 
-// DirtyData -
-func (tdaw *trackableDataTrie) DirtyData() map[string]DirtyData {
-	dd := make(map[string]DirtyData, len(tdaw.dirtyData))
+// SetLastSnapshotInfo -
+func (sm *snapshotsManager) SetLastSnapshotInfo(rootHash []byte, epoch uint32) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
 
-	for key, value := range tdaw.dirtyData {
-		dd[key] = DirtyData{
-			Value:      value.value,
-			NewVersion: value.newVersion,
-		}
+	sm.lastSnapshot = &snapshotInfo{
+		rootHash: rootHash,
+		epoch:    epoch,
 	}
-
-	return dd
 }
 
-// SaveDirtyData -
-func (a *userAccount) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
-	return a.dataTrieTracker.SaveDirtyData(trie)
+// GetLastSnapshotInfo -
+func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
+}
+
+// GetStorageEpochChangeWaitArgs -
+func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
+	return storageEpochChangeWaitArgs{
+		Epoch:                         1,
+		WaitTimeForSnapshotEpochCheck: time.Millisecond * 100,
+		SnapshotWaitTimeout:           time.Second,
+		TrieStorageManager:            &storageManager.StorageManagerStub{},
+	}
+}
+
+// WaitForStorageEpochChange
+func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
+	return sm.waitForStorageEpochChange(args)
+}
+
+// NewNilSnapshotsManager -
+func NewNilSnapshotsManager() *snapshotsManager {
+	return nil
 }

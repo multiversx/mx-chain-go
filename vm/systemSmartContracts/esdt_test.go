@@ -219,6 +219,14 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 
+	upgradePropertiesLog := eei.logs[0]
+	expectedTopics := [][]byte{[]byte("TICKER-75fd57"), big.NewInt(0).Bytes(), []byte(canCreateMultiShard), boolToSlice(true), []byte(upgradable), boolToSlice(true), []byte(canAddSpecialRoles), boolToSlice(true)}
+	assert.Equal(t, &vmcommon.LogEntry{
+		Identifier: []byte(upgradeProperties),
+		Address:    []byte("addr"),
+		Topics:     expectedTopics,
+	}, upgradePropertiesLog)
+
 	lastOutput := eei.output[len(eei.output)-1]
 	token, _ := e.getExistingToken(lastOutput)
 	assert.True(t, token.CanCreateMultiShard)
@@ -251,10 +259,20 @@ func TestEsdt_ExecuteIssue(t *testing.T) {
 
 	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(100).Bytes())
 	vmInput.Arguments = append(vmInput.Arguments, big.NewInt(10).Bytes())
+	vmInput.Arguments = append(vmInput.Arguments, []byte(upgradable), boolToSlice(false))
+	vmInput.Arguments = append(vmInput.Arguments, []byte(canAddSpecialRoles), boolToSlice(false))
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+
+	upgradePropertiesLog := eei.logs[0]
+	expectedTopics := [][]byte{[]byte("TICKER-75fd57"), big.NewInt(0).Bytes(), []byte(upgradable), boolToSlice(false), []byte(canAddSpecialRoles), boolToSlice(false)}
+	assert.Equal(t, &vmcommon.LogEntry{
+		Identifier: []byte(upgradeProperties),
+		Address:    []byte("addr"),
+		Topics:     expectedTopics,
+	}, upgradePropertiesLog)
 
 	vmInput.Arguments[0] = []byte("01234567891&*@")
 	output = e.Execute(vmInput)
@@ -4384,4 +4402,51 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = true
 	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
+}
+
+func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	eei := createDefaultEei()
+	args.Eei = eei
+
+	owner := bytes.Repeat([]byte{1}, 32)
+	tokenName := []byte("TOKEN-ABABAB")
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:          tokenName,
+		OwnerAddress:       owner,
+		CanPause:           true,
+		IsPaused:           true,
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stopNFTCreate", [][]byte{tokenName})
+	vmInput.CallerAddr = owner
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	enableEpochsHandler.IsNFTStopCreateEnabledField = true
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot add NFT create role as NFT creation was stopped"))
+
+	enableEpochsHandler.IsNFTStopCreateEnabledField = false
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
 }

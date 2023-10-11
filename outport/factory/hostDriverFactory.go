@@ -11,7 +11,7 @@ import (
 )
 
 type ArgsHostDriverFactory struct {
-	HostConfig config.HostDriverConfig
+	HostConfig config.HostDriversConfig
 	Marshaller marshal.Marshalizer
 }
 
@@ -28,6 +28,7 @@ func CreateHostDriver(args ArgsHostDriverFactory) (outport.Driver, error) {
 			BlockingAckOnError:         args.HostConfig.BlockingAckOnError,
 			DropMessagesIfNoConnection: args.HostConfig.DropMessagesIfNoConnection,
 			AcknowledgeTimeoutInSec:    args.HostConfig.AcknowledgeTimeoutInSec,
+			Version:                    args.HostConfig.Version,
 		},
 		Marshaller: args.Marshaller,
 		Log:        log,

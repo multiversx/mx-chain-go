@@ -34,6 +34,7 @@ type CoreComponentsMock struct {
 	WDTimer                      core.WatchdogTimer
 	Alarm                        core.TimersScheduler
 	NtpTimer                     ntp.SyncTimer
+	RoundChangeNotifier          process.RoundNotifier
 	RoundHandlerField            consensus.RoundHandler
 	EconomicsHandler             process.EconomicsDataHandler
 	APIEconomicsHandler          process.EconomicsDataHandler
@@ -128,6 +129,11 @@ func (ccm *CoreComponentsMock) NodesShuffler() nodesCoordinator.NodesShuffler {
 // EpochNotifier -
 func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 	return ccm.EpochChangeNotifier
+}
+
+// RoundNotifier -
+func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
+	return ccm.RoundChangeNotifier
 }
 
 // EnableRoundsHandler -

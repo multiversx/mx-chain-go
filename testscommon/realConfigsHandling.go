@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -42,7 +42,10 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 	prefsConfig, err := common.LoadPreferencesConfig(path.Join(newConfigsPath, "prefs.toml"))
 	require.Nil(tb, err)
 
-	p2pConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "p2p.toml"))
+	mainP2PConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "p2p.toml"))
+	require.Nil(tb, err)
+
+	fullArchiveP2PConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "fullArchiveP2P.toml"))
 	require.Nil(tb, err)
 
 	externalConfig, err := common.LoadExternalConfig(path.Join(newConfigsPath, "external.toml"))
@@ -58,23 +61,25 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 	require.Nil(tb, err)
 
 	// make the node pass the network wait constraints
-	p2pConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
-	p2pConfig.Node.ThresholdMinConnectedPeers = 0
+	mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
+	mainP2PConfig.Node.ThresholdMinConnectedPeers = 0
+	fullArchiveP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
+	fullArchiveP2PConfig.Node.ThresholdMinConnectedPeers = 0
 
 	return &config.Configs{
-		GeneralConfig:     generalConfig,
-		ApiRoutesConfig:   apiConfig,
-		EconomicsConfig:   economicsConfig,
-		SystemSCConfig:    systemSCConfig,
-		RatingsConfig:     ratingsConfig,
-		PreferencesConfig: prefsConfig,
-		ExternalConfig:    externalConfig,
-		P2pConfig:         p2pConfig,
+		GeneralConfig:        generalConfig,
+		ApiRoutesConfig:      apiConfig,
+		EconomicsConfig:      economicsConfig,
+		SystemSCConfig:       systemSCConfig,
+		RatingsConfig:        ratingsConfig,
+		PreferencesConfig:    prefsConfig,
+		ExternalConfig:       externalConfig,
+		MainP2pConfig:        mainP2PConfig,
+		FullArchiveP2pConfig: fullArchiveP2PConfig,
 		FlagsConfig: &config.ContextFlagsConfig{
-			WorkingDir:    tempDir,
-			NoKeyProvided: true,
-			Version:       "test version",
-			DbDir:         path.Join(tempDir, "db"),
+			WorkingDir: tempDir,
+			Version:    "test version",
+			DbDir:      path.Join(tempDir, "db"),
 		},
 		ImportDbConfig: &config.ImportDbConfig{},
 		ConfigurationPathsHolder: &config.ConfigurationPathsHolder{
@@ -90,7 +95,7 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 }
 
 func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGenesisSmartContractsFilename string) {
-	input, err := ioutil.ReadFile(newGenesisSmartContractsFilename)
+	input, err := os.ReadFile(newGenesisSmartContractsFilename)
 	require.Nil(tb, err)
 
 	lines := strings.Split(string(input), "\n")
@@ -100,6 +105,6 @@ func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGe
 		}
 	}
 	output := strings.Join(lines, "\n")
-	err = ioutil.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
+	err = os.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
 	require.Nil(tb, err)
 }
