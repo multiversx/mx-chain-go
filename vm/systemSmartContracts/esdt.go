@@ -99,6 +99,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		common.ESDTRegisterAndSetAllRolesFlag,
 		common.MetaESDTSetFlag,
 		common.ESDTNFTCreateOnMultiShardFlag,
+		common.NFTStopCreateFlag,
 	})
 	if err != nil {
 		return nil, err
