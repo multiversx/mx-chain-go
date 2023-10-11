@@ -104,6 +104,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [ReceiptsStorage]
     [ReceiptsStorage.Cache]
@@ -117,6 +119,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [ScheduledSCRsStorage]
     [ScheduledSCRsStorage.Cache]
@@ -285,6 +289,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 500
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 8
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
