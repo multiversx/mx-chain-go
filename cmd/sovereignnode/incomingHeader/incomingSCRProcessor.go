@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	minTopicsInEvent    = 4
-	numTransferTopics   = 3
-	minNumLogDataTokens = 4
+	minTopicsInEvent      = 4
+	numTransferTopics     = 3
+	minNumEventDataTokens = 4
 )
 
 type eventData struct {
@@ -90,9 +90,9 @@ func getEventData(data []byte) (*eventData, error) {
 
 	tokens := strings.Split(string(data), "@")
 	numTokens := len(tokens)
-	if numTokens < minNumLogDataTokens {
-		return nil, fmt.Errorf("%w, expected min: %d, received : %d",
-			errInvalidNumTokensOnLogData, minNumLogDataTokens, numTokens)
+	if numTokens < minNumEventDataTokens {
+		return nil, fmt.Errorf("%w, expected min num tokens: %d, received num tokens: %d",
+			errInvalidNumTokensOnLogData, minNumEventDataTokens, numTokens)
 	}
 
 	// TODO: Add validity checks

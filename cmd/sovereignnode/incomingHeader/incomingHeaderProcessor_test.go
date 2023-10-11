@@ -42,7 +42,7 @@ func requireErrorIsInvalidNumTopics(t *testing.T, err error, idx int, numTopics 
 
 func requireErrorIsInvalidNumTokensOnLogData(t *testing.T, err error, receivedNumTokens int) {
 	require.True(t, strings.Contains(err.Error(), errInvalidNumTokensOnLogData.Error()))
-	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", minNumLogDataTokens)))
+	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", minNumEventDataTokens)))
 	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", receivedNumTokens)))
 }
 
@@ -303,7 +303,6 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 
 	nonce := big.NewInt(49)
 	gasLimit := big.NewInt(94)
-
 	input = append(nonce.Bytes(), []byte("@ffaa@bb@")...)
 	input = append(input, gasLimit.Bytes()...)
 	ret, err = getEventData(input)
@@ -395,13 +394,13 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		"@"+hex.EncodeToString([]byte("func1"))+
 			"@"+hex.EncodeToString([]byte("arg1"))+
 			"@"+hex.EncodeToString([]byte("arg2"))+"@")...)
-	eventData1 = append(eventData1, big.NewInt(45100).Bytes()...) // gas limit
+	eventData1 = append(eventData1, big.NewInt(int64(gasLimit1)).Bytes()...) // gas limit
 
 	eventData2 := big.NewInt(1).Bytes()
 	eventData2 = append(eventData2, []byte(
 		"@"+hex.EncodeToString([]byte("func2"))+
 			"@"+hex.EncodeToString([]byte("arg1"))+"@")...)
-	eventData2 = append(eventData2, big.NewInt(54100).Bytes()...) // gas limit
+	eventData2 = append(eventData2, big.NewInt(int64(gasLimit2)).Bytes()...) // gas limit
 
 	incomingEvents := []*transaction.Event{
 		{
