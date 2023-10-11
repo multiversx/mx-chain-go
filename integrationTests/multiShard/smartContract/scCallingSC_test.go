@@ -643,7 +643,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool(
-		"./testdata/delegate-mock/delegate.wasm",
+		"./testdata/delegate-mock/output/delegate.wasm",
 		delegateSCOwner,
 		0,
 		big.NewInt(50),

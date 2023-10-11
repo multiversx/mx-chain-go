@@ -50,7 +50,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := uint64(1960)
+	gasLimit := uint64(1962)
 	transferOnCalls := big.NewInt(50)
 
 	scCode := wasm.GetSCCode("../testdata/misc/fib_wasm/output/fib_wasm.wasm")

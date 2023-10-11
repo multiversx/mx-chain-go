@@ -24,7 +24,7 @@ func TestScDeployShouldWork(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1960)
+	gasLimit := uint64(1962)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
