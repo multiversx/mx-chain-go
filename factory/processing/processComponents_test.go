@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -32,7 +34,9 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -58,6 +62,7 @@ import (
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -655,6 +660,67 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.NotNil(t, pcf)
 	})
 }
+func TestProcessComponentsFactory_AddSystemVMToContainerIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	testContainerKey := "testContainer"
+
+	t.Run("sovereign should add systemVM", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.ChainRunType = common.ChainRunTypeSovereign
+		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
+		require.NotNil(t, pcf)
+
+		vms := make(map[string]vmcommon.VMExecutionHandler, 0)
+		vms[testContainerKey] = &processMock.VMExecutionHandlerStub{}
+		vmContainer := &processMock.VMContainerMock{
+			AddCalled: func(key []byte, val vmcommon.VMExecutionHandler) error {
+				vms[string(key)] = val
+				return nil
+			},
+		}
+
+		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, &testscommon.BuiltInFunctionFactoryMock{})
+
+		require.NoError(t, err)
+		require.NotNil(t, vmContainer)
+
+		require.Equal(t, 2, len(vms))
+		require.NotNil(t, vms[string(vmFactory.SystemVirtualMachine)])
+		require.NotNil(t, vms[testContainerKey])
+		require.Equal(t, "*process.systemVM", fmt.Sprintf("%T", vms[string(vmFactory.SystemVirtualMachine)]))
+	})
+	t.Run("shard should NOT add systemVM", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.ChainRunType = common.ChainRunTypeRegular
+		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
+		require.NotNil(t, pcf)
+
+		vms := make(map[string]vmcommon.VMExecutionHandler, 0)
+		vms[testContainerKey] = &processMock.VMExecutionHandlerStub{}
+		vmContainer := &processMock.VMContainerMock{
+			AddCalled: func(key []byte, val vmcommon.VMExecutionHandler) error {
+				vms[string(key)] = val
+				return nil
+			},
+		}
+
+		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, &testscommon.BuiltInFunctionFactoryMock{})
+
+		require.NoError(t, err)
+		require.NotNil(t, vmContainer)
+
+		require.Equal(t, 1, len(vms))
+		require.NotNil(t, vms[testContainerKey])
+		require.Nil(t, vms[string(vmFactory.SystemVirtualMachine)])
+	})
+}
 
 func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
@@ -1136,7 +1202,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
