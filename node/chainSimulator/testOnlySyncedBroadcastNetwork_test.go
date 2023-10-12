@@ -69,12 +69,15 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 				continue
 			}
 
+			pid := nodes[i].ID()
+			println(fmt.Sprintf("%s sent the message %d times, received it %d times", pid.Pretty(), msgCnt.sent, msgCnt.received))
+
 			cntReceivedMessages += msgCnt.received
 			if msgCnt.received > maxMessagesReceived {
 				maxMessagesReceived = msgCnt.received
 			}
 
-			require.Equal(t, 1, msgCnt.sent, fmt.Sprintf("%s @idx %d didn't send any message", nodes[i].ID().Pretty(), i))
+			require.Equal(t, 1, msgCnt.sent, fmt.Sprintf("%s @idx %d didn't send any message", pid.Pretty(), i))
 		}
 
 		require.Equal(t, 0, cntMissedNodes, "all nodes should have received the message")
