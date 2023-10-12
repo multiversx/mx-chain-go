@@ -64,7 +64,6 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, topic 
 		}
 	}
 
-	peers = append(peers[:selfIdx], peers[selfIdx+1:]...)
 	handlers = append(handlers[:selfIdx], handlers[selfIdx+1:]...)
 
 	indexes := createIndexList(len(handlers))
