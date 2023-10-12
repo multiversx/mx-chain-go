@@ -227,7 +227,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
 	}()
 
-	val, _, err := adb.getMainTrie().Get(codeHash)
+	val, err := adb.getMainTrie().GetStorageManager().Get(codeHash)
 	if err != nil {
 		return nil
 	}
@@ -274,7 +274,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie.GetStorageManager())
 		if err != nil {
 			return err
 		}
@@ -344,7 +344,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -354,8 +354,26 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	return nil
 }
 
+func (adb *AccountsDB) removeCodeEntry(codeHash []byte) (*CodeEntry, error) {
+	oldCodeEntry, err := getCodeEntry(codeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
+	if err != nil {
+		return nil, err
+	}
+
+	if oldCodeEntry == nil {
+		return nil, nil
+	}
+
+	err = adb.mainTrie.GetStorageManager().Remove(codeHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return oldCodeEntry, nil
+}
+
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
@@ -365,21 +383,10 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	unmodifiedOldCodeEntry := &CodeEntry{
-		Code:          oldCodeEntry.Code,
-		NumReferences: oldCodeEntry.NumReferences,
+		Code: oldCodeEntry.Code,
 	}
 
-	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Delete(oldCodeHash)
-		if err != nil {
-			return nil, err
-		}
-
-		return unmodifiedOldCodeEntry, nil
-	}
-
-	oldCodeEntry.NumReferences--
-	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
+	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +399,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		return nil
 	}
 
-	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller)
+	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -402,9 +409,8 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 			Code: newCode,
 		}
 	}
-	newCodeEntry.NumReferences++
 
-	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
+	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -413,7 +419,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 }
 
 func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	val, _, err := trie.Get(codeHash)
+	val, err := trie.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -431,13 +437,13 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 	return &codeEntry, nil
 }
 
-func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+func saveCodeEntry(codeHash []byte, entry *CodeEntry, updater Updater, marshalizer marshal.Marshalizer) error {
 	codeEntry, err := marshalizer.Marshal(entry)
 	if err != nil {
 		return err
 	}
 
-	err = trie.Update(codeHash, codeEntry)
+	err = updater.Put(codeHash, codeEntry)
 	if err != nil {
 		return err
 	}
@@ -609,12 +615,12 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	unmodifiedOldCodeEntry, err := adb.removeCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return err
 	}

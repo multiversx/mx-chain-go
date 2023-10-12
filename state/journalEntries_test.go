@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,7 +26,7 @@ func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, nil)
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &storage.StorerStub{}, nil)
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
 }
@@ -33,7 +34,7 @@ func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &marshallerMock.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &storage.StorerStub{}, &marshallerMock.MarshalizerMock{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -41,8 +42,7 @@ func TestNewJournalEntryCode_OkParams(t *testing.T) {
 func TestJournalEntryCode_OldHashAndNewHashAreNil(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &trieMock.TrieStub{}
-	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &marshallerMock.MarshalizerMock{})
+	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, &storage.StorerStub{}, &marshallerMock.MarshalizerMock{})
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
@@ -53,18 +53,17 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	t.Parallel()
 
 	codeEntry := &state.CodeEntry{
-		Code:          []byte("newCode"),
-		NumReferences: 1,
+		Code: []byte("newCode"),
 	}
 	marshalizer := &marshallerMock.MarshalizerMock{}
 
 	updateCalled := false
-	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+	storerStub := &storage.StorerStub{
+		GetCalled: func(_ []byte) ([]byte, error) {
 			serializedCodeEntry, err := marshalizer.Marshal(codeEntry)
-			return serializedCodeEntry, 0, err
+			return serializedCodeEntry, err
 		},
-		UpdateCalled: func(key, value []byte) error {
+		PutCalled: func(key, data []byte) error {
 			updateCalled = true
 			return nil
 		},
@@ -73,7 +72,7 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 		&state.CodeEntry{},
 		nil,
 		[]byte("newHash"),
-		trieStub,
+		storerStub,
 		marshalizer,
 	)
 
@@ -113,7 +112,7 @@ func TestJournalEntryAccount_Revert(t *testing.T) {
 func TestNewJournalEntryAccountCreation_InvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &trieMock.TrieStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &storage.StorerStub{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrInvalidAddressLength, err)
 }
@@ -129,7 +128,7 @@ func TestNewJournalEntryAccountCreation_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &trieMock.TrieStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &storage.StorerStub{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -137,39 +136,38 @@ func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
 	t.Parallel()
 
-	updateErr := errors.New("update error")
+	expectedErr := errors.New("update error")
 	address := []byte("address")
-	ts := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
-			return updateErr
+	ss := &storage.StorerStub{
+		RemoveCalled: func(key []byte) error {
+			return expectedErr
 		},
 	}
-	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
+	entry, _ := state.NewJournalEntryAccountCreation(address, ss)
 
 	acc, err := entry.Revert()
-	assert.Equal(t, updateErr, err)
+	assert.Equal(t, expectedErr, err)
 	assert.Nil(t, acc)
 }
 
 func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 	t.Parallel()
 
-	updateCalled := false
+	removeCalled := false
 	address := []byte("address")
-	ts := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+	ss := &storage.StorerStub{
+		RemoveCalled: func(key []byte) error {
 			assert.Equal(t, address, key)
-			assert.Nil(t, value)
-			updateCalled = true
+			removeCalled = true
 			return nil
 		},
 	}
-	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
+	entry, _ := state.NewJournalEntryAccountCreation(address, ss)
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
 	assert.Nil(t, acc)
-	assert.True(t, updateCalled)
+	assert.True(t, removeCalled)
 }
 
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {

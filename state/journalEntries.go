@@ -14,7 +14,7 @@ type journalEntryCode struct {
 	oldCodeEntry *CodeEntry
 	oldCodeHash  []byte
 	newCodeHash  []byte
-	trie         Updater
+	updater      Updater
 	marshalizer  marshal.Marshalizer
 }
 
@@ -23,10 +23,10 @@ func NewJournalEntryCode(
 	oldCodeEntry *CodeEntry,
 	oldCodeHash []byte,
 	newCodeHash []byte,
-	trie Updater,
+	updater Updater,
 	marshalizer marshal.Marshalizer,
 ) (*journalEntryCode, error) {
-	if check.IfNil(trie) {
+	if check.IfNil(updater) {
 		return nil, ErrNilUpdater
 	}
 	if check.IfNil(marshalizer) {
@@ -37,7 +37,7 @@ func NewJournalEntryCode(
 		oldCodeEntry: oldCodeEntry,
 		oldCodeHash:  oldCodeHash,
 		newCodeHash:  newCodeHash,
-		trie:         trie,
+		updater:      updater,
 		marshalizer:  marshalizer,
 	}, nil
 }
@@ -66,7 +66,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
+	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.updater, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -75,26 +75,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
-	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
-	if err != nil {
-		return err
-	}
-
-	if newCodeEntry == nil {
-		return nil
-	}
-
-	if newCodeEntry.NumReferences <= 1 {
-		err = jea.trie.Update(jea.newCodeHash, nil)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	newCodeEntry.NumReferences--
-	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	err := jea.updater.Remove(jea.newCodeHash)
 	if err != nil {
 		return err
 	}
@@ -156,7 +137,7 @@ func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEn
 
 // Revert applies undo operation
 func (jea *journalEntryAccountCreation) Revert() (vmcommon.AccountHandler, error) {
-	return nil, jea.updater.Update(jea.address, nil)
+	return nil, jea.updater.Remove(jea.address)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -315,7 +315,7 @@ func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) {
 	t.Parallel()
 
-	updateCalled := 0
+	updateCalled := false
 	trieStub := &trieMock.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
@@ -328,16 +328,22 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 		},
 	}
 
+	putCalled := false
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return nil, 0, nil
 		},
 		UpdateCalled: func(key, value []byte) error {
-			updateCalled++
+			updateCalled = true
 			return nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{}
+			return &storageManager.StorageManagerStub{
+				PutCalled: func(b1, b2 []byte) error {
+					putCalled = true
+					return nil
+				},
+			}
 		},
 	})
 
@@ -363,7 +369,8 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 
 	err := adb.SaveAccount(acc)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, updateCalled)
+	assert.True(t, updateCalled)
+	assert.True(t, putCalled)
 	assert.NotNil(t, acc.GetCodeHash())
 	assert.NotNil(t, acc.GetRootHash())
 }
@@ -1538,7 +1545,6 @@ func checkCodeEntry(
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedCode, codeEntry.Code)
-	assert.Equal(t, expectedNumReferences, codeEntry.NumReferences)
 }
 
 func TestAccountsDB_SaveAccountSavesCodeIfCodeHashIsSet(t *testing.T) {
@@ -2788,7 +2794,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		entry, _ := state.GetCodeEntry(codeHash, tr, marshaller)
+		entry, _ := state.GetCodeEntry(codeHash, tsm, marshaller)
 		assert.Equal(b, code, entry.Code)
 	}
 }
