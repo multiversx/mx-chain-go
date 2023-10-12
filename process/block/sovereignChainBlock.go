@@ -845,6 +845,13 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
 }
 
+func (scbp *sovereignChainBlockProcessor) collectOutGoingOperations() {
+	logs := scbp.txCoordinator.GetAllCurrentLogs()
+	if len(logs) == 0 {
+
+	}
+}
+
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {
 	haveMissingExtendedShardHeaders := requestedExtendedShardHdrs > 0
 	if haveMissingExtendedShardHeaders {
