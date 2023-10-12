@@ -1,14 +1,16 @@
 package chainSimulator
 
 import (
+	"encoding/binary"
 	"errors"
+	"strconv"
 	"sync"
 
-	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/mr-tron/base58"
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 var errNilSeqGenerator = errors.New("nil sequence generator")
@@ -28,7 +30,7 @@ type testOnlySyncedMessenger struct {
 
 	mutSeenMessages sync.RWMutex
 	seenMessages    map[string]*msgCounter
-	uniqueMessages  map[string]struct{}
+	uniqueMessages  map[string]int
 	seqGenerator    seqGenerator
 }
 
@@ -45,7 +47,7 @@ func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenera
 	return &testOnlySyncedMessenger{
 		syncedMessenger: internalMessenger,
 		seenMessages:    make(map[string]*msgCounter),
-		uniqueMessages:  make(map[string]struct{}),
+		uniqueMessages:  make(map[string]int),
 		seqGenerator:    seqGenerator,
 	}, nil
 }
@@ -55,13 +57,14 @@ func (messenger *testOnlySyncedMessenger) ProcessReceivedMessage(message p2p.Mes
 	messenger.mutSeenMessages.Lock()
 	defer messenger.mutSeenMessages.Unlock()
 
-	key := string(message.From()) + string(message.SeqNo())
+	key := base58.Encode(message.From()) + strconv.FormatUint(binary.BigEndian.Uint64(message.SeqNo()), 10)
 	_, alreadySeenSameMessage := messenger.uniqueMessages[key]
 	if alreadySeenSameMessage {
+		messenger.uniqueMessages[key]++
 		return nil
 	}
 
-	messenger.uniqueMessages[key] = struct{}{}
+	messenger.uniqueMessages[key] = 1
 
 	msgCnt, alreadySeenEquivalentMessage := messenger.seenMessages[string(message.Data())]
 	if !alreadySeenEquivalentMessage {
@@ -103,7 +106,7 @@ func (messenger *testOnlySyncedMessenger) Broadcast(topic string, buff []byte) {
 		FromField:            messenger.ID().Bytes(),
 		DataField:            buff,
 		TopicField:           topic,
-		BroadcastMethodField: p2p2.Broadcast,
+		BroadcastMethodField: p2p.Broadcast,
 		SeqNoField:           messenger.seqGenerator.GenerateSequence(),
 	}
 
@@ -121,4 +124,16 @@ func (messenger *testOnlySyncedMessenger) getSeenMessages() map[string]*msgCount
 	}
 
 	return seenMessagesCopy
+}
+
+func (messenger *testOnlySyncedMessenger) getUniqueMessages() map[string]int {
+	messenger.mutSeenMessages.RLock()
+	defer messenger.mutSeenMessages.RUnlock()
+
+	uniqueMessagesCopy := make(map[string]int, len(messenger.uniqueMessages))
+	for key, counter := range messenger.uniqueMessages {
+		uniqueMessagesCopy[key] = counter
+	}
+
+	return uniqueMessagesCopy
 }
