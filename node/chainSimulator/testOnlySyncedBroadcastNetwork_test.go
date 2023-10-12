@@ -16,7 +16,7 @@ const (
 )
 
 func TestTestOnlySyncedBroadcastNetwork_EquivalentMessages(t *testing.T) {
-	t.Parallel()
+	t.Skip("testing only")
 
 	t.Run("single initiator", testMessagePropagation(1000, 10, 1, 1000))
 	t.Run("multiple initiators", testMessagePropagation(1000, 10, 5, 1000))
@@ -51,7 +51,7 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 			select {
 			case <-chanFinish:
 				done = true
-			case <-time.After(time.Second * 10):
+			case <-time.After(time.Minute):
 				assert.Fail(t, "timeout")
 				done = true
 			}

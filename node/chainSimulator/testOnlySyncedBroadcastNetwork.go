@@ -3,12 +3,15 @@ package chainSimulator
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 )
+
+const latency = time.Millisecond * 30
 
 type workerPool interface {
 	Submit(task func())
@@ -43,6 +46,16 @@ func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, workerPool worke
 func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, topic string, buff []byte) {
 	peers, handlers := network.getPeersAndHandlers()
 	totalNumOfPeers := len(peers)
+
+	network.mut.Lock()
+	network.peersWithMessagesReceived[pid] = struct{}{}
+	currentLen := len(network.peersWithMessagesReceived)
+	network.mut.Unlock()
+	if currentLen == totalNumOfPeers {
+		network.messagesFinished <- true
+		return
+	}
+
 	selfIdx := 0
 	for i, peer := range peers {
 		if peer == pid {
@@ -71,18 +84,8 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, topic 
 
 		randIdx := shuffledIndexes[idx]
 
-		// count the senders that received the message and sent it
-		go func() {
-			network.mut.Lock()
-			network.peersWithMessagesReceived[pid] = struct{}{}
-			currentLen := len(network.peersWithMessagesReceived)
-			network.mut.Unlock()
-			if currentLen == totalNumOfPeers {
-				network.messagesFinished <- true
-			}
-		}()
-
 		network.workerPool.Submit(func() {
+			time.Sleep(latency)
 			handlers[randIdx].receive(pid, message)
 		})
 	}
