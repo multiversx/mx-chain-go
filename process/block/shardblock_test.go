@@ -2775,15 +2775,17 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash3Requested := int32(0)
 
 	requestHandler := &testscommon.RequestHandlerStub{
-		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
-			if bytes.Equal(miniBlockHash1, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash1Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash2, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash2Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash3, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash3Requested, 1)
+		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+			for _, mbHash := range miniblocksHashes {
+				if bytes.Equal(miniBlockHash1, mbHash) {
+					atomic.AddInt32(&miniBlockHash1Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash2, mbHash) {
+					atomic.AddInt32(&miniBlockHash2Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash3, mbHash) {
+					atomic.AddInt32(&miniBlockHash3Requested, 1)
+				}
 			}
 		},
 	}
