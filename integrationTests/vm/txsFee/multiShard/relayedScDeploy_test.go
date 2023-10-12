@@ -31,9 +31,9 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	require.Equal(t, uint32(1), testContextRelayer.ShardCoordinator.ComputeId(sndAddr))
 
 	gasPrice := uint64(10)
-	gasLimit := uint64(1960)
+	gasLimit := uint64(1961)
 
-	_, _ = vm.CreateAccount(testContextRelayer.Accounts, relayerAddr, 0, big.NewInt(50000))
+	_, _ = vm.CreateAccount(testContextRelayer.Accounts, relayerAddr, 0, big.NewInt(100000))
 
 	contractPath := "../../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm"
 	scCode := wasm.GetSCCode(contractPath)
@@ -51,7 +51,7 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	_, err = testContextRelayer.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(2530)
+	expectedBalanceRelayer := big.NewInt(52520)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check accumulated fees
@@ -75,6 +75,6 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 
 	txs := testContextInner.GetIntermediateTransactions(t)
 
-	scr := txs[0]
+	scr := txs[2]
 	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.UserError, nil)
 }
