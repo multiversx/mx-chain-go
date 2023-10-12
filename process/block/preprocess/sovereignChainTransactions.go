@@ -53,7 +53,9 @@ func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func(
 	//TODO: Check through "allin system tests" if this value of 2x (normal txs + scheduled txs) is enough or could be raised,
 	//as with the new mechanism of proposing and parallel processing for proposer and validators, we are not limited anymore
 	//for a subround block duration of maximum 25% from the whole round. Actually the processing time could / will go up to 60% - 80%.
-	gasBandwidth := sct.economicsFee.MaxGasLimitPerBlock(sct.shardCoordinator.SelfId()) * 2.0
+
+	// TODO: maybe re-add the 2.0 multiplier
+	gasBandwidth := sct.economicsFee.MaxGasLimitPerBlock(sct.shardCoordinator.SelfId())
 
 	sortedTxs, err := sct.computeSortedTxs(sct.shardCoordinator.SelfId(), sct.shardCoordinator.SelfId(), randomness)
 	elapsedTime := time.Since(startTime)
@@ -82,7 +84,8 @@ func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func(
 		"time [s]", elapsedTime,
 	)
 
-	selectedTxs, _, _ := sct.addTxsWithinBandwidth(nil, sortedTxs, 0, gasBandwidth)
+	selectedTxs, remainingTxs, gasEstimation := sct.addTxsWithinBandwidth(nil, sortedTxs, 0, gasBandwidth)
+	log.Debug("maxGasUsage by proposer in BIL", "gasBandwidth", gasBandwidth/process.Billion, "gasEstimation", gasEstimation/process.Billion, "num txs", len(selectedTxs), "num remaining", len(remainingTxs), "num sorted txs", len(sortedTxs))
 
 	scheduledMiniBlocks, err := sct.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
