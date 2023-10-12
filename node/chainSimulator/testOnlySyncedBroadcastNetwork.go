@@ -1,0 +1,98 @@
+package chainSimulator
+
+import (
+	"errors"
+	"sync"
+
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+)
+
+type workerPool interface {
+	Submit(task func())
+}
+
+type testOnlySyncedBroadcastNetwork struct {
+	*syncedBroadcastNetwork
+
+	maxNumOfConnections       int
+	workerPool                workerPool
+	messagesFinished          chan bool
+	mut                       sync.RWMutex
+	peersWithMessagesReceived map[core.PeerID]struct{}
+}
+
+// NewTestOnlySyncedBroadcastNetwork -
+func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, workerPool workerPool, messagesFinished chan bool) (*testOnlySyncedBroadcastNetwork, error) {
+	if workerPool == nil {
+		return nil, errors.New("nil worker pool")
+	}
+
+	return &testOnlySyncedBroadcastNetwork{
+		syncedBroadcastNetwork:    NewSyncedBroadcastNetwork(),
+		maxNumOfConnections:       maxNumOfConnections,
+		workerPool:                workerPool,
+		messagesFinished:          messagesFinished,
+		peersWithMessagesReceived: make(map[core.PeerID]struct{}),
+	}, nil
+}
+
+// Broadcast -
+func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, topic string, buff []byte) {
+	peers, handlers := network.getPeersAndHandlers()
+	totalNumOfPeers := len(peers)
+	selfIdx := 0
+	for i, peer := range peers {
+		if peer == pid {
+			selfIdx = i
+			break
+		}
+	}
+
+	peers = append(peers[:selfIdx], peers[selfIdx+1:]...)
+	handlers = append(handlers[:selfIdx], handlers[selfIdx+1:]...)
+
+	indexes := createIndexList(len(handlers))
+	shuffledIndexes := random.FisherYatesShuffle(indexes, &random.ConcurrentSafeIntRandomizer{})
+
+	totalBroadcasts := network.maxNumOfConnections
+	if len(shuffledIndexes) < network.maxNumOfConnections {
+		totalBroadcasts = len(shuffledIndexes)
+	}
+	for idx := 0; idx < totalBroadcasts; idx++ {
+		message := &p2pMessage.Message{
+			FromField:            pid.Bytes(),
+			DataField:            buff,
+			TopicField:           topic,
+			BroadcastMethodField: p2p.Broadcast,
+		}
+
+		randIdx := shuffledIndexes[idx]
+
+		// count the senders that received the message and sent it
+		go func() {
+			network.mut.Lock()
+			network.peersWithMessagesReceived[pid] = struct{}{}
+			currentLen := len(network.peersWithMessagesReceived)
+			network.mut.Unlock()
+			if currentLen == totalNumOfPeers {
+				network.messagesFinished <- true
+			}
+		}()
+
+		network.workerPool.Submit(func() {
+			handlers[randIdx].receive(pid, message)
+		})
+	}
+}
+
+func createIndexList(listLength int) []int {
+	indexes := make([]int, listLength)
+	for i := 0; i < listLength; i++ {
+		indexes[i] = i
+	}
+
+	return indexes
+}
