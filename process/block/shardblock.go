@@ -1107,6 +1107,13 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 			sp.dataPool,
 			sp.blockTracker,
 		)
+
+		gasConsumed := sp.gasConsumedProvider.TotalGasProvidedWithScheduled() - sp.gasConsumedProvider.TotalGasRefunded() - sp.gasConsumedProvider.TotalGasPenalized()
+		log.Debug("blockGasUsage in BIL",
+			"consumed", fmt.Sprintf("%.3f", float64(gasConsumed)/process.Billion),
+			"provided", fmt.Sprintf("%.3f", float64(sp.gasConsumedProvider.TotalGasProvidedWithScheduled())/process.Billion),
+			"refunded", fmt.Sprintf("%.3f", float64(sp.gasConsumedProvider.TotalGasRefunded())/process.Billion),
+			"penalized", fmt.Sprintf("%.3f", float64(sp.gasConsumedProvider.TotalGasPenalized())/process.Billion))
 	}()
 
 	sp.blockSizeThrottler.Succeed(header.GetRound())
