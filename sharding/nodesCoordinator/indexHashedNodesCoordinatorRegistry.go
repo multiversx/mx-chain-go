@@ -72,14 +72,14 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorsInfoFromStatic(
 
 		mbBytes, err := ihnc.epochStartStaticStorer.Get(mbHeader.GetHash())
 		if err != nil {
-			log.Error("createValidatorsInfoFromStatic:", "key", mbHeader.GetHash(), "error", err)
+			log.Error("createValidatorsInfoFromStatic:", "mbHeaderHash", mbHeader.GetHash(), "error", err)
 			return nil, err
 		}
 
 		mb := &block.MiniBlock{}
 		err = ihnc.marshalizer.Unmarshal(mb, mbBytes)
 		if err != nil {
-			log.Error("createValidatorsInfoFromStatic: Unmarshal", "key", mbHeader.GetHash(), "error", err)
+			log.Error("createValidatorsInfoFromStatic: Unmarshal", "mbHeaderHash", mbHeader.GetHash(), "error", err)
 			return nil, err
 		}
 

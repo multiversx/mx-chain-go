@@ -160,14 +160,10 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
 	}
-	log.Info("new nodes config is set for epoch", "epoch", args.Epoch)
-	currentNodesConfig := ihnc.nodesConfig[args.Epoch]
-	if currentNodesConfig == nil {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, args.Epoch)
-	}
 
-	currentConfig := nodesConfig[args.Epoch]
-	if currentConfig == nil {
+	log.Info("new nodes config is set for epoch", "epoch", args.Epoch)
+	currentConfig, ok := ihnc.getNodesConfig(args.Epoch)
+	if !ok {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, args.Epoch)
 	}
 
