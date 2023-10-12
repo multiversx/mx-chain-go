@@ -1,0 +1,7 @@
+void init()
+{
+}
+
+void asyncCall()
+{
+}
