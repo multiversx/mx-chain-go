@@ -418,8 +418,8 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	return nil
 }
 
-func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	val, err := trie.Get(codeHash)
+func getCodeEntry(codeHash []byte, updater Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+	val, err := updater.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -528,6 +528,31 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 	}
 
 	return mainTrie.Update(accountHandler.AddressBytes(), buff)
+}
+
+// RemoveCodeLeaf will remove code leaf node from main trie
+func (adb *AccountsDB) RemoveCodeLeaf(codeHash []byte) error {
+	val, _, err := adb.mainTrie.Get(codeHash)
+	if err != nil {
+		return err
+	}
+	if val == nil {
+		return nil
+	}
+
+	// check if node is code leaf
+	var codeEntry CodeEntry
+	err = adb.marshaller.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return err
+	}
+
+	err = adb.mainTrie.Delete(codeHash)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // RemoveAccount removes the account data from underlying trie.
