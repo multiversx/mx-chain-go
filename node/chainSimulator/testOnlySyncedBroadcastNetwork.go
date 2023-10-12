@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
-	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 )
@@ -43,7 +42,7 @@ func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, workerPool worke
 }
 
 // Broadcast -
-func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, topic string, buff []byte) {
+func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, message p2p.MessageP2P) {
 	peers, handlers := network.getPeersAndHandlers()
 	totalNumOfPeers := len(peers)
 
@@ -74,13 +73,6 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, topic 
 		totalBroadcasts = len(shuffledIndexes)
 	}
 	for idx := 0; idx < totalBroadcasts; idx++ {
-		message := &p2pMessage.Message{
-			FromField:            pid.Bytes(),
-			DataField:            buff,
-			TopicField:           topic,
-			BroadcastMethodField: p2p.Broadcast,
-		}
-
 		randIdx := shuffledIndexes[idx]
 
 		network.workerPool.Submit(func() {

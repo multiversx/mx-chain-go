@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-communication-go/p2p/libp2p/crypto"
+	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
@@ -169,7 +170,14 @@ func (messenger *syncedMessenger) Broadcast(topic string, buff []byte) {
 		return
 	}
 
-	messenger.network.Broadcast(messenger.pid, topic, buff)
+	message := &p2pMessage.Message{
+		FromField:            messenger.ID().Bytes(),
+		DataField:            buff,
+		TopicField:           topic,
+		BroadcastMethodField: p2p.Broadcast,
+	}
+
+	messenger.network.Broadcast(messenger.pid, message)
 }
 
 // BroadcastOnChannel calls the Broadcast method

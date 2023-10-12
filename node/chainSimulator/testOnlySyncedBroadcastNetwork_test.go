@@ -16,7 +16,7 @@ const (
 )
 
 func TestTestOnlySyncedBroadcastNetwork_EquivalentMessages(t *testing.T) {
-	t.Skip("testing only")
+	//t.Skip("testing only")
 
 	t.Run("single initiator", testMessagePropagation(1000, 10, 1, 1000))
 	t.Run("multiple initiators", testMessagePropagation(1000, 10, 5, 1000))
@@ -33,7 +33,7 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 
 		nodes := make([]*testOnlySyncedMessenger, numNodes)
 		for i := 0; i < numNodes; i++ {
-			nodes[i], err = NewTestOnlySyncedMessenger(network)
+			nodes[i], err = NewTestOnlySyncedMessenger(network, NewSequenceGenerator())
 			require.Nil(t, err)
 
 			_ = nodes[i].CreateTopic(topic, true)
@@ -70,7 +70,7 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 			}
 
 			pid := nodes[i].ID()
-			println(fmt.Sprintf("%s sent the message %d times, received it %d times", pid.Pretty(), msgCnt.sent, msgCnt.received))
+			println(fmt.Sprintf("%s equivalent messages stats: %d sent, %d received", pid.Pretty(), msgCnt.sent, msgCnt.received))
 
 			cntReceivedMessages += msgCnt.received
 			if msgCnt.received > maxMessagesReceived {
@@ -85,8 +85,8 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 		println(fmt.Sprintf("Results: %d nodes, %d peers, %d initiators\n"+
 			"message reached all nodes after %s\n"+
 			"max messages received by a peer %d\n"+
-			"average messages received by a peer %d\n",
-			numNodes, numPeersPerNode, numInitiators, duration, maxMessagesReceived, cntReceivedMessages/numNodes))
+			"average messages received by a peer %f\n",
+			numNodes, numPeersPerNode, numInitiators, duration, maxMessagesReceived, float64(cntReceivedMessages)/float64(numNodes)))
 
 		workerPoolInstance.Stop()
 	}

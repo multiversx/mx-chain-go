@@ -53,17 +53,10 @@ func (network *syncedBroadcastNetwork) RegisterMessageReceiver(handler messageRe
 }
 
 // Broadcast will iterate through peers and send the message
-func (network *syncedBroadcastNetwork) Broadcast(pid core.PeerID, topic string, buff []byte) {
+func (network *syncedBroadcastNetwork) Broadcast(pid core.PeerID, message p2p.MessageP2P) {
 	_, handlers := network.getPeersAndHandlers()
 
 	for _, handler := range handlers {
-		message := &p2pMessage.Message{
-			FromField:            pid.Bytes(),
-			DataField:            buff,
-			TopicField:           topic,
-			BroadcastMethodField: p2p.Broadcast,
-		}
-
 		handler.receive(pid, message)
 	}
 }
