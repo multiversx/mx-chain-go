@@ -57,14 +57,14 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	}
 	marshalizer := &marshallerMock.MarshalizerMock{}
 
-	updateCalled := false
+	removeCalled := false
 	storerStub := &storage.StorerStub{
 		GetCalled: func(_ []byte) ([]byte, error) {
 			serializedCodeEntry, err := marshalizer.Marshal(codeEntry)
 			return serializedCodeEntry, err
 		},
-		PutCalled: func(key, data []byte) error {
-			updateCalled = true
+		RemoveCalled: func(key []byte) error {
+			removeCalled = true
 			return nil
 		},
 	}
@@ -79,7 +79,7 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
 	assert.Nil(t, acc)
-	assert.True(t, updateCalled)
+	assert.True(t, removeCalled)
 }
 
 func TestNewJournalEntryAccount_NilAccountShouldErr(t *testing.T) {

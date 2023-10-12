@@ -1688,7 +1688,11 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	tr, adb := getDefaultTrieAndAccountsDb()
+
+	newCode := []byte("code2")
+	memDbMock := testscommon.NewMemDbMock()
+
+	tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
 
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
@@ -1702,7 +1706,6 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	addr1[0] = 1
 	acc, _ = adb.LoadAccount(addr1)
 	userAcc = acc.(state.UserAccountHandler)
-	newCode := []byte("code2")
 	userAcc.SetCode(newCode)
 	newCodeHash := hasher.Compute(string(newCode))
 	_ = adb.SaveAccount(userAcc)

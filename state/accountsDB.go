@@ -334,7 +334,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return nil
 	}
 
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -344,7 +344,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
+	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -370,28 +370,6 @@ func (adb *AccountsDB) removeCodeEntry(codeHash []byte) (*CodeEntry, error) {
 	}
 
 	return oldCodeEntry, nil
-}
-
-func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
-	if err != nil {
-		return nil, err
-	}
-
-	if oldCodeEntry == nil {
-		return nil, nil
-	}
-
-	unmodifiedOldCodeEntry := &CodeEntry{
-		Code: oldCodeEntry.Code,
-	}
-
-	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie.GetStorageManager(), adb.marshaller)
-	if err != nil {
-		return nil, err
-	}
-
-	return unmodifiedOldCodeEntry, nil
 }
 
 func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {

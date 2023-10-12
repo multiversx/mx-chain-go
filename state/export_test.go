@@ -38,8 +38,8 @@ func GetCode(account baseAccountHandler) []byte {
 }
 
 // GetCodeEntry -
-func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	return getCodeEntry(codeHash, trie, marshalizer)
+func GetCodeEntry(codeHash []byte, updater Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+	return getCodeEntry(codeHash, updater, marshalizer)
 }
 
 // RecreateTrieIfNecessary -
