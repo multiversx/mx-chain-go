@@ -97,7 +97,7 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 			"average messages received by a peer %f\n",
 			numNodes, numPeersPerNode, numInitiators, duration, maxMessagesReceived, float64(cntReceivedMessages)/float64(numNodes)))
 
-		println(fmt.Sprintf("Results unique messages:"))
+		println("Results unique messages:")
 		for key, total := range uniqueMessagesTotal {
 			println(fmt.Sprintf("%s was received in total of %d times, with an average of %f times per node", key, total, float64(total)/float64(numNodes)))
 		}
