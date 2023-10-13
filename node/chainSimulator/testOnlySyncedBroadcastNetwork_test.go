@@ -18,11 +18,14 @@ const (
 func TestTestOnlySyncedBroadcastNetwork_EquivalentMessages(t *testing.T) {
 	t.Skip("testing only")
 
-	t.Run("single initiator", testMessagePropagation(400, 133, 6, 1, 1000))
-	t.Run("multiple initiators", testMessagePropagation(400, 133, 6, 5, 1000))
+	t.Run("single initiator, no equivalent messages filter", testMessagePropagation(400, 133, 6, 1, 1000, false))
+	t.Run("multiple initiators, no equivalent messages filter", testMessagePropagation(400, 133, 6, 5, 1000, false))
+
+	t.Run("single initiator, equivalent messages filter", testMessagePropagation(400, 133, 6, 1, 1000, true))
+	t.Run("multiple initiators, equivalent messages filter", testMessagePropagation(400, 133, 6, 5, 1000, true))
 }
 
-func testMessagePropagation(numNodes int, numOfMaliciousPeers int, numOfBroadcasts int, numInitiators int, numWorkers int) func(t *testing.T) {
+func testMessagePropagation(numNodes int, numOfMaliciousPeers int, numOfBroadcasts int, numInitiators int, numWorkers int, equivalentMessagesFilterOn bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		// workerPoolInstance keeps the go routines created by broadcasts in control
 		workerPoolInstance := workerpool.New(numWorkers)
@@ -36,7 +39,7 @@ func testMessagePropagation(numNodes int, numOfMaliciousPeers int, numOfBroadcas
 		startingIndexOfMaliciousPeers := numNodes - numOfMaliciousPeers
 		for i := 0; i < numNodes; i++ {
 			isMalicious := i >= startingIndexOfMaliciousPeers
-			nodes[i], err = NewTestOnlySyncedMessenger(network, seqNoGenerator, isMalicious)
+			nodes[i], err = NewTestOnlySyncedMessenger(network, seqNoGenerator, isMalicious, equivalentMessagesFilterOn)
 			require.Nil(t, err)
 
 			_ = nodes[i].CreateTopic(topic, true)
@@ -59,8 +62,6 @@ func testMessagePropagation(numNodes int, numOfMaliciousPeers int, numOfBroadcas
 			}
 		}
 		duration := time.Since(start)
-
-		workerPoolInstance.StopWait()
 
 		uniqueMessagesTotal := make(map[string]int)
 
@@ -91,12 +92,17 @@ func testMessagePropagation(numNodes int, numOfMaliciousPeers int, numOfBroadcas
 				println(fmt.Sprintf("\t- key: %s, %d times received", key, cnt))
 			}
 
-			if isMalicious {
-				assert.Equal(t, 0, msgCnt.sent, fmt.Sprintf("%s @idx %d malicious should not send any message", pid.Pretty(), i))
+			// skip checks for filter off, nodes may send 1->numInitiators messages
+			if !equivalentMessagesFilterOn {
 				continue
 			}
 
-			assert.Equal(t, 1, msgCnt.sent, fmt.Sprintf("%s @idx %d didn't send any message", pid.Pretty(), i))
+			expectedSent := 1
+			if isMalicious {
+				expectedSent = 0
+			}
+
+			assert.Equal(t, expectedSent, msgCnt.sent, fmt.Sprintf("%s @idx %d didn't send any message, isMalicious %t", pid.Pretty(), i, isMalicious))
 		}
 
 		assert.Equal(t, 0, cntMissedNodes, "all nodes should have received the message")
@@ -116,5 +122,7 @@ func testMessagePropagation(numNodes int, numOfMaliciousPeers int, numOfBroadcas
 			println(fmt.Sprintf("\t- %s was received in total of %d times, with an average of %f times per node", key, total, float64(total)/float64(numNodes)))
 		}
 		println()
+
+		workerPoolInstance.Stop()
 	}
 }

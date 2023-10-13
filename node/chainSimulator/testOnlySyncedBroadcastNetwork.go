@@ -69,24 +69,22 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, messag
 	for idx := 0; idx < totalBroadcasts; idx++ {
 		randIdx := shuffledIndexes[idx]
 
-		if network.workerPool.Stopped() {
-			return
+		if !network.workerPool.Stopped() {
+			network.workerPool.Submit(func() {
+				time.Sleep(latency)
+
+				handlers[randIdx].receive(pid, message)
+
+				network.mut.Lock()
+				defer network.mut.Unlock()
+				network.peersWithMessagesReceived[peers[randIdx]] = struct{}{}
+				currentLen := len(network.peersWithMessagesReceived)
+
+				if currentLen == totalNumOfPeers {
+					go func() { network.messagesFinished <- true }()
+				}
+			})
 		}
-
-		network.workerPool.Submit(func() {
-			time.Sleep(latency)
-
-			handlers[randIdx].receive(pid, message)
-
-			network.mut.Lock()
-			defer network.mut.Unlock()
-			network.peersWithMessagesReceived[peers[randIdx]] = struct{}{}
-			currentLen := len(network.peersWithMessagesReceived)
-
-			if currentLen == totalNumOfPeers {
-				go func() { network.messagesFinished <- true }()
-			}
-		})
 
 	}
 }

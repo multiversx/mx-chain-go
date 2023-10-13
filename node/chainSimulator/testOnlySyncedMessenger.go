@@ -28,15 +28,16 @@ type msgCounter struct {
 type testOnlySyncedMessenger struct {
 	*syncedMessenger
 
-	mutSeenMessages sync.RWMutex
-	seenMessages    map[string]*msgCounter
-	uniqueMessages  map[string]int
-	seqGenerator    seqGenerator
-	isMalicious     bool
+	mutSeenMessages            sync.RWMutex
+	seenMessages               map[string]*msgCounter
+	uniqueMessages             map[string]int
+	seqGenerator               seqGenerator
+	isMalicious                bool
+	equivalentMessagesFilterOn bool
 }
 
 // NewTestOnlySyncedMessenger -
-func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenerator seqGenerator, isMalicious bool) (*testOnlySyncedMessenger, error) {
+func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenerator seqGenerator, isMalicious bool, equivalentMessagesFilterOn bool) (*testOnlySyncedMessenger, error) {
 	if check.IfNil(seqGenerator) {
 		return nil, errNilSeqGenerator
 	}
@@ -46,11 +47,12 @@ func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenera
 	}
 
 	return &testOnlySyncedMessenger{
-		syncedMessenger: internalMessenger,
-		seenMessages:    make(map[string]*msgCounter),
-		uniqueMessages:  make(map[string]int),
-		seqGenerator:    seqGenerator,
-		isMalicious:     isMalicious,
+		syncedMessenger:            internalMessenger,
+		seenMessages:               make(map[string]*msgCounter),
+		uniqueMessages:             make(map[string]int),
+		seqGenerator:               seqGenerator,
+		isMalicious:                isMalicious,
+		equivalentMessagesFilterOn: equivalentMessagesFilterOn,
 	}, nil
 }
 
@@ -66,10 +68,28 @@ func (messenger *testOnlySyncedMessenger) ProcessReceivedMessage(message p2p.Mes
 		return nil
 	}
 
+	// filter for equivalent messages is not active(old behaviour)
+	if !messenger.equivalentMessagesFilterOn {
+		msgCnt, alreadySeenEquivalentMessage := messenger.seenMessages[string(message.Data())]
+		if !alreadySeenEquivalentMessage {
+			msgCnt = &msgCounter{}
+			messenger.seenMessages[string(message.Data())] = msgCnt
+		}
+
+		if !messenger.isMalicious {
+			msgCnt.sent++
+			messenger.network.Broadcast(messenger.pid, message)
+		}
+
+		msgCnt.received++
+
+		return nil
+	}
+
+	// filter for equivalent messages is active
 	msgCnt, alreadySeenEquivalentMessage := messenger.seenMessages[string(message.Data())]
 	if !alreadySeenEquivalentMessage {
 		msgCnt = &msgCounter{}
-
 		messenger.seenMessages[string(message.Data())] = msgCnt
 
 		if !messenger.isMalicious {
