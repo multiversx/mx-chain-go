@@ -1,11 +1,11 @@
 package sovereign
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
 )
 
 var identifier = []byte("deposit")
@@ -78,5 +78,6 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	}
 
 	outgoingTxData := creator.CreateOutgoingTxData(logs)
-	fmt.Println(string(outgoingTxData))
+	expectedTxData := []byte("bridgeOps@rcv1@token1@nonce1@functionToCall1@arg1@arg2@50000@rcv2@token2@nonce2@value2@token3@nonce3@functionToCall2@arg2@40000")
+	require.Equal(t, expectedTxData, outgoingTxData)
 }

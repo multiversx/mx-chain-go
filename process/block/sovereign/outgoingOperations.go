@@ -2,7 +2,6 @@ package sovereign
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -83,6 +82,7 @@ func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte 
 	for _, ev := range outgoingEvents {
 		txData = append(txData, byte('@'))
 		txData = append(txData, createSCRData(ev.GetTopics())...)
+		txData = append(txData, byte('@'))
 		txData = append(txData, ev.GetData()...)
 	}
 
@@ -91,11 +91,9 @@ func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte 
 
 func createSCRData(topics [][]byte) []byte {
 	ret := topics[0]
-	for idx := 1; idx < len(topics[1:]); idx += 3 {
-		transfer := []byte("@" +
-			hex.EncodeToString(topics[idx]) + // tokenID
-			"@" + hex.EncodeToString(topics[idx+1]) + //nonce
-			"@" + hex.EncodeToString(topics[idx+2])) //value
+	for idx := 1; idx < len(topics[1:]); idx += 1 {
+		transfer := []byte("@")
+		transfer = append(transfer, topics[idx]...)
 
 		ret = append(ret, transfer...)
 	}
