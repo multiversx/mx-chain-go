@@ -1204,7 +1204,7 @@ func (t *trigger) savePeerMiniBlocksToStaticStorer(header data.HeaderHandler) er
 			return err
 		}
 
-		if header.GetEpoch() >= t.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+		if header.GetEpoch() >= t.enableEpochsHandler.GetActivationEpoch(common.RefactorPeersMiniBlocksFlag) {
 			for _, txHash := range miniBlock.TxHashes {
 				err := t.fetchAndSaveValidatorInfoToStaticStorer(txHash)
 				if err != nil {

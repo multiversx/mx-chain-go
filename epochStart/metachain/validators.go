@@ -73,17 +73,16 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
-<<<<<<< HEAD
 	if check.IfNil(args.EpochStartStaticStorage) {
 		return nil, epochStart.ErrNilStorage
-=======
+	}
+
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
 		common.DeterministicSortOnValidatorsInfoFixFlag,
 	})
 	if err != nil {
 		return nil, err
->>>>>>> rc/v1.7.0
 	}
 
 	vic := &validatorInfoCreator{

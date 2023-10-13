@@ -216,7 +216,6 @@ func TestNewIndexHashedNodesCoordinator_NilEnableEpochsHandlerShouldErr(t *testi
 	require.Nil(t, ihnc)
 }
 
-<<<<<<< HEAD
 func TestNewIndexHashedNodesCoordinator_InvalidNumStoredEpochsShouldErr(t *testing.T) {
 	arguments := createArguments()
 	arguments.NumStoredEpochs = 0
@@ -241,14 +240,15 @@ func TestNewIndexHashedNodesCoordinator_NilEpochStartStaticStorerShouldErr(t *te
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
 	require.Equal(t, ErrNilEpochStartStaticStorer, err)
-=======
+	require.Nil(t, ihnc)
+}
+
 func TestNewIndexHashedNodesCoordinator_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
 	arguments := createArguments()
 	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
 	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
->>>>>>> rc/v1.7.0
 	require.Nil(t, ihnc)
 }
 

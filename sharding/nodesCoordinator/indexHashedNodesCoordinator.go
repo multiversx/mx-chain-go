@@ -219,18 +219,7 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
-<<<<<<< HEAD
 	if check.IfNil(args.ValidatorInfoCacher) {
-=======
-	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
-		common.RefactorPeersMiniBlocksFlag,
-		common.WaitingListFixFlag,
-	})
-	if err != nil {
-		return err
-	}
-	if check.IfNil(arguments.ValidatorInfoCacher) {
->>>>>>> rc/v1.7.0
 		return ErrNilValidatorInfoCacher
 	}
 	if args.NumStoredEpochs < minStoredEpochs {
@@ -241,6 +230,14 @@ func checkArguments(args ArgNodesCoordinator) error {
 	}
 	if check.IfNil(args.EpochStartStaticStorer) {
 		return ErrNilEpochStartStaticStorer
+	}
+
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return err
 	}
 
 	return nil
