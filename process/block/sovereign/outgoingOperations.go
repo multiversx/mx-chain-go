@@ -3,6 +3,7 @@ package sovereign
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -13,7 +14,7 @@ const numTransferTopics = 3
 
 var log = logger.GetOrCreate("outgoing-operations")
 
-// SubscribedEvent contains a subscribed event from the main chain that the notifier is watching
+// SubscribedEvent contains a subscribed event from the main chain that the op is watching
 type SubscribedEvent struct {
 	Identifier []byte
 	Addresses  map[string]string
@@ -23,8 +24,57 @@ type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
 }
 
-func (notifier *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte {
-	outgoingEvents := notifier.createIncomingEvents(logs)
+func NewOutgoingOperationsCreator(subscribedEvents []SubscribedEvent) (*outgoingOperations, error) {
+	err := checkEvents(subscribedEvents)
+	if err != nil {
+		return nil, err
+	}
+
+	return &outgoingOperations{
+		subscribedEvents: subscribedEvents,
+	}, nil
+}
+
+func checkEvents(events []SubscribedEvent) error {
+	if len(events) == 0 {
+		return errNoSubscribedEvent
+	}
+
+	log.Debug("sovereign op received config", "num subscribed events", len(events))
+	for idx, event := range events {
+		if len(event.Identifier) == 0 {
+			return fmt.Errorf("%w at event index = %d", errNoSubscribedIdentifier, idx)
+		}
+
+		log.Debug("sovereign op", "subscribed event identifier", string(event.Identifier))
+
+		err := checkEmptyAddresses(event.Addresses)
+		if err != nil {
+			return fmt.Errorf("%w at event index = %d", err, idx)
+		}
+	}
+
+	return nil
+}
+
+func checkEmptyAddresses(addresses map[string]string) error {
+	if len(addresses) == 0 {
+		return errNoSubscribedAddresses
+	}
+
+	for decodedAddr, encodedAddr := range addresses {
+		if len(decodedAddr) == 0 || len(encodedAddr) == 0 {
+			return errNoSubscribedAddresses
+		}
+
+		log.Debug("sovereign op", "subscribed address", encodedAddr)
+	}
+
+	return nil
+}
+
+func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte {
+	outgoingEvents := op.createIncomingEvents(logs)
 	if len(outgoingEvents) == 0 {
 		return make([]byte, 0)
 	}
@@ -53,22 +103,22 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (notifier *outgoingOperations) createIncomingEvents(logs []*data.LogData) []data.EventHandler {
+func (op *outgoingOperations) createIncomingEvents(logs []*data.LogData) []data.EventHandler {
 	incomingEvents := make([]data.EventHandler, 0)
 
 	for _, logData := range logs {
-		eventsFromLog := notifier.getIncomingEvents(logData)
+		eventsFromLog := op.getIncomingEvents(logData)
 		incomingEvents = append(incomingEvents, eventsFromLog...)
 	}
 
 	return incomingEvents
 }
 
-func (notifier *outgoingOperations) getIncomingEvents(logData *data.LogData) []data.EventHandler {
+func (op *outgoingOperations) getIncomingEvents(logData *data.LogData) []data.EventHandler {
 	incomingEvents := make([]data.EventHandler, 0)
 
 	for _, event := range logData.GetLogEvents() {
-		if !notifier.isSubscribed(event, logData.TxHash) {
+		if !op.isSubscribed(event, logData.TxHash) {
 			continue
 		}
 
@@ -78,8 +128,8 @@ func (notifier *outgoingOperations) getIncomingEvents(logData *data.LogData) []d
 	return incomingEvents
 }
 
-func (notifier *outgoingOperations) isSubscribed(event data.EventHandler, txHash string) bool {
-	for _, subEvent := range notifier.subscribedEvents {
+func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash string) bool {
+	for _, subEvent := range op.subscribedEvents {
 		if !bytes.Equal(event.GetIdentifier(), subEvent.Identifier) {
 			continue
 		}
@@ -95,4 +145,8 @@ func (notifier *outgoingOperations) isSubscribed(event data.EventHandler, txHash
 	}
 
 	return false
+}
+
+func (op *outgoingOperations) IsInterfaceNil() bool {
+	return op == nil
 }
