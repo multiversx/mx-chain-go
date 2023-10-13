@@ -1,6 +1,7 @@
 package examples
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -144,6 +145,32 @@ func TestConstructTransaction_WithDataWithLargeValue(t *testing.T) {
 
 	txHash := contentHasher.Compute(string(data))
 	require.Equal(t, "e4a6048d92409cfe50f12e81218cb92f39966c618979a693b8d16320a06061c1", hex.EncodeToString(txHash))
+}
+
+func TestConstructTransaction_WithGuardianFields(t *testing.T) {
+	tx := &transaction.Transaction{
+		Nonce:    92,
+		Value:    stringToBigInt("123456789000000000000000000000"),
+		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
+		SndAddr:  getPubkeyOfAddress(t, "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"),
+		GasPrice: 1000000000,
+		GasLimit: 150000,
+		Data:     []byte("test data field"),
+		ChainID:  []byte("local-testnet"),
+		Version:  1,
+	}
+
+	tx.GuardianAddr = getPubkeyOfAddress(t, "erd1x23lzn8483xs2su4fak0r0dqx6w38enpmmqf2yrkylwq7mfnvyhsxqw57y")
+	tx.GuardianSignature = bytes.Repeat([]byte{0}, 64)
+
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
+	require.Equal(t, "540ad16e46f379f9adcb7b26c07b16a56f10c624c489103679e488c0a0cb996c71dbc0d765cf925e58cd493d09d8c1d619946618ebd8a2fb924b236b8137c706", hex.EncodeToString(tx.Signature))
+
+	data, _ := contentMarshalizer.Marshal(tx)
+	require.Equal(t, "085c120e00018ee90ff6181f3761632000001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340f093094a0f746573742064617461206669656c64520d6c6f63616c2d746573746e657458016240540ad16e46f379f9adcb7b26c07b16a56f10c624c489103679e488c0a0cb996c71dbc0d765cf925e58cd493d09d8c1d619946618ebd8a2fb924b236b8137c706722032a3f14cf53c4d0543954f6cf1bda0369d13e661dec095107627dc0f6d33612f7a4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", hex.EncodeToString(data))
+
+	txHash := contentHasher.Compute(string(data))
+	require.Equal(t, "a5e63b5bf3b7eeb347cad1aa742770a29c7a88e59ac99cdc60dc612ebdc8a7d4", hex.EncodeToString(txHash))
 }
 
 func TestConstructTransaction_WithNonceZero(t *testing.T) {

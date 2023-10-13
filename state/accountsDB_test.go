@@ -3065,6 +3065,83 @@ func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
 	require.NotNil(t, acc)
 }
 
+func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &marshallerMock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, uint(5))
+	spm := &stateMock.StoragePruningManagerStub{}
+	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.Trie = tr
+	argsAccountsDB.Hasher = hasher
+	argsAccountsDB.Marshaller = marshaller
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:              hasher,
+		Marshaller:          marshaller,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
+	argsAccountsDB.StoragePruningManager = spm
+	adb, _ := state.NewAccountsDB(argsAccountsDB)
+
+	address := make([]byte, 32)
+	acc, err := adb.LoadAccount(address)
+	require.Nil(t, err)
+
+	// save account with data trie that is not migrated
+	userAcc := acc.(state.UserAccountHandler)
+	key := []byte("key")
+	err = userAcc.SaveKeyValue(key, []byte("value"))
+	require.Nil(t, err)
+	err = userAcc.SaveKeyValue([]byte("key1"), []byte("value"))
+	require.Nil(t, err)
+
+	err = adb.SaveAccount(userAcc)
+	userAccRootHash := userAcc.GetRootHash()
+	require.Nil(t, err)
+	_, err = adb.Commit()
+	require.Nil(t, err)
+
+	enableEpochsHandler.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+
+	// a JournalEntry is needed so the revert can happen at snapshot 1. Creating a new account creates a new journal entry.
+	newAcc, _ := adb.LoadAccount(generateRandomByteArray(32))
+	_ = adb.SaveAccount(newAcc)
+	assert.Equal(t, 1, adb.JournalLen())
+
+	// change the account data trie. This will trigger the migration
+	acc, err = adb.LoadAccount(address)
+	require.Nil(t, err)
+	userAcc = acc.(state.UserAccountHandler)
+	value1 := []byte("value1")
+	err = userAcc.SaveKeyValue(key, value1)
+	require.Nil(t, err)
+	err = adb.SaveAccount(userAcc)
+	require.Nil(t, err)
+
+	// revert the migration
+	err = adb.RevertToSnapshot(1)
+	require.Nil(t, err)
+
+	// check that the data trie was completely reverted. The rootHash of the user account should be present
+	// in both old and new hashes. This means that after the revert, the rootHash is the same as before
+	markForEvictionCalled := false
+	spm.MarkForEvictionCalled = func(_ []byte, _ []byte, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
+		_, ok := oldHashes[string(userAccRootHash)]
+		require.True(t, ok)
+		_, ok = newHashes[string(userAccRootHash)]
+		require.True(t, ok)
+		markForEvictionCalled = true
+
+		return nil
+	}
+	_, _ = adb.Commit()
+	require.True(t, markForEvictionCalled)
+}
+
 func testAccountMethodsConcurrency(
 	t *testing.T,
 	adb state.AccountsAdapter,
