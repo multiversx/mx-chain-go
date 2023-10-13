@@ -2101,7 +2101,13 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			RefactorPeersMiniBlocksEnableEpochField: 1,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return 1
+				}
+
+				return 0
+			},
 		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
@@ -2124,7 +2130,13 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			RefactorPeersMiniBlocksEnableEpochField: 3,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return 3
+				}
+
+				return 0
+			},
 		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
@@ -2157,7 +2169,13 @@ func TestEpochStartBootstrap_SaveMiniblockToStaticStorer(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			RefactorPeersMiniBlocksEnableEpochField: 1,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return 1
+				}
+
+				return 0
+			},
 		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		epochStartProvider, _ := NewEpochStartBootstrap(args)

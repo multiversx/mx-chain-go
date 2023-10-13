@@ -2,6 +2,7 @@ package shardchain
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -247,6 +248,17 @@ func TestNewEpochStartTrigger_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, epochStartTrigger)
 	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewEpochStartTrigger_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+
+	assert.Nil(t, epochStartTrigger)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {

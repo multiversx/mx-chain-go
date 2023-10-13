@@ -101,7 +101,7 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoFromStatic(
 	epoch uint32,
 ) (*state.ShardValidatorInfo, error) {
 	marshalledShardValidatorInfo := txHash
-	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.RefactorPeersMiniBlocksFlag) {
 		shardValidatorInfoBytes, err := ihnc.epochStartStaticStorer.Get(txHash)
 		if err != nil {
 			return nil, err

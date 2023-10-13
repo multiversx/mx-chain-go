@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -239,6 +240,15 @@ func TestNewIndexHashedNodesCoordinator_NilEpochStartStaticStorerShouldErr(t *te
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 
 	require.Equal(t, ErrNilEpochStartStaticStorer, err)
+	require.Nil(t, ihnc)
+}
+
+func TestNewIndexHashedNodesCoordinator_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	require.Nil(t, ihnc)
 }
 
@@ -2497,8 +2507,13 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
 
 		arguments := createArguments()
-		arguments.EnableEpochsHandler = &mock.EnableEpochsHandlerMock{
-			RefactorPeersMiniBlocksEnableEpochField: 1,
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return epoch >= 1
+				}
+				return false
+			},
 		}
 		arguments.ValidatorInfoCacher = &vic.ValidatorInfoCacherStub{
 			GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
@@ -2522,9 +2537,6 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
 
 		arguments := createArguments()
-		arguments.EnableEpochsHandler = &mock.EnableEpochsHandlerMock{
-			RefactorPeersMiniBlocksEnableEpochField: 0,
-		}
 		arguments.ValidatorInfoCacher = &vic.ValidatorInfoCacherStub{
 			GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
 				if bytes.Equal(validatorInfoHash, txHash) {

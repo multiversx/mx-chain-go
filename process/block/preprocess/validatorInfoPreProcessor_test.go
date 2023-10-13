@@ -122,6 +122,23 @@ func TestNewValidatorInfoPreprocessor_NilEnableEpochHandlerShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewValidatorInfoPreprocessor_InvalidEnableEpochHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	rtp, err := NewValidatorInfoPreprocessor(
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		&testscommon.BlockSizeComputationStub{},
+		tdp.ValidatorsInfo(),
+		genericMocks.NewChainStorerMock(0),
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+	)
+
+	assert.Nil(t, rtp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
 func TestNewValidatorInfoPreprocessor_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 

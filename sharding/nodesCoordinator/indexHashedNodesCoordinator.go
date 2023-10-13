@@ -219,6 +219,13 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(args.ValidatorInfoCacher) {
 		return ErrNilValidatorInfoCacher
 	}
@@ -1245,7 +1252,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 }
 
 func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, epoch uint32) (*state.ShardValidatorInfo, error) {
-	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, epoch) {
 		shardValidatorInfo, err := ihnc.validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
 			return nil, err
@@ -1264,6 +1271,6 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
+	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.WaitingListFixFlag))
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
 }

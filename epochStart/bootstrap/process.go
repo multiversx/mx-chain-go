@@ -771,7 +771,7 @@ func (e *epochStartBootstrap) saveMiniblocksToStaticStorer(miniBlocks []*block.M
 
 		log.Debug("saveMiniblocksToStaticStorer: peer miniblock", "miniBlockHash", miniBlockHash)
 
-		if e.epochStartMeta.GetEpoch() >= e.coreComponentsHolder.EnableEpochsHandler().RefactorPeersMiniBlocksEnableEpoch() {
+		if e.epochStartMeta.GetEpoch() >= e.coreComponentsHolder.EnableEpochsHandler().GetActivationEpoch(common.RefactorPeersMiniBlocksFlag) {
 			err = e.saveValidatorsInfoToStaticStorer(miniBlock)
 			if err != nil {
 				return err
@@ -1141,7 +1141,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		HeadersSyncer:        e.headersSyncer,
 		MiniBlocksSyncer:     e.miniBlocksSyncer,
 		TxSyncer:             e.txSyncerForScheduled,
-		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().ScheduledMiniBlocksEnableEpoch(),
+		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().GetActivationEpoch(common.ScheduledMiniBlocksFlag),
 	}
 
 	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)

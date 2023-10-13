@@ -269,133 +269,13 @@ type PidQueueHandler interface {
 	IsInterfaceNil() bool
 }
 
-// EnableEpochsHandler is used to verify the which flags are set in the current epoch based on EnableEpochs config
+// EnableEpochsHandler is used to verify which flags are set in a specific epoch based on EnableEpochs config
 type EnableEpochsHandler interface {
-	BlockGasAndFeesReCheckEnableEpoch() uint32
-	StakingV2EnableEpoch() uint32
-	ScheduledMiniBlocksEnableEpoch() uint32
-	SwitchJailWaitingEnableEpoch() uint32
-	BalanceWaitingListsEnableEpoch() uint32
-	WaitingListFixEnableEpoch() uint32
-	MultiESDTTransferAsyncCallBackEnableEpoch() uint32
-	FixOOGReturnCodeEnableEpoch() uint32
-	RemoveNonUpdatedStorageEnableEpoch() uint32
-	CreateNFTThroughExecByCallerEnableEpoch() uint32
-	FixFailExecutionOnErrorEnableEpoch() uint32
-	ManagedCryptoAPIEnableEpoch() uint32
-	DisableExecByCallerEnableEpoch() uint32
-	RefactorContextEnableEpoch() uint32
-	CheckExecuteReadOnlyEnableEpoch() uint32
-	StorageAPICostOptimizationEnableEpoch() uint32
-	MiniBlockPartialExecutionEnableEpoch() uint32
-	RefactorPeersMiniBlocksEnableEpoch() uint32
-	IsSCDeployFlagEnabled() bool
-	IsBuiltInFunctionsFlagEnabled() bool
-	IsRelayedTransactionsFlagEnabled() bool
-	IsPenalizedTooMuchGasFlagEnabled() bool
-	ResetPenalizedTooMuchGasFlag()
-	IsSwitchJailWaitingFlagEnabled() bool
-	IsBelowSignedThresholdFlagEnabled() bool
-	IsSwitchHysteresisForMinNodesFlagEnabled() bool
-	IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() bool
-	IsTransactionSignedWithTxHashFlagEnabled() bool
-	IsMetaProtectionFlagEnabled() bool
-	IsAheadOfTimeGasUsageFlagEnabled() bool
-	IsGasPriceModifierFlagEnabled() bool
-	IsRepairCallbackFlagEnabled() bool
-	IsBalanceWaitingListsFlagEnabled() bool
-	IsReturnDataToLastTransferFlagEnabled() bool
-	IsSenderInOutTransferFlagEnabled() bool
-	IsStakeFlagEnabled() bool
-	IsStakingV2FlagEnabled() bool
-	IsStakingV2OwnerFlagEnabled() bool
-	IsStakingV2FlagEnabledForActivationEpochCompleted() bool
-	IsDoubleKeyProtectionFlagEnabled() bool
-	IsESDTFlagEnabled() bool
-	IsESDTFlagEnabledForCurrentEpoch() bool
-	IsGovernanceFlagEnabled() bool
-	IsGovernanceFlagEnabledForCurrentEpoch() bool
-	IsDelegationManagerFlagEnabled() bool
-	IsDelegationSmartContractFlagEnabled() bool
-	IsDelegationSmartContractFlagEnabledForCurrentEpoch() bool
-	IsCorrectLastUnJailedFlagEnabled() bool
-	IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() bool
-	IsRelayedTransactionsV2FlagEnabled() bool
-	IsUnBondTokensV2FlagEnabled() bool
-	IsSaveJailedAlwaysFlagEnabled() bool
-	IsReDelegateBelowMinCheckFlagEnabled() bool
-	IsValidatorToDelegationFlagEnabled() bool
-	IsWaitingListFixFlagEnabled() bool
-	IsIncrementSCRNonceInMultiTransferFlagEnabled() bool
-	IsESDTMultiTransferFlagEnabled() bool
-	IsGlobalMintBurnFlagEnabled() bool
-	IsESDTTransferRoleFlagEnabled() bool
-	IsBuiltInFunctionOnMetaFlagEnabled() bool
-	IsComputeRewardCheckpointFlagEnabled() bool
-	IsSCRSizeInvariantCheckFlagEnabled() bool
-	IsBackwardCompSaveKeyValueFlagEnabled() bool
-	IsESDTNFTCreateOnMultiShardFlagEnabled() bool
-	IsMetaESDTSetFlagEnabled() bool
-	IsAddTokensToDelegationFlagEnabled() bool
-	IsMultiESDTTransferFixOnCallBackFlagEnabled() bool
-	IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() bool
-	IsCorrectFirstQueuedFlagEnabled() bool
-	IsDeleteDelegatorAfterClaimRewardsFlagEnabled() bool
-	IsFixOOGReturnCodeFlagEnabled() bool
-	IsRemoveNonUpdatedStorageFlagEnabled() bool
-	IsOptimizeNFTStoreFlagEnabled() bool
-	IsCreateNFTThroughExecByCallerFlagEnabled() bool
-	IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() bool
-	IsFrontRunningProtectionFlagEnabled() bool
-	IsPayableBySCFlagEnabled() bool
-	IsCleanUpInformativeSCRsFlagEnabled() bool
-	IsStorageAPICostOptimizationFlagEnabled() bool
-	IsESDTRegisterAndSetAllRolesFlagEnabled() bool
-	IsScheduledMiniBlocksFlagEnabled() bool
-	IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() bool
-	IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() bool
-	IsAddFailedRelayedTxToInvalidMBsFlag() bool
-	IsSCRSizeInvariantOnBuiltInResultFlagEnabled() bool
-	IsCheckCorrectTokenIDForTransferRoleFlagEnabled() bool
-	IsFailExecutionOnEveryAPIErrorFlagEnabled() bool
-	IsMiniBlockPartialExecutionFlagEnabled() bool
-	IsManagedCryptoAPIsFlagEnabled() bool
-	IsESDTMetadataContinuousCleanupFlagEnabled() bool
-	IsDisableExecByCallerFlagEnabled() bool
-	IsRefactorContextFlagEnabled() bool
-	IsCheckFunctionArgumentFlagEnabled() bool
-	IsCheckExecuteOnReadOnlyFlagEnabled() bool
-	IsFixAsyncCallbackCheckFlagEnabled() bool
-	IsSaveToSystemAccountFlagEnabled() bool
-	IsCheckFrozenCollectionFlagEnabled() bool
-	IsSendAlwaysFlagEnabled() bool
-	IsValueLengthCheckFlagEnabled() bool
-	IsCheckTransferFlagEnabled() bool
-	IsTransferToMetaFlagEnabled() bool
-	IsESDTNFTImprovementV1FlagEnabled() bool
-	IsSetSenderInEeiOutputTransferFlagEnabled() bool
-	IsChangeDelegationOwnerFlagEnabled() bool
-	IsRefactorPeersMiniBlocksFlagEnabled() bool
-	IsSCProcessorV2FlagEnabled() bool
-	IsFixAsyncCallBackArgsListFlagEnabled() bool
-	IsFixOldTokenLiquidityEnabled() bool
-	IsRuntimeMemStoreLimitEnabled() bool
-	IsRuntimeCodeSizeFixEnabled() bool
-	IsMaxBlockchainHookCountersFlagEnabled() bool
-	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
-	IsAlwaysSaveTokenMetaDataEnabled() bool
-	IsSetGuardianEnabled() bool
-	IsScToScEventLogEnabled() bool
-	IsRelayedNonceFixEnabled() bool
-	IsDeterministicSortOnValidatorsInfoFixEnabled() bool
-	IsKeepExecOrderOnCreatedSCRsEnabled() bool
-	IsMultiClaimOnDelegationEnabled() bool
-	IsChangeUsernameEnabled() bool
-	IsConsistentTokensValuesLengthCheckEnabled() bool
-	IsAutoBalanceDataTriesEnabled() bool
-	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
-	FixDelegationChangeOwnerOnAccountEnabled() bool
-	NFTStopCreateEnabled() bool
+	GetCurrentEpoch() uint32
+	IsFlagDefined(flag core.EnableEpochFlag) bool
+	IsFlagEnabled(flag core.EnableEpochFlag) bool
+	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
+	GetActivationEpoch(flag core.EnableEpochFlag) uint32
 
 	IsInterfaceNil() bool
 }

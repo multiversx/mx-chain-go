@@ -1655,9 +1655,9 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 // SetEconomicsParameters will set maxGasLimitPerBlock, minGasPrice and minGasLimits to provided nodes
 func SetEconomicsParameters(nodes []*TestProcessorNode, maxGasLimitPerBlock uint64, minGasPrice uint64, minGasLimit uint64) {
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock)
+		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock, 0)
 		n.EconomicsData.SetMinGasPrice(minGasPrice)
-		n.EconomicsData.SetMinGasLimit(minGasLimit)
+		n.EconomicsData.SetMinGasLimit(minGasLimit, 0)
 	}
 }
 
