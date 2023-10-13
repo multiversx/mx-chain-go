@@ -59,12 +59,10 @@ func (messenger *testOnlySyncedMessenger) ProcessReceivedMessage(message p2p.Mes
 
 	key := base58.Encode(message.From()) + strconv.FormatUint(binary.BigEndian.Uint64(message.SeqNo()), 10)
 	_, alreadySeenSameMessage := messenger.uniqueMessages[key]
+	messenger.uniqueMessages[key]++
 	if alreadySeenSameMessage {
-		messenger.uniqueMessages[key]++
 		return nil
 	}
-
-	messenger.uniqueMessages[key] = 1
 
 	msgCnt, alreadySeenEquivalentMessage := messenger.seenMessages[string(message.Data())]
 	if !alreadySeenEquivalentMessage {

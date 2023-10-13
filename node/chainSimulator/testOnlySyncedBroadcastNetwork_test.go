@@ -18,17 +18,17 @@ const (
 func TestTestOnlySyncedBroadcastNetwork_EquivalentMessages(t *testing.T) {
 	t.Skip("testing only")
 
-	t.Run("single initiator", testMessagePropagation(1000, 10, 1, 1000))
-	t.Run("multiple initiators", testMessagePropagation(1000, 10, 5, 1000))
+	t.Run("single initiator", testMessagePropagation(400, 40, 6, 1, 1000))
+	t.Run("multiple initiators", testMessagePropagation(400, 40, 6, 5, 1000))
 }
 
-func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int, numWorkers int) func(t *testing.T) {
+func testMessagePropagation(numNodes int, maxNumOfConnections int, maxNumOfBroadcasts int, numInitiators int, numWorkers int) func(t *testing.T) {
 	return func(t *testing.T) {
 		// workerPoolInstance keeps the go routines created by broadcasts in control
 		workerPoolInstance := workerpool.New(numWorkers)
 		// chanFinish will be called when all nodes received the message at least once
 		chanFinish := make(chan bool, 1)
-		network, err := NewTestOnlySyncedBroadcastNetwork(numPeersPerNode, workerPoolInstance, chanFinish)
+		network, err := NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections, maxNumOfBroadcasts, workerPoolInstance, chanFinish)
 		require.Nil(t, err)
 
 		seqNoGenerator := NewSequenceGenerator()
@@ -91,11 +91,11 @@ func testMessagePropagation(numNodes int, numPeersPerNode int, numInitiators int
 
 		require.Equal(t, 0, cntMissedNodes, "all nodes should have received the message")
 
-		println(fmt.Sprintf("Results: %d nodes, %d peers, %d initiators\n"+
+		println(fmt.Sprintf("Results: %d nodes, %d peers, %d maxBroadcasts, %d initiators\n"+
 			"message reached all nodes after %s\n"+
 			"max messages received by a peer %d\n"+
 			"average messages received by a peer %f\n",
-			numNodes, numPeersPerNode, numInitiators, duration, maxMessagesReceived, float64(cntReceivedMessages)/float64(numNodes)))
+			numNodes, maxNumOfConnections, maxNumOfBroadcasts, numInitiators, duration, maxMessagesReceived, float64(cntReceivedMessages)/float64(numNodes)))
 
 		println("Results unique messages:")
 		for key, total := range uniqueMessagesTotal {

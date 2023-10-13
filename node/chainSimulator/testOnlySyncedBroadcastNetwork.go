@@ -20,6 +20,7 @@ type testOnlySyncedBroadcastNetwork struct {
 	*syncedBroadcastNetwork
 
 	maxNumOfConnections       int
+	maxNumOfBroadcasts        int
 	workerPool                workerPool
 	messagesFinished          chan bool
 	mut                       sync.RWMutex
@@ -27,7 +28,7 @@ type testOnlySyncedBroadcastNetwork struct {
 }
 
 // NewTestOnlySyncedBroadcastNetwork -
-func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, workerPool workerPool, messagesFinished chan bool) (*testOnlySyncedBroadcastNetwork, error) {
+func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, maxNumOfBroadcasts int, workerPool workerPool, messagesFinished chan bool) (*testOnlySyncedBroadcastNetwork, error) {
 	if workerPool == nil {
 		return nil, errors.New("nil worker pool")
 	}
@@ -35,6 +36,7 @@ func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, workerPool worke
 	return &testOnlySyncedBroadcastNetwork{
 		syncedBroadcastNetwork:    NewSyncedBroadcastNetwork(),
 		maxNumOfConnections:       maxNumOfConnections,
+		maxNumOfBroadcasts:        maxNumOfBroadcasts,
 		workerPool:                workerPool,
 		messagesFinished:          messagesFinished,
 		peersWithMessagesReceived: make(map[core.PeerID]struct{}),
@@ -45,6 +47,14 @@ func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, workerPool worke
 func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, message p2p.MessageP2P) {
 	peers, handlers := network.getPeersAndHandlers()
 	totalNumOfPeers := len(peers)
+
+	totalPeers := network.maxNumOfConnections
+	if len(peers) < totalPeers {
+		totalPeers = len(peers)
+	}
+
+	peers = peers[:totalPeers]
+	handlers = handlers[:totalPeers]
 
 	network.mut.Lock()
 	network.peersWithMessagesReceived[pid] = struct{}{}
@@ -68,8 +78,8 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, messag
 	indexes := createIndexList(len(handlers))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, &random.ConcurrentSafeIntRandomizer{})
 
-	totalBroadcasts := network.maxNumOfConnections
-	if len(shuffledIndexes) < network.maxNumOfConnections {
+	totalBroadcasts := network.maxNumOfBroadcasts
+	if len(shuffledIndexes) < network.maxNumOfBroadcasts {
 		totalBroadcasts = len(shuffledIndexes)
 	}
 	for idx := 0; idx < totalBroadcasts; idx++ {
