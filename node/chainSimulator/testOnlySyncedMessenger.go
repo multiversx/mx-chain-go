@@ -32,10 +32,11 @@ type testOnlySyncedMessenger struct {
 	seenMessages    map[string]*msgCounter
 	uniqueMessages  map[string]int
 	seqGenerator    seqGenerator
+	isMalicious     bool
 }
 
 // NewTestOnlySyncedMessenger -
-func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenerator seqGenerator) (*testOnlySyncedMessenger, error) {
+func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenerator seqGenerator, isMalicious bool) (*testOnlySyncedMessenger, error) {
 	if check.IfNil(seqGenerator) {
 		return nil, errNilSeqGenerator
 	}
@@ -49,6 +50,7 @@ func NewTestOnlySyncedMessenger(network SyncedBroadcastNetworkHandler, seqGenera
 		seenMessages:    make(map[string]*msgCounter),
 		uniqueMessages:  make(map[string]int),
 		seqGenerator:    seqGenerator,
+		isMalicious:     isMalicious,
 	}, nil
 }
 
@@ -66,14 +68,14 @@ func (messenger *testOnlySyncedMessenger) ProcessReceivedMessage(message p2p.Mes
 
 	msgCnt, alreadySeenEquivalentMessage := messenger.seenMessages[string(message.Data())]
 	if !alreadySeenEquivalentMessage {
-		msgCnt = &msgCounter{
-			received: 0,
-			sent:     1,
-		}
+		msgCnt = &msgCounter{}
 
 		messenger.seenMessages[string(message.Data())] = msgCnt
 
-		messenger.network.Broadcast(messenger.pid, message)
+		if !messenger.isMalicious {
+			msgCnt.sent++
+			messenger.network.Broadcast(messenger.pid, message)
+		}
 	}
 
 	msgCnt.received++
@@ -98,17 +100,18 @@ func (messenger *testOnlySyncedMessenger) Broadcast(topic string, buff []byte) {
 		return
 	}
 
-	msgCnt.sent++
+	if !messenger.isMalicious {
+		msgCnt.sent++
 
-	message := &p2pMessage.Message{
-		FromField:            messenger.ID().Bytes(),
-		DataField:            buff,
-		TopicField:           topic,
-		BroadcastMethodField: p2p.Broadcast,
-		SeqNoField:           messenger.seqGenerator.GenerateSequence(),
+		message := &p2pMessage.Message{
+			FromField:            messenger.ID().Bytes(),
+			DataField:            buff,
+			TopicField:           topic,
+			BroadcastMethodField: p2p.Broadcast,
+			SeqNoField:           messenger.seqGenerator.GenerateSequence(),
+		}
+		messenger.network.Broadcast(messenger.pid, message)
 	}
-
-	messenger.network.Broadcast(messenger.pid, message)
 }
 
 func (messenger *testOnlySyncedMessenger) getSeenMessages() map[string]*msgCounter {

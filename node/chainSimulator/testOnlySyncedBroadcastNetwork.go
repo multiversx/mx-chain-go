@@ -14,13 +14,13 @@ const latency = time.Millisecond * 30
 
 type workerPool interface {
 	Submit(task func())
+	Stopped() bool
 }
 
 type testOnlySyncedBroadcastNetwork struct {
 	*syncedBroadcastNetwork
 
-	maxNumOfConnections       int
-	maxNumOfBroadcasts        int
+	numOfBroadcasts           int
 	workerPool                workerPool
 	messagesFinished          chan bool
 	mut                       sync.RWMutex
@@ -28,15 +28,14 @@ type testOnlySyncedBroadcastNetwork struct {
 }
 
 // NewTestOnlySyncedBroadcastNetwork -
-func NewTestOnlySyncedBroadcastNetwork(maxNumOfConnections int, maxNumOfBroadcasts int, workerPool workerPool, messagesFinished chan bool) (*testOnlySyncedBroadcastNetwork, error) {
+func NewTestOnlySyncedBroadcastNetwork(numOfBroadcasts int, workerPool workerPool, messagesFinished chan bool) (*testOnlySyncedBroadcastNetwork, error) {
 	if workerPool == nil {
 		return nil, errors.New("nil worker pool")
 	}
 
 	return &testOnlySyncedBroadcastNetwork{
 		syncedBroadcastNetwork:    NewSyncedBroadcastNetwork(),
-		maxNumOfConnections:       maxNumOfConnections,
-		maxNumOfBroadcasts:        maxNumOfBroadcasts,
+		numOfBroadcasts:           numOfBroadcasts,
 		workerPool:                workerPool,
 		messagesFinished:          messagesFinished,
 		peersWithMessagesReceived: make(map[core.PeerID]struct{}),
@@ -48,23 +47,6 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, messag
 	peers, handlers := network.getPeersAndHandlers()
 	totalNumOfPeers := len(peers)
 
-	totalPeers := network.maxNumOfConnections
-	if len(peers) < totalPeers {
-		totalPeers = len(peers)
-	}
-
-	peers = peers[:totalPeers]
-	handlers = handlers[:totalPeers]
-
-	network.mut.Lock()
-	network.peersWithMessagesReceived[pid] = struct{}{}
-	currentLen := len(network.peersWithMessagesReceived)
-	network.mut.Unlock()
-	if currentLen == totalNumOfPeers {
-		network.messagesFinished <- true
-		return
-	}
-
 	selfIdx := 0
 	for i, peer := range peers {
 		if peer == pid {
@@ -73,22 +55,39 @@ func (network *testOnlySyncedBroadcastNetwork) Broadcast(pid core.PeerID, messag
 		}
 	}
 
+	// remove self from list, not calling ProcessReceivedMessage for self
 	handlers = append(handlers[:selfIdx], handlers[selfIdx+1:]...)
+	peers = append(peers[:selfIdx], peers[selfIdx+1:]...)
 
 	indexes := createIndexList(len(handlers))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, &random.ConcurrentSafeIntRandomizer{})
 
-	totalBroadcasts := network.maxNumOfBroadcasts
-	if len(shuffledIndexes) < network.maxNumOfBroadcasts {
+	totalBroadcasts := network.numOfBroadcasts
+	if len(shuffledIndexes) < network.numOfBroadcasts {
 		totalBroadcasts = len(shuffledIndexes)
 	}
 	for idx := 0; idx < totalBroadcasts; idx++ {
 		randIdx := shuffledIndexes[idx]
 
+		if network.workerPool.Stopped() {
+			return
+		}
+
 		network.workerPool.Submit(func() {
 			time.Sleep(latency)
+
 			handlers[randIdx].receive(pid, message)
+
+			network.mut.Lock()
+			defer network.mut.Unlock()
+			network.peersWithMessagesReceived[peers[randIdx]] = struct{}{}
+			currentLen := len(network.peersWithMessagesReceived)
+
+			if currentLen == totalNumOfPeers {
+				go func() { network.messagesFinished <- true }()
+			}
 		})
+
 	}
 }
 
