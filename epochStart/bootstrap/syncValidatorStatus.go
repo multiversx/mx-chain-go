@@ -239,7 +239,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 		return nil, nil, err
 	}
 
-	if metaBlock.GetEpoch() >= s.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, metaBlock.GetEpoch()) {
 		s.transactionsSyncer.ClearFields()
 		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)

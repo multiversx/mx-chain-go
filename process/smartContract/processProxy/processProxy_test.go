@@ -1,8 +1,8 @@
 package processProxy
 
 import (
+	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"math/big"
 	"sync"
 	"testing"
@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -71,7 +72,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		},
 		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCDeployFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SCDeployFlag
+			},
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		WasmVMChangeLocker:  &sync.RWMutex{},
@@ -92,6 +95,16 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 		assert.True(t, check.IfNil(proxy))
 		assert.NotNil(t, err)
 		assert.Equal(t, "argument parser is nil", err.Error())
+	})
+	t.Run("invalid enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSmartContractProcessorArguments()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+		assert.True(t, check.IfNil(proxy))
+		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	})
 	t.Run("nil epoch notifier should error", func(t *testing.T) {
 		t.Parallel()
@@ -116,9 +129,7 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSmartContractProcessorArguments()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCProcessorV2FlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCProcessorV2Flag)
 
 		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
 		assert.False(t, check.IfNil(proxy))

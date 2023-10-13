@@ -382,11 +382,9 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField: true,
-		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
-		ShardIDAsObserver:   tcn.ShardCoordinator.SelfId(),
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:       tcn.ShardCoordinator.SelfId(),
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

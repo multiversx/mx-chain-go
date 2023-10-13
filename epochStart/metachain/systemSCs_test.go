@@ -152,6 +152,11 @@ func TestNewSystemSCProcessor(t *testing.T) {
 	args, _ = createFullArgumentsForSystemSCProcessing(cfg, createMemUnit())
 	args.EnableEpochsHandler = nil
 	checkConstructorWithNilArg(t, args, epochStart.ErrNilEnableEpochsHandler)
+
+	args, _ = createFullArgumentsForSystemSCProcessing(cfg, createMemUnit())
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	_, err := NewSystemSCProcessor(args)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func checkConstructorWithNilArg(t *testing.T, args ArgsNewEpochStartSystemSCProcessing, expectedErr error) {

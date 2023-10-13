@@ -137,7 +137,9 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 			},
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		},
 		EpochStartStaticStorage: createMemUnit(),
 	}
@@ -236,6 +238,7 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilEnableEpochsHandler
 	require.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
 }
 
+<<<<<<< HEAD
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilEpochStartStaticStorage(t *testing.T) {
 	t.Parallel()
 
@@ -245,6 +248,17 @@ func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorNilEpochStartStaticSto
 
 	require.Nil(t, vic)
 	require.Equal(t, epochStart.ErrNilStorage, err)
+=======
+func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorInvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	vic, err := NewValidatorInfoCreator(arguments)
+
+	require.Nil(t, vic)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+>>>>>>> rc/v1.7.0
 }
 
 func TestEpochValidatorInfoCreator_NewValidatorInfoCreatorShouldWork(t *testing.T) {
@@ -587,7 +601,9 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: false,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return false
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -604,7 +620,9 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -625,7 +643,9 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: false,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return false
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -639,7 +659,9 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -652,7 +674,9 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -666,7 +690,9 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -680,7 +706,9 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -713,7 +741,9 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		marshalledSVI3, _ := arguments.Marshalizer.Marshal(svi3)
 
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -757,7 +787,9 @@ func TestEpochValidatorInfoCreator_SetMarshalledValidatorInfoTxsShouldWork(t *te
 	marshalledSVI2, _ := arguments.Marshalizer.Marshal(svi2)
 
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.RefactorPeersMiniBlocksFlag
+		},
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -794,7 +826,9 @@ func TestEpochValidatorInfoCreator_GetValidatorInfoTxsShouldWork(t *testing.T) {
 	svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
 
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.RefactorPeersMiniBlocksFlag
+		},
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -836,7 +870,9 @@ func TestEpochValidatorInfoCreator_SetMapShardValidatorInfoShouldWork(t *testing
 	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
 
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRefactorPeersMiniBlocksFlagEnabledField: true,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.RefactorPeersMiniBlocksFlag
+		},
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -876,7 +912,9 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T)
 		marshalledSVI, _ := arguments.Marshalizer.Marshal(svi)
 
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: false,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return false
+			},
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -904,7 +942,9 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T)
 		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
 
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RefactorPeersMiniBlocksFlag
+			},
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -1118,8 +1158,12 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{} // we need the real marshaller that generated the test set
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsRefactorPeersMiniBlocksFlagEnabledField:          false,
-		IsDeterministicSortOnValidatorsInfoFixEnabledField: deterministFixEnabled,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			if flag == common.DeterministicSortOnValidatorsInfoFixFlag {
+				return deterministFixEnabled
+			}
+			return false
+		},
 	}
 
 	storer := createMemUnit()
@@ -1237,8 +1281,9 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
-			IsDeterministicSortOnValidatorsInfoFixEnabledField: false,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return false
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -1254,8 +1299,9 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
 		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
-			IsDeterministicSortOnValidatorsInfoFixEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.DeterministicSortOnValidatorsInfoFixFlag
+			},
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
