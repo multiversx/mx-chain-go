@@ -65,6 +65,8 @@ export OBSERVERS_ANTIFLOOD_DISABLE=0
 # For now, make sure that you checkout feat/sovereign branch from mx-chain-deploy repo when using these scripts
 export SOVEREIGN_DEPLOY=1
 
+export ROUND_DURATION=4000
+
 # Shard structure
 export SHARDCOUNT=1
 export SHARD_VALIDATORCOUNT=3

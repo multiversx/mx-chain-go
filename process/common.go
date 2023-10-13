@@ -27,6 +27,7 @@ import (
 var log = logger.GetOrCreate("process")
 
 const VMStoragePrefix = "VM@"
+const Billion = 1000000000
 
 //TODO: If sovereign chain will have V2, the mechanism of getting header version when a new headers is created, should be like
 //the one used in main chain through versionedHeaderFactory.Create
