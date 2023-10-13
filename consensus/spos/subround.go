@@ -209,6 +209,18 @@ func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
 	return sr.keysHandler.GetAssociatedPid(pkBytes)
 }
 
+// ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
+// machine failed
+func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
+	isMainMachine := !sr.NodeRedundancyHandler().IsRedundancyNode()
+	if isMainMachine {
+		return true
+	}
+	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
+
+	return isMainMachineInactive
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
 	return sr == nil

@@ -1417,3 +1417,78 @@ func TestBranchNode_getValueReturnsEmptyByteSlice(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	assert.Equal(t, []byte{}, bn.getValue())
 }
+
+func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *testing.T) {
+	t.Parallel()
+
+	t.Run("revert child from version 1 to 0", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		bn.ChildrenVersion = make([]byte, nrOfChildren)
+		bn.ChildrenVersion[2] = byte(core.AutoBalanceEnabled)
+
+		childKey := []byte{2, 'd', 'o', 'g'}
+		data := core.TrieData{
+			Key:     childKey,
+			Value:   []byte("value"),
+			Version: 0,
+		}
+		newBn, _, err := bn.insert(data, &testscommon.MemDbMock{})
+		assert.Nil(t, err)
+		assert.Nil(t, newBn.(*branchNode).ChildrenVersion)
+	})
+
+	t.Run("remove migrated child", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		bn.ChildrenVersion = make([]byte, nrOfChildren)
+		bn.ChildrenVersion[2] = byte(core.AutoBalanceEnabled)
+		childKey := []byte{2, 'd', 'o', 'g'}
+
+		_, newBn, _, err := bn.delete(childKey, &testscommon.MemDbMock{})
+		assert.Nil(t, err)
+		assert.Nil(t, newBn.(*branchNode).ChildrenVersion)
+	})
+}
+
+func TestBranchNode_revertChildrenVersionSliceIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil ChildrenVersion does not panic", func(t *testing.T) {
+		t.Parallel()
+
+		bn := &branchNode{}
+		bn.revertChildrenVersionSliceIfNeeded()
+	})
+
+	t.Run("revert is not needed", func(t *testing.T) {
+		t.Parallel()
+
+		childrenVersion := make([]byte, nrOfChildren)
+		childrenVersion[5] = byte(core.AutoBalanceEnabled)
+		bn := &branchNode{
+			CollapsedBn: CollapsedBn{
+				ChildrenVersion: childrenVersion,
+			},
+		}
+
+		bn.revertChildrenVersionSliceIfNeeded()
+		assert.Equal(t, nrOfChildren, len(bn.ChildrenVersion))
+		assert.Equal(t, byte(core.AutoBalanceEnabled), bn.ChildrenVersion[5])
+	})
+
+	t.Run("revert is needed", func(t *testing.T) {
+		t.Parallel()
+
+		bn := &branchNode{
+			CollapsedBn: CollapsedBn{
+				ChildrenVersion: make([]byte, nrOfChildren),
+			},
+		}
+
+		bn.revertChildrenVersionSliceIfNeeded()
+		assert.Nil(t, bn.ChildrenVersion)
+	})
+}
