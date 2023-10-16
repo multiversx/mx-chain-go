@@ -41,7 +41,8 @@ type HistoryRepositoryArguments struct {
 }
 
 type historyRepository struct {
-	selfShardID                uint32
+	selfShardID uint32
+	//TODO(next PR): remove this miniblocksMetadataStorer field
 	miniblocksMetadataStorer   storage.Storer
 	miniblockHashByTxHashIndex storage.Storer
 	blockHashByRound           storage.Storer
@@ -52,12 +53,14 @@ type historyRepository struct {
 	hasher                     hashing.Hasher
 	esdtSuppliesHandler        SuppliesHandler
 
+	//TODO(next PR): remove the 3 MutexMap definitions & usage
 	// These maps temporarily hold notifications of "notarized at source or destination", to deal with unwanted concurrency effects
 	// The unwanted concurrency effects could be accentuated by the fast db-replay-validate mechanism.
 	pendingNotarizedAtSourceNotifications      *container.MutexMap
 	pendingNotarizedAtDestinationNotifications *container.MutexMap
 	pendingNotarizedAtBothNotifications        *container.MutexMap
 
+	//TODO(next PR): remove this deduplication cache
 	// This cache will hold hashes of already inserted miniblock metadata records, so that we avoid repeated "put()" operations,
 	// that could mistakenly override the "patch()" operations performed when consuming notarization notifications.
 	deduplicationCacheForInsertMiniblockMetadata storage.Cacher
@@ -102,6 +105,15 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	deduplicationCacheForInsertMiniblockMetadata, _ := cache.NewLRUCache(sizeOfDeduplicationCache)
 
 	eventsHashesToTxHashIndex := newEventsHashesByTxHash(arguments.EventsHashesByTxHashStorer, arguments.Marshalizer)
+	mbHandler := &miniblocksHandler{
+		marshaller:                       arguments.Marshalizer,
+		hasher:                           arguments.Hasher,
+		epochIndex:                       hashToEpochIndex,
+		miniblockHashByTxHashIndexStorer: arguments.MiniblockHashByTxHashStorer,
+		miniblocksMetadataStorer:         arguments.MiniblocksMetadataStorer,
+	}
+	// TODO(next PR): use this mbHandler
+	_ = mbHandler
 
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
@@ -152,6 +164,8 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 			continue
 		}
 
+		// TODO(next PR): replace with
+		// err = hr.miniblocksHandler.commitMiniblock(blockHeader, blockHeaderHash, miniblock)
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
 		if err != nil {
 			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record miniblock",
@@ -161,6 +175,8 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	}
 
 	for _, miniBlock := range createdIntraShardMiniBlocks {
+		// TODO(next PR): replace with
+		// err = hr.miniblocksHandler.commitMiniblock(blockHeader, blockHeaderHash, miniblock)
 		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniBlock, epoch)
 		if err != nil {
 			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record in shard miniblock",
@@ -191,6 +207,7 @@ func (hr *historyRepository) putHashByRound(blockHeaderHash []byte, header data.
 	return hr.blockHashByRound.Put(roundToByteSlice, blockHeaderHash)
 }
 
+// TODO(next PR): remove this function
 func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
 	miniblockHash, err := hr.computeMiniblockHash(miniblock)
 	if err != nil {
@@ -236,6 +253,7 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	return nil
 }
 
+// TODO(next PR): move this function in export_test.go
 func (hr *historyRepository) computeMiniblockHash(miniblock *block.MiniBlock) ([]byte, error) {
 	return core.CalculateHash(hr.marshalizer, hr.hasher, miniblock)
 }
@@ -260,6 +278,9 @@ func (hr *historyRepository) markMiniblockMetadataAsRecentlyInserted(miniblockHa
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
 func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
+	// TODO(next PR): this function should only contain this return
+	// return hr.miniblocksHandler.getMiniblockMetadataByTxHash(txHash)
+
 	miniblockHash, err := hr.miniblockHashByTxHashIndex.Get(hash)
 	if err != nil {
 		return nil, err
@@ -268,6 +289,7 @@ func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*Miniblo
 	return hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
 }
 
+// TODO(next PR): remove this function
 func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *MiniblockMetadata) error {
 	metadataBytes, err := hr.marshalizer.Marshal(metadata)
 	if err != nil {
@@ -282,6 +304,7 @@ func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *Miniblo
 	return nil
 }
 
+// TODO(next PR): remove this function
 func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {
 	epoch, err := hr.epochByHashIndex.getEpochByHash(hash)
 	if err != nil {
@@ -481,6 +504,19 @@ func (hr *historyRepository) IsEnabled() bool {
 // RevertBlock will return the modification for the current block header
 func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
 	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
+
+	// TODO(next PR): this function should contain the following code:
+	// err := hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
+	// if err != nil {
+	//		return err
+	//	}
+	//
+	//	body, ok := blockBody.(*block.Body)
+	//	if !ok {
+	//		return fmt.Errorf("%w in historyRepository.RevertBlock for provided blockBody", errWrongTypeAssertion)
+	//	}
+	//
+	//	return hr.miniblocksHandler.blockReverted(blockHeader, body)
 }
 
 // GetESDTSupply will return the supply from the storage for the given token
