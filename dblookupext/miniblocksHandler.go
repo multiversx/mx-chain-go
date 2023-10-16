@@ -317,22 +317,16 @@ func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*Minib
 		return nil, err
 	}
 
-	found := false
 	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
 		if findTxHashInMiniblockMetadataOnBlock(mbInfo, txHash) {
 			miniblockMetadata.MiniblocksInfo = []*MiniblockMetadataOnBlock{mbInfo}
-			found = true
-			break
+			mbData := convertMiniblockMetadata(miniblockMetadata)
+			return mbData[0], nil
 		}
 	}
 
-	if !found {
-		return nil, fmt.Errorf("programming error, %w for txhash %x and mb hash %x",
-			ErrNotFoundInStorage, txHash, miniblockHash)
-	}
-
-	mbData := convertMiniblockMetadata(miniblockMetadata)
-	return mbData[0], nil // there will always be a single element in the slice due to the filtering inside the for loop
+	return nil, fmt.Errorf("programming error, %w for txhash %x and mb hash %x",
+		ErrNotFoundInStorage, txHash, miniblockHash)
 }
 
 func convertMiniblockMetadata(miniblockMetadata *MiniblockMetadataV2) []*MiniblockMetadata {

@@ -506,17 +506,17 @@ func (hr *historyRepository) RevertBlock(blockHeader data.HeaderHandler, blockBo
 	return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
 
 	// TODO(next PR): this function should contain the following code:
-	// err := hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
-	// if err != nil {
-	//		return err
-	//	}
+	//body, ok := blockBody.(*block.Body)
+	//if !ok {
+	//	return fmt.Errorf("%w in historyRepository.RevertBlock for provided blockBody", errWrongTypeAssertion)
+	//}
 	//
-	//	body, ok := blockBody.(*block.Body)
-	//	if !ok {
-	//		return fmt.Errorf("%w in historyRepository.RevertBlock for provided blockBody", errWrongTypeAssertion)
-	//	}
+	//err := hr.miniblocksHandler.blockReverted(blockHeader, body)
+	//if err != nil {
+	//	return err
+	//}
 	//
-	//	return hr.miniblocksHandler.blockReverted(blockHeader, body)
+	//return hr.esdtSuppliesHandler.RevertChanges(blockHeader, blockBody)
 }
 
 // GetESDTSupply will return the supply from the storage for the given token
