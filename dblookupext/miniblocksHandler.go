@@ -289,17 +289,21 @@ func (mh *miniblocksHandler) loadAllExistingMiniblocksMetadata(miniblockHash []b
 }
 
 func (mh *miniblocksHandler) getMiniblockMetadataByMiniblockHash(miniblockHash []byte) ([]*MiniblockMetadata, error) {
-	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
-	if err != nil {
-		return nil, err
-	}
-
-	miniblockMetadata, err := mh.loadAllExistingMiniblocksMetadata(miniblockHash, epoch)
+	miniblockMetadata, err := mh.retrieveMiniblockMetadata(miniblockHash)
 	if err != nil {
 		return nil, err
 	}
 
 	return convertMiniblockMetadata(miniblockMetadata), nil
+}
+
+func (mh *miniblocksHandler) retrieveMiniblockMetadata(miniblockHash []byte) (*MiniblockMetadataV2, error) {
+	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return mh.loadAllExistingMiniblocksMetadata(miniblockHash, epoch)
 }
 
 func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*MiniblockMetadata, error) {
@@ -308,12 +312,7 @@ func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*Minib
 		return nil, err
 	}
 
-	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
-	if err != nil {
-		return nil, err
-	}
-
-	miniblockMetadata, err := mh.loadAllExistingMiniblocksMetadata(miniblockHash, epoch)
+	miniblockMetadata, err := mh.retrieveMiniblockMetadata(miniblockHash)
 	if err != nil {
 		return nil, err
 	}
