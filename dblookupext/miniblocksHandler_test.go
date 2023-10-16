@@ -673,7 +673,7 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	assert.Equal(t, &MiniblockMetadataV2{}, recoveredMetadata) // revert occurred in epoch 38
 }
 
-func TestMiniblocksHandler_getMiniblockMetadataByTxHash(t *testing.T) {
+func TestMiniblocksHandler_getMiniblockMetadataByTxHashAndMbHash(t *testing.T) {
 	t.Parallel()
 
 	completeMiniblock, completeMiniblockHash, completeMiniblockHeader := generateTestCompletedMiniblock()
@@ -783,4 +783,12 @@ func TestMiniblocksHandler_getMiniblockMetadataByTxHash(t *testing.T) {
 		assert.Nil(t, errGet)
 		assert.Equal(t, partiallyExecutedMiniblock3, mb)
 	}
+
+	miniblocksMetadata, err := mbHandler.getMiniblockMetadataByMiniblockHash(completeMiniblockHash)
+	assert.Nil(t, err)
+	assert.Equal(t, []*MiniblockMetadata{completedExecutedMiniblock}, miniblocksMetadata)
+
+	miniblocksMetadata, err = mbHandler.getMiniblockMetadataByMiniblockHash(partialMiniblockHash)
+	assert.Nil(t, err)
+	assert.Equal(t, []*MiniblockMetadata{partiallyExecutedMiniblock1, partiallyExecutedMiniblock2, partiallyExecutedMiniblock3}, miniblocksMetadata)
 }
