@@ -112,7 +112,7 @@ func TestJournalEntryAccount_Revert(t *testing.T) {
 func TestNewJournalEntryAccountCreation_InvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &storage.StorerStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &trieMock.TrieStub{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrInvalidAddressLength, err)
 }
@@ -128,7 +128,7 @@ func TestNewJournalEntryAccountCreation_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &storage.StorerStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &trieMock.TrieStub{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -138,12 +138,12 @@ func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
 
 	expectedErr := errors.New("update error")
 	address := []byte("address")
-	ss := &storage.StorerStub{
-		RemoveCalled: func(key []byte) error {
+	ts := &trieMock.TrieStub{
+		UpdateCalled: func(key, value []byte) error {
 			return expectedErr
 		},
 	}
-	entry, _ := state.NewJournalEntryAccountCreation(address, ss)
+	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
 
 	acc, err := entry.Revert()
 	assert.Equal(t, expectedErr, err)
@@ -155,14 +155,14 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 
 	removeCalled := false
 	address := []byte("address")
-	ss := &storage.StorerStub{
-		RemoveCalled: func(key []byte) error {
+	ts := &trieMock.TrieStub{
+		UpdateCalled: func(key, value []byte) error {
 			assert.Equal(t, address, key)
 			removeCalled = true
 			return nil
 		},
 	}
-	entry, _ := state.NewJournalEntryAccountCreation(address, ss)
+	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)

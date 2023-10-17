@@ -24,6 +24,12 @@ type Updater interface {
 	IsInterfaceNil() bool
 }
 
+// Updater set a new value for a key, implemented by trie
+type TrieUpdater interface {
+	Update(key, value []byte) error
+	IsInterfaceNil() bool
+}
+
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {

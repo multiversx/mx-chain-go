@@ -275,7 +275,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie.GetStorageManager())
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
 		if err != nil {
 			return err
 		}
