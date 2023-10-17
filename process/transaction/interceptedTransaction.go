@@ -211,6 +211,10 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		if len(inTx.tx.RelayerAddr) > 0 {
+			return fmt.Errorf("%w, relayer address found on transaction", process.ErrWrongTransaction)
+		}
+
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 
@@ -237,6 +241,9 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 	}
 	if len(innerTx.RelayerAddr) == 0 {
 		return process.ErrRelayedTxV3EmptyRelayer
+	}
+	if !bytes.Equal(innerTx.RelayerAddr, tx.SndAddr) {
+		return process.ErrRelayedTxV3RelayerMismatch
 	}
 
 	err := inTx.integrity(innerTx)

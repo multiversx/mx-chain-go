@@ -2102,7 +2102,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		assert.Equal(t, process.ErrFailedTransaction, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
-	t.Run("value on relayed tx should error", func(t *testing.T) {
+	t.Run("value on parent tx should error", func(t *testing.T) {
 		t.Parallel()
 
 		txCopy := *tx
@@ -2122,6 +2122,15 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		userTxCopy := *userTx
 		userTxCopy.RelayerAddr = nil
+		txCopy.InnerTransaction = &userTxCopy
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
+	t.Run("different relayer on inner tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		userTxCopy := *userTx
+		userTxCopy.RelayerAddr = []byte("other")
 		txCopy.InnerTransaction = &userTxCopy
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})

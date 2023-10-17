@@ -1239,5 +1239,8 @@ var ErrRelayedTxV3ZeroVal = errors.New("relayed tx v3 value should be 0")
 // ErrRelayedTxV3EmptyRelayer signals that the inner tx of the relayed v3 does not have a relayer address set
 var ErrRelayedTxV3EmptyRelayer = errors.New("empty relayer on inner tx of relayed tx v3")
 
+// ErrRelayedTxV3RelayerMismatch signals that the relayer address of the inner tx does not match the real relayer
+var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
+
 // ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
 var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
