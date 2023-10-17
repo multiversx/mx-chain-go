@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -336,7 +337,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 
 	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
-		return err
+		oldCodeEntry = nil
 	}
 
 	err = adb.updateNewCodeEntry(newCodeHash, newCode)
@@ -357,6 +358,10 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 func (adb *AccountsDB) removeCodeEntry(codeHash []byte) (*CodeEntry, error) {
 	oldCodeEntry, err := getCodeEntry(codeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
 	if err != nil {
+		if strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()) {
+			return nil, nil
+		}
+
 		return nil, err
 	}
 
@@ -378,11 +383,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 
 	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie.GetStorageManager(), adb.marshaller)
-	if err != nil {
-		return err
-	}
-
-	if newCodeEntry == nil {
+	if newCodeEntry == nil || err != nil {
 		newCodeEntry = &CodeEntry{
 			Code: newCode,
 		}

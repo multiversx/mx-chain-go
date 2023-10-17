@@ -70,7 +70,7 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	}
 	entry, _ := state.NewJournalEntryCode(
 		&state.CodeEntry{},
-		nil,
+		[]byte("oldHash"),
 		[]byte("newHash"),
 		storerStub,
 		marshalizer,

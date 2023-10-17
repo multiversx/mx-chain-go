@@ -75,6 +75,11 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
+	// if old code entry is nil do not remove new entry
+	if len(jea.oldCodeHash) == 0 {
+		return nil
+	}
+
 	err := jea.updater.Remove(jea.newCodeHash)
 	if err != nil {
 		return err
