@@ -318,7 +318,7 @@ func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*Minib
 	}
 
 	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
-		if existsTxHashInMiniblockMetadataOnBlock(mbInfo, txHash) {
+		if hasTxHashInMiniblockMetadataOnBlock(mbInfo, txHash) {
 			miniblockMetadata.MiniblocksInfo = []*MiniblockMetadataOnBlock{mbInfo}
 			mbData := convertMiniblockMetadataV1ToV2(miniblockMetadata)
 			return mbData[0], nil
@@ -353,7 +353,7 @@ func convertMiniblockMetadataV1ToV2(miniblockMetadata *MiniblockMetadataV2) []*M
 	return result
 }
 
-func existsTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHash []byte) bool {
+func hasTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHash []byte) bool {
 	if len(mbInfo.TxHashesWhenPartial) == 0 {
 		return true
 	}
