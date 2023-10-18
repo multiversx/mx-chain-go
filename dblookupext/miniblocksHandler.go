@@ -17,33 +17,16 @@ type miniblocksHandler struct {
 	marshaller                       marshal.Marshalizer
 	hasher                           hashing.Hasher
 	epochIndex                       *epochByHashIndex
-	miniblockHashByTxHashIndexStorer storage.Storer
+	miniblockHashByTxHashIndexStorer storage.Storer // static storer
 	miniblocksMetadataStorer         storage.Storer
 }
 
-// blockCommitted will record the miniblocks information
-func (mh *miniblocksHandler) blockCommitted(header data.HeaderHandler, blockBody *block.Body) error {
-	headerHash, errCalculate := core.CalculateHash(mh.marshaller, mh.hasher, header)
-	if errCalculate != nil {
-		return fmt.Errorf("%w for header, header round %d", errCalculate, header.GetRound())
+func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock) error {
+	miniblockHash, err := core.CalculateHash(mh.marshaller, mh.hasher, mb)
+	if err != nil {
+		return err
 	}
 
-	for index, mb := range blockBody.MiniBlocks {
-		miniblockHash, err := core.CalculateHash(mh.marshaller, mh.hasher, mb)
-		if err != nil {
-			return fmt.Errorf("%w for miniblock at index %d, header hash %x", err, index, headerHash)
-		}
-
-		err = mh.commitMiniblock(header, headerHash, mb, miniblockHash)
-		if err != nil {
-			return fmt.Errorf("%w for miniblock at index %d, mbHash %x, header hash %x", err, index, miniblockHash, headerHash)
-		}
-	}
-
-	return nil
-}
-
-func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock, miniblockHash []byte) error {
 	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
 	if err != nil {
 		return err
@@ -57,7 +40,7 @@ func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHa
 		}
 	}
 
-	err = mh.commitExecutedTransactions(miniblockHeader, miniblockHash, mb, header.GetEpoch())
+	err = mh.commitExecutedTransactions(miniblockHeader, miniblockHash, mb)
 	if err != nil {
 		return err
 	}
@@ -76,10 +59,10 @@ func (mh *miniblocksHandler) findMiniblockHandler(header data.HeaderHandler, min
 }
 
 // commitExecutedTransactions will save only the transactions between the start and end index of the provided miniblockHeader
-func (mh *miniblocksHandler) commitExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, miniblockHash []byte, mb *block.MiniBlock, epoch uint32) error {
+func (mh *miniblocksHandler) commitExecutedTransactions(miniblockHeader data.MiniBlockHeaderHandler, miniblockHash []byte, mb *block.MiniBlock) error {
 	txHashes := mh.getOrderedExecutedTxHashes(miniblockHeader, mb)
 	for _, txHash := range txHashes {
-		err := mh.miniblockHashByTxHashIndexStorer.PutInEpoch(txHash, miniblockHash, epoch)
+		err := mh.miniblockHashByTxHashIndexStorer.Put(txHash, miniblockHash)
 		if err != nil {
 			return fmt.Errorf("%w for tx hash %x, miniblock hash %x", err, txHash, miniblockHash)
 		}
@@ -279,4 +262,107 @@ func (mh *miniblocksHandler) removeMiniblockMetadata(
 	}
 
 	return mh.saveMiniblocksMetadata(miniblockHash, loadedMiniblockMetadata, header.GetEpoch())
+}
+
+func (mh *miniblocksHandler) loadAllExistingMiniblocksMetadata(miniblockHash []byte, epoch uint32) (*MiniblockMetadataV2, error) {
+	miniblockMetadataFirstEpoch, err := mh.loadExistingMiniblocksMetadata(miniblockHash, epoch)
+	if err != nil {
+		return nil, err
+	}
+	numTxHashes := 0
+	for _, mbInfo := range miniblockMetadataFirstEpoch.MiniblocksInfo {
+		numTxHashes += len(mbInfo.TxHashesWhenPartial)
+	}
+	if numTxHashes == 0 || numTxHashes == int(miniblockMetadataFirstEpoch.NumTxHashesInMiniblock) {
+		return miniblockMetadataFirstEpoch, nil
+	}
+
+	// we will try the next epoch, maybe we will find the rest of the miniblockMetadata info
+	miniblockMetadataNextEpoch, err := mh.loadExistingMiniblocksMetadata(miniblockHash, epoch+1)
+	if err != nil {
+		// no, return what we found
+		return miniblockMetadataFirstEpoch, nil
+	}
+	miniblockMetadataFirstEpoch.MiniblocksInfo = append(miniblockMetadataFirstEpoch.MiniblocksInfo, miniblockMetadataNextEpoch.MiniblocksInfo...)
+
+	return miniblockMetadataFirstEpoch, nil
+}
+
+func (mh *miniblocksHandler) getMiniblockMetadataByMiniblockHash(miniblockHash []byte) ([]*MiniblockMetadata, error) {
+	miniblockMetadata, err := mh.retrieveMiniblockMetadata(miniblockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertMiniblockMetadataV1ToV2(miniblockMetadata), nil
+}
+
+func (mh *miniblocksHandler) retrieveMiniblockMetadata(miniblockHash []byte) (*MiniblockMetadataV2, error) {
+	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return mh.loadAllExistingMiniblocksMetadata(miniblockHash, epoch)
+}
+
+func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*MiniblockMetadata, error) {
+	miniblockHash, err := mh.miniblockHashByTxHashIndexStorer.Get(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblockMetadata, err := mh.retrieveMiniblockMetadata(miniblockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
+		if hasTxHashInMiniblockMetadataOnBlock(mbInfo, txHash) {
+			miniblockMetadata.MiniblocksInfo = []*MiniblockMetadataOnBlock{mbInfo}
+			mbData := convertMiniblockMetadataV1ToV2(miniblockMetadata)
+			return mbData[0], nil
+		}
+	}
+
+	return nil, fmt.Errorf("programming error, %w for txhash %x and mb hash %x",
+		ErrNotFoundInStorage, txHash, miniblockHash)
+}
+
+func convertMiniblockMetadataV1ToV2(miniblockMetadata *MiniblockMetadataV2) []*MiniblockMetadata {
+	result := make([]*MiniblockMetadata, 0, len(miniblockMetadata.MiniblocksInfo))
+	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
+		mbv1 := &MiniblockMetadata{
+			SourceShardID:                     miniblockMetadata.SourceShardID,
+			DestinationShardID:                miniblockMetadata.DestinationShardID,
+			Round:                             mbInfo.Round,
+			HeaderNonce:                       mbInfo.HeaderNonce,
+			HeaderHash:                        mbInfo.HeaderHash,
+			MiniblockHash:                     miniblockMetadata.MiniblockHash,
+			Epoch:                             mbInfo.Epoch,
+			NotarizedAtSourceInMetaNonce:      mbInfo.NotarizedAtSourceInMetaNonce,
+			NotarizedAtDestinationInMetaNonce: mbInfo.NotarizedAtDestinationInMetaNonce,
+			NotarizedAtSourceInMetaHash:       mbInfo.NotarizedAtSourceInMetaHash,
+			NotarizedAtDestinationInMetaHash:  mbInfo.NotarizedAtDestinationInMetaHash,
+			Type:                              miniblockMetadata.Type,
+		}
+
+		result = append(result, mbv1)
+	}
+
+	return result
+}
+
+func hasTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHash []byte) bool {
+	if len(mbInfo.TxHashesWhenPartial) == 0 {
+		return true
+	}
+
+	for _, executedTxHash := range mbInfo.TxHashesWhenPartial {
+		if bytes.Equal(executedTxHash, txHash) {
+			return true
+		}
+	}
+
+	return false
 }

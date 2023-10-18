@@ -30,9 +30,9 @@ func createMockMiniblocksHandler() *miniblocksHandler {
 	}
 }
 
-func checkTxs(miniblockHashByTxHashIndexStorer storage.Storer, epoch uint32, txHashes [][]byte, miniblockHash []byte) error {
+func checkTxs(miniblockHashByTxHashIndexStorer storage.Storer, txHashes [][]byte, miniblockHash []byte) error {
 	for _, txHash := range txHashes {
-		value, err := miniblockHashByTxHashIndexStorer.GetFromEpoch(txHash, epoch)
+		value, err := miniblockHashByTxHashIndexStorer.Get(txHash)
 		if err != nil {
 			return fmt.Errorf("%w for hash %s", err, txHash)
 		}
@@ -146,16 +146,13 @@ func TestMiniblocksHandler_blockCommitted(t *testing.T) {
 		mbHandler := createMockMiniblocksHandler()
 
 		header := generateHeader(37, 22933, *completeMiniblockHeader)
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{completeMiniblock},
-		}
 		headerHash, err := core.CalculateHash(testMarshaller, testHasher, header)
 		assert.Nil(t, err)
 
-		// commit header with completed miniblock and check everything was written
-		err = mbHandler.blockCommitted(header, body)
+		// commit the completed miniblock and check everything was written
+		err = mbHandler.commitMiniblock(header, headerHash, completeMiniblock)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 		assert.Nil(t, err)
 		err = checkMiniblockHashInEpoch(mbHandler.epochIndex, completeMiniblockHash, header.Epoch)
 		assert.Nil(t, err)
@@ -185,38 +182,29 @@ func TestMiniblocksHandler_blockCommitted(t *testing.T) {
 		mbHandler := createMockMiniblocksHandler()
 
 		header1 := generateHeader(37, 22933, *completeMiniblockHeader, *partialMiniblockHeaders[0])
-		body1 := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				completeMiniblock,
-				partialMiniblock,
-			},
-		}
 		headerHash1, err := core.CalculateHash(testMarshaller, testHasher, header1)
 		assert.Nil(t, err)
 
 		header2 := generateHeader(37, 22934, *partialMiniblockHeaders[1])
-		body2 := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				partialMiniblock,
-			},
-		}
 		headerHash2, err := core.CalculateHash(testMarshaller, testHasher, header2)
 		assert.Nil(t, err)
 
-		// commit header1 with completed miniblock and check all transactions from that block were written
-		err = mbHandler.blockCommitted(header1, body1)
+		// commit header1 with completed miniblocks and check all transactions from that block were written
+		err = mbHandler.commitMiniblock(header1, headerHash1, completeMiniblock)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:2], partialMiniblockHash)
+		err = mbHandler.commitMiniblock(header1, headerHash1, partialMiniblock)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:2], partialMiniblockHash)
+		assert.Nil(t, err)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 		assert.Nil(t, err)
 
-		// commit header2 with completed miniblock and check all transactions from header 2 and header 1 were written
-		err = mbHandler.blockCommitted(header2, body2)
+		// commit header2 with patial miniblock and check all transactions from header 2 and header 1 were written
+		err = mbHandler.commitMiniblock(header2, headerHash2, partialMiniblock)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:4], partialMiniblockHash)
 		assert.Nil(t, err)
 
 		// check the miniblock hashes were written correctly
@@ -278,56 +266,42 @@ func TestMiniblocksHandler_blockCommitted(t *testing.T) {
 		mbHandler := createMockMiniblocksHandler()
 
 		header1 := generateHeader(37, 22933, *completeMiniblockHeader, *partialMiniblockHeaders[0])
-		body1 := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				completeMiniblock,
-				partialMiniblock,
-			},
-		}
 		headerHash1, err := core.CalculateHash(testMarshaller, testHasher, header1)
 		assert.Nil(t, err)
 
 		header2 := generateHeader(37, 22934, *partialMiniblockHeaders[1])
-		body2 := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				partialMiniblock,
-			},
-		}
 		headerHash2, err := core.CalculateHash(testMarshaller, testHasher, header2)
 		assert.Nil(t, err)
 
 		header3 := generateHeader(38, 22935, *partialMiniblockHeaders[2])
-		body3 := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				partialMiniblock,
-			},
-		}
 		headerHash3, err := core.CalculateHash(testMarshaller, testHasher, header3)
 		assert.Nil(t, err)
 
 		// commit header1 with completed miniblock and check all transactions from that block were written
-		err = mbHandler.blockCommitted(header1, body1)
+		err = mbHandler.commitMiniblock(header1, headerHash1, completeMiniblock)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:2], partialMiniblockHash)
+		err = mbHandler.commitMiniblock(header1, headerHash1, partialMiniblock)
 		assert.Nil(t, err)
-
-		// commit header2 with completed miniblock and check all transactions from header 2 and header 1 were written
-		err = mbHandler.blockCommitted(header2, body2)
-		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
-		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:2], partialMiniblockHash)
 		assert.Nil(t, err)
 
-		// commit header3 with completed miniblock and check all transactions from header 3, header 2 and header 1 were written in
+		// commit header2 with partial miniblock and check all transactions from header 2 and header 1 were written
+		err = mbHandler.commitMiniblock(header2, headerHash2, partialMiniblock)
+		assert.Nil(t, err)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
+		assert.Nil(t, err)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+		assert.Nil(t, err)
+
+		// commit header3 with partial miniblock and check all transactions from header 3, header 2 and header 1 were written in
 		// the correct epochs
-		err = mbHandler.blockCommitted(header3, body3)
+		err = mbHandler.commitMiniblock(header3, headerHash3, partialMiniblock)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:4], partialMiniblockHash)
 		assert.Nil(t, err)
-		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header3.GetEpoch(), partialMiniblock.TxHashes[5:6], partialMiniblockHash)
+		err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[5:6], partialMiniblockHash)
 		assert.Nil(t, err)
 
 		// check the miniblock hashes were written correctly
@@ -527,12 +501,16 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 			partialMiniblock,
 		},
 	}
+	headerHash3, err := core.CalculateHash(testMarshaller, testHasher, header3)
+	assert.Nil(t, err)
 
-	err = mbHandler.blockCommitted(header1, body1)
+	err = mbHandler.commitMiniblock(header1, headerHash1, completeMiniblock)
 	assert.Nil(t, err)
-	err = mbHandler.blockCommitted(header2, body2)
+	err = mbHandler.commitMiniblock(header1, headerHash1, partialMiniblock)
 	assert.Nil(t, err)
-	err = mbHandler.blockCommitted(header3, body3)
+	err = mbHandler.commitMiniblock(header2, headerHash2, partialMiniblock)
+	assert.Nil(t, err)
+	err = mbHandler.commitMiniblock(header3, headerHash3, partialMiniblock)
 	assert.Nil(t, err)
 
 	//we set the current epochs in storers, this will not be necessary when implementing RemoveFromEpoch
@@ -544,11 +522,11 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	err = mbHandler.blockReverted(header3, body3)
 	assert.Nil(t, err)
 
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 	assert.Nil(t, err)
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:4], partialMiniblockHash)
 	assert.Nil(t, err)
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header3.GetEpoch(), partialMiniblock.TxHashes[5:6], partialMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[5:6], partialMiniblockHash)
 	assert.NotNil(t, err) // these were reverted
 
 	// check the miniblock hashes were written correctly
@@ -620,11 +598,11 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	err = mbHandler.blockReverted(header2, body2)
 	assert.Nil(t, err)
 
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 	assert.Nil(t, err)
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:4], partialMiniblockHash)
 	assert.NotNil(t, err) // these were reverted
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header3.GetEpoch(), partialMiniblock.TxHashes[5:6], partialMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[5:6], partialMiniblockHash)
 	assert.NotNil(t, err) // these were reverted
 
 	// check the miniblock hashes were written correctly
@@ -668,11 +646,11 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	err = mbHandler.blockReverted(header1, body1)
 	assert.Nil(t, err)
 
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), completeMiniblock.TxHashes, completeMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, completeMiniblock.TxHashes, completeMiniblockHash)
 	assert.NotNil(t, err) // these were reverted
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header1.GetEpoch(), partialMiniblock.TxHashes[0:4], partialMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[0:4], partialMiniblockHash)
 	assert.NotNil(t, err) // these were reverted
-	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, header3.GetEpoch(), partialMiniblock.TxHashes[5:6], partialMiniblockHash)
+	err = checkTxs(mbHandler.miniblockHashByTxHashIndexStorer, partialMiniblock.TxHashes[5:6], partialMiniblockHash)
 	assert.NotNil(t, err) // these were reverted
 
 	// check the miniblock hashes are not present anymore
@@ -693,4 +671,124 @@ func TestMiniblocksHandler_blockCommittedAndBlockReverted(t *testing.T) {
 	recoveredMetadata, err = mbHandler.loadExistingMiniblocksMetadata(partialMiniblockHash, header3.GetEpoch())
 	assert.Nil(t, err)
 	assert.Equal(t, &MiniblockMetadataV2{}, recoveredMetadata) // revert occurred in epoch 38
+}
+
+func TestMiniblocksHandler_getMiniblockMetadataByTxHashAndMbHash(t *testing.T) {
+	t.Parallel()
+
+	completeMiniblock, completeMiniblockHash, completeMiniblockHeader := generateTestCompletedMiniblock()
+	partialMiniblock, partialMiniblockHash, partialMiniblockHeaders := generateTestPartialMiniblock()
+
+	mbHandler := createMockMiniblocksHandler()
+
+	header1 := generateHeader(37, 22933, *completeMiniblockHeader, *partialMiniblockHeaders[0])
+	headerHash1, err := core.CalculateHash(testMarshaller, testHasher, header1)
+	assert.Nil(t, err)
+
+	header2 := generateHeader(37, 22934, *partialMiniblockHeaders[1])
+	headerHash2, err := core.CalculateHash(testMarshaller, testHasher, header2)
+	assert.Nil(t, err)
+
+	header3 := generateHeader(38, 22935, *partialMiniblockHeaders[2])
+	headerHash3, err := core.CalculateHash(testMarshaller, testHasher, header3)
+	assert.Nil(t, err)
+
+	err = mbHandler.commitMiniblock(header1, headerHash1, completeMiniblock)
+	assert.Nil(t, err)
+
+	err = mbHandler.commitMiniblock(header1, headerHash1, partialMiniblock)
+	assert.Nil(t, err)
+
+	completedExecutedMiniblock := &MiniblockMetadata{
+		Round:         23033,
+		HeaderNonce:   22933,
+		HeaderHash:    headerHash1,
+		MiniblockHash: completeMiniblockHash,
+		Epoch:         37,
+	}
+	//all completed txs should return the completed miniblock
+	for _, txHash := range completeMiniblock.TxHashes {
+		mb, errGet := mbHandler.getMiniblockMetadataByTxHash(txHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, completedExecutedMiniblock, mb)
+	}
+
+	partiallyExecutedMiniblock1 := &MiniblockMetadata{
+		Round:         23033,
+		HeaderNonce:   22933,
+		HeaderHash:    headerHash1,
+		MiniblockHash: partialMiniblockHash,
+		Epoch:         37,
+	}
+	//the partial executed txs should return the partial miniblock
+	for i := partialMiniblockHeaders[0].GetIndexOfFirstTxProcessed(); i <= partialMiniblockHeaders[0].GetIndexOfLastTxProcessed(); i++ {
+		txHash := partialMiniblock.TxHashes[i]
+		mb, errGet := mbHandler.getMiniblockMetadataByTxHash(txHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, partiallyExecutedMiniblock1, mb)
+	}
+	//a transaction from the second partially executed miniblock should return error
+	indexForNotFound := partialMiniblockHeaders[1].GetIndexOfFirstTxProcessed()
+	txHashNotFound := partialMiniblock.TxHashes[indexForNotFound]
+	mb, errGet := mbHandler.getMiniblockMetadataByTxHash(txHashNotFound)
+	assert.NotNil(t, errGet)
+	assert.Nil(t, mb)
+
+	err = mbHandler.commitMiniblock(header2, headerHash2, partialMiniblock)
+	assert.Nil(t, err)
+	err = mbHandler.commitMiniblock(header3, headerHash3, partialMiniblock)
+	assert.Nil(t, err)
+
+	//we set the current epochs in storers, this will not be necessary when implementing RemoveFromEpoch
+	mbHandler.miniblocksMetadataStorer.(*genericMocks.StorerMock).SetCurrentEpoch(header3.Epoch)
+
+	//all completed txs should return the completed miniblock
+	for _, txHash := range completeMiniblock.TxHashes {
+		mb, errGet = mbHandler.getMiniblockMetadataByTxHash(txHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, completedExecutedMiniblock, mb)
+	}
+	//the partial executed txs should return the partial miniblock
+	for i := partialMiniblockHeaders[0].GetIndexOfFirstTxProcessed(); i <= partialMiniblockHeaders[0].GetIndexOfLastTxProcessed(); i++ {
+		txHash := partialMiniblock.TxHashes[i]
+		mb, errGet = mbHandler.getMiniblockMetadataByTxHash(txHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, partiallyExecutedMiniblock1, mb)
+	}
+
+	partiallyExecutedMiniblock2 := &MiniblockMetadata{
+		Round:         23034,
+		HeaderNonce:   22934,
+		HeaderHash:    headerHash2,
+		MiniblockHash: partialMiniblockHash,
+		Epoch:         37,
+	}
+	partiallyExecutedMiniblock3 := &MiniblockMetadata{
+		Round:         23035,
+		HeaderNonce:   22935,
+		HeaderHash:    headerHash3,
+		MiniblockHash: partialMiniblockHash,
+		Epoch:         38,
+	}
+	//the partial executed txs should return the partial miniblock
+	for i := partialMiniblockHeaders[1].GetIndexOfFirstTxProcessed(); i <= partialMiniblockHeaders[1].GetIndexOfLastTxProcessed(); i++ {
+		txHash := partialMiniblock.TxHashes[i]
+		mb, errGet = mbHandler.getMiniblockMetadataByTxHash(txHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, partiallyExecutedMiniblock2, mb)
+	}
+	for i := partialMiniblockHeaders[2].GetIndexOfFirstTxProcessed(); i <= partialMiniblockHeaders[2].GetIndexOfLastTxProcessed(); i++ {
+		txHash := partialMiniblock.TxHashes[i]
+		mb, errGet = mbHandler.getMiniblockMetadataByTxHash(txHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, partiallyExecutedMiniblock3, mb)
+	}
+
+	miniblocksMetadata, err := mbHandler.getMiniblockMetadataByMiniblockHash(completeMiniblockHash)
+	assert.Nil(t, err)
+	assert.Equal(t, []*MiniblockMetadata{completedExecutedMiniblock}, miniblocksMetadata)
+
+	miniblocksMetadata, err = mbHandler.getMiniblockMetadataByMiniblockHash(partialMiniblockHash)
+	assert.Nil(t, err)
+	assert.Equal(t, []*MiniblockMetadata{partiallyExecutedMiniblock1, partiallyExecutedMiniblock2, partiallyExecutedMiniblock3}, miniblocksMetadata)
 }
