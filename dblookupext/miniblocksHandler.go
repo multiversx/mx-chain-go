@@ -366,3 +366,53 @@ func findTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHa
 
 	return false
 }
+
+func (mh *miniblocksHandler) updateMiniblockMetadataOnBlock(
+	miniblockHash []byte,
+	headerHash []byte,
+	updateHandler func(mbMetadataOnBlock *MiniblockMetadataOnBlock),
+) error {
+	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
+	if err != nil {
+		return err
+	}
+
+	shouldContinue, err := mh.updateMiniblockMetadataOnBlockInEpoch(epoch, miniblockHash, headerHash, updateHandler)
+	if err != nil {
+		return err
+	}
+	if !shouldContinue {
+		return nil
+	}
+
+	shouldContinue, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch+1, miniblockHash, headerHash, updateHandler)
+	if err != nil {
+		return err
+	}
+	if shouldContinue {
+		return ErrNotFoundInStorage
+	}
+
+	return nil
+}
+
+func (mh *miniblocksHandler) updateMiniblockMetadataOnBlockInEpoch(
+	epoch uint32,
+	miniblockHash []byte,
+	headerHash []byte,
+	updateHandler func(mbMetadataOnBlock *MiniblockMetadataOnBlock),
+) (bool, error) {
+	miniblockMetadata, err := mh.loadExistingMiniblocksMetadata(miniblockHash, epoch)
+	if err != nil {
+		return false, err
+	}
+
+	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
+		if bytes.Equal(mbInfo.HeaderHash, headerHash) {
+			updateHandler(mbInfo)
+			return false, mh.saveMiniblocksMetadata(miniblockHash, miniblockMetadata, epoch)
+		}
+	}
+
+	return true, nil
+}

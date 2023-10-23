@@ -792,3 +792,100 @@ func TestMiniblocksHandler_getMiniblockMetadataByTxHashAndMbHash(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []*MiniblockMetadata{partiallyExecutedMiniblock1, partiallyExecutedMiniblock2, partiallyExecutedMiniblock3}, miniblocksMetadata)
 }
+
+func TestMiniblocksHandler_updateMiniblockMetadataOnBlock(t *testing.T) {
+	t.Parallel()
+
+	completeMiniblock, completeMiniblockHash, completeMiniblockHeader := generateTestCompletedMiniblock()
+	partialMiniblock, partialMiniblockHash, partialMiniblockHeaders := generateTestPartialMiniblock()
+
+	mbHandler := createMockMiniblocksHandler()
+
+	header1 := generateHeader(37, 22933, *completeMiniblockHeader, *partialMiniblockHeaders[0])
+	headerHash1, err := core.CalculateHash(testMarshaller, testHasher, header1)
+	assert.Nil(t, err)
+
+	header2 := generateHeader(37, 22934, *partialMiniblockHeaders[1])
+	headerHash2, err := core.CalculateHash(testMarshaller, testHasher, header2)
+	assert.Nil(t, err)
+
+	err = mbHandler.commitMiniblock(header1, headerHash1, completeMiniblock)
+	assert.Nil(t, err)
+
+	err = mbHandler.commitMiniblock(header1, headerHash1, partialMiniblock)
+	assert.Nil(t, err)
+
+	t.Run("completed hash with invalid header hash should not call update", func(t *testing.T) {
+		err = mbHandler.updateMiniblockMetadataOnBlock(completeMiniblockHash, []byte("missing header hash"), func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+			assert.Fail(t, "should have not called update handler")
+		})
+		assert.Equal(t, ErrNotFoundInStorage, err)
+	})
+	t.Run("completed hash with valid header hash should call update", func(t *testing.T) {
+		completedExecutedMiniblock := &MiniblockMetadata{
+			Round:                             23033,
+			HeaderNonce:                       22933,
+			HeaderHash:                        headerHash1,
+			MiniblockHash:                     completeMiniblockHash,
+			Epoch:                             37,
+			NotarizedAtDestinationInMetaNonce: 111,
+		}
+
+		err = mbHandler.updateMiniblockMetadataOnBlock(completeMiniblockHash, headerHash1, func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+			mbMetadataOnBlock.NotarizedAtDestinationInMetaNonce = 111
+		})
+		assert.Nil(t, err)
+
+		mbData, errGet := mbHandler.getMiniblockMetadataByMiniblockHash(completeMiniblockHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, []*MiniblockMetadata{completedExecutedMiniblock}, mbData)
+	})
+
+	partiallyExecutedMiniblock1 := &MiniblockMetadata{
+		Round:         23033,
+		HeaderNonce:   22933,
+		HeaderHash:    headerHash1,
+		MiniblockHash: partialMiniblockHash,
+		Epoch:         37,
+	}
+	t.Run("partial miniblock with valid header1 hash should call update", func(t *testing.T) {
+		err = mbHandler.updateMiniblockMetadataOnBlock(partialMiniblockHash, headerHash1, func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+			mbMetadataOnBlock.NotarizedAtDestinationInMetaNonce = 112
+		})
+		assert.Nil(t, err)
+		partiallyExecutedMiniblock1.NotarizedAtDestinationInMetaNonce = 112
+
+		mbData, errGet := mbHandler.getMiniblockMetadataByMiniblockHash(partialMiniblockHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, []*MiniblockMetadata{partiallyExecutedMiniblock1}, mbData)
+	})
+
+	err = mbHandler.commitMiniblock(header2, headerHash2, partialMiniblock)
+	assert.Nil(t, err)
+
+	partiallyExecutedMiniblock2 := &MiniblockMetadata{
+		Round:         23034,
+		HeaderNonce:   22934,
+		HeaderHash:    headerHash2,
+		MiniblockHash: partialMiniblockHash,
+		Epoch:         37,
+	}
+
+	t.Run("partial miniblock with valid header2 hash should call update", func(t *testing.T) {
+		err = mbHandler.updateMiniblockMetadataOnBlock(partialMiniblockHash, headerHash2, func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+			mbMetadataOnBlock.NotarizedAtDestinationInMetaNonce = 113
+		})
+		assert.Nil(t, err)
+		partiallyExecutedMiniblock2.NotarizedAtDestinationInMetaNonce = 113
+
+		mbData, errGet := mbHandler.getMiniblockMetadataByMiniblockHash(partialMiniblockHash)
+		assert.Nil(t, errGet)
+		assert.Equal(t, []*MiniblockMetadata{partiallyExecutedMiniblock1, partiallyExecutedMiniblock2}, mbData)
+	})
+	t.Run("partial miniblock hash with invalid header hash should not call update", func(t *testing.T) {
+		err = mbHandler.updateMiniblockMetadataOnBlock(partialMiniblockHash, []byte("missing header hash"), func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+			assert.Fail(t, "should have not called update handler")
+		})
+		assert.Equal(t, ErrNotFoundInStorage, err)
+	})
+}
