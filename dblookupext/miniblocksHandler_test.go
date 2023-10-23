@@ -815,13 +815,13 @@ func TestMiniblocksHandler_updateMiniblockMetadataOnBlock(t *testing.T) {
 	err = mbHandler.commitMiniblock(header1, headerHash1, partialMiniblock)
 	assert.Nil(t, err)
 
-	t.Run("completed hash with invalid header hash should not call update", func(t *testing.T) {
+	t.Run("completed miniblock hash with invalid header hash should not call update", func(t *testing.T) {
 		err = mbHandler.updateMiniblockMetadataOnBlock(completeMiniblockHash, []byte("missing header hash"), func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
 			assert.Fail(t, "should have not called update handler")
 		})
-		assert.Equal(t, ErrNotFoundInStorage, err)
+		assert.Equal(t, storage.ErrKeyNotFound, err)
 	})
-	t.Run("completed hash with valid header hash should call update", func(t *testing.T) {
+	t.Run("completed miniblock hash with valid header hash should call update", func(t *testing.T) {
 		completedExecutedMiniblock := &MiniblockMetadata{
 			Round:                             23033,
 			HeaderNonce:                       22933,
@@ -886,6 +886,6 @@ func TestMiniblocksHandler_updateMiniblockMetadataOnBlock(t *testing.T) {
 		err = mbHandler.updateMiniblockMetadataOnBlock(partialMiniblockHash, []byte("missing header hash"), func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
 			assert.Fail(t, "should have not called update handler")
 		})
-		assert.Equal(t, ErrNotFoundInStorage, err)
+		assert.Equal(t, storage.ErrKeyNotFound, err)
 	})
 }

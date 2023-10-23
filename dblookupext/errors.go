@@ -6,9 +6,6 @@ import (
 	"fmt"
 )
 
-// ErrNotFoundInStorage signals that an item was not found in storage
-var ErrNotFoundInStorage = errors.New("not found in storage")
-
 var errCannotCastToBlockBody = errors.New("cannot cast to block body")
 
 var errNilESDTSuppliesHandler = errors.New("nil esdt supplies handler")

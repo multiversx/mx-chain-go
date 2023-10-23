@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
@@ -126,5 +127,5 @@ func TestSavePartialMiniblocksShouldKeepAllData(t *testing.T) {
 	txHash5 := []byte(fmt.Sprintf(txHashPattern, 5)) // hash 5 should not be linked, it was not processed yet
 	mbData, err = historyRepository.GetMiniblockMetadataByTxHash(txHash5)
 	require.Nil(t, mbData)
-	assert.NotNil(t, err)
+	assert.Equal(t, storage.ErrKeyNotFound, err)
 }

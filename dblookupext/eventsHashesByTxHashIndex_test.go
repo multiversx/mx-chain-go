@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/mock"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +25,7 @@ func TestGetResultsHashesByTxHashShouldErr(t *testing.T) {
 
 	eventsHashes, err := eventsHashesIndex.getEventsHashesByTxHash([]byte("hash"), 0)
 	require.Nil(t, eventsHashes)
-	require.ErrorIs(t, err, ErrNotFoundInStorage)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
 }
 
 func TestSaveAndGetResultsSCRSHashesByTxHash(t *testing.T) {

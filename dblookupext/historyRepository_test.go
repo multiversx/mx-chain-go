@@ -138,15 +138,17 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 			},
 		},
 	}
+	miniblockHash0, _ := core.CalculateHash(args.Marshalizer, args.Hasher, blockBody.MiniBlocks[0])
+	miniblockHash1, _ := core.CalculateHash(args.Marshalizer, args.Hasher, blockBody.MiniBlocks[1])
 	blockHeader.MiniBlockHeaders = []block.MiniBlockHeader{
 		{
-			Hash:            repo.computeMiniblockHash(blockBody.MiniBlocks[0]),
+			Hash:            miniblockHash0,
 			SenderShardID:   0,
 			ReceiverShardID: 1,
 			TxCount:         uint32(len(blockBody.MiniBlocks[0].TxHashes)),
 		},
 		{
-			Hash:            repo.computeMiniblockHash(blockBody.MiniBlocks[1]),
+			Hash:            miniblockHash1,
 			SenderShardID:   0,
 			ReceiverShardID: 2,
 			TxCount:         uint32(len(blockBody.MiniBlocks[1].TxHashes)),
@@ -187,16 +189,18 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 			miniblockB,
 		},
 	}
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+	miniblockHashB, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockB)
 	header := &block.Header{
 		Epoch: 42,
 		Round: 4321,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
-				Hash:    repo.computeMiniblockHash(miniblockA),
+				Hash:    miniblockHashA,
 				TxCount: uint32(len(miniblockA.TxHashes)),
 			},
 			{
-				Hash:    repo.computeMiniblockHash(miniblockB),
+				Hash:    miniblockHashB,
 				TxCount: uint32(len(miniblockB.TxHashes)),
 			},
 		},
@@ -231,8 +235,8 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	miniblockB := &block.MiniBlock{
 		TxHashes: [][]byte{[]byte("txB")},
 	}
-	miniblockHashA := repo.computeMiniblockHash(miniblockA)
-	miniblockHashB := repo.computeMiniblockHash(miniblockB)
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+	miniblockHashB, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockB)
 
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -244,11 +248,11 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 		Epoch: 42,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
-				Hash:    repo.computeMiniblockHash(miniblockA),
+				Hash:    miniblockHashA,
 				TxCount: uint32(len(miniblockA.TxHashes)),
 			},
 			{
-				Hash:    repo.computeMiniblockHash(miniblockB),
+				Hash:    miniblockHashB,
 				TxCount: uint32(len(miniblockB.TxHashes)),
 			},
 		},
@@ -298,9 +302,9 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 		ReceiverShardID: 13,
 		TxHashes:        [][]byte{[]byte("txC")},
 	}
-	miniblockHashA := repo.computeMiniblockHash(miniblockA)
-	miniblockHashB := repo.computeMiniblockHash(miniblockB)
-	miniblockHashC := repo.computeMiniblockHash(miniblockC)
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+	miniblockHashB, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockB)
+	miniblockHashC, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockC)
 
 	header := &block.Header{
 		Epoch: 42,
@@ -505,7 +509,7 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 		ReceiverShardID: 14,
 		TxHashes:        [][]byte{[]byte("txA")},
 	}
-	miniblockHashA := repo.computeMiniblockHash(miniblockA)
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
 
 	header := &block.Header{
 		Epoch: 42,
@@ -579,7 +583,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 		ReceiverShardID: 14,
 		TxHashes:        [][]byte{[]byte("txA")},
 	}
-	miniblockHash := repo.computeMiniblockHash(miniblock)
+	miniblockHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblock)
 
 	forkedHeader := &block.Header{
 		Epoch: 42,

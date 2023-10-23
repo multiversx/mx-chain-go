@@ -226,11 +226,6 @@ func (hr *historyRepository) onNotarizedMiniblock(
 	headerHash []byte,
 ) {
 	miniblockHash := miniblockHeader.Hash
-	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
-	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
-	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
-	isNotarizedAtBoth := isIntra || isToMeta
 
 	notFromMe := miniblockHeader.SenderShardID != hr.selfShardID
 	notToMe := miniblockHeader.ReceiverShardID != hr.selfShardID
@@ -240,51 +235,61 @@ func (hr *historyRepository) onNotarizedMiniblock(
 		return
 	}
 
+	updateHandler := hr.createUpdateHandler(metaBlockHash, metaBlockNonce, miniblockHeader, shardOfContainingBlock)
+	err := hr.miniblocksHandler.updateMiniblockMetadataOnBlock(miniblockHash, headerHash, updateHandler)
+	if err != nil {
+		log.Warn("historyRepository.onNotarizedMiniblock",
+			"error", err,
+			"shardOfContainingBlock", shardOfContainingBlock,
+			"miniblockHeader.SenderShardID", miniblockHeader.SenderShardID,
+			"miniblockHeader.ReceiverShardID", miniblockHeader.ReceiverShardID,
+		)
+	}
+}
+
+func (hr *historyRepository) createUpdateHandler(
+	metaBlockHash []byte,
+	metaBlockNonce uint64,
+	miniblockHeader block.MiniBlockHeader,
+	shardOfContainingBlock uint32,
+) func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+
+	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
+	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
+	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
+	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
+	isNotarizedAtBoth := isIntra || isToMeta
+
+	// the if checking order is important. Start checking for both and only after that for sender/receiver or
+	// otherwise this function can return a wrong handler
 	if isNotarizedAtBoth {
-		updateHandler := func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+		return func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
 			mbMetadataOnBlock.NotarizedAtSourceInMetaHash = metaBlockHash
 			mbMetadataOnBlock.NotarizedAtSourceInMetaNonce = metaBlockNonce
 			mbMetadataOnBlock.NotarizedAtDestinationInMetaHash = metaBlockHash
 			mbMetadataOnBlock.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 		}
-
-		err := hr.miniblocksHandler.updateMiniblockMetadataOnBlock(miniblockHash, headerHash, updateHandler)
-		if err != nil {
-			log.Warn("historyRepository.onNotarizedMiniblock - isNotarizedAtBoth", "error", err)
-		}
-
-		return
 	}
-
 	if isNotarizedAtSource {
-		updateHandler := func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+		return func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
 			mbMetadataOnBlock.NotarizedAtSourceInMetaHash = metaBlockHash
 			mbMetadataOnBlock.NotarizedAtSourceInMetaNonce = metaBlockNonce
 		}
-
-		err := hr.miniblocksHandler.updateMiniblockMetadataOnBlock(miniblockHash, headerHash, updateHandler)
-		if err != nil {
-			log.Warn("historyRepository.onNotarizedMiniblock - isNotarizedAtSource", "error", err)
-		}
-
-		return
 	}
-
 	if isNotarizedAtDestination {
-		updateHandler := func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+		return func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
 			mbMetadataOnBlock.NotarizedAtDestinationInMetaHash = metaBlockHash
 			mbMetadataOnBlock.NotarizedAtDestinationInMetaNonce = metaBlockNonce
 		}
-
-		err := hr.miniblocksHandler.updateMiniblockMetadataOnBlock(miniblockHash, headerHash, updateHandler)
-		if err != nil {
-			log.Warn("historyRepository.onNotarizedMiniblock - isNotarizedAtDestination", "error", err)
-		}
-
-		return
 	}
 
-	log.Warn("historyRepository.onNotarizedMiniblock - programming error")
+	return func(mbMetadataOnBlock *MiniblockMetadataOnBlock) {
+		log.Warn("historyRepository.onNotarizedMiniblock - updateHandler programming error",
+			"isNotarizedAtBoth", isNotarizedAtBoth,
+			"isNotarizedAtSource", isNotarizedAtSource,
+			"isNotarizedAtDestination", isNotarizedAtDestination,
+		)
+	}
 }
 
 // GetResultsHashesByTxHash will return results hashes by transaction hash

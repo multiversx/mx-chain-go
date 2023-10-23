@@ -55,7 +55,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 
-	pubKeyConverter := &testscommon.PubkeyConverterMock{}
+	pubKeyConverterMock := &testscommon.PubkeyConverterMock{}
 	logsFacade := &testscommon.LogsFacadeStub{}
 	dataFieldParser := &testscommon.DataFieldParserStub{
 		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
@@ -63,14 +63,14 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverterMock, dataFieldParser, shardCoordinator)
+	n := newAPITransactionResultProcessor(pubKeyConverterMock, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 
 	epoch := uint32(0)
 
 	tx := &transaction.ApiTransactionResult{}
 
-	encodedSndAddr, err := pubKeyConverter.Encode(rec.SndAddr)
+	encodedSndAddr, err := pubKeyConverterMock.Encode(rec.SndAddr)
 	require.Nil(t, err)
 
 	expectedRecAPI := &transaction.ApiReceipt{
@@ -91,7 +91,7 @@ func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(
 	epoch := uint32(0)
 	historyRepo := &dbLookupExtMock.HistoryRepositoryStub{
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
-			return nil, dblookupext.ErrNotFoundInStorage
+			return nil, storage.ErrKeyNotFound
 		},
 	}
 
@@ -216,17 +216,17 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	pubKeyConverter := testscommon.NewPubkeyConverterMock(3)
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
+	pubKeyConverterMock := testscommon.NewPubkeyConverterMock(3)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverterMock, dataFieldParser, shardCoordinator)
+	n := newAPITransactionResultProcessor(pubKeyConverterMock, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 
-	encodedSndAddr, err := pubKeyConverter.Encode(scr1.SndAddr)
+	encodedSndAddr, err := pubKeyConverterMock.Encode(scr1.SndAddr)
 	require.Nil(t, err)
-	encodedRcvAddr, err := pubKeyConverter.Encode(scr1.RcvAddr)
+	encodedRcvAddr, err := pubKeyConverterMock.Encode(scr1.RcvAddr)
 	require.Nil(t, err)
-	encodedRelayerAddr, err := pubKeyConverter.Encode(scr1.RelayerAddr)
+	encodedRelayerAddr, err := pubKeyConverterMock.Encode(scr1.RelayerAddr)
 	require.Nil(t, err)
-	encodedOriginalAddr, err := pubKeyConverter.Encode(scr1.OriginalSender)
+	encodedOriginalAddr, err := pubKeyConverterMock.Encode(scr1.OriginalSender)
 	require.Nil(t, err)
 
 	expectedSCRS := []*transaction.ApiSmartContractResult{
@@ -314,9 +314,9 @@ func TestPutLogsInTransaction(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	pubKeyConverter := &testscommon.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser, shardCoordinator)
-	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
+	pubKeyConverterMock := &testscommon.PubkeyConverterMock{}
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverterMock, dataFieldParser, shardCoordinator)
+	n := newAPITransactionResultProcessor(pubKeyConverterMock, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 
 	tx := &transaction.ApiTransactionResult{}
 	err := n.putResultsInTransaction(testTxHash, tx, testEpoch)
