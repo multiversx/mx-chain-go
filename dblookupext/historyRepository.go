@@ -235,7 +235,7 @@ func (hr *historyRepository) onNotarizedMiniblock(
 		return
 	}
 
-	updateHandler := hr.createUpdateHandler(metaBlockHash, metaBlockNonce, miniblockHeader, shardOfContainingBlock)
+	updateHandler := hr.createMiniblockMetadataUpdateHandler(metaBlockHash, metaBlockNonce, miniblockHeader, shardOfContainingBlock)
 	err := hr.miniblocksHandler.updateMiniblockMetadataOnBlock(miniblockHash, headerHash, updateHandler)
 	if err != nil {
 		log.Warn("historyRepository.onNotarizedMiniblock",
@@ -247,7 +247,7 @@ func (hr *historyRepository) onNotarizedMiniblock(
 	}
 }
 
-func (hr *historyRepository) createUpdateHandler(
+func (hr *historyRepository) createMiniblockMetadataUpdateHandler(
 	metaBlockHash []byte,
 	metaBlockNonce uint64,
 	miniblockHeader block.MiniBlockHeader,
