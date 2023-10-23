@@ -125,7 +125,7 @@ func (eht *eventsHashesByTxHash) getEventsHashesByTxHash(txHash []byte, epoch ui
 	rawBytes, err := eht.storer.GetFromEpoch(txHash, epoch)
 	if err != nil {
 		if storage.IsNotFoundInStorageErr(err) {
-			err = fmt.Errorf("%w: %v", ErrNotFoundInStorage, err)
+			err = fmt.Errorf("%w: %v", storage.ErrKeyNotFound, err)
 		}
 
 		return nil, err

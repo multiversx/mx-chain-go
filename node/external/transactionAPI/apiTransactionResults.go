@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/node/filters"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type apiTransactionResultsProcessor struct {
@@ -37,7 +38,7 @@ func newAPITransactionResultProcessor(
 	shardCoordinator sharding.Coordinator,
 	dataFieldParser DataFieldParser,
 ) *apiTransactionResultsProcessor {
-	refundDetector := NewRefundDetector()
+	refundDetectorInstance := NewRefundDetector()
 
 	return &apiTransactionResultsProcessor{
 		txUnmarshaller:         txUnmarshaller,
@@ -46,7 +47,7 @@ func newAPITransactionResultProcessor(
 		storageService:         storageService,
 		marshalizer:            marshalizer,
 		shardCoordinator:       shardCoordinator,
-		refundDetector:         refundDetector,
+		refundDetector:         refundDetectorInstance,
 		logsFacade:             logsFacade,
 		dataFieldParser:        dataFieldParser,
 	}
@@ -60,7 +61,7 @@ func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, 
 	resultsHashes, err := arp.historyRepository.GetResultsHashesByTxHash(hash, epoch)
 	if err != nil {
 		// It's perfectly normal to have transactions without SCRs.
-		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
+		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil
 		}
 		return err

@@ -326,7 +326,7 @@ func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*Minib
 	}
 
 	return nil, fmt.Errorf("programming error, %w for txhash %x and mb hash %x",
-		ErrNotFoundInStorage, txHash, miniblockHash)
+		storage.ErrKeyNotFound, txHash, miniblockHash)
 }
 
 func convertMiniblockMetadataV1ToV2(miniblockMetadata *MiniblockMetadataV2) []*MiniblockMetadata {
@@ -365,4 +365,57 @@ func hasTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHas
 	}
 
 	return false
+}
+
+func (mh *miniblocksHandler) updateMiniblockMetadataOnBlock(
+	miniblockHash []byte,
+	headerHash []byte,
+	updateHandler func(mbMetadataOnBlock *MiniblockMetadataOnBlock),
+) error {
+	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
+	if err != nil {
+		return err
+	}
+
+	updated, err := mh.updateMiniblockMetadataOnBlockInEpoch(epoch, miniblockHash, headerHash, updateHandler)
+	if err != nil {
+		return err
+	}
+	if updated {
+		// found the block hash, no need to search in the next epoch
+		return nil
+	}
+
+	updated, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch+1, miniblockHash, headerHash, updateHandler)
+	if err != nil {
+		return err
+	}
+	if !updated {
+		// programming error: not found in epoch+1, the blockhash should have been written in either epoch `epoch`
+		// or epoch `epoch+1`
+		return storage.ErrKeyNotFound
+	}
+
+	return nil
+}
+
+func (mh *miniblocksHandler) updateMiniblockMetadataOnBlockInEpoch(
+	epoch uint32,
+	miniblockHash []byte,
+	headerHash []byte,
+	updateHandler func(mbMetadataOnBlock *MiniblockMetadataOnBlock),
+) (bool, error) {
+	miniblockMetadata, err := mh.loadExistingMiniblocksMetadata(miniblockHash, epoch)
+	if err != nil {
+		return false, err
+	}
+
+	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
+		if bytes.Equal(mbInfo.HeaderHash, headerHash) {
+			updateHandler(mbInfo)
+			return true, mh.saveMiniblocksMetadata(miniblockHash, miniblockMetadata, epoch)
+		}
+	}
+
+	return false, nil
 }
