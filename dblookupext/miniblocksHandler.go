@@ -294,7 +294,7 @@ func (mh *miniblocksHandler) getMiniblockMetadataByMiniblockHash(miniblockHash [
 		return nil, err
 	}
 
-	return convertMiniblockMetadata(miniblockMetadata), nil
+	return convertMiniblockMetadataV1ToV2(miniblockMetadata), nil
 }
 
 func (mh *miniblocksHandler) retrieveMiniblockMetadata(miniblockHash []byte) (*MiniblockMetadataV2, error) {
@@ -318,9 +318,9 @@ func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*Minib
 	}
 
 	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
-		if findTxHashInMiniblockMetadataOnBlock(mbInfo, txHash) {
+		if hasTxHashInMiniblockMetadataOnBlock(mbInfo, txHash) {
 			miniblockMetadata.MiniblocksInfo = []*MiniblockMetadataOnBlock{mbInfo}
-			mbData := convertMiniblockMetadata(miniblockMetadata)
+			mbData := convertMiniblockMetadataV1ToV2(miniblockMetadata)
 			return mbData[0], nil
 		}
 	}
@@ -329,7 +329,7 @@ func (mh *miniblocksHandler) getMiniblockMetadataByTxHash(txHash []byte) (*Minib
 		storage.ErrKeyNotFound, txHash, miniblockHash)
 }
 
-func convertMiniblockMetadata(miniblockMetadata *MiniblockMetadataV2) []*MiniblockMetadata {
+func convertMiniblockMetadataV1ToV2(miniblockMetadata *MiniblockMetadataV2) []*MiniblockMetadata {
 	result := make([]*MiniblockMetadata, 0, len(miniblockMetadata.MiniblocksInfo))
 	for _, mbInfo := range miniblockMetadata.MiniblocksInfo {
 		mbv1 := &MiniblockMetadata{
@@ -353,7 +353,7 @@ func convertMiniblockMetadata(miniblockMetadata *MiniblockMetadataV2) []*Miniblo
 	return result
 }
 
-func findTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHash []byte) bool {
+func hasTxHashInMiniblockMetadataOnBlock(mbInfo *MiniblockMetadataOnBlock, txHash []byte) bool {
 	if len(mbInfo.TxHashesWhenPartial) == 0 {
 		return true
 	}
