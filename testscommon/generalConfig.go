@@ -436,6 +436,16 @@ func GetGeneralConfig() config.Config {
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
 		},
+		SovereignConfig: config.SovereignConfig{
+			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+			},
+		},
 	}
 }
 
