@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -177,31 +178,32 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:         consensusService,
-		BlockChain:               ccf.dataComponents.Blockchain(),
-		BlockProcessor:           ccf.processComponents.BlockProcessor(),
-		ScheduledProcessor:       ccf.scheduledProcessor,
-		Bootstrapper:             cc.bootstrapper,
-		BroadcastMessenger:       cc.broadcastMessenger,
-		ConsensusState:           consensusState,
-		ForkDetector:             ccf.processComponents.ForkDetector(),
-		PeerSignatureHandler:     ccf.cryptoComponents.PeerSignatureHandler(),
-		Marshalizer:              marshalizer,
-		Hasher:                   ccf.coreComponents.Hasher(),
-		RoundHandler:             ccf.processComponents.RoundHandler(),
-		ShardCoordinator:         ccf.processComponents.ShardCoordinator(),
-		SyncTimer:                ccf.coreComponents.SyncTimer(),
-		HeaderSigVerifier:        ccf.processComponents.HeaderSigVerifier(),
-		HeaderIntegrityVerifier:  ccf.processComponents.HeaderIntegrityVerifier(),
-		ChainID:                  []byte(ccf.coreComponents.ChainID()),
-		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
-		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
-		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
-		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
-		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
-		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
-		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
-		PeerBlacklistHandler:     cc.peerBlacklistHandler,
+		ConsensusService:           consensusService,
+		BlockChain:                 ccf.dataComponents.Blockchain(),
+		BlockProcessor:             ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:         ccf.scheduledProcessor,
+		Bootstrapper:               cc.bootstrapper,
+		BroadcastMessenger:         cc.broadcastMessenger,
+		ConsensusState:             consensusState,
+		ForkDetector:               ccf.processComponents.ForkDetector(),
+		PeerSignatureHandler:       ccf.cryptoComponents.PeerSignatureHandler(),
+		Marshalizer:                marshalizer,
+		Hasher:                     ccf.coreComponents.Hasher(),
+		RoundHandler:               ccf.processComponents.RoundHandler(),
+		ShardCoordinator:           ccf.processComponents.ShardCoordinator(),
+		SyncTimer:                  ccf.coreComponents.SyncTimer(),
+		HeaderSigVerifier:          ccf.processComponents.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:    ccf.processComponents.HeaderIntegrityVerifier(),
+		ChainID:                    []byte(ccf.coreComponents.ChainID()),
+		NetworkShardingCollector:   ccf.processComponents.PeerShardMapper(),
+		AntifloodHandler:           ccf.networkComponents.InputAntiFloodHandler(),
+		PoolAdder:                  ccf.dataComponents.Datapool().MiniBlocks(),
+		SignatureSize:              ccf.config.ValidatorPubkeyConverter.SignatureLength,
+		PublicKeySize:              ccf.config.ValidatorPubkeyConverter.Length,
+		AppStatusHandler:           ccf.statusCoreComponents.AppStatusHandler(),
+		NodeRedundancyHandler:      ccf.processComponents.NodeRedundancyHandler(),
+		PeerBlacklistHandler:       cc.peerBlacklistHandler,
+		EquivalentMessagesDebugger: debug.NewEquivalentMessagesDebugger(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)

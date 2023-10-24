@@ -139,6 +139,8 @@ type WorkerHandler interface {
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
+	// RemoveAllEquivalentMessages removes all the equivalent messages
+	RemoveAllEquivalentMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -168,5 +170,11 @@ type PeerBlackListCacher interface {
 	Upsert(pid core.PeerID, span time.Duration) error
 	Has(pid core.PeerID) bool
 	Sweep()
+	IsInterfaceNil() bool
+}
+
+// EquivalentMessagesDebugger defines the specific debugger for equivalent messages
+type EquivalentMessagesDebugger interface {
+	DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]uint64)
 	IsInterfaceNil() bool
 }

@@ -23,6 +23,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		removeAllEquivalentMessages,
 	)
 
 	return startRound, err
@@ -35,6 +36,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		removeAllEquivalentMessages,
 	)
 
 	return startRound
@@ -73,6 +75,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		removeAllEquivalentMessages,
 	)
 
 	return srStartRound
@@ -92,6 +95,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		removeAllEquivalentMessages,
 	)
 
 	assert.Nil(t, srStartRound)
@@ -464,6 +468,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -506,6 +511,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -568,6 +574,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -634,6 +641,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)

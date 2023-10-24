@@ -3,6 +3,7 @@ package spos_test
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"math/big"
@@ -89,31 +90,32 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:         blsService,
-		BlockChain:               blockchainMock,
-		BlockProcessor:           blockProcessor,
-		ScheduledProcessor:       scheduledProcessor,
-		Bootstrapper:             bootstrapperMock,
-		BroadcastMessenger:       broadcastMessengerMock,
-		ConsensusState:           consensusState,
-		ForkDetector:             forkDetectorMock,
-		Marshalizer:              marshalizerMock,
-		Hasher:                   hasher,
-		RoundHandler:             roundHandlerMock,
-		ShardCoordinator:         shardCoordinatorMock,
-		PeerSignatureHandler:     peerSigHandler,
-		SyncTimer:                syncTimerMock,
-		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
-		ChainID:                  chainID,
-		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
-		AntifloodHandler:         createMockP2PAntifloodHandler(),
-		PoolAdder:                poolAdder,
-		SignatureSize:            SignatureSize,
-		PublicKeySize:            PublicKeySize,
-		AppStatusHandler:         appStatusHandler,
-		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
-		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
+		ConsensusService:           blsService,
+		BlockChain:                 blockchainMock,
+		BlockProcessor:             blockProcessor,
+		ScheduledProcessor:         scheduledProcessor,
+		Bootstrapper:               bootstrapperMock,
+		BroadcastMessenger:         broadcastMessengerMock,
+		ConsensusState:             consensusState,
+		ForkDetector:               forkDetectorMock,
+		Marshalizer:                marshalizerMock,
+		Hasher:                     hasher,
+		RoundHandler:               roundHandlerMock,
+		ShardCoordinator:           shardCoordinatorMock,
+		PeerSignatureHandler:       peerSigHandler,
+		SyncTimer:                  syncTimerMock,
+		HeaderSigVerifier:          &mock.HeaderSigVerifierStub{},
+		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
+		ChainID:                    chainID,
+		NetworkShardingCollector:   &p2pmocks.NetworkShardingCollectorStub{},
+		AntifloodHandler:           createMockP2PAntifloodHandler(),
+		PoolAdder:                  poolAdder,
+		SignatureSize:              SignatureSize,
+		PublicKeySize:              PublicKeySize,
+		AppStatusHandler:           appStatusHandler,
+		NodeRedundancyHandler:      &mock.NodeRedundancyHandlerStub{},
+		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
+		EquivalentMessagesDebugger: &mock.EquivalentMessagesDebuggerStub{},
 	}
 
 	return workerArgs
@@ -580,6 +582,80 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 	)
 
 	assert.True(t, wasCalled)
+}
+
+func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")
+	pubKey := []byte(wrk.ConsensusState().ConsensusGroup()[0])
+	headerBytes := make([]byte, 100)
+	_, _ = rand.Read(headerBytes)
+
+	bodyBytes := make([]byte, 100)
+	_, _ = rand.Read(bodyBytes)
+
+	cnsMsg := consensus.NewConsensusMessage(
+		equivalentBlockHeaderHash,
+		nil,
+		nil,
+		nil,
+		pubKey,
+		bytes.Repeat([]byte("a"), SignatureSize),
+		int(bls.MtBlockHeaderFinalInfo),
+		0,
+		chainID,
+		[]byte("01"),
+		signature,
+		signature,
+		currentPid,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+
+	cnsMsgEquiv := consensus.NewConsensusMessage(
+		equivalentBlockHeaderHash,
+		nil,
+		nil,
+		nil,
+		pubKey,
+		bytes.Repeat([]byte("b"), SignatureSize),
+		int(bls.MtBlockHeaderFinalInfo),
+		0,
+		chainID,
+		[]byte("01"),
+		signature,
+		signature,
+		currentPid,
+		nil,
+	)
+	buffEquiv, _ := wrk.Marshalizer().Marshal(cnsMsgEquiv)
+
+	err := wrk.ProcessReceivedMessage(
+		&p2pmocks.P2PMessageMock{
+			DataField:      buff,
+			PeerField:      currentPid,
+			SignatureField: []byte("signature"),
+		},
+		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+	assert.NoError(t, err)
+
+	equivMsgFrom := core.PeerID("from other peer id")
+	err = wrk.ProcessReceivedMessage(
+		&p2pmocks.P2PMessageMock{
+			DataField:      buffEquiv,
+			PeerField:      currentPid,
+			SignatureField: []byte("signatureEquiv"),
+		},
+		equivMsgFrom,
+		&p2pmocks.MessengerStub{},
+	)
+	assert.Equal(t, spos.ErrEquivalentMessageAlreadyReceived, err)
 }
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {

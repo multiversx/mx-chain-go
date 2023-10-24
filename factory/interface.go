@@ -398,6 +398,8 @@ type ConsensusWorker interface {
 	ResetConsensusMessages()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	// RemoveAllEquivalentMessages removes all the equivalent messages
+	RemoveAllEquivalentMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

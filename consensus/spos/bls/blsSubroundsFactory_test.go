@@ -39,6 +39,10 @@ func executeStoredMessages() {
 func resetConsensusMessages() {
 }
 
+// removeAllEquivalentMessages removes all equivalent messages
+func removeAllEquivalentMessages() {
+}
+
 func initRoundHandlerMock() *mock.RoundHandlerMock {
 	return &mock.RoundHandlerMock{
 		RoundIndex: 0,

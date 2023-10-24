@@ -24,6 +24,7 @@ type subroundStartRound struct {
 	processingThresholdPercentage int
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
+	removeAllEquivalentMessages   func()
 
 	outportHandler outport.OutportHandler
 }
@@ -35,6 +36,7 @@ func NewSubroundStartRound(
 	processingThresholdPercentage int,
 	executeStoredMessages func(),
 	resetConsensusMessages func(),
+	removeAllEquivalentMessages func(),
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -48,6 +50,7 @@ func NewSubroundStartRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
+		removeAllEquivalentMessages:   removeAllEquivalentMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
 		outportMutex:                  sync.RWMutex{},
 	}
@@ -95,6 +98,7 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.resetConsensusMessages()
+	sr.removeAllEquivalentMessages()
 	return true
 }
 

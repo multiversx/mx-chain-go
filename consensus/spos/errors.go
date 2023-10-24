@@ -237,3 +237,9 @@ var ErrNilSigningHandler = errors.New("nil signing handler")
 
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")
+
+// ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
+var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
+
+// ErrNilEquivalentMessagesDebugger signals that a nil equivalent messages debugger has been provided
+var ErrNilEquivalentMessagesDebugger = errors.New("nil equivalent messages debugger")
