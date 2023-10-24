@@ -4,8 +4,12 @@ package config
 type SovereignConfig struct {
 	ExtendedShardHdrNonceHashStorage StorageConfig
 	ExtendedShardHeaderStorage       StorageConfig
-	MainChainNotarization            MainChainNotarization `toml:"MainChainNotarization"`
-	SubscribedEvents                 []SubscribedEvent     `toml:"SubscribedEvents"`
+	MainChainNotarization            MainChainNotarization    `toml:"MainChainNotarization"`
+	OutgoingSubscribedEvents         OutgoingSubscribedEvents `toml:"OutgoingSubscribedEvents"`
+}
+
+type OutgoingSubscribedEvents struct {
+	SubscribedEvents []SubscribedEvent `toml:"SubscribedEvents"`
 }
 
 // SubscribedEvent holds subscribed events config

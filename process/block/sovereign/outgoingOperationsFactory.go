@@ -12,7 +12,7 @@ const (
 	addressLen = 32
 )
 
-func CrateOutgoingOperationsCreator(events []config.SubscribedEvent) (OutgoingOperationsFormatter, error) {
+func CrateOutgoingOperationsFormatter(events []config.SubscribedEvent) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events)
 	if err != nil {
 		return nil, err

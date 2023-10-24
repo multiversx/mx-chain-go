@@ -493,7 +493,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	case common.ChainRunTypeRegular:
 		return shardProcessor, nil
 	case common.ChainRunTypeSovereign:
-		outgoingOpFormatter, errOpFormatter := sovereign.CrateOutgoingOperationsCreator(pcf.config.SovereignConfig.SubscribedEvents)
+		outgoingOpFormatter, errOpFormatter := sovereign.CrateOutgoingOperationsFormatter(pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents)
 		if errOpFormatter != nil {
 			return nil, err
 		}

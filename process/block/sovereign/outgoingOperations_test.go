@@ -71,6 +71,12 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 						Topics:     topic2,
 						Data:       data2,
 					},
+					{
+						Address:    []byte("addr4"),
+						Identifier: identifier,
+						Topics:     topic1,
+						Data:       data2,
+					},
 				},
 			},
 			TxHash: "",

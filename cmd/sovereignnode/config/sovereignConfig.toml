@@ -28,3 +28,8 @@
 [MainChainNotarization]
     # This defines the starting round from which all sovereign chain nodes should starting notarizing main chain headers
     MainChainNotarizationStartRound = 11
+
+[OutgoingSubscribedEvents]
+    SubscribedEvents = [
+    { Identifier = "bridgeOps", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+]
