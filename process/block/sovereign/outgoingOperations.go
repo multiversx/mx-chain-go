@@ -9,7 +9,6 @@ import (
 )
 
 const bridgeOpPrefix = "bridgeOps"
-const numTransferTopics = 3
 
 var log = logger.GetOrCreate("outgoing-operations")
 
@@ -39,13 +38,13 @@ func checkEvents(events []SubscribedEvent) error {
 		return errNoSubscribedEvent
 	}
 
-	log.Debug("sovereign op received config", "num subscribed events", len(events))
+	log.Debug("sovereign outgoing operations creator: received config", "num subscribed events", len(events))
 	for idx, event := range events {
 		if len(event.Identifier) == 0 {
 			return fmt.Errorf("%w at event index = %d", errNoSubscribedIdentifier, idx)
 		}
 
-		log.Debug("sovereign op", "subscribed event identifier", string(event.Identifier))
+		log.Debug("sovereign outgoing operations creator", "subscribed event identifier", string(event.Identifier))
 
 		err := checkEmptyAddresses(event.Addresses)
 		if err != nil {
@@ -66,14 +65,14 @@ func checkEmptyAddresses(addresses map[string]string) error {
 			return errNoSubscribedAddresses
 		}
 
-		log.Debug("sovereign op", "subscribed address", encodedAddr)
+		log.Debug("sovereign outgoing operations creator", "subscribed address", encodedAddr)
 	}
 
 	return nil
 }
 
 func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte {
-	outgoingEvents := op.createIncomingEvents(logs)
+	outgoingEvents := op.createOutgoingEvents(logs)
 	if len(outgoingEvents) == 0 {
 		return make([]byte, 0)
 	}
@@ -101,29 +100,29 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (op *outgoingOperations) createIncomingEvents(logs []*data.LogData) []data.EventHandler {
-	incomingEvents := make([]data.EventHandler, 0)
+func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
+	events := make([]data.EventHandler, 0)
 
 	for _, logData := range logs {
-		eventsFromLog := op.getIncomingEvents(logData)
-		incomingEvents = append(incomingEvents, eventsFromLog...)
+		eventsFromLog := op.getOutgoingEvents(logData)
+		events = append(events, eventsFromLog...)
 	}
 
-	return incomingEvents
+	return events
 }
 
-func (op *outgoingOperations) getIncomingEvents(logData *data.LogData) []data.EventHandler {
-	incomingEvents := make([]data.EventHandler, 0)
+func (op *outgoingOperations) getOutgoingEvents(logData *data.LogData) []data.EventHandler {
+	events := make([]data.EventHandler, 0)
 
 	for _, event := range logData.GetLogEvents() {
 		if !op.isSubscribed(event, logData.TxHash) {
 			continue
 		}
 
-		incomingEvents = append(incomingEvents, event)
+		events = append(events, event)
 	}
 
-	return incomingEvents
+	return events
 }
 
 func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash string) bool {

@@ -13,8 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -37,23 +39,31 @@ type sovereignChainBlockProcessor struct {
 	extendedShardHeaderTracker   extendedShardHeaderTrackHandler
 	extendedShardHeaderRequester extendedShardHeaderRequestHandler
 	chRcvAllExtendedShardHdrs    chan bool
+	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
+}
+
+type ArgsSovereignChainBlockProcessor struct {
+	ShardProcessor               *shardProcessor
+	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
-func NewSovereignChainBlockProcessor(
-	shardProcessor *shardProcessor,
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
-) (*sovereignChainBlockProcessor, error) {
-	if shardProcessor == nil {
+func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*sovereignChainBlockProcessor, error) {
+	if args.ShardProcessor == nil {
 		return nil, process.ErrNilBlockProcessor
 	}
-	if validatorStatisticsProcessor == nil {
+	if args.ValidatorStatisticsProcessor == nil {
 		return nil, process.ErrNilValidatorStatistics
+	}
+	if check.IfNil(args.OutgoingOperationsFormatter) {
+		return nil, errors.ErrNilOutgoingOperationsFormatter
 	}
 
 	scbp := &sovereignChainBlockProcessor{
-		shardProcessor:               shardProcessor,
-		validatorStatisticsProcessor: validatorStatisticsProcessor,
+		shardProcessor:               args.ShardProcessor,
+		validatorStatisticsProcessor: args.ValidatorStatisticsProcessor,
+		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
@@ -840,16 +850,17 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 		return nil, err
 	}
 
+	// TODO: Marius C.: Implement signing this message
+	_ = scbp.collectOutGoingOperations()
+
 	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
 	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
 }
 
-func (scbp *sovereignChainBlockProcessor) collectOutGoingOperations() {
+func (scbp *sovereignChainBlockProcessor) collectOutGoingOperations() []byte {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
-	if len(logs) == 0 {
-
-	}
+	return scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
 }
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {
