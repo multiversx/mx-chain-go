@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
@@ -1011,7 +1012,7 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 						activeDBWasPut = true
 					}
 
-					if string(key) == state.LastSnapshotStarted {
+					if string(key) == lastSnapshotMarker.LastSnapshot {
 						lastSnapshotStartedWasPut = true
 					}
 
@@ -1059,7 +1060,7 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 						activeDBWasPut = true
 					}
 
-					if string(key) == state.LastSnapshotStarted {
+					if string(key) == lastSnapshotMarker.LastSnapshot {
 						lastSnapshotStartedWasPut = true
 					}
 
@@ -1208,7 +1209,7 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 	rootHashes := [][]byte{[]byte("rootHash1"), []byte("rootHash2"), []byte("rootHash3"), []byte("rootHash4")}
 	snapshotMutex := sync.RWMutex{}
 	takeSnapshotCalled := 0
-	numPutInEpochCalled := atomic.Uint32{}
+	numPutInEpochCalled := atomic.Counter{}
 
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
@@ -1227,10 +1228,10 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 					snapshotMutex.Unlock()
 				},
 				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
-					assert.Equal(t, []byte(state.LastSnapshotStarted), key)
+					assert.Equal(t, []byte(lastSnapshotMarker.LastSnapshot), key)
 					assert.Equal(t, rootHashes[epoch-1], val)
 
-					numPutInEpochCalled.Set(numPutInEpochCalled.Get() + 1)
+					numPutInEpochCalled.Add(1)
 					return nil
 				},
 			}
@@ -1270,7 +1271,7 @@ func TestAccountsDB_SnapshotStateCallsRemoveFromAllActiveEpochs(t *testing.T) {
 				},
 				RemoveFromAllActiveEpochsCalled: func(hash []byte) error {
 					removeFromAllActiveEpochsCalled = true
-					assert.Equal(t, []byte(state.LastSnapshotStarted), hash)
+					assert.Equal(t, []byte(lastSnapshotMarker.LastSnapshot), hash)
 					return nil
 				},
 			}

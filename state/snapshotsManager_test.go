@@ -96,6 +96,16 @@ func TestNewSnapshotsManager(t *testing.T) {
 		assert.Nil(t, sm)
 		assert.Equal(t, state.ErrNilAccountFactory, err)
 	})
+	t.Run("nil last snapshot marker", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.LastSnapshotMarker = nil
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.Nil(t, sm)
+		assert.Equal(t, state.ErrNilLastSnapshotMarker, err)
+	})
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
 

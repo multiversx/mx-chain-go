@@ -62,7 +62,7 @@ func TestLastSnapshotMarker_AddMarker(t *testing.T) {
 		trieStorageManager := &storageManager.StorageManagerStub{
 			PutInEpochCalled: func(key []byte, v []byte, e uint32) error {
 				putInEpochCalled = true
-				assert.Equal(t, []byte(lastSnapshot), key)
+				assert.Equal(t, []byte(LastSnapshot), key)
 				assert.Equal(t, val, v)
 				assert.Equal(t, epoch, e)
 				return nil
@@ -103,7 +103,7 @@ func TestLastSnapshotMarker_GetMarkerInfo(t *testing.T) {
 	trieStorageManager := &storageManager.StorageManagerStub{
 		GetFromCurrentEpochCalled: func(bytes []byte) ([]byte, error) {
 			getCalled = true
-			assert.Equal(t, []byte(lastSnapshot), bytes)
+			assert.Equal(t, []byte(LastSnapshot), bytes)
 			return rootHash, nil
 		},
 	}

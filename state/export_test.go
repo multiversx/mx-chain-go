@@ -6,9 +6,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-// LastSnapshotStarted -
-const LastSnapshotStarted = "lastSnapshot"
-
 // LoadCode -
 func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
 	return adb.loadCode(accountHandler)

@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageEpochChange"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
@@ -211,7 +211,9 @@ func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieS
 		return nil, true
 	}
 
-	go sm.lastSnapshotMarker.AddMarker(trieStorageManager, epoch, rootHash)
+	if sm.processingMode != common.ImportDb {
+		go sm.lastSnapshotMarker.AddMarker(trieStorageManager, epoch, rootHash)
+	}
 
 	if sm.isSnapshotInProgress.IsSet() {
 		return nil, true
@@ -233,11 +235,11 @@ func (sm *snapshotsManager) snapshotState(
 	stats *snapshotStatistics,
 ) {
 	if sm.processingMode != common.ImportDb {
-		err := storage.WaitForStorageEpochChange(storage.StorageEpochChangeWaitArgs{
+		err := storageEpochChange.WaitForStorageEpochChange(storageEpochChange.StorageEpochChangeWaitArgs{
 			TrieStorageManager:            trieStorageManager,
 			Epoch:                         epoch,
-			WaitTimeForSnapshotEpochCheck: storage.WaitTimeForSnapshotEpochCheck,
-			SnapshotWaitTimeout:           storage.SnapshotWaitTimeout,
+			WaitTimeForSnapshotEpochCheck: storageEpochChange.WaitTimeForSnapshotEpochCheck,
+			SnapshotWaitTimeout:           storageEpochChange.SnapshotWaitTimeout,
 		})
 		if err != nil {
 			log.Error("error waiting for storage epoch change", "err", err)

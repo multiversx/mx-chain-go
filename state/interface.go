@@ -183,8 +183,7 @@ type DataTrie interface {
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//
-//	with some extra features like signing statistics or rating information
+// with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte

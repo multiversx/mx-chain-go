@@ -4,14 +4,15 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageEpochChange"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("state/lastSnapshotMarker")
 
 const (
-	lastSnapshot = "lastSnapshot"
+	// LastSnapshot is the marker for the last snapshot started
+	LastSnapshot = "lastSnapshot"
 )
 
 type lastSnapshotMarker struct {
@@ -19,16 +20,18 @@ type lastSnapshotMarker struct {
 	latestFinishedSnapshotEpoch uint32
 }
 
+// NewLastSnapshotMarker creates a new instance of lastSnapshotMarker
 func NewLastSnapshotMarker() *lastSnapshotMarker {
 	return &lastSnapshotMarker{}
 }
 
+// AddMarker adds a marker for the last snapshot started in the given epoch
 func (lsm *lastSnapshotMarker) AddMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte) {
-	err := storage.WaitForStorageEpochChange(storage.StorageEpochChangeWaitArgs{
+	err := storageEpochChange.WaitForStorageEpochChange(storageEpochChange.StorageEpochChangeWaitArgs{
 		TrieStorageManager:            trieStorageManager,
 		Epoch:                         epoch,
-		WaitTimeForSnapshotEpochCheck: storage.WaitTimeForSnapshotEpochCheck,
-		SnapshotWaitTimeout:           storage.SnapshotWaitTimeout,
+		WaitTimeForSnapshotEpochCheck: storageEpochChange.WaitTimeForSnapshotEpochCheck,
+		SnapshotWaitTimeout:           storageEpochChange.SnapshotWaitTimeout,
 	})
 	if err != nil {
 		log.Warn("err while waiting for storage epoch change", "err", err, "epoch", epoch, "rootHash", rootHash)
@@ -46,17 +49,18 @@ func (lsm *lastSnapshotMarker) AddMarker(trieStorageManager common.StorageManage
 		return
 	}
 
-	err = trieStorageManager.PutInEpoch([]byte(lastSnapshot), rootHash, epoch)
+	err = trieStorageManager.PutInEpoch([]byte(LastSnapshot), rootHash, epoch)
 	if err != nil {
 		log.Warn("could not set lastSnapshot", err, "rootHash", rootHash, "epoch", epoch, "rootHash", rootHash)
 	}
 }
 
+// RemoveMarker removes the marker for the last snapshot started
 func (lsm *lastSnapshotMarker) RemoveMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte) {
-	lsm.mutex.RLock()
-	defer lsm.mutex.RUnlock()
+	lsm.mutex.Lock()
+	defer lsm.mutex.Unlock()
 
-	err := trieStorageManager.RemoveFromAllActiveEpochs([]byte(lastSnapshot))
+	err := trieStorageManager.RemoveFromAllActiveEpochs([]byte(LastSnapshot))
 	if err != nil {
 		log.Warn("could not remove lastSnapshot", err, "rootHash", rootHash, "epoch", epoch)
 	}
@@ -64,16 +68,9 @@ func (lsm *lastSnapshotMarker) RemoveMarker(trieStorageManager common.StorageMan
 	lsm.latestFinishedSnapshotEpoch = epoch
 }
 
+// GetMarkerInfo returns the root hash of the last snapshot started
 func (lsm *lastSnapshotMarker) GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error) {
-	lsm.mutex.RLock()
-	defer lsm.mutex.RUnlock()
-
-	rootHash, err := trieStorageManager.GetFromCurrentEpoch([]byte(lastSnapshot))
-	if err != nil {
-		return nil, err
-	}
-
-	return rootHash, nil
+	return trieStorageManager.GetFromCurrentEpoch([]byte(LastSnapshot))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
