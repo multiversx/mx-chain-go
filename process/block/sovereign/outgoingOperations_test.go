@@ -33,7 +33,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	creator, _ := NewOutgoingOperationsCreator(events)
+	creator, _ := NewOutgoingOperationsFormatter(events)
 	topic1 := [][]byte{
 		[]byte("rcv1"),
 		[]byte("token1"),

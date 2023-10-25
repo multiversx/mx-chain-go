@@ -493,7 +493,12 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	case common.ChainRunTypeRegular:
 		return shardProcessor, nil
 	case common.ChainRunTypeSovereign:
-		outgoingOpFormatter, errOpFormatter := sovereign.CrateOutgoingOperationsFormatter(pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents)
+		// TODO: Radu Chis: move this in the factory of the sovereign block processor once the refactor is completed
+
+		outgoingOpFormatter, errOpFormatter := sovereign.CrateOutgoingOperationsFormatter(
+			pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
+			pcf.coreData.AddressPubKeyConverter(),
+		)
 		if errOpFormatter != nil {
 			return nil, err
 		}

@@ -2,6 +2,8 @@ package sovereign
 
 import "github.com/multiversx/mx-chain-core-go/data"
 
+// OutgoingOperationsFormatter collects relevant outgoing events for bridge from the logs and creates an outgoing data
+// that needs to be signed by validators to bridge tokens
 type OutgoingOperationsFormatter interface {
 	CreateOutgoingTxData(logs []*data.LogData) []byte
 	IsInterfaceNil() bool

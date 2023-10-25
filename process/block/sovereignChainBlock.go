@@ -50,10 +50,10 @@ type ArgsSovereignChainBlockProcessor struct {
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
 func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*sovereignChainBlockProcessor, error) {
-	if args.ShardProcessor == nil {
+	if check.IfNil(args.ShardProcessor) {
 		return nil, process.ErrNilBlockProcessor
 	}
-	if args.ValidatorStatisticsProcessor == nil {
+	if check.IfNil(args.ValidatorStatisticsProcessor) {
 		return nil, process.ErrNilValidatorStatistics
 	}
 	if check.IfNil(args.OutgoingOperationsFormatter) {

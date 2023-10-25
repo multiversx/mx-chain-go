@@ -12,7 +12,7 @@ const bridgeOpPrefix = "bridgeOps"
 
 var log = logger.GetOrCreate("outgoing-operations")
 
-// SubscribedEvent contains a subscribed event from the main chain that the op is watching
+// SubscribedEvent contains a subscribed event from the sovereign chain needed to be transferred to the main chain
 type SubscribedEvent struct {
 	Identifier []byte
 	Addresses  map[string]string
@@ -22,7 +22,11 @@ type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
 }
 
-func NewOutgoingOperationsCreator(subscribedEvents []SubscribedEvent) (*outgoingOperations, error) {
+// TODO: We should create a common base functionality from this component. Similar behavior is also found in
+// mx-chain-sovereign-notifier-go in the sovereignNotifier.go file. This applies for the factory as well
+
+// NewOutgoingOperationsFormatter creates an outgoing operations formatter
+func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent) (*outgoingOperations, error) {
 	err := checkEvents(subscribedEvents)
 	if err != nil {
 		return nil, err
@@ -71,6 +75,8 @@ func checkEmptyAddresses(addresses map[string]string) error {
 	return nil
 }
 
+// CreateOutgoingTxData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
+// logs and creates an outgoing data that needs to be signed by validators to bridge tokens
 func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte {
 	outgoingEvents := op.createOutgoingEvents(logs)
 	if len(outgoingEvents) == 0 {
@@ -144,6 +150,7 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 	return false
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (op *outgoingOperations) IsInterfaceNil() bool {
 	return op == nil
 }
