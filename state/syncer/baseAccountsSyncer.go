@@ -17,11 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
-type stateStatsHandler interface {
-	ResetSync()
-	SyncStats() string
-}
-
 type baseAccountsSyncer struct {
 	hasher                            hashing.Hasher
 	marshalizer                       marshal.Marshalizer
