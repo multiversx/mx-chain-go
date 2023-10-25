@@ -94,30 +94,18 @@ func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte 
 	return txData
 }
 
-func createSCRData(topics [][]byte) []byte {
-	ret := topics[0]
-	for idx := 1; idx < len(topics[1:]); idx += 1 {
-		transfer := []byte("@")
-		transfer = append(transfer, topics[idx]...)
-
-		ret = append(ret, transfer...)
-	}
-
-	return ret
-}
-
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
 	events := make([]data.EventHandler, 0)
 
 	for _, logData := range logs {
-		eventsFromLog := op.getOutgoingEvents(logData)
+		eventsFromLog := op.createOutgoingEvent(logData)
 		events = append(events, eventsFromLog...)
 	}
 
 	return events
 }
 
-func (op *outgoingOperations) getOutgoingEvents(logData *data.LogData) []data.EventHandler {
+func (op *outgoingOperations) createOutgoingEvent(logData *data.LogData) []data.EventHandler {
 	events := make([]data.EventHandler, 0)
 
 	for _, event := range logData.GetLogEvents() {
@@ -148,6 +136,18 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 	}
 
 	return false
+}
+
+func createSCRData(topics [][]byte) []byte {
+	ret := topics[0]
+	for idx := 1; idx < len(topics[1:]); idx += 1 {
+		transfer := []byte("@")
+		transfer = append(transfer, topics[idx]...)
+
+		ret = append(ret, transfer...)
+	}
+
+	return ret
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
