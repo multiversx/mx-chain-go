@@ -119,39 +119,6 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 	})
 }
 
-func TestStateStatistics_Sync(t *testing.T) {
-	t.Parallel()
-
-	ss := NewStateStatistics()
-
-	epoch := uint32(1)
-
-	assert.Equal(t, uint64(0), ss.SyncCache())
-	assert.Equal(t, uint64(0), ss.SyncPersister(epoch))
-
-	ss.IncrPersister(epoch)
-	ss.IncrPersister(epoch)
-
-	ss.IncrCache()
-	ss.IncrCache()
-
-	ss.ResetSync()
-
-	assert.Equal(t, uint64(2), ss.SyncPersister(epoch))
-	assert.Equal(t, uint64(2), ss.SyncCache())
-
-	ss.IncrPersister(epoch)
-	ss.IncrPersister(epoch)
-
-	ss.IncrCache()
-	ss.IncrCache()
-
-	cacheSync, _, persisterSync := ss.GetSyncStats()
-
-	assert.Equal(t, uint64(2), cacheSync)
-	assert.Equal(t, uint64(2), persisterSync[epoch])
-}
-
 func TestStateStatistics_ConcurrenyOperations(t *testing.T) {
 	t.Parallel()
 

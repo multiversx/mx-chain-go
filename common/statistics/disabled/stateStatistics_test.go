@@ -29,7 +29,6 @@ func TestStateStatistics_MethodsShouldNotPanic(t *testing.T) {
 
 	stats.Reset()
 	stats.ResetSnapshot()
-	stats.ResetSync()
 	stats.ResetAll()
 
 	stats.IncrCache()
@@ -37,14 +36,11 @@ func TestStateStatistics_MethodsShouldNotPanic(t *testing.T) {
 	stats.IncrSnapshotCache()
 	stats.IncrPersister(1)
 	stats.IncrSnapshotPersister(1)
-	stats.IncrSyncPersister(1)
 	stats.IncrTrie()
 
 	require.Equal(t, uint64(0), stats.Cache())
-	require.Equal(t, uint64(0), stats.SyncCache())
 	require.Equal(t, uint64(0), stats.SnapshotCache())
 	require.Equal(t, uint64(0), stats.Persister(1))
-	require.Equal(t, uint64(0), stats.SyncPersister(1))
 	require.Equal(t, uint64(0), stats.SnapshotPersister(1))
 	require.Equal(t, uint64(0), stats.Trie())
 }

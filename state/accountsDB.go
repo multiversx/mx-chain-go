@@ -816,7 +816,6 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 	adb.mutOp.Lock()
 	defer func() {
 		adb.mainTrie.GetStorageManager().SetEpochForPutOperation(currentEpoch)
-		adb.printTrieStorageStatistics()
 		adb.mutOp.Unlock()
 		adb.loadCodeMeasurements.resetAndPrint()
 	}()
@@ -892,6 +891,8 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	}
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
+
+	adb.printTrieStorageStatistics()
 
 	return newRoot, nil
 }

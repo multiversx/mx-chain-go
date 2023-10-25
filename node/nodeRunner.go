@@ -692,7 +692,6 @@ func getBaseAccountSyncerArgs(
 		UserAccountsSyncStatisticsHandler: trieStatistics.NewTrieSyncStatistics(),
 		AppStatusHandler:                  disabled.NewAppStatusHandler(),
 		EnableEpochsHandler:               coreComponents.EnableEpochsHandler(),
-		StateStatsHandler:                 statusCoreComponents.StateStatsHandler(),
 	}
 }
 

@@ -51,7 +51,6 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 		appStatusHandler:                  args.AppStatusHandler,
 		enableEpochsHandler:               args.EnableEpochsHandler,
-		stateStatsHandler:                 args.StateStatsHandler,
 	}
 
 	u := &validatorAccountsSyncer{

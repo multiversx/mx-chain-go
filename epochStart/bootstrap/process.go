@@ -1114,7 +1114,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			UserAccountsSyncStatisticsHandler: e.trieSyncStatisticsProvider,
 			AppStatusHandler:                  e.statusHandler,
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
-			StateStatsHandler:                 e.stateStatsHandler,
 		},
 		ShardId:                e.shardCoordinator.SelfId(),
 		Throttler:              thr,
@@ -1188,7 +1187,6 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  disabledCommon.NewAppStatusHandler(),
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
-			StateStatsHandler:                 e.stateStatsHandler,
 		},
 	}
 	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)

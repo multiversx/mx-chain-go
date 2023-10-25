@@ -9,23 +9,19 @@ import (
 
 type stateStatistics struct {
 	numCache         uint64
-	numSyncCache     uint64
 	numSnapshotCache uint64
 
 	numPersister         map[uint32]uint64
-	numSyncPersister     map[uint32]uint64
 	numSnapshotPersister map[uint32]uint64
 	mutPersisters        sync.RWMutex
 
-	numTrie     uint64
-	numSyncTrie uint64
+	numTrie uint64
 }
 
 // NewStateStatistics returns a structure able to collect statistics for state
 func NewStateStatistics() *stateStatistics {
 	return &stateStatistics{
 		numPersister:         make(map[uint32]uint64),
-		numSyncPersister:     make(map[uint32]uint64),
 		numSnapshotPersister: make(map[uint32]uint64),
 	}
 }
@@ -33,7 +29,6 @@ func NewStateStatistics() *stateStatistics {
 // ResetAll will reset all statistics
 func (ss *stateStatistics) ResetAll() {
 	ss.Reset()
-	ss.ResetSync()
 	ss.ResetSnapshot()
 }
 
@@ -44,36 +39,6 @@ func (ss *stateStatistics) Reset() {
 	ss.numPersister = make(map[uint32]uint64)
 
 	atomic.StoreUint64(&ss.numTrie, 0)
-}
-
-// ResetSync will set sync statistics based on processing statistics
-func (ss *stateStatistics) ResetSync() {
-	atomic.StoreUint64(&ss.numSyncCache, ss.Cache())
-	atomic.StoreUint64(&ss.numSyncTrie, ss.Trie())
-
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
-
-	for epoch, counter := range ss.numPersister {
-		ss.numSyncPersister[epoch] = counter
-	}
-}
-
-func (ss *stateStatistics) getSyncStats() (uint64, uint64, map[uint32]uint64) {
-	numSyncCache := ss.Cache() - ss.SyncCache()
-	numSyncTrie := ss.Trie() - ss.SyncTrie()
-
-	persisterStats := make(map[uint32]uint64)
-
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
-
-	for epoch, counter := range ss.numPersister {
-		numSyncPersisterPerEpoch := counter - ss.numSyncPersister[epoch]
-		persisterStats[epoch] = numSyncPersisterPerEpoch
-	}
-
-	return numSyncCache, numSyncTrie, persisterStats
 }
 
 // ResetSnapshot will reset snapshot statistics
@@ -91,16 +56,6 @@ func (ss *stateStatistics) IncrCache() {
 // Cache returns the number of cached operations
 func (ss *stateStatistics) Cache() uint64 {
 	return atomic.LoadUint64(&ss.numCache)
-}
-
-// IncrSyncCache will increment sync cache counter
-func (ss *stateStatistics) IncrSyncCache() {
-	atomic.AddUint64(&ss.numSyncCache, 1)
-}
-
-// SyncCache returns the number of sync cached operations
-func (ss *stateStatistics) SyncCache() uint64 {
-	return atomic.LoadUint64(&ss.numSyncCache)
 }
 
 // IncrSnapshotCache will increment snapshot cache counter
@@ -129,22 +84,6 @@ func (ss *stateStatistics) Persister(epoch uint32) uint64 {
 	return ss.numPersister[epoch]
 }
 
-// IncrSyncPersister will increment sync persister counter
-func (ss *stateStatistics) IncrSyncPersister(epoch uint32) {
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
-
-	ss.numSyncPersister[epoch]++
-}
-
-// SyncPersister returns the number of sync persister operations
-func (ss *stateStatistics) SyncPersister(epoch uint32) uint64 {
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
-
-	return ss.numSyncPersister[epoch]
-}
-
 // IncrSnapshotPersister will increment snapshot persister counter
 func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
 	ss.mutPersisters.Lock()
@@ -169,11 +108,6 @@ func (ss *stateStatistics) IncrTrie() {
 // Trie returns the number of trie operations
 func (ss *stateStatistics) Trie() uint64 {
 	return atomic.LoadUint64(&ss.numTrie)
-}
-
-// SyncTrie returns the number of trie operations
-func (ss *stateStatistics) SyncTrie() uint64 {
-	return atomic.LoadUint64(&ss.numSyncTrie)
 }
 
 // SnapshotStats returns collected snapshot statistics as string
@@ -206,25 +140,6 @@ func (ss *stateStatistics) ProcessingStats() string {
 	}
 
 	stats = append(stats, fmt.Sprintf("num trie op = %v", atomic.LoadUint64(&ss.numTrie)))
-
-	return strings.Join(stats, " ")
-}
-
-// SyncStats returns collected sync statistics as string
-func (ss *stateStatistics) SyncStats() string {
-	numSyncCache, numSyncTrie, persisterStats := ss.getSyncStats()
-
-	stats := make([]string, 0)
-	stats = append(stats, fmt.Sprintf("num sync cache op = %v", numSyncCache))
-
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
-
-	for epoch, numOp := range persisterStats {
-		stats = append(stats, fmt.Sprintf("num persister epoch = %v op = %v", epoch, numOp))
-	}
-
-	stats = append(stats, fmt.Sprintf("num trie op = %v", numSyncTrie))
 
 	return strings.Join(stats, " ")
 }

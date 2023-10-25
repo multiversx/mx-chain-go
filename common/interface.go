@@ -222,20 +222,15 @@ type TriesStatisticsCollector interface {
 // StateStatisticsHandler defines the behaviour of a storage statistics handler
 type StateStatisticsHandler interface {
 	Reset()
-	ResetSync()
 	ResetSnapshot()
 
 	IncrCache()
 	Cache() uint64
-	IncrSyncCache()
-	SyncCache() uint64
 	IncrSnapshotCache()
 	SnapshotCache() uint64
 
 	IncrPersister(epoch uint32)
 	Persister(epoch uint32) uint64
-	IncrSyncPersister(epoch uint32)
-	SyncPersister(epoch uint32) uint64
 	IncrSnapshotPersister(epoch uint32)
 	SnapshotPersister(epoch uint32) uint64
 
@@ -243,7 +238,6 @@ type StateStatisticsHandler interface {
 	Trie() uint64
 
 	ProcessingStats() string
-	SyncStats() string
 	SnapshotStats() string
 
 	IsInterfaceNil() bool

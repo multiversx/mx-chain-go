@@ -93,7 +93,6 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 		userAccountsSyncStatisticsHandler: args.UserAccountsSyncStatisticsHandler,
 		appStatusHandler:                  args.AppStatusHandler,
 		enableEpochsHandler:               args.EnableEpochsHandler,
-		stateStatsHandler:                 args.StateStatsHandler,
 	}
 
 	u := &userAccountsSyncer{
@@ -122,8 +121,6 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.
 		u.cacher.Clear()
 		cancel()
 	}()
-
-	u.stateStatsHandler.ResetSync()
 
 	go u.printStatisticsAndUpdateMetrics(ctx)
 
@@ -158,22 +155,11 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.
 		return err
 	}
 
-	u.printTrieStorageStatistics()
-
 	storageMarker.MarkStorerAsSyncedAndActive(u.trieStorageManager)
 
 	log.Debug("main trie and data tries synced", "main trie root hash", rootHash, "num data tries", len(u.dataTries))
 
 	return nil
-}
-
-func (u *userAccountsSyncer) printTrieStorageStatistics() {
-	stats := u.stateStatsHandler.SyncStats()
-	if stats != "" {
-		log.Debug("trie storage sync statistics",
-			"stats", stats)
-	}
-
 }
 
 func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx context.Context) error {
