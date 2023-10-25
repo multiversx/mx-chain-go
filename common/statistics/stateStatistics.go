@@ -36,7 +36,9 @@ func (ss *stateStatistics) ResetAll() {
 func (ss *stateStatistics) Reset() {
 	atomic.StoreUint64(&ss.numCache, 0)
 
+	ss.mutPersisters.Lock()
 	ss.numPersister = make(map[uint32]uint64)
+	ss.mutPersisters.Unlock()
 
 	atomic.StoreUint64(&ss.numTrie, 0)
 }
@@ -45,7 +47,9 @@ func (ss *stateStatistics) Reset() {
 func (ss *stateStatistics) ResetSnapshot() {
 	atomic.StoreUint64(&ss.numSnapshotCache, 0)
 
+	ss.mutPersisters.Lock()
 	ss.numSnapshotPersister = make(map[uint32]uint64)
+	ss.mutPersisters.Unlock()
 }
 
 // IncrCache will increment cache counter
@@ -78,8 +82,8 @@ func (ss *stateStatistics) IncrPersister(epoch uint32) {
 
 // Persister returns the number of persister operations
 func (ss *stateStatistics) Persister(epoch uint32) uint64 {
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
+	ss.mutPersisters.RLock()
+	defer ss.mutPersisters.RUnlock()
 
 	return ss.numPersister[epoch]
 }
@@ -94,8 +98,8 @@ func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
 
 // SnapshotPersister returns the number of snapshot persister operations
 func (ss *stateStatistics) SnapshotPersister(epoch uint32) uint64 {
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
+	ss.mutPersisters.RLock()
+	defer ss.mutPersisters.RUnlock()
 
 	return ss.numSnapshotPersister[epoch]
 }
@@ -116,8 +120,8 @@ func (ss *stateStatistics) SnapshotStats() string {
 
 	stats = append(stats, fmt.Sprintf("num snapshot cache op = %v", atomic.LoadUint64(&ss.numSnapshotCache)))
 
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
+	ss.mutPersisters.RLock()
+	defer ss.mutPersisters.RUnlock()
 
 	for epoch, counter := range ss.numSnapshotPersister {
 		stats = append(stats, fmt.Sprintf("num snapshot persister epoch = %v op = %v", epoch, counter))
@@ -132,8 +136,8 @@ func (ss *stateStatistics) ProcessingStats() string {
 
 	stats = append(stats, fmt.Sprintf("num cache op = %v", atomic.LoadUint64(&ss.numCache)))
 
-	ss.mutPersisters.Lock()
-	defer ss.mutPersisters.Unlock()
+	ss.mutPersisters.RLock()
+	defer ss.mutPersisters.RUnlock()
 
 	for epoch, counter := range ss.numPersister {
 		stats = append(stats, fmt.Sprintf("num persister epoch = %v op = %v", epoch, counter))
