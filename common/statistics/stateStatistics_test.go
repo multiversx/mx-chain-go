@@ -146,7 +146,7 @@ func TestStateStatistics_Sync(t *testing.T) {
 	ss.IncrCache()
 	ss.IncrCache()
 
-	cacheSync, persisterSync := ss.GetSyncStats()
+	cacheSync, _, persisterSync := ss.GetSyncStats()
 
 	assert.Equal(t, uint64(2), cacheSync)
 	assert.Equal(t, uint64(2), persisterSync[epoch])
