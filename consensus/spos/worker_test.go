@@ -645,6 +645,10 @@ func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *test
 	)
 	assert.NoError(t, err)
 
+	equivalentMessages := wrk.GetEquivalentMessages()
+	assert.Equal(t, 1, len(equivalentMessages))
+	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)])
+
 	equivMsgFrom := core.PeerID("from other peer id")
 	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
@@ -656,6 +660,14 @@ func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *test
 		&p2pmocks.MessengerStub{},
 	)
 	assert.Equal(t, spos.ErrEquivalentMessageAlreadyReceived, err)
+
+	equivalentMessages = wrk.GetEquivalentMessages()
+	assert.Equal(t, 1, len(equivalentMessages))
+	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
+
+	wrk.RemoveAllEquivalentMessages()
+	equivalentMessages = wrk.GetEquivalentMessages()
+	assert.Equal(t, 0, len(equivalentMessages))
 }
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {

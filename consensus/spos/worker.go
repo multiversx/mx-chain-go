@@ -740,10 +740,9 @@ func (wrk *Worker) processEquivalentMessage(msgType consensus.MessageType, block
 	defer wrk.mutEquivalentMessages.Unlock()
 
 	// if an equivalent message was seen before, return error to stop further broadcasts
-	_, alreadySeen := wrk.equivalentMessages[hdrHash]
-	wrk.equivalentMessages[hdrHash]++
-
-	if alreadySeen {
+	numMessages := wrk.equivalentMessages[hdrHash]
+	wrk.equivalentMessages[hdrHash] = numMessages + 1
+	if numMessages > 0 {
 		return ErrEquivalentMessageAlreadyReceived
 	}
 
