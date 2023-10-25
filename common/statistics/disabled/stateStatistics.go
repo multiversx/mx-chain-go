@@ -72,7 +72,7 @@ func (ss *stateStatistics) SyncPersister(epoch uint32) uint64 {
 func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
 }
 
-// SyncPersister returns the number of persister operations
+// SnapshotPersister returns the number of persister operations
 func (ss *stateStatistics) SnapshotPersister(epoch uint32) uint64 {
 	return 0
 }
@@ -91,12 +91,12 @@ func (s *stateStatistics) ProcessingStats() string {
 	return ""
 }
 
-// ProcessingStats returns empty string
+// SnapshotStats returns empty string
 func (s *stateStatistics) SnapshotStats() string {
 	return ""
 }
 
-// ProcessingStats returns empty string
+// SyncStats returns empty string
 func (s *stateStatistics) SyncStats() string {
 	return ""
 }

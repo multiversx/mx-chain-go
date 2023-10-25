@@ -830,7 +830,6 @@ func (adb *AccountsDB) printTrieStorageStatistics() {
 	stats := adb.mainTrie.GetStorageManager().GetStateStatsHandler().ProcessingStats()
 	if stats != "" {
 		log.Debug("trie storage statistics",
-			"storage manager", adb.mainTrie.GetStorageManager().GetIdentifier(),
 			"stats", stats,
 		)
 	}
@@ -841,7 +840,6 @@ func (adb *AccountsDB) printTrieStorageStatistics() {
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
 	defer func() {
-		adb.printTrieStorageStatistics()
 		adb.mutOp.Unlock()
 		adb.loadCodeMeasurements.resetAndPrint()
 	}()

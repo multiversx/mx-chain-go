@@ -414,6 +414,7 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	defer func() {
 		sm.isSnapshotInProgress.Reset()
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
+		sm.printStorageStatistics()
 		errChan.Close()
 	}()
 
@@ -432,6 +433,15 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+}
+
+func (sm *snapshotsManager) printStorageStatistics() {
+	stats := sm.stateStatsHandler.SnapshotStats()
+	if stats != "" {
+		log.Debug("snapshot storage statistics",
+			"stats", stats,
+		)
+	}
 }
 
 func (sm *snapshotsManager) finishSnapshotOperation(
@@ -460,8 +470,6 @@ func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats common.Snapshot
 	sm.processStatusHandler.SetIdle()
 
 	stats.WaitForSnapshotsToFinish()
-
-	sm.stateStatsHandler.SnapshotStats()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

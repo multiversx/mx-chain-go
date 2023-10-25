@@ -170,7 +170,8 @@ func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.
 func (u *userAccountsSyncer) printTrieStorageStatistics() {
 	stats := u.stateStatsHandler.SyncStats()
 	if stats != "" {
-		log.Debug("trie storage sync statistics", stats)
+		log.Debug("trie storage sync statistics",
+			"stats", stats)
 	}
 
 }

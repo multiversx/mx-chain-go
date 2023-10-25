@@ -3,6 +3,7 @@ package pruning
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -105,7 +106,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
 			}
 

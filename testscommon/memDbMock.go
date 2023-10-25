@@ -131,7 +131,7 @@ func (s *MemDbMock) GetIdentifier() string {
 	return ""
 }
 
-// StateStatsHandler -
+// GetStateStatsHandler -
 func (s *MemDbMock) GetStateStatsHandler() common.StateStatisticsHandler {
 	if s.GetStateStatsHandlerCalled != nil {
 		return s.GetStateStatsHandlerCalled()
