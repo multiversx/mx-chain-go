@@ -155,7 +155,7 @@ func appendFeeToTotalFees(relayerTx, userTx *transaction.Transaction, economicsD
 		relayerFee := economicsData.ComputeMoveBalanceFee(relayerTx)
 		totalFees.Add(totalFees, relayerFee)
 
-		userFee := economicsData.ComputeMoveBalanceFee(userTx)
+		userFee := economicsData.ComputeTxFee(userTx)
 		totalFees.Add(totalFees, userFee)
 	} else {
 		totalFee := economicsData.ComputeTxFee(relayerTx)

@@ -290,12 +290,13 @@ func GetUserAccount(
 	}
 	return nil
 }
+
 func subFeesFromRelayer(tx, userTx *transaction.Transaction, economicsFee process.FeeHandler, relayer *integrationTests.TestWalletAccount) {
 	if len(userTx.Data) == 0 { // move balance
 		relayerFee := economicsFee.ComputeMoveBalanceFee(tx)
 		relayer.Balance.Sub(relayer.Balance, relayerFee)
 
-		userFee := economicsFee.ComputeMoveBalanceFee(userTx)
+		userFee := economicsFee.ComputeTxFee(userTx)
 		relayer.Balance.Sub(relayer.Balance, userFee)
 	} else {
 		totalFee := economicsFee.ComputeTxFee(tx)

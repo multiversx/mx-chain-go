@@ -1440,6 +1440,9 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return processingFee
 		},
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceFee
+		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 

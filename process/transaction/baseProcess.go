@@ -149,7 +149,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		shouldConsiderMoveBalanceFee := txType == process.MoveBalance &&
 			txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled()
 		if shouldConsiderMoveBalanceFee {
-			txFee = txProc.economicsFee.ComputeMoveBalanceFee(tx)
+			txFee = txProc.economicsFee.ComputeTxFee(tx)
 		} else {
 			txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
 		}

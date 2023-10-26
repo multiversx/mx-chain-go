@@ -380,7 +380,7 @@ func (txProc *txProcessor) processTxFee(
 		shouldConsiderMoveBalanceFee := dstShardTxType == process.MoveBalance &&
 			txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled()
 		if shouldConsiderMoveBalanceFee {
-			totalCost = txProc.economicsFee.ComputeMoveBalanceFee(tx)
+			totalCost = txProc.economicsFee.ComputeTxFee(tx)
 		}
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -725,7 +725,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx, userTx *transaction.Transact
 	shouldConsiderMoveBalanceFee := dstShardTxType == process.MoveBalance &&
 		txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled()
 	if shouldConsiderMoveBalanceFee {
-		userFee := txProc.economicsFee.ComputeMoveBalanceFee(userTx)
+		userFee := txProc.economicsFee.ComputeTxFee(userTx)
 		totalFee = totalFee.Add(relayerFee, userFee)
 	} else {
 		totalFee = txProc.economicsFee.ComputeTxFee(tx)
@@ -765,7 +765,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	shouldConsiderMoveBalanceFee := dstShardTxType == process.MoveBalance &&
 		txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled()
 	if shouldConsiderMoveBalanceFee {
-		consumedFee = txProc.economicsFee.ComputeMoveBalanceFee(userTx)
+		consumedFee = txProc.economicsFee.ComputeTxFee(userTx)
 	}
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
