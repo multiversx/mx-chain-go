@@ -131,7 +131,6 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	}
 
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
-	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
 		dataEntry := dirtyData{
 			value:      leafData.Value,
