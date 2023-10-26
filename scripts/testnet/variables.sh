@@ -65,6 +65,9 @@ export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
 
+# EXTRA_KEYS if set to 1, extra keys will be added to the generated keys
+export EXTRA_KEYS=1
+
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
 
@@ -180,3 +183,6 @@ export VALIDATOR_KEY_PEM_FILE="validatorKey.pem"
 
 # MULTI_KEY_PEM_FILE is the pem file name when running multi key mode, with all managed
 export MULTI_KEY_PEM_FILE="allValidatorsKeys.pem"
+
+# EXTRA_KEY_PEM_FILE is the pem file name when running multi key mode, with all extra managed
+export EXTRA_KEY_PEM_FILE="extraValidatorsKeys.pem"

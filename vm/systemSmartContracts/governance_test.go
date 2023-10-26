@@ -934,6 +934,9 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 				CurrentNonceCalled: func() uint64 {
 					return 1
 				},
+				CurrentEpochCalled: func() uint32 {
+					return 1
+				},
 			}
 		},
 		GetStorageCalled: func(key []byte) []byte {
@@ -1242,6 +1245,16 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 	args.Eei = &mock.SystemEIStub{
 		AddReturnMessageCalled: func(msg string) {
 			retMessage = msg
+		},
+		BlockChainHookCalled: func() vm.BlockchainHook {
+			return &mock.BlockChainHookStub{
+				CurrentNonceCalled: func() uint64 {
+					return 1
+				},
+				CurrentEpochCalled: func() uint32 {
+					return 1
+				},
+			}
 		},
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {
