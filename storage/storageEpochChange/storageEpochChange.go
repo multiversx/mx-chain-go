@@ -10,7 +10,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("storage")
+var log = logger.GetOrCreate("storage/storageEpochChange")
 
 const (
 	// WaitTimeForSnapshotEpochCheck is the time to wait before checking the storage epoch
