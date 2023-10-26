@@ -97,8 +97,15 @@ func checkCommonMessengerNilParameters(
 	return nil
 }
 
-// BroadcastConsensusMessage will send on consensus topic the consensus message
-func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
+// BroadcastConsensusMessageIntraShard will send on intra shard consensus topic the consensus message
+func (cm *commonMessenger) BroadcastConsensusMessageIntraShard(message *consensus.Message) error {
+	consensusTopic := common.ConsensusTopic +
+		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
+
+	return cm.broadcastConsensusMessageOnTopic(message, consensusTopic)
+}
+
+func (cm *commonMessenger) broadcastConsensusMessageOnTopic(message *consensus.Message, topic string) error {
 	privateKey := cm.keysHandler.GetHandledPrivateKey(message.PubKey)
 	signature, err := cm.peerSignatureHandler.GetPeerSignature(privateKey, message.OriginatorPid)
 	if err != nil {
@@ -112,10 +119,7 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 		return err
 	}
 
-	consensusTopic := common.ConsensusTopic +
-		cm.shardCoordinator.CommunicationIdentifier(cm.shardCoordinator.SelfId())
-
-	cm.broadcast(consensusTopic, buff, message.PubKey)
+	cm.broadcast(topic, buff, message.PubKey)
 
 	return nil
 }

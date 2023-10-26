@@ -100,7 +100,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			}
 		}
 
-		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), isSelfLeader)
+		ok := sr.completeSignatureSubRound(sr.SelfPubKey())
 		if !ok {
 			return false
 		}
@@ -110,7 +110,6 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 }
 
 func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
-	// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		signatureShare,
@@ -128,9 +127,9 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		nil,
 	)
 
-	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessageIntraShard(cnsMsg)
 	if err != nil {
-		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessage",
+		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessageIntraShard",
 			"error", err.Error(), "pk", pkBytes)
 		return false
 	}
@@ -140,7 +139,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 	return true
 }
 
-func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForAllSigsAsync bool) bool {
+func (sr *subroundSignature) completeSignatureSubRound(pk string) bool {
 	err := sr.SetJobDone(pk, sr.Current(), true)
 	if err != nil {
 		log.Debug("doSignatureJob.SetSelfJobDone",
@@ -151,9 +150,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 		return false
 	}
 
-	if shouldWaitForAllSigsAsync {
-		go sr.waitAllSignatures()
-	}
+	go sr.waitAllSignatures()
 
 	return true
 }
@@ -254,7 +251,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
-	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
+	signaturesCheckPassed := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
 
 	selfJobDone := true
 	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
@@ -266,17 +263,14 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && selfJobDone && multiKeyJobDone
 
-	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
+	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || signaturesCheckPassed
 
 	if isSubroundFinished {
-		if isSelfLeader {
-			log.Debug("step 2: signatures",
-				"received", numSigs,
-				"total", len(sr.ConsensusGroup()))
-		}
-
 		log.Debug("step 2: subround has been finished",
-			"subround", sr.Name())
+			"subround", sr.Name(),
+			"is self in consensus", isSelfInConsensusGroup,
+			"received signatures", numSigs,
+			"total", len(sr.ConsensusGroup()))
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 
 		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
@@ -345,7 +339,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 
 	numMultiKeysSignaturesSent := 0
-	for idx, pk := range sr.ConsensusGroup() {
+	for _, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
 		if sr.IsJobDone(pk, sr.Current()) {
 			continue
@@ -380,8 +374,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			numMultiKeysSignaturesSent++
 		}
 
-		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		ok := sr.completeSignatureSubRound(pk, isLeader)
+		ok := sr.completeSignatureSubRound(pk)
 		if !ok {
 			return false
 		}

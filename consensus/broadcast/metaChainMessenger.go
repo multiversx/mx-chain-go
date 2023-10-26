@@ -135,6 +135,21 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 	return nil
 }
 
+// BroadcastConsensusMessage will send on consensus topic the consensus message
+func (mcm *metaChainMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
+	for i := uint32(0); i < mcm.shardCoordinator.NumberOfShards(); i++ {
+		consensusTopic := common.ConsensusTopic +
+			mcm.shardCoordinator.CommunicationIdentifier(i)
+
+		err := mcm.broadcastConsensusMessageOnTopic(message, consensusTopic)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // PrepareBroadcastHeaderValidator prepares the validator header broadcast in case leader broadcast fails
 func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 	header data.HeaderHandler,

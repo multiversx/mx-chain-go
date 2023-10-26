@@ -77,17 +77,13 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
+	if !sr.IsNodeInConsensusGroup(node) { // is NOT this node in consensus?
 		sr.PeerHonestyHandler().ChangeScore(
 			node,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
 
-		return false
-	}
-
-	if sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound() {
 		return false
 	}
 
@@ -164,17 +160,13 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if !sr.IsNodeLeaderInCurrentRound(messageSender) { // is NOT this node leader in current round?
+	if !sr.IsNodeInConsensusGroup(messageSender) { // is NOT this node in consensus?
 		sr.PeerHonestyHandler().ChangeScore(
 			messageSender,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
 
-		return false
-	}
-
-	if sr.IsSelfLeaderInCurrentRound() {
 		return false
 	}
 
@@ -264,63 +256,55 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() {
-		if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup() {
-			err := sr.prepareBroadcastBlockDataForValidator()
-			if err != nil {
-				log.Warn("validator in consensus group preparing for delayed broadcast",
-					"error", err.Error())
-			}
-		}
-
-		return sr.doEndRoundJobByParticipant(nil)
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup() {
+		return sr.doEndRoundJobByPropagator()
 	}
 
-	return sr.doEndRoundJobByLeader()
+	return sr.doEndRoundJobByParticipant(nil)
 }
 
-func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
+func (sr *subroundEndRound) doEndRoundJobByPropagator() bool {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.checkSignaturesValidity", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.checkSignaturesValidity", "error", err.Error())
 		return false
 	}
 
 	if check.IfNil(sr.Header) {
-		log.Error("doEndRoundJobByLeader.CheckNilHeader", "error", spos.ErrNilHeader)
+		log.Error("doEndRoundJobByPropagator.CheckNilHeader", "error", spos.ErrNilHeader)
 		return false
 	}
 
 	// Aggregate sig and add it to the block
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false
 	}
 
 	err = sr.Header.SetPubKeysBitmap(bitmap)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.SetPubKeysBitmap", "error", err.Error())
 		return false
 	}
 
 	err = sr.Header.SetSignature(sig)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.SetSignature", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.SetSignature", "error", err.Error())
 		return false
 	}
 
-	// Header is complete so the leader can sign it
-	leaderSignature, err := sr.signBlockHeader()
+	// Header is complete so it can be signed
+	selfSignature, err := sr.signBlockHeader()
 	if err != nil {
 		log.Error(err.Error())
 		return false
 	}
 
-	err = sr.Header.SetLeaderSignature(leaderSignature)
+	err = sr.Header.SetLeaderSignature(selfSignature)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.SetLeaderSignature", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.SetLeaderSignature", "error", err.Error())
 		return false
 	}
 
@@ -342,30 +326,24 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.createAndBroadcastHeaderFinalInfo()
 
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		log.Debug("doEndRoundJobByLeader.GetLeader", "error", errGetLeader)
-		return false
-	}
-
 	// broadcast header
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(leader))
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(sr.SelfPubKey()))
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.BroadcastHeader", "error", err.Error())
 	}
 
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.CommitMaxTime {
-		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
+		log.Warn("doEndRoundJobByPropagator.CommitBlock", "elapsed time", elapsedTime)
 	} else {
 		log.Debug("elapsed time to commit block",
 			"time [s]", elapsedTime,
 		)
 	}
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.CommitBlock", "error", err)
+		log.Debug("doEndRoundJobByPropagator.CommitBlock", "error", err)
 		return false
 	}
 
@@ -375,15 +353,15 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
-	err = sr.broadcastBlockDataLeader()
+	err = sr.broadcastBlockDataPropagator()
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
+		log.Debug("doEndRoundJobByPropagator.broadcastBlockDataLeader", "error", err.Error())
 	}
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
-	sr.updateMetricsForLeader()
+	sr.updateMetricsForPropagator()
 
 	return true
 }
@@ -538,9 +516,8 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		log.Debug("createAndBroadcastHeaderFinalInfo.GetLeader", "error", errGetLeader)
+	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsMultiKeyInConsensusGroup() {
+		log.Debug("doEndRoundJob.createAndBroadcastHeaderFinalInfo - not in consensus")
 		return
 	}
 
@@ -549,7 +526,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		nil,
 		nil,
 		nil,
-		[]byte(leader),
+		[]byte(sr.SelfPubKey()),
 		nil,
 		int(MtBlockHeaderFinalInfo),
 		sr.RoundHandler().Index(),
@@ -557,7 +534,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.Header.GetPubKeysBitmap(),
 		sr.Header.GetSignature(),
 		sr.Header.GetLeaderSignature(),
-		sr.GetAssociatedPid([]byte(leader)),
+		sr.CurrentPid(),
 		nil,
 	)
 
@@ -570,7 +547,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	log.Debug("step 3: block header final info has been sent",
 		"PubKeysBitmap", sr.Header.GetPubKeysBitmap(),
 		"AggregateSignature", sr.Header.GetSignature(),
-		"LeaderSignature", sr.Header.GetLeaderSignature())
+		"SenderSignature", sr.Header.GetLeaderSignature())
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
@@ -774,33 +751,22 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 		return nil, err
 	}
 
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		return nil, errGetLeader
-	}
-
-	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(leader))
+	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(sr.SelfPubKey()))
 }
 
-func (sr *subroundEndRound) updateMetricsForLeader() {
+func (sr *subroundEndRound) updateMetricsForPropagator() {
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 
-func (sr *subroundEndRound) broadcastBlockDataLeader() error {
+func (sr *subroundEndRound) broadcastBlockDataPropagator() error {
 	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
 	if err != nil {
 		return err
 	}
 
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		log.Debug("broadcastBlockDataLeader.GetLeader", "error", errGetLeader)
-		return errGetLeader
-	}
-
-	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, []byte(leader))
+	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, []byte(sr.SelfPubKey()))
 }
 
 func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {

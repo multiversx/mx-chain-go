@@ -173,6 +173,14 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 	return nil
 }
 
+// BroadcastConsensusMessage will send on consensus topic the consensus message
+func (scm *shardChainMessenger) BroadcastConsensusMessage(message *consensus.Message) error {
+	consensusTopic := common.ConsensusTopic +
+		scm.shardCoordinator.CommunicationIdentifier(common.MetachainShardId)
+
+	return scm.broadcastConsensusMessageOnTopic(message, consensusTopic)
+}
+
 // PrepareBroadcastHeaderValidator prepares the validator header broadcast in case leader broadcast fails
 func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 	header data.HeaderHandler,
