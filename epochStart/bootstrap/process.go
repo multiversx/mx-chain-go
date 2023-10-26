@@ -1063,7 +1063,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		HeadersSyncer:        e.headersSyncer,
 		MiniBlocksSyncer:     e.miniBlocksSyncer,
 		TxSyncer:             e.txSyncerForScheduled,
-		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().ScheduledMiniBlocksEnableEpoch(),
+		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().GetActivationEpoch(common.ScheduledMiniBlocksFlag),
 	}
 
 	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)

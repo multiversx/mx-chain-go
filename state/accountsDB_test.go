@@ -3079,9 +3079,7 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsAutoBalanceDataTriesEnabledField: false,
-	}
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
 	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, uint(5))
 	spm := &stateMock.StoragePruningManagerStub{}
@@ -3116,7 +3114,7 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	_, err = adb.Commit()
 	require.Nil(t, err)
 
-	enableEpochsHandler.IsAutoBalanceDataTriesEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.AutoBalanceDataTriesFlag)
 
 	// a JournalEntry is needed so the revert can happen at snapshot 1. Creating a new account creates a new journal entry.
 	newAcc, _ := adb.LoadAccount(generateRandomByteArray(32))

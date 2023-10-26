@@ -73,6 +73,12 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.GovernanceFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	baseProposalCost, okConvert := big.NewInt(0).SetString(args.GovernanceConfig.V1.ProposalCost, conversionBase)
 	if !okConvert || baseProposalCost.Cmp(zero) < 0 {
@@ -122,7 +128,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if !g.enableEpochsHandler.IsGovernanceFlagEnabled() {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}
