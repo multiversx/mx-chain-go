@@ -127,9 +127,9 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		nil,
 	)
 
-	err := sr.BroadcastMessenger().BroadcastConsensusMessageIntraShard(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessageIntraShard",
+		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessage",
 			"error", err.Error(), "pk", pkBytes)
 		return false
 	}

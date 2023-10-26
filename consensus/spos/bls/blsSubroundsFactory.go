@@ -259,6 +259,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
 		fct.appStatusHandler,
+		fct.worker.HasEquivalentMessage,
 	)
 	if err != nil {
 		return err

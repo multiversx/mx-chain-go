@@ -55,6 +55,7 @@ func initSubroundEndRoundWithContainer(
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		appStatusHandler,
+		hasEquivalentMessage,
 	)
 
 	return srEndRound
@@ -73,6 +74,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -108,6 +110,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -143,6 +146,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -179,6 +183,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -214,6 +219,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -249,6 +255,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -284,6 +291,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -319,6 +327,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
@@ -1578,6 +1587,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
+		hasEquivalentMessage,
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {

@@ -23,6 +23,7 @@ type subroundEndRound struct {
 	displayStatistics             func()
 	appStatusHandler              core.AppStatusHandler
 	mutProcessingEndRound         sync.Mutex
+	hasEquivalentMessage          func(headerHash []byte) bool
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -32,6 +33,7 @@ func NewSubroundEndRound(
 	processingThresholdPercentage int,
 	displayStatistics func(),
 	appStatusHandler core.AppStatusHandler,
+	hasEquivalentMessage func(headerHash []byte) bool,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -46,6 +48,7 @@ func NewSubroundEndRound(
 		displayStatistics,
 		appStatusHandler,
 		sync.Mutex{},
+		hasEquivalentMessage,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -276,6 +279,10 @@ func (sr *subroundEndRound) doEndRoundJobByPropagator() bool {
 		return false
 	}
 
+	if !sr.shouldSendFinalData() {
+		return false
+	}
+
 	// Aggregate sig and add it to the block
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
@@ -362,6 +369,23 @@ func (sr *subroundEndRound) doEndRoundJobByPropagator() bool {
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.updateMetricsForPropagator()
+
+	return true
+}
+
+func (sr *subroundEndRound) shouldSendFinalData() bool {
+	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
+	if err != nil {
+		log.Debug("shouldSendFinalData: calculate header hash", "error", err.Error())
+		return false
+	}
+
+	if sr.hasEquivalentMessage(headerHash) {
+		log.Debug("shouldSendFinalData: equivalent message already sent")
+		return false
+	}
+
+	// TODO: add gradual selection algorithm
 
 	return true
 }

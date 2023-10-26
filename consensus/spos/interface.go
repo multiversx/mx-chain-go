@@ -141,6 +141,8 @@ type WorkerHandler interface {
 	ResetConsensusMessages()
 	// RemoveAllEquivalentMessages removes all the equivalent messages
 	RemoveAllEquivalentMessages()
+	// HasEquivalentMessage returns true if an equivalent message was received before
+	HasEquivalentMessage(headerHash []byte) bool
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

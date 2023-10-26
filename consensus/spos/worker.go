@@ -769,6 +769,15 @@ func (wrk *Worker) RemoveAllEquivalentMessages() {
 	wrk.mutEquivalentMessages.Unlock()
 }
 
+// HasEquivalentMessage returns true if an equivalent message was received before
+func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
+	wrk.mutEquivalentMessages.RLock()
+	_, has := wrk.equivalentMessages[string(headerHash)]
+	wrk.mutEquivalentMessages.RUnlock()
+
+	return has
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil

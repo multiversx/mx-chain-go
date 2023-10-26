@@ -29,6 +29,7 @@ type SposWorkerMock struct {
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 	ResetConsensusMessagesCalled           func()
 	RemoveAllEquivalentMessagesCalled      func()
+	HasEquivalentMessageCalled             func(headerHash []byte) bool
 }
 
 // AddReceivedMessageCall -
@@ -114,6 +115,14 @@ func (sposWorkerMock *SposWorkerMock) RemoveAllEquivalentMessages() {
 	if sposWorkerMock.RemoveAllEquivalentMessagesCalled != nil {
 		sposWorkerMock.RemoveAllEquivalentMessagesCalled()
 	}
+}
+
+// HasEquivalentMessage -
+func (sposWorkerMock *SposWorkerMock) HasEquivalentMessage(headerHash []byte) bool {
+	if sposWorkerMock.HasEquivalentMessageCalled != nil {
+		return sposWorkerMock.HasEquivalentMessageCalled(headerHash)
+	}
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

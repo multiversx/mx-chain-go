@@ -43,6 +43,11 @@ func resetConsensusMessages() {
 func removeAllEquivalentMessages() {
 }
 
+// hasEquivalentMessage always returns false
+func hasEquivalentMessage([]byte) bool {
+	return false
+}
+
 func initRoundHandlerMock() *mock.RoundHandlerMock {
 	return &mock.RoundHandlerMock{
 		RoundIndex: 0,
