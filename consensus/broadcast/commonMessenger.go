@@ -104,7 +104,9 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 	if err != nil {
 		return err
 	}
+
 	message.Signature = signature
+
 	buff, err := cm.marshalizer.Marshal(message)
 	if err != nil {
 		return err
