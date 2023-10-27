@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -71,6 +72,17 @@ func TestTransactionEvaluator_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestTransactionEvaluator_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	tce, err := NewAPITransactionEvaluator(args)
+
+	require.Nil(t, tce)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestTransactionEvaluator_Ok(t *testing.T) {
