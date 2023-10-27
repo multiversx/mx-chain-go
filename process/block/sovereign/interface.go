@@ -8,3 +8,9 @@ type OutgoingOperationsFormatter interface {
 	CreateOutgoingTxData(logs []*data.LogData) []byte
 	IsInterfaceNil() bool
 }
+
+// RoundHandler should be able to provide the current round
+type RoundHandler interface {
+	Index() int64
+	IsInterfaceNil() bool
+}

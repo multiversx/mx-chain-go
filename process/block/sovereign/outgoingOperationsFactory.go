@@ -8,13 +8,17 @@ import (
 )
 
 // CrateOutgoingOperationsFormatter creates an outgoing operations formatter
-func CrateOutgoingOperationsFormatter(events []config.SubscribedEvent, pubKeyConverter core.PubkeyConverter) (OutgoingOperationsFormatter, error) {
+func CrateOutgoingOperationsFormatter(
+	events []config.SubscribedEvent,
+	pubKeyConverter core.PubkeyConverter,
+	roundHandler RoundHandler,
+) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events, pubKeyConverter)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewOutgoingOperationsFormatter(subscribedEvents)
+	return NewOutgoingOperationsFormatter(subscribedEvents, roundHandler)
 }
 
 func getSubscribedEvents(events []config.SubscribedEvent, pubKeyConverter core.PubkeyConverter) ([]SubscribedEvent, error) {

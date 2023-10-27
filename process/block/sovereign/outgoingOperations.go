@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -20,20 +22,25 @@ type SubscribedEvent struct {
 
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
+	roundHandler     RoundHandler
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
 // mx-chain-sovereign-notifier-go in the sovereignNotifier.go file. This applies for the factory as well
 
 // NewOutgoingOperationsFormatter creates an outgoing operations formatter
-func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent) (*outgoingOperations, error) {
+func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler) (*outgoingOperations, error) {
 	err := checkEvents(subscribedEvents)
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(roundHandler) {
+		return nil, errors.ErrNilRoundHandler
+	}
 
 	return &outgoingOperations{
 		subscribedEvents: subscribedEvents,
+		roundHandler:     roundHandler,
 	}, nil
 }
 
@@ -83,7 +90,7 @@ func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte 
 		return make([]byte, 0)
 	}
 
-	txData := []byte(bridgeOpPrefix)
+	txData := []byte(bridgeOpPrefix + "@" + fmt.Sprintf("%d", op.roundHandler.Index()))
 	for _, ev := range outgoingEvents {
 		txData = append(txData, byte('@'))
 		txData = append(txData, createSCRData(ev.GetTopics())...)

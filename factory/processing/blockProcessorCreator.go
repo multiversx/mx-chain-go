@@ -498,6 +498,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 		outgoingOpFormatter, errOpFormatter := sovereign.CrateOutgoingOperationsFormatter(
 			pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
 			pcf.coreData.AddressPubKeyConverter(),
+			pcf.coreData.RoundHandler(),
 		)
 		if errOpFormatter != nil {
 			return nil, err

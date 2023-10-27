@@ -5,28 +5,41 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
+
+func createEvents() []SubscribedEvent {
+	return []SubscribedEvent{
+		{
+			Identifier: []byte("id"),
+			Addresses: map[string]string{
+				"decodedAddr": "encodedAddr",
+			},
+		},
+	}
+}
 
 func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no subscribed events, should return error", func(t *testing.T) {
-		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{})
+		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{}, &testscommon.RoundHandlerMock{})
 		require.Nil(t, creator)
 		require.Equal(t, errNoSubscribedEvent, err)
 	})
-	t.Run("should work", func(t *testing.T) {
-		events := []SubscribedEvent{
-			{
-				Identifier: []byte("id"),
-				Addresses: map[string]string{
-					"decodedAddr": "encodedAddr",
-				},
-			},
-		}
 
-		creator, err := NewOutgoingOperationsFormatter(events)
+	t.Run("nil round handler, should return error", func(t *testing.T) {
+		events := createEvents()
+		creator, err := NewOutgoingOperationsFormatter(events, nil)
+		require.Nil(t, creator)
+		require.Equal(t, errors.ErrNilRoundHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		events := createEvents()
+		creator, err := NewOutgoingOperationsFormatter(events, &testscommon.RoundHandlerMock{})
 		require.Nil(t, err)
 		require.False(t, creator.IsInterfaceNil())
 	})
@@ -58,7 +71,13 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	creator, _ := NewOutgoingOperationsFormatter(events)
+	roundHandler := &testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return 123
+		},
+	}
+
+	creator, _ := NewOutgoingOperationsFormatter(events, roundHandler)
 	topic1 := [][]byte{
 		[]byte("rcv1"),
 		[]byte("token1"),
@@ -123,6 +142,6 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	}
 
 	outgoingTxData := creator.CreateOutgoingTxData(logs)
-	expectedTxData := []byte("bridgeOps@rcv1@token1@nonce1@functionToCall1@arg1@arg2@50000@rcv2@token2@nonce2@value2@token3@nonce3@functionToCall2@arg2@40000@rcv3@token4@nonce4@functionToCall3@arg3@arg4@55000")
+	expectedTxData := []byte("bridgeOps@123@rcv1@token1@nonce1@functionToCall1@arg1@arg2@50000@rcv2@token2@nonce2@value2@token3@nonce3@functionToCall2@arg2@40000@rcv3@token4@nonce4@functionToCall3@arg3@arg4@55000")
 	require.Equal(t, expectedTxData, outgoingTxData)
 }
