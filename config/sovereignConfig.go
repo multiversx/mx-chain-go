@@ -8,6 +8,7 @@ type SovereignConfig struct {
 	OutgoingSubscribedEvents         OutgoingSubscribedEvents `toml:"OutgoingSubscribedEvents"`
 }
 
+// OutgoingSubscribedEvents holds config for outgoing subscribed events
 type OutgoingSubscribedEvents struct {
 	SubscribedEvents []SubscribedEvent `toml:"SubscribedEvents"`
 }
