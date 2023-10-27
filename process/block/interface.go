@@ -38,3 +38,10 @@ type extendedShardHeaderHashesGetter interface {
 type crossNotarizer interface {
 	getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo
 }
+
+type OutGoingOperationsPool interface {
+	Add(hash []byte, data []byte)
+	Get(hash []byte) []byte
+	Delete(hash []byte)
+	GetUnconfirmedOperations() [][]byte
+}

@@ -1,6 +1,7 @@
 package sovereign
 
 import (
+	"sort"
 	"sync"
 	"time"
 )
@@ -24,11 +25,16 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 }
 
 func (op *outGoingOperationsPool) Add(hash []byte, data []byte) {
-	if _, exists := op.cache[string(hash)]; exists {
+	hashStr := string(hash)
+
+	op.mutex.Lock()
+	defer op.mutex.Unlock()
+
+	if _, exists := op.cache[hashStr]; exists {
 		return
 	}
 
-	op.cache[string(hash)] = cacheEntry{
+	op.cache[hashStr] = cacheEntry{
 		data:     data,
 		expireAt: time.Now().Add(op.timeout),
 	}
@@ -49,15 +55,28 @@ func (op *outGoingOperationsPool) Get(hash []byte) []byte {
 }
 
 func (op *outGoingOperationsPool) GetUnconfirmedOperations() [][]byte {
-	ret := make([][]byte, 0)
+	expiredEntries := make([]cacheEntry, 0)
 
 	op.mutex.Lock()
 	for _, entry := range op.cache {
 		if time.Now().After(entry.expireAt) {
-			ret = append(ret, entry.data)
+			expiredEntries = append(expiredEntries, entry)
 		}
 	}
 	op.mutex.Unlock()
 
+	sort.Slice(expiredEntries, func(i, j int) bool {
+		return expiredEntries[i].expireAt.Before(expiredEntries[j].expireAt)
+	})
+
+	ret := make([][]byte, len(expiredEntries))
+	for i, entry := range expiredEntries {
+		ret[i] = entry.data
+	}
+
 	return ret
+}
+
+func (op *outGoingOperationsPool) IsInterfaceNil() bool {
+	return op == nil
 }
