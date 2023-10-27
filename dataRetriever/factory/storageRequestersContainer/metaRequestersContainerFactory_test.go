@@ -206,7 +206,6 @@ func getArgumentsMeta() storagerequesterscontainer.FactoryArgs {
 				SnapshotsGoroutineNum: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     100,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,

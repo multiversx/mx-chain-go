@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +27,6 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	args := storage.GetStorageManagerArgs()
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{

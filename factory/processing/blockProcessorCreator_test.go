@@ -91,7 +91,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
-	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
 	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)

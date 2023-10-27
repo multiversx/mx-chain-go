@@ -1333,10 +1333,7 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, core.ErrContextClosing, err)
-
-	err = bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 

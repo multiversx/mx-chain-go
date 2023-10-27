@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	"github.com/stretchr/testify/require"
 )
 
@@ -139,7 +138,6 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 	args.MainStorer = store
 	args.Marshalizer = marshaller
 	args.Hasher = hasher
-	args.CheckpointHashesHolder = disabled.NewDisabledCheckpointHashesHolder()
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 

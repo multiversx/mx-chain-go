@@ -112,7 +112,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockTracker:                  arguments.BlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
 		blockChain:                    arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		outportHandler:                arguments.StatusComponents.OutportHandler(),
 		genesisNonce:                  genesisHdr.GetNonce(),
 		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
