@@ -3,12 +3,14 @@ package processing
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignPool "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -508,6 +510,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 			ShardProcessor:               shardProcessor,
 			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 			OutgoingOperationsFormatter:  outgoingOpFormatter,
+			OutGoingOperationsPool:       sovereignPool.NewOutGoingOperationPool(time.Second * 20),
 		})
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)

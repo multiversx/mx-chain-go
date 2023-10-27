@@ -658,3 +658,6 @@ var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor creator has b
 
 // ErrNilOutgoingOperationsFormatter signals that a nil outgoing operations formatter has been provided
 var ErrNilOutgoingOperationsFormatter = errors.New("nil outgoing operations formatter has been provided")
+
+// ErrNilOutGoingOperationsPool signals that a nil outgoing operations pool has been provided
+var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has been provided")

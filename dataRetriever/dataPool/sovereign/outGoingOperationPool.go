@@ -40,18 +40,18 @@ func (op *outGoingOperationsPool) Add(hash []byte, data []byte) {
 	}
 }
 
-func (op *outGoingOperationsPool) Delete(hash []byte) {
-	op.mutex.Lock()
-	defer op.mutex.Unlock()
-
-	delete(op.cache, string(hash))
-}
-
 func (op *outGoingOperationsPool) Get(hash []byte) []byte {
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
 
 	return op.cache[string(hash)].data
+}
+
+func (op *outGoingOperationsPool) Delete(hash []byte) {
+	op.mutex.Lock()
+	defer op.mutex.Unlock()
+
+	delete(op.cache, string(hash))
 }
 
 func (op *outGoingOperationsPool) GetUnconfirmedOperations() [][]byte {

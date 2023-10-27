@@ -44,4 +44,5 @@ type OutGoingOperationsPool interface {
 	Get(hash []byte) []byte
 	Delete(hash []byte)
 	GetUnconfirmedOperations() [][]byte
+	IsInterfaceNil() bool
 }

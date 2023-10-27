@@ -55,6 +55,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               nil,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
 		})
 
 		assert.Nil(t, scbp)
@@ -70,6 +71,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: nil,
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
 		})
 
 		assert.Nil(t, scbp)
@@ -85,6 +87,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
 		})
 
 		assert.Nil(t, scbp)
@@ -104,6 +107,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
 		})
 
 		assert.Nil(t, scbp)
@@ -133,6 +137,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
 		})
 
 		assert.NotNil(t, scbp)

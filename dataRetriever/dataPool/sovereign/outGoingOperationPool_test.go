@@ -75,7 +75,6 @@ func TestOutGoingOperationsPool_GetUnconfirmedOperations(t *testing.T) {
 	pool.Add(hash2, data2)
 
 	time.Sleep(expiryTime)
-
 	pool.Add(hash3, data3)
 	require.Equal(t, [][]byte{data1, data2}, pool.GetUnconfirmedOperations())
 
@@ -116,5 +115,6 @@ func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 		}(i)
 
 	}
+
 	wg.Wait()
 }

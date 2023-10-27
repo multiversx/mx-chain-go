@@ -40,12 +40,14 @@ type sovereignChainBlockProcessor struct {
 	extendedShardHeaderRequester extendedShardHeaderRequestHandler
 	chRcvAllExtendedShardHdrs    chan bool
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
+	outGoingOperationsPool       OutGoingOperationsPool
 }
 
 type ArgsSovereignChainBlockProcessor struct {
 	ShardProcessor               *shardProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
+	OutGoingOperationsPool       OutGoingOperationsPool
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -59,11 +61,15 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.OutgoingOperationsFormatter) {
 		return nil, errors.ErrNilOutgoingOperationsFormatter
 	}
+	if check.IfNil(args.OutGoingOperationsPool) {
+		return nil, errors.ErrNilOutGoingOperationsPool
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
 		validatorStatisticsProcessor: args.ValidatorStatisticsProcessor,
 		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
+		outGoingOperationsPool:       args.OutGoingOperationsPool,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
@@ -850,17 +856,36 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 		return nil, err
 	}
 
-	// TODO: Marius C.: Implement signing this message
-	_ = scbp.collectOutGoingOperations()
+	err = scbp.setOutGoingOperation(headerHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
 	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
 }
 
-func (scbp *sovereignChainBlockProcessor) collectOutGoingOperations() []byte {
+func (scbp *sovereignChainBlockProcessor) setOutGoingOperation(headerHandler data.HeaderHandler) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
-	return scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
+	outGoingOp := scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
+	hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingOp)
+	if err != nil {
+		return err
+	}
+
+	sovereignChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = sovereignChainHeader.SetOutGoingOperationHashes([][]byte{hash})
+	if err != nil {
+		return err
+	}
+
+	scbp.outGoingOperationsPool.Add(hash, outGoingOp)
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {
