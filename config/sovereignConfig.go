@@ -10,7 +10,8 @@ type SovereignConfig struct {
 
 // OutgoingSubscribedEvents holds config for outgoing subscribed events
 type OutgoingSubscribedEvents struct {
-	SubscribedEvents []SubscribedEvent `toml:"SubscribedEvents"`
+	SubscribedEvents                          []SubscribedEvent `toml:"SubscribedEvents"`
+	TimeToWaitForUnconfirmedOutGoingOperation uint32            `toml:"TimeToWaitForUnconfirmedOutGoingOperation"`
 }
 
 // SubscribedEvent holds subscribed events config

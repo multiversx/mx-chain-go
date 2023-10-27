@@ -4,7 +4,11 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("outgoing-operations-pool")
 
 type cacheEntry struct {
 	data     []byte
@@ -18,6 +22,8 @@ type outGoingOperationsPool struct {
 }
 
 func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool {
+	log.Debug("NewOutGoingOperationPool", "time to wait for unconfirmed outgoing operations", expiryTime)
+
 	return &outGoingOperationsPool{
 		timeout: expiryTime,
 		cache:   map[string]cacheEntry{},

@@ -869,6 +869,10 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 func (scbp *sovereignChainBlockProcessor) setOutGoingOperation(headerHandler data.HeaderHandler) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
 	outGoingOp := scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
+	if len(outGoingOp) == 0 {
+		return nil
+	}
+
 	hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingOp)
 	if err != nil {
 		return err

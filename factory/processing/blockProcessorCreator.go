@@ -506,11 +506,12 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 			return nil, err
 		}
 
+		timeToWait := time.Second * time.Duration(pcf.config.SovereignConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperation)
 		return block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               shardProcessor,
 			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 			OutgoingOperationsFormatter:  outgoingOpFormatter,
-			OutGoingOperationsPool:       sovereignPool.NewOutGoingOperationPool(time.Second * 20),
+			OutGoingOperationsPool:       sovereignPool.NewOutGoingOperationPool(timeToWait),
 		})
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
