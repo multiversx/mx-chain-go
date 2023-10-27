@@ -1110,7 +1110,7 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	assert.Equal(t, aliceCurrentBalance, getBalance(testContext, alice))
 	bobExpectedBalance := big.NewInt(0).Set(initialMint)
 	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
-	charlieConsumed := 1 + 1 + uint64(len(rtxData))
+	charlieConsumed := 1 + guardianSigVerificationGas + 1 + uint64(len(rtxData))
 	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(charlieConsumed*gasPrice)))
 	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
 	assert.Equal(t, initialMint, getBalance(testContext, david))

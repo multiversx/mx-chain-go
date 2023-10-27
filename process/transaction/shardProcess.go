@@ -1022,7 +1022,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 	shouldConsiderMoveBalanceFee := dstShardTxType == process.MoveBalance &&
 		txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled()
 	if shouldConsiderMoveBalanceFee {
-		totalFee = txProc.economicsFee.ComputeMoveBalanceFee(userTx)
+		totalFee = txProc.economicsFee.ComputeTxFee(userTx)
 	}
 
 	txProc.txFeeHandler.ProcessTransactionFee(totalFee, big.NewInt(0), originalTxHash)

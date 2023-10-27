@@ -57,7 +57,7 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(50), accumulatedFees)
+	require.Equal(t, big.NewInt(1000), accumulatedFees)
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testing.T) {
@@ -102,7 +102,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10), accumulatedFees)
+	require.Equal(t, big.NewInt(1000), accumulatedFees)
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
@@ -146,8 +146,8 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	require.Nil(t, err)
 
 	// check relayed balance
-	// 100000 - rTxFee(164)*gasPrice(10) - gasLimitForMoveInner(1)*gasPrice(10) = 98360
-	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(98360))
+	// 100000 - rTxFee(163)*gasPrice(10) - txFeeInner(1000) = 97370
+	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
 
 	// check accumulated fees
 	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
@@ -168,7 +168,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10), accumulatedFees)
+	require.Equal(t, big.NewInt(1000), accumulatedFees)
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(t *testing.T) {
@@ -210,14 +210,14 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	require.Nil(t, err)
 
 	// check relayed balance
-	// 100000 - rTxFee(164)*gasPrice(10) - gasLimitForMoveInner(1)*gasPrice(10) = 98360
-	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(98360))
+	// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
+	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
 	// check inner tx sender
 	utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, big.NewInt(0))
 
 	// check accumulated fees
 	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(1640), accumulatedFees)
+	require.Equal(t, big.NewInt(2630), accumulatedFees)
 
 	// get scr for destination shard
 	txs := testContextSource.GetIntermediateTransactions(t)
@@ -272,8 +272,8 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	require.Nil(t, err)
 
 	// check relayed balance
-	// 100000 - rTxFee(164)*gasPrice(10) - gasLimitForMoveInner(1)*gasPrice(10) = 98360
-	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(98360))
+	// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
+	utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
 
 	// check inner Tx receiver
 	innerTxSenderAccount, err := testContextSource.Accounts.GetExistingAccount(sndAddr)
@@ -294,7 +294,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 
 	// check accumulated fees
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	expectedAccFees = big.NewInt(10)
+	expectedAccFees = big.NewInt(1000)
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
 	txs := testContextDst.GetIntermediateTransactions(t)
@@ -350,8 +350,8 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	require.Nil(t, err)
 
 	// check relayed balance
-	// 100000 - rTxFee(164)*gasPrice(10) - gasLimitForMoveInner(1)*gasPrice(10) = 98360
-	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(98360))
+	// 100000 - rTxFee(164)*gasPrice(10) - innerTxFee(1000) = 97370
+	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(97370))
 
 	// check inner Tx receiver
 	innerTxSenderAccount, err := testContextRelayer.Accounts.GetExistingAccount(sndAddr)
@@ -372,7 +372,7 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 
 	// check accumulated fees
 	accumulatedFees = testContextInnerSource.TxFeeHandler.GetAccumulatedFees()
-	expectedAccFees = big.NewInt(10)
+	expectedAccFees = big.NewInt(1000)
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
 	// execute on inner tx receiver shard

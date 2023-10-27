@@ -49,8 +49,8 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	// check relayer balance
-	// 3000 - rTxFee(175)*gasPrice(10) + gasLimitForMoveInner(5)*gasPrice(10) = 1200
-	expectedBalanceRelayer := big.NewInt(1200)
+	// 3000 - rTxFee(175)*gasPrice(10) + txFeeInner(1000) = 2750
+	expectedBalanceRelayer := big.NewInt(250)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -61,7 +61,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(1800), accumulatedFees)
+	require.Equal(t, big.NewInt(2750), accumulatedFees)
 }
 
 func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
@@ -120,13 +120,13 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	// 3000 - rTxFee(179)*gasPrice(10) - gasLimitForMoveInner(5)*gasPrice(10) = 2821
-	expectedBalanceRelayer := big.NewInt(2816)
+	// 3000 - rTxFee(179)*gasPrice(1) - innerTxFee(100) = 2721
+	expectedBalanceRelayer := big.NewInt(2721)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(184), accumulatedFees)
+	require.Equal(t, big.NewInt(279), accumulatedFees)
 }
 
 func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
@@ -155,13 +155,13 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	// 3000 - rTxFee(175)*gasPrice(10) - gasLimitForMoveInner(5)*gasPrice(10) = 2820
-	expectedBalanceRelayer := big.NewInt(2820)
+	// 3000 - rTxFee(175)*gasPrice(1) - innerTxFee(100) = 2750
+	expectedBalanceRelayer := big.NewInt(2725)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(180), accumulatedFees)
+	require.Equal(t, big.NewInt(275), accumulatedFees)
 }
 
 func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
