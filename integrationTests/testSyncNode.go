@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
@@ -51,7 +52,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.RefactorPeersMiniBlocksFlag {
+				return UnreachableEpoch
+			}
+			return 0
+		},
 	}
 
 	dataComponents := GetDefaultDataComponents()
