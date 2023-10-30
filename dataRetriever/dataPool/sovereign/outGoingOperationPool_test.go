@@ -73,6 +73,7 @@ func TestOutGoingOperationsPool_GetUnconfirmedOperations(t *testing.T) {
 
 	pool.Add(hash1, data1)
 	pool.Add(hash2, data2)
+	require.Empty(t, pool.GetUnconfirmedOperations())
 
 	time.Sleep(expiryTime)
 	pool.Add(hash3, data3)
