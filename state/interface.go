@@ -183,7 +183,7 @@ type DataTrie interface {
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//  with some extra features like signing statistics or rating information
+// with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte
@@ -270,5 +270,13 @@ type SignRate interface {
 type StateStatsHandler interface {
 	ResetSnapshot()
 	SnapshotStats() string
+	IsInterfaceNil() bool
+}
+
+// LastSnapshotMarker manages the lastSnapshot marker operations
+type LastSnapshotMarker interface {
+	AddMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
+	RemoveMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
+	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
 	IsInterfaceNil() bool
 }

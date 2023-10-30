@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateTest "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -31,6 +31,7 @@ func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
 		AccountFactory:           &stateTest.AccountsFactoryStub{},
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		StateStatsHandler:        disabled.NewStateStatistics(),
+		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
 	}
 }
 
@@ -106,6 +107,16 @@ func TestNewSnapshotsManager(t *testing.T) {
 		sm, err := state.NewSnapshotsManager(args)
 		assert.Nil(t, sm)
 		assert.Equal(t, state.ErrNilStatsHandler, err)
+	})
+	t.Run("nil last snapshot marker", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.LastSnapshotMarker = nil
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.Nil(t, sm)
+		assert.Equal(t, state.ErrNilLastSnapshotMarker, err)
 	})
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
@@ -272,7 +283,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 	t.Run("should not start snapshot if another snapshot is in progress, lastSnapshot should be saved", func(t *testing.T) {
 		t.Parallel()
 
-		putInEpochCalled := false
+		putInEpochCalled := atomic.Flag{}
 
 		args := getDefaultSnapshotManagerArgs()
 		args.StateMetrics = &stateTest.StateMetricsStub{
@@ -288,28 +299,33 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				assert.Equal(t, []byte("lastSnapshot"), key)
 				assert.Equal(t, rootHash, val)
 				assert.Equal(t, epoch, e)
-				putInEpochCalled = true
+				putInEpochCalled.SetValue(true)
 				return nil
 			},
 			EnterPruningBufferingModeCalled: func() {
 				assert.Fail(t, "the func should have returned before this is called")
 			},
+			GetLatestStorageEpochCalled: func() (uint32, error) {
+				return epoch, nil
+			},
 		}
 
 		sm.SnapshotState(rootHash, epoch, tsm)
-		assert.True(t, putInEpochCalled)
+		for !putInEpochCalled.IsSet() {
+			time.Sleep(10 * time.Millisecond)
+		}
 	})
 	t.Run("starting snapshot sets some parameters", func(t *testing.T) {
 		t.Parallel()
 
-		putInEpochCalled := false
+		putInEpochCalled := atomic.Flag{}
 		enterPruningBufferingModeCalled := false
-		getSnapshotMessageCalled := false
+		getSnapshotMessageCalled := atomic.Flag{}
 
 		args := getDefaultSnapshotManagerArgs()
 		args.StateMetrics = &stateTest.StateMetricsStub{
 			GetSnapshotMessageCalled: func() string {
-				getSnapshotMessageCalled = true
+				getSnapshotMessageCalled.SetValue(true)
 				return ""
 			},
 		}
@@ -319,17 +335,23 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				assert.Equal(t, []byte("lastSnapshot"), key)
 				assert.Equal(t, rootHash, val)
 				assert.Equal(t, epoch, e)
-				putInEpochCalled = true
+				putInEpochCalled.SetValue(true)
 				return nil
 			},
 			EnterPruningBufferingModeCalled: func() {
 				enterPruningBufferingModeCalled = true
+				for !putInEpochCalled.IsSet() {
+					time.Sleep(10 * time.Millisecond)
+				}
+			},
+			GetLatestStorageEpochCalled: func() (uint32, error) {
+				return epoch, nil
 			},
 		}
 
 		sm.SnapshotState(rootHash, epoch, tsm)
-		assert.True(t, getSnapshotMessageCalled)
-		assert.True(t, putInEpochCalled)
+		assert.True(t, getSnapshotMessageCalled.IsSet())
+		assert.True(t, putInEpochCalled.IsSet())
 		assert.True(t, enterPruningBufferingModeCalled)
 		assert.True(t, sm.IsSnapshotInProgress())
 
@@ -341,15 +363,17 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("some error")
-		getLatestStorageEpochCalled := false
+		getLatestStorageEpochCalled := atomic.Flag{}
 
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
 		enterPruningBufferingModeCalled := atomic.Flag{}
 		exitPruningBufferingModeCalled := atomic.Flag{}
 		tsm := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
-				getLatestStorageEpochCalled = true
-				assert.True(t, sm.IsSnapshotInProgress())
+				for !sm.IsSnapshotInProgress() {
+					time.Sleep(10 * time.Millisecond)
+				}
+				getLatestStorageEpochCalled.SetValue(true)
 				return 0, expectedErr
 			},
 			ShouldTakeSnapshotCalled: func() bool {
@@ -369,7 +393,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 			time.Sleep(10 * time.Millisecond)
 		}
 
-		assert.True(t, getLatestStorageEpochCalled)
+		assert.True(t, getLatestStorageEpochCalled.IsSet())
 		assert.True(t, enterPruningBufferingModeCalled.IsSet())
 		assert.True(t, exitPruningBufferingModeCalled.IsSet())
 	})
@@ -481,101 +505,5 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 
 		assert.True(t, putInEpochWithoutCacheCalled)
 		assert.True(t, removeFromAllActiveEpochsCalled)
-	})
-}
-
-func TestSnapshotsManager_WaitForStorageEpochChange(t *testing.T) {
-	t.Parallel()
-
-	t.Run("invalid args", func(t *testing.T) {
-		t.Parallel()
-
-		args := state.GetStorageEpochChangeWaitArgs()
-		args.SnapshotWaitTimeout = time.Millisecond
-
-		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
-		err := sm.WaitForStorageEpochChange(args)
-		assert.Error(t, err)
-	})
-	t.Run("getLatestStorageEpoch error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedError := errors.New("getLatestStorageEpoch error")
-
-		args := state.GetStorageEpochChangeWaitArgs()
-		args.TrieStorageManager = &storageManager.StorageManagerStub{
-			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 0, expectedError
-			},
-		}
-		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
-
-		err := sm.WaitForStorageEpochChange(args)
-		assert.Equal(t, expectedError, err)
-	})
-	t.Run("storage manager closed error", func(t *testing.T) {
-		t.Parallel()
-
-		args := state.GetStorageEpochChangeWaitArgs()
-		args.TrieStorageManager = &storageManager.StorageManagerStub{
-			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 0, nil
-			},
-			IsClosedCalled: func() bool {
-				return true
-			},
-		}
-		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
-
-		err := sm.WaitForStorageEpochChange(args)
-		assert.Equal(t, core.ErrContextClosing, err)
-	})
-	t.Run("storage epoch change timeout", func(t *testing.T) {
-		t.Parallel()
-
-		args := state.GetStorageEpochChangeWaitArgs()
-		args.WaitTimeForSnapshotEpochCheck = time.Millisecond
-		args.SnapshotWaitTimeout = time.Millisecond * 5
-		args.TrieStorageManager = &storageManager.StorageManagerStub{
-			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 0, nil
-			},
-		}
-		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
-
-		err := sm.WaitForStorageEpochChange(args)
-		assert.Error(t, err)
-	})
-	t.Run("is in import-db mode should not return error on timeout condition", func(t *testing.T) {
-		t.Parallel()
-
-		args := state.GetStorageEpochChangeWaitArgs()
-		args.WaitTimeForSnapshotEpochCheck = time.Millisecond
-		args.SnapshotWaitTimeout = time.Millisecond * 5
-		args.TrieStorageManager = &storageManager.StorageManagerStub{
-			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 0, nil
-			},
-		}
-		argsSnapshotManager := getDefaultSnapshotManagerArgs()
-		argsSnapshotManager.ProcessingMode = common.ImportDb
-		sm, _ := state.NewSnapshotsManager(argsSnapshotManager)
-
-		err := sm.WaitForStorageEpochChange(args)
-		assert.Nil(t, err)
-	})
-	t.Run("returns when latestStorageEpoch == snapshotEpoch", func(t *testing.T) {
-		t.Parallel()
-
-		args := state.GetStorageEpochChangeWaitArgs()
-		args.TrieStorageManager = &storageManager.StorageManagerStub{
-			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 1, nil
-			},
-		}
-		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
-
-		err := sm.WaitForStorageEpochChange(args)
-		assert.Nil(t, err)
 	})
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -433,7 +434,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 						activeDBWasPut = true
 					}
 
-					if string(key) == state.LastSnapshotStarted {
+					if string(key) == lastSnapshotMarker.LastSnapshot {
 						lastSnapshotStartedWasPut = true
 					}
 
@@ -451,7 +452,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 
 	mut.RLock()
 	defer mut.RUnlock()
-	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
 }
 
