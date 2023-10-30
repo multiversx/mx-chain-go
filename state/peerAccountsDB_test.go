@@ -12,7 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -73,16 +76,6 @@ func TestNewPeerAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilStoragePruningManager, err)
 	})
-	t.Run("nil process status handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockAccountsDBArgs()
-		args.ProcessStatusHandler = nil
-
-		adb, err := state.NewPeerAccountsDB(args)
-		assert.True(t, check.IfNil(adb))
-		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -109,6 +102,19 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 			}
 		},
 	}
+
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           &marshallerMock.MarshalizerMock{},
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &testState.StateMetricsStub{},
+		AccountFactory:       args.AccountFactory,
+		ChannelsProvider:     iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+	})
+	args.SnapshotsManager = snapshotsManager
+
 	adb, err := state.NewPeerAccountsDB(args)
 
 	assert.Nil(t, err)
@@ -365,7 +371,16 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 		}
 
 		args := createMockAccountsDBArgs()
-		args.ProcessingMode = common.ImportDb
+		args.SnapshotsManager, _ = state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+			ProcessingMode:       common.ImportDb,
+			Marshaller:           &marshallerMock.MarshalizerMock{},
+			AddressConverter:     &testscommon.PubkeyConverterMock{},
+			ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+			StateMetrics:         &testState.StateMetricsStub{},
+			AccountFactory:       args.AccountFactory,
+			ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+			LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		})
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)
 		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})

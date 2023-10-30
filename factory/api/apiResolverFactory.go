@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -583,10 +584,8 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		Marshaller:            args.coreComponents.InternalMarshalizer(),
 		AccountFactory:        accountFactory,
 		StoragePruningManager: storagePruning,
-		ProcessingMode:        args.processingMode,
-		ProcessStatusHandler:  args.coreComponents.ProcessStatusHandler(),
-		AppStatusHandler:      args.statusCoreComponents.AppStatusHandler(),
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)
