@@ -21,6 +21,7 @@ type outGoingOperationsPool struct {
 	cache   map[string]cacheEntry
 }
 
+// NewOutGoingOperationPool creates a new outgoing operation pool able to store data with an expiry time
 func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool {
 	log.Debug("NewOutGoingOperationPool", "time to wait for unconfirmed outgoing operations", expiryTime)
 
@@ -30,6 +31,7 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 	}
 }
 
+// Add adds the outgoing tx data at the specified hash in the internal cache
 func (op *outGoingOperationsPool) Add(hash []byte, data []byte) {
 	hashStr := string(hash)
 
@@ -46,6 +48,7 @@ func (op *outGoingOperationsPool) Add(hash []byte, data []byte) {
 	}
 }
 
+// Get returns the outgoing tx data at the specified hash
 func (op *outGoingOperationsPool) Get(hash []byte) []byte {
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
@@ -53,6 +56,7 @@ func (op *outGoingOperationsPool) Get(hash []byte) []byte {
 	return op.cache[string(hash)].data
 }
 
+// Delete removes the outgoing tx data at the specified hash
 func (op *outGoingOperationsPool) Delete(hash []byte) {
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
@@ -60,6 +64,10 @@ func (op *outGoingOperationsPool) Delete(hash []byte) {
 	delete(op.cache, string(hash))
 }
 
+// GetUnconfirmedOperations returns a list of unconfirmed operations.
+// An unconfirmed operation is a tx data operation which has been stored in cache for longer
+// than the time to wait for unconfirmed outgoing operations.
+// Returned list is sorted based on expiry time.
 func (op *outGoingOperationsPool) GetUnconfirmedOperations() [][]byte {
 	expiredEntries := make([]cacheEntry, 0)
 
@@ -83,6 +91,7 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() [][]byte {
 	return ret
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (op *outGoingOperationsPool) IsInterfaceNil() bool {
 	return op == nil
 }

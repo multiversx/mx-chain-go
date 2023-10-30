@@ -43,6 +43,7 @@ type sovereignChainBlockProcessor struct {
 	outGoingOperationsPool       OutGoingOperationsPool
 }
 
+// ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
 type ArgsSovereignChainBlockProcessor struct {
 	ShardProcessor               *shardProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
@@ -880,7 +881,7 @@ func (scbp *sovereignChainBlockProcessor) setOutGoingOperation(headerHandler dat
 
 	sovereignChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.setOutGoingOperation", process.ErrWrongTypeAssertion)
 	}
 
 	err = sovereignChainHeader.SetOutGoingOperationHashes([][]byte{hash})

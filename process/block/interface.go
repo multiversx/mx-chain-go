@@ -39,6 +39,7 @@ type crossNotarizer interface {
 	getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo
 }
 
+// OutGoingOperationsPool defines the behavior of a timed cache for outgoing operations
 type OutGoingOperationsPool interface {
 	Add(hash []byte, data []byte)
 	Get(hash []byte) []byte
