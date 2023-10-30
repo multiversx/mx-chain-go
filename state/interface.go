@@ -269,7 +269,7 @@ type SignRate interface {
 // StateStatsHandler defines the behaviour needed to handler state statistics
 type StateStatsHandler interface {
 	ResetSnapshot()
-	SnapshotStats() string
+	SnapshotStats() []string
 	IsInterfaceNil() bool
 }
 

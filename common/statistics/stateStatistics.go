@@ -2,7 +2,6 @@ package statistics
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -115,37 +114,37 @@ func (ss *stateStatistics) Trie() uint64 {
 }
 
 // SnapshotStats returns collected snapshot statistics as string
-func (ss *stateStatistics) SnapshotStats() string {
+func (ss *stateStatistics) SnapshotStats() []string {
 	stats := make([]string, 0)
 
-	stats = append(stats, fmt.Sprintf("num snapshot cache op = %v", atomic.LoadUint64(&ss.numSnapshotCache)))
+	stats = append(stats, fmt.Sprintf("snapshot cache op = %v", atomic.LoadUint64(&ss.numSnapshotCache)))
 
 	ss.mutPersisters.RLock()
 	defer ss.mutPersisters.RUnlock()
 
 	for epoch, counter := range ss.numSnapshotPersister {
-		stats = append(stats, fmt.Sprintf("num snapshot persister epoch = %v op = %v", epoch, counter))
+		stats = append(stats, fmt.Sprintf("snapshot persister epoch = %v op = %v", epoch, counter))
 	}
 
-	return strings.Join(stats, " ")
+	return stats
 }
 
 // ProcessingStats returns collected processing statistics as string
-func (ss *stateStatistics) ProcessingStats() string {
+func (ss *stateStatistics) ProcessingStats() []string {
 	stats := make([]string, 0)
 
-	stats = append(stats, fmt.Sprintf("num cache op = %v", atomic.LoadUint64(&ss.numCache)))
+	stats = append(stats, fmt.Sprintf("cache op = %v", atomic.LoadUint64(&ss.numCache)))
 
 	ss.mutPersisters.RLock()
 	defer ss.mutPersisters.RUnlock()
 
 	for epoch, counter := range ss.numPersister {
-		stats = append(stats, fmt.Sprintf("num persister epoch = %v op = %v", epoch, counter))
+		stats = append(stats, fmt.Sprintf("persister epoch = %v op = %v", epoch, counter))
 	}
 
-	stats = append(stats, fmt.Sprintf("num trie op = %v", atomic.LoadUint64(&ss.numTrie)))
+	stats = append(stats, fmt.Sprintf("trie op = %v", atomic.LoadUint64(&ss.numTrie)))
 
-	return strings.Join(stats, " ")
+	return stats
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

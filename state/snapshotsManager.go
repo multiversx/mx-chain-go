@@ -393,7 +393,7 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 
 func (sm *snapshotsManager) printStorageStatistics() {
 	stats := sm.stateStatsHandler.SnapshotStats()
-	if stats != "" {
+	if stats != nil {
 		log.Debug("snapshot storage statistics",
 			"stats", stats,
 		)

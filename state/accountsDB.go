@@ -826,7 +826,7 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 
 func (adb *AccountsDB) printTrieStorageStatistics() {
 	stats := adb.mainTrie.GetStorageManager().GetStateStatsHandler().ProcessingStats()
-	if stats != "" {
+	if stats != nil {
 		log.Debug("trie storage statistics",
 			"stats", stats,
 		)

@@ -237,8 +237,8 @@ type StateStatisticsHandler interface {
 	IncrTrie()
 	Trie() uint64
 
-	ProcessingStats() string
-	SnapshotStats() string
+	ProcessingStats() []string
+	SnapshotStats() []string
 
 	IsInterfaceNil() bool
 }
