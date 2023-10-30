@@ -1265,14 +1265,14 @@ func TestPruningStorer_PutInEpoch(t *testing.T) {
 		t.Run("get from wrong epochs should error", func(t *testing.T) {
 			ps.ClearCache()
 			result, errGet := ps.GetFromEpoch(key4, 3)
-			expectedErrorString := fmt.Sprintf("key %x not found in id", key4)
-			assert.Equal(t, expectedErrorString, errGet.Error())
+			assert.ErrorIs(t, errGet, storage.ErrKeyNotFound)
+			assert.Contains(t, errGet.Error(), fmt.Sprintf("for key %x in id", key4))
 			assert.Nil(t, result)
 
 			ps.ClearCache()
 			result, errGet = ps.GetFromEpoch(key4, 5)
-			expectedErrorString = fmt.Sprintf("key %x not found in id", key4)
-			assert.Equal(t, expectedErrorString, errGet.Error())
+			assert.ErrorIs(t, errGet, storage.ErrKeyNotFound)
+			assert.Contains(t, errGet.Error(), fmt.Sprintf("for key %x in id", key4))
 			assert.Nil(t, result)
 		})
 	})
@@ -1307,8 +1307,8 @@ func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {
 	// get from epoch 5 should error
 	ps.ClearCache()
 	result, errGet := ps.GetFromEpoch(key, 5)
-	expectedErrorString := fmt.Sprintf("key %x not found in id", key)
-	assert.Equal(t, expectedErrorString, errGet.Error())
+	assert.ErrorIs(t, errGet, storage.ErrKeyNotFound)
+	assert.Contains(t, errGet.Error(), fmt.Sprintf("for key %x in id", key))
 	assert.Nil(t, result)
 
 	// get from epoch 4 should work

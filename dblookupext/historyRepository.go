@@ -133,6 +133,9 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 		if miniblock.Type == block.PeerBlock {
 			continue
 		}
+		if miniblock.Type == block.ReceiptBlock {
+			continue
+		}
 
 		err = hr.miniblocksHandler.commitMiniblock(blockHeader, blockHeaderHash, miniblock)
 		if err != nil {
