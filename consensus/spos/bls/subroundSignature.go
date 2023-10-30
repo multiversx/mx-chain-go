@@ -15,6 +15,7 @@ import (
 type subroundSignature struct {
 	*spos.Subround
 
+	extraSigner          SubRoundExtraDataSignatureHandler
 	getMessageToSignFunc func() []byte
 }
 
@@ -89,9 +90,14 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
+		extraSigShare, err := sr.extraSigner.CreateSignatureShare(uint16(selfIndex))
+		if err != nil {
+			log.Debug("doSignatureJob.extraSigShare.CreateSignatureShare", "error", err.Error())
+			return false
+		}
 
 		if !isSelfLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
+			ok := sr.createAndSendSignatureMessage(signatureShare, extraSigShare, []byte(sr.SelfPubKey()))
 			if !ok {
 				return false
 			}
@@ -106,7 +112,11 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	return sr.doSignatureJobForManagedKeys()
 }
 
-func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
+func (sr *subroundSignature) createAndSendSignatureMessage(
+	signatureShare []byte,
+	extraSigShare []byte,
+	pkBytes []byte,
+) bool {
 	// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
@@ -125,6 +135,8 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		nil,
 		sr.getProcessedHeaderHash(),
 	)
+
+	sr.extraSigner.AddSigShareToConsensusMessage(extraSigShare, cnsMsg)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
@@ -391,8 +403,14 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
+		extraSigShare, err := sr.extraSigner.CreateSignatureShare(uint16(selfIndex))
+		if err != nil {
+			log.Debug("doSignatureJobForManagedKeys.extraSigShare.CreateSignatureShare", "error", err.Error())
+			return false
+		}
+
 		if !isMultiKeyLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
+			ok := sr.createAndSendSignatureMessage(signatureShare, extraSigShare, pkBytes)
 			if !ok {
 				return false
 			}
