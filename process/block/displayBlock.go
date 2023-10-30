@@ -183,9 +183,9 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
-	shardHeaderHashesGetter, ok := header.(extendedShardHeaderHashesGetter)
-	if ok {
-		shardLines = txc.displayExtendedShardHeaderHashesIncluded(shardLines, shardHeaderHashesGetter.GetExtendedShardHeaderHashes())
+	sovereignChainHeaderHandler, castOk := header.(sovereignChainHeader)
+	if castOk {
+		shardLines = txc.displaySovereignChainHeader(shardLines, sovereignChainHeaderHandler)
 	}
 
 	var varBlockBodyType int32 = math.MaxInt32
@@ -205,6 +205,52 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
 	return tableHeader, shardLines
+}
+
+func (txc *transactionCounter) displaySovereignChainHeader(
+	lines []*display.LineData,
+	header sovereignChainHeader,
+) []*display.LineData {
+	lines = txc.displayExtendedShardHeaderHashesIncluded(lines, header.GetExtendedShardHeaderHashes())
+	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingOperationHashes())
+
+	return lines
+}
+
+func (txc *transactionCounter) displayOutGoingTxData(
+	lines []*display.LineData,
+	outGoingTxDataHashes [][]byte,
+) []*display.LineData {
+	if len(outGoingTxDataHashes) == 0 {
+		return lines
+	}
+
+	part := "OutGoingTxDataHash"
+	for i := 0; i < len(outGoingTxDataHashes); i++ {
+		if i == 0 || i >= len(outGoingTxDataHashes)-1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("OutGoingTxDataHash_%d", i+1),
+				logger.DisplayByteSlice(outGoingTxDataHashes[i])}))
+
+			part = ""
+			continue
+		}
+
+		if i == 1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				"...",
+				"...",
+			}))
+
+			part = ""
+		}
+	}
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
 }
 
 func (txc *transactionCounter) displayExtendedShardHeaderHashesIncluded(

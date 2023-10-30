@@ -31,8 +31,9 @@ type validatorStatsRootHashGetter interface {
 	GetValidatorStatsRootHash() []byte
 }
 
-type extendedShardHeaderHashesGetter interface {
+type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
+	GetOutGoingOperationHashes() [][]byte
 }
 
 type crossNotarizer interface {
