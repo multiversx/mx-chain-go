@@ -15,6 +15,15 @@ type cacheEntry struct {
 	expireAt time.Time
 }
 
+// This is a cache which stores outgoing txs data at their specified hash.
+// Each entry in cache as an expiry time. We should Delete entries from this cache once the confirmation from the notifier
+// is received that the outgoing operation has been sent to main chain.
+// An unconfirmed operation is a tx data operation which has been stored in cache for longer than the time to wait for
+// unconfirmed outgoing operations.
+// The leader of the next round should check if there are any unconfirmed operations and try to resend them.
+
+// TODO: [TBD] here a mechanism to check for unconfirmed operations inside the network as well in order not to double spend?
+// E.g.: are there truly unconfirmed operations or the leader is having trouble with his notifier and didn't receive the confirmation?
 type outGoingOperationsPool struct {
 	mutex   sync.RWMutex
 	timeout time.Duration
