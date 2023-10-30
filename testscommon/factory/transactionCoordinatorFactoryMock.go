@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // TransactionCoordinatorFactoryMock -
@@ -15,7 +16,7 @@ func (t *TransactionCoordinatorFactoryMock) CreateTransactionCoordinator(args co
 	if t.CreateTransactionCoordinatorCalled != nil {
 		return t.CreateTransactionCoordinatorCalled(args)
 	}
-	return nil, nil
+	return &testscommon.TransactionCoordinatorMock{}, nil
 }
 
 // IsInterfaceNil -

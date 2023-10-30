@@ -109,7 +109,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		BlockChainHookCreator: &factory.BlockChainHookHandlerFactorySub{},
+		BlockChainHookCreator: &factory.BlockChainHookHandlerFactoryMock{},
 	}
 }
 
@@ -344,7 +344,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
-		BlockChainHookCreator: &factory.BlockChainHookHandlerFactorySub{},
+		BlockChainHookCreator: &factory.BlockChainHookHandlerFactoryMock{},
 	}
 }
 

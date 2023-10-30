@@ -1,6 +1,9 @@
 package factory
 
-import "github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+import (
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/testscommon"
+)
 
 // SCProcessorFactoryMock -
 type SCProcessorFactoryMock struct {
@@ -12,7 +15,7 @@ func (s *SCProcessorFactoryMock) CreateSCProcessor(args scrCommon.ArgsNewSmartCo
 	if s.CreateSCProcessorCalled != nil {
 		return s.CreateSCProcessorCalled(args)
 	}
-	return nil, nil
+	return &testscommon.SCProcessorMock{}, nil
 }
 
 // IsInterfaceNil -

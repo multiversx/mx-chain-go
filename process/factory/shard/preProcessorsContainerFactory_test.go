@@ -47,7 +47,7 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
-		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryStub{},
+		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 }
 
@@ -279,6 +279,17 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 	ppcf, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
+	assert.Nil(t, ppcf)
+}
+
+func TestNewPreProcessorsContainerFactory_NilSmartContractResulsPreProcessorCreator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	args.SmartContractResultPreProcessorCreator = nil
+	ppcf, err := NewPreProcessorsContainerFactory(args)
+
+	assert.Equal(t, process.ErrNilSmartContractResultPreProcessorCreator, err)
 	assert.Nil(t, ppcf)
 }
 

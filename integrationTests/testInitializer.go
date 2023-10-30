@@ -725,8 +725,8 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig: &roundsConfig,
-		RunType:     runTypeComponents,
+		RoundConfig:       &roundsConfig,
+		RunTypeComponents: runTypeComponents,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -830,7 +830,7 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RunType: &mainFactoryMocks.RunTypeComponentsStub{},
+		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

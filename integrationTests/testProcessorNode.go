@@ -1707,7 +1707,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	scrPreProcessor, err := preprocess.NewSmartContractResultPreProcessorFactory()
+	scrPreProcessorFactory, err := preprocess.NewSmartContractResultPreProcessorFactory()
 	if err != nil {
 		panic(err)
 	}
@@ -1734,7 +1734,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                          txTypeHandler,
 		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
-		SmartContractResultPreProcessorCreator: scrPreProcessor,
+		SmartContractResultPreProcessorCreator: scrPreProcessorFactory,
 	}
 	fact, err := shard.NewPreProcessorsContainerFactory(args)
 	if err != nil {

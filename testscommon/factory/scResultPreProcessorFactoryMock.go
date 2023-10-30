@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // SmartContractResultPreProcessorFactoryMock -
@@ -15,7 +16,7 @@ func (s *SmartContractResultPreProcessorFactoryMock) CreateSmartContractResultPr
 	if s.CreateSmartContractResultPreProcessorCalled != nil {
 		return s.CreateSmartContractResultPreProcessorCalled(args)
 	}
-	return nil, nil
+	return &testscommon.PreProcessorMock{}, nil
 }
 
 // IsInterfaceNil -

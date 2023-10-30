@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 )
 
 // EpochStartBootstrapperFactoryMock -
@@ -14,7 +15,7 @@ func (e *EpochStartBootstrapperFactoryMock) CreateEpochStartBootstrapper(args bo
 	if e.CreateEpochStartBootstrapperCalled != nil {
 		return e.CreateEpochStartBootstrapperCalled(args)
 	}
-	return nil, nil
+	return &bootstrapMocks.EpochStartBootstrapperStub{}, nil
 }
 
 // IsInterfaceNil -

@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // RequestHandlerFactoryMock -
@@ -15,7 +16,7 @@ func (r *RequestHandlerFactoryMock) CreateRequestHandler(args requestHandlers.Re
 	if r.CreateRequestHandlerCalled != nil {
 		return r.CreateRequestHandlerCalled(args)
 	}
-	return nil, nil
+	return &testscommon.ExtendedShardHeaderRequestHandlerStub{}, nil
 }
 
 // IsInterfaceNil -

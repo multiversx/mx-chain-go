@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // ScheduledTxsExecutionFactoryMock -
@@ -15,7 +16,7 @@ func (s *ScheduledTxsExecutionFactoryMock) CreateScheduledTxsExecutionHandler(ar
 	if s.CreateScheduledTxsExecutionHandlerCalled != nil {
 		return s.CreateScheduledTxsExecutionHandlerCalled(args)
 	}
-	return nil, nil
+	return &testscommon.ScheduledTxsExecutionStub{}, nil
 }
 
 // IsInterfaceNil -

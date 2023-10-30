@@ -40,7 +40,7 @@ type RunTypeComponentsStub struct {
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:        &testFactory.BlockChainHookHandlerFactorySub{},
+		BlockChainHookHandlerFactory:        &testFactory.BlockChainHookHandlerFactoryMock{},
 		BlockProcessorFactory:               &testFactory.BlockProcessorFactoryMock{},
 		BlockTrackerFactory:                 &testFactory.BlockTrackerFactoryMock{},
 		BootstrapperFromStorageFactory:      &testFactory.BootstrapperFromStorageFactoryMock{},
@@ -50,10 +50,10 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		HeaderValidatorFactory:              &testFactory.HeaderValidatorFactoryMock{},
 		RequestHandlerFactory:               &testFactory.RequestHandlerFactoryMock{},
 		ScheduledTxsExecutionFactory:        &testFactory.ScheduledTxsExecutionFactoryMock{},
-		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryStub{},
+		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryMock{},
 		ValidatorStatisticsProcessorFactory: &testFactory.ValidatorStatisticsProcessorFactoryMock{},
-		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryStub{},
-		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryStub{},
+		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryMock{},
+		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryMock{},
 		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
 		ConsensusModelType:                  consensus.ConsensusModelV1,
 	}

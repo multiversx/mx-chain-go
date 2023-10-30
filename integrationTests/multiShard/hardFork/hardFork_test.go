@@ -489,8 +489,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig: &roundConfig,
-			RunType:     componentsMock.GetRunTypeComponents(),
+			RoundConfig:       &roundConfig,
+			RunTypeComponents: componentsMock.GetRunTypeComponents(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

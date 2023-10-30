@@ -185,16 +185,16 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.SmartContractParser) {
 		return genesis.ErrNilSmartContractParser
 	}
-	if check.IfNil(arg.RunType) {
+	if check.IfNil(arg.RunTypeComponents) {
 		return errors.ErrNilRunTypeComponents
 	}
-	if check.IfNil(arg.RunType.BlockChainHookHandlerCreator()) {
+	if check.IfNil(arg.RunTypeComponents.BlockChainHookHandlerCreator()) {
 		return errors.ErrNilBlockChainHookHandlerCreator
 	}
-	if check.IfNil(arg.RunType.SCResultsPreProcessorCreator()) {
+	if check.IfNil(arg.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return errors.ErrNilSCResultsPreProcessorCreator
 	}
-	if check.IfNil(arg.RunType.TransactionCoordinatorCreator()) {
+	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return errors.ErrNilTransactionCoordinatorCreator
 	}
 	if arg.TrieStorageManagers == nil {
@@ -454,7 +454,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHook, err := gbc.arg.RunType.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	blockChainHook, err := gbc.arg.RunTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return err
 	}

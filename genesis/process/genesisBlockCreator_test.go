@@ -189,7 +189,7 @@ func createMockArgument(
 				},
 			},
 		},
-		RunType: runType,
+		RunTypeComponents: runType,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -429,7 +429,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.RunType = nil
+		arg.RunTypeComponents = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilRunTypeComponents))
@@ -441,7 +441,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtComponents.BlockChainHookHandlerFactory = nil
-		arg.RunType = rtComponents
+		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilBlockChainHookHandlerCreator))
@@ -453,7 +453,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtComponents.SCResultsPreProcessorFactory = nil
-		arg.RunType = rtComponents
+		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilSCResultsPreProcessorCreator))
@@ -465,7 +465,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtComponents.TransactionCoordinatorFactory = nil
-		arg.RunType = rtComponents
+		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, mxErrors.ErrNilTransactionCoordinatorCreator))

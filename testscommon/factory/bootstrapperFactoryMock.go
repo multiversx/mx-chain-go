@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // BootstrapperFactoryMock -
@@ -15,7 +16,7 @@ func (b *BootstrapperFactoryMock) CreateBootstrapper(argsBaseBootstrapper sync.A
 	if b.CreateBootstrapperCalled != nil {
 		return b.CreateBootstrapperCalled(argsBaseBootstrapper)
 	}
-	return nil, nil
+	return &testscommon.BootstrapperMock{}, nil
 }
 
 // IsInterfaceNil -

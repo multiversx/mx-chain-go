@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 )
 
+// BootstrapperMock -
 type BootstrapperMock struct {
 	process.Bootstrapper
 }

@@ -56,7 +56,7 @@ type ArgsGenesisBlockCreator struct {
 	StartEpochNum        uint32
 	Data                 dataComponentsHandler
 	Core                 coreComponentsHandler
-	RunType              runTypeComponentsHandler
+	RunTypeComponents    runTypeComponentsHandler
 	Accounts             state.AccountsAdapter
 	ValidatorAccounts    state.AccountsAdapter
 	InitialNodesSetup    genesis.InitialNodesHandler

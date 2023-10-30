@@ -888,7 +888,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNodePrice:     genesisNodePrice,
 		RoundConfig:          &pcf.roundConfig,
 		EpochConfig:          &pcf.epochConfig,
-		RunType:              pcf.runTypeComponents,
+		RunTypeComponents:    pcf.runTypeComponents,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // BlockChainHookHandlerFactoryMock -
@@ -15,7 +16,7 @@ func (b *BlockChainHookHandlerFactoryMock) CreateBlockChainHookHandler(args hook
 	if b.CreateBlockChainHookHandlerCalled != nil {
 		return b.CreateBlockChainHookHandlerCalled(args)
 	}
-	return nil, nil
+	return &testscommon.BlockChainHookStub{}, nil
 }
 
 // IsInterfaceNil -

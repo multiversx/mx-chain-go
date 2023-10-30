@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // BlockTrackerFactoryMock -
@@ -15,7 +16,7 @@ func (b *BlockTrackerFactoryMock) CreateBlockTracker(args track.ArgShardTracker)
 	if b.CreateBlockTrackerCalled != nil {
 		return b.CreateBlockTrackerCalled(args)
 	}
-	return nil, nil
+	return &testscommon.BlockTrackerStub{}, nil
 }
 
 // IsInterfaceNil -
