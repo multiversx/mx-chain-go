@@ -104,6 +104,7 @@ type epochFlagsHolder struct {
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 	nftStopCreateFlag                           *atomic.Flag
 	changeOwnerAddressCrossShardThroughSCFlag   *atomic.Flag
+	dynamicESDTFlag                             *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -207,6 +208,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
 		nftStopCreateFlag:                           &atomic.Flag{},
 		changeOwnerAddressCrossShardThroughSCFlag:   &atomic.Flag{},
+		dynamicESDTFlag:                             &atomic.Flag{},
 	}
 }
 
@@ -756,4 +758,9 @@ func (holder *epochFlagsHolder) NFTStopCreateEnabled() bool {
 // IsChangeOwnerAddressCrossShardThroughSCEnabled return true if the changeOwnerAddressCrossShardThroughSCFlag is enabled
 func (holder *epochFlagsHolder) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
 	return holder.changeOwnerAddressCrossShardThroughSCFlag.IsSet()
+}
+
+// DynamicESDTEnabled return true if the dynamicESDTFlag is enabled
+func (holder *epochFlagsHolder) DynamicESDTEnabled() bool {
+	return holder.dynamicESDTFlag.IsSet()
 }

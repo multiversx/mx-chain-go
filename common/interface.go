@@ -397,6 +397,7 @@ type EnableEpochsHandler interface {
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 	NFTStopCreateEnabled() bool
 	IsChangeOwnerAddressCrossShardThroughSCEnabled() bool
+	DynamicESDTEnabled() bool
 
 	IsInterfaceNil() bool
 }

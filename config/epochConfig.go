@@ -107,6 +107,7 @@ type EnableEpochs struct {
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
 	NFTStopCreateEnableEpoch                          uint32
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch  uint32
+	DynamicESDTEnableEpoch                            uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

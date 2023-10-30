@@ -831,6 +831,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
     ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 90
 
+    # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
+    DynamicESDTEnableEpoch = 91
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -941,6 +944,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ScToScLogEventEnableEpoch:                         88,
 			NFTStopCreateEnableEpoch:                          89,
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:  90,
+			DynamicESDTEnableEpoch:                            91,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

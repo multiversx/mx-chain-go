@@ -132,6 +132,7 @@ func (handler *enableEpochsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DynamicGasCostForDataTrieStorageLoadEnableEpoch, handler.dynamicGasCostForDataTrieStorageLoadFlag, "dynamicGasCostForDataTrieStorageLoadFlag", epoch, handler.enableEpochsConfig.DynamicGasCostForDataTrieStorageLoadEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.NFTStopCreateEnableEpoch, handler.nftStopCreateFlag, "nftStopCreateFlag", epoch, handler.enableEpochsConfig.NFTStopCreateEnableEpoch)
 	handler.setFlagValue(epoch >= handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch, handler.changeOwnerAddressCrossShardThroughSCFlag, "changeOwnerAddressCrossShardThroughSCFlag", epoch, handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch)
+	handler.setFlagValue(epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch, handler.dynamicESDTFlag, "dynamicESDTFlag", epoch, handler.enableEpochsConfig.DynamicESDTEnableEpoch)
 }
 
 func (handler *enableEpochsHandler) setFlagValue(value bool, flag *atomic.Flag, flagName string, epoch uint32, flagEpoch uint32) {

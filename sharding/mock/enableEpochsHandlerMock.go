@@ -14,6 +14,11 @@ func (mock *EnableEpochsHandlerMock) IsChangeOwnerAddressCrossShardThroughSCEnab
 	return false
 }
 
+// DynamicESDTEnabled -
+func (mock *EnableEpochsHandlerMock) DynamicESDTEnabled() bool {
+	return false
+}
+
 // BlockGasAndFeesReCheckEnableEpoch returns 0
 func (mock *EnableEpochsHandlerMock) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return 0
