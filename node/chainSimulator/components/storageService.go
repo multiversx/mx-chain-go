@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"

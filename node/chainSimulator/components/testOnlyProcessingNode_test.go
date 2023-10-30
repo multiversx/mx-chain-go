@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	"testing"
@@ -11,15 +11,15 @@ import (
 )
 
 const (
-	pathTestData           = "./testdata/"
-	pathToConfigFolder     = "../../cmd/node/config/"
-	pathForMainConfig      = "../../cmd/node/config/config.toml"
-	pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
-	pathForGasSchedules    = "../../cmd/node/config/gasSchedules"
-	nodesSetupConfig       = "../../cmd/node/config/nodesSetup.json"
-	pathForPrefsConfig     = "../../cmd/node/config/prefs.toml"
-	validatorPemFile       = "../../cmd/node/config/testKeys/validatorKey.pem"
-	pathSystemSCConfig     = "../../cmd/node/config/systemSmartContractsConfig.toml"
+	pathTestData           = "../testdata/"
+	pathToConfigFolder     = "../../../cmd/node/config/"
+	pathForMainConfig      = "../../../cmd/node/config/config.toml"
+	pathForEconomicsConfig = "../../../cmd/node/config/economics.toml"
+	pathForGasSchedules    = "../../../cmd/node/config/gasSchedules"
+	nodesSetupConfig       = "../../../cmd/node/config/nodesSetup.json"
+	pathForPrefsConfig     = "../../../cmd/node/config/prefs.toml"
+	validatorPemFile       = "../../../cmd/node/config/testKeys/validatorKey.pem"
+	pathSystemSCConfig     = "../../../cmd/node/config/systemSmartContractsConfig.toml"
 )
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {

@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	disabledBootstrap "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"

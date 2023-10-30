@@ -1,6 +1,8 @@
-package chainSimulator
+package components
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -291,4 +293,52 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	}
 
 	return nil
+}
+
+func (node *testOnlyProcessingNode) ProcessBlock(nonce uint64, round uint64) error {
+	bp := node.ProcessComponentsHolder.BlockProcessor()
+	newHeader, err := node.prepareHeader(nonce, round)
+	if err != nil {
+		return err
+	}
+
+	header, block, err := bp.CreateBlock(newHeader, func() bool {
+		return true
+	})
+	if err != nil {
+		return err
+	}
+
+	err = bp.ProcessBlock(header, block, func() time.Duration {
+		return 1000
+	})
+	if err != nil {
+		return err
+	}
+
+	err = bp.CommitBlock(header, block)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (node *testOnlyProcessingNode) prepareHeader(nonce uint64, round uint64) (chainData.HeaderHandler, error) {
+	bp := node.ProcessComponentsHolder.BlockProcessor()
+	newHeader, err := bp.CreateNewHeader(round, nonce)
+	if err != nil {
+		return nil, err
+	}
+	err = newHeader.SetShardID(node.ShardCoordinator.SelfId())
+	if err != nil {
+		return nil, err
+	}
+
+	return newHeader, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (node *testOnlyProcessingNode) IsInterfaceNil() bool {
+	return node == nil
 }
