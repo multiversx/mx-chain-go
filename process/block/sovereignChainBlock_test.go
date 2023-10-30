@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // CreateSovereignChainShardTrackerMockArguments -
@@ -76,6 +78,38 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 		assert.Nil(t, scbp)
 		assert.ErrorIs(t, err, process.ErrNilValidatorStatistics)
+	})
+
+	t.Run("should error when outgoing operations formatter is nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  nil,
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+		})
+
+		assert.Nil(t, scbp)
+		assert.ErrorIs(t, err, errors.ErrNilOutgoingOperationsFormatter)
+	})
+
+	t.Run("should error when outgoing operation pool is nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			OutGoingOperationsPool:       nil,
+		})
+
+		require.Nil(t, scbp)
+		require.Equal(t, errors.ErrNilOutGoingOperationsPool, err)
 	})
 
 	t.Run("should error when type assertion to extendedShardHeaderTrackHandler fails", func(t *testing.T) {
