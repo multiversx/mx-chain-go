@@ -31,8 +31,8 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfInd
 		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingOperations := sovChainHeader.GetOutGoingOperationHashes()
-	if len(outGoingOperations) == 0 {
+	outGoingOperationHashes := sovChainHeader.GetOutGoingOperationHashes()
+	if len(outGoingOperationHashes) == 0 {
 		return make([]byte, 0), nil
 	}
 
@@ -41,14 +41,24 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfInd
 		return nil, err
 	}
 
-	// TODO: Right now we are only creating signature share for a single outgoing tx data.
-	// In the future we can change interface to support multiple sig shares storage by
-	// having an internal map[hashOutgoingOp]signingHandler
 	return sr.signingHandler.CreateSignatureShareForPublicKey(
-		sovChainHeader.GetOutGoingOperationHashes()[0],
+		sr.createOutGoingOperationsHash(outGoingOperationHashes),
 		selfIndex,
 		sr.Header.GetEpoch(),
 		[]byte(sr.SelfPubKey()))
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataSignature) createOutGoingOperationsHash(outGoingOperationHashes [][]byte) []byte {
+	if len(outGoingOperationHashes) == 1 {
+		return outGoingOperationHashes[0]
+	}
+
+	outGoingOperationsHash := make([]byte, 0)
+	for _, outGoingOpHash := range outGoingOperationHashes {
+		outGoingOperationsHash = append(outGoingOperationsHash, outGoingOpHash...)
+	}
+
+	return sr.Hasher().Compute(string(outGoingOperationsHash))
 }
 
 func (sr *sovereignSubRoundOutGoingTxDataSignature) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {

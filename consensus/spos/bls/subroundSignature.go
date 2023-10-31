@@ -279,6 +279,15 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
+	err = sr.storeExtraSignatureShare(uint16(index), cnsDta)
+	if err != nil {
+		log.Debug("receivedSignature.storeExtraSignatureShare",
+			"node", pkForLogs,
+			"index", index,
+			"error", err.Error())
+		return false
+	}
+
 	err = sr.SetJobDone(node, sr.Current(), true)
 	if err != nil {
 		log.Debug("receivedSignature.SetJobDone",
@@ -300,6 +309,20 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 
 	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
+}
+
+func (sr *subroundSignature) storeExtraSignatureShare(index uint16, cnsMsg *consensus.Message) error {
+	sr.mutExtraSigners.RLock()
+	defer sr.mutExtraSigners.RUnlock()
+
+	for _, extraSigner := range sr.extraSigners {
+		err := extraSigner.StoreSignatureShare(index, cnsMsg)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
