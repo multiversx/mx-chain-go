@@ -153,6 +153,8 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
+	// placeholder for .VerifyFinalBlockSignatures
+
 	return true
 }
 
@@ -405,6 +407,8 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
+	// placeholder for AggregateSignatures
+
 	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
@@ -580,6 +584,8 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		nil,
 		sr.getProcessedHeaderHash(),
 	)
+
+	// placeholder for AddAggregatedSignature
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {

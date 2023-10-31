@@ -12,6 +12,8 @@ import (
 
 type sovereignSubRoundOutGoingTxDataEnd struct {
 	*spos.Subround
+
+	signingHandler consensus.SigningHandler
 }
 
 func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyFinalBlockSignatures(cnsDta *consensus.Message) error {
@@ -29,4 +31,12 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyFinalBlockSignatures(cnsDta 
 	}
 
 	return nil
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataEnd) AggregateSignatures(bitmap []byte) ([]byte, error) {
+	return sr.signingHandler.AggregateSigs(bitmap, sr.Header.GetEpoch())
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataEnd) AddAggregatedSignature(aggregatedSig []byte, cnsMsg *consensus.Message) {
+	cnsMsg.AggregateSignature = aggregatedSig
 }
