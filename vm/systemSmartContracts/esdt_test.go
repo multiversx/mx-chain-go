@@ -4450,3 +4450,50 @@ func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
+
+func TestEsdt_UpdateTokenType(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	eei := createDefaultEei()
+	args.Eei = eei
+
+	owner := bytes.Repeat([]byte{1}, 32)
+	tokenName := []byte("TOKEN-ABABAB")
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:          tokenName,
+		OwnerAddress:       owner,
+		CanPause:           true,
+		IsPaused:           true,
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stopNFTCreate", [][]byte{tokenName})
+	vmInput.CallerAddr = owner
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	enableEpochsHandler.IsNFTStopCreateEnabledField = true
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot add NFT create role as NFT creation was stopped"))
+
+	enableEpochsHandler.IsNFTStopCreateEnabledField = false
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
