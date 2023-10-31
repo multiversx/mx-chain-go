@@ -38,7 +38,6 @@ const guardAccountGas = uint64(250000)
 const unGuardAccountGas = uint64(250000)
 const setGuardianGas = uint64(250000)
 const transferGas = uint64(1000)
-const minGasLimit = uint64(1)
 
 var (
 	alice        = []byte("alice-12345678901234567890123456")

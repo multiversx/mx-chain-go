@@ -17,6 +17,7 @@ import (
 )
 
 const gasPrice = uint64(10)
+const minGasLimit = uint64(1)
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
