@@ -623,6 +623,31 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	return nil
 }
 
+// RemoveCodeLeaf will remove code leaf node from main trie
+func (adb *AccountsDB) RemoveCodeLeaf(codeHash []byte) error {
+	val, _, err := adb.mainTrie.Get(codeHash)
+	if err != nil {
+		return err
+	}
+	if val == nil {
+		return nil
+	}
+
+	// check if node is code leaf
+	var codeEntry CodeEntry
+	err = adb.marshaller.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return err
+	}
+
+	err = adb.mainTrie.Delete(codeHash)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
 func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
 	if len(address) == 0 {
