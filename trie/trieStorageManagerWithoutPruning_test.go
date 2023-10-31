@@ -1,10 +1,10 @@
 package trie_test
 
 import (
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
