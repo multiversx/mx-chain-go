@@ -151,14 +151,13 @@ func checkPlayerBalancesWithPenalization(
 }
 
 func appendFeeToTotalFees(relayerTx, userTx *transaction.Transaction, economicsData process.EconomicsDataHandler, totalFees *big.Int) {
-	if len(userTx.Data) == 0 { // move balance
-		relayerFee := economicsData.ComputeMoveBalanceFee(relayerTx)
-		totalFees.Add(totalFees, relayerFee)
+	relayerFee := economicsData.ComputeMoveBalanceFee(relayerTx)
+	totalFees.Add(totalFees, relayerFee)
 
-		userFee := economicsData.ComputeTxFee(userTx)
-		totalFees.Add(totalFees, userFee)
-	} else {
-		totalFee := economicsData.ComputeTxFee(relayerTx)
-		totalFees.Add(totalFees, totalFee)
+	userTxCopy := *userTx
+	if userTxCopy.GasLimit == 0 { // relayed v2
+		userTxCopy.GasLimit = relayerTx.GasLimit - economicsData.ComputeGasLimit(relayerTx)
 	}
+	userFee := economicsData.ComputeTxFee(&userTxCopy)
+	totalFees.Add(totalFees, userFee)
 }

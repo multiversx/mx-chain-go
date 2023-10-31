@@ -292,14 +292,13 @@ func GetUserAccount(
 }
 
 func subFeesFromRelayer(tx, userTx *transaction.Transaction, economicsFee process.FeeHandler, relayer *integrationTests.TestWalletAccount) {
-	if len(userTx.Data) == 0 { // move balance
-		relayerFee := economicsFee.ComputeMoveBalanceFee(tx)
-		relayer.Balance.Sub(relayer.Balance, relayerFee)
+	relayerFee := economicsFee.ComputeMoveBalanceFee(tx)
+	relayer.Balance.Sub(relayer.Balance, relayerFee)
 
-		userFee := economicsFee.ComputeTxFee(userTx)
-		relayer.Balance.Sub(relayer.Balance, userFee)
-	} else {
-		totalFee := economicsFee.ComputeTxFee(tx)
-		relayer.Balance.Sub(relayer.Balance, totalFee)
+	userTxCopy := *userTx
+	if userTxCopy.GasLimit == 0 { // relayed v2
+		userTxCopy.GasLimit = tx.GasLimit - economicsFee.ComputeGasLimit(tx)
 	}
+	userFee := economicsFee.ComputeTxFee(&userTxCopy)
+	relayer.Balance.Sub(relayer.Balance, userFee)
 }

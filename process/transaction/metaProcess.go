@@ -118,8 +118,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		txProc.pubkeyConv,
 	)
 
-	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
-	err = txProc.checkTxValues(tx, acntSnd, acntDst, false, dstShardTxType)
+	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
 			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
@@ -130,6 +129,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		}
 		return 0, err
 	}
+
+	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
 
 	switch txType {
 	case process.SCDeployment:

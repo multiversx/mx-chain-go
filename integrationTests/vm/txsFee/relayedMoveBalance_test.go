@@ -38,7 +38,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit := gasLimit + 1 + uint64(len(rtxData))
+	rTxGasLimit := gasLimit + minGasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -111,7 +111,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
 	retcode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -146,7 +146,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(3000))
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit := 1 + userTx.GasLimit + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + userTx.GasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, 1, rTxGasLimit, rtxData)
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -331,7 +331,7 @@ func executeRelayedTransaction(
 ) {
 	testContext.TxsLogsProcessor.Clean()
 	relayerAccount := getAccount(tb, testContext, relayerAddress)
-	gasLimit := 1 + userTx.GasLimit + uint64(len(userTxPrepared))
+	gasLimit := minGasLimit + userTx.GasLimit + uint64(len(userTxPrepared))
 
 	relayedTx := vm.CreateTransaction(relayerAccount.GetNonce(), value, relayerAddress, senderAddress, 1, gasLimit, userTxPrepared)
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(relayedTx)

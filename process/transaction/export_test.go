@@ -20,8 +20,8 @@ func (txProc *txProcessor) GetAccounts(adrSrc, adrDst []byte,
 }
 
 // CheckTxValues calls the un-exported method checkTxValues
-func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler, isUserTxOfRelayed bool, destTxType process.TransactionType) error {
-	return txProc.checkTxValues(tx, acntSnd, acntDst, isUserTxOfRelayed, destTxType)
+func (txProc *txProcessor) CheckTxValues(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler, isUserTxOfRelayed bool) error {
+	return txProc.checkTxValues(tx, acntSnd, acntDst, isUserTxOfRelayed)
 }
 
 // IncreaseNonce calls IncreaseNonce on the provided account

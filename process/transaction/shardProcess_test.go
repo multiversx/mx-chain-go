@@ -482,7 +482,7 @@ func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 
 	acnt1.IncreaseNonce(6)
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil, false, process.InvalidTransaction)
+	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 7}, acnt1, nil, false)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -496,7 +496,7 @@ func TestTxProcessor_CheckTxValuesLowerNonceShouldErr(t *testing.T) {
 
 	acnt1.IncreaseNonce(6)
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil, false, process.InvalidTransaction)
+	err := execTx.CheckTxValues(&transaction.Transaction{Nonce: 5}, acnt1, nil, false)
 	assert.Equal(t, process.ErrLowerNonceInTransaction, err)
 }
 
@@ -510,7 +510,7 @@ func TestTxProcessor_CheckTxValuesInsufficientFundsShouldErr(t *testing.T) {
 
 	_ = acnt1.AddToBalance(big.NewInt(67))
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil, false, process.InvalidTransaction)
+	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(68)}, acnt1, nil, false)
 	assert.Equal(t, process.ErrInsufficientFunds, err)
 }
 
@@ -530,7 +530,7 @@ func TestTxProcessor_CheckTxValuesMismatchedSenderUsernamesShouldErr(t *testing.
 		SndUserName: []byte("notCorrect"),
 	}
 
-	err := execTx.CheckTxValues(tx, senderAcc, nil, false, process.InvalidTransaction)
+	err := execTx.CheckTxValues(tx, senderAcc, nil, false)
 	assert.Equal(t, process.ErrUserNameDoesNotMatch, err)
 }
 
@@ -550,7 +550,7 @@ func TestTxProcessor_CheckTxValuesMismatchedReceiverUsernamesShouldErr(t *testin
 		RcvUserName: []byte("notCorrect"),
 	}
 
-	err := execTx.CheckTxValues(tx, nil, receiverAcc, false, process.InvalidTransaction)
+	err := execTx.CheckTxValues(tx, nil, receiverAcc, false)
 	assert.Equal(t, process.ErrUserNameDoesNotMatchInCrossShardTx, err)
 }
 
@@ -575,7 +575,7 @@ func TestTxProcessor_CheckTxValuesCorrectUserNamesShouldWork(t *testing.T) {
 		RcvUserName: recvAcc.GetUserName(),
 	}
 
-	err := execTx.CheckTxValues(tx, senderAcc, recvAcc, false, process.InvalidTransaction)
+	err := execTx.CheckTxValues(tx, senderAcc, recvAcc, false)
 	assert.Nil(t, err)
 }
 
@@ -589,7 +589,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 
 	_ = acnt1.AddToBalance(big.NewInt(67))
 
-	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil, false, process.MoveBalance)
+	err := execTx.CheckTxValues(&transaction.Transaction{Value: big.NewInt(67)}, acnt1, nil, false)
 	assert.Nil(t, err)
 }
 
@@ -1472,6 +1472,9 @@ func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	gasPerByte := uint64(1)
 	args := createArgsForTxProcessor()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsPenalizedTooMuchGasFlagEnabledField: true,
+	}
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
@@ -2857,11 +2860,11 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
-			return big.NewInt(1)
-		},
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(150)
+		},
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(1)
 		},
 	}
 	args.TxFeeHandler = &mock.FeeAccumulatorStub{
@@ -2884,7 +2887,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 
 	err := execTx.ProcessMoveBalanceCostRelayedUserTx(userTx, &smartContractResult.SmartContractResult{}, acntSrc, originalTxHash)
 	assert.Nil(t, err)
-	assert.Equal(t, acntSrc.GetBalance(), big.NewInt(99))
+	assert.Equal(t, big.NewInt(99), acntSrc.GetBalance())
 }
 
 func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {

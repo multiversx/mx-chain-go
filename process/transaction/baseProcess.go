@@ -117,7 +117,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
-	txType process.TransactionType,
 ) error {
 	err := txProc.verifyGuardian(tx, acntSnd)
 	if err != nil {
@@ -146,9 +145,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
 			return process.ErrNotEnoughGasInUserTx
 		}
-		shouldConsiderMoveBalanceFee := txType == process.MoveBalance &&
-			txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled()
-		if shouldConsiderMoveBalanceFee {
+		if txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled() {
 			txFee = txProc.economicsFee.ComputeTxFee(tx)
 		} else {
 			txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
@@ -224,7 +221,7 @@ func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) er
 		return err
 	}
 
-	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false, process.MoveBalance)
+	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
 // Setting a guardian is allowed with regular transactions on a guarded account
