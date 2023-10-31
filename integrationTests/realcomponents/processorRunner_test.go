@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewProcessorRunnerAndClose(t *testing.T) {
@@ -11,7 +12,9 @@ func TestNewProcessorRunnerAndClose(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cfg := testscommon.CreateTestConfigs(t, "../../cmd/node/config")
+	cfg, err := testscommon.CreateTestConfigs("../../cmd/node/config")
+	require.Nil(t, err)
+
 	pr := NewProcessorRunner(t, *cfg)
 	pr.Close(t)
 }

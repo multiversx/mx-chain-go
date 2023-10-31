@@ -21,6 +21,7 @@ type ArgsCryptoComponentsHolder struct {
 	Preferences             config.Preferences
 	CoreComponentsHolder    factory.CoreComponentsHolder
 	ValidatorKeyPemFileName string
+	SkKeyIndex              int
 }
 
 type cryptoComponentsHolder struct {
@@ -57,11 +58,10 @@ func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.Cryp
 		ActivateBLSPubKeyMessageVerification: true,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-
-		P2pKeyPemFileName:           "",
-		ValidatorKeyPemFileName:     args.ValidatorKeyPemFileName,
-		AllValidatorKeysPemFileName: "",
-		SkIndex:                     0,
+		P2pKeyPemFileName:                    "",
+		ValidatorKeyPemFileName:              args.ValidatorKeyPemFileName,
+		AllValidatorKeysPemFileName:          "",
+		SkIndex:                              args.SkKeyIndex,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

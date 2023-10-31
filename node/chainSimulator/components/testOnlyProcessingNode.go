@@ -35,12 +35,12 @@ type ArgsTestOnlyProcessingNode struct {
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
-	GasScheduleFilename    string
-	ValidatorPemFile       string
-	WorkingDir             string
-	NodesSetupPath         string
-	NumShards              uint32
-	ShardID                uint32
+
+	GasScheduleFilename string
+
+	NumShards  uint32
+	ShardID    uint32
+	SkKeyIndex int
 }
 
 type testOnlyProcessingNode struct {
@@ -83,9 +83,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EconomicsConfig:     args.EconomicsConfig,
 		ChanStopNodeProcess: args.ChanStopNodeProcess,
 		NumShards:           args.NumShards,
-		WorkingDir:          args.WorkingDir,
+		WorkingDir:          args.ContextFlagsConfig.WorkingDir,
 		GasScheduleFilename: args.GasScheduleFilename,
-		NodesSetupPath:      args.NodesSetupPath,
+		NodesSetupPath:      args.ConfigurationPathsHolder.Nodes,
 	})
 	if err != nil {
 		return nil, err
@@ -120,7 +120,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EnableEpochsConfig:      args.EpochConfig.EnableEpochs,
 		Preferences:             args.PreferencesConfig,
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
-		ValidatorKeyPemFileName: args.ValidatorPemFile,
+		ValidatorKeyPemFileName: args.ConfigurationPathsHolder.ValidatorKey,
+		SkKeyIndex:              args.SkKeyIndex,
 	})
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CryptoComponents:     instance.CryptoComponentsHolder,
 		NetworkComponents:    instance.NetworkComponentsHolder,
 		StatusCoreComponents: instance.StatusCoreComponents,
-		WorkingDir:           args.WorkingDir,
+		WorkingDir:           args.ContextFlagsConfig.WorkingDir,
 		FlagsConfig:          args.ContextFlagsConfig,
 		ImportDBConfig:       args.ImportDBConfig,
 		PrefsConfig:          args.PreferencesConfig,

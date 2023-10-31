@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"os"
 	"path"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -30,23 +32,30 @@ type ArgsChainSimulatorConfigs struct {
 }
 
 type ArgsConfigsSimulator struct {
+	GasScheduleFilename   string
 	Configs               *config.Configs
 	ValidatorsPrivateKeys []crypto.PrivateKey
 }
 
-func CreateChainSimulatorConfigs(tb testing.TB, args ArgsChainSimulatorConfigs) ArgsConfigsSimulator {
-	configs := testscommon.CreateTestConfigs(tb, args.OriginalConfigsPath)
+func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSimulator, error) {
+	configs, err := testscommon.CreateTestConfigs(args.OriginalConfigsPath)
+	if err != nil {
+		return nil, err
+	}
 
 	// empty genesis smart contracts file
-	modifyFile(tb, configs.ConfigurationPathsHolder.SmartContracts, func(intput []byte) []byte {
-		return []byte("[]")
+	err = modifyFile(configs.ConfigurationPathsHolder.SmartContracts, func(intput []byte) ([]byte, error) {
+		return []byte("[]"), nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	// generate validatos key and nodesSetup.json
-	privateKeys, publicKeys := generateValidatorsKeyAndUpdateFiles(tb, configs, args.NumOfShards, args.GenesisAddressWithStake)
+	privateKeys, publicKeys := generateValidatorsKeyAndUpdateFiles(nil, configs, args.NumOfShards, args.GenesisAddressWithStake)
 
 	// update genesis.json
-	modifyFile(tb, configs.ConfigurationPathsHolder.Genesis, func(i []byte) []byte {
+	err = modifyFile(configs.ConfigurationPathsHolder.Genesis, func(i []byte) ([]byte, error) {
 		addresses := make([]data.InitialAccount, 0)
 
 		// 10_000 egld
@@ -64,20 +73,34 @@ func CreateChainSimulatorConfigs(tb testing.TB, args ArgsChainSimulatorConfigs) 
 			Supply:  bigValueAddr,
 		})
 
-		addressesBytes, err := json.Marshal(addresses)
-		require.Nil(tb, err)
+		addressesBytes, errM := json.Marshal(addresses)
+		if errM != nil {
+			return nil, errM
+		}
 
-		return addressesBytes
+		return addressesBytes, nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	// generate validators.pem
 	configs.ConfigurationPathsHolder.ValidatorKey = path.Join(args.OriginalConfigsPath, "validatorKey.pem")
-	generateValidatorsPem(tb, configs.ConfigurationPathsHolder.ValidatorKey, publicKeys, privateKeys)
+	err = generateValidatorsPem(configs.ConfigurationPathsHolder.ValidatorKey, publicKeys, privateKeys)
+	if err != nil {
+		return nil, err
+	}
 
-	return ArgsConfigsSimulator{
+	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ArgsConfigsSimulator{
 		Configs:               configs,
 		ValidatorsPrivateKeys: privateKeys,
-	}
+		GasScheduleFilename:   gasScheduleName,
+	}, nil
 }
 
 func generateValidatorsKeyAndUpdateFiles(tb testing.TB, configs *config.Configs, numOfShards uint32, address string) ([]crypto.PrivateKey, []crypto.PublicKey) {
@@ -119,20 +142,28 @@ func generateValidatorsKeyAndUpdateFiles(tb testing.TB, configs *config.Configs,
 	return privateKeys, publicKeys
 }
 
-func generateValidatorsPem(tb testing.TB, validatorsFile string, publicKeys []crypto.PublicKey, privateKey []crypto.PrivateKey) {
+func generateValidatorsPem(validatorsFile string, publicKeys []crypto.PublicKey, privateKey []crypto.PrivateKey) error {
 	validatorPubKeyConverter, err := pubkeyConverter.NewHexPubkeyConverter(96)
-	require.Nil(tb, err)
+	if err != nil {
+		return err
+	}
 
 	buff := bytes.Buffer{}
 	for idx := 0; idx < len(publicKeys); idx++ {
 		publicKeyBytes, errA := publicKeys[idx].ToByteArray()
-		require.Nil(tb, errA)
+		if errA != nil {
+			return errA
+		}
 
 		pkString, errE := validatorPubKeyConverter.Encode(publicKeyBytes)
-		require.Nil(tb, errE)
+		if errE != nil {
+			return errE
+		}
 
 		privateKeyBytes, errP := privateKey[idx].ToByteArray()
-		require.Nil(tb, errP)
+		if errP != nil {
+			return errP
+		}
 
 		blk := pem.Block{
 			Type:  "PRIVATE KEY for " + pkString,
@@ -140,22 +171,65 @@ func generateValidatorsPem(tb testing.TB, validatorsFile string, publicKeys []cr
 		}
 
 		err = pem.Encode(&buff, &blk)
-		require.Nil(tb, errE)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = os.WriteFile(validatorsFile, buff.Bytes(), 0644)
-	require.Nil(tb, err)
+	return os.WriteFile(validatorsFile, buff.Bytes(), 0644)
 }
 
-func modifyFile(tb testing.TB, fileName string, f func(i []byte) []byte) {
+func modifyFile(fileName string, f func(i []byte) ([]byte, error)) error {
 	input, err := os.ReadFile(fileName)
-	require.Nil(tb, err)
+	if err != nil {
+		return err
+	}
 
 	output := input
 	if f != nil {
-		output = f(input)
+		output, err = f(input)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = os.WriteFile(fileName, output, 0644)
-	require.Nil(tb, err)
+	return os.WriteFile(fileName, output, 0644)
+}
+
+// GetLatestGasScheduleFilename will parse the provided path and get the latest gas schedule filename
+func GetLatestGasScheduleFilename(directory string) (string, error) {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return "", err
+	}
+
+	extension := ".toml"
+	versionMarker := "V"
+
+	highestVersion := 0
+	filename := ""
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		splt := strings.Split(name, versionMarker)
+		if len(splt) != 2 {
+			continue
+		}
+
+		versionAsString := splt[1][:len(splt[1])-len(extension)]
+		number, errConversion := strconv.Atoi(versionAsString)
+		if errConversion != nil {
+			continue
+		}
+
+		if number > highestVersion {
+			highestVersion = number
+			filename = name
+		}
+	}
+
+	return path.Join(directory, filename), nil
 }

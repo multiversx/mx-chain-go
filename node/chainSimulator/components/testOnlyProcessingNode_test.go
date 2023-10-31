@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +32,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	err = LoadConfigFromFile(pathForEconomicsConfig, &economicsConfig)
 	assert.Nil(t, err)
 
-	gasScheduleName, err := GetLatestGasScheduleFilename(pathForGasSchedules)
+	gasScheduleName, err := configs.GetLatestGasScheduleFilename(pathForGasSchedules)
 	assert.Nil(t, err)
 
 	prefsConfig := config.Preferences{}
@@ -50,7 +51,6 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 
 	return ArgsTestOnlyProcessingNode{
 		Config:      mainConfig,
-		WorkingDir:  workingDir,
 		EpochConfig: epochConfig,
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
@@ -61,10 +61,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		},
 		EconomicsConfig:        economicsConfig,
 		GasScheduleFilename:    gasScheduleName,
-		NodesSetupPath:         nodesSetupConfig,
 		NumShards:              3,
 		ShardID:                0,
-		ValidatorPemFile:       validatorPemFile,
 		PreferencesConfig:      prefsConfig,
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
 		ImportDBConfig:         config.ImportDbConfig{},
@@ -76,6 +74,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 			GasScheduleDirectoryName: pathToConfigFolder + "gasSchedules",
 			Genesis:                  pathToConfigFolder + "genesis.json",
 			SmartContracts:           pathTestData + "genesisSmartContracts.json",
+			Nodes:                    nodesSetupConfig,
+			ValidatorKey:             validatorPemFile,
 		},
 		SystemSCConfig:      systemSCConfig,
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
