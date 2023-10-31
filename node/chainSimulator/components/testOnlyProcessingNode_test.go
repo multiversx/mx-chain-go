@@ -122,6 +122,9 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
 		assert.Nil(t, err)
 
+		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
+		assert.Nil(t, err)
+
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
 			return true
 		})
