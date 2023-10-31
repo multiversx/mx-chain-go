@@ -14,7 +14,7 @@ type journalEntryCode struct {
 	oldCodeEntry *CodeEntry
 	oldCodeHash  []byte
 	newCodeHash  []byte
-	updater      Updater
+	trie         Updater
 	marshalizer  marshal.Marshalizer
 }
 
@@ -23,10 +23,10 @@ func NewJournalEntryCode(
 	oldCodeEntry *CodeEntry,
 	oldCodeHash []byte,
 	newCodeHash []byte,
-	updater Updater,
+	trie Updater,
 	marshalizer marshal.Marshalizer,
 ) (*journalEntryCode, error) {
-	if check.IfNil(updater) {
+	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
 	}
 	if check.IfNil(marshalizer) {
@@ -37,7 +37,7 @@ func NewJournalEntryCode(
 		oldCodeEntry: oldCodeEntry,
 		oldCodeHash:  oldCodeHash,
 		newCodeHash:  newCodeHash,
-		updater:      updater,
+		trie:         trie,
 		marshalizer:  marshalizer,
 	}, nil
 }
@@ -66,7 +66,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.updater, jea.marshalizer)
+	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -75,12 +75,26 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
-	// if old code entry is nil do not remove new entry
-	if len(jea.oldCodeHash) == 0 {
+	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
+	if err != nil {
+		return err
+	}
+
+	if newCodeEntry == nil {
 		return nil
 	}
 
-	err := jea.updater.Remove(jea.newCodeHash)
+	if newCodeEntry.NumReferences <= 1 {
+		err = jea.trie.Update(jea.newCodeHash, nil)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	newCodeEntry.NumReferences--
+	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -122,11 +136,11 @@ func (jea *journalEntryAccount) IsInterfaceNil() bool {
 // JournalEntryAccountCreation represents a journal entry for account creation
 type journalEntryAccountCreation struct {
 	address []byte
-	updater TrieUpdater
+	updater Updater
 }
 
 // NewJournalEntryAccountCreation creates a new instance of JournalEntryAccountCreation
-func NewJournalEntryAccountCreation(address []byte, updater TrieUpdater) (*journalEntryAccountCreation, error) {
+func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEntryAccountCreation, error) {
 	if check.IfNil(updater) {
 		return nil, ErrNilUpdater
 	}

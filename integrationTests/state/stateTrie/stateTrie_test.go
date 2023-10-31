@@ -2037,6 +2037,8 @@ func checkCodeConsistency(
 			var codeEntry state.CodeEntry
 			err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, val)
 			require.Nil(t, err)
+
+			require.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
 		}
 	}
 }
