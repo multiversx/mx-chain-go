@@ -870,21 +870,18 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 func (scbp *sovereignChainBlockProcessor) setOutGoingOperation(headerHandler data.HeaderHandler) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
 	outGoingOp := scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
+	outGoingOp = []byte("bridgeOps@1234@rcv1@token1@val1")
 	if len(outGoingOp) == 0 {
 		return nil
 	}
 
-	hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingOp)
-	if err != nil {
-		return err
-	}
-
-	sovereignChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
+	hash := scbp.hasher.Compute(string(outGoingOp))
+	sovereignChainHdr, ok := headerHandler.(data.SovereignChainHeaderHandler)
 	if !ok {
 		return fmt.Errorf("%w in sovereignChainBlockProcessor.setOutGoingOperation", process.ErrWrongTypeAssertion)
 	}
 
-	err = sovereignChainHeader.SetOutGoingOperationHashes([][]byte{hash})
+	err := sovereignChainHdr.SetOutGoingOperationHashes([][]byte{hash})
 	if err != nil {
 		return err
 	}

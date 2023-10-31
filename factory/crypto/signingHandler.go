@@ -342,7 +342,7 @@ func (sh *signingHandler) ShallowClone() consensus.SigningHandler {
 	return &signingHandler{
 		data: &signatureHolderData{
 			pubKeys:   sh.data.pubKeys,
-			sigShares: make([][]byte, 0),
+			sigShares: make([][]byte, len(sh.data.pubKeys)),
 			aggSig:    make([]byte, 0),
 		},
 		mutSigningData:       sync.RWMutex{},
