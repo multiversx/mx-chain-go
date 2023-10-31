@@ -661,3 +661,6 @@ var ErrNilOutgoingOperationsFormatter = errors.New("nil outgoing operations form
 
 // ErrNilOutGoingOperationsPool signals that a nil outgoing operations pool has been provided
 var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has been provided")
+
+// ErrNilExtraSubRoundSigner signals that a nil extra subround signer has been provided
+var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been provided")

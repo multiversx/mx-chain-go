@@ -16,8 +16,8 @@ type sovereignSubRoundOutGoingTxDataSignature struct {
 }
 
 func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfIndex uint16) ([]byte, error) {
-	sovChainHeader, castOK := sr.Header.(data.SovereignChainHeaderHandler)
-	if !castOK {
+	sovChainHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+	if !castOk {
 		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
@@ -38,4 +38,12 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) AddSigShareToConsensusMessag
 
 func (sr *sovereignSubRoundOutGoingTxDataSignature) StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error {
 	return sr.signingHandler.StoreSignatureShare(index, cnsMsg.SignatureShareOutGoingTxData)
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataSignature) Identifier() string {
+	return "sovereignSubRoundOutGoingTxDataSignature"
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataSignature) IsInterfaceNil() bool {
+	return sr == nil
 }
