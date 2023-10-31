@@ -3228,6 +3228,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 	}
 }
 
+// GetDefaultRunTypeComponents -
 func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
 	rt := components.GetRunTypeComponents()
 	return &mainFactoryMocks.RunTypeComponentsStub{
@@ -3565,7 +3566,7 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 
 // CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
 func CreateBlockChainHook(chainRunType common.ChainRunType, args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
-	factory, err := hooks.NewBlockChainHookFactory()
+	blockChainHookFactory, err := hooks.NewBlockChainHookFactory()
 	if err != nil {
 		return nil, err
 	}
@@ -3574,9 +3575,9 @@ func CreateBlockChainHook(chainRunType common.ChainRunType, args hooks.ArgBlockC
 
 	switch chainRunType {
 	case common.ChainRunTypeRegular:
-		bhhc = factory
+		bhhc = blockChainHookFactory
 	case common.ChainRunTypeSovereign:
-		sovereignFactory, sovErr := hooks.NewSovereignBlockChainHookFactory(factory)
+		sovereignFactory, sovErr := hooks.NewSovereignBlockChainHookFactory(blockChainHookFactory)
 		if sovErr != nil {
 			return nil, sovErr
 		}

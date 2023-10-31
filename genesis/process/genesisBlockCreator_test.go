@@ -278,7 +278,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.Accounts = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
+		require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil Core should error", func(t *testing.T) {
@@ -288,7 +288,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.Core = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilCoreComponentsHolder))
+		require.ErrorIs(t, err, process.ErrNilCoreComponentsHolder)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil Data should error", func(t *testing.T) {
@@ -298,7 +298,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.Data = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilDataComponentsHolder))
+		require.ErrorIs(t, err, process.ErrNilDataComponentsHolder)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil AddressPubKeyConverter should error", func(t *testing.T) {
@@ -310,7 +310,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilPubkeyConverter))
+		require.ErrorIs(t, err, process.ErrNilPubkeyConverter)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil InitialNodesSetup should error", func(t *testing.T) {
@@ -320,7 +320,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.InitialNodesSetup = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilNodesSetup))
+		require.ErrorIs(t, err, process.ErrNilNodesSetup)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil Economics should error", func(t *testing.T) {
@@ -330,7 +330,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.Economics = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilEconomicsData))
+		require.ErrorIs(t, err, process.ErrNilEconomicsData)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil ShardCoordinator should error", func(t *testing.T) {
@@ -340,7 +340,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.ShardCoordinator = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilShardCoordinator))
+		require.ErrorIs(t, err, process.ErrNilShardCoordinator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil StorageService should error", func(t *testing.T) {
@@ -352,7 +352,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilStore))
+		require.ErrorIs(t, err, process.ErrNilStore)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil InternalMarshalizer should error", func(t *testing.T) {
@@ -365,7 +365,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilMarshalizer))
+		require.ErrorIs(t, err, process.ErrNilMarshalizer)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil Hasher should error", func(t *testing.T) {
@@ -379,7 +379,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilHasher))
+		require.ErrorIs(t, err, process.ErrNilHasher)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil DataPool should error", func(t *testing.T) {
@@ -392,7 +392,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilPoolsHolder))
+		require.ErrorIs(t, err, process.ErrNilPoolsHolder)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil AccountsParser should error", func(t *testing.T) {
@@ -402,7 +402,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.AccountsParser = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, genesis.ErrNilAccountsParser))
+		require.ErrorIs(t, err, genesis.ErrNilAccountsParser)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil GasSchedule should error", func(t *testing.T) {
@@ -412,7 +412,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.GasSchedule = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, process.ErrNilGasSchedule))
+		require.ErrorIs(t, err, process.ErrNilGasSchedule)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil SmartContractParser should error", func(t *testing.T) {
@@ -422,7 +422,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.SmartContractParser = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, genesis.ErrNilSmartContractParser))
+		require.ErrorIs(t, err, genesis.ErrNilSmartContractParser)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
@@ -432,7 +432,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, mxErrors.ErrNilRunTypeComponents))
+		require.ErrorIs(t, err, mxErrors.ErrNilRunTypeComponents)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil BlockchainHookHandlerCreator should error", func(t *testing.T) {
@@ -444,7 +444,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, mxErrors.ErrNilBlockChainHookHandlerCreator))
+		require.ErrorIs(t, err, mxErrors.ErrNilBlockChainHookHandlerCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil SCResultsPreProcessorCreator should error", func(t *testing.T) {
@@ -456,7 +456,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, mxErrors.ErrNilSCResultsPreProcessorCreator))
+		require.ErrorIs(t, err, mxErrors.ErrNilSCResultsPreProcessorCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TransactionCoordinatorCreator should error", func(t *testing.T) {
@@ -468,7 +468,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, mxErrors.ErrNilTransactionCoordinatorCreator))
+		require.ErrorIs(t, err, mxErrors.ErrNilTransactionCoordinatorCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {
@@ -478,7 +478,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.TrieStorageManagers = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, genesis.ErrNilTrieStorageManager))
+		require.ErrorIs(t, err, genesis.ErrNilTrieStorageManager)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil EpochConfig should error", func(t *testing.T) {
@@ -488,7 +488,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.EpochConfig = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, genesis.ErrNilEpochConfig))
+		require.ErrorIs(t, err, genesis.ErrNilEpochConfig)
 		require.Nil(t, gbc)
 	})
 	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {
@@ -498,7 +498,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.SystemSCConfig.StakingSystemSCConfig.GenesisNodePrice = "0"
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, genesis.ErrInvalidInitialNodePrice))
+		require.ErrorIs(t, err, genesis.ErrInvalidInitialNodePrice)
 		require.Nil(t, gbc)
 	})
 	t.Run("should work", func(t *testing.T) {

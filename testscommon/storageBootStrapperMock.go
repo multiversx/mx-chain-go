@@ -20,5 +20,5 @@ func (sbm *StorageBootstrapperMock) GetHighestBlockNonce() uint64 {
 
 // IsInterfaceNil -
 func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
-	return false
+	return sbm == nil
 }
