@@ -333,6 +333,26 @@ func convertStringsToPubKeysBytes(pubKeys []string) ([][]byte, error) {
 	return pk, nil
 }
 
+// ShallowClone returns a shallow clone of the current object
+func (sh *signingHandler) ShallowClone() consensus.SigningHandler {
+	if check.IfNil(sh) {
+		return nil
+	}
+
+	return &signingHandler{
+		data: &signatureHolderData{
+			pubKeys:   sh.data.pubKeys,
+			sigShares: make([][]byte, 0),
+			aggSig:    make([]byte, 0),
+		},
+		mutSigningData:       sync.RWMutex{},
+		multiSignerContainer: sh.multiSignerContainer,
+		singleSigner:         sh.singleSigner,
+		keyGen:               sh.keyGen,
+		keysHandler:          sh.keysHandler,
+	}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sh *signingHandler) IsInterfaceNil() bool {
 	return sh == nil

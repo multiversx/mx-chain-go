@@ -1,5 +1,7 @@
 package consensus
 
+import "github.com/multiversx/mx-chain-go/consensus"
+
 // SigningHandlerStub implements SigningHandler interface
 type SigningHandlerStub struct {
 	ResetCalled                            func(pubKeys []string) error
@@ -101,6 +103,10 @@ func (stub *SigningHandlerStub) Verify(msg []byte, bitmap []byte, epoch uint32) 
 		return stub.VerifyCalled(msg, bitmap, epoch)
 	}
 
+	return nil
+}
+
+func (stub *SigningHandlerStub) ShallowClone() consensus.SigningHandler {
 	return nil
 }
 

@@ -287,6 +287,19 @@ func (fct *factory) generateSignatureSubroundV2() error {
 		return errV2
 	}
 
+	extraSubRoundSigner, err := NewSovereignSubRoundOutGoingTxDataSignature(
+		subroundSignatureV2Instance.Subround,
+		subroundSignatureV2Instance.SigningHandler().ShallowClone(),
+	)
+	if err != nil {
+		return err
+	}
+
+	err = subroundSignatureV2Instance.RegisterExtraSubRoundSigner(extraSubRoundSigner)
+	if err != nil {
+		return err
+	}
+
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureV2Instance.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignatureV2Instance)
 

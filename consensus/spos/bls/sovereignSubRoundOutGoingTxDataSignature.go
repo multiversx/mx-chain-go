@@ -15,6 +15,16 @@ type sovereignSubRoundOutGoingTxDataSignature struct {
 	signingHandler consensus.SigningHandler
 }
 
+func NewSovereignSubRoundOutGoingTxDataSignature(
+	subRound *spos.Subround,
+	signingHandler consensus.SigningHandler,
+) (*sovereignSubRoundOutGoingTxDataSignature, error) {
+	return &sovereignSubRoundOutGoingTxDataSignature{
+		Subround:       subRound,
+		signingHandler: signingHandler,
+	}, nil
+}
+
 func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfIndex uint16) ([]byte, error) {
 	sovChainHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
 	if !castOk {

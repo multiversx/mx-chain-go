@@ -177,6 +177,7 @@ type SigningHandler interface {
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	ShallowClone() SigningHandler
 	IsInterfaceNil() bool
 }
 
