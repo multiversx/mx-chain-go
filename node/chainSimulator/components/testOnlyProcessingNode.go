@@ -1,8 +1,6 @@
 package components
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -296,9 +294,36 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
-func (node *testOnlyProcessingNode) ProcessBlock(nonce uint64, round uint64) error {
+func (node *testOnlyProcessingNode) ProcessBlock() error {
 	bp := node.ProcessComponentsHolder.BlockProcessor()
-	newHeader, err := node.prepareHeader(nonce, round)
+	currentHeader := node.ChainHandler.GetCurrentBlockHeader()
+	var nonce, round uint64
+	var prevHash, prevRandSeed []byte
+	if currentHeader != nil {
+		nonce, round = currentHeader.GetNonce(), currentHeader.GetRound()
+		prevHash = node.ChainHandler.GetCurrentBlockHeaderHash()
+		prevRandSeed = currentHeader.GetRandSeed()
+	} else {
+		prevHash = node.ChainHandler.GetGenesisHeaderHash()
+		prevRandSeed = node.ChainHandler.GetGenesisHeader().GetRandSeed()
+	}
+
+	newHeader, err := node.prepareHeader(nonce+1, round+1, prevHash)
+	if err != nil {
+		return err
+	}
+
+	err = newHeader.SetPrevRandSeed(prevRandSeed)
+	if err != nil {
+		return err
+	}
+
+	err = newHeader.SetPubKeysBitmap([]byte{128})
+	if err != nil {
+		return err
+	}
+
+	err = newHeader.SetRandSeed([]byte("dummy"))
 	if err != nil {
 		return err
 	}
@@ -310,12 +335,12 @@ func (node *testOnlyProcessingNode) ProcessBlock(nonce uint64, round uint64) err
 		return err
 	}
 
-	err = bp.ProcessBlock(header, block, func() time.Duration {
-		return 1000
-	})
-	if err != nil {
-		return err
-	}
+	//err = bp.ProcessBlock(header, block, func() time.Duration {
+	//	return 1000
+	//})
+	//if err != nil {
+	//	return err
+	//}
 
 	err = bp.CommitBlock(header, block)
 	if err != nil {
@@ -325,13 +350,19 @@ func (node *testOnlyProcessingNode) ProcessBlock(nonce uint64, round uint64) err
 	return nil
 }
 
-func (node *testOnlyProcessingNode) prepareHeader(nonce uint64, round uint64) (chainData.HeaderHandler, error) {
+func (node *testOnlyProcessingNode) prepareHeader(nonce uint64, round uint64, prevHash []byte) (chainData.HeaderHandler, error) {
 	bp := node.ProcessComponentsHolder.BlockProcessor()
+
 	newHeader, err := bp.CreateNewHeader(round, nonce)
 	if err != nil {
 		return nil, err
 	}
 	err = newHeader.SetShardID(node.ShardCoordinator.SelfId())
+	if err != nil {
+		return nil, err
+	}
+
+	err = newHeader.SetPrevHash(prevHash)
 	if err != nil {
 		return nil, err
 	}

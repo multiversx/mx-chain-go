@@ -98,7 +98,15 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 	return components.NewTestOnlyProcessingNode(args)
 }
 
-func (s *simulator) GenerateBlocks(_ int) error {
+func (s *simulator) GenerateBlocks(numOfBlocks int) error {
+	for idx := 0; idx < numOfBlocks; idx++ {
+		for _, node := range s.nodes {
+			err := node.ProcessBlock()
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
