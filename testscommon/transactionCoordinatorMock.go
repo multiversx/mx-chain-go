@@ -33,10 +33,15 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+	GetAllCurrentLogsCalled                              func() []*data.LogData
 }
 
 // GetAllCurrentLogs -
 func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []*data.LogData {
+	if tcm.GetAllCurrentLogsCalled != nil {
+		return tcm.GetAllCurrentLogsCalled()
+	}
+
 	return nil
 }
 
