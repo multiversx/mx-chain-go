@@ -295,7 +295,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 }
 
 // CreateNewBlock create and process a new block
-func (node *testOnlyProcessingNode) ProcessBlock() error {
+func (node *testOnlyProcessingNode) CreateNewBlock() error {
 	bp := node.ProcessComponentsHolder.BlockProcessor()
 	currentHeader := node.ChainHandler.GetCurrentBlockHeader()
 	var nonce, round uint64

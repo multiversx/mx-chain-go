@@ -91,7 +91,7 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	for idx := 0; idx < numOfBlocks; idx++ {
 		for _, node := range s.nodes {
-			err := node.ProcessBlock()
+			err := node.CreateNewBlock()
 			if err != nil {
 				return err
 			}
