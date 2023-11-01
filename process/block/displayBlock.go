@@ -226,18 +226,22 @@ func (txc *transactionCounter) displayOutGoingTxData(
 	}
 
 	lines = append(lines, display.NewLineData(false, []string{
+		"OutGoing mini block header",
 		"Hash",
 		logger.DisplayByteSlice(outGoingTxData.GetHash())}),
 	)
 	lines = append(lines, display.NewLineData(false, []string{
+		"",
 		"OutGoingTxDataHash",
 		logger.DisplayByteSlice(outGoingTxData.GetOutGoingOperationsHash())}),
 	)
 	lines = append(lines, display.NewLineData(false, []string{
+		"",
 		"AggregatedSignatureOutGoingOperations",
 		logger.DisplayByteSlice(outGoingTxData.GetAggregatedSignatureOutGoingOperations())}),
 	)
 	lines = append(lines, display.NewLineData(false, []string{
+		"",
 		"LeaderSignatureOutGoingOperations",
 		logger.DisplayByteSlice(outGoingTxData.GetLeaderSignatureOutGoingOperations())}),
 	)

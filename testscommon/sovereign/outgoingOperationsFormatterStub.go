@@ -8,7 +8,7 @@ type OutgoingOperationsFormatterStub struct {
 }
 
 // CreateOutgoingTxData -
-func (stub *OutgoingOperationsFormatterStub) CreateOutgoingTxData(logs []*data.LogData) [][]byte {
+func (stub *OutgoingOperationsFormatterStub) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
 	if stub.CreateOutgoingTxDataCalled != nil {
 		return stub.CreateOutgoingTxDataCalled(logs)
 	}

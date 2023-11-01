@@ -141,7 +141,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	outgoingTxData := creator.CreateOutgoingTxData(logs)
+	outgoingTxData := creator.CreateOutgoingTxsData(logs)
 	expectedTxData := []byte("bridgeOps@123@rcv1@token1@nonce1@functionToCall1@arg1@arg2@50000@rcv2@token2@nonce2@value2@token3@nonce3@functionToCall2@arg2@40000@rcv3@token4@nonce4@functionToCall3@arg3@arg4@55000")
 	require.Equal(t, [][]byte{expectedTxData}, outgoingTxData)
 }

@@ -140,19 +140,19 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 			HorizontalRuleAfter: true,
 		},
 		{
-			Values:              []string{"Hash", hex.EncodeToString(outGoingMbHeader.GetHash())},
+			Values:              []string{"OutGoing mini block header", "Hash", hex.EncodeToString(outGoingMbHeader.GetHash())},
 			HorizontalRuleAfter: false,
 		},
 		{
-			Values:              []string{"OutGoingTxDataHash", hex.EncodeToString(outGoingMbHeader.GetOutGoingOperationsHash())},
+			Values:              []string{"", "OutGoingTxDataHash", hex.EncodeToString(outGoingMbHeader.GetOutGoingOperationsHash())},
 			HorizontalRuleAfter: false,
 		},
 		{
-			Values:              []string{"AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetAggregatedSignatureOutGoingOperations())},
+			Values:              []string{"", "AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetAggregatedSignatureOutGoingOperations())},
 			HorizontalRuleAfter: false,
 		},
 		{
-			Values:              []string{"LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
+			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
 			HorizontalRuleAfter: true,
 		},
 	}, lines)

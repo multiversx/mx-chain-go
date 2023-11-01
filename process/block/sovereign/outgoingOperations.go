@@ -82,9 +82,9 @@ func checkEmptyAddresses(addresses map[string]string) error {
 	return nil
 }
 
-// CreateOutgoingTxData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
-// logs and creates an outgoing data that needs to be signed by validators to bridge tokens
-func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) [][]byte {
+// CreateOutgoingTxsData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
+// logs and creates outgoing data that needs to be signed by validators to bridge tokens
+func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
 	outgoingEvents := op.createOutgoingEvents(logs)
 	if len(outgoingEvents) == 0 {
 		return make([][]byte, 0)
