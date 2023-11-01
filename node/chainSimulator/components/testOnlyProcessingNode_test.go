@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -25,28 +26,28 @@ const (
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	mainConfig := config.Config{}
-	err := LoadConfigFromFile(pathForMainConfig, &mainConfig)
+	err := core.LoadTomlFile(&mainConfig, pathForMainConfig)
 	assert.Nil(t, err)
 
 	economicsConfig := config.EconomicsConfig{}
-	err = LoadConfigFromFile(pathForEconomicsConfig, &economicsConfig)
+	err = core.LoadTomlFile(&economicsConfig, pathForEconomicsConfig)
 	assert.Nil(t, err)
 
 	gasScheduleName, err := configs.GetLatestGasScheduleFilename(pathForGasSchedules)
 	assert.Nil(t, err)
 
 	prefsConfig := config.Preferences{}
-	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
+	err = core.LoadTomlFile(&prefsConfig, pathForPrefsConfig)
 	assert.Nil(t, err)
 
 	systemSCConfig := config.SystemSmartContractsConfig{}
-	err = LoadConfigFromFile(pathSystemSCConfig, &systemSCConfig)
+	err = core.LoadTomlFile(&systemSCConfig, pathSystemSCConfig)
 	assert.Nil(t, err)
 
 	workingDir := t.TempDir()
 
 	epochConfig := config.EpochConfig{}
-	err = LoadConfigFromFile(pathToConfigFolder+"enableEpochs.toml", &epochConfig)
+	err = core.LoadTomlFile(&epochConfig, pathToConfigFolder+"enableEpochs.toml")
 	assert.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{

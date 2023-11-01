@@ -1,20 +1,12 @@
 package chainSimulator
 
 import (
-	"errors"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-)
-
-const (
-	genesisAddressWithStake = "erd10z6sdhwfy8jtuf87j5gnq7lt7fd2wfmhkg8zfzf79lrapzq265yqlnmtm7"
-	//genesisAddressWithStakeSK   = "ZWRlZDAyNDczZTE4NjQ2MTY5NzNhZTIwY2IzYjg3NWFhM2ZmZWU1NWE2MGQ5NDgy\nMjhmMzk4ZTQ4OTk1NjA3NTc4YjUwNmRkYzkyMWU0YmUyNGZlOTUxMTMwN2JlYmYy\nNWFhNzI3NzdiMjBlMjQ4OTNlMmZjN2QwODgwYWQ1MDg="
-	genesisAddressWithBalance = "erd1rhrm20mmf2pugzxc3twlu3fa264hxeefnglsy4ads4dpccs9s3jsg6qdrz"
-	//genesisAddressWithBalanceSK = "YWQxMTM2YTEyNWZkM2YxY2ZiMTU0MTU5NDQyZTRiYzZhM2I1YzMwOTU5NDMwMjk5\nNThhYzQ2NGRhN2NlMTNlYjFkYzdiNTNmN2I0YTgzYzQwOGQ4OGFkZGZlNDUzZDU2\nYWI3MzY3Mjk5YTNmMDI1N2FkODU1YTFjNjIwNTg0NjU="
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/testdata"
 )
 
 type simulator struct {
@@ -24,11 +16,8 @@ type simulator struct {
 	numOfShards            uint32
 }
 
+// NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulator, error) {
-	if pathToInitialConfig == "" {
-		return nil, errors.New("invalid provided path to the initial config")
-	}
-
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
 	instance := &simulator{
@@ -50,8 +39,8 @@ func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath s
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:               numOfShards,
 		OriginalConfigsPath:       originalConfigPath,
-		GenesisAddressWithStake:   genesisAddressWithStake,
-		GenesisAddressWithBalance: genesisAddressWithBalance,
+		GenesisAddressWithStake:   testdata.GenesisAddressWithStake,
+		GenesisAddressWithBalance: testdata.GenesisAddressWithBalance,
 	})
 	if err != nil {
 		return err
@@ -92,16 +81,18 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 		NumShards:                s.numOfShards,
 		GasScheduleFilename:      gasScheduleFilename,
 		ShardID:                  shardID,
-		SkKeyIndex:               skIndex,
+		SkIndex:                  skIndex,
 	}
 
 	return components.NewTestOnlyProcessingNode(args)
 }
 
+// GenerateBlocks will generate the provided number of blocks
 func (s *simulator) GenerateBlocks(_ int) error {
 	return nil
 }
 
+// Stop will stop the simulator
 func (s *simulator) Stop() {
 }
 

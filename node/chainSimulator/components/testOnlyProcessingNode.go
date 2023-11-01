@@ -38,9 +38,9 @@ type ArgsTestOnlyProcessingNode struct {
 
 	GasScheduleFilename string
 
-	NumShards  uint32
-	ShardID    uint32
-	SkKeyIndex int
+	NumShards uint32
+	ShardID   uint32
+	SkIndex   int
 }
 
 type testOnlyProcessingNode struct {
@@ -121,7 +121,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		Preferences:             args.PreferencesConfig,
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
 		ValidatorKeyPemFileName: args.ConfigurationPathsHolder.ValidatorKey,
-		SkKeyIndex:              args.SkKeyIndex,
+		SkIndex:                 args.SkIndex,
 	})
 	if err != nil {
 		return nil, err
@@ -296,7 +296,8 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
-func (node *testOnlyProcessingNode) ProcessBlock(nonce uint64, round uint64) error {
+// CreateNewBlock create and process a new block
+func (node *testOnlyProcessingNode) CreateNewBlock(nonce uint64, round uint64) error {
 	bp := node.ProcessComponentsHolder.BlockProcessor()
 	newHeader, err := node.prepareHeader(nonce, round)
 	if err != nil {
@@ -311,6 +312,7 @@ func (node *testOnlyProcessingNode) ProcessBlock(nonce uint64, round uint64) err
 	}
 
 	err = bp.ProcessBlock(header, block, func() time.Duration {
+		// TODO fix this
 		return 1000
 	})
 	if err != nil {
