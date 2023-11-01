@@ -249,13 +249,12 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	})
 
 	sovChainHdr := &block.SovereignChainHeader{}
+	processedMb := &block.MiniBlock{
+		ReceiverShardID: core.SovereignChainShardId,
+		SenderShardID:   core.MainChainShardId,
+	}
 	blockBody := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				ReceiverShardID: core.SovereignChainShardId,
-				SenderShardID:   core.MainChainShardId,
-			},
-		},
+		MiniBlocks: []*block.MiniBlock{processedMb},
 	}
 
 	err := scbp.CreateAndSetOutGoingMiniBlock(sovChainHdr, blockBody)
@@ -267,13 +266,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		SenderShardID:   arguments.BootstrapComponents.ShardCoordinator().SelfId(),
 	}
 	expectedBlockBody := &block.Body{
-		MiniBlocks: []*block.MiniBlock{
-			{
-				ReceiverShardID: core.SovereignChainShardId,
-				SenderShardID:   core.MainChainShardId,
-			},
-			expectedOutGoingMb,
-		},
+		MiniBlocks: []*block.MiniBlock{processedMb, expectedOutGoingMb},
 	}
 	require.Equal(t, expectedBlockBody, blockBody)
 
