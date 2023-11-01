@@ -21,7 +21,7 @@ type ArgsCryptoComponentsHolder struct {
 	Preferences             config.Preferences
 	CoreComponentsHolder    factory.CoreComponentsHolder
 	ValidatorKeyPemFileName string
-	SkKeyIndex              int
+	SkIndex                 int
 }
 
 type cryptoComponentsHolder struct {
@@ -61,7 +61,7 @@ func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.Cryp
 		P2pKeyPemFileName:                    "",
 		ValidatorKeyPemFileName:              args.ValidatorKeyPemFileName,
 		AllValidatorKeysPemFileName:          "",
-		SkIndex:                              args.SkKeyIndex,
+		SkIndex:                              args.SkIndex,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

@@ -36,9 +36,9 @@ type ArgsTestOnlyProcessingNode struct {
 
 	GasScheduleFilename string
 
-	NumShards  uint32
-	ShardID    uint32
-	SkKeyIndex int
+	NumShards uint32
+	ShardID   uint32
+	SkIndex   int
 }
 
 type testOnlyProcessingNode struct {
@@ -119,7 +119,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		Preferences:             args.PreferencesConfig,
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
 		ValidatorKeyPemFileName: args.ConfigurationPathsHolder.ValidatorKey,
-		SkKeyIndex:              args.SkKeyIndex,
+		SkIndex:                 args.SkIndex,
 	})
 	if err != nil {
 		return nil, err
@@ -294,6 +294,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
+// CreateNewBlock create and process a new block
 func (node *testOnlyProcessingNode) ProcessBlock() error {
 	bp := node.ProcessComponentsHolder.BlockProcessor()
 	currentHeader := node.ChainHandler.GetCurrentBlockHeader()

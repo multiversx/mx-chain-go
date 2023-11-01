@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
 	NumOfShards               uint32
 	OriginalConfigsPath       string
@@ -32,12 +33,14 @@ type ArgsChainSimulatorConfigs struct {
 	GenesisAddressWithBalance string
 }
 
+// ArgsConfigsSimulator holds the configs for the chain simulator
 type ArgsConfigsSimulator struct {
 	GasScheduleFilename   string
 	Configs               *config.Configs
 	ValidatorsPrivateKeys []crypto.PrivateKey
 }
 
+// CreateChainSimulatorConfigs will create the chain simulator configs
 func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSimulator, error) {
 	configs, err := testscommon.CreateTestConfigs(args.OriginalConfigsPath)
 	if err != nil {
@@ -52,7 +55,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	// generate validatos key and nodesSetup.json
+	// generate validators key and nodesSetup.json
 	privateKeys, publicKeys := generateValidatorsKeyAndUpdateFiles(nil, configs, args.NumOfShards, args.GenesisAddressWithStake)
 
 	// update genesis.json
@@ -141,7 +144,7 @@ func generateValidatorsKeyAndUpdateFiles(tb testing.TB, configs *config.Configs,
 	marshaledNodes, err := json.Marshal(nodes)
 	require.Nil(tb, err)
 
-	err = os.WriteFile(nodesSetupFile, marshaledNodes, 0644)
+	err = os.WriteFile(nodesSetupFile, marshaledNodes, os.ModePerm)
 	require.Nil(tb, err)
 
 	return privateKeys, publicKeys
@@ -198,7 +201,7 @@ func modifyFile(fileName string, f func(i []byte) ([]byte, error)) error {
 		}
 	}
 
-	return os.WriteFile(fileName, output, 0644)
+	return os.WriteFile(fileName, output, os.ModePerm)
 }
 
 // GetLatestGasScheduleFilename will parse the provided path and get the latest gas schedule filename
