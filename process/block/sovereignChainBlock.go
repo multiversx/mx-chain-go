@@ -861,7 +861,7 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 	if err != nil {
 		return nil, err
 	}
-
+	// add mbs outgoing
 	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
 	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
@@ -869,28 +869,44 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 
 func (scbp *sovereignChainBlockProcessor) setOutGoingOperation(headerHandler data.HeaderHandler) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
-	outGoingOp := scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
-	if len(outGoingOp) == 0 {
+	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
+	outGoingOperations = [][]byte{[]byte("bridgeOps@1234@rcv1@token1@val1"), []byte("bridgeOps@1235@rcv2@token2@val2")}
+	if len(outGoingOperations) == 0 {
 		return nil
 	}
 
-	hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingOp)
+	outGoingOpHashes := make([][]byte, len(outGoingOperations))
+	outGoingOperationsHash := make([]byte, 0)
+	for idx, outGoingOp := range outGoingOperations {
+		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
+		outGoingOperationsHash = append(outGoingOperationsHash, outGoingOpHash...)
+
+		outGoingOpHashes[idx] = outGoingOpHash
+		scbp.outGoingOperationsPool.Add(outGoingOpHash, outGoingOp)
+	}
+
+	outGoingMb := &block.MiniBlock{
+		TxHashes:        outGoingOpHashes,
+		ReceiverShardID: core.MainChainShardId,
+		SenderShardID:   scbp.shardCoordinator.SelfId(),
+	}
+
+	outGoingMbHash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingMb)
 	if err != nil {
 		return err
 	}
 
-	sovereignChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
+	sovereignChainHdr, ok := headerHandler.(data.SovereignChainHeaderHandler)
 	if !ok {
 		return fmt.Errorf("%w in sovereignChainBlockProcessor.setOutGoingOperation", process.ErrWrongTypeAssertion)
 	}
 
-	err = sovereignChainHeader.SetOutGoingOperationHashes([][]byte{hash})
-	if err != nil {
-		return err
+	outGoingMbHeader := &block.OutGoingMiniBlockHeader{
+		Hash:                   outGoingMbHash,
+		OutGoingOperationsHash: outGoingOperationsHash,
 	}
 
-	scbp.outGoingOperationsPool.Add(hash, outGoingOp)
-	return nil
+	return sovereignChainHdr.SetOutGoingMiniBlockHeaderHandler(outGoingMbHeader)
 }
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {

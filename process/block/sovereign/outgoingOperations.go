@@ -84,10 +84,10 @@ func checkEmptyAddresses(addresses map[string]string) error {
 
 // CreateOutgoingTxData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
 // logs and creates an outgoing data that needs to be signed by validators to bridge tokens
-func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte {
+func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) [][]byte {
 	outgoingEvents := op.createOutgoingEvents(logs)
 	if len(outgoingEvents) == 0 {
-		return make([]byte, 0)
+		return make([][]byte, 0)
 	}
 
 	txData := []byte(bridgeOpPrefix + "@" + fmt.Sprintf("%d", op.roundHandler.Index()))
@@ -98,7 +98,8 @@ func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte 
 		txData = append(txData, ev.GetData()...)
 	}
 
-	return txData
+	// TODO: Check gas limit here and split tx data in multiple batches if required
+	return [][]byte{txData}
 }
 
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
