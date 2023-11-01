@@ -287,7 +287,6 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		},
 	}
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)
-
 }
 
 //TODO: More unit tests should be added. Created PR https://multiversxlabs.atlassian.net/browse/MX-14149
