@@ -7,15 +7,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type journalEntryCode struct {
-	oldCodeEntry *CodeEntry
-	oldCodeHash  []byte
-	newCodeHash  []byte
-	trie         Updater
-	marshalizer  marshal.Marshalizer
+	oldCodeEntry        *CodeEntry
+	oldCodeHash         []byte
+	newCodeHash         []byte
+	trie                Updater
+	marshalizer         marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
@@ -25,6 +27,7 @@ func NewJournalEntryCode(
 	newCodeHash []byte,
 	trie Updater,
 	marshalizer marshal.Marshalizer,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*journalEntryCode, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
@@ -32,13 +35,17 @@ func NewJournalEntryCode(
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	return &journalEntryCode{
-		oldCodeEntry: oldCodeEntry,
-		oldCodeHash:  oldCodeHash,
-		newCodeHash:  newCodeHash,
-		trie:         trie,
-		marshalizer:  marshalizer,
+		oldCodeEntry:        oldCodeEntry,
+		oldCodeHash:         oldCodeHash,
+		newCodeHash:         newCodeHash,
+		trie:                trie,
+		marshalizer:         marshalizer,
+		enableEpochsHandler: enableEpochsHandler,
 	}, nil
 }
 
@@ -66,7 +73,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
+	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer, jea.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
@@ -75,7 +82,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
-	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
+	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer, jea.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
@@ -94,7 +101,7 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 	}
 
 	newCodeEntry.NumReferences--
-	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer, jea.enableEpochsHandler)
 	if err != nil {
 		return err
 	}

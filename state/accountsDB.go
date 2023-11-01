@@ -92,6 +92,7 @@ type AccountsDB struct {
 	mutOp                sync.RWMutex
 	loadCodeMeasurements *loadingMeasurements
 	addressConverter     core.PubkeyConverter
+	enableEpochsHandler  common.EnableEpochsHandler
 
 	stackDebug []byte
 }
@@ -110,6 +111,7 @@ type ArgsAccountsDB struct {
 	ProcessStatusHandler     common.ProcessStatusHandler
 	AppStatusHandler         core.AppStatusHandler
 	AddressConverter         core.PubkeyConverter
+	EnableEpochsHandler      common.EnableEpochsHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -185,6 +187,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	if check.IfNil(args.AddressConverter) {
 		return ErrNilAddressConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
 
 	return nil
 }
@@ -219,25 +224,25 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	var codeEntry CodeEntry
+	var code []byte
 
 	startTime := time.Now()
 	defer func() {
 		duration := time.Since(startTime)
-		adb.loadCodeMeasurements.addMeasurement(len(codeEntry.Code), duration)
+		adb.loadCodeMeasurements.addMeasurement(len(code), duration)
 	}()
 
-	val, _, err := adb.getMainTrie().Get(codeHash)
+	code, err := adb.getMainTrie().GetStorageManager().Get(codeHash)
 	if err != nil {
-		return nil
+		codeEntry, err := getCodeEntry(codeHash, adb.getMainTrie(), adb.marshaller, adb.enableEpochsHandler)
+		if err != nil {
+			return nil
+		}
+
+		return codeEntry.Code
 	}
 
-	err = adb.marshaller.Unmarshal(&codeEntry, val)
-	if err != nil {
-		return nil
-	}
-
-	return codeEntry.Code
+	return code
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -344,7 +349,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
@@ -355,7 +360,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 }
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
+	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +384,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	oldCodeEntry.NumReferences--
-	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
+	err = saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +397,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		return nil
 	}
 
-	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller)
+	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
@@ -404,7 +409,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 	newCodeEntry.NumReferences++
 
-	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
+	err = saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
@@ -412,8 +417,17 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	return nil
 }
 
-func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
-	val, _, err := trie.Get(codeHash)
+func getCodeEntry(codeHash []byte, updater Updater, marshalizer marshal.Marshalizer, enableEpochsHandler common.EnableEpochsHandler) (*CodeEntry, error) {
+	if enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		code, err := updater.GetStorageManager().Get(codeHash)
+		if err != nil {
+			return nil, err
+		}
+
+		return &CodeEntry{Code: code}, nil
+	}
+
+	val, _, err := updater.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
@@ -431,13 +445,17 @@ func getCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer
 	return &codeEntry, nil
 }
 
-func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer marshal.Marshalizer) error {
+func saveCodeEntry(codeHash []byte, entry *CodeEntry, updater Updater, marshalizer marshal.Marshalizer, enableEpochsHanlder common.EnableEpochsHandler) error {
+	if enableEpochsHanlder.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		return updater.GetStorageManager().Put(codeHash, entry.Code)
+	}
+
 	codeEntry, err := marshalizer.Marshal(entry)
 	if err != nil {
 		return err
 	}
 
-	err = trie.Update(codeHash, codeEntry)
+	err = updater.Update(codeHash, codeEntry)
 	if err != nil {
 		return err
 	}
@@ -614,7 +632,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
@@ -625,6 +643,11 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 
 // RemoveCodeLeaf will remove code leaf node from main trie
 func (adb *AccountsDB) RemoveCodeLeaf(codeHash []byte) error {
+	if !adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		log.Warn("remove code leaf operation not enabled")
+		return nil
+	}
+
 	val, _, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return err

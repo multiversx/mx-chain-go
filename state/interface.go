@@ -20,6 +20,7 @@ type AccountFactory interface {
 type Updater interface {
 	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
+	GetStorageManager() common.StorageManager
 	IsInterfaceNil() bool
 }
 
