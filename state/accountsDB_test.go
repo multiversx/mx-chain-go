@@ -2895,7 +2895,7 @@ func testAccountMethodsConcurrency(
 	assert.Nil(t, err)
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 23 {
+			switch idx % 22 {
 			case 0:
 				_, _ = adb.GetExistingAccount(addresses[idx])
 			case 1:
