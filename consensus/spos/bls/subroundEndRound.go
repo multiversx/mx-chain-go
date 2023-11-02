@@ -23,6 +23,9 @@ type subroundEndRound struct {
 	displayStatistics             func()
 	mutProcessingEndRound         sync.Mutex
 	getMessageToVerifySigFunc     func() []byte
+
+	extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler
+	extraSig                 []byte
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -44,6 +47,8 @@ func NewSubroundEndRound(
 		processingThresholdPercentage,
 		displayStatistics,
 		sync.Mutex{},
+		nil,
+		nil,
 		nil,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
@@ -141,6 +146,21 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
+	/////// DELETE HERE
+
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return false
+	}
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	err = outGoingMb.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
+	err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	if err != nil {
+		return false
+	}
+
+	/////// DELETE HERE
+
 	err = sr.HeaderSigVerifier().VerifyLeaderSignature(header)
 	if err != nil {
 		log.Debug("isBlockHeaderFinalInfoValid.VerifyLeaderSignature", "error", err.Error())
@@ -154,6 +174,11 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 	}
 
 	// placeholder for .VerifyFinalBlockSignatures
+	err = sr.extraSignatureAggregator.VerifyFinalBlockSignatures(cnsDta)
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.extraSignatureAggregator.VerifyFinalBlockSignatures", "error", err.Error())
+		return false
+	}
 
 	return true
 }
@@ -322,6 +347,21 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	////// DELETE
+	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return false
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	err = outGoingMb.SetAggregatedSignatureOutGoingOperations(sr.extraSig)
+	err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	if err != nil {
+		return false
+	}
+
+	////// DELETE
+
 	// Header is complete so the leader can sign it
 	leaderSignature, err := sr.signBlockHeader()
 	if err != nil {
@@ -351,7 +391,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	// broadcast header and final info section
 
-	sr.createAndBroadcastHeaderFinalInfo()
+	sr.createAndBroadcastHeaderFinalInfo(sr.extraSig)
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
@@ -408,6 +448,13 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	}
 
 	// placeholder for AggregateSignatures
+	extraSig, err := sr.extraSignatureAggregator.AggregateSignatures(bitmap)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateSignatures", "error", err.Error())
+
+		return sr.handleInvalidSignersOnAggSigFail()
+	}
+	sr.extraSig = extraSig
 
 	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
@@ -421,6 +468,24 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
+
+	/////// DELETEEEE
+
+	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return nil, nil, err
+	}
+
+	if check.IfNil(sovHeader.GetOutGoingMiniBlockHeaderHandler()) {
+		return bitmap, sig, nil
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	err = outGoingMb.SetAggregatedSignatureOutGoingOperations(extraSig)
+	if err != nil {
+		return nil, nil, err
+	}
+	////// DELEETEEEE
 
 	return bitmap, sig, nil
 }
@@ -560,7 +625,7 @@ func (sr *subroundEndRound) generateBitmap() []byte {
 	return sr.GenerateBitmap(SrSignature)
 }
 
-func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
+func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(extraSig []byte) {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("createAndBroadcastHeaderFinalInfo.GetLeader", "error", errGetLeader)
@@ -586,6 +651,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	)
 
 	// placeholder for AddAggregatedSignature
+	sr.extraSignatureAggregator.AddAggregatedSignature(extraSig, cnsMsg)
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
@@ -745,7 +811,20 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 	if err != nil {
 		return false, nil
 	}
+	//// DELETEEE
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return false, nil
+	}
 
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	_ = outGoingMb.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
+	err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	if err != nil {
+		return false, nil
+	}
+
+	//// DELETEEE
 	return true, header
 }
 
@@ -957,6 +1036,12 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	}
 
 	return minIdx
+}
+
+func (sr *subroundEndRound) SetExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error {
+	sr.extraSignatureAggregator = extraSignatureAggregator
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

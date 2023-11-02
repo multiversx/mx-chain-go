@@ -9,3 +9,11 @@ type SubRoundExtraDataSignatureHandler interface {
 	Identifier() string
 	IsInterfaceNil() bool
 }
+
+type SubRoundEndExtraSignatureAggregatorHandler interface {
+	VerifyFinalBlockSignatures(cnsDta *consensus.Message) error
+	AggregateSignatures(bitmap []byte) ([]byte, error)
+	AddAggregatedSignature(aggregatedSig []byte, cnsMsg *consensus.Message) error
+	Identifier() string
+	IsInterfaceNil() bool
+}

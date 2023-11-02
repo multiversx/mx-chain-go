@@ -1,6 +1,7 @@
 package headerCheck
 
 import (
+	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -30,7 +32,7 @@ type ArgsHeaderSigVerifier struct {
 	FallbackHeaderValidator process.FallbackHeaderValidator
 }
 
-//HeaderSigVerifier is component used to check if a header is valid
+// HeaderSigVerifier is component used to check if a header is valid
 type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
@@ -334,6 +336,15 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 	if err != nil {
 		return nil, err
 	}
+
+	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
+	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 
 	return headerCopy, nil
 }

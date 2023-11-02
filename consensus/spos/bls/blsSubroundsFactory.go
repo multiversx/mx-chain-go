@@ -26,6 +26,8 @@ type factory struct {
 	currentPid         core.PeerID
 	consensusModel     consensus.ConsensusModel
 	enableEpochHandler common.EnableEpochsHandler
+
+	extraSignerHandler consensus.SigningHandler
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -287,9 +289,10 @@ func (fct *factory) generateSignatureSubroundV2() error {
 		return errV2
 	}
 
+	fct.extraSignerHandler = subroundSignatureV2Instance.SigningHandler().ShallowClone()
 	extraSubRoundSigner, err := NewSovereignSubRoundOutGoingTxDataSignature(
 		subroundSignatureV2Instance.Subround,
-		subroundSignatureV2Instance.SigningHandler().ShallowClone(),
+		fct.extraSignerHandler,
 	)
 	if err != nil {
 		return err
@@ -361,6 +364,16 @@ func (fct *factory) generateEndRoundSubroundV2() error {
 	subroundSignatureV2Instance, errV2 := NewSubroundEndRoundV2(subroundEndRoundInstance)
 	if errV2 != nil {
 		return errV2
+	}
+
+	sovSubRoundSigner, err := NewSovereignSubRoundOutGoingTxDataEnd(subroundSignatureV2Instance.Subround, fct.extraSignerHandler)
+	if err != nil {
+		return err
+	}
+
+	err = subroundEndRoundInstance.SetExtraEndRoundSigAggregatorHandler(sovSubRoundSigner)
+	if err != nil {
+		return err
 	}
 
 	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundSignatureV2Instance.receivedBlockHeaderFinalInfo)
