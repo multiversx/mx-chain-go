@@ -361,6 +361,10 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 }
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
+	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		return nil, nil
+	}
+
 	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 	if err != nil {
 		return nil, err
@@ -628,6 +632,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
+
+	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		return adb.mainTrie.GetStorageManager().Remove(oldCodeHash)
+	}
+
 	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
@@ -642,7 +651,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	return nil
 }
 
-// RemoveCodeLeaf will remove code leaf node from main trie
+// RemoveCodeLeaf will remove code leaf node from main trie and put it to trie storage
 func (adb *AccountsDB) RemoveCodeLeaf(codeHash []byte) error {
 	if !adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
 		log.Warn("remove code leaf operation not enabled")
@@ -660,6 +669,11 @@ func (adb *AccountsDB) RemoveCodeLeaf(codeHash []byte) error {
 	// check if node is code leaf
 	var codeEntry CodeEntry
 	err = adb.marshaller.Unmarshal(&codeEntry, val)
+	if err != nil {
+		return err
+	}
+
+	err = adb.mainTrie.GetStorageManager().Put(codeHash, codeEntry.GetCode())
 	if err != nil {
 		return err
 	}

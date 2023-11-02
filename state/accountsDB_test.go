@@ -415,6 +415,63 @@ func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("save code directly to storage if remove code leaf flag is activated", func(t *testing.T) {
+		t.Parallel()
+
+		codeData := []byte("codeData")
+
+		args := createMockAccountsDBArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RemoveCodeLeafFlag
+			},
+		}
+		codeDataHash := args.Hasher.Compute(string(codeData))
+
+		putCalled := false
+		getCalled := false
+		ts := &trieMock.TrieStub{
+			GetCalled: func(_ []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+			UpdateCalled: func(key, value []byte) error {
+				return nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{
+					GetCalled: func(b []byte) ([]byte, error) {
+						getCalled = true
+						return codeData, nil
+					},
+					PutCalled: func(key, value []byte) error {
+						putCalled = true
+						require.Equal(t, key, codeDataHash)
+						require.Equal(t, value, codeData)
+						return nil
+					},
+				}
+			},
+		}
+
+		args.Trie = ts
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		adr := make([]byte, 32)
+		account := stateMock.NewAccountWrapMock(adr)
+		account.SetCode(codeData)
+
+		err = adb.SaveAccount(account)
+		require.Nil(t, err)
+		require.True(t, putCalled)
+		require.True(t, getCalled)
+	})
+}
+
 // ------- RemoveAccount
 
 func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
@@ -1798,6 +1855,99 @@ func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T
 	val, _, err = tr.Get(oldCodeHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, val)
+}
+
+func TestAccountsDB_RemoveCodeLeaf(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flag not activated, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag != common.RemoveCodeLeafFlag
+			},
+		}
+
+		codeHash := []byte("codeHash")
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.RemoveCodeLeaf(codeHash)
+		require.Nil(t, err)
+	})
+
+	t.Run("not found in trie, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		codeHash := []byte("codeHash")
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RemoveCodeLeafFlag
+			},
+		}
+		args.Trie = &trieMock.TrieStub{
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+		}
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.RemoveCodeLeaf(codeHash)
+		require.Nil(t, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		codeHash := []byte("codeHash")
+		codeData := []byte("codeData")
+		codeEntry := &state.CodeEntry{
+			Code: codeData,
+		}
+		codeEntryMarshalled, _ := args.Marshaller.Marshal(codeEntry)
+
+		wasCalled := false
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RemoveCodeLeafFlag
+			},
+		}
+		args.Trie = &trieMock.TrieStub{
+			GetCalled: func(key []byte) ([]byte, uint32, error) {
+				return codeEntryMarshalled, 0, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{
+					PutCalled: func(key, value []byte) error {
+						require.Equal(t, key, codeHash)
+						require.Equal(t, value, codeData)
+						return nil
+					},
+				}
+			},
+			DeleteCalled: func(key []byte) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.RemoveCodeLeaf(codeHash)
+		require.Nil(t, err)
+		require.True(t, wasCalled)
+	})
 }
 
 func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.T) {
