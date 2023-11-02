@@ -162,15 +162,9 @@ func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error
 		return err
 	}
 
-	userAccountsCheckpointStorer, err := srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
 		userAccountsStorer,
-		userAccountsCheckpointStorer,
 		dataRetriever.UserAccountsUnit,
 		srcf.enableEpochsHandler,
 		srcf.stateStatsHandler,

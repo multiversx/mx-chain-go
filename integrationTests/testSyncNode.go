@@ -70,12 +70,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	statusComponents := GetDefaultStatusComponents()
 
-	triesConfig := config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus: stateCheckpointModulus,
-		},
-	}
-
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -86,7 +80,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               triesConfig,
+		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         nil,
 		NodesCoordinator:     tpn.NodesCoordinator,

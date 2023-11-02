@@ -181,36 +181,6 @@ func (sm *snapshotsManager) SnapshotState(
 	sm.waitForCompletionIfAppropriate(stats)
 }
 
-// SetStateCheckpoint sets a checkpoint for the state trie
-func (sm *snapshotsManager) SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager) {
-	sm.setStateCheckpoint(rootHash, trieStorageManager)
-}
-
-func (sm *snapshotsManager) setStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager) {
-	log.Trace("snapshotsManager.SetStateCheckpoint", "root hash", rootHash)
-	trieStorageManager.EnterPruningBufferingMode()
-
-	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
-	iteratorChannels := sm.channelsProvider.GetIteratorChannels()
-
-	stats := newSnapshotStatistics(1, 1)
-	go func() {
-		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
-		sm.snapshotUserAccountDataTrie(false, rootHash, iteratorChannels, missingNodesChannel, stats, 0, trieStorageManager)
-
-		stats.SnapshotFinished()
-	}()
-
-	go sm.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
-
-	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
-	//  that will be present in the errChan var
-	go sm.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint"+sm.stateMetrics.GetSnapshotMessage(), trieStorageManager)
-
-	sm.waitForCompletionIfAppropriate(stats)
-}
-
 func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager) (*snapshotStatistics, bool) {
 	snapshotAlreadyTaken := bytes.Equal(sm.lastSnapshot.rootHash, rootHash) && sm.lastSnapshot.epoch == epoch
 	if snapshotAlreadyTaken {
@@ -272,7 +242,7 @@ func (sm *snapshotsManager) snapshotState(
 		stats.NewSnapshotStarted()
 
 		trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
-		sm.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
+		sm.snapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 
 		stats.SnapshotFinished()
 	}()
@@ -292,7 +262,6 @@ func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, t
 }
 
 func (sm *snapshotsManager) snapshotUserAccountDataTrie(
-	isSnapshot bool,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChannel chan []byte,
@@ -324,13 +293,9 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 			LeavesChan: nil,
 			ErrChan:    iteratorChannels.ErrChan,
 		}
-		if isSnapshot {
-			address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
-			trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
-			continue
-		}
 
-		trieStorageManager.SetCheckpoint(userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
+		address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
+		trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 	}
 }
 
