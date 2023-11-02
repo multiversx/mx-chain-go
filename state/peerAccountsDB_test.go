@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -145,38 +144,6 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 
 	adb.SnapshotState([]byte("rootHash"), 0)
 	assert.False(t, snapshotCalled)
-}
-
-func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	checkpointInProgress := atomic.Flag{}
-	checkpointInProgress.SetValue(true)
-	checkpointCalled := false
-	args := createMockAccountsDBArgs()
-	args.Trie = &trieMock.TrieStub{
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler) {
-					checkpointCalled = true
-					stats.SnapshotFinished()
-				},
-				ExitPruningBufferingModeCalled: func() {
-					checkpointInProgress.SetValue(false)
-				},
-			}
-		},
-	}
-	adb, err := state.NewPeerAccountsDB(args)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(adb))
-
-	adb.SetStateCheckpoint([]byte("rootHash"))
-	for checkpointInProgress.IsSet() {
-		time.Sleep(10 * time.Millisecond)
-	}
-	assert.True(t, checkpointCalled)
 }
 
 func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {

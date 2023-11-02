@@ -95,7 +95,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
-		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		feeHandler:                    arguments.FeeHandler,
 		outportHandler:                arguments.StatusComponents.OutportHandler(),

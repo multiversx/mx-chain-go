@@ -871,12 +871,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	adb.lastRootHash = newRoot
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
-	shouldCreateCheckpoint := adb.mainTrie.GetStorageManager().AddDirtyCheckpointHashes(newRoot, newHashes.Clone())
-
-	if shouldCreateCheckpoint {
-		log.Debug("checkpoint hashes holder is full - force state checkpoint")
-		adb.snapshotsManger.SetStateCheckpoint(newRoot, adb.mainTrie.GetStorageManager())
-	}
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
@@ -1125,11 +1119,6 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 			return contained
 		}
 	}
-}
-
-// SetStateCheckpoint sets a checkpoint for the state trie
-func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
-	adb.snapshotsManger.SetStateCheckpoint(rootHash, adb.getMainTrie().GetStorageManager())
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

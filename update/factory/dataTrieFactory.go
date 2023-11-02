@@ -13,11 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/database"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/genesis"
 )
@@ -70,21 +68,18 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 		return nil, err
 	}
 	tsmArgs := trie.NewTrieStorageManagerArgs{
-		MainStorer:        accountsTrieStorage,
-		CheckpointsStorer: database.NewMemDB(),
-		Marshalizer:       args.Marshalizer,
-		Hasher:            args.Hasher,
+		MainStorer:  accountsTrieStorage,
+		Marshalizer: args.Marshalizer,
+		Hasher:      args.Hasher,
 		GeneralConfig: config.TrieStorageManagerConfig{
 			SnapshotsGoroutineNum: 2,
 		},
-		CheckpointHashesHolder: disabled.NewDisabledCheckpointHashesHolder(),
-		IdleProvider:           commonDisabled.NewProcessStatusHandler(),
-		Identifier:             dataRetriever.UserAccountsUnit.String(),
+		IdleProvider: commonDisabled.NewProcessStatusHandler(),
+		Identifier:   dataRetriever.UserAccountsUnit.String(),
 	}
 	options := trie.StorageManagerOptions{
-		PruningEnabled:     false,
-		SnapshotsEnabled:   false,
-		CheckpointsEnabled: false,
+		PruningEnabled:   false,
+		SnapshotsEnabled: false,
 	}
 	trieStorage, err := trie.CreateTrieStorageManager(tsmArgs, options)
 	if err != nil {

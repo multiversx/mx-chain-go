@@ -95,10 +95,9 @@ type baseProcessor struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler
 
-	appStatusHandler       core.AppStatusHandler
-	stateCheckpointModulus uint
-	blockProcessor         blockProcessor
-	txCounter              *transactionCounter
+	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
+	txCounter        *transactionCounter
 
 	outportHandler      outport.OutportHandler
 	outportDataProvider outport.DataProviderOutport
@@ -1413,14 +1412,6 @@ func (bp *baseProcessor) updateStateStorage(
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
-	}
-
-	// TODO generate checkpoint on a trigger
-	if bp.stateCheckpointModulus != 0 {
-		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
-			log.Debug("trie checkpoint", "currRootHash", currRootHash)
-			accounts.SetStateCheckpoint(currRootHash)
-		}
 	}
 
 	if bytes.Equal(prevRootHash, currRootHash) {

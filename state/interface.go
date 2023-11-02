@@ -42,7 +42,6 @@ type AccountsAdapter interface {
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
-	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
@@ -57,7 +56,6 @@ type AccountsAdapter interface {
 // SnapshotsManager defines the methods for the snapshot manager
 type SnapshotsManager interface {
 	SnapshotState(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
-	SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager)
 	StartSnapshotAfterRestartIfNeeded(trieStorageManager common.StorageManager) error
 	IsSnapshotInProgress() bool
 	SetSyncer(syncer AccountsDBSyncer) error
