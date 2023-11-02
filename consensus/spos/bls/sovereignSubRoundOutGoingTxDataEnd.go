@@ -24,7 +24,7 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyFinalBlockSignatures(cnsDta 
 		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
-	if len(sovHeader.GetOutGoingOperationHashes()) == 0 {
+	if check.IfNil(sovHeader.GetOutGoingMiniBlockHeaderHandler()) {
 		return nil
 	}
 
