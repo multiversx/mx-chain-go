@@ -33,7 +33,7 @@ type validatorStatsRootHashGetter interface {
 
 type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
-	GetOutGoingOperationHashes() [][]byte
+	GetOutGoingMiniBlockHeaderHandler() data.OutGoingMiniBlockHeaderHandler
 }
 
 type crossNotarizer interface {

@@ -212,41 +212,39 @@ func (txc *transactionCounter) displaySovereignChainHeader(
 	header sovereignChainHeader,
 ) []*display.LineData {
 	lines = txc.displayExtendedShardHeaderHashesIncluded(lines, header.GetExtendedShardHeaderHashes())
-	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingOperationHashes())
+	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingMiniBlockHeaderHandler())
 
 	return lines
 }
 
 func (txc *transactionCounter) displayOutGoingTxData(
 	lines []*display.LineData,
-	outGoingTxDataHashes [][]byte,
+	outGoingTxData data.OutGoingMiniBlockHeaderHandler,
 ) []*display.LineData {
-	if len(outGoingTxDataHashes) == 0 {
+	if check.IfNil(outGoingTxData) {
 		return lines
 	}
 
-	part := "OutGoingTxDataHash"
-	for i := 0; i < len(outGoingTxDataHashes); i++ {
-		if i == 0 || i >= len(outGoingTxDataHashes)-1 {
-			lines = append(lines, display.NewLineData(false, []string{
-				part,
-				fmt.Sprintf("OutGoingTxDataHash_%d", i+1),
-				logger.DisplayByteSlice(outGoingTxDataHashes[i])}))
-
-			part = ""
-			continue
-		}
-
-		if i == 1 {
-			lines = append(lines, display.NewLineData(false, []string{
-				part,
-				"...",
-				"...",
-			}))
-
-			part = ""
-		}
-	}
+	lines = append(lines, display.NewLineData(false, []string{
+		"OutGoing mini block header",
+		"Hash",
+		logger.DisplayByteSlice(outGoingTxData.GetHash())}),
+	)
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"OutGoingTxDataHash",
+		logger.DisplayByteSlice(outGoingTxData.GetOutGoingOperationsHash())}),
+	)
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"AggregatedSignatureOutGoingOperations",
+		logger.DisplayByteSlice(outGoingTxData.GetAggregatedSignatureOutGoingOperations())}),
+	)
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"LeaderSignatureOutGoingOperations",
+		logger.DisplayByteSlice(outGoingTxData.GetLeaderSignatureOutGoingOperations())}),
+	)
 
 	lines[len(lines)-1].HorizontalRuleAfter = true
 
