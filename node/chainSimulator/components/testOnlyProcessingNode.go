@@ -336,13 +336,6 @@ func (node *testOnlyProcessingNode) CreateNewBlock() error {
 		return err
 	}
 
-	//err = bp.ProcessBlock(header, block, func() time.Duration {
-	//	return 1000
-	//})
-	//if err != nil {
-	//	return err
-	//}
-
 	err = bp.CommitBlock(header, block)
 	if err != nil {
 		return err
