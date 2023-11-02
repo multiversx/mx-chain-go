@@ -108,10 +108,14 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 	shardLines := make([]*display.LineData, 0)
 
 	extendedShardHeaderHashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
-	outGoingTxDataHashes := [][]byte{[]byte("outGoingTxDataHash1"), []byte("outGoingTxDataHash2"), []byte("outGoingTxDataHash3")}
-
+	outGoingMbHeader := &block.OutGoingMiniBlockHeader{
+		Hash:                                  []byte("outGoingTxDataHash"),
+		OutGoingOperationsHash:                []byte("outGoingOperationsHash"),
+		AggregatedSignatureOutGoingOperations: []byte("aggregatedSig"),
+		LeaderSignatureOutGoingOperations:     []byte("leaderSig"),
+	}
 	sovChainHeader := &block.SovereignChainHeader{
-		OutGoingOperationHashes:   outGoingTxDataHashes,
+		OutGoingMiniBlockHeader:   outGoingMbHeader,
 		ExtendedShardHeaderHashes: extendedShardHeaderHashes,
 	}
 
@@ -136,15 +140,19 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 			HorizontalRuleAfter: true,
 		},
 		{
-			Values:              []string{"OutGoingTxDataHash", "OutGoingTxDataHash_1", hex.EncodeToString(outGoingTxDataHashes[0])},
+			Values:              []string{"OutGoing mini block header", "Hash", hex.EncodeToString(outGoingMbHeader.GetHash())},
 			HorizontalRuleAfter: false,
 		},
 		{
-			Values:              []string{"", "...", "..."},
+			Values:              []string{"", "OutGoingTxDataHash", hex.EncodeToString(outGoingMbHeader.GetOutGoingOperationsHash())},
 			HorizontalRuleAfter: false,
 		},
 		{
-			Values:              []string{"", "OutGoingTxDataHash_3", hex.EncodeToString(outGoingTxDataHashes[2])},
+			Values:              []string{"", "AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetAggregatedSignatureOutGoingOperations())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
 			HorizontalRuleAfter: true,
 		},
 	}, lines)

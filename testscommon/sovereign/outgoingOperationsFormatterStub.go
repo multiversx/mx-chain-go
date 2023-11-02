@@ -4,11 +4,11 @@ import "github.com/multiversx/mx-chain-core-go/data"
 
 // OutgoingOperationsFormatterStub -
 type OutgoingOperationsFormatterStub struct {
-	CreateOutgoingTxDataCalled func(logs []*data.LogData) []byte
+	CreateOutgoingTxDataCalled func(logs []*data.LogData) [][]byte
 }
 
 // CreateOutgoingTxData -
-func (stub *OutgoingOperationsFormatterStub) CreateOutgoingTxData(logs []*data.LogData) []byte {
+func (stub *OutgoingOperationsFormatterStub) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
 	if stub.CreateOutgoingTxDataCalled != nil {
 		return stub.CreateOutgoingTxDataCalled(logs)
 	}

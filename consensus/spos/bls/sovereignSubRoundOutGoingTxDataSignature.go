@@ -3,6 +3,7 @@ package bls
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -31,8 +32,8 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfInd
 		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingOperationHashes := sovChainHeader.GetOutGoingOperationHashes()
-	if len(outGoingOperationHashes) == 0 {
+	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler()
+	if check.IfNil(outGoingMBHeader) {
 		return make([]byte, 0), nil
 	}
 
@@ -42,23 +43,10 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfInd
 	}
 
 	return sr.signingHandler.CreateSignatureShareForPublicKey(
-		sr.createOutGoingOperationsHash(outGoingOperationHashes),
+		outGoingMBHeader.GetOutGoingOperationsHash(),
 		selfIndex,
 		sr.Header.GetEpoch(),
 		[]byte(sr.SelfPubKey()))
-}
-
-func (sr *sovereignSubRoundOutGoingTxDataSignature) createOutGoingOperationsHash(outGoingOperationHashes [][]byte) []byte {
-	if len(outGoingOperationHashes) == 1 {
-		return outGoingOperationHashes[0]
-	}
-
-	outGoingOperationsHash := make([]byte, 0)
-	for _, outGoingOpHash := range outGoingOperationHashes {
-		outGoingOperationsHash = append(outGoingOperationsHash, outGoingOpHash...)
-	}
-
-	return sr.Hasher().Compute(string(outGoingOperationsHash))
 }
 
 func (sr *sovereignSubRoundOutGoingTxDataSignature) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
