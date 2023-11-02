@@ -27,6 +27,7 @@ type outgoingOperations struct {
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
 // mx-chain-sovereign-notifier-go in the sovereignNotifier.go file. This applies for the factory as well
+// Task: MX-14721
 
 // NewOutgoingOperationsFormatter creates an outgoing operations formatter
 func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler) (*outgoingOperations, error) {
@@ -99,6 +100,7 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]by
 	}
 
 	// TODO: Check gas limit here and split tx data in multiple batches if required
+	// Task: MX-14720
 	return [][]byte{txData}
 }
 

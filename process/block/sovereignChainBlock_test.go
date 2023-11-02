@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,11 +83,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               nil,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		})
 
-		assert.Nil(t, scbp)
-		assert.ErrorIs(t, err, process.ErrNilBlockProcessor)
+		require.Nil(t, scbp)
+		require.ErrorIs(t, err, process.ErrNilBlockProcessor)
 	})
 
 	t.Run("should error when validator statistics is nil", func(t *testing.T) {
@@ -100,11 +99,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: nil,
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		})
 
-		assert.Nil(t, scbp)
-		assert.ErrorIs(t, err, process.ErrNilValidatorStatistics)
+		require.Nil(t, scbp)
+		require.ErrorIs(t, err, process.ErrNilValidatorStatistics)
 	})
 
 	t.Run("should error when outgoing operations formatter is nil", func(t *testing.T) {
@@ -116,11 +115,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  nil,
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		})
 
-		assert.Nil(t, scbp)
-		assert.ErrorIs(t, err, errors.ErrNilOutgoingOperationsFormatter)
+		require.Nil(t, scbp)
+		require.ErrorIs(t, err, errors.ErrNilOutgoingOperationsFormatter)
 	})
 
 	t.Run("should error when outgoing operation pool is nil", func(t *testing.T) {
@@ -148,11 +147,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		})
 
-		assert.Nil(t, scbp)
-		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+		require.Nil(t, scbp)
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 	})
 
 	t.Run("should error when type assertion to extendedShardHeaderRequestHandler fails", func(t *testing.T) {
@@ -168,11 +167,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		})
 
-		assert.Nil(t, scbp)
-		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+		require.Nil(t, scbp)
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -184,11 +183,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ShardProcessor:               sp,
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		})
 
-		assert.NotNil(t, scbp)
-		assert.Nil(t, err)
+		require.NotNil(t, scbp)
+		require.Nil(t, err)
 	})
 }
 
@@ -221,7 +220,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	}
 
 	poolAddCt := 0
-	outGoingOperationsPool := &sovereign.OutGoingOperationsPoolStub{
+	outGoingOperationsPool := &sovereign.OutGoingOperationsPoolMock{
 		AddCalled: func(hash []byte, data []byte) {
 			defer func() {
 				poolAddCt++
@@ -259,6 +258,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 
 	err := scbp.CreateAndSetOutGoingMiniBlock(sovChainHdr, blockBody)
 	require.Nil(t, err)
+	require.Equal(t, 2, poolAddCt)
 
 	expectedOutGoingMb := &block.MiniBlock{
 		TxHashes:        [][]byte{bridgeOp1Hash, bridgeOp2Hash},

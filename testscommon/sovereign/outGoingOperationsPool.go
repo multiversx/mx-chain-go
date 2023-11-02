@@ -1,32 +1,32 @@
 package sovereign
 
-// OutGoingOperationsPoolStub -
-type OutGoingOperationsPoolStub struct {
+// OutGoingOperationsPoolMock -
+type OutGoingOperationsPoolMock struct {
 	AddCalled func(hash []byte, data []byte)
 }
 
 // Add -
-func (stub *OutGoingOperationsPoolStub) Add(hash []byte, data []byte) {
-	if stub.AddCalled != nil {
-		stub.AddCalled(hash, data)
+func (mock *OutGoingOperationsPoolMock) Add(hash []byte, data []byte) {
+	if mock.AddCalled != nil {
+		mock.AddCalled(hash, data)
 	}
 }
 
 // Get -
-func (stub *OutGoingOperationsPoolStub) Get(_ []byte) []byte {
+func (mock *OutGoingOperationsPoolMock) Get(_ []byte) []byte {
 	return nil
 }
 
 // Delete -
-func (stub *OutGoingOperationsPoolStub) Delete(_ []byte) {
+func (mock *OutGoingOperationsPoolMock) Delete(_ []byte) {
 }
 
 // GetUnconfirmedOperations -
-func (stub *OutGoingOperationsPoolStub) GetUnconfirmedOperations() [][]byte {
+func (mock *OutGoingOperationsPoolMock) GetUnconfirmedOperations() [][]byte {
 	return nil
 }
 
 // IsInterfaceNil -
-func (stub *OutGoingOperationsPoolStub) IsInterfaceNil() bool {
-	return stub == nil
+func (mock *OutGoingOperationsPoolMock) IsInterfaceNil() bool {
+	return mock == nil
 }

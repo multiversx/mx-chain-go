@@ -2440,7 +2440,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 				ShardProcessor:               bp,
 				OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
-				OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolStub{},
+				OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			})
 		} else {
 			tpn.BlockProcessor = bp
