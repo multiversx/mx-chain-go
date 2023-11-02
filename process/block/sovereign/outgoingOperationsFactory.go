@@ -7,8 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 )
 
-// CrateOutgoingOperationsFormatter creates an outgoing operations formatter
-func CrateOutgoingOperationsFormatter(
+// CreateOutgoingOperationsFormatter creates an outgoing operations formatter
+func CreateOutgoingOperationsFormatter(
 	events []config.SubscribedEvent,
 	pubKeyConverter core.PubkeyConverter,
 	roundHandler RoundHandler,
