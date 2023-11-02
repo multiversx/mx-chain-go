@@ -473,6 +473,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(args)
 

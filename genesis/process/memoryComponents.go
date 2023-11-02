@@ -36,6 +36,7 @@ func createAccountAdapter(
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 		AddressConverter:      addressConverter,
+		EnableEpochsHandler:   enableEpochsHandler,
 	}
 
 	adb, err := state.NewAccountsDB(args)

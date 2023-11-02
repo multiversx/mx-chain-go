@@ -163,8 +163,9 @@ func createAccountsDb(args ArgsAccountsDB, snapshotManager SnapshotsManager) *Ac
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-		addressConverter: args.AddressConverter,
-		snapshotsManger:  snapshotManager,
+		addressConverter:    args.AddressConverter,
+		snapshotsManger:     snapshotManager,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 }
 
@@ -234,7 +235,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 
 	code, err := adb.getMainTrie().GetStorageManager().Get(codeHash)
 	if err != nil {
-		codeEntry, err := getCodeEntry(codeHash, adb.getMainTrie(), adb.marshaller, adb.enableEpochsHandler)
+		codeEntry, err := getCodeEntry(codeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
 		if err != nil {
 			return nil
 		}

@@ -593,6 +593,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		ProcessStatusHandler:  args.coreComponents.ProcessStatusHandler(),
 		AppStatusHandler:      args.statusCoreComponents.AppStatusHandler(),
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
+		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

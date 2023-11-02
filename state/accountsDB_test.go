@@ -66,6 +66,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -147,6 +148,7 @@ func getDefaultStateComponents(
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2788,7 +2790,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		entry, _ := state.GetCodeEntry(codeHash, tr, marshaller)
+		entry, _ := state.GetCodeEntry(codeHash, tr, marshaller, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		assert.Equal(b, code, entry.Code)
 	}
 }

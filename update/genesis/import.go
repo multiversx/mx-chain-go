@@ -422,6 +422,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 				AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 				AddressConverter:      si.addressConverter,
+				EnableEpochsHandler:   si.enableEpochsHandler,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -447,6 +448,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
 		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 		AddressConverter:      si.addressConverter,
+		EnableEpochsHandler:   si.enableEpochsHandler,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB
