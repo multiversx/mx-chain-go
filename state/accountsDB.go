@@ -633,10 +633,6 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
 
-	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
-		return adb.mainTrie.GetStorageManager().Remove(oldCodeHash)
-	}
-
 	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
