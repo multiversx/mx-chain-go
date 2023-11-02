@@ -100,13 +100,11 @@ type StorageManager interface {
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
-	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
-	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	RemoveFromAllActiveEpochs(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
@@ -237,8 +235,8 @@ type StateStatisticsHandler interface {
 	IncrTrie()
 	Trie() uint64
 
-	ProcessingStats() string
-	SnapshotStats() string
+	ProcessingStats() []string
+	SnapshotStats() []string
 
 	IsInterfaceNil() bool
 }

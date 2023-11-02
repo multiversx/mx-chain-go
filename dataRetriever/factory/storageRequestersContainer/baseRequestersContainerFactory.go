@@ -241,7 +241,6 @@ func (brcf *baseRequestersContainerFactory) createMiniBlocksRequester(responseTo
 
 func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	mainStorer storage.Storer,
-	checkpointsStorer storage.Storer,
 	storageIdentifier dataRetriever.UnitType,
 	handler common.EnableEpochsHandler,
 	stateStatsHandler common.StateStatisticsHandler,
@@ -269,9 +268,7 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 
 	args := trieFactory.TrieCreateArgs{
 		MainStorer:          mainStorer,
-		CheckpointsStorer:   checkpointsStorer,
 		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:  brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		SnapshotsEnabled:    brcf.snapshotsEnabled,
 		IdleProvider:        disabled.NewProcessStatusHandler(),

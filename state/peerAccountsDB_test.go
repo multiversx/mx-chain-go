@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -144,38 +144,6 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 
 	adb.SnapshotState([]byte("rootHash"), 0)
 	assert.False(t, snapshotCalled)
-}
-
-func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	checkpointInProgress := atomic.Flag{}
-	checkpointInProgress.SetValue(true)
-	checkpointCalled := false
-	args := createMockAccountsDBArgs()
-	args.Trie = &trieMock.TrieStub{
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler) {
-					checkpointCalled = true
-					stats.SnapshotFinished()
-				},
-				ExitPruningBufferingModeCalled: func() {
-					checkpointInProgress.SetValue(false)
-				},
-			}
-		},
-	}
-	adb, err := state.NewPeerAccountsDB(args)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(adb))
-
-	adb.SetStateCheckpoint([]byte("rootHash"))
-	for checkpointInProgress.IsSet() {
-		time.Sleep(10 * time.Millisecond)
-	}
-	assert.True(t, checkpointCalled)
 }
 
 func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
@@ -433,7 +401,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 						activeDBWasPut = true
 					}
 
-					if string(key) == state.LastSnapshotStarted {
+					if string(key) == lastSnapshotMarker.LastSnapshot {
 						lastSnapshotStartedWasPut = true
 					}
 
@@ -451,7 +419,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 
 	mut.RLock()
 	defer mut.RUnlock()
-	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
 }
 

@@ -24,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/stretchr/testify/assert"
@@ -172,15 +171,13 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 	}
 
 	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:            marshalizer,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-		Identifier:             "identifier",
-		StatsCollector:         disabled.NewStateStatistics(),
+		MainStorer:     testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:    marshalizer,
+		Hasher:         hasher,
+		GeneralConfig:  generalCfg,
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     "identifier",
+		StatsCollector: disabled.NewStateStatistics(),
 	}
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)

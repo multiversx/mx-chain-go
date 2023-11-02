@@ -64,14 +64,14 @@ func (s *stateStatistics) Trie() uint64 {
 	return 0
 }
 
-// ProcessingStats returns empty string
-func (s *stateStatistics) ProcessingStats() string {
-	return ""
+// ProcessingStats returns nil
+func (s *stateStatistics) ProcessingStats() []string {
+	return nil
 }
 
-// SnapshotStats returns empty string
-func (s *stateStatistics) SnapshotStats() string {
-	return ""
+// SnapshotStats returns nil
+func (s *stateStatistics) SnapshotStats() []string {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

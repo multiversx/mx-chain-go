@@ -147,3 +147,6 @@ var ErrNilChannelsProvider = errors.New("nil channels provider")
 
 // ErrNilStatsHandler signals that a nil stats handler provider has been given
 var ErrNilStatsHandler = errors.New("nil stats handler")
+
+// ErrNilLastSnapshotMarker signals that a nil last snapshot marker has been given
+var ErrNilLastSnapshotMarker = errors.New("nil last snapshot marker")

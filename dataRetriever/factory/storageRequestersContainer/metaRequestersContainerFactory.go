@@ -187,15 +187,9 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 		return err
 	}
 
-	userAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		userAccountsStorer,
-		userAccountsCheckpointStorer,
 		dataRetriever.UserAccountsUnit,
 		mrcf.enableEpochsHandler,
 		mrcf.stateStatsHandler,
@@ -226,15 +220,9 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 		return err
 	}
 
-	peerAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		peerAccountsStorer,
-		peerAccountsCheckpointStorer,
 		dataRetriever.PeerAccountsUnit,
 		mrcf.enableEpochsHandler,
 		mrcf.stateStatsHandler,
