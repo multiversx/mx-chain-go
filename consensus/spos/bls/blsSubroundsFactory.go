@@ -366,7 +366,7 @@ func (fct *factory) generateEndRoundSubroundV2() error {
 		return errV2
 	}
 
-	sovSubRoundSigner, err := NewSovereignSubRoundOutGoingTxDataEnd(subroundSignatureV2Instance.Subround, fct.extraSignerHandler)
+	sovSubRoundSigner, err := NewSovereignSubRoundOutGoingTxDataEnd(fct.extraSignerHandler)
 	if err != nil {
 		return err
 	}

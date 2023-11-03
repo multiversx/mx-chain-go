@@ -3,48 +3,36 @@ package bls
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type sovereignSubRoundOutGoingTxDataEnd struct {
-	*spos.Subround
-
 	signingHandler consensus.SigningHandler
 }
 
 func NewSovereignSubRoundOutGoingTxDataEnd(
-	subRound *spos.Subround,
 	signingHandler consensus.SigningHandler,
 ) (*sovereignSubRoundOutGoingTxDataEnd, error) {
 	return &sovereignSubRoundOutGoingTxDataEnd{
-		Subround:       subRound,
 		signingHandler: signingHandler,
 	}, nil
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyFinalBlockSignatures(cnsDta *consensus.Message) error {
-	if check.IfNil(sr.Header) {
-		return spos.ErrNilHeader
-	}
-
-	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	if check.IfNil(sovHeader.GetOutGoingMiniBlockHeaderHandler()) {
-		return nil
-	}
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 
-	return nil
+	return sr.signingHandler.Verify(outGoingMb.GetOutGoingOperationsHash(), bitmap, header.GetEpoch())
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) AggregateSignatures(bitmap []byte) ([]byte, error) {
-	sig, err := sr.signingHandler.AggregateSigs(bitmap, sr.Header.GetEpoch())
+func (sr *sovereignSubRoundOutGoingTxDataEnd) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
+	sig, err := sr.signingHandler.AggregateSigs(bitmap, epoch)
 	if err != nil {
 		return nil, err
 	}
@@ -131,4 +119,8 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) AddLeaderAndAggregatedSignatures(h
 
 func (sr *sovereignSubRoundOutGoingTxDataEnd) Identifier() string {
 	return "sovereignSubRoundOutGoingTxDataEnd"
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataEnd) IsInterfaceNil() bool {
+	return sr == nil
 }

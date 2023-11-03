@@ -164,13 +164,6 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
-	// placeholder for .VerifyFinalBlockSignatures
-	err = sr.extraSignatureAggregator.VerifyFinalBlockSignatures(cnsDta)
-	if err != nil {
-		log.Debug("isBlockHeaderFinalInfoValid.extraSignatureAggregator.VerifyFinalBlockSignatures", "error", err.Error())
-		return false
-	}
-
 	return true
 }
 
@@ -378,7 +371,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	// broadcast header and final info section
 
-	sr.createAndBroadcastHeaderFinalInfo(sr.extraSig)
+	sr.createAndBroadcastHeaderFinalInfo()
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
@@ -435,11 +428,12 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	}
 
 	// placeholder for AggregateSignatures
-	extraSig, err := sr.extraSignatureAggregator.AggregateSignatures(bitmap)
+	extraSig, err := sr.extraSignatureAggregator.AggregateSignatures(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateSignatures", "error", err.Error())
 
-		return sr.handleInvalidSignersOnAggSigFail()
+		// TODO :MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
+		return nil, nil, err
 	}
 	sr.extraSig = extraSig
 
@@ -454,6 +448,13 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
 		return sr.handleInvalidSignersOnAggSigFail()
+	}
+
+	err = sr.extraSignatureAggregator.VerifyAggregatedSignatures(bitmap, sr.Header)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.extraSignatureAggregator.VerifyAggregatedSignatures", "error", err.Error())
+		// TODO: MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
+		return nil, nil, err
 	}
 
 	return bitmap, sig, nil
@@ -594,7 +595,7 @@ func (sr *subroundEndRound) generateBitmap() []byte {
 	return sr.GenerateBitmap(SrSignature)
 }
 
-func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(extraSig []byte) {
+func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("createAndBroadcastHeaderFinalInfo.GetLeader", "error", errGetLeader)
