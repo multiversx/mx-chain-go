@@ -49,32 +49,28 @@ type ConsensusComponentsFactoryArgs struct {
 	StateComponents       factory.StateComponentsHolder
 	StatusComponents      factory.StatusComponentsHolder
 	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	RunTypeComponents     factory.RunTypeComponentsHolder
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
-	ConsensusModel        consensus.ConsensusModel
-	ChainRunType          common.ChainRunType
 }
 
 type consensusComponentsFactory struct {
-	config                                 config.Config
-	flagsConfig                            config.ContextFlagsConfig
-	bootstrapRoundIndex                    uint64
-	coreComponents                         factory.CoreComponentsHolder
-	networkComponents                      factory.NetworkComponentsHolder
-	cryptoComponents                       factory.CryptoComponentsHolder
-	dataComponents                         factory.DataComponentsHolder
-	processComponents                      factory.ProcessComponentsHolder
-	stateComponents                        factory.StateComponentsHolder
-	statusComponents                       factory.StatusComponentsHolder
-	statusCoreComponents                   factory.StatusCoreComponentsHolder
-	scheduledProcessor                     consensus.ScheduledProcessor
-	isInImportMode                         bool
-	shouldDisableWatchdog                  bool
-	consensusModel                         consensus.ConsensusModel
-	chainRunType                           common.ChainRunType
-	shardStorageBootstrapperFactoryHandler storageBootstrap.BootstrapperFromStorageCreator
-	shardBootstrapFactoryHandler           storageBootstrap.BootstrapperCreator
+	config                config.Config
+	flagsConfig           config.ContextFlagsConfig
+	bootstrapRoundIndex   uint64
+	coreComponents        factory.CoreComponentsHolder
+	networkComponents     factory.NetworkComponentsHolder
+	cryptoComponents      factory.CryptoComponentsHolder
+	dataComponents        factory.DataComponentsHolder
+	processComponents     factory.ProcessComponentsHolder
+	stateComponents       factory.StateComponentsHolder
+	statusComponents      factory.StatusComponentsHolder
+	statusCoreComponents  factory.StatusCoreComponentsHolder
+	runTypeComponents     factory.RunTypeComponentsHolder
+	scheduledProcessor    consensus.ScheduledProcessor
+	isInImportMode        bool
+	shouldDisableWatchdog bool
 }
 
 type consensusComponents struct {
@@ -94,11 +90,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		return nil, err
 	}
 
-	err = checkCompatibleArguments(args)
-	if err != nil {
-		return nil, err
-	}
-
 	return &consensusComponentsFactory{
 		config:                args.Config,
 		flagsConfig:           args.FlagsConfig,
@@ -114,21 +105,8 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-		consensusModel:        args.ConsensusModel,
-		chainRunType:          args.ChainRunType,
+		runTypeComponents:     args.RunTypeComponents,
 	}, nil
-}
-
-func checkCompatibleArguments(args ConsensusComponentsFactoryArgs) error {
-	if args.ChainRunType == common.ChainRunTypeSovereign && args.ConsensusModel != consensus.ConsensusModelV2 {
-		return fmt.Errorf("%w between %s: %s and %s: %s",
-			errors.ErrIncompatibleArgumentsProvided,
-			"args.ChainRunType", args.ChainRunType,
-			"args.ConsensusModel", args.ConsensusModel,
-		)
-	}
-
-	return nil
 }
 
 // Create will init all the components needed for a new instance of consensusComponents
@@ -296,7 +274,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.statusComponents.OutportHandler(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		ccf.consensusModel,
+		ccf.runTypeComponents.ConsensusModel(),
 		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
@@ -463,7 +441,11 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
-	shardStorageBootstrapper, err := ccf.createShardStorageBootstrapper(argsBaseStorageBootstrapper)
+	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+	}
+
+	shardStorageBootstrapper, err := ccf.runTypeComponents.BootstrapperFromStorageCreator().CreateBootstrapperFromStorage(argsShardStorageBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -513,59 +495,10 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
-	return ccf.createShardSyncBootstrapper(argsBaseBootstrapper)
-}
-
-func (ccf *consensusComponentsFactory) createShardStorageBootstrapper(argsBaseStorageBootstrapper storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
-	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
-		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
-	}
-
-	ssbf, err := storageBootstrap.NewShardStorageBootstrapperFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	switch ccf.chainRunType {
-	case common.ChainRunTypeRegular:
-		ccf.shardStorageBootstrapperFactoryHandler = ssbf
-	case common.ChainRunTypeSovereign:
-		sovSsbf, sovErr := storageBootstrap.NewSovereignShardStorageBootstrapperFactory(ssbf)
-		if sovErr != nil {
-			return nil, sovErr
-		}
-		ccf.shardStorageBootstrapperFactoryHandler = sovSsbf
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
-	}
-
-	return ccf.shardStorageBootstrapperFactoryHandler.CreateBootstrapperFromStorage(argsShardStorageBootstrapper)
-}
-
-func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error) {
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 	}
-
-	sbf, err := storageBootstrap.NewShardBootstrapFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	switch ccf.chainRunType {
-	case common.ChainRunTypeRegular:
-		ccf.shardBootstrapFactoryHandler = sbf
-	case common.ChainRunTypeSovereign:
-		sovSbf, sovErr := storageBootstrap.NewSovereignShardBootstrapFactory(sbf)
-		if sovErr != nil {
-			return nil, sovErr
-		}
-		ccf.shardBootstrapFactoryHandler = sovSbf
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
-	}
-
-	return ccf.shardBootstrapFactoryHandler.CreateBootstrapper(argsShardBootstrapper)
+	return ccf.runTypeComponents.BootstrapperCreator().CreateBootstrapper(argsShardBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
@@ -819,7 +752,15 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	if check.IfNil(args.StatusCoreComponents) {
 		return errors.ErrNilStatusCoreComponents
 	}
-
+	if check.IfNil(args.RunTypeComponents) {
+		return errors.ErrNilRunTypeComponents
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperCreator()) {
+		return errors.ErrNilBootstrapperCreator
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
+		return errors.ErrNilBootstrapperFromStorageCreator
+	}
 	return nil
 }
 

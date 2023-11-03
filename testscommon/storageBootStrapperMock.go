@@ -1,4 +1,4 @@
-package mock
+package testscommon
 
 // StorageBootstrapperMock -
 type StorageBootstrapperMock struct {
@@ -13,12 +13,12 @@ func (sbm *StorageBootstrapperMock) LoadFromStorage() error {
 	return nil
 }
 
-// IsInterfaceNil -
-func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
-	return sbm == nil
-}
-
 // GetHighestBlockNonce -
 func (sbm *StorageBootstrapperMock) GetHighestBlockNonce() uint64 {
 	return 0
+}
+
+// IsInterfaceNil -
+func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
+	return sbm == nil
 }

@@ -46,19 +46,19 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs              *config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	GasScheduleNotifier  common.GasScheduleNotifierAPI
-	Bootstrapper         process.Bootstrapper
-	AllowVMQueriesChan   chan struct{}
-	ChainRunType         common.ChainRunType
+	Configs               *config.Configs
+	CoreComponents        factory.CoreComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHolder
+	ProcessComponents     factory.ProcessComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	StatusComponents      factory.StatusComponentsHolder
+	GasScheduleNotifier   common.GasScheduleNotifierAPI
+	Bootstrapper          process.Bootstrapper
+	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
+	AllowVMQueriesChan    chan struct{}
 }
 
 type scQueryServiceArgs struct {
@@ -76,7 +76,7 @@ type scQueryServiceArgs struct {
 	guardedAccountHandler process.GuardedAccountHandler
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
-	chainRunType          common.ChainRunType
+	blockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
 type scQueryElementArgs struct {
@@ -94,7 +94,7 @@ type scQueryElementArgs struct {
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
 	index                 int
-	chainRunType          common.ChainRunType
+	blockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -115,7 +115,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		guardedAccountHandler: args.BootstrapComponents.GuardedAccountHandler(),
 		allowVMQueriesChan:    args.AllowVMQueriesChan,
 		workingDir:            apiWorkingDir,
-		chainRunType:          args.ChainRunType,
+		blockChainHookCreator: args.BlockChainHookCreator,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -301,7 +301,7 @@ func createScQueryService(
 		guardedAccountHandler: args.guardedAccountHandler,
 		allowVMQueriesChan:    args.allowVMQueriesChan,
 		index:                 0,
-		chainRunType:          args.chainRunType,
+		blockChainHookCreator: args.blockChainHookCreator,
 	}
 
 	var err error
@@ -392,7 +392,7 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHookImpl, errBlockChainHook := hooks.CreateBlockChainHook(args.chainRunType, argsHook)
+	blockChainHookImpl, errBlockChainHook := args.blockChainHookCreator.CreateBlockChainHookHandler(argsHook)
 	if errBlockChainHook != nil {
 		return nil, errBlockChainHook
 	}

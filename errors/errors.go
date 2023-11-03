@@ -641,6 +641,9 @@ var ErrNilEpochStartBootstrapperCreator = errors.New("nil epoch start bootstrapp
 // ErrNilBootstrapperFromStorageCreator signals that a nil bootstrapper from storage creator has been provided
 var ErrNilBootstrapperFromStorageCreator = errors.New("nil bootstrapper from storage creator")
 
+// ErrNilBootstrapperCreator signals that a nil bootstrapper creator has been provided
+var ErrNilBootstrapperCreator = errors.New("nil bootstrapper creator")
+
 // ErrNilBlockProcessorCreator signals that a nil block processor creator has been provided
 var ErrNilBlockProcessorCreator = errors.New("nil block processor creator")
 
@@ -670,6 +673,9 @@ var ErrNilAdditionalStorageServiceCreator = errors.New("nil additional storage s
 
 // ErrNilSCProcessorCreator signals that a nil sc processor creator has been provided
 var ErrNilSCProcessorCreator = errors.New("nil sc processor creator")
+
+// ErrNilSCResultsPreProcessorCreator signals that a nil sc results pre processor creator has been provided
+var ErrNilSCResultsPreProcessorCreator = errors.New("nil sc results pre processor creator")
 
 // ErrNilFunction signals that a nil function has been provided
 var ErrNilFunction = errors.New("nil function")

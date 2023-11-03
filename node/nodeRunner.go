@@ -28,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/goroutines"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -470,6 +469,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -492,6 +492,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating node structure")
 	currentNode, err := CreateNode(
 		configs.GeneralConfig,
+		managedRunTypeComponents,
 		managedStatusCoreComponents,
 		managedBootstrapComponents,
 		managedCoreComponents,
@@ -705,19 +706,19 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
-		CoreComponents:       currentNode.coreComponents,
-		DataComponents:       currentNode.dataComponents,
-		StateComponents:      currentNode.stateComponents,
-		BootstrapComponents:  currentNode.bootstrapComponents,
-		CryptoComponents:     currentNode.cryptoComponents,
-		ProcessComponents:    currentNode.processComponents,
-		StatusCoreComponents: currentNode.statusCoreComponents,
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     currentNode.statusComponents,
-		ChainRunType:         common.ChainRunTypeRegular,
+		Configs:               configs,
+		CoreComponents:        currentNode.coreComponents,
+		DataComponents:        currentNode.dataComponents,
+		StateComponents:       currentNode.stateComponents,
+		BootstrapComponents:   currentNode.bootstrapComponents,
+		CryptoComponents:      currentNode.cryptoComponents,
+		ProcessComponents:     currentNode.processComponents,
+		StatusCoreComponents:  currentNode.statusCoreComponents,
+		GasScheduleNotifier:   gasScheduleNotifier,
+		Bootstrapper:          currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:    allowVMQueriesChan,
+		StatusComponents:      currentNode.statusComponents,
+		BlockChainHookCreator: currentNode.runTypeComponents.BlockChainHookHandlerCreator(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -858,6 +859,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -885,8 +887,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        consensus.ConsensusModelV1,
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents:     runTypeComponents,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1248,7 +1249,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:            historyRepository,
 		FlagsConfig:            *configs.FlagsConfig,
 		RunTypeComponents:      runTypeComponents,
-		ChainRunType:           common.ChainRunTypeRegular,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1296,7 +1296,6 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		FlagsConfigs:                    *configs.FlagsConfig,
 		NodeProcessingMode:              common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
-		ChainRunType:                    common.ChainRunTypeRegular,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

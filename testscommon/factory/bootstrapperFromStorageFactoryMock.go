@@ -3,22 +3,23 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
-// BootstrapperFromStorageFactoryStub -
-type BootstrapperFromStorageFactoryStub struct {
+// BootstrapperFromStorageFactoryMock -
+type BootstrapperFromStorageFactoryMock struct {
 	CreateBootstrapperFromStorageCalled func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error)
 }
 
 // CreateBootstrapperFromStorage -
-func (b *BootstrapperFromStorageFactoryStub) CreateBootstrapperFromStorage(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+func (b *BootstrapperFromStorageFactoryMock) CreateBootstrapperFromStorage(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 	if b.CreateBootstrapperFromStorageCalled != nil {
 		return b.CreateBootstrapperFromStorageCalled(args)
 	}
-	return nil, nil
+	return &testscommon.StorageBootstrapperMock{}, nil
 }
 
 // IsInterfaceNil -
-func (b *BootstrapperFromStorageFactoryStub) IsInterfaceNil() bool {
+func (b *BootstrapperFromStorageFactoryMock) IsInterfaceNil() bool {
 	return b == nil
 }

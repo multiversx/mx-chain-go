@@ -40,9 +40,12 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	txProc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -62,6 +65,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -651,6 +655,10 @@ func CreateFullGenesisBlocks(
 	dataComponents.BlockChain = blkc
 
 	roundsConfig := GetDefaultRoundsConfig()
+	runTypeComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
+	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
+	runTypeComponents.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
@@ -717,8 +725,8 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig: &roundsConfig,
-		ChainRunType: common.ChainRunTypeRegular,
+		RoundConfig:       &roundsConfig,
+		RunTypeComponents: runTypeComponents,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -822,7 +830,7 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

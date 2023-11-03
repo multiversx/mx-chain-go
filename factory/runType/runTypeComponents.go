@@ -3,6 +3,7 @@ package runType
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
@@ -28,6 +29,7 @@ type runTypeComponents struct {
 	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
 	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
 	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
+	bootstrapperCreator                 storageBootstrap.BootstrapperCreator
 	blockProcessorCreator               processBlock.BlockProcessorCreator
 	forkDetectorCreator                 sync.ForkDetectorCreator
 	blockTrackerCreator                 track.BlockTrackerCreator
@@ -38,6 +40,8 @@ type runTypeComponents struct {
 	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
 	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
 	scProcessorCreator                  scrCommon.SCProcessorCreator
+	scResultPreProcessorCreator         preprocess.SmartContractResultPreProcessorCreator
+	consensusModel                      consensus.ConsensusModel
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -60,6 +64,11 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	bootstrapperFromStorageFactory, err := storageBootstrap.NewShardStorageBootstrapperFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardStorageBootstrapperFactory failed: %w", err)
+	}
+
+	shardBootstrapFactory, err := storageBootstrap.NewShardBootstrapFactory()
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBootstrapFactory failed: %w", err)
 	}
 
 	blockProcessorFactory, err := block.NewShardBlockProcessorFactory()
@@ -92,6 +101,11 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
 	}
 
+	scResultsPreProcessorCreator, err := preprocess.NewSmartContractResultPreProcessorFactory()
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewSmartContractResultPreProcessorFactory failed: %w", err)
+	}
+
 	transactionCoordinatorFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardTransactionCoordinatorFactory failed: %w", err)
@@ -116,6 +130,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
 		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
+		bootstrapperCreator:                 shardBootstrapFactory,
 		blockProcessorCreator:               blockProcessorFactory,
 		forkDetectorCreator:                 forkDetectorFactory,
 		blockTrackerCreator:                 blockTrackerFactory,
@@ -126,6 +141,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
 		scProcessorCreator:                  scProcessorCreator,
+		scResultPreProcessorCreator:         scResultsPreProcessorCreator,
+		consensusModel:                      consensus.ConsensusModelV1,
 	}, nil
 }
 

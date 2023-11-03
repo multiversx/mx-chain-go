@@ -160,7 +160,6 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	RunTypeComponents    factory.RunTypeComponentsHolder
-	ChainRunType         common.ChainRunType
 }
 
 type processComponentsFactory struct {
@@ -195,7 +194,6 @@ type processComponentsFactory struct {
 	statusComponents     factory.StatusComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
 	runTypeComponents    factory.RunTypeComponentsHolder
-	chainRunType         common.ChainRunType
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -232,7 +230,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:   args.StatusCoreComponents,
 		flagsConfig:            args.FlagsConfig,
 		runTypeComponents:      args.RunTypeComponents,
-		chainRunType:           args.ChainRunType,
 	}, nil
 }
 
@@ -891,7 +888,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNodePrice:     genesisNodePrice,
 		RoundConfig:          &pcf.roundConfig,
 		EpochConfig:          &pcf.epochConfig,
-		ChainRunType:         pcf.chainRunType,
+		RunTypeComponents:    pcf.runTypeComponents,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -2023,7 +2020,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
 	}
-
+	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCResultsPreProcessorCreator)
+	}
 	return nil
 }
 

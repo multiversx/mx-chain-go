@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -107,7 +109,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		BlockChainHookCreator: &factory.BlockChainHookHandlerFactoryMock{},
 	}
 }
 
@@ -342,7 +344,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
-		ChainRunType:          common.ChainRunTypeRegular,
+		BlockChainHookCreator: &factory.BlockChainHookHandlerFactoryMock{},
 	}
 }
 
@@ -405,11 +407,15 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 				},
 			},
 		}
-		dataCompMock := args.DataComponents.(*mock.DataComponentsMock)
-		dataCompMock.Storage = nil
+		expectedError := errors.New("createBlockchainHook failed")
+		args.BlockChainHookCreator = &factory.BlockChainHookHandlerFactoryMock{
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+				return nil, expectedError
+			},
+		}
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "storage"))
+		require.Equal(t, expectedError, err)
 		require.Nil(t, scQueryService)
 	})
 	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
@@ -454,11 +460,15 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs()
-		dataCompMock := args.DataComponents.(*mock.DataComponentsMock)
-		dataCompMock.Storage = nil
+		expectedErr := errors.New("createBlockchainHook failed")
+		args.BlockChainHookCreator = &factory.BlockChainHookHandlerFactoryMock{
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+				return nil, expectedErr
+			},
+		}
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "storage"))
+		require.Equal(t, expectedErr, err)
 		require.Nil(t, scQueryService)
 	})
 	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {

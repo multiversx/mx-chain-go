@@ -1,6 +1,7 @@
 package mainFactoryMocks
 
 import (
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
@@ -13,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 )
 
 // RunTypeComponentsStub -
@@ -21,6 +23,7 @@ type RunTypeComponentsStub struct {
 	BlockProcessorFactory               block.BlockProcessorCreator
 	BlockTrackerFactory                 track.BlockTrackerCreator
 	BootstrapperFromStorageFactory      storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperFactory                 storageBootstrap.BootstrapperCreator
 	EpochStartBootstrapperFactory       bootstrap.EpochStartBootstrapperCreator
 	ForkDetectorFactory                 sync.ForkDetectorCreator
 	HeaderValidatorFactory              block.HeaderValidatorCreator
@@ -29,7 +32,31 @@ type RunTypeComponentsStub struct {
 	TransactionCoordinatorFactory       coordinator.TransactionCoordinatorCreator
 	ValidatorStatisticsProcessorFactory peer.ValidatorStatisticsProcessorCreator
 	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
+	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory                  scrCommon.SCProcessorCreator
+	ConsensusModelType                  consensus.ConsensusModel
+}
+
+// NewRunTypeComponentsStub -
+func NewRunTypeComponentsStub() *RunTypeComponentsStub {
+	return &RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        &testFactory.BlockChainHookHandlerFactoryMock{},
+		BlockProcessorFactory:               &testFactory.BlockProcessorFactoryMock{},
+		BlockTrackerFactory:                 &testFactory.BlockTrackerFactoryMock{},
+		BootstrapperFromStorageFactory:      &testFactory.BootstrapperFromStorageFactoryMock{},
+		BootstrapperFactory:                 &testFactory.BootstrapperFactoryMock{},
+		EpochStartBootstrapperFactory:       &testFactory.EpochStartBootstrapperFactoryMock{},
+		ForkDetectorFactory:                 &testFactory.ForkDetectorFactoryMock{},
+		HeaderValidatorFactory:              &testFactory.HeaderValidatorFactoryMock{},
+		RequestHandlerFactory:               &testFactory.RequestHandlerFactoryMock{},
+		ScheduledTxsExecutionFactory:        &testFactory.ScheduledTxsExecutionFactoryMock{},
+		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryMock{},
+		ValidatorStatisticsProcessorFactory: &testFactory.ValidatorStatisticsProcessorFactoryMock{},
+		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryMock{},
+		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryMock{},
+		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
+		ConsensusModelType:                  consensus.ConsensusModelV1,
+	}
 }
 
 // Create -
@@ -70,6 +97,11 @@ func (r *RunTypeComponentsStub) BlockTrackerCreator() track.BlockTrackerCreator 
 // BootstrapperFromStorageCreator -
 func (r *RunTypeComponentsStub) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
 	return r.BootstrapperFromStorageFactory
+}
+
+// BootstrapperCreator -
+func (r *RunTypeComponentsStub) BootstrapperCreator() storageBootstrap.BootstrapperCreator {
+	return r.BootstrapperFactory
 }
 
 // EpochStartBootstrapperCreator -
@@ -115,6 +147,16 @@ func (r *RunTypeComponentsStub) AdditionalStorageServiceCreator() process.Additi
 // SCProcessorCreator -
 func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreator {
 	return r.SCProcessorFactory
+}
+
+// SCResultsPreProcessorCreator -
+func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
+	return r.SCResultsPreProcessorFactory
+}
+
+// ConsensusModel -
+func (r *RunTypeComponentsStub) ConsensusModel() consensus.ConsensusModel {
+	return r.ConsensusModelType
 }
 
 // IsInterfaceNil -

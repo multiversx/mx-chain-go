@@ -2,10 +2,10 @@ package api
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -25,7 +25,7 @@ type SCQueryElementArgs struct {
 	WorkingDir            string
 	Index                 int
 	GuardedAccountHandler process.GuardedAccountHandler
-	ChainRunType          common.ChainRunType
+	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
 // CreateScQueryElement -
@@ -45,6 +45,6 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 		workingDir:            args.WorkingDir,
 		index:                 args.Index,
 		guardedAccountHandler: args.GuardedAccountHandler,
-		chainRunType:          args.ChainRunType,
+		blockChainHookCreator: args.BlockChainHookCreator,
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -56,6 +57,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignShardStorageBootstrapperFactory failed: %w", err)
 	}
 
+	bootstrapperFactory, err := storageBootstrap.NewSovereignShardBootstrapFactory(rtc.bootstrapperCreator)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignShardBootstrapFactory failed: %w", err)
+	}
+
 	blockProcessorFactory, err := block.NewSovereignBlockProcessorFactory(rtc.blockProcessorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignBlockProcessorFactory failed: %w", err)
@@ -106,10 +112,16 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
 	}
 
+	scResultPreProcessorCreator, err := preprocess.NewSovereignSmartContractResultPreProcessorFactory(rtc.scResultPreProcessorCreator)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
 		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
+		bootstrapperCreator:                 bootstrapperFactory,
 		blockProcessorCreator:               blockProcessorFactory,
 		forkDetectorCreator:                 forkDetectorFactory,
 		blockTrackerCreator:                 blockTrackerFactory,
@@ -120,5 +132,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:     additionalStorageServiceCreator,
 		scProcessorCreator:                  scProcessorCreator,
+		scResultPreProcessorCreator:         scResultPreProcessorCreator,
+		consensusModel:                      consensus.ConsensusModelV2,
 	}, nil
 }

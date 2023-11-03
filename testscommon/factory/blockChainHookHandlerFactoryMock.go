@@ -3,22 +3,23 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
-// BlockChainHookHandlerFactoryStub -
-type BlockChainHookHandlerFactoryStub struct {
+// BlockChainHookHandlerFactoryMock -
+type BlockChainHookHandlerFactoryMock struct {
 	CreateBlockChainHookHandlerCalled func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error)
 }
 
 // CreateBlockChainHookHandler -
-func (b *BlockChainHookHandlerFactoryStub) CreateBlockChainHookHandler(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+func (b *BlockChainHookHandlerFactoryMock) CreateBlockChainHookHandler(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
 	if b.CreateBlockChainHookHandlerCalled != nil {
 		return b.CreateBlockChainHookHandlerCalled(args)
 	}
-	return nil, nil
+	return &testscommon.BlockChainHookStub{}, nil
 }
 
 // IsInterfaceNil -
-func (b *BlockChainHookHandlerFactoryStub) IsInterfaceNil() bool {
+func (b *BlockChainHookHandlerFactoryMock) IsInterfaceNil() bool {
 	return b == nil
 }

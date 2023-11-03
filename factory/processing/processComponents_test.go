@@ -239,7 +239,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
 		RunTypeComponents: components.GetRunTypeComponents(),
-		ChainRunType:      common.ChainRunTypeRegular,
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -703,6 +702,9 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
 		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
 		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                  rt.SCProcessorCreator(),
+		BootstrapperFactory:                 rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 	}
 }
 

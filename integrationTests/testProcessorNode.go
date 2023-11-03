@@ -102,6 +102,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -529,7 +530,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
-		ChainRunType:             chainRunType,
+		ChainRunType:               chainRunType,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -962,7 +963,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
-		blockChainHookImpl, _ := hooks.CreateBlockChainHook(tpn.ChainRunType, argsHook)
+		blockChainHookImpl, _ := CreateBlockChainHook(argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:              *vmConfig,
 			BlockChainHook:      blockChainHookImpl,
@@ -1602,7 +1603,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	blockChainHookImpl, _ := hooks.CreateBlockChainHook(tpn.ChainRunType, argsHook)
+	blockChainHookImpl, _ := CreateBlockChainHook(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:              *vmConfig,
@@ -1705,31 +1706,40 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	args := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:             tpn.ShardCoordinator,
-		Store:                        tpn.Storage,
-		Marshaller:                   TestMarshalizer,
-		Hasher:                       TestHasher,
-		DataPool:                     tpn.DataPool,
-		PubkeyConverter:              TestAddressPubkeyConverter,
-		Accounts:                     tpn.AccntState,
-		RequestHandler:               tpn.RequestHandler,
-		TxProcessor:                  tpn.TxProcessor,
-		ScProcessor:                  tpn.ScProcessor,
-		ScResultProcessor:            tpn.ScProcessor,
-		RewardsTxProcessor:           tpn.RewardsProcessor,
-		EconomicsFee:                 tpn.EconomicsData,
-		GasHandler:                   tpn.GasHandler,
-		BlockTracker:                 tpn.BlockTracker,
-		BlockSizeComputation:         TestBlockSizeComputationHandler,
-		BalanceComputation:           TestBalanceComputationHandler,
-		EnableEpochsHandler:          tpn.EnableEpochsHandler,
-		TxTypeHandler:                txTypeHandler,
-		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
-		ChainRunType:                 tpn.ChainRunType,
+	scrPreProcessorFactory, err := preprocess.NewSmartContractResultPreProcessorFactory()
+	if err != nil {
+		panic(err)
 	}
-	fact, _ := shard.NewPreProcessorsContainerFactory(args)
+
+	args := shard.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:                       tpn.ShardCoordinator,
+		Store:                                  tpn.Storage,
+		Marshaller:                             TestMarshalizer,
+		Hasher:                                 TestHasher,
+		DataPool:                               tpn.DataPool,
+		PubkeyConverter:                        TestAddressPubkeyConverter,
+		Accounts:                               tpn.AccntState,
+		RequestHandler:                         tpn.RequestHandler,
+		TxProcessor:                            tpn.TxProcessor,
+		ScProcessor:                            tpn.ScProcessor,
+		ScResultProcessor:                      tpn.ScProcessor,
+		RewardsTxProcessor:                     tpn.RewardsProcessor,
+		EconomicsFee:                           tpn.EconomicsData,
+		GasHandler:                             tpn.GasHandler,
+		BlockTracker:                           tpn.BlockTracker,
+		BlockSizeComputation:                   TestBlockSizeComputationHandler,
+		BalanceComputation:                     TestBalanceComputationHandler,
+		EnableEpochsHandler:                    tpn.EnableEpochsHandler,
+		TxTypeHandler:                          txTypeHandler,
+		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
+		SmartContractResultPreProcessorCreator: scrPreProcessorFactory,
+	}
+	fact, err := shard.NewPreProcessorsContainerFactory(args)
+	if err != nil {
+		log.Info(err.Error())
+		panic(err)
+	}
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -3217,6 +3227,29 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 	}
 }
 
+// GetDefaultRunTypeComponents -
+func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
+	rt := components.GetRunTypeComponents()
+	return &mainFactoryMocks.RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
+		BlockProcessorFactory:               rt.BlockProcessorCreator(),
+		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
+		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
+		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
+		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
+		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
+		RequestHandlerFactory:               rt.RequestHandlerCreator(),
+		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
+		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
+		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
+		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                  rt.SCProcessorCreator(),
+		BootstrapperFactory:                 rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		ConsensusModelType:                  consensusModel,
+	}
+}
+
 // GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsStub {
 	enableEpochsCfg := CreateEnableEpochsConfig()
@@ -3528,4 +3561,14 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 			},
 		},
 	}
+}
+
+// CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
+func CreateBlockChainHook(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+	blockChainHookFactory, err := hooks.NewBlockChainHookFactory()
+	if err != nil {
+		return nil, err
+	}
+
+	return blockChainHookFactory.CreateBlockChainHookHandler(args)
 }

@@ -574,6 +574,7 @@ type RunTypeComponentsHolder interface {
 	BlockProcessorCreator() processBlock.BlockProcessorCreator
 	BlockTrackerCreator() track.BlockTrackerCreator
 	BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperCreator() storageBootstrap.BootstrapperCreator
 	EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator
 	ForkDetectorCreator() sync.ForkDetectorCreator
 	HeaderValidatorCreator() processBlock.HeaderValidatorCreator
@@ -583,6 +584,8 @@ type RunTypeComponentsHolder interface {
 	ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator
 	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
 	SCProcessorCreator() scrCommon.SCProcessorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	ConsensusModel() consensus.ConsensusModel
 	Close() error
 	IsInterfaceNil() bool
 }

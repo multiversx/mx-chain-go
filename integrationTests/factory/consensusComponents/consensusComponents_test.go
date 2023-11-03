@@ -123,6 +123,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedConsensusComponents)

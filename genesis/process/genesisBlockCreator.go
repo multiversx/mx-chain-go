@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -183,6 +184,18 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.SmartContractParser) {
 		return genesis.ErrNilSmartContractParser
+	}
+	if check.IfNil(arg.RunTypeComponents) {
+		return errors.ErrNilRunTypeComponents
+	}
+	if check.IfNil(arg.RunTypeComponents.BlockChainHookHandlerCreator()) {
+		return errors.ErrNilBlockChainHookHandlerCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.SCResultsPreProcessorCreator()) {
+		return errors.ErrNilSCResultsPreProcessorCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
+		return errors.ErrNilTransactionCoordinatorCreator
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
@@ -440,7 +453,8 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
-	blockChainHook, err := hooks.CreateBlockChainHook(gbc.arg.ChainRunType, argsHook)
+
+	blockChainHook, err := gbc.arg.RunTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return err
 	}
