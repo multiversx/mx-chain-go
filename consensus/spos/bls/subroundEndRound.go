@@ -146,20 +146,11 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
-	/////// DELETE HERE
-
-	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return false
-	}
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	err = outGoingMb.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
-	err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	err = sr.extraSignatureAggregator.HaveConsensusHeaderWithFullInfo(header, cnsDta)
 	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.extraSignatureAggregator.HaveConsensusHeaderWithFullInfo", "error", err.Error())
 		return false
 	}
-
-	/////// DELETE HERE
 
 	err = sr.HeaderSigVerifier().VerifyLeaderSignature(header)
 	if err != nil {
@@ -347,20 +338,10 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	////// DELETE
-	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return false
-	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	err = outGoingMb.SetAggregatedSignatureOutGoingOperations(sr.extraSig)
-	err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	err = sr.extraSignatureAggregator.SeAggregatedSignatureInHeader(sr.Header, sr.extraSig)
 	if err != nil {
 		return false
 	}
-
-	////// DELETE
 
 	// Header is complete so the leader can sign it
 	leaderSignature, err := sr.signBlockHeader()
@@ -468,24 +449,6 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
-
-	/////// DELETEEEE
-
-	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return nil, nil, err
-	}
-
-	if check.IfNil(sovHeader.GetOutGoingMiniBlockHeaderHandler()) {
-		return bitmap, sig, nil
-	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	err = outGoingMb.SetAggregatedSignatureOutGoingOperations(extraSig)
-	if err != nil {
-		return nil, nil, err
-	}
-	////// DELEETEEEE
 
 	return bitmap, sig, nil
 }
@@ -811,20 +774,12 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 	if err != nil {
 		return false, nil
 	}
-	//// DELETEEE
-	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return false, nil
-	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	_ = outGoingMb.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
-	err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	err = sr.extraSignatureAggregator.HaveConsensusHeaderWithFullInfo(header, cnsDta)
 	if err != nil {
 		return false, nil
 	}
 
-	//// DELETEEE
 	return true, header
 }
 

@@ -176,7 +176,17 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
+	err = multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
+	if err != nil {
+		return err
+	}
+
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, sovHeader.GetOutGoingMiniBlockHeaderHandler().GetOutGoingOperationsHash(), sovHeader.GetOutGoingMiniBlockHeaderHandler().GetAggregatedSignatureOutGoingOperations())
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {

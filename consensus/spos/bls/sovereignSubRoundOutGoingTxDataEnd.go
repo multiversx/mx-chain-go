@@ -57,6 +57,36 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) AggregateSignatures(bitmap []byte)
 	return sig, nil
 }
 
+func (sr *sovereignSubRoundOutGoingTxDataEnd) SeAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(aggregatedSig)
+	if err != nil {
+		return err
+	}
+
+	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+}
+
+func (sr *sovereignSubRoundOutGoingTxDataEnd) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(cnsMsg.AggregatedSignatureOutGoingTxData)
+	if err != nil {
+		return err
+	}
+
+	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+}
+
 func (sr *sovereignSubRoundOutGoingTxDataEnd) AddAggregatedSignature(aggregatedSig []byte, cnsMsg *consensus.Message) error {
 
 	/*
