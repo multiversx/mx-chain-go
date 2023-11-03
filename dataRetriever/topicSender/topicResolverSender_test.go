@@ -163,6 +163,7 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 		sentToPid1 := false
 		buffToSend := []byte("buff")
 
+		sentToPid1 := false
 		arg := createMockArgTopicResolverSender()
 		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {

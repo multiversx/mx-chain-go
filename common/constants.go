@@ -612,6 +612,9 @@ const (
 
 	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
 	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+
+	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
 )
 
 const (
@@ -878,6 +881,9 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
+
+// FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
+const FullArchiveMetricSuffix = "_full_archive"
 
 // ChainRunType defines the types of chain to be run: regular (shards + metachain) or sovereign
 type ChainRunType string

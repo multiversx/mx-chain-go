@@ -19,6 +19,12 @@ import (
 	"github.com/urfave/cli"
 )
 
+// Before merging anything into feat/chain-go-sdk, please try a "stress" system test with a local testnet and this notifier.
+// Steps:
+// 1. Replace github.com/multiversx/mx-chain-communication-go from cmd/sovereignnode/systemTestDemo/go.mod with the one
+// from this branch: sovereign-stress-test-branch.
+// 2. Keep the config in variables.sh with at least 3 validators.
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "MultiversX sovereign chain mock notifier"
@@ -110,6 +116,7 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 			BlockingAckOnError:         false,
 			DropMessagesIfNoConnection: false,
 			AcknowledgeTimeoutInSec:    60,
+			Version:                    1,
 		},
 		Marshaller: marshaller,
 		Log:        log,
@@ -132,6 +139,7 @@ func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.H
 			Round:        nonce,
 			RandSeed:     generateRandomHash(),
 			PrevRandSeed: prevRandSeed,
+			ChainID:      []byte("1"),
 		},
 	}
 }
@@ -164,6 +172,13 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 		return nil, err
 	}
 
+	nonce := big.NewInt(int64(ct)).Bytes()
+	gasLimit := big.NewInt(69327).Bytes()
+	dummyFuncWithArgsAndGas := []byte("@0a@@66756e6332@61726731@")
+
+	logData := append(nonce, dummyFuncWithArgsAndGas...)
+	logData = append(logData, gasLimit...)
+
 	return []*outport.LogData{
 		{
 			Log: &transaction.Log{
@@ -173,6 +188,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 						Address:    subscribedAddr,
 						Identifier: []byte("deposit"),
 						Topics:     topics,
+						Data:       logData,
 					},
 				},
 			},

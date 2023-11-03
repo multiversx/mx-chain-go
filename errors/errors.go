@@ -611,6 +611,60 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
 var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
+// ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
+var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")
+
+// ErrNilShardCoordinatorFactory signals that a nil shard coordinator factory has been provided
+var ErrNilShardCoordinatorFactory = errors.New("nil shard coordinator factory provided")
+
+// ErrNilGenesisBlockFactory signals that a nil genesis block factory has been provided
+var ErrNilGenesisBlockFactory = errors.New("nil genesis block factory has been provided")
+
+// ErrNilNodesSetupFactory signals that a nil nodes setup factory has been provided
+var ErrNilNodesSetupFactory = errors.New("nil nodes setup factory provided")
+
+// ErrNilRatingsDataFactory signals that a nil ratings data factory has been provided
+var ErrNilRatingsDataFactory = errors.New("nil ratings data factory provided")
+
+// ErrNilGenesisMetaBlockChecker signals that a nil genesis meta block checker has been provided
+var ErrNilGenesisMetaBlockChecker = errors.New("nil genesis meta block checker has been provided")
+
+// ErrGenesisMetaBlockDoesNotExist signals that genesis meta block does not exist
+var ErrGenesisMetaBlockDoesNotExist = errors.New("genesis meta block does not exist")
+
+// ErrInvalidGenesisMetaBlock signals that genesis meta block should be of type meta header handler
+var ErrInvalidGenesisMetaBlock = errors.New("genesis meta block invalid, should be of type meta header handler")
+
+// ErrGenesisMetaBlockOnSovereign signals that genesis meta block was found on sovereign chain
+var ErrGenesisMetaBlockOnSovereign = errors.New("genesis meta block was found on sovereign chain")
+
+// ErrNilShardRequesterContainerFactory signals that a nil shard requester container factory has been provided
+var ErrNilShardRequesterContainerFactory = errors.New("nil shard shard requester container factory provided")
+
+// ErrNilRequesterContainerFactoryCreator signals that a nil requester container factory creator has been provided
+var ErrNilRequesterContainerFactoryCreator = errors.New("nil requester container factory creator provided")
+
+// ErrNilInterceptorsContainerFactoryCreator signals that a nil interceptors container factory creator has been provided
+var ErrNilInterceptorsContainerFactoryCreator = errors.New("nil interceptors container factory creator has been provided")
+
+// ErrNilShardInterceptorsContainerFactory signals that a nil shard interceptors container factory has been provided
+var ErrNilShardInterceptorsContainerFactory = errors.New("nil shard interceptors container factory has been provided")
+
+// ErrNilIncomingHeaderSubscriber signals that a nil incoming header subscriber has been provided
+var ErrNilIncomingHeaderSubscriber = errors.New("nil incoming header subscriber has been provided")
+
+// ErrNilShardResolversContainerFactory signals that a nil shard resolvers container factory has been provided
+var ErrNilShardResolversContainerFactory = errors.New("nil shard resolvers container factory has been provided")
+
+// ErrNilShardResolversContainerFactoryCreator signals that a nil shard resolvers container factory creator has been provided
+var ErrNilShardResolversContainerFactoryCreator = errors.New("nil shard resolvers container factory creator has been provided")
+
+// ErrInvalidReceivedExtendedShardHeader signals that an invalid extended shard header has been intercepted when requested
+var ErrInvalidReceivedExtendedShardHeader = errors.New("invalid extended shard header has been intercepted")
+
+// ErrNilTxPreProcessorCreator signals that a nil tx pre-processor creator has been provided
+var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor creator has been provided")
+
 // ErrInvalidTypeConversion signals that a type conversion has failed
 var ErrInvalidTypeConversion = errors.New("invalid type conversion")
 

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	mockCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -26,27 +27,29 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContainerFactory {
 	return ArgPreProcessorsContainerFactory{
-		ShardCoordinator:                       mock.NewMultiShardsCoordinatorMock(3),
-		Store:                                  &storageStubs.ChainStorerStub{},
-		Marshaller:                             &mock.MarshalizerMock{},
-		Hasher:                                 &hashingMocks.HasherMock{},
-		DataPool:                               dataRetrieverMock.NewPoolsHolderMock(),
-		PubkeyConverter:                        createMockPubkeyConverter(),
-		Accounts:                               &stateMock.AccountsStub{},
-		RequestHandler:                         &testscommon.RequestHandlerStub{},
-		TxProcessor:                            &testscommon.TxProcessorMock{},
-		ScProcessor:                            &testscommon.SCProcessorMock{},
-		ScResultProcessor:                      &testscommon.SmartContractResultsProcessorMock{},
-		RewardsTxProcessor:                     &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                           &economicsmocks.EconomicsHandlerStub{},
-		GasHandler:                             &testscommon.GasHandlerStub{},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Store:                        &storageStubs.ChainStorerStub{},
+		Marshaller:                   &mock.MarshalizerMock{},
+		Hasher:                       &hashingMocks.HasherMock{},
+		DataPool:                     dataRetrieverMock.NewPoolsHolderMock(),
+		PubkeyConverter:              createMockPubkeyConverter(),
+		Accounts:                     &stateMock.AccountsStub{},
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &mockCommon.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 }
@@ -291,6 +294,17 @@ func TestNewPreProcessorsContainerFactory_NilSmartContractResulsPreProcessorCrea
 
 	assert.Equal(t, process.ErrNilSmartContractResultPreProcessorCreator, err)
 	assert.Nil(t, ppcf)
+}
+
+func TestNewPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	args.TxPreProcessorCreator = nil
+	ppcf, err := NewPreProcessorsContainerFactory(args)
+
+	require.Equal(t, customErrors.ErrNilTxPreProcessorCreator, err)
+	require.Nil(t, ppcf)
 }
 
 func TestNewPreProcessorsContainerFactory(t *testing.T) {

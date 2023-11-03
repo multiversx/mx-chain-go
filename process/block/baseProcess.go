@@ -123,6 +123,9 @@ type baseProcessor struct {
 	requestMissingHeadersFunc            func(missingNonces []uint64, shardID uint32)
 	cleanupBlockTrackerPoolsForShardFunc func(shardID uint32, noncesToPrevFinal uint64)
 	cleanupPoolsForCrossShardFunc        func(shardID uint32, noncesToPrevFinal uint64)
+	getExtraMissingNoncesToRequestFunc   func(prevHdr data.HeaderHandler, lastNotarizedHdrNonce uint64) []uint64
+
+	crossNotarizer crossNotarizer
 }
 
 type bootStorerDataArgs struct {
@@ -306,6 +309,18 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		prevHdr = currHdr
 	}
 
+	extraMissingNonces := bp.getExtraMissingNoncesToRequestFunc(prevHdr, lastNotarizedHdrNonce)
+	if len(extraMissingNonces) > 0 {
+		missingNonces = append(missingNonces, extraMissingNonces...)
+	}
+
+	bp.requestMissingHeadersFunc(missingNonces, shardId)
+	return nil
+}
+
+func (bp *baseProcessor) getExtraMissingNoncesToRequest(prevHdr data.HeaderHandler, lastNotarizedHdrNonce uint64) []uint64 {
+	missingNonces := make([]uint64, 0)
+
 	maxNumNoncesToAdd := process.MaxHeaderRequestsAllowed - int(int64(prevHdr.GetNonce())-int64(lastNotarizedHdrNonce))
 	if maxNumNoncesToAdd > 0 {
 		lastRound := bp.roundHandler.Index() - 1
@@ -314,9 +329,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		missingNonces = append(missingNonces, nonces...)
 	}
 
-	bp.requestMissingHeadersFunc(missingNonces, shardId)
-
-	return nil
+	return missingNonces
 }
 
 func (bp *baseProcessor) requestMissingHeaders(missingNonces []uint64, shardId uint32) {
@@ -1160,7 +1173,7 @@ func (bp *baseProcessor) baseCleanupBlockTrackerPoolsForShard(shardID uint32, no
 }
 
 func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
-	lastCrossNotarizedHeaders := bp.getLastCrossNotarizedHeaders()
+	lastCrossNotarizedHeaders := bp.crossNotarizer.getLastCrossNotarizedHeaders()
 
 	bootData := bootstrapStorage.BootstrapData{
 		LastHeader:                 args.headerInfo,
@@ -1187,51 +1200,6 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
-
-func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
-	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
-
-	for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
-		bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(shardID)
-		if bootstrapHeaderInfo != nil {
-			lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
-		}
-	}
-
-	bootstrapHeaderInfo := bp.getLastCrossNotarizedHeadersForShard(core.MetachainShardId)
-	if bootstrapHeaderInfo != nil {
-		lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
-	}
-
-	if len(lastCrossNotarizedHeaders) == 0 {
-		return nil
-	}
-
-	return trimSliceBootstrapHeaderInfo(lastCrossNotarizedHeaders)
-}
-
-func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
-	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-	if err != nil {
-		log.Warn("getLastCrossNotarizedHeadersForShard",
-			"shard", shardID,
-			"error", err.Error())
-		return nil
-	}
-
-	if lastCrossNotarizedHeader.GetNonce() == 0 {
-		return nil
-	}
-
-	headerInfo := &bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: lastCrossNotarizedHeader.GetShardID(),
-		Nonce:   lastCrossNotarizedHeader.GetNonce(),
-		Hash:    lastCrossNotarizedHeaderHash,
-	}
-
-	return headerInfo
-}
-
 func (bp *baseProcessor) getLastSelfNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo {
 	lastSelfNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, bp.shardCoordinator.NumberOfShards()+1)
 

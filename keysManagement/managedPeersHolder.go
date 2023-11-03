@@ -21,6 +21,8 @@ var log = logger.GetOrCreate("keysManagement")
 
 type managedPeersHolder struct {
 	mut                              sync.RWMutex
+	defaultPeerInfoCurrentIndex      int
+	providedIdentities               map[string]*peerInfo
 	data                             map[string]*peerInfo
 	pids                             map[core.PeerID]struct{}
 	keyGenerator                     crypto.KeyGenerator
@@ -49,13 +51,8 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		return nil, err
 	}
 
-	dataMap, err := createDataMap(args.PrefsConfig.NamedIdentity)
-	if err != nil {
-		return nil, err
-	}
-
 	holder := &managedPeersHolder{
-		data:                             dataMap,
+		defaultPeerInfoCurrentIndex:      0,
 		pids:                             make(map[core.PeerID]struct{}),
 		keyGenerator:                     args.KeyGenerator,
 		p2pKeyGenerator:                  args.P2PKeyGenerator,
@@ -64,6 +61,12 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
 		defaultIdentity:                  args.PrefsConfig.Preferences.Identity,
 		p2pKeyConverter:                  args.P2PKeyConverter,
+		data:                             make(map[string]*peerInfo),
+	}
+
+	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
+	if err != nil {
+		return nil, err
 	}
 
 	return holder, nil
@@ -87,26 +90,39 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	return nil
 }
 
-func createDataMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
+func (holder *managedPeersHolder) createProvidedIdentitiesMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
 	dataMap := make(map[string]*peerInfo)
 
 	for _, identity := range namedIdentities {
+		index := 0
 		for _, blsKey := range identity.BLSKeys {
 			bls, err := hex.DecodeString(blsKey)
 			if err != nil {
 				return nil, fmt.Errorf("%w for key %s", ErrInvalidKey, blsKey)
 			}
+			if len(bls) == 0 {
+				continue
+			}
 
 			blsStr := string(bls)
 			dataMap[blsStr] = &peerInfo{
 				machineID:    generateRandomMachineID(),
-				nodeName:     identity.NodeName,
+				nodeName:     generateNodeName(identity.NodeName, index),
 				nodeIdentity: identity.Identity,
 			}
+			index++
 		}
 	}
 
 	return dataMap, nil
+}
+
+func generateNodeName(providedNodeName string, index int) string {
+	if len(providedNodeName) == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("%s-%02d", providedNodeName, index)
 }
 
 // AddManagedPeer will try to add a new managed peer providing the private key bytes.
@@ -145,12 +161,14 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 			ErrDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
 	}
 
+	pInfo, found = holder.providedIdentities[string(publicKeyBytes)]
 	if !found {
 		pInfo = &peerInfo{
 			machineID:    generateRandomMachineID(),
-			nodeName:     holder.defaultName,
+			nodeName:     generateNodeName(holder.defaultName, holder.defaultPeerInfoCurrentIndex),
 			nodeIdentity: holder.defaultIdentity,
 		}
+		holder.defaultPeerInfoCurrentIndex++
 	}
 
 	pInfo.pid = pid

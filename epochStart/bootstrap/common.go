@@ -140,6 +140,12 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
 	}
+	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
+	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilShardCoordinatorFactory)
+	}
 	if check.IfNil(args.AdditionalStorageServiceCreator) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilAdditionalStorageServiceCreator)
 	}

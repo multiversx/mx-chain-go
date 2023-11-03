@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -12,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	wasmvm "github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/wasmvm"
 	"github.com/stretchr/testify/require"
 )
 

@@ -11,6 +11,7 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +53,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(t, err)
-	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
+	nodesCoord, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -70,6 +71,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
@@ -78,7 +80,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedNetworkComponents,
 		managedBootstrapComponents,
 		managedStateComponents,
-		nodesCoordinator,
+		nodesCoord,
 		false,
 		managedCryptoComponents,
 	)
@@ -104,7 +106,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStatusCoreComponents,
 		managedRunTypeComponents,
 		gasScheduleNotifier,
-		nodesCoordinator,
+		nodesCoord,
 	)
 	require.Nil(t, err)
 	time.Sleep(2 * time.Second)

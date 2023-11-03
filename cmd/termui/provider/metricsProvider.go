@@ -2,7 +2,7 @@ package provider
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -88,7 +88,7 @@ func (smp *StatusMetricsProvider) loadMetricsFromApi(metricsPath string) (map[st
 		return nil, err
 	}
 
-	responseBytes, err := ioutil.ReadAll(resp.Body)
+	responseBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

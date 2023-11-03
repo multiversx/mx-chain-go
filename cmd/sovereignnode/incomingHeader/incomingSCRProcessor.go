@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -14,9 +15,16 @@ import (
 )
 
 const (
-	minTopicsInEvent  = 4
-	numTransferTopics = 3
+	minTopicsInEvent      = 4
+	numTransferTopics     = 3
+	minNumEventDataTokens = 4
 )
+
+type eventData struct {
+	nonce                uint64
+	functionCallWithArgs []byte
+	gasLimit             uint64
+}
 
 type scrInfo struct {
 	scr  *smartContractResult.SmartContractResult
@@ -27,7 +35,6 @@ type scrProcessor struct {
 	txPool     TransactionPool
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
-	nonce      uint64
 }
 
 func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrInfo, error) {
@@ -45,13 +52,21 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 				errInvalidNumTopicsIncomingEvent, idx, len(topics))
 		}
 
+		receivedEventData, err := getEventData(event.GetData())
+		if err != nil {
+			return nil, err
+		}
+
+		scrData := createSCRData(topics)
+		scrData = append(scrData, receivedEventData.functionCallWithArgs...)
 		scr := &smartContractResult.SmartContractResult{
-			Nonce:          sp.nonce, // TODO:  Save this nonce in storage + load in from storage in MX-14320 task
-			OriginalTxHash: nil,      // TODO:  Implement this in MX-14321 task
+			Nonce:          receivedEventData.nonce,
+			OriginalTxHash: nil, // TODO:  Implement this in MX-14321 task
 			RcvAddr:        topics[0],
 			SndAddr:        core.ESDTSCAddress,
-			Data:           createSCRData(topics),
+			Data:           scrData,
 			Value:          big.NewInt(0),
+			GasLimit:       receivedEventData.gasLimit,
 		}
 
 		hash, err := core.CalculateHash(sp.marshaller, sp.hasher, scr)
@@ -59,8 +74,6 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 			return nil, err
 		}
 
-		// TODO: Should we revert nonce incrementation if processing fails later in code?
-		sp.nonce++
 		scrs = append(scrs, &scrInfo{
 			scr:  scr,
 			hash: hash,
@@ -68,6 +81,34 @@ func (sp *scrProcessor) createIncomingSCRs(events []data.EventHandler) ([]*scrIn
 	}
 
 	return scrs, nil
+}
+
+func getEventData(data []byte) (*eventData, error) {
+	if len(data) == 0 {
+		return nil, errEmptyLogData
+	}
+
+	tokens := strings.Split(string(data), "@")
+	numTokens := len(tokens)
+	if numTokens < minNumEventDataTokens {
+		return nil, fmt.Errorf("%w, expected min num tokens: %d, received num tokens: %d",
+			errInvalidNumTokensOnLogData, minNumEventDataTokens, numTokens)
+	}
+
+	// TODO: Add validity checks
+	eventNonce := big.NewInt(0).SetBytes([]byte(tokens[0]))
+	gasLimit := big.NewInt(0).SetBytes([]byte(tokens[numTokens-1]))
+
+	functionCallWithArgs := []byte("@" + tokens[1])
+	for i := 2; i < numTokens-1; i++ {
+		functionCallWithArgs = append(functionCallWithArgs, []byte("@"+tokens[i])...)
+	}
+
+	return &eventData{
+		nonce:                eventNonce.Uint64(),
+		gasLimit:             gasLimit.Uint64(),
+		functionCallWithArgs: functionCallWithArgs,
+	}, nil
 }
 
 func createSCRData(topics [][]byte) []byte {

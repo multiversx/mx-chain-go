@@ -497,7 +497,7 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 			CallerAddr:  owner,
 			Arguments:   args,
 			CallValue:   big.NewInt(0).Mul(big.NewInt(int64(numBlsKeys)), nodePrice),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",
@@ -516,7 +516,7 @@ func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB st
 			CallerAddr:  owner,
 			Arguments:   blsKeys,
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "unStake",
@@ -943,7 +943,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		PeerAdapter:                          peerAccountsDB,
 		Rater:                                &mock.RaterStub{},
 		RewardsHandler:                       &mock.RewardsHandlerStub{},
-		NodesSetup:                           &mock.NodesSetupStub{},
+		NodesSetup:                           &testscommon.NodesSetupStub{},
 		MaxComputableRounds:                  1,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		EnableEpochsHandler:                  enableEpochsHandler,
@@ -959,7 +959,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	gasScheduleNotifier := testscommon.NewGasScheduleNotifierMock(gasSchedule)
 
-	nodesSetup := &mock.NodesSetupStub{}
+	nodesSetup := &testscommon.NodesSetupStub{}
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 userAccountsDB,
