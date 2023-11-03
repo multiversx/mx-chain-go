@@ -371,7 +371,7 @@ func (fct *factory) generateEndRoundSubroundV2() error {
 		return err
 	}
 
-	err = subroundEndRoundInstance.SetExtraEndRoundSigAggregatorHandler(sovSubRoundSigner)
+	err = subroundEndRoundInstance.RegisterExtraEndRoundSigAggregatorHandler(sovSubRoundSigner)
 	if err != nil {
 		return err
 	}

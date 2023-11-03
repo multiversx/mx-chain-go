@@ -17,6 +17,12 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
+type aggregatedSigsResult struct {
+	bitmap              []byte
+	aggregatedSig       []byte
+	extraAggregatedSigs map[string][]byte
+}
+
 type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
@@ -24,8 +30,7 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 	getMessageToVerifySigFunc     func() []byte
 
-	extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler
-	extraSig                 []byte
+	extraSignersHolder *subRoundEndExtraSignersHolder
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -48,8 +53,7 @@ func NewSubroundEndRound(
 		displayStatistics,
 		sync.Mutex{},
 		nil,
-		nil,
-		nil,
+		newSubRoundEndExtraSignersHolder(),
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -146,9 +150,9 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
-	err = sr.extraSignatureAggregator.HaveConsensusHeaderWithFullInfo(header, cnsDta)
+	err = sr.extraSignersHolder.haveConsensusHeaderWithFullInfo(header, cnsDta)
 	if err != nil {
-		log.Debug("isBlockHeaderFinalInfoValid.extraSignatureAggregator.HaveConsensusHeaderWithFullInfo", "error", err.Error())
+		log.Debug("isBlockHeaderFinalInfoValid.extraSignersHolder.haveConsensusHeaderWithFullInfo", "error", err.Error())
 		return false
 	}
 
@@ -313,25 +317,26 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// Aggregate sig and add it to the block
-	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
+	aggSigsRes, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false
 	}
 
+	bitmap = aggSigsRes.bitmap
 	err = sr.Header.SetPubKeysBitmap(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
 		return false
 	}
 
-	err = sr.Header.SetSignature(sig)
+	err = sr.Header.SetSignature(aggSigsRes.aggregatedSig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetSignature", "error", err.Error())
 		return false
 	}
 
-	err = sr.extraSignatureAggregator.SeAggregatedSignatureInHeader(sr.Header, sr.extraSig)
+	err = sr.extraSignersHolder.seAggregatedSignatureInHeader(sr.Header, aggSigsRes.extraAggregatedSigs)
 	if err != nil {
 		return false
 	}
@@ -349,7 +354,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	err = sr.extraSignatureAggregator.SignAndSetLeaderSignature(sr.Header, leaderPubKey)
+	err = sr.extraSignersHolder.signAndSetLeaderSignature(sr.Header, leaderPubKey)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraSignatureAggregator.SignAndSetLeaderSignature", "error", err.Error())
 		return false
@@ -419,7 +424,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
+func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) (*aggregatedSigsResult, error) {
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
@@ -428,19 +433,18 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	}
 
 	// placeholder for AggregateSignatures
-	extraSig, err := sr.extraSignatureAggregator.AggregateSignatures(bitmap, sr.Header.GetEpoch())
+	extraSigs, err := sr.extraSignersHolder.aggregateSignatures(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateSignatures", "error", err.Error())
 
 		// TODO :MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
-		return nil, nil, err
+		return nil, err
 	}
-	sr.extraSig = extraSig
 
 	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
-		return nil, nil, err
+		return nil, err
 	}
 
 	err = sr.SigningHandler().Verify(sr.getMessageToVerifySigFunc(), bitmap, sr.Header.GetEpoch())
@@ -450,14 +454,18 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
-	err = sr.extraSignatureAggregator.VerifyAggregatedSignatures(bitmap, sr.Header)
+	err = sr.extraSignersHolder.verifyAggregatedSignatures(bitmap, sr.Header)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.extraSignatureAggregator.VerifyAggregatedSignatures", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.extraSignersHolder.verifyAggregatedSignatures", "error", err.Error())
 		// TODO: MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
-		return nil, nil, err
+		return nil, err
 	}
 
-	return bitmap, sig, nil
+	return &aggregatedSigsResult{
+		bitmap:              bitmap,
+		aggregatedSig:       sig,
+		extraAggregatedSigs: extraSigs,
+	}, nil
 }
 
 func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
@@ -528,17 +536,17 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 	return invalidSigners, nil
 }
 
-func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, error) {
+func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() (*aggregatedSigsResult, error) {
 	invalidPubKeys, err := sr.verifyNodesOnAggSigFail()
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigFail", "error", err.Error())
-		return nil, nil, err
+		return nil, err
 	}
 
 	invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
-		return nil, nil, err
+		return nil, err
 	}
 
 	if len(invalidSigners) > 0 {
@@ -548,10 +556,14 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 	bitmap, sig, err := sr.computeAggSigOnValidNodes()
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
-		return nil, nil, err
+		return nil, err
 	}
 
-	return bitmap, sig, nil
+	return &aggregatedSigsResult{
+		bitmap:              bitmap,
+		aggregatedSig:       sig,
+		extraAggregatedSigs: nil,
+	}, nil
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
@@ -621,7 +633,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	)
 
 	// placeholder for AddAggregatedSignature
-	err := sr.extraSignatureAggregator.AddLeaderAndAggregatedSignatures(sr.Header, cnsMsg)
+	err := sr.extraSignersHolder.addLeaderAndAggregatedSignatures(sr.Header, cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.extraSignatureAggregator.AddLeaderAndAggregatedSignatures", "error", err.Error())
 		return
@@ -786,7 +798,7 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 		return false, nil
 	}
 
-	err = sr.extraSignatureAggregator.HaveConsensusHeaderWithFullInfo(header, cnsDta)
+	err = sr.extraSignersHolder.haveConsensusHeaderWithFullInfo(header, cnsDta)
 	if err != nil {
 		return false, nil
 	}
@@ -1010,10 +1022,8 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	return minIdx
 }
 
-func (sr *subroundEndRound) SetExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error {
-	sr.extraSignatureAggregator = extraSignatureAggregator
-
-	return nil
+func (sr *subroundEndRound) RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error {
+	return sr.extraSignersHolder.registerExtraEndRoundSigAggregatorHandler(extraSignatureAggregator)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
