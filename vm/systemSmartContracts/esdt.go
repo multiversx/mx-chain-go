@@ -216,6 +216,8 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.registerDynamic(args)
 	case "registerAndSetAllRolesDynamic":
 		return e.registerAndSetAllRolesDynamic(args)
+	case "changeToDynamic":
+		return e.changeToDynamic(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -1756,6 +1758,11 @@ func isDynamicTokenType(tokenType []byte) bool {
 	return bytes.Equal(tokenType[:prefixLength], []byte(dynamic))
 }
 
+func rolesForDynamicWhichHasToBeSingular() []string {
+	return []string{core.ESDTRoleNFTCreate, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI,
+		ESDTRoleSetNewURI, ESDTRoleModifyCreator, ESDTRoleModifyRoyalties, ESDTRoleNFTRecreate}
+}
+
 func (e *esdt) checkRolesForDynamicTokens(
 	token *ESDTDataV2,
 	roles [][]byte,
@@ -1764,9 +1771,7 @@ func (e *esdt) checkRolesForDynamicTokens(
 		return vmcommon.Ok
 	}
 
-	rolesWhichHasToBeSingular := []string{core.ESDTRoleNFTCreate, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI,
-		ESDTRoleSetNewURI, ESDTRoleModifyCreator, ESDTRoleModifyRoyalties, ESDTRoleNFTRecreate}
-
+	rolesWhichHasToBeSingular := rolesForDynamicWhichHasToBeSingular()
 	for _, role := range rolesWhichHasToBeSingular {
 		if checkIfDefinedRoleExistsInArgsAndToken(roles, token, []byte(role)) {
 			e.eei.AddReturnMessage(role + " already exists")
@@ -2320,6 +2325,71 @@ func (e *esdt) registerAndSetAllRolesDynamic(args *vmcommon.ContractCallInput) v
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) checkRolesAreCompatibleToChangeToDynamic(token *ESDTDataV2) error {
+	mapOfRoles := make(map[string]uint32)
+
+	for _, esdtRole := range token.SpecialRoles {
+		for _, role := range esdtRole.Roles {
+			mapOfRoles[string(role)]++
+		}
+	}
+
+	rolesWithHaveToBeSingular := rolesForDynamicWhichHasToBeSingular()
+	for _, role := range rolesWithHaveToBeSingular {
+		if mapOfRoles[role] > 1 {
+			return vm.ErrCannotChangeToDynamic
+		}
+	}
+
+	return nil
+}
+
+func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.enableEpochsHandler.DynamicESDTEnabled() {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {
+		e.eei.AddReturnMessage("cannot change fungible tokens to dynamic")
+		return vmcommon.UserError
+	}
+	if isDynamicTokenType(token.TokenType) {
+		e.eei.AddReturnMessage("tokenID is already dynamic")
+		return vmcommon.UserError
+	}
+
+	err := e.checkRolesAreCompatibleToChangeToDynamic(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	token.TokenType = append([]byte(dynamic), token.TokenType...)
+
+	err = e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, token.TokenType},
+	}
+	e.eei.AddLogEntry(logEntry)
+
+	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
 
 	return vmcommon.Ok
 }
