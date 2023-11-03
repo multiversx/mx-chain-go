@@ -281,6 +281,9 @@
     # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
     NFTStopCreateEnableEpoch = 3
 
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 4
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

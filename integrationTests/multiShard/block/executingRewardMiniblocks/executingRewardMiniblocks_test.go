@@ -14,6 +14,7 @@ import (
 	testBlock "github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,6 +26,8 @@ func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("process:TRACE")
 
 	nodesPerShard := 4
 	nbMetaNodes := 2

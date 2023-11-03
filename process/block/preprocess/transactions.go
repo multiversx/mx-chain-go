@@ -332,7 +332,11 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	if txs.isBodyFromMe(body) {
-		return txs.processTxsFromMe(body, haveTime, header.GetPrevRandSeed())
+		randomness := header.GetPrevRandSeed()
+		if txs.enableEpochsHandler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag) {
+			randomness = header.GetRandSeed()
+		}
+		return txs.processTxsFromMe(body, haveTime, randomness)
 	}
 
 	return process.ErrInvalidBody

@@ -928,7 +928,12 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
+	randomness := metaBlock.GetPrevRandSeed()
+	if mp.enableEpochsHandler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag) {
+		randomness = metaBlock.GetRandSeed()
+	}
+
+	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, err
 	}

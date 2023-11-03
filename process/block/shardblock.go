@@ -875,7 +875,12 @@ func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime 
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, shardHdr.GetPrevRandSeed())
+	randomness := shardHdr.GetPrevRandSeed()
+	if sp.enableEpochsHandler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag) {
+		randomness = shardHdr.GetRandSeed()
+	}
+
+	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, nil, err
 	}
