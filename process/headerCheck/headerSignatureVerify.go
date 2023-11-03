@@ -309,7 +309,23 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 		return err
 	}
 
-	return hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+	err = hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+	if err != nil {
+		return err
+	}
+
+	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+
+	leaderMsgToSign := append(
+		outGoingMb.GetOutGoingOperationsHash(),
+		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
+
+	return hsv.singleSigVerifier.Verify(leaderPubKey, leaderMsgToSign, header.(data.SovereignChainHeaderHandler).GetOutGoingMiniBlockHeaderHandler().GetLeaderSignatureOutGoingOperations())
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
@@ -354,6 +370,7 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 	outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
+	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
 	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 
 	return headerCopy, nil
@@ -365,6 +382,15 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandl
 	if err != nil {
 		return nil, err
 	}
+
+	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
+	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 
 	return headerCopy, nil
 }

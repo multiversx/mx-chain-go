@@ -72,6 +72,30 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) SeAggregatedSignatureInHeader(head
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
+func (sr *sovereignSubRoundOutGoingTxDataEnd) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	leaderMsgToSign := append(
+		outGoingMb.GetOutGoingOperationsHash(),
+		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
+
+	leaderSig, err := sr.signingHandler.CreateSignatureForPublicKey(leaderMsgToSign, leaderPubKey)
+	if err != nil {
+		return err
+	}
+
+	err = outGoingMb.SetLeaderSignatureOutGoingOperations(leaderSig)
+	if err != nil {
+		return err
+	}
+
+	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+}
+
 func (sr *sovereignSubRoundOutGoingTxDataEnd) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -83,29 +107,24 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) HaveConsensusHeaderWithFullInfo(he
 	if err != nil {
 		return err
 	}
+	err = outGoingMb.SetLeaderSignatureOutGoingOperations(cnsMsg.LeaderSignatureOutGoingTxData)
+	if err != nil {
+		return err
+	}
 
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) AddAggregatedSignature(aggregatedSig []byte, cnsMsg *consensus.Message) error {
+func (sr *sovereignSubRoundOutGoingTxDataEnd) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+	}
 
-	/*
-		sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
-		if !castOk {
-			return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-		}
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 
-		if check.IfNil(sovHeader.GetOutGoingMiniBlockHeaderHandler()) {
-			return nil
-		}
-
-		outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-		err := outGoingMb.SetAggregatedSignatureOutGoingOperations(aggregatedSig)
-		if err != nil {
-			return err
-		}
-	*/
-	cnsMsg.AggregatedSignatureOutGoingTxData = aggregatedSig
+	cnsMsg.AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
+	cnsMsg.LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()
 
 	return nil
 }

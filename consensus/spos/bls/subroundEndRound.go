@@ -344,7 +344,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// Header is complete so the leader can sign it
-	leaderSignature, err := sr.signBlockHeader()
+	leaderPubKey, leaderSignature, err := sr.signBlockHeader()
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -353,6 +353,12 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	err = sr.Header.SetLeaderSignature(leaderSignature)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetLeaderSignature", "error", err.Error())
+		return false
+	}
+
+	err = sr.extraSignatureAggregator.SignAndSetLeaderSignature(sr.Header, leaderPubKey)
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.extraSignatureAggregator.SignAndSetLeaderSignature", "error", err.Error())
 		return false
 	}
 
@@ -614,9 +620,13 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(extraSig []byte) {
 	)
 
 	// placeholder for AddAggregatedSignature
-	sr.extraSignatureAggregator.AddAggregatedSignature(extraSig, cnsMsg)
+	err := sr.extraSignatureAggregator.AddLeaderAndAggregatedSignatures(sr.Header, cnsMsg)
+	if err != nil {
+		log.Debug("doEndRoundJob.extraSignatureAggregator.AddLeaderAndAggregatedSignatures", "error", err.Error())
+		return
+	}
 
-	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
 		return
@@ -831,24 +841,30 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 	return false, nil
 }
 
-func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
+func (sr *subroundEndRound) signBlockHeader() ([]byte, []byte, error) {
 	headerClone := sr.Header.ShallowClone()
 	err := headerClone.SetLeaderSignature(nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
-		return nil, errGetLeader
+		return nil, nil, errGetLeader
 	}
 
-	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(leader))
+	leaderPubKey := []byte(leader)
+	leaderSignature, err := sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, leaderPubKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return leaderPubKey, leaderSignature, nil
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {

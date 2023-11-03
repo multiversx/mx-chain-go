@@ -26,4 +26,5 @@ message Message {
 	bytes ProcessedHeaderHash 						  = 15;
 	bytes SignatureShareOutGoingTxData  	  = 16;
 	bytes AggregatedSignatureOutGoingTxData = 17;
+	bytes LeaderSignatureOutGoingTxData 		= 18;
 }
