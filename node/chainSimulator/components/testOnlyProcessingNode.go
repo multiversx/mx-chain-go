@@ -5,6 +5,8 @@ import (
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
@@ -14,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -60,7 +61,8 @@ type testOnlyProcessingNode struct {
 	StoreService                dataRetriever.StorageService
 	BuiltinFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	DataPool                    dataRetriever.PoolsHolder
-	TxLogsProcessor             process.TransactionLogProcessor
+
+	broadcastMessenger consensus.BroadcastMessenger
 }
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
@@ -149,11 +151,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
-	err = instance.createTransactionLogProcessor()
-	if err != nil {
-		return nil, err
-	}
-
 	err = instance.createNodesCoordinator(args.PreferencesConfig.Preferences, args.Config)
 	if err != nil {
 		return nil, err
@@ -188,6 +185,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createBroadcastMessanger()
 	if err != nil {
 		return nil, err
 	}
@@ -237,22 +239,6 @@ func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNo
 	return err
 }
 
-func (node *testOnlyProcessingNode) createTransactionLogProcessor() error {
-	logsStorer, err := node.StoreService.GetStorer(dataRetriever.TxLogsUnit)
-	if err != nil {
-		return err
-	}
-	argsTxLogProcessor := transactionLog.ArgTxLogProcessor{
-		Storer:               logsStorer,
-		Marshalizer:          node.CoreComponentsHolder.InternalMarshalizer(),
-		SaveInStorageEnabled: true,
-	}
-
-	node.TxLogsProcessor, err = transactionLog.NewTxLogProcessor(argsTxLogProcessor)
-
-	return err
-}
-
 func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.PreferencesConfig, generalConfig config.Config) error {
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(
 		node.CoreComponentsHolder.GenesisNodesSetup(),
@@ -294,74 +280,50 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
-// CreateNewBlock create and process a new block
-func (node *testOnlyProcessingNode) CreateNewBlock() error {
-	bp := node.ProcessComponentsHolder.BlockProcessor()
-	currentHeader := node.ChainHandler.GetCurrentBlockHeader()
-	var nonce, round uint64
-	var prevHash, prevRandSeed []byte
-	if currentHeader != nil {
-		nonce, round = currentHeader.GetNonce(), currentHeader.GetRound()
-		prevHash = node.ChainHandler.GetCurrentBlockHeaderHash()
-		prevRandSeed = currentHeader.GetRandSeed()
-	} else {
-		prevHash = node.ChainHandler.GetGenesisHeaderHash()
-		prevRandSeed = node.ChainHandler.GetGenesisHeader().GetRandSeed()
-	}
-
-	newHeader, err := node.prepareHeader(nonce+1, round+1, prevHash)
-	if err != nil {
-		return err
-	}
-
-	err = newHeader.SetPrevRandSeed(prevRandSeed)
-	if err != nil {
-		return err
-	}
-
-	err = newHeader.SetPubKeysBitmap([]byte{128})
-	if err != nil {
-		return err
-	}
-
-	err = newHeader.SetRandSeed([]byte("dummy"))
-	if err != nil {
-		return err
-	}
-
-	header, block, err := bp.CreateBlock(newHeader, func() bool {
-		return true
-	})
-	if err != nil {
-		return err
-	}
-
-	err = bp.CommitBlock(header, block)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (node *testOnlyProcessingNode) createBroadcastMessanger() error {
+	var err error
+	node.broadcastMessenger, err = sposFactory.GetBroadcastMessenger(
+		node.CoreComponentsHolder.InternalMarshalizer(),
+		node.CoreComponentsHolder.Hasher(),
+		node.NetworkComponentsHolder.NetworkMessenger(),
+		node.ProcessComponentsHolder.ShardCoordinator(),
+		node.CryptoComponentsHolder.PeerSignatureHandler(),
+		node.DataComponentsHolder.Datapool().Headers(),
+		node.ProcessComponentsHolder.InterceptorsContainer(),
+		node.CoreComponentsHolder.AlarmScheduler(),
+		node.CryptoComponentsHolder.KeysHandler(),
+	)
+	return err
 }
 
-func (node *testOnlyProcessingNode) prepareHeader(nonce uint64, round uint64, prevHash []byte) (chainData.HeaderHandler, error) {
-	bp := node.ProcessComponentsHolder.BlockProcessor()
+// GetProcessComponents will return the process components
+func (node *testOnlyProcessingNode) GetProcessComponents() factory.ProcessComponentsHolder {
+	return node.ProcessComponentsHolder
+}
 
-	newHeader, err := bp.CreateNewHeader(round, nonce)
-	if err != nil {
-		return nil, err
-	}
-	err = newHeader.SetShardID(node.ShardCoordinator.SelfId())
-	if err != nil {
-		return nil, err
-	}
+// GetChainHandler will return the chain handler
+func (node *testOnlyProcessingNode) GetChainHandler() chainData.ChainHandler {
+	return node.ChainHandler
+}
 
-	err = newHeader.SetPrevHash(prevHash)
-	if err != nil {
-		return nil, err
-	}
+// GetBroadcastMessenger will return the broadcast messenger
+func (node *testOnlyProcessingNode) GetBroadcastMessenger() consensus.BroadcastMessenger {
+	return node.broadcastMessenger
+}
 
-	return newHeader, nil
+// GetShardCoordinator will return the shard coordinator
+func (node *testOnlyProcessingNode) GetShardCoordinator() sharding.Coordinator {
+	return node.ShardCoordinator
+}
+
+// GetCryptoComponents will return the crypto components
+func (node *testOnlyProcessingNode) GetCryptoComponents() factory.CryptoComponentsHolder {
+	return node.CryptoComponentsHolder
+}
+
+// GetCoreComponents will return the core components
+func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHolder {
+	return node.CoreComponentsHolder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

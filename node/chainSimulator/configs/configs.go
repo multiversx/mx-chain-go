@@ -38,6 +38,7 @@ type ArgsConfigsSimulator struct {
 	GasScheduleFilename   string
 	Configs               *config.Configs
 	ValidatorsPrivateKeys []crypto.PrivateKey
+	ValidatorsPublicKeys  map[uint32][]byte
 }
 
 // CreateChainSimulatorConfigs will create the chain simulator configs
@@ -46,6 +47,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	if err != nil {
 		return nil, err
 	}
+
+	configs.GeneralConfig.GeneralSettings.ChainID = "chain"
 
 	// empty genesis smart contracts file
 	err = modifyFile(configs.ConfigurationPathsHolder.SmartContracts, func(intput []byte) ([]byte, error) {
@@ -104,10 +107,24 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
 
+	publicKeysBytes := make(map[uint32][]byte)
+	publicKeysBytes[core.MetachainShardId], err = publicKeys[0].ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	for idx := uint32(1); idx < uint32(len(publicKeys)); idx++ {
+		publicKeysBytes[idx], err = publicKeys[idx].ToByteArray()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &ArgsConfigsSimulator{
 		Configs:               configs,
 		ValidatorsPrivateKeys: privateKeys,
 		GasScheduleFilename:   gasScheduleName,
+		ValidatorsPublicKeys:  publicKeysBytes,
 	}, nil
 }
 
