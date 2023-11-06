@@ -13,6 +13,12 @@ type SubRoundExtraDataSignatureHandler interface {
 	IsInterfaceNil() bool
 }
 
+type SubRoundStartExtraSignatureHandler interface {
+	Reset(pubKeys []string) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
 type SubRoundEndExtraSignatureAggregatorHandler interface {
 	AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error)
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error

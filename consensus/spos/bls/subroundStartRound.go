@@ -25,7 +25,8 @@ type subroundStartRound struct {
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
 
-	outportHandler outport.OutportHandler
+	outportHandler     outport.OutportHandler
+	extraSignersHolder *subRoundStartExtraSignersHolder
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -50,6 +51,7 @@ func NewSubroundStartRound(
 		resetConsensusMessages:        resetConsensusMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
 		outportMutex:                  sync.RWMutex{},
+		extraSignersHolder:            newSubRoundStartExtraSignersHolder(),
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -195,6 +197,13 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 		sr.RoundCanceled = true
 
+		return false
+	}
+
+	err = sr.extraSignersHolder.reset(pubKeys)
+	if err != nil {
+		log.Debug("initCurrentRound.extraSignersHolder.reset", "error", err.Error())
+		sr.RoundCanceled = true
 		return false
 	}
 
@@ -350,6 +359,10 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 	}
 
 	sr.SetEligibleList(epochNodes)
+}
+
+func (sr *subroundStartRound) RegisterExtraSingingHandler(extraSigner SubRoundStartExtraSignatureHandler) error {
+	return sr.extraSignersHolder.registerExtraSingingHandler(extraSigner)
 }
 
 // NotifyOrder returns the notification order for a start of epoch event

@@ -109,6 +109,7 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
+	fct.extraSignerHandler = fct.consensusCore.SigningHandler().ShallowClone()
 	err := fct.generateStartRoundSubround()
 	if err != nil {
 		return err
@@ -186,6 +187,16 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
 	)
+	if err != nil {
+		return err
+	}
+
+	extraSigner, err := NewSovereignSubRoundStartOutGoingTxData(fct.extraSignerHandler)
+	if err != nil {
+		return err
+	}
+
+	err = subroundStartRoundInstance.RegisterExtraSingingHandler(extraSigner)
 	if err != nil {
 		return err
 	}
