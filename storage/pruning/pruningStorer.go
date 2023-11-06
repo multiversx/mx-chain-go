@@ -263,11 +263,13 @@ func createPersisterIfPruningDisabled(
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	p, err := createPersisterDataForEpoch(args, 0, shardIDStr)
+	epoch := uint32(0)
+	p, err := createPersisterDataForEpoch(args, epoch, shardIDStr)
 	if err != nil {
 		return nil, nil, err
 	}
 	persisters = append(persisters, p)
+	persistersMapByEpoch[epoch] = p
 
 	return persisters, persistersMapByEpoch, nil
 }

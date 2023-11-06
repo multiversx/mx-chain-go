@@ -633,8 +633,6 @@ func (psf *StorageServiceFactory) createTriePersister(
 }
 
 func (psf *StorageServiceFactory) createTriePruningPersister(arg pruning.StorerArgs) (storage.Storer, error) {
-	arg.StateStatsHandler = psf.stateStatsHandler
-
 	isFullArchive := psf.prefsConfig.FullArchive
 	isDBLookupExtension := psf.generalConfig.DbLookupExtensions.Enabled
 	if !isFullArchive && !isDBLookupExtension {
