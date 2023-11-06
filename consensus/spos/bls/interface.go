@@ -12,3 +12,9 @@ type SubRoundExtraDataSignatureHandler interface {
 	Identifier() string
 	IsInterfaceNil() bool
 }
+
+type SubRoundStartExtraSignatureHandler interface {
+	Reset(pubKeys []string) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
