@@ -136,8 +136,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.watchdog = &watchdog.DisabledWatchdog{}
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
-	// TODO discuss with Iulian about the round handler
-	instance.roundHandler = &testscommon.RoundHandlerMock{}
+	instance.roundHandler = NewManualRoundHandler()
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)

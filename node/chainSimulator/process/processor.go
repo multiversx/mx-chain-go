@@ -4,6 +4,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
+type manualRoundHandler interface {
+	IncrementIndex()
+}
+
 type blocksCreator struct {
 	nodeHandler NodeHandler
 	blsKeyBytes []byte
@@ -14,6 +18,13 @@ func NewBlocksCreator(nodeHandler NodeHandler, blsKeyBytes []byte) (*blocksCreat
 		nodeHandler: nodeHandler,
 		blsKeyBytes: blsKeyBytes,
 	}, nil
+}
+
+// IncrementRound will increment the current round
+func (creator *blocksCreator) IncrementRound() {
+	roundHandler := creator.nodeHandler.GetCoreComponents().RoundHandler()
+	manual := roundHandler.(manualRoundHandler)
+	manual.IncrementIndex()
 }
 
 // CreateNewBlock create and process a new block

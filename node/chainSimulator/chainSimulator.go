@@ -98,22 +98,29 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 // GenerateBlocks will generate the provided number of blocks
 func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	for idx := 0; idx < numOfBlocks; idx++ {
-		for idxNode, node := range s.nodes {
-			// TODO change this
-			if idxNode == 0 {
-				err := node.CreateNewBlock()
-				if err != nil {
-					return err
-				}
-			} else if idxNode == 1 {
-				err := node.CreateNewBlock()
-				if err != nil {
-					return err
-				}
-			}
-
+		s.incrementRoundOnAllValidators()
+		err := s.allNodesCreateBlocks()
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func (s *simulator) incrementRoundOnAllValidators() {
+	for _, node := range s.nodes {
+		node.IncrementRound()
+	}
+}
+
+func (s *simulator) allNodesCreateBlocks() error {
+	for _, node := range s.nodes {
+		err := node.CreateNewBlock()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
