@@ -222,6 +222,26 @@ func TestNewAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilStoragePruningManager, err)
 	})
+	t.Run("nil address converter should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+		args.AddressConverter = nil
+
+		adb, err := state.NewAccountsDB(args)
+		assert.True(t, check.IfNil(adb))
+		assert.Equal(t, state.ErrNilAddressConverter, err)
+	})
+	t.Run("nil snapshots manager should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+		args.SnapshotsManager = nil
+
+		adb, err := state.NewAccountsDB(args)
+		assert.True(t, check.IfNil(adb))
+		assert.Equal(t, state.ErrNilSnapshotsManager, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
