@@ -2121,6 +2121,9 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 			RecreateCalled: func(root []byte) (common.Trie, error) {
 				return &trieMock.TrieStub{}, nil
 			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
 		}
 
 		adb, _ := state.NewAccountsDB(args)
@@ -2148,6 +2151,9 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 			},
 			RecreateCalled: func(root []byte) (common.Trie, error) {
 				return &trieMock.TrieStub{}, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
 			},
 		}
 
@@ -2318,6 +2324,9 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 			RecreateCalled: func(root []byte) (common.Trie, error) {
 				assert.Equal(t, rootHash, root)
 				return &trieMock.TrieStub{}, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
 			},
 		}
 		adb, _ := state.NewAccountsDB(args)

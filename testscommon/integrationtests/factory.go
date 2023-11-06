@@ -35,7 +35,6 @@ func CreateMemUnit() storage.Storer {
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-
 	unit, _ := storageunit.NewStorageUnit(cache, database.NewMemDB())
 	return unit
 }
@@ -81,7 +80,7 @@ func CreateStorer(parentDir string) storage.Storer {
 
 // CreateInMemoryShardAccountsDB -
 func CreateInMemoryShardAccountsDB() *state.AccountsDB {
-	return CreateAccountsDB(CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return CreateAccountsDB(testscommon.CreateMemUnit(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
 // CreateAccountsDB -

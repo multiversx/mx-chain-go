@@ -136,6 +136,7 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		StateMetrics:             sm,
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		AccountFactory:           args.AccountFactory,
+		StateStatsHandler:        args.Trie.GetStorageManager().GetStateStatsHandler(),
 		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
 	}
 	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
@@ -823,6 +824,16 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 	return adb.commit()
 }
 
+func (adb *AccountsDB) printTrieStorageStatistics() {
+	stats := adb.mainTrie.GetStorageManager().GetStateStatsHandler().ProcessingStats()
+	if stats != nil {
+		log.Debug("trie storage statistics",
+			"stats", stats,
+		)
+	}
+
+}
+
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
@@ -873,6 +884,8 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
+
+	adb.printTrieStorageStatistics()
 
 	return newRoot, nil
 }

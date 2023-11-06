@@ -264,6 +264,13 @@ type SignRate interface {
 	GetNumFailure() uint32
 }
 
+// StateStatsHandler defines the behaviour needed to handler state statistics
+type StateStatsHandler interface {
+	ResetSnapshot()
+	SnapshotStats() []string
+	IsInterfaceNil() bool
+}
+
 // LastSnapshotMarker manages the lastSnapshot marker operations
 type LastSnapshotMarker interface {
 	AddMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)

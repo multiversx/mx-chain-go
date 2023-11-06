@@ -375,7 +375,6 @@ func CreateMemUnit() storage.Storer {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(10000000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
 	return unit
 }
 
@@ -830,7 +829,7 @@ func CreateGenesisMetaBlock(
 		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
+		trieStorage, _ := CreateTrieStorageManager(testscommon.CreateMemUnit())
 		newAccounts, _ := CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorage, coreComponents.EnableEpochsHandler())
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
