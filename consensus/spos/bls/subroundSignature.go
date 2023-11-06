@@ -85,17 +85,18 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 
 		processedHeaderHash := sr.getMessageToSignFunc()
+		selfPubKey := []byte(sr.SelfPubKey())
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			processedHeaderHash,
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
-			[]byte(sr.SelfPubKey()),
+			selfPubKey,
 		)
 		if err != nil {
 			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
-		extraSigShares, err := sr.createExtraSignatureShares(uint16(selfIndex))
+		extraSigShares, err := sr.createExtraSignatureShares(uint16(selfIndex), selfPubKey)
 		if err != nil {
 			log.Debug("doSignatureJob.extraSigShare.CreateSignatureShare", "error", err.Error())
 			return false
@@ -117,12 +118,12 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	return sr.doSignatureJobForManagedKeys()
 }
 
-func (sr *subroundSignature) createExtraSignatureShares(selfIndex uint16) (map[string][]byte, error) {
+func (sr *subroundSignature) createExtraSignatureShares(selfIndex uint16, selfPubKey []byte) (map[string][]byte, error) {
 	ret := make(map[string][]byte)
 
 	sr.mutExtraSigners.RLock()
 	for id, extraSigner := range sr.extraSigners {
-		extraSigShare, err := extraSigner.CreateSignatureShare(selfIndex)
+		extraSigShare, err := extraSigner.CreateSignatureShare(sr.Header, selfIndex, selfPubKey)
 		if err != nil {
 			log.Debug("doSignatureJob.createExtraSignatureShares.CreateSignatureShare", "error", err.Error())
 			return nil, err
@@ -470,7 +471,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		extraSigShare, err := sr.createExtraSignatureShares(uint16(selfIndex))
+		extraSigShare, err := sr.createExtraSignatureShares(uint16(selfIndex), pkBytes)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.extraSigShare.CreateSignatureShare", "error", err.Error())
 			return false

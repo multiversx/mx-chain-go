@@ -12,7 +12,6 @@ import (
 
 type sovereignSubRoundOutGoingTxDataSignature struct {
 	*spos.Subround
-
 	signingHandler consensus.SigningHandler
 }
 
@@ -26,8 +25,12 @@ func NewSovereignSubRoundOutGoingTxDataSignature(
 	}, nil
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfIndex uint16) ([]byte, error) {
-	sovChainHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(
+	header data.HeaderHandler,
+	selfIndex uint16,
+	selfPubKey []byte,
+) ([]byte, error) {
+	sovChainHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
 		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
@@ -45,8 +48,8 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(selfInd
 	return sr.signingHandler.CreateSignatureShareForPublicKey(
 		outGoingMBHeader.GetOutGoingOperationsHash(),
 		selfIndex,
-		sr.Header.GetEpoch(),
-		[]byte(sr.SelfPubKey()))
+		header.GetEpoch(),
+		selfPubKey)
 }
 
 func (sr *sovereignSubRoundOutGoingTxDataSignature) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
