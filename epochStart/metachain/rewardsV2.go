@@ -372,11 +372,12 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 	return big.NewInt(0).Sub(topUpRewards, accumulatedTopUpRewards)
 }
 
-//      (2*k/pi)*atan(x/p), where:
-//     k is the rewards per day limit for top-up stake k = c * economics.TotalToDistribute, c - constant, e.g c = 0.25
-//     x is the cumulative top-up stake value for eligible nodes
-//     p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
-//     pi is the mathematical constant pi = 3.1415...
+//	(2*k/pi)*atan(x/p), where:
+//
+// k is the rewards per day limit for top-up stake k = c * economics.TotalToDistribute, c - constant, e.g c = 0.25
+// x is the cumulative top-up stake value for eligible nodes
+// p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
+// pi is the mathematical constant pi = 3.1415...
 func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int) *big.Int {
 	if totalToDistribute.Cmp(zero) <= 0 || totalTopUpEligible.Cmp(zero) <= 0 {
 		return big.NewInt(0)

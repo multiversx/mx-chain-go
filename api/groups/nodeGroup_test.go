@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -162,8 +161,6 @@ func TestHeartbeatStatus(t *testing.T) {
 }
 
 func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -192,8 +189,6 @@ func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -222,8 +217,6 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -270,7 +263,7 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -320,8 +313,8 @@ func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
-	value := "test-details-value"
-	statusMetricsProvider.SetStringValue(key, value)
+	val := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, val)
 
 	p2pKey := "a_p2p_specific_key"
 	statusMetricsProvider.SetStringValue(p2pKey, "p2p value")
@@ -340,11 +333,11 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, value)
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, val)
 	assert.True(t, keyAndValueFoundInResponse)
 	assert.False(t, strings.Contains(respStr, p2pKey))
 }
@@ -352,8 +345,8 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-details-key"
-	value := "test-details-value"
-	statusMetricsProvider.SetStringValue(key, value)
+	val := "test-details-value"
+	statusMetricsProvider.SetStringValue(key, val)
 
 	p2pKey := "a_p2p_specific_key"
 	p2pValue := "p2p value"
@@ -373,7 +366,7 @@ func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
@@ -401,11 +394,11 @@ func TestQueryDebug_ShouldBindJSONErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &generalResponse{}
-	loadResponse(resp.Body, queryResponse)
+	queryResp := &generalResponse{}
+	loadResponse(resp.Body, queryResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, queryResponse.Error, apiErrors.ErrValidation.Error())
+	assert.Contains(t, queryResp.Error, apiErrors.ErrValidation.Error())
 }
 
 func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
@@ -429,11 +422,11 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	queryResponse := &generalResponse{}
-	loadResponse(resp.Body, queryResponse)
+	queryResp := &generalResponse{}
+	loadResponse(resp.Body, queryResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, queryResponse.Error, expectedErr.Error())
+	assert.Contains(t, queryResp.Error, expectedErr.Error())
 }
 
 func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
@@ -467,14 +460,14 @@ func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	queryResponse := queryResponse{}
+	queryResp := queryResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
-	_ = json.Unmarshal(mapResponseDataBytes, &queryResponse)
+	_ = json.Unmarshal(mapResponseDataBytes, &queryResp)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.Contains(t, queryResponse.Result, str1)
-	assert.Contains(t, queryResponse.Result, str2)
+	assert.Contains(t, queryResp.Result, str1)
+	assert.Contains(t, queryResp.Result, str2)
 }
 
 func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
@@ -628,8 +621,6 @@ func TestEpochStartData_ShouldWork(t *testing.T) {
 }
 
 func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
-	expectedErr := errors.New("i am an error")
-
 	facade := mock.FacadeStub{
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
@@ -660,8 +651,8 @@ func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	statusMetricsProvider := statusHandler.NewStatusMetrics()
 	key := "test-key"
-	value := uint64(37)
-	statusMetricsProvider.SetUInt64Value(key, value)
+	val := uint64(37)
+	statusMetricsProvider.SetUInt64Value(key, val)
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -677,11 +668,11 @@ func TestPrometheusMetrics_ShouldWork(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	respBytes, _ := ioutil.ReadAll(resp.Body)
+	respBytes, _ := io.ReadAll(resp.Body)
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusOK)
 
-	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
@@ -886,8 +877,8 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 
 		statusMetricsProvider := statusHandler.NewStatusMetrics()
 		key := "test-key"
-		value := uint64(37)
-		statusMetricsProvider.SetUInt64Value(key, value)
+		val := uint64(37)
+		statusMetricsProvider.SetUInt64Value(key, val)
 
 		facade := mock.FacadeStub{}
 		facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
@@ -903,10 +894,10 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
-		respBytes, _ := ioutil.ReadAll(resp.Body)
+		respBytes, _ := io.ReadAll(resp.Body)
 		respStr := string(respBytes)
 		assert.Equal(t, resp.Code, http.StatusOK)
-		keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", value))
+		keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
 		assert.True(t, keyAndValueFoundInResponse)
 
 		newFacade := mock.FacadeStub{
@@ -944,7 +935,7 @@ func TestNodeGroup_IsInterfaceNil(t *testing.T) {
 }
 
 func loadResponseAsString(rsp io.Reader, response *statusResponse) {
-	buff, err := ioutil.ReadAll(rsp)
+	buff, err := io.ReadAll(rsp)
 	if err != nil {
 		logError(err)
 		return

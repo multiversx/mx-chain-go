@@ -1,12 +1,11 @@
 //go:build !race
-// +build !race
 
 package multisign
 
 import (
 	"encoding/hex"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -143,7 +142,7 @@ func checkCallBackWasSaved(t *testing.T, nodes []*integrationTests.TestProcessor
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{},
 		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, err := node.SCQueryService.ExecuteQuery(scQuery)
 		assert.Nil(t, err)
 		assert.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 		assert.Equal(t, 1, len(vmOutput.ReturnData))
@@ -157,7 +156,7 @@ func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, o
 		Readable:    true,
 	}
 
-	contractBytes, err := ioutil.ReadFile("../testdata/multisig-callback.wasm")
+	contractBytes, err := os.ReadFile("../testdata/multisig-callback.wasm")
 	require.Nil(t, err)
 	proposers := make([]string, 0, len(proposersIndexes)+1)
 	proposers = append(proposers, hex.EncodeToString(nodes[ownerIdx].OwnAccount.Address))
@@ -253,7 +252,7 @@ func getActionID(t *testing.T, nodes []*integrationTests.TestProcessorNode, mult
 		Arguments:  make([][]byte, 0),
 	}
 
-	vmOutput, err := node.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := node.SCQueryService.ExecuteQuery(query)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(vmOutput.ReturnData))
 

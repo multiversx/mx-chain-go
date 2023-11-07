@@ -68,7 +68,7 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 			return false, nil, err
 		}
 
-		err = oap.updateSmartContractCodeStep(oap.vmOutput, acc, outAcc)
+		logEntry, err := oap.updateSmartContractCodeStep(oap.vmOutput, acc, outAcc)
 		if err != nil {
 			return false, nil, err
 		}
@@ -81,6 +81,11 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 		sumOfAllDiff, err = oap.updateAccountBalanceStep(acc, outAcc, sumOfAllDiff)
 		if err != nil {
 			return false, nil, err
+		}
+
+		if logEntry != nil {
+			// add the last topic only after the account is updated
+			logEntry.Topics = append(logEntry.Topics, acc.GetCodeHash())
 		}
 	}
 
@@ -163,27 +168,27 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
-) error {
+) (*vmcommon.LogEntry, error) {
 	if len(outputAccount.Code) == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(outputAccount.CodeMetadata) == 0 {
-		return nil
+		return nil, nil
 	}
 	if !core.IsSmartContractAddress(outputAccount.Address) {
-		return nil
+		return nil, nil
 	}
 
 	outputAccountCodeMetadataBytes, err := oap.sc.blockChainHook.FilterCodeMetadataForUpgrade(outputAccount.CodeMetadata)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// This check is desirable (not required though) since currently both Arwen and IELE send the code in the output account even for "regular" execution
 	sameCode := bytes.Equal(outputAccount.Code, oap.sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccountCodeMetadataBytes, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
-		return nil
+		return nil, nil
 	}
 
 	currentOwner := stateAccount.GetOwnerAddress()
@@ -216,7 +221,7 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
-		return nil
+		return entry, nil
 	}
 
 	if isUpgrade {
@@ -228,10 +233,10 @@ func (oap *VMOutputAccountsProcessor) updateSmartContractCodeStep(
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
-		return nil
+		return entry, nil
 	}
 
-	return nil
+	return entry, nil
 }
 
 func (oap *VMOutputAccountsProcessor) updateAccountNonceIfThereIsAChange(

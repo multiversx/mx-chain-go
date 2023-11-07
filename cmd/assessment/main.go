@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
@@ -142,5 +141,5 @@ func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, ou
 		return err
 	}
 
-	return ioutil.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
+	return os.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
 }

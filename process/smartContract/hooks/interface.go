@@ -17,6 +17,6 @@ type BlockChainHookCounter interface {
 
 // BlockChainHookHandlerCreator defines the blockchain hook factory handler
 type BlockChainHookHandlerCreator interface {
-	CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookHandler, error)
+	CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error)
 	IsInterfaceNil() bool
 }

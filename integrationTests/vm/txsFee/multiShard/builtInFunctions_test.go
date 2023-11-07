@@ -39,7 +39,8 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		0,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			PenalizedTooMuchGasEnableEpoch:                  integrationTests.UnreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -47,7 +48,8 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		1,
 		config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+			PenalizedTooMuchGasEnableEpoch:                  integrationTests.UnreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 		})
 	require.Nil(t, err)
 	defer testContextDst.Close()

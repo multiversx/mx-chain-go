@@ -1081,7 +1081,7 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -1108,7 +1108,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -1568,7 +1568,7 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -1595,7 +1595,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -2835,7 +2835,7 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		ProcessBuiltInCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
@@ -3517,7 +3517,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		ProcessBuiltInCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
 			return localErr
 		},
@@ -3554,7 +3554,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		ProcessBuiltInCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
@@ -4402,4 +4402,51 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = true
 	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
+}
+
+func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	eei := createDefaultEei()
+	args.Eei = eei
+
+	owner := bytes.Repeat([]byte{1}, 32)
+	tokenName := []byte("TOKEN-ABABAB")
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:          tokenName,
+		OwnerAddress:       owner,
+		CanPause:           true,
+		IsPaused:           true,
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stopNFTCreate", [][]byte{tokenName})
+	vmInput.CallerAddr = owner
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	enableEpochsHandler.IsNFTStopCreateEnabledField = true
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot add NFT create role as NFT creation was stopped"))
+
+	enableEpochsHandler.IsNFTStopCreateEnabledField = false
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
 }

@@ -1176,6 +1176,9 @@ var ErrNilVMContainer = errors.New("nil ErrNilVMContainer")
 // ErrMaxCallsReached signals that the allowed max number of calls was reached
 var ErrMaxCallsReached = errors.New("max calls reached")
 
+// ErrNilTxExecutionOrderHandler signals that a nil transaction execution order handler was provided
+var ErrNilTxExecutionOrderHandler = errors.New("nil transaction execution order handler")
+
 // ErrWrongTransactionType signals that transaction is invalid
 var ErrWrongTransactionType = errors.New("invalid transaction type")
 
@@ -1223,6 +1226,9 @@ var ErrBuiltinFunctionNotExecutable = errors.New("builtin function not executabl
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrNilStorageService signals that a nil storage service has been provided
+var ErrNilStorageService = errors.New("nil storage service")
 
 // ErrNilShardBootstrap signals that a nil shard bootstrap was provided
 var ErrNilShardBootstrap = errors.New("nil shard bootstrap")

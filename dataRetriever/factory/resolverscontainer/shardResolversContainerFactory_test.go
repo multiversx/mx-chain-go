@@ -60,7 +60,7 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 		return testscommon.NewShardedDataStub()
 	}
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{}
+		return &testscommon.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
 		return testscommon.NewCacherStub()
@@ -433,19 +433,7 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
 	container, _ := rcf.Create()
-
-	numResolverSCRs := noOfShards + 1
-	numResolverTxs := noOfShards + 1
-	numResolverRewardTxs := 1
-	numResolverHeaders := 1
-	numResolverMiniBlocks := noOfShards + 2
-	numResolverMetaBlockHeaders := 1
-	numResolverTrieNodes := 1
-	numResolverPeerAuth := 1
-	numResolverValidatorInfo := 1
-	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
-		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
-
+	totalResolvers := getNumShardResolvers(noOfShards)
 	assert.Equal(t, totalResolvers, container.Len())
 	assert.Equal(t, totalResolvers, registerMainCnt)
 	assert.Equal(t, totalResolvers, registerFullArchiveCnt)
@@ -482,4 +470,18 @@ func getArgumentsShard() resolverscontainer.FactoryArgs {
 		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
 		PayloadValidator:                &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
+}
+
+func getNumShardResolvers(noOfShards int) int {
+	numResolverSCRs := noOfShards + 1
+	numResolverTxs := noOfShards + 1
+	numResolverRewardTxs := 1
+	numResolverHeaders := 1
+	numResolverMiniBlocks := noOfShards + 2
+	numResolverMetaBlockHeaders := 1
+	numResolverTrieNodes := 1
+	numResolverPeerAuth := 1
+	numResolverValidatorInfo := 1
+	return numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
 }

@@ -153,10 +153,11 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 
 	for _, logEntry := range logEntries {
 		txLog.Events = append(txLog.Events, &transaction.Event{
-			Identifier: logEntry.Identifier,
-			Address:    logEntry.Address,
-			Topics:     logEntry.Topics,
-			Data:       logEntry.Data,
+			Identifier:     logEntry.Identifier,
+			Address:        logEntry.Address,
+			Topics:         logEntry.Topics,
+			Data:           logEntry.GetFirstDataItem(),
+			AdditionalData: logEntry.Data,
 		})
 	}
 

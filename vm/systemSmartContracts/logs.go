@@ -116,6 +116,13 @@ func (d *delegation) createLogEventsForChangeOwner(
 
 	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, false)
 	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true, nil)
+
+	entry := &vmcommon.LogEntry{
+		Identifier: []byte(core.BuiltInFunctionChangeOwnerAddress),
+		Address:    args.RecipientAddr,
+		Topics:     [][]byte{args.Arguments[0]},
+	}
+	d.eei.AddLogEntry(entry)
 }
 
 func boolToSlice(b bool) []byte {

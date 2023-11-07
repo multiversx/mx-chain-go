@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/cmd/seednode/api"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	p2pDebug "github.com/multiversx/mx-chain-go/debug/p2p"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/facade"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
@@ -271,7 +272,17 @@ func createNode(
 		Logger:                logger.GetOrCreate("seed/p2p"),
 	}
 
-	return p2pFactory.NewNetworkMessenger(arg)
+	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netMessenger.SetDebugger(p2pDebug.NewP2PDebugger(netMessenger.ID()))
+	if err != nil {
+		return nil, err
+	}
+
+	return netMessenger, err
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {

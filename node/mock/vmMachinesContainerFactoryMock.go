@@ -20,7 +20,7 @@ func (v *VmMachinesContainerFactoryMock) Close() error {
 }
 
 // BlockChainHookImpl -
-func (v *VmMachinesContainerFactoryMock) BlockChainHookImpl() process.BlockChainHookHandler {
+func (v *VmMachinesContainerFactoryMock) BlockChainHookImpl() process.BlockChainHookWithAccountsAdapter {
 	return &testscommon.BlockChainHookStub{}
 }
 

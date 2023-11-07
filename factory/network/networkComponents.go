@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	p2pDebug "github.com/multiversx/mx-chain-go/debug/p2p"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
@@ -257,6 +258,11 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 		Logger:                logger,
 	}
 	networkMessenger, err := p2pFactory.NewNetworkMessenger(argsMessenger)
+	if err != nil {
+		return networkComponentsHolder{}, err
+	}
+
+	err = networkMessenger.SetDebugger(p2pDebug.NewP2PDebugger(networkMessenger.ID()))
 	if err != nil {
 		return networkComponentsHolder{}, err
 	}

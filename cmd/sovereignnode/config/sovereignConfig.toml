@@ -24,3 +24,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+
+[MainChainNotarization]
+    # This defines the starting round from which all sovereign chain nodes should starting notarizing main chain headers
+    MainChainNotarizationStartRound = 11

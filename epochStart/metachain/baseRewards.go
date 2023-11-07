@@ -40,6 +40,7 @@ type BaseRewardsCreatorArgs struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	UserAccountsDB                state.AccountsAdapter
 	EnableEpochsHandler           common.EnableEpochsHandler
+	ExecutionOrderHandler         common.TxExecutionOrderHandler
 }
 
 type baseRewardsCreator struct {
@@ -60,6 +61,7 @@ type baseRewardsCreator struct {
 	userAccountsDB                     state.AccountsAdapter
 	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
+	executionOrderHandler              common.TxExecutionOrderHandler
 }
 
 // NewBaseRewardsCreator will create a new base rewards creator instance
@@ -97,6 +99,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
 		enableEpochsHandler:                args.EnableEpochsHandler,
+		executionOrderHandler:              args.ExecutionOrderHandler,
 	}
 
 	return brc, nil
@@ -308,6 +311,9 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return epochStart.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ExecutionOrderHandler) {
+		return epochStart.ErrNilExecutionOrderHandler
+	}
 
 	return nil
 }
@@ -425,9 +431,16 @@ func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlic
 	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+			brc.addExecutionOrdering(miniBlocks[i].TxHashes)
 		}
 	}
 	return finalMiniBlocks
+}
+
+func (brc *baseRewardsCreator) addExecutionOrdering(txHashes [][]byte) {
+	for _, txHash := range txHashes {
+		brc.executionOrderHandler.Add(txHash)
+	}
 }
 
 func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int) {

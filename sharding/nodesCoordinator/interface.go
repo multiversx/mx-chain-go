@@ -29,6 +29,8 @@ type NodesCoordinator interface {
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NodesCoordinatorToRegistry() *NodesCoordinatorRegistry
 	IsInterfaceNil() bool
 }
 
@@ -129,4 +131,10 @@ type EpochsConfigUpdateHandler interface {
 	NodesCoordinator
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
+}
+
+// NodesCoordinatorWithRaterFactory should create a nodes coordinator with rater
+type NodesCoordinatorWithRaterFactory interface {
+	CreateNodesCoordinatorWithRater(args *NodesCoordinatorWithRaterArgs) (NodesCoordinator, error)
+	IsInterfaceNil() bool
 }

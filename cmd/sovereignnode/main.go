@@ -278,7 +278,8 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 			EpochConfig:              epochConfig,
 			RoundConfig:              roundConfig,
 		},
-		NotifierConfig: sovereignNotifierConfig,
+		NotifierConfig:       sovereignNotifierConfig,
+		SovereignExtraConfig: sovereignExtraConfig,
 	}, nil
 }
 

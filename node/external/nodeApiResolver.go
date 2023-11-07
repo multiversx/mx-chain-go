@@ -124,7 +124,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 }
 
 // ExecuteSCQuery retrieves data stored in a SC account through a VM
-func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	return nar.scQueryService.ExecuteQuery(query)
 }
 

@@ -32,7 +32,7 @@ var logVMContainerFactory = logger.GetOrCreate("vmContainerFactory")
 
 type vmContainerFactory struct {
 	config              config.VirtualMachineConfig
-	blockChainHook      process.BlockChainHookHandler
+	blockChainHook      process.BlockChainHookWithAccountsAdapter
 	cryptoHook          vmcommon.CryptoHook
 	blockGasLimit       uint64
 	gasSchedule         core.GasScheduleNotifier
@@ -56,7 +56,7 @@ type ArgVMContainerFactory struct {
 	WasmVMChangeLocker  common.Locker
 	ESDTTransferParser  vmcommon.ESDTTransferParser
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
-	BlockChainHook      process.BlockChainHookHandler
+	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	Hasher              hashing.Hasher
 }
 
@@ -368,7 +368,7 @@ func (vmf *vmContainerFactory) closePreviousVM(vm vmcommon.VMExecutionHandler) {
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl
-func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
+func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookWithAccountsAdapter {
 	return vmf.blockChainHook
 }
 

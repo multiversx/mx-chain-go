@@ -13,6 +13,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+// TODO: remove custom http event notifier integration in the following iterations
+
 var log = logger.GetOrCreate("outport/eventNotifier")
 
 const (

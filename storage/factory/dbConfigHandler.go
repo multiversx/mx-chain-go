@@ -1,7 +1,6 @@
 package factory
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -122,7 +121,7 @@ func checkIfDirExists(path string) (bool, error) {
 }
 
 func checkIfDirIsEmpty(path string) bool {
-	files, err := ioutil.ReadDir(path)
+	files, err := os.ReadDir(path)
 	if err != nil {
 		log.Trace("getDBConfig: failed to check if dir is empty", "path", path, "error", err.Error())
 		return true

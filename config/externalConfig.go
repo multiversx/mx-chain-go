@@ -49,4 +49,5 @@ type HostDriversConfig struct {
 	Mode                       string
 	RetryDurationInSec         int
 	AcknowledgeTimeoutInSec    int
+	Version                    uint32
 }

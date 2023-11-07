@@ -108,57 +108,81 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 }
 
 func verifyRatingsConfig(settings config.RatingsConfig) error {
-	if settings.General.MinRating < 1 {
+	err := verifyGeneralConfig(settings.General)
+	if err != nil {
+		return err
+	}
+	err = verifyShardConfig(settings.ShardChain)
+	if err != nil {
+		return err
+	}
+
+	return verifyMetaConfig(settings.MetaChain)
+}
+
+func verifyGeneralConfig(settings config.General) error {
+	if settings.MinRating < 1 {
 		return process.ErrMinRatingSmallerThanOne
 	}
-	if settings.General.MinRating > settings.General.MaxRating {
+	if settings.MinRating > settings.MaxRating {
 		return fmt.Errorf("%w: minRating: %v, maxRating: %v",
 			process.ErrMaxRatingIsSmallerThanMinRating,
-			settings.General.MinRating,
-			settings.General.MaxRating)
+			settings.MinRating,
+			settings.MaxRating)
 	}
-	if settings.General.MaxRating < settings.General.StartRating || settings.General.MinRating > settings.General.StartRating {
+	if settings.MaxRating < settings.StartRating || settings.MinRating > settings.StartRating {
 		return fmt.Errorf("%w: minRating: %v, startRating: %v, maxRating: %v",
 			process.ErrStartRatingNotBetweenMinAndMax,
-			settings.General.MinRating,
-			settings.General.StartRating,
-			settings.General.MaxRating)
+			settings.MinRating,
+			settings.StartRating,
+			settings.MaxRating)
 	}
-	if settings.General.SignedBlocksThreshold > 1 || settings.General.SignedBlocksThreshold < 0 {
+	if settings.SignedBlocksThreshold > 1 || settings.SignedBlocksThreshold < 0 {
 		return fmt.Errorf("%w signedBlocksThreshold: %v",
 			process.ErrSignedBlocksThresholdNotBetweenZeroAndOne,
-			settings.General.SignedBlocksThreshold)
+			settings.SignedBlocksThreshold)
 	}
-	if settings.ShardChain.HoursToMaxRatingFromStartRating == 0 {
+
+	return nil
+}
+
+func verifyShardConfig(settings config.ShardChain) error {
+	if settings.HoursToMaxRatingFromStartRating == 0 {
 		return fmt.Errorf("%w hoursToMaxRatingFromStartRating: shardChain",
 			process.ErrHoursToMaxRatingFromStartRatingZero)
 	}
-	if settings.MetaChain.HoursToMaxRatingFromStartRating == 0 {
+	if settings.ConsecutiveMissedBlocksPenalty < 1 {
+		return fmt.Errorf("%w: shardChain consecutiveMissedBlocksPenalty: %v",
+			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
+			settings.ConsecutiveMissedBlocksPenalty)
+	}
+	if settings.ProposerDecreaseFactor > -1 || settings.ValidatorDecreaseFactor > -1 {
+		return fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
+			process.ErrDecreaseRatingsStepMoreThanMinusOne,
+			settings.ProposerDecreaseFactor,
+			settings.ValidatorDecreaseFactor)
+	}
+
+	return nil
+}
+
+func verifyMetaConfig(settings config.MetaChain) error {
+	if settings.HoursToMaxRatingFromStartRating == 0 {
 		return fmt.Errorf("%w hoursToMaxRatingFromStartRating: metachain",
 			process.ErrHoursToMaxRatingFromStartRatingZero)
 	}
-	if settings.MetaChain.ConsecutiveMissedBlocksPenalty < 1 {
+	if settings.ConsecutiveMissedBlocksPenalty < 1 {
 		return fmt.Errorf("%w: metaChain consecutiveMissedBlocksPenalty: %v",
 			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
-			settings.MetaChain.ConsecutiveMissedBlocksPenalty)
+			settings.ConsecutiveMissedBlocksPenalty)
 	}
-	if settings.ShardChain.ConsecutiveMissedBlocksPenalty < 1 {
-		return fmt.Errorf("%w: shardChain consecutiveMissedBlocksPenalty: %v",
-			process.ErrConsecutiveMissedBlocksPenaltyLowerThanOne,
-			settings.ShardChain.ConsecutiveMissedBlocksPenalty)
-	}
-	if settings.ShardChain.ProposerDecreaseFactor > -1 || settings.ShardChain.ValidatorDecreaseFactor > -1 {
-		return fmt.Errorf("%w: shardChain decrease steps - proposer: %v, validator: %v",
-			process.ErrDecreaseRatingsStepMoreThanMinusOne,
-			settings.ShardChain.ProposerDecreaseFactor,
-			settings.ShardChain.ValidatorDecreaseFactor)
-	}
-	if settings.MetaChain.ProposerDecreaseFactor > -1 || settings.MetaChain.ValidatorDecreaseFactor > -1 {
+	if settings.ProposerDecreaseFactor > -1 || settings.ValidatorDecreaseFactor > -1 {
 		return fmt.Errorf("%w: metachain decrease steps - proposer: %v, validator: %v",
 			process.ErrDecreaseRatingsStepMoreThanMinusOne,
-			settings.MetaChain.ProposerDecreaseFactor,
-			settings.MetaChain.ValidatorDecreaseFactor)
+			settings.ProposerDecreaseFactor,
+			settings.ValidatorDecreaseFactor)
 	}
+
 	return nil
 }
 

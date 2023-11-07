@@ -976,7 +976,7 @@ func TestAccountsDB_SnapshotState(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), 0)
 	time.Sleep(time.Second)
 
 	snapshotMut.Lock()
@@ -1021,7 +1021,7 @@ func TestAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveDB(t 
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), 0)
 	time.Sleep(time.Second)
 
 	mut.RLock()
@@ -1069,7 +1069,7 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), 0)
 	time.Sleep(time.Second)
 
 	mut.RLock()
@@ -1095,7 +1095,7 @@ func TestAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(t *test
 		},
 	}
 	adb := generateAccountDBFromTrie(trieStub)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), 0)
 	time.Sleep(time.Second)
 
 	assert.False(t, takeSnapshotCalled)
@@ -1132,8 +1132,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	waitForOpToFinish := time.Millisecond * 10
 
 	// snapshot rootHash1 and epoch 0
-	adb.SnapshotState(rootHash1)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash1, 0)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1142,8 +1142,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 
 	// snapshot rootHash1 and epoch 1
 	latestEpoch = 1
-	adb.SnapshotState(rootHash1)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash1, 1)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1152,8 +1152,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 
 	// snapshot rootHash1 and epoch 0 again
 	latestEpoch = 0
-	adb.SnapshotState(rootHash1)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash1, 0)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1161,8 +1161,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	snapshotMutex.Unlock()
 
 	// snapshot rootHash1 and epoch 0 again
-	adb.SnapshotState(rootHash1)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash1, 0)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1170,8 +1170,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 	snapshotMutex.Unlock()
 
 	// snapshot rootHash2 and epoch 0
-	adb.SnapshotState(rootHash2)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash2, 0)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1180,8 +1180,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 
 	// snapshot rootHash2 and epoch 1
 	latestEpoch = 1
-	adb.SnapshotState(rootHash2)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash2, 1)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1190,8 +1190,8 @@ func TestAccountsDB_SnapshotStateSnapshotSameRootHash(t *testing.T) {
 
 	// snapshot rootHash2 and epoch 1 again
 	latestEpoch = 1
-	adb.SnapshotState(rootHash2)
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState(rootHash2, 1)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(waitForOpToFinish)
 	}
 	snapshotMutex.Lock()
@@ -1211,7 +1211,7 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{
 				GetLatestStorageEpochCalled: func() (uint32, error) {
-					return uint32(numPutInEpochCalled), nil
+					return 0, nil
 				},
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotMutex.Lock()
@@ -1222,8 +1222,7 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 				},
 				PutInEpochCalled: func(key []byte, val []byte, epoch uint32) error {
 					assert.Equal(t, []byte(state.LastSnapshotStarted), key)
-					assert.Equal(t, rootHashes[numPutInEpochCalled], val)
-					assert.Equal(t, numPutInEpochCalled, int(epoch))
+					assert.Equal(t, rootHashes[epoch], val)
 
 					numPutInEpochCalled++
 					return nil
@@ -1233,10 +1232,10 @@ func TestAccountsDB_SnapshotStateSkipSnapshotIfSnapshotInProgress(t *testing.T) 
 	}
 	adb := generateAccountDBFromTrie(trieStub)
 
-	for _, rootHash := range rootHashes {
-		adb.SnapshotState(rootHash)
+	for epoch, rootHash := range rootHashes {
+		adb.SnapshotState(rootHash, uint32(epoch))
 	}
-	for adb.IsSnapshotInProgress().IsSet() {
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(time.Millisecond * 10)
 	}
 
@@ -1273,8 +1272,8 @@ func TestAccountsDB_SnapshotStateCallsRemoveFromAllActiveEpochs(t *testing.T) {
 	adb := generateAccountDBFromTrie(trieStub)
 	_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
 
-	adb.SnapshotState([]byte("rootHash"))
-	for adb.IsSnapshotInProgress().IsSet() {
+	adb.SnapshotState([]byte("rootHash"), 0)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(time.Millisecond * 10)
 	}
 	assert.True(t, removeFromAllActiveEpochsCalled)
@@ -2139,8 +2138,8 @@ func TestAccountsDB_SnapshotStateCleansCheckpointHashesHolder(t *testing.T) {
 	mergeMaps(newHashes, newHashesMainTrie)
 
 	rootHash, _ := adb.Commit()
-	adb.SnapshotState(rootHash)
-	for trieStorage.IsPruningBlocked() {
+	adb.SnapshotState(rootHash, 0)
+	for adb.IsSnapshotInProgress() {
 		time.Sleep(10 * time.Millisecond)
 	}
 
@@ -2645,40 +2644,7 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 
 	rootHash := []byte("rootHash")
 	expectedErr := errors.New("expected error")
-	t.Run("epoch 0", func(t *testing.T) {
-		putCalled := false
-		trieStub := &trieMock.TrieStub{
-			RootCalled: func() ([]byte, error) {
-				return rootHash, nil
-			},
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					ShouldTakeSnapshotCalled: func() bool {
-						return true
-					},
-					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, nil
-					},
-					PutCalled: func(key []byte, val []byte) error {
-						assert.Equal(t, []byte(common.ActiveDBKey), key)
-						assert.Equal(t, []byte(common.ActiveDBVal), val)
 
-						putCalled = true
-
-						return nil
-					},
-				}
-			},
-		}
-
-		adb := generateAccountDBFromTrie(trieStub)
-		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
-		assert.Nil(t, err)
-		err = adb.StartSnapshotIfNeeded()
-		assert.Nil(t, err)
-
-		assert.True(t, putCalled)
-	})
 	t.Run("epoch 0, GetLatestStorageEpoch errors should not put", func(t *testing.T) {
 		trieStub := &trieMock.TrieStub{
 			RootCalled: func() ([]byte, error) {
@@ -2708,7 +2674,6 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 		assert.Nil(t, err)
 	})
 	t.Run("in import DB mode", func(t *testing.T) {
-		putCalled := false
 		trieStub := &trieMock.TrieStub{
 			RootCalled: func() ([]byte, error) {
 				return rootHash, nil
@@ -2721,13 +2686,8 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 					GetLatestStorageEpochCalled: func() (uint32, error) {
 						return 1, nil
 					},
-					PutCalled: func(key []byte, val []byte) error {
-						assert.Equal(t, []byte(common.ActiveDBKey), key)
-						assert.Equal(t, []byte(common.ActiveDBVal), val)
-
-						putCalled = true
-
-						return nil
+					GetFromCurrentEpochCalled: func(i []byte) ([]byte, error) {
+						return nil, expectedErr
 					},
 				}
 			},
@@ -2742,8 +2702,6 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 		assert.Nil(t, err)
 		err = adb.StartSnapshotIfNeeded()
 		assert.Nil(t, err)
-
-		assert.True(t, putCalled)
 	})
 }
 
@@ -2833,46 +2791,6 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 		entry, _ := state.GetCodeEntry(codeHash, tr, marshaller)
 		assert.Equal(b, code, entry.Code)
 	}
-}
-
-func TestAccountsDB_waitForCompletionIfAppropriate(t *testing.T) {
-	t.Parallel()
-
-	t.Run("not in import db", func(t *testing.T) {
-		t.Parallel()
-
-		argsAccountsDB := createMockAccountsDBArgs()
-		argsAccountsDB.ProcessingMode = common.Normal
-		argsAccountsDB.ProcessStatusHandler = &testscommon.ProcessStatusHandlerStub{
-			SetIdleCalled: func() {
-				assert.Fail(t, "should have not called set idle ")
-			},
-		}
-		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfAppropriate(&trieMock.MockStatistics{})
-	})
-	t.Run("in import db", func(t *testing.T) {
-		t.Parallel()
-
-		argsAccountsDB := createMockAccountsDBArgs()
-		argsAccountsDB.ProcessingMode = common.ImportDb
-		idleWasSet := false
-		argsAccountsDB.ProcessStatusHandler = &testscommon.ProcessStatusHandlerStub{
-			SetIdleCalled: func() {
-				idleWasSet = true
-			},
-		}
-
-		stats := &trieMock.MockStatistics{}
-		waitForSnapshotsToFinishCalled := false
-		stats.WaitForSnapshotsToFinishCalled = func() {
-			waitForSnapshotsToFinishCalled = true
-		}
-		adb, _ := state.NewAccountsDB(argsAccountsDB)
-		adb.WaitForCompletionIfAppropriate(stats)
-		assert.True(t, idleWasSet)
-		assert.True(t, waitForSnapshotsToFinishCalled)
-	})
 }
 
 func TestEmptyErrChanReturningHadContained(t *testing.T) {
@@ -2995,9 +2913,9 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 			},
 		}
 		_ = adb.SetSyncer(syncer)
-		adb.SnapshotState(rootHash)
+		adb.SnapshotState(rootHash, 0)
 
-		for tr.GetStorageManager().IsPruningBlocked() {
+		for adb.IsSnapshotInProgress() {
 			time.Sleep(time.Millisecond * 100)
 		}
 
@@ -3043,9 +2961,9 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 		rootHash, _ := tr.RootHash()
 		trieHashes, _ = tr.GetAllHashes()
 
-		adb.SnapshotState(rootHash)
+		adb.SnapshotState(rootHash, 0)
 
-		for tr.GetStorageManager().IsPruningBlocked() {
+		for adb.IsSnapshotInProgress() {
 			time.Sleep(time.Millisecond * 100)
 		}
 
@@ -3076,9 +2994,9 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 
 		rootHash, _ := tr.RootHash()
 
-		adb.SnapshotState(rootHash)
+		adb.SnapshotState(rootHash, 0)
 
-		for tr.GetStorageManager().IsPruningBlocked() {
+		for adb.IsSnapshotInProgress() {
 			time.Sleep(time.Millisecond * 100)
 		}
 
@@ -3201,7 +3119,7 @@ func testAccountMethodsConcurrency(
 			case 14:
 				adb.CancelPrune(rootHash, state.NewRoot)
 			case 15:
-				adb.SnapshotState(rootHash)
+				adb.SnapshotState(rootHash, 0)
 			case 16:
 				adb.SetStateCheckpoint(rootHash)
 			case 17:

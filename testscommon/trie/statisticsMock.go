@@ -28,6 +28,16 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler, _ common.TrieType) {
 }
 
+// GetSnapshotDuration -
+func (m *MockStatistics) GetSnapshotDuration() int64 {
+	return 0
+}
+
+// GetSnapshotNumNodes -
+func (m *MockStatistics) GetSnapshotNumNodes() uint64 {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *MockStatistics) IsInterfaceNil() bool {
 	return m == nil

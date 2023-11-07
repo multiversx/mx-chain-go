@@ -74,6 +74,12 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
+	notarizer := &multiShardCrossNotarizer{
+		shardCoordinator: arguments.BootstrapComponents.ShardCoordinator(),
+		baseBlockNotarizer: &baseBlockNotarizer{
+			blockTracker: arguments.BlockTracker,
+		},
+	}
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -120,6 +126,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		crossNotarizer:                notarizer,
 	}
 
 	sp := shardProcessor{
@@ -151,6 +158,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	sp.requestMissingHeadersFunc = sp.requestMissingHeaders
 	sp.cleanupPoolsForCrossShardFunc = sp.cleanupPoolsForCrossShard
 	sp.cleanupBlockTrackerPoolsForShardFunc = sp.cleanupBlockTrackerPoolsForShard
+	sp.getExtraMissingNoncesToRequestFunc = sp.getExtraMissingNoncesToRequest
 
 	return &sp, nil
 }
@@ -1275,8 +1283,9 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 				log.Debug("using scheduled root hash for snapshotting", "schRootHash", schRootHash)
 				rootHash = schRootHash
 			}
-			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			accounts.SnapshotState(rootHash)
+			epoch := sp.epochStartTrigger.MetaEpoch()
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash, "epoch", epoch)
+			accounts.SnapshotState(rootHash, epoch)
 			sp.markSnapshotDoneInPeerAccounts()
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {

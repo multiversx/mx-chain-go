@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -13,6 +13,11 @@ const (
 	minRequestTimeoutSec = 1
 	contentTypeKey       = "Content-Type"
 	contentTypeValue     = "application/json"
+
+	payloadVersionKey = "version"
+	// set http header version to 1; notifier connector will have to handle
+	// previous payload type if no version header is set
+	payloadVersionValue = "1"
 )
 
 type httpClientWrapper struct {
@@ -76,6 +81,7 @@ func (h *httpClientWrapper) Post(
 	}
 
 	req.Header.Set(contentTypeKey, contentTypeValue)
+	req.Header.Set(payloadVersionKey, payloadVersionValue)
 
 	if h.useAuthorization {
 		req.SetBasicAuth(h.username, h.password)
@@ -94,7 +100,7 @@ func (h *httpClientWrapper) Post(
 		}
 	}()
 
-	resBody, err := ioutil.ReadAll(resp.Body)
+	resBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}

@@ -62,7 +62,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 		CancelPruneCalled: func(_ []byte, _ state.TriePruningIdentifier) {
 			t.Errorf(failErrMsg)
 		},
-		SnapshotStateCalled: func(_ []byte) {
+		SnapshotStateCalled: func(_ []byte, _ uint32) {
 			t.Errorf(failErrMsg)
 		},
 		SetStateCheckpointCalled: func(_ []byte) {
@@ -96,7 +96,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 
 	simAccountsDB.CancelPrune(nil, state.NewRoot)
 
-	simAccountsDB.SnapshotState(nil)
+	simAccountsDB.SnapshotState(nil, 0)
 
 	simAccountsDB.SetStateCheckpoint(nil)
 

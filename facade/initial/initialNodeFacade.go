@@ -202,8 +202,8 @@ func (inf *initialNodeFacade) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 // ExecuteSCQuery returns nil and error
-func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // PprofEnabled returns false

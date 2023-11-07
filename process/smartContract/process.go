@@ -1593,7 +1593,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 		Identifier: []byte(core.WriteLogIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
-		Data:       txHandler.GetData(),
+		Data:       [][]byte{txHandler.GetData()},
 	}
 	if len(returnMessage) > 0 {
 		newLog.Topics = append(newLog.Topics, returnMessage)
@@ -1613,7 +1613,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 		Identifier: []byte(core.SignalErrorOperation),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
-		Data:       txHandler.GetData(),
+		Data:       [][]byte{txHandler.GetData()},
 	}
 
 	return newLog
@@ -2582,7 +2582,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			log.Trace("storeUpdate", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 		}
 
-		err = sc.updateSmartContractCode(vmOutput, acc, outAcc)
+		logEntry, err := sc.updateSmartContractCode(vmOutput, acc, outAcc)
 		if err != nil {
 			return false, nil, err
 		}
@@ -2603,6 +2603,7 @@ func (sc *scProcessor) processSCOutputAccounts(
 			if err != nil {
 				return false, nil, err
 			}
+			addCodeHashInLogEntryTopics(logEntry, acc.GetCodeHash())
 
 			continue
 		}
@@ -2618,6 +2619,8 @@ func (sc *scProcessor) processSCOutputAccounts(
 		if err != nil {
 			return false, nil, err
 		}
+
+		addCodeHashInLogEntryTopics(logEntry, acc.GetCodeHash())
 	}
 
 	if sumOfAllDiff.Cmp(zero) != 0 {
@@ -2625,6 +2628,18 @@ func (sc *scProcessor) processSCOutputAccounts(
 	}
 
 	return createdAsyncCallback, scResults, nil
+}
+
+func addCodeHashInLogEntryTopics(entry *vmcommon.LogEntry, codeHash []byte) {
+	if entry == nil {
+		return
+	}
+	isExpectedIdentifier := string(entry.Identifier) == core.SCUpgradeIdentifier || string(entry.Identifier) == core.SCDeployIdentifier
+	if !isExpectedIdentifier {
+		return
+	}
+
+	entry.Topics = append(entry.Topics, codeHash)
 }
 
 // updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
@@ -2637,27 +2652,27 @@ func (sc *scProcessor) updateSmartContractCode(
 	vmOutput *vmcommon.VMOutput,
 	stateAccount state.UserAccountHandler,
 	outputAccount *vmcommon.OutputAccount,
-) error {
+) (*vmcommon.LogEntry, error) {
 	if len(outputAccount.Code) == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(outputAccount.CodeMetadata) == 0 {
-		return nil
+		return nil, nil
 	}
 	if !core.IsSmartContractAddress(outputAccount.Address) {
-		return nil
+		return nil, nil
 	}
 
 	outputAccountCodeMetadataBytes, err := sc.blockChainHook.FilterCodeMetadataForUpgrade(outputAccount.CodeMetadata)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// This check is desirable (not required though) since currently both Wasm VM and IELE send the code in the output account even for "regular" execution
 	sameCode := bytes.Equal(outputAccount.Code, sc.accounts.GetCode(stateAccount.GetCodeHash()))
 	sameCodeMetadata := bytes.Equal(outputAccountCodeMetadataBytes, stateAccount.GetCodeMetadata())
 	if sameCode && sameCodeMetadata {
-		return nil
+		return nil, nil
 	}
 
 	currentOwner := stateAccount.GetOwnerAddress()
@@ -2690,7 +2705,7 @@ func (sc *scProcessor) updateSmartContractCode(
 
 		entry.Identifier = []byte(core.SCDeployIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
-		return nil
+		return entry, nil
 	}
 
 	if isUpgrade {
@@ -2700,10 +2715,10 @@ func (sc *scProcessor) updateSmartContractCode(
 
 		entry.Identifier = []byte(core.SCUpgradeIdentifier)
 		vmOutput.Logs = append(vmOutput.Logs, entry)
-		return nil
+		return entry, nil
 	}
 
-	return nil
+	return entry, nil
 }
 
 // delete accounts - only suicide by current SC or another SC called by current SC - protected by VM

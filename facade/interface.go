@@ -112,7 +112,7 @@ type TransactionSimulatorProcessor interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	StatusMetrics() external.StatusMetricsHandler

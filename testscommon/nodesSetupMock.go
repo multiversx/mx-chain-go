@@ -143,6 +143,10 @@ func (n *NodesSetupStub) GetStartTime() int64 {
 	return 0
 }
 
+// SetStartTime -
+func (n *NodesSetupStub) SetStartTime(_ int64) {
+}
+
 // MinNumberOfNodes -
 func (n *NodesSetupStub) MinNumberOfNodes() uint32 {
 	if n.MinNumberOfNodesCalled != nil {

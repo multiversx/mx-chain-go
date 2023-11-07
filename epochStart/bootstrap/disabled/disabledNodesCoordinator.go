@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -101,6 +102,15 @@ func (n *nodesCoordinator) ConsensusGroupSize(uint32) int {
 // GetNumTotalEligible -
 func (n *nodesCoordinator) GetNumTotalEligible() uint64 {
 	return 0
+}
+
+// EpochStartPrepare -
+func (n *nodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// NodesCoordinatorToRegistry -
+func (n *nodesCoordinator) NodesCoordinatorToRegistry() *nodesCoord.NodesCoordinatorRegistry {
+	return nil
 }
 
 // IsInterfaceNil -

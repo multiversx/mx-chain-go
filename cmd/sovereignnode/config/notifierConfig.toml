@@ -18,3 +18,5 @@ SubscribedEvents = [
     WithAcknowledge = true
     # The duration in seconds to wait for an acknowledgement message
     AcknowledgeTimeout = 60
+    # Payload version to process
+    Version = 1

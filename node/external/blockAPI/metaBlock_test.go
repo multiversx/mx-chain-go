@@ -549,6 +549,13 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		DeveloperFees:          big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(10),
 		DevFeesInEpoch:         big.NewInt(5),
+		PubKeysBitmap:          []byte("010101"),
+		Signature:              []byte("sig"),
+		LeaderSignature:        []byte("leader"),
+		ChainID:                []byte("1"),
+		SoftwareVersion:        []byte("2"),
+		ReceiptsHash:           []byte("recHash"),
+		Reserved:               []byte("res"),
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -575,6 +582,13 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusReverted,
+		PubKeyBitmap:           "303130313031",
+		Signature:              "736967",
+		LeaderSignature:        "6c6561646572",
+		ChainID:                "1",
+		SoftwareVersion:        "32",
+		ReceiptsHash:           "72656348617368",
+		Reserved:               []byte("res"),
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})

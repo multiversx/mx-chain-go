@@ -151,7 +151,7 @@ func getAsyncCallGasLockFromTxData(callType vm.CallType, arguments [][]byte) ([]
 }
 
 func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte, [][]byte) {
-	if callType == vm.DirectCall {
+	if callType == vm.DirectCall || callType == vm.ESDTTransferAndExecute {
 		return nil, arguments
 	}
 

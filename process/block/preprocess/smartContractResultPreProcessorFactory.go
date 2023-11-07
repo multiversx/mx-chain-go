@@ -28,6 +28,7 @@ func (scppf *smartContractResultPreProcessorFactory) CreateSmartContractResultPr
 		args.BalanceComputation,
 		args.EnableEpochsHandler,
 		args.ProcessedMiniBlocksTracker,
+		args.TxExecutionOrderHandler,
 	)
 }
 

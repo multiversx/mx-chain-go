@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -112,6 +113,12 @@ type TxVersionCheckerHandler interface {
 type HdrValidatorHandler interface {
 	Hash() []byte
 	HeaderHandler() data.HeaderHandler
+}
+
+// ExtendedHeaderValidatorHandler defines extended header validator functionality
+type ExtendedHeaderValidatorHandler interface {
+	Hash() []byte
+	GetExtendedHeader() data.ShardHeaderExtendedHandler
 }
 
 // InterceptedDataFactory can create new instances of InterceptedData
@@ -456,7 +463,7 @@ type VirtualMachinesContainer interface {
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	Close() error
-	BlockChainHookImpl() BlockChainHookHandler
+	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
 }
 
@@ -539,6 +546,12 @@ type BlockChainHookHandler interface {
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
+}
+
+// BlockChainHookWithAccountsAdapter defines an extension of BlockChainHookHandler with the AccountsAdapter exposed
+type BlockChainHookWithAccountsAdapter interface {
+	BlockChainHookHandler
+	GetAccountsAdapter() state.AccountsAdapter
 }
 
 // Interceptor defines what a data interceptor should do
@@ -778,6 +791,8 @@ type SCQuery struct {
 	Arguments      [][]byte
 	SameScState    bool
 	ShouldBeSynced bool
+	BlockNonce     core.OptionalUint64
+	BlockHash      []byte
 }
 
 // GasHandler is able to perform some gas calculation
@@ -918,7 +933,7 @@ type PeerValidatorMapper interface {
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
-	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool
@@ -1332,6 +1347,13 @@ type PeerAuthenticationPayloadValidator interface {
 type Debugger interface {
 	SetLastCommittedBlockRound(round uint64)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// IncomingHeaderSubscriber defines a subscriber to incoming headers
+type IncomingHeaderSubscriber interface {
+	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
 	IsInterfaceNil() bool
 }
 

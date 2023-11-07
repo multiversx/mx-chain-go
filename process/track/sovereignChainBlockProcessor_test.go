@@ -14,6 +14,7 @@ import (
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
@@ -33,6 +34,7 @@ func CreateSovereignChainBlockProcessorMockArguments() track.ArgBlockProcessor {
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	sovereignChainHeaderValidator, _ := processBlock.NewSovereignChainHeaderValidator(headerValidator)
 	blockProcessorArguments.HeaderValidator = sovereignChainHeaderValidator
+	blockProcessorArguments.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 
 	return blockProcessorArguments
 }
@@ -308,7 +310,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardH
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
-	shardID := uint32(0)
+	shardID := blockProcessorArguments.ShardCoordinator.SelfId()
 	fromNonce := uint64(1)
 
 	scbp.RequestHeaders(shardID, fromNonce)
@@ -354,7 +356,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	blockProcessorArguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{
 		RequestExtendedShardHeaderByNonceCalled: func(nonce uint64) {
 			mutRequest.Lock()
-			shardIDRequestCalled = append(shardIDRequestCalled, core.SovereignChainShardId)
+			shardIDRequestCalled = append(shardIDRequestCalled, core.MainChainShardId)
 			nonceRequestCalled = append(nonceRequestCalled, nonce)
 			mutRequest.Unlock()
 		},
@@ -363,7 +365,7 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
-	shardID := core.SovereignChainShardId
+	shardID := core.MainChainShardId
 	fromNonce := uint64(1)
 
 	scbp.RequestHeaders(shardID, fromNonce)

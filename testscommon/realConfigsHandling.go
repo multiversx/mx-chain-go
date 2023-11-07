@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"path"
 	"strings"
@@ -96,7 +96,7 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 }
 
 func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGenesisSmartContractsFilename string) {
-	input, err := ioutil.ReadFile(newGenesisSmartContractsFilename)
+	input, err := os.ReadFile(newGenesisSmartContractsFilename)
 	require.Nil(tb, err)
 
 	lines := strings.Split(string(input), "\n")
@@ -106,6 +106,6 @@ func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGe
 		}
 	}
 	output := strings.Join(lines, "\n")
-	err = ioutil.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
+	err = os.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
 	require.Nil(tb, err)
 }

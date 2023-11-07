@@ -22,10 +22,11 @@ func (converter *logsConverter) txLogToApiResource(logKey []byte, log *transacti
 		eventAddress := converter.encodeAddress(event.Address)
 
 		events[i] = &transaction.Events{
-			Address:    eventAddress,
-			Identifier: string(event.Identifier),
-			Topics:     event.Topics,
-			Data:       event.Data,
+			Address:        eventAddress,
+			Identifier:     string(event.Identifier),
+			Topics:         event.Topics,
+			Data:           event.Data,
+			AdditionalData: event.AdditionalData,
 		}
 	}
 

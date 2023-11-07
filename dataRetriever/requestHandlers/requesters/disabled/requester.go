@@ -29,6 +29,11 @@ func (r *requester) SetDebugHandler(_ dataRetriever.DebugHandler) error {
 	return nil
 }
 
+// RequestDataFromHashArray returns nil as it is disabled
+func (r *requester) RequestDataFromHashArray(_ [][]byte, _ uint32) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (r *requester) IsInterfaceNil() bool {
 	return r == nil

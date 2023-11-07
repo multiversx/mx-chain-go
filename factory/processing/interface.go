@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
+    "github.com/multiversx/mx-chain-core-go/data"
 )
 
 // TransactionCoordinatorCreator defines the transaction coordinator factory creator
@@ -49,5 +50,11 @@ type ForkDetectorCreator interface {
 // RequestHandlerCreator defines the resolver requester factory handler
 type RequestHandlerCreator interface {
 	CreateRequestHandler(resolverRequestArgs requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
+	IsInterfaceNil() bool
+}
+
+// GenesisMetaBlockChecker should handle genesis meta block checks after creation
+type GenesisMetaBlockChecker interface {
+	SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, validatorStatsRootHash []byte) error
 	IsInterfaceNil() bool
 }

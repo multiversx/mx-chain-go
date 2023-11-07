@@ -15,12 +15,15 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Balance                  *big.Int
-	DeveloperRewards         *big.Int
-	UserName                 []byte
-	Owner                    []byte
-	Address                  []byte
-	Nonce                    uint64
+	Balance          *big.Int
+	DeveloperRewards *big.Int
+	UserName         []byte
+	Owner            []byte
+	Address          []byte
+	CodeMetadata     []byte
+	CodeHash         []byte
+	Nonce            uint64
+
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
 	IsGuardedCalled          func() bool
@@ -121,7 +124,7 @@ func (u *UserAccountStub) SetCodeMetadata(_ []byte) {
 
 // GetCodeMetadata -
 func (u *UserAccountStub) GetCodeMetadata() []byte {
-	return nil
+	return u.CodeMetadata
 }
 
 // SetCodeHash -
@@ -131,7 +134,7 @@ func (u *UserAccountStub) SetCodeHash([]byte) {
 
 // GetCodeHash -
 func (u *UserAccountStub) GetCodeHash() []byte {
-	return nil
+	return u.CodeHash
 }
 
 // SetRootHash -

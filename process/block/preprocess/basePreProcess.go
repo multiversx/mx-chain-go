@@ -122,6 +122,7 @@ type basePreProcess struct {
 	pubkeyConverter            core.PubkeyConverter
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
 	enableEpochsHandler        common.EnableEpochsHandler
+	txExecutionOrderHandler    common.TxExecutionOrderHandler
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -511,6 +512,7 @@ func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionIn
 	}
 
 	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+	bpp.txExecutionOrderHandler.Remove(txHash)
 }
 
 func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {

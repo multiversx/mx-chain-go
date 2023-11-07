@@ -57,6 +57,12 @@ type BalanceComputationHandler interface {
 	IsInterfaceNil() bool
 }
 
+// TxPreProcessorCreator defines a tx pre processor creator
+type TxPreProcessorCreator interface {
+	CreateTxPreProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error)
+	IsInterfaceNil() bool
+}
+
 // SmartContractResultPreProcessorCreator defines the interface of a smart contract result pre-processor creator
 type SmartContractResultPreProcessorCreator interface {
 	CreateSmartContractResultPreProcessor(args SmartContractResultPreProcessorCreatorArgs) (process.PreProcessor, error)

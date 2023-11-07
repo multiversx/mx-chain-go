@@ -109,7 +109,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	sm := inf.StatusMetrics()
 	assert.NotNil(t, sm)
 
-	vo, err := inf.ExecuteSCQuery(nil)
+	vo, _, err := inf.ExecuteSCQuery(nil)
 	assert.Nil(t, vo)
 	assert.Equal(t, errNodeStarting, err)
 

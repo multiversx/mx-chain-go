@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -28,15 +27,19 @@ import (
 // 4. Execute SCR with the smart contract call on shard 1
 // 5. Execute SCR with refund on relayer shard (shard 2)
 func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
-	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	enableEpochs := config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	}
+
+	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
-	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
 	defer testContextInnerSource.Close()
 
-	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextInnerDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
 	require.Nil(t, err)
 	defer testContextInnerDst.Close()
 

@@ -104,7 +104,7 @@ func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, 
 		Arguments: [][]byte{},
 	}
 
-	vmOutputVersion, err := dp.scQueryService.ExecuteQuery(scQueryVersion)
+	vmOutputVersion, _, err := dp.scQueryService.ExecuteQuery(scQueryVersion)
 	if err != nil {
 		return err
 	}

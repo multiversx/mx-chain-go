@@ -53,7 +53,7 @@ func (tep *txExecutionProcessor) ExecuteTransaction(
 		Value:     value,
 		RcvAddr:   rcvAddress,
 		GasPrice:  0,
-		GasLimit:  math.MaxUint64,
+		GasLimit:  math.MaxInt64,
 		Data:      data,
 		Signature: nil,
 	}

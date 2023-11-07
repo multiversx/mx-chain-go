@@ -30,7 +30,7 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 		Arguments:  [][]byte{validatorAddress},
 	}
 
-	vmOutput, err := csp.queryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := csp.queryService.ExecuteQuery(scQuery)
 	if err != nil {
 		return nil, err
 	}

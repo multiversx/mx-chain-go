@@ -276,7 +276,7 @@ func checkUserNamesAreSetCorrectly(
 				continue
 			}
 
-			vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+			vmOutput, _, _ := node.SCQueryService.ExecuteQuery(scQuery)
 
 			require.NotNil(t, vmOutput)
 			require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)

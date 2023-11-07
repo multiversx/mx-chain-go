@@ -104,7 +104,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &testscommon.CacherStub{}
 				},
 				HeadersCalled: func() retriever.HeadersPool {
-					return &testsMocks.HeadersCacherStub{}
+					return &testscommon.HeadersCacherStub{}
 				},
 			},
 			BlockChain: &testscommon.ChainHandlerStub{

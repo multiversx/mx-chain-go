@@ -1,7 +1,7 @@
 package goroutines
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +12,7 @@ func TestGoRoutines_SnapshotAll(t *testing.T) {
 	t.Parallel()
 
 	handler := func() string {
-		buffFile1, err := ioutil.ReadFile("testdata/test1.data")
+		buffFile1, err := os.ReadFile("testdata/test1.data")
 		require.Nil(t, err)
 
 		return string(buffFile1)
@@ -35,7 +35,7 @@ func TestGoRoutines_SnapshotAllDifferentFiles(t *testing.T) {
 
 	filename := "testdata/test2.data"
 	handler := func() string {
-		buffFile, err := ioutil.ReadFile(filename)
+		buffFile, err := os.ReadFile(filename)
 		require.Nil(t, err)
 
 		return string(buffFile)
@@ -68,7 +68,7 @@ func TestGoRoutines_Reset(t *testing.T) {
 
 	filename := "testdata/test2.data"
 	handler := func() string {
-		buffFile, err := ioutil.ReadFile(filename)
+		buffFile, err := os.ReadFile(filename)
 		require.Nil(t, err)
 
 		return string(buffFile)

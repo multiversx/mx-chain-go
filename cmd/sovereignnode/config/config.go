@@ -31,4 +31,5 @@ type WebSocketConfig struct {
 	Mode               string `toml:"Mode"`
 	WithAcknowledge    bool   `toml:"WithAcknowledge"`
 	AcknowledgeTimeout int    `toml:"AcknowledgeTimeout"`
+	Version            uint32 `toml:"Version"`
 }

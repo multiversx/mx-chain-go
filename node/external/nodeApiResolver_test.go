@@ -158,14 +158,14 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	arg := createMockArgs()
 	wasCalled := false
 	arg.SCQueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, info common.BlockInfo, e error) {
 			wasCalled = true
-			return &vmcommon.VMOutput{}, nil
+			return &vmcommon.VMOutput{}, info, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
 
-	_, _ = nar.ExecuteSCQuery(&process.SCQuery{
+	_, _, _ = nar.ExecuteSCQuery(&process.SCQuery{
 		ScAddress: []byte{0},
 		FuncName:  "",
 	})

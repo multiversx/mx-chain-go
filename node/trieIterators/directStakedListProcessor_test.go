@@ -65,8 +65,8 @@ func TestDirectStakedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T
 	arg := createMockArgs()
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
-			return nil, fmt.Errorf("not an expected call")
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
@@ -95,7 +95,7 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 	arg := createMockArgs()
 	arg.PublicKeyConverter = testscommon.NewPubkeyConverterMock(10)
 	arg.QueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			switch query.FuncName {
 			case "getTotalStakedTopUpStakedBlsKeys":
 				for index, validator := range validators {
@@ -105,12 +105,12 @@ func TestDirectStakedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 
 						return &vmcommon.VMOutput{
 							ReturnData: [][]byte{topUpValue.Bytes(), totalStakedValue.Bytes(), make([]byte, 0)},
-						}, nil
+						}, nil, nil
 					}
 				}
 			}
 
-			return nil, fmt.Errorf("not an expected call")
+			return nil, nil, fmt.Errorf("not an expected call")
 		},
 	}
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{

@@ -2,7 +2,7 @@ package osLevel
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 
@@ -74,7 +74,7 @@ func (memStats *MemStats) String() string {
 
 // ReadCurrentMemStats will read the current mem stats at the OS level
 func ReadCurrentMemStats() (*MemStats, error) {
-	buff, err := ioutil.ReadFile(procFile)
+	buff, err := os.ReadFile(procFile)
 	if err != nil {
 		return nil, err
 	}

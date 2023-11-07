@@ -4,9 +4,6 @@ import (
 	"errors"
 )
 
-// ErrBadBlocksCacheNil defines the error for using a nil cache for bad blocks
-var ErrBadBlocksCacheNil = errors.New("badBlocksCache nil")
-
 // ErrHeaderUnitNil defines the error for using a nil storage unit for block headers
 var ErrHeaderUnitNil = errors.New("header unit nil")
 
@@ -15,3 +12,9 @@ var ErrWrongTypeInSet = errors.New("wrong type in setter")
 
 // ErrNilAppStatusHandler defines the error for setting a nil AppStatusHandler
 var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
+
+// ErrOperationNotPermitted signals that operation is not permitted
+var ErrOperationNotPermitted = errors.New("operation not permitted")
+
+// ErrNilBlockChain signals that a nil blockchain has been provided
+var ErrNilBlockChain = errors.New("nil block chain")

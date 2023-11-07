@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
 
 type blockProcessor interface {
@@ -33,6 +34,10 @@ type validatorStatsRootHashGetter interface {
 
 type extendedShardHeaderHashesGetter interface {
 	GetExtendedShardHeaderHashes() [][]byte
+}
+
+type crossNotarizer interface {
+	getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo
 }
 
 // BlockProcessorCreator defines the block processor factory handler

@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -27,9 +26,9 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 
 	relayerBalance := big.NewInt(10000000)
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
 	gasLimit := uint64(40)
@@ -72,9 +71,9 @@ func TestTestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 	rcvAddr := []byte("12345678901234567890123456789022")
 
 	relayerBalance := big.NewInt(10000000)
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, relayerBalance)
 
 	gasLimit := uint64(40)
