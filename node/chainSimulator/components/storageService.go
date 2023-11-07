@@ -24,6 +24,12 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.PeerAccountsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ESDTSuppliesUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.RoundHdrHashDataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MiniblocksMetadataUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.EpochByHashUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ResultsHashesByTxHashUnit, CreateMemUnit())
 	// TODO add the rest of units
 
 	for i := uint32(0); i < numOfShards; i++ {
