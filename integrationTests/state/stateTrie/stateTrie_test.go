@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -1068,6 +1069,7 @@ func createAccounts(
 		AccountFactory:       accCreator,
 		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
@@ -2522,6 +2524,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		AccountFactory:       accCreator,
 		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{

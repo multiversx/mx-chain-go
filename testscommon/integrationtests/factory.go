@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	accountFactory "github.com/multiversx/mx-chain-go/state/factory"
@@ -119,6 +120,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 		AccountFactory:       accCreator,
 		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{

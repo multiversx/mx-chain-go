@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
@@ -112,6 +113,7 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 		AccountFactory:       args.AccountFactory,
 		ChannelsProvider:     iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 	args.SnapshotsManager = snapshotsManager
 
@@ -380,6 +382,7 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 			AccountFactory:       args.AccountFactory,
 			ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 			LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+			StateStatsHandler:    statistics.NewStateStatistics(),
 		})
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)

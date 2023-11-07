@@ -130,6 +130,7 @@ func (scf *stateComponentsFactory) createSnapshotManager(
 		ChannelsProvider:         iteratorChannelsProvider,
 		AccountFactory:           accountFactory,
 		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:        scf.statusCore.StateStatsHandler(),
 	}
 	return state.NewSnapshotsManager(argsSnapshotsManager)
 }
