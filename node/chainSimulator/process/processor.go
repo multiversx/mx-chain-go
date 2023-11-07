@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 )
 
 type blocksCreator struct {
@@ -9,6 +10,7 @@ type blocksCreator struct {
 	blsKeyBytes []byte
 }
 
+// NewBlocksCreator will create a new instance of blocksCreator
 func NewBlocksCreator(nodeHandler NodeHandler, blsKeyBytes []byte) (*blocksCreator, error) {
 	return &blocksCreator{
 		nodeHandler: nodeHandler,
@@ -19,18 +21,8 @@ func NewBlocksCreator(nodeHandler NodeHandler, blsKeyBytes []byte) (*blocksCreat
 // CreateNewBlock create and process a new block
 func (creator *blocksCreator) CreateNewBlock() error {
 	bp := creator.nodeHandler.GetProcessComponents().BlockProcessor()
-	currentHeader := creator.nodeHandler.GetChainHandler().GetCurrentBlockHeader()
-	var nonce, round uint64
-	var prevHash, prevRandSeed []byte
-	if currentHeader != nil {
-		nonce, round = currentHeader.GetNonce(), currentHeader.GetRound()
-		prevHash = creator.nodeHandler.GetChainHandler().GetCurrentBlockHeaderHash()
-		prevRandSeed = currentHeader.GetRandSeed()
-	} else {
-		prevHash = creator.nodeHandler.GetChainHandler().GetGenesisHeaderHash()
-		prevRandSeed = creator.nodeHandler.GetChainHandler().GetGenesisHeader().GetRandSeed()
-	}
 
+	nonce, round, prevHash, prevRandSeed := creator.getPreviousHeaderData()
 	newHeader, err := bp.CreateNewHeader(round+1, nonce+1)
 	if err != nil {
 		return err
@@ -55,7 +47,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	err = newHeader.SetChainID([]byte("chain"))
+	err = newHeader.SetChainID([]byte(configs.ChainID))
 	if err != nil {
 		return err
 	}
@@ -98,6 +90,21 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	return creator.nodeHandler.GetBroadcastMessenger().BroadcastBlockDataLeader(header, miniBlocks, transactions, creator.blsKeyBytes)
+}
+
+func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prevHash, prevRandSeed []byte) {
+	currentHeader := creator.nodeHandler.GetChainHandler().GetCurrentBlockHeader()
+
+	if currentHeader != nil {
+		nonce, round = currentHeader.GetNonce(), currentHeader.GetRound()
+		prevHash = creator.nodeHandler.GetChainHandler().GetCurrentBlockHeaderHash()
+		prevRandSeed = currentHeader.GetRandSeed()
+	} else {
+		prevHash = creator.nodeHandler.GetChainHandler().GetGenesisHeaderHash()
+		prevRandSeed = creator.nodeHandler.GetChainHandler().GetGenesisHeader().GetRandSeed()
+	}
+
+	return
 }
 
 func (creator *blocksCreator) setHeaderSignatures(header data.HeaderHandler) error {

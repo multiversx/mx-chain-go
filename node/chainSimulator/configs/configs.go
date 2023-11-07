@@ -25,6 +25,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	// ChainID contains the chain id
+	ChainID = "chain"
+)
+
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
 	NumOfShards               uint32
@@ -48,7 +53,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	configs.GeneralConfig.GeneralSettings.ChainID = "chain"
+	configs.GeneralConfig.GeneralSettings.ChainID = ChainID
 
 	// empty genesis smart contracts file
 	err = os.WriteFile(configs.ConfigurationPathsHolder.SmartContracts, []byte("[]"), os.ModePerm)
@@ -101,6 +106,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorage.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
+
+	// enable db lookup extension
+	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
 	publicKeysBytes := make(map[uint32][]byte)
 	publicKeysBytes[core.MetachainShardId], err = publicKeys[0].ToByteArray()
