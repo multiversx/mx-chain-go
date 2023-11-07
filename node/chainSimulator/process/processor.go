@@ -99,10 +99,12 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 		nonce, round = currentHeader.GetNonce(), currentHeader.GetRound()
 		prevHash = creator.nodeHandler.GetChainHandler().GetCurrentBlockHeaderHash()
 		prevRandSeed = currentHeader.GetRandSeed()
-	} else {
-		prevHash = creator.nodeHandler.GetChainHandler().GetGenesisHeaderHash()
-		prevRandSeed = creator.nodeHandler.GetChainHandler().GetGenesisHeader().GetRandSeed()
+
+		return
 	}
+
+	prevHash = creator.nodeHandler.GetChainHandler().GetGenesisHeaderHash()
+	prevRandSeed = creator.nodeHandler.GetChainHandler().GetGenesisHeader().GetRandSeed()
 
 	return
 }
