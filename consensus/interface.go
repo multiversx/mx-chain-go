@@ -47,6 +47,12 @@ type SubroundHandler interface {
 	IsInterfaceNil() bool
 }
 
+type SubRoundStartExtraSignatureHandler interface {
+	Reset(pubKeys []string) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
 	Close() error

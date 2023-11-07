@@ -12,13 +12,14 @@ import (
 
 type subRoundSignatureExtraSignersHolder struct {
 	mutExtraSigners sync.RWMutex
-	extraSigners    map[string]SubRoundEndExtraDataSignatureHandler
+	extraSigners    map[string]SubRoundSignatureExtraSignatureHandler
 }
 
+// TODO: Make this a standalone component which shall be injected
 func newSubRoundSignatureExtraSignersHolder() *subRoundSignatureExtraSignersHolder {
 	return &subRoundSignatureExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
-		extraSigners:    make(map[string]SubRoundEndExtraDataSignatureHandler),
+		extraSigners:    make(map[string]SubRoundSignatureExtraSignatureHandler),
 	}
 }
 
@@ -75,7 +76,7 @@ func (holder *subRoundSignatureExtraSignersHolder) storeExtraSignatureShare(inde
 	return nil
 }
 
-func (holder *subRoundSignatureExtraSignersHolder) registerExtraSingingHandler(extraSigner SubRoundEndExtraDataSignatureHandler) error {
+func (holder *subRoundSignatureExtraSignersHolder) registerExtraSingingHandler(extraSigner SubRoundSignatureExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}

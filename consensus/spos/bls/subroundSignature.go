@@ -448,7 +448,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	return true
 }
 
-func (sr *subroundSignature) RegisterExtraSubRoundSigner(extraSigner SubRoundEndExtraDataSignatureHandler) error {
+func (sr *subroundSignature) RegisterExtraSubRoundSigner(extraSigner SubRoundSignatureExtraSignatureHandler) error {
 	return sr.extraSignersHolder.registerExtraSingingHandler(extraSigner)
 }
 

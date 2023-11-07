@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
@@ -99,7 +100,7 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+	return fct.generateStartRoundSubround(&subRounds.SubRoundStartExtraSignersHolderMock{})
 }
 
 // GenerateBlockSubroundV1 generates the instance of subround Block V1 and added it to the chronology subrounds list

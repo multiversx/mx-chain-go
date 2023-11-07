@@ -109,8 +109,20 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
+	// TODO: Wee need to have a components holder here which shall be injected
 	fct.extraSignerHandler = fct.consensusCore.SigningHandler().ShallowClone()
-	err := fct.generateStartRoundSubround()
+	startRoundExtraSignersHolder := NewSubRoundStartExtraSignersHolder()
+	extraSigner, err := NewSovereignSubRoundStartOutGoingTxData(fct.extraSignerHandler)
+	if err != nil {
+		return err
+	}
+
+	err = startRoundExtraSignersHolder.RegisterExtraSingingHandler(extraSigner)
+	if err != nil {
+		return err
+	}
+
+	err = fct.generateStartRoundSubround(startRoundExtraSignersHolder)
 	if err != nil {
 		return err
 	}
@@ -159,7 +171,7 @@ func (fct *factory) getTimeDuration() time.Duration {
 	return fct.consensusCore.RoundHandler().TimeDuration()
 }
 
-func (fct *factory) generateStartRoundSubround() error {
+func (fct *factory) generateStartRoundSubround(extraSignersHolder SubRoundStartExtraSignersHolder) error {
 	subround, err := spos.NewSubround(
 		-1,
 		SrStartRound,
@@ -186,17 +198,8 @@ func (fct *factory) generateStartRoundSubround() error {
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
+		extraSignersHolder,
 	)
-	if err != nil {
-		return err
-	}
-
-	extraSigner, err := NewSovereignSubRoundStartOutGoingTxData(fct.extraSignerHandler)
-	if err != nil {
-		return err
-	}
-
-	err = subroundStartRoundInstance.RegisterExtraSingingHandler(extraSigner)
 	if err != nil {
 		return err
 	}

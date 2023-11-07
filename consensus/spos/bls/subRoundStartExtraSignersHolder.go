@@ -4,22 +4,23 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type subRoundStartExtraSignersHolder struct {
 	mutExtraSigners sync.RWMutex
-	extraSigners    map[string]SubRoundStartExtraSignatureHandler
+	extraSigners    map[string]consensus.SubRoundStartExtraSignatureHandler
 }
 
-func newSubRoundStartExtraSignersHolder() *subRoundStartExtraSignersHolder {
+func NewSubRoundStartExtraSignersHolder() *subRoundStartExtraSignersHolder {
 	return &subRoundStartExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
-		extraSigners:    make(map[string]SubRoundStartExtraSignatureHandler),
+		extraSigners:    make(map[string]consensus.SubRoundStartExtraSignatureHandler),
 	}
 }
 
-func (holder *subRoundStartExtraSignersHolder) reset(pubKeys []string) error {
+func (holder *subRoundStartExtraSignersHolder) Reset(pubKeys []string) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
 
@@ -37,7 +38,7 @@ func (holder *subRoundStartExtraSignersHolder) reset(pubKeys []string) error {
 	return nil
 }
 
-func (holder *subRoundStartExtraSignersHolder) registerExtraSingingHandler(extraSigner SubRoundStartExtraSignatureHandler) error {
+func (holder *subRoundStartExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}
@@ -50,4 +51,8 @@ func (holder *subRoundStartExtraSignersHolder) registerExtraSingingHandler(extra
 	holder.mutExtraSigners.Unlock()
 
 	return nil
+}
+
+func (holder *subRoundStartExtraSignersHolder) IsInterfaceNil() bool {
+	return holder == nil
 }
