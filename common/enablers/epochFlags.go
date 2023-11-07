@@ -760,7 +760,7 @@ func (holder *epochFlagsHolder) IsChangeOwnerAddressCrossShardThroughSCEnabled()
 	return holder.changeOwnerAddressCrossShardThroughSCFlag.IsSet()
 }
 
-// DynamicESDTEnabled return true if the dynamicESDTFlag is enabled
+// DynamicESDTEnabled returns true if the dynamicESDTFlag is enabled
 func (holder *epochFlagsHolder) DynamicESDTEnabled() bool {
 	return holder.dynamicESDTFlag.IsSet()
 }

@@ -44,18 +44,28 @@ const upgradeProperties = "upgradeProperties"
 
 const conversionBase = 10
 
+// TODO move to core-go
 const metaESDT = "MetaESDT"
 const nonFungibleV2 = "NonFungibleESDTV2"
-const ESDTSetTokenType = "ESDTSetTokenType"
 
 const dynamic = "dynamic"
 const dynamicNFT = dynamic + nonFungibleV2
 const dynamicSFT = dynamic + core.SemiFungibleESDT
 const dynamicMetaESDT = dynamic + metaESDT
 
+// ESDTSetTokenType represents the builtin function name to set token type
+const ESDTSetTokenType = "ESDTSetTokenType"
+
+// ESDTRoleSetNewURI represents the role which can rewrite the URI in the token metadata
 const ESDTRoleSetNewURI = "ESDTRoleSetNewURI"
+
+// ESDTRoleModifyRoyalties represents the role which can rewrite the royalties of a token
 const ESDTRoleModifyRoyalties = "ESDTRoleModifyRoyalties"
+
+// ESDTRoleModifyCreator represents the role which can rewrite the creator in the token metadata
 const ESDTRoleModifyCreator = "ESDTRoleModifyCreator"
+
+// ESDTRoleNFTRecreate represents the role which can recreate the token metadata
 const ESDTRoleNFTRecreate = "ESDTRoleNFTRecreate"
 
 type esdt struct {
@@ -1659,8 +1669,7 @@ func (e *esdt) isSpecialRoleValidForDynamicSFT(argument string) error {
 		return nil
 	}
 
-	switch argument {
-	case core.ESDTRoleNFTAddQuantity:
+	if argument == core.ESDTRoleNFTAddQuantity {
 		return nil
 	}
 
@@ -2341,7 +2350,7 @@ func (e *esdt) checkRolesAreCompatibleToChangeToDynamic(token *ESDTDataV2) error
 	rolesWithHaveToBeSingular := rolesForDynamicWhichHasToBeSingular()
 	for _, role := range rolesWithHaveToBeSingular {
 		if mapOfRoles[role] > 1 {
-			return vm.ErrCannotChangeToDynamic
+			return fmt.Errorf("%w, role %s was found multiple times", vm.ErrCannotChangeToDynamic, role)
 		}
 	}
 
