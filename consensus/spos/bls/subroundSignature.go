@@ -19,7 +19,7 @@ type subroundSignature struct {
 	*spos.Subround
 
 	mutExtraSigners      sync.RWMutex
-	extraSigners         map[string]SubRoundExtraDataSignatureHandler
+	extraSigners         map[string]SubRoundEndExtraDataSignatureHandler
 	getMessageToSignFunc func() []byte
 }
 
@@ -37,7 +37,7 @@ func NewSubroundSignature(
 
 	srSignature := subroundSignature{
 		Subround:     baseSubround,
-		extraSigners: make(map[string]SubRoundExtraDataSignatureHandler),
+		extraSigners: make(map[string]SubRoundEndExtraDataSignatureHandler),
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -500,7 +500,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	return true
 }
 
-func (sr *subroundSignature) RegisterExtraSubRoundSigner(extraSigner SubRoundExtraDataSignatureHandler) error {
+func (sr *subroundSignature) RegisterExtraSubRoundSigner(extraSigner SubRoundEndExtraDataSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}

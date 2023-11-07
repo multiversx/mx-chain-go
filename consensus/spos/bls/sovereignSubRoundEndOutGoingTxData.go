@@ -10,29 +10,29 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
-type sovereignSubRoundOutGoingTxDataSignature struct {
+type sovereignSubRoundEndOutGoingTxData struct {
 	*spos.Subround
 	signingHandler consensus.SigningHandler
 }
 
-func NewSovereignSubRoundOutGoingTxDataSignature(
+func NewSovereignSubRoundEndOutGoingTxData(
 	subRound *spos.Subround,
 	signingHandler consensus.SigningHandler,
-) (*sovereignSubRoundOutGoingTxDataSignature, error) {
-	return &sovereignSubRoundOutGoingTxDataSignature{
+) (*sovereignSubRoundEndOutGoingTxData, error) {
+	return &sovereignSubRoundEndOutGoingTxData{
 		Subround:       subRound,
 		signingHandler: signingHandler,
 	}, nil
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(
+func (sr *sovereignSubRoundEndOutGoingTxData) CreateSignatureShare(
 	header data.HeaderHandler,
 	selfIndex uint16,
 	selfPubKey []byte,
 ) ([]byte, error) {
 	sovChainHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -52,18 +52,18 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(
 		selfPubKey)
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataSignature) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
+func (sr *sovereignSubRoundEndOutGoingTxData) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
 	cnsMsg.SignatureShareOutGoingTxData = sigShare
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataSignature) StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error {
+func (sr *sovereignSubRoundEndOutGoingTxData) StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error {
 	return sr.signingHandler.StoreSignatureShare(index, cnsMsg.SignatureShareOutGoingTxData)
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataSignature) Identifier() string {
-	return "sovereignSubRoundOutGoingTxDataSignature"
+func (sr *sovereignSubRoundEndOutGoingTxData) Identifier() string {
+	return "sovereignSubRoundEndOutGoingTxData"
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataSignature) IsInterfaceNil() bool {
+func (sr *sovereignSubRoundEndOutGoingTxData) IsInterfaceNil() bool {
 	return sr == nil
 }

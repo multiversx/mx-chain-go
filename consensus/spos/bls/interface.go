@@ -5,7 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
-type SubRoundExtraDataSignatureHandler interface {
+type SubRoundEndExtraDataSignatureHandler interface {
 	CreateSignatureShare(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
 	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message)
 	StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error
