@@ -664,3 +664,6 @@ var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has 
 
 // ErrNilExtraSubRoundSigner signals that a nil extra subround signer has been provided
 var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been provided")
+
+// ErrNilStartRoundExtraSignersHolder signals that a nil start round extra signers holder has been provided
+var ErrNilStartRoundExtraSignersHolder = errors.New("nil start round extra signers holder has been provided")

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,6 +25,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
 	return startRound, err
@@ -36,6 +38,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
 	return startRound
@@ -75,6 +78,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
 	return srStartRound
@@ -94,6 +98,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSubroundShouldFail(t *testin
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
 	assert.Nil(t, srStartRound)
@@ -467,6 +472,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -510,6 +516,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -573,6 +580,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -640,6 +648,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
