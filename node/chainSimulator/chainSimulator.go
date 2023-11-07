@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/testdata"
 )
 
@@ -46,7 +47,8 @@ func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath s
 		return err
 	}
 
-	metaChainHandler, err := s.createChainHandler(core.MetachainShardId, outputConfigs.Configs, 0, outputConfigs.GasScheduleFilename)
+	blsKey := outputConfigs.ValidatorsPublicKeys[core.MetachainShardId]
+	metaChainHandler, err := s.createChainHandler(core.MetachainShardId, outputConfigs.Configs, 0, outputConfigs.GasScheduleFilename, blsKey)
 	if err != nil {
 		return err
 	}
@@ -54,7 +56,8 @@ func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath s
 	s.nodes = append(s.nodes, metaChainHandler)
 
 	for idx := uint32(0); idx < numOfShards; idx++ {
-		shardChainHandler, errS := s.createChainHandler(idx, outputConfigs.Configs, int(idx)+1, outputConfigs.GasScheduleFilename)
+		blsKey = outputConfigs.ValidatorsPublicKeys[idx+1]
+		shardChainHandler, errS := s.createChainHandler(idx, outputConfigs.Configs, int(idx)+1, outputConfigs.GasScheduleFilename, blsKey)
 		if errS != nil {
 			return errS
 		}
@@ -65,7 +68,7 @@ func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath s
 	return nil
 }
 
-func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, skIndex int, gasScheduleFilename string) (ChainHandler, error) {
+func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, skIndex int, gasScheduleFilename string, blsKeyBytes []byte) (ChainHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
 		Config:                   *configs.GeneralConfig,
 		EpochConfig:              *configs.EpochConfig,
@@ -84,11 +87,33 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 		SkIndex:                  skIndex,
 	}
 
-	return components.NewTestOnlyProcessingNode(args)
+	testNode, err := components.NewTestOnlyProcessingNode(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return process.NewBlocksCreator(testNode, blsKeyBytes)
 }
 
 // GenerateBlocks will generate the provided number of blocks
-func (s *simulator) GenerateBlocks(_ int) error {
+func (s *simulator) GenerateBlocks(numOfBlocks int) error {
+	for idx := 0; idx < numOfBlocks; idx++ {
+		for idxNode, node := range s.nodes {
+			// TODO change this
+			if idxNode == 0 {
+				err := node.CreateNewBlock()
+				if err != nil {
+					return err
+				}
+			} else if idxNode == 1 {
+				err := node.CreateNewBlock()
+				if err != nil {
+					return err
+				}
+			}
+
+		}
+	}
 	return nil
 }
 
