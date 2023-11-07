@@ -1,6 +1,8 @@
-package chainSimulator
+package components
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -33,12 +35,12 @@ type ArgsTestOnlyProcessingNode struct {
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
-	GasScheduleFilename    string
-	ValidatorPemFile       string
-	WorkingDir             string
-	NodesSetupPath         string
-	NumShards              uint32
-	ShardID                uint32
+
+	GasScheduleFilename string
+
+	NumShards uint32
+	ShardID   uint32
+	SkIndex   int
 }
 
 type testOnlyProcessingNode struct {
@@ -81,9 +83,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EconomicsConfig:     args.EconomicsConfig,
 		ChanStopNodeProcess: args.ChanStopNodeProcess,
 		NumShards:           args.NumShards,
-		WorkingDir:          args.WorkingDir,
+		WorkingDir:          args.ContextFlagsConfig.WorkingDir,
 		GasScheduleFilename: args.GasScheduleFilename,
-		NodesSetupPath:      args.NodesSetupPath,
+		NodesSetupPath:      args.ConfigurationPathsHolder.Nodes,
 	})
 	if err != nil {
 		return nil, err
@@ -118,7 +120,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EnableEpochsConfig:      args.EpochConfig.EnableEpochs,
 		Preferences:             args.PreferencesConfig,
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
-		ValidatorKeyPemFileName: args.ValidatorPemFile,
+		ValidatorKeyPemFileName: args.ConfigurationPathsHolder.ValidatorKey,
+		SkIndex:                 args.SkIndex,
 	})
 	if err != nil {
 		return nil, err
@@ -134,7 +137,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CryptoComponents:     instance.CryptoComponentsHolder,
 		NetworkComponents:    instance.NetworkComponentsHolder,
 		StatusCoreComponents: instance.StatusCoreComponents,
-		WorkingDir:           args.WorkingDir,
+		WorkingDir:           args.ContextFlagsConfig.WorkingDir,
 		FlagsConfig:          args.ContextFlagsConfig,
 		ImportDBConfig:       args.ImportDBConfig,
 		PrefsConfig:          args.PreferencesConfig,
@@ -291,4 +294,54 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	}
 
 	return nil
+}
+
+// CreateNewBlock create and process a new block
+func (node *testOnlyProcessingNode) CreateNewBlock(nonce uint64, round uint64) error {
+	bp := node.ProcessComponentsHolder.BlockProcessor()
+	newHeader, err := node.prepareHeader(nonce, round)
+	if err != nil {
+		return err
+	}
+
+	header, block, err := bp.CreateBlock(newHeader, func() bool {
+		return true
+	})
+	if err != nil {
+		return err
+	}
+
+	err = bp.ProcessBlock(header, block, func() time.Duration {
+		// TODO fix this
+		return 1000
+	})
+	if err != nil {
+		return err
+	}
+
+	err = bp.CommitBlock(header, block)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (node *testOnlyProcessingNode) prepareHeader(nonce uint64, round uint64) (chainData.HeaderHandler, error) {
+	bp := node.ProcessComponentsHolder.BlockProcessor()
+	newHeader, err := bp.CreateNewHeader(round, nonce)
+	if err != nil {
+		return nil, err
+	}
+	err = newHeader.SetShardID(node.ShardCoordinator.SelfId())
+	if err != nil {
+		return nil, err
+	}
+
+	return newHeader, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (node *testOnlyProcessingNode) IsInterfaceNil() bool {
+	return node == nil
 }

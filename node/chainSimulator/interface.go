@@ -1,13 +1,7 @@
 package chainSimulator
 
-import "github.com/multiversx/mx-chain-core-go/core"
-
-// SyncedBroadcastNetworkHandler defines the synced network interface
-type SyncedBroadcastNetworkHandler interface {
-	RegisterMessageReceiver(handler messageReceiver, pid core.PeerID)
-	Broadcast(pid core.PeerID, topic string, buff []byte)
-	SendDirectly(from core.PeerID, topic string, buff []byte, to core.PeerID) error
-	GetConnectedPeers() []core.PeerID
-	GetConnectedPeersOnTopic(topic string) []core.PeerID
+// ChainHandler defines what a chain handler should be able to do
+type ChainHandler interface {
+	CreateNewBlock(nonce uint64, round uint64) error
 	IsInterfaceNil() bool
 }

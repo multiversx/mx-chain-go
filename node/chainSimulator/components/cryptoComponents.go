@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	"fmt"
@@ -21,6 +21,7 @@ type ArgsCryptoComponentsHolder struct {
 	Preferences             config.Preferences
 	CoreComponentsHolder    factory.CoreComponentsHolder
 	ValidatorKeyPemFileName string
+	SkIndex                 int
 }
 
 type cryptoComponentsHolder struct {
@@ -57,11 +58,10 @@ func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.Cryp
 		ActivateBLSPubKeyMessageVerification: true,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-
-		P2pKeyPemFileName:           "",
-		ValidatorKeyPemFileName:     args.ValidatorKeyPemFileName,
-		AllValidatorKeysPemFileName: "",
-		SkIndex:                     0,
+		P2pKeyPemFileName:                    "",
+		ValidatorKeyPemFileName:              args.ValidatorKeyPemFileName,
+		AllValidatorKeysPemFileName:          "",
+		SkIndex:                              args.SkIndex,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

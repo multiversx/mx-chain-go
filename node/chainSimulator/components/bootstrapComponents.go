@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	"fmt"

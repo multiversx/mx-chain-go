@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	"bytes"
@@ -188,7 +188,7 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.apiEconomicsData = instance.economicsData
 
 	// TODO check if we need this
-	instance.ratingsData = nil
+	instance.ratingsData = &testscommon.RatingsInfoMock{}
 	instance.rater = &testscommon.RaterMock{}
 
 	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)

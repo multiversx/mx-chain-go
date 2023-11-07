@@ -1,4 +1,4 @@
-package chainSimulator
+package components
 
 import (
 	chainData "github.com/multiversx/mx-chain-core-go/data"

@@ -1,56 +1,57 @@
-package chainSimulator
+package components
 
 import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	pathTestData           = "./testdata/"
-	pathToConfigFolder     = "../../cmd/node/config/"
-	pathForMainConfig      = "../../cmd/node/config/config.toml"
-	pathForEconomicsConfig = "../../cmd/node/config/economics.toml"
-	pathForGasSchedules    = "../../cmd/node/config/gasSchedules"
-	nodesSetupConfig       = "../../cmd/node/config/nodesSetup.json"
-	pathForPrefsConfig     = "../../cmd/node/config/prefs.toml"
-	validatorPemFile       = "../../cmd/node/config/testKeys/validatorKey.pem"
-	pathSystemSCConfig     = "../../cmd/node/config/systemSmartContractsConfig.toml"
+	pathTestData           = "../testdata/"
+	pathToConfigFolder     = "../../../cmd/node/config/"
+	pathForMainConfig      = "../../../cmd/node/config/config.toml"
+	pathForEconomicsConfig = "../../../cmd/node/config/economics.toml"
+	pathForGasSchedules    = "../../../cmd/node/config/gasSchedules"
+	nodesSetupConfig       = "../../../cmd/node/config/nodesSetup.json"
+	pathForPrefsConfig     = "../../../cmd/node/config/prefs.toml"
+	validatorPemFile       = "../../../cmd/node/config/testKeys/validatorKey.pem"
+	pathSystemSCConfig     = "../../../cmd/node/config/systemSmartContractsConfig.toml"
 )
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	mainConfig := config.Config{}
-	err := LoadConfigFromFile(pathForMainConfig, &mainConfig)
+	err := core.LoadTomlFile(&mainConfig, pathForMainConfig)
 	assert.Nil(t, err)
 
 	economicsConfig := config.EconomicsConfig{}
-	err = LoadConfigFromFile(pathForEconomicsConfig, &economicsConfig)
+	err = core.LoadTomlFile(&economicsConfig, pathForEconomicsConfig)
 	assert.Nil(t, err)
 
-	gasScheduleName, err := GetLatestGasScheduleFilename(pathForGasSchedules)
+	gasScheduleName, err := configs.GetLatestGasScheduleFilename(pathForGasSchedules)
 	assert.Nil(t, err)
 
 	prefsConfig := config.Preferences{}
-	err = LoadConfigFromFile(pathForPrefsConfig, &prefsConfig)
+	err = core.LoadTomlFile(&prefsConfig, pathForPrefsConfig)
 	assert.Nil(t, err)
 
 	systemSCConfig := config.SystemSmartContractsConfig{}
-	err = LoadConfigFromFile(pathSystemSCConfig, &systemSCConfig)
+	err = core.LoadTomlFile(&systemSCConfig, pathSystemSCConfig)
 	assert.Nil(t, err)
 
 	workingDir := t.TempDir()
 
 	epochConfig := config.EpochConfig{}
-	err = LoadConfigFromFile(pathToConfigFolder+"enableEpochs.toml", &epochConfig)
+	err = core.LoadTomlFile(&epochConfig, pathToConfigFolder+"enableEpochs.toml")
 	assert.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
 		Config:      mainConfig,
-		WorkingDir:  workingDir,
 		EpochConfig: epochConfig,
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
@@ -61,10 +62,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		},
 		EconomicsConfig:        economicsConfig,
 		GasScheduleFilename:    gasScheduleName,
-		NodesSetupPath:         nodesSetupConfig,
 		NumShards:              3,
 		ShardID:                0,
-		ValidatorPemFile:       validatorPemFile,
 		PreferencesConfig:      prefsConfig,
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
 		ImportDBConfig:         config.ImportDbConfig{},
@@ -76,6 +75,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 			GasScheduleDirectoryName: pathToConfigFolder + "gasSchedules",
 			Genesis:                  pathToConfigFolder + "genesis.json",
 			SmartContracts:           pathTestData + "genesisSmartContracts.json",
+			Nodes:                    nodesSetupConfig,
+			ValidatorKey:             validatorPemFile,
 		},
 		SystemSCConfig:      systemSCConfig,
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
@@ -120,6 +121,9 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		assert.NotNil(t, node)
 
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
+		assert.Nil(t, err)
+
+		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
 		assert.Nil(t, err)
 
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
