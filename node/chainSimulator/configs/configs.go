@@ -25,6 +25,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	// ChainID contains the chain id
+	ChainID = "chain"
+)
+
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
 	NumOfShards               uint32
@@ -48,12 +53,10 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	configs.GeneralConfig.GeneralSettings.ChainID = "chain"
+	configs.GeneralConfig.GeneralSettings.ChainID = ChainID
 
 	// empty genesis smart contracts file
-	err = modifyFile(configs.ConfigurationPathsHolder.SmartContracts, func(intput []byte) ([]byte, error) {
-		return []byte("[]"), nil
-	})
+	err = os.WriteFile(configs.ConfigurationPathsHolder.SmartContracts, []byte("[]"), os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -62,31 +65,28 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	privateKeys, publicKeys := generateValidatorsKeyAndUpdateFiles(nil, configs, args.NumOfShards, args.GenesisAddressWithStake)
 
 	// update genesis.json
-	err = modifyFile(configs.ConfigurationPathsHolder.Genesis, func(i []byte) ([]byte, error) {
-		addresses := make([]data.InitialAccount, 0)
-
-		// 10_000 egld
-		bigValue, _ := big.NewInt(0).SetString("10000000000000000000000", 0)
-		addresses = append(addresses, data.InitialAccount{
-			Address:      args.GenesisAddressWithStake,
-			StakingValue: bigValue,
-			Supply:       bigValue,
-		})
-
-		bigValueAddr, _ := big.NewInt(0).SetString("19990000000000000000000000", 10)
-		addresses = append(addresses, data.InitialAccount{
-			Address: args.GenesisAddressWithBalance,
-			Balance: bigValueAddr,
-			Supply:  bigValueAddr,
-		})
-
-		addressesBytes, errM := json.Marshal(addresses)
-		if errM != nil {
-			return nil, errM
-		}
-
-		return addressesBytes, nil
+	addresses := make([]data.InitialAccount, 0)
+	// 10_000 egld
+	bigValue, _ := big.NewInt(0).SetString("10000000000000000000000", 0)
+	addresses = append(addresses, data.InitialAccount{
+		Address:      args.GenesisAddressWithStake,
+		StakingValue: bigValue,
+		Supply:       bigValue,
 	})
+
+	bigValueAddr, _ := big.NewInt(0).SetString("19990000000000000000000000", 10)
+	addresses = append(addresses, data.InitialAccount{
+		Address: args.GenesisAddressWithBalance,
+		Balance: bigValueAddr,
+		Supply:  bigValueAddr,
+	})
+
+	addressesBytes, errM := json.Marshal(addresses)
+	if errM != nil {
+		return nil, errM
+	}
+
+	err = os.WriteFile(configs.ConfigurationPathsHolder.Genesis, addressesBytes, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +106,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorage.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
+
+	// enable db lookup extension
+	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
 	publicKeysBytes := make(map[uint32][]byte)
 	publicKeysBytes[core.MetachainShardId], err = publicKeys[0].ToByteArray()
@@ -202,23 +205,6 @@ func generateValidatorsPem(validatorsFile string, publicKeys []crypto.PublicKey,
 	}
 
 	return os.WriteFile(validatorsFile, buff.Bytes(), 0644)
-}
-
-func modifyFile(fileName string, f func(i []byte) ([]byte, error)) error {
-	input, err := os.ReadFile(fileName)
-	if err != nil {
-		return err
-	}
-
-	output := input
-	if f != nil {
-		output, err = f(input)
-		if err != nil {
-			return err
-		}
-	}
-
-	return os.WriteFile(fileName, output, os.ModePerm)
 }
 
 // GetLatestGasScheduleFilename will parse the provided path and get the latest gas schedule filename
