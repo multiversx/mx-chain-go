@@ -194,7 +194,7 @@ func createMockArgument(
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents: runType,
+		RunTypeComponents:       runType,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -503,7 +503,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.ShardCoordinatorFactory = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+		require.True(t, errors.Is(err, mxErrors.ErrNilShardCoordinatorFactory))
 		require.Nil(t, gbc)
 	})
 	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {
