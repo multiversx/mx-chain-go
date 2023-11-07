@@ -48,9 +48,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	// empty genesis smart contracts file
-	err = modifyFile(configs.ConfigurationPathsHolder.SmartContracts, func(intput []byte) ([]byte, error) {
-		return []byte("[]"), nil
-	})
+	err = os.WriteFile(configs.ConfigurationPathsHolder.SmartContracts, []byte("[]"), os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -59,31 +57,28 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	privateKeys, publicKeys := generateValidatorsKeyAndUpdateFiles(nil, configs, args.NumOfShards, args.GenesisAddressWithStake)
 
 	// update genesis.json
-	err = modifyFile(configs.ConfigurationPathsHolder.Genesis, func(i []byte) ([]byte, error) {
-		addresses := make([]data.InitialAccount, 0)
-
-		// 10_000 egld
-		bigValue, _ := big.NewInt(0).SetString("10000000000000000000000", 0)
-		addresses = append(addresses, data.InitialAccount{
-			Address:      args.GenesisAddressWithStake,
-			StakingValue: bigValue,
-			Supply:       bigValue,
-		})
-
-		bigValueAddr, _ := big.NewInt(0).SetString("19990000000000000000000000", 10)
-		addresses = append(addresses, data.InitialAccount{
-			Address: args.GenesisAddressWithBalance,
-			Balance: bigValueAddr,
-			Supply:  bigValueAddr,
-		})
-
-		addressesBytes, errM := json.Marshal(addresses)
-		if errM != nil {
-			return nil, errM
-		}
-
-		return addressesBytes, nil
+	addresses := make([]data.InitialAccount, 0)
+	// 10_000 egld
+	bigValue, _ := big.NewInt(0).SetString("10000000000000000000000", 0)
+	addresses = append(addresses, data.InitialAccount{
+		Address:      args.GenesisAddressWithStake,
+		StakingValue: bigValue,
+		Supply:       bigValue,
 	})
+
+	bigValueAddr, _ := big.NewInt(0).SetString("19990000000000000000000000", 10)
+	addresses = append(addresses, data.InitialAccount{
+		Address: args.GenesisAddressWithBalance,
+		Balance: bigValueAddr,
+		Supply:  bigValueAddr,
+	})
+
+	addressesBytes, errM := json.Marshal(addresses)
+	if errM != nil {
+		return nil, errM
+	}
+
+	err = os.WriteFile(configs.ConfigurationPathsHolder.Genesis, addressesBytes, os.ModePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -185,23 +180,6 @@ func generateValidatorsPem(validatorsFile string, publicKeys []crypto.PublicKey,
 	}
 
 	return os.WriteFile(validatorsFile, buff.Bytes(), 0644)
-}
-
-func modifyFile(fileName string, f func(i []byte) ([]byte, error)) error {
-	input, err := os.ReadFile(fileName)
-	if err != nil {
-		return err
-	}
-
-	output := input
-	if f != nil {
-		output, err = f(input)
-		if err != nil {
-			return err
-		}
-	}
-
-	return os.WriteFile(fileName, output, os.ModePerm)
 }
 
 // GetLatestGasScheduleFilename will parse the provided path and get the latest gas schedule filename
