@@ -298,9 +298,6 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 
 // GetHighestFinalBlockNonce gets the highest nonce of the block which is final, and it can not be reverted anymore
 func (bfd *baseForkDetector) GetHighestFinalBlockNonce() uint64 {
-	// TODO remove this
-	log.Warn("baseForkDetector.GetHighestFinalBlockNonce", "nonce", bfd.finalCheckpoint().nonce)
-
 	return bfd.finalCheckpoint().nonce
 }
 

@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-const timeDuration = time.Second
-
 type manualRoundHandler struct {
 	index int64
 }
@@ -42,7 +40,7 @@ func (handler *manualRoundHandler) TimeStamp() time.Time {
 
 // TimeDuration returns a hardcoded value
 func (handler *manualRoundHandler) TimeDuration() time.Duration {
-	return timeDuration
+	return 0
 }
 
 // RemainingTime returns the max time as the start time is not taken into account
