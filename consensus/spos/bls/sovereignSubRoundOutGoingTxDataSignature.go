@@ -40,11 +40,6 @@ func (sr *sovereignSubRoundOutGoingTxDataSignature) CreateSignatureShare(
 		return make([]byte, 0), nil
 	}
 
-	err := sr.signingHandler.Reset(sr.ConsensusGroup())
-	if err != nil {
-		return nil, err
-	}
-
 	return sr.signingHandler.CreateSignatureShareForPublicKey(
 		outGoingMBHeader.GetOutGoingOperationsHash(),
 		selfIndex,
