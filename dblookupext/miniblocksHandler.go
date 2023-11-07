@@ -27,11 +27,7 @@ func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHa
 		return err
 	}
 
-	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
-	if err != nil {
-		return err
-	}
-
+	miniblockHeader := mh.findOrGenerateMiniblockHandler(header, miniblockHash, mb)
 	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
 		// first time we see this miniblock, we should store the (miniblock, epoch) tuple
 		err = mh.epochIndex.saveEpochByHash(miniblockHash, header.GetEpoch())
@@ -48,14 +44,21 @@ func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHa
 	return mh.commitMiniblockMetadata(header, headerHash, miniblockHeader, miniblockHash, mb)
 }
 
-func (mh *miniblocksHandler) findMiniblockHandler(header data.HeaderHandler, miniblockHash []byte) (data.MiniBlockHeaderHandler, error) {
+func (mh *miniblocksHandler) findOrGenerateMiniblockHandler(header data.HeaderHandler, miniblockHash []byte, mb *block.MiniBlock) data.MiniBlockHeaderHandler {
 	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(mbHeader.GetHash(), miniblockHash) {
-			return mbHeader, nil
+			return mbHeader
 		}
 	}
 
-	return nil, errMiniblockHeaderNotFound
+	// miniblock header was not found, it should be an internal generated miniblock. Will create a default miniblock header
+	return &block.MiniBlockHeader{
+		Hash:            miniblockHash,
+		SenderShardID:   mb.SenderShardID,
+		ReceiverShardID: mb.ReceiverShardID,
+		TxCount:         uint32(len(mb.TxHashes)),
+		Type:            mb.Type,
+	}
 }
 
 // commitExecutedTransactions will save only the transactions between the start and end index of the provided miniblockHeader
@@ -203,20 +206,17 @@ func (mh *miniblocksHandler) blockReverted(header data.HeaderHandler, blockBody 
 }
 
 func (mh *miniblocksHandler) revertMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock, miniblockHash []byte) error {
-	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
-	if err != nil {
-		return err
-	}
+	miniblockHeader := mh.findOrGenerateMiniblockHandler(header, miniblockHash, mb)
 
 	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
 		// we either revert a complete miniblock or the first partial executed miniblock header
-		err = mh.epochIndex.removeEpochByHash(miniblockHash)
+		err := mh.epochIndex.removeEpochByHash(miniblockHash)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = mh.removeExecutedTransactions(miniblockHeader, mb)
+	err := mh.removeExecutedTransactions(miniblockHeader, mb)
 	if err != nil {
 		return err
 	}

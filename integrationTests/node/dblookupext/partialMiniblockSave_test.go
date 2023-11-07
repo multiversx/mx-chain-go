@@ -40,35 +40,43 @@ func TestSavePartialMiniblocksShouldKeepAllData(t *testing.T) {
 
 	txHashPattern := "tx hash %d"
 	numTxsInMb := 10
-	miniblock := &block.MiniBlock{
+	partialMb := &block.MiniBlock{
 		TxHashes:        make([][]byte, 0),
 		ReceiverShardID: 0,
 		SenderShardID:   0,
 		Type:            block.TxBlock,
 	}
 	for i := 0; i < numTxsInMb; i++ {
-		miniblock.TxHashes = append(miniblock.TxHashes, []byte(fmt.Sprintf(txHashPattern, i)))
+		partialMb.TxHashes = append(partialMb.TxHashes, []byte(fmt.Sprintf(txHashPattern, i)))
 	}
-	body := &block.Body{
-		MiniBlocks: []*block.MiniBlock{miniblock},
+	scrHash := []byte("scr 0")
+	receiptsMb := &block.MiniBlock{
+		TxHashes:        [][]byte{scrHash},
+		ReceiverShardID: 0,
+		SenderShardID:   0,
+		Type:            block.ReceiptBlock,
 	}
-	miniblockHash, _ := core.CalculateHash(integrationtests.TestMarshalizer, integrationtests.TestHasher, miniblock)
 
-	mbHeader1 := block.MiniBlockHeader{
-		Hash:            miniblockHash,
+	body1 := &block.Body{
+		MiniBlocks: []*block.MiniBlock{partialMb, receiptsMb},
+	}
+	partialMbHash, _ := core.CalculateHash(integrationtests.TestMarshalizer, integrationtests.TestHasher, partialMb)
+
+	partialMbHeader1 := block.MiniBlockHeader{
+		Hash:            partialMbHash,
 		SenderShardID:   0,
 		ReceiverShardID: 0,
 		TxCount:         uint32(numTxsInMb),
 		Type:            block.TxBlock,
 	}
-	_ = mbHeader1.SetConstructionState(int32(block.PartialExecuted))
+	_ = partialMbHeader1.SetConstructionState(int32(block.PartialExecuted))
 	// transactions with indexes 0, 1 and 2 were executed in this mb header
-	_ = mbHeader1.SetIndexOfLastTxProcessed(0)
-	_ = mbHeader1.SetIndexOfLastTxProcessed(2)
+	_ = partialMbHeader1.SetIndexOfLastTxProcessed(0)
+	_ = partialMbHeader1.SetIndexOfLastTxProcessed(2)
 
 	header1 := &block.Header{
-		MiniBlockHeaders: []block.MiniBlockHeader{mbHeader1},
-		TxCount:          mbHeader1.TxCount,
+		MiniBlockHeaders: []block.MiniBlockHeader{partialMbHeader1},
+		TxCount:          partialMbHeader1.TxCount,
 	}
 	headerHash1, _ := core.CalculateHash(integrationtests.TestMarshalizer, integrationtests.TestHasher, header1)
 
@@ -76,7 +84,7 @@ func TestSavePartialMiniblocksShouldKeepAllData(t *testing.T) {
 	err = historyRepository.RecordBlock(
 		headerHash1,
 		header1,
-		body,
+		body1,
 		make(map[string]data.TransactionHandler),
 		make(map[string]data.TransactionHandler),
 		make([]*block.MiniBlock, 0),
@@ -84,29 +92,33 @@ func TestSavePartialMiniblocksShouldKeepAllData(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	mbHeader2 := block.MiniBlockHeader{
-		Hash:            miniblockHash,
+	partialMbHeader2 := block.MiniBlockHeader{
+		Hash:            partialMbHash,
 		SenderShardID:   0,
 		ReceiverShardID: 0,
 		TxCount:         uint32(numTxsInMb),
 		Type:            block.TxBlock,
 	}
-	_ = mbHeader2.SetConstructionState(int32(block.PartialExecuted))
+	_ = partialMbHeader2.SetConstructionState(int32(block.PartialExecuted))
 	// transactions with indexes 3 and 4 were executed in this mb header
-	_ = mbHeader2.SetIndexOfLastTxProcessed(3)
-	_ = mbHeader2.SetIndexOfLastTxProcessed(4)
+	_ = partialMbHeader2.SetIndexOfLastTxProcessed(3)
+	_ = partialMbHeader2.SetIndexOfLastTxProcessed(4)
 
 	header2 := &block.Header{
-		MiniBlockHeaders: []block.MiniBlockHeader{mbHeader2},
-		TxCount:          mbHeader2.TxCount,
+		MiniBlockHeaders: []block.MiniBlockHeader{partialMbHeader2},
+		TxCount:          partialMbHeader2.TxCount,
 	}
 	headerHash2, _ := core.CalculateHash(integrationtests.TestMarshalizer, integrationtests.TestHasher, header2)
+
+	body2 := &block.Body{
+		MiniBlocks: []*block.MiniBlock{partialMb},
+	}
 
 	// record the second block header
 	err = historyRepository.RecordBlock(
 		headerHash2,
 		header2,
-		body,
+		body2,
 		make(map[string]data.TransactionHandler),
 		make(map[string]data.TransactionHandler),
 		make([]*block.MiniBlock, 0),
@@ -128,4 +140,8 @@ func TestSavePartialMiniblocksShouldKeepAllData(t *testing.T) {
 	mbData, err = historyRepository.GetMiniblockMetadataByTxHash(txHash5)
 	require.Nil(t, mbData)
 	assert.Equal(t, storage.ErrKeyNotFound, err)
+
+	mbData, err = historyRepository.GetMiniblockMetadataByTxHash(scrHash) // scr hash 0 should be linked to header 1
+	require.Nil(t, err)
+	assert.Equal(t, headerHash1, mbData.HeaderHash)
 }
