@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -138,6 +139,7 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 	args.MainStorer = store
 	args.Marshalizer = marshaller
 	args.Hasher = hasher
+	args.StatsCollector = disabledStatistics.NewStateStatistics()
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 

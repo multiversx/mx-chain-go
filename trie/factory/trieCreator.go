@@ -21,6 +21,7 @@ type TrieCreateArgs struct {
 	IdleProvider        trie.IdleNodeProvider
 	Identifier          string
 	EnableEpochsHandler common.EnableEpochsHandler
+	StatsCollector      common.StateStatisticsHandler
 }
 
 type trieCreator struct {
@@ -55,12 +56,13 @@ func NewTrieFactory(
 // Create creates a new trie
 func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, common.Trie, error) {
 	storageManagerArgs := trie.NewTrieStorageManagerArgs{
-		MainStorer:    args.MainStorer,
-		Marshalizer:   tc.marshalizer,
-		Hasher:        tc.hasher,
-		GeneralConfig: tc.trieStorageManagerConfig,
-		IdleProvider:  args.IdleProvider,
-		Identifier:    args.Identifier,
+		MainStorer:     args.MainStorer,
+		Marshalizer:    tc.marshalizer,
+		Hasher:         tc.hasher,
+		GeneralConfig:  tc.trieStorageManagerConfig,
+		IdleProvider:   args.IdleProvider,
+		Identifier:     args.Identifier,
+		StatsCollector: args.StatsCollector,
 	}
 
 	options := trie.StorageManagerOptions{
@@ -94,6 +96,7 @@ func CreateTriesComponentsForShardId(
 	generalConfig config.Config,
 	coreComponentsHolder coreComponentsHandler,
 	storageService dataRetriever.StorageService,
+	stateStatsHandler common.StateStatisticsHandler,
 ) (common.TriesHolder, map[string]common.StorageManager, error) {
 	trieFactoryArgs := TrieFactoryArgs{
 		Marshalizer:              coreComponentsHolder.InternalMarshalizer(),
@@ -119,6 +122,7 @@ func CreateTriesComponentsForShardId(
 		IdleProvider:        coreComponentsHolder.ProcessStatusHandler(),
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
+		StatsCollector:      stateStatsHandler,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -144,6 +148,7 @@ func CreateTriesComponentsForShardId(
 		IdleProvider:        coreComponentsHolder.ProcessStatusHandler(),
 		Identifier:          dataRetriever.PeerAccountsUnit.String(),
 		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
+		StatsCollector:      stateStatsHandler,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

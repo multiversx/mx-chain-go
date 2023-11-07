@@ -209,6 +209,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
 		NodeProcessingMode:         common.GetNodeProcessingMode(&bcf.importDbConfig),
+		StateStatsHandler:          bcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

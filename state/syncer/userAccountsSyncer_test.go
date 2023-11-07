@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
@@ -170,12 +171,13 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 	}
 
 	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:    testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:   marshalizer,
-		Hasher:        hasher,
-		GeneralConfig: generalCfg,
-		IdleProvider:  &testscommon.ProcessStatusHandlerStub{},
-		Identifier:    "identifier",
+		MainStorer:     testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:    marshalizer,
+		Hasher:         hasher,
+		GeneralConfig:  generalCfg,
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     "identifier",
+		StatsCollector: disabled.NewStateStatistics(),
 	}
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)

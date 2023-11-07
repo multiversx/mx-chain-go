@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -28,6 +29,7 @@ type ArgsNewDataTrieFactory struct {
 	Hasher               hashing.Hasher
 	ShardCoordinator     sharding.Coordinator
 	EnableEpochsHandler  common.EnableEpochsHandler
+	StateStatsCollector  common.StateStatisticsHandler
 	MaxTrieLevelInMemory uint
 }
 
@@ -57,6 +59,9 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, update.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.StateStatsCollector) {
+		return nil, statistics.ErrNilStateStatsHandler
+	}
 
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
 	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
@@ -74,8 +79,9 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 		GeneralConfig: config.TrieStorageManagerConfig{
 			SnapshotsGoroutineNum: 2,
 		},
-		IdleProvider: commonDisabled.NewProcessStatusHandler(),
-		Identifier:   dataRetriever.UserAccountsUnit.String(),
+		IdleProvider:   commonDisabled.NewProcessStatusHandler(),
+		Identifier:     dataRetriever.UserAccountsUnit.String(),
+		StatsCollector: args.StateStatsCollector,
 	}
 	options := trie.StorageManagerOptions{
 		PruningEnabled:   false,

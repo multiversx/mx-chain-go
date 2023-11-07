@@ -177,7 +177,8 @@ func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.MainStorer = &storage.StorerStub{}
-		ts, _ := trie.NewTrieStorageManager(args)
+		ts, err := trie.NewTrieStorageManager(args)
+		require.Nil(t, err)
 
 		ts.SetEpochForPutOperation(0)
 	})
@@ -193,7 +194,8 @@ func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
 				wasCalled = true
 			},
 		}
-		ts, _ := trie.NewTrieStorageManager(args)
+		ts, err := trie.NewTrieStorageManager(args)
+		require.Nil(t, err)
 
 		ts.SetEpochForPutOperation(providedEpoch)
 		assert.True(t, wasCalled)
@@ -384,7 +386,8 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.MainStorer = testscommon.CreateMemUnit()
-		ts, _ := trie.NewTrieStorageManager(args)
+		ts, err := trie.NewTrieStorageManager(args)
+		require.Nil(t, err)
 
 		assert.False(t, ts.ShouldTakeSnapshot())
 	})

@@ -2,6 +2,7 @@ package storageManager
 
 import (
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 )
 
 // StorageManagerStub -
@@ -28,6 +29,7 @@ type StorageManagerStub struct {
 	GetIdentifierCalled             func() string
 	CloseCalled                     func() error
 	RemoveFromAllActiveEpochsCalled func(hash []byte) error
+	GetStateStatsHandlerCalled      func() common.StateStatisticsHandler
 }
 
 // Put -
@@ -204,6 +206,15 @@ func (sms *StorageManagerStub) GetIdentifier() string {
 	}
 
 	return ""
+}
+
+// GetStateStatsHandler -
+func (sms *StorageManagerStub) GetStateStatsHandler() common.StateStatisticsHandler {
+	if sms.GetStateStatsHandlerCalled != nil {
+		return sms.GetStateStatsHandlerCalled()
+	}
+
+	return disabled.NewStateStatistics()
 }
 
 // IsInterfaceNil -

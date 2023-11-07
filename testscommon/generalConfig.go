@@ -105,6 +105,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		StateTriesConfig: config.StateTriesConfig{
+			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,
