@@ -231,7 +231,7 @@ func createMockEpochStartBootstrapArgs(
 		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
-		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
+		AdditionalStorageServiceCreator:  &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
 
@@ -621,7 +621,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
-		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
+		require.True(t, errors.Is(err, mxErrors.ErrNilNodesCoordinatorFactory))
 	})
 	t.Run("nil shard coordinator factory", func(t *testing.T) {
 		t.Parallel()
@@ -632,7 +632,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
-		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+		require.True(t, errors.Is(err, mxErrors.ErrNilShardCoordinatorFactory))
 	})
 	t.Run("nil additional storage service creator", func(t *testing.T) {
 		t.Parallel()

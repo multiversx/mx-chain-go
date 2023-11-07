@@ -350,8 +350,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
 		SmartContractResultPreProcessorCreator: pcf.runTypeComponents.SCResultsPreProcessorCreator(),
-		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
-		TxPreProcessorCreator:        pcf.txPreprocessorCreator,
+		TxExecutionOrderHandler:                pcf.txExecutionOrderHandler,
+		TxPreProcessorCreator:                  pcf.txPreprocessorCreator,
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -458,7 +458,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 func (pcf *processComponentsFactory) addSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
 	//TODO: refactor this with creators and runTypeComponents
-	if pcf.chainRunType != common.ChainRunTypeSovereign {
+	if fmt.Sprintf("%T", pcf.runTypeComponents.BlockProcessorCreator()) != "*block.sovereignBlockProcessorFactory" {
 		return nil
 	}
 
@@ -492,24 +492,6 @@ func (pcf *processComponentsFactory) addSystemVMToContainerIfNeeded(vmContainer 
 	}
 
 	return nil
-}
-
-func (pcf *processComponentsFactory) createTransactionCoordinator(
-	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
-) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
-	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(

@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -189,7 +191,7 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 				return 1
 			},
 		},
-		GenesisNodesConfig:         &mock.NodesSetupStub{},
+		GenesisNodesConfig:         &testscommon.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
@@ -217,5 +219,8 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		},
 		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
 		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
+		// TODO: add mocks for these
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }

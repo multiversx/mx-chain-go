@@ -153,7 +153,7 @@ type epochStartBootstrap struct {
 
 	nodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
+	additionalStorageServiceCreator  process.AdditionalStorageServiceCreator
 }
 
 type baseDataInStorage struct {
@@ -190,7 +190,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer              storage.Storer
 	TrieSyncStatisticsProvider       common.SizeSyncStatisticsHandler
 	NodeProcessingMode               common.NodeProcessingMode
-	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
+	AdditionalStorageServiceCreator  process.AdditionalStorageServiceCreator
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
@@ -211,38 +211,39 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	}
 
 	epochStartProvider := &epochStartBootstrap{
-		coreComponentsHolder:            args.CoreComponentsHolder,
-		cryptoComponentsHolder:          args.CryptoComponentsHolder,
-		mainMessenger:                   args.MainMessenger,
-		fullArchiveMessenger:            args.FullArchiveMessenger,
-		generalConfig:                   args.GeneralConfig,
-		prefsConfig:                     args.PrefsConfig,
-		flagsConfig:                     args.FlagsConfig,
-		economicsData:                   args.EconomicsData,
-		genesisNodesConfig:              args.GenesisNodesConfig,
-		genesisShardCoordinator:         args.GenesisShardCoordinator,
-		rater:                           args.Rater,
-		destinationShardAsObserver:      args.DestinationShardAsObserver,
-		nodeShuffler:                    args.NodeShuffler,
-		roundHandler:                    args.RoundHandler,
-		storageOpenerHandler:            args.StorageUnitOpener,
-		latestStorageDataProvider:       args.LatestStorageDataProvider,
-		shuffledOut:                     false,
-		statusHandler:                   args.StatusHandler,
-		nodeType:                        core.NodeTypeObserver,
-		argumentsParser:                 args.ArgumentsParser,
-		headerIntegrityVerifier:         args.HeaderIntegrityVerifier,
-		numConcurrentTrieSyncers:        args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
-		maxHardCapForMissingNodes:       args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
-		trieSyncerVersion:               args.GeneralConfig.TrieSync.TrieSyncerVersion,
-		checkNodesOnDisk:                args.GeneralConfig.TrieSync.CheckNodesOnDisk,
-		dataSyncerFactory:               args.DataSyncerCreator,
-		storerScheduledSCRs:             args.ScheduledSCRsStorer,
-		shardCoordinator:                args.GenesisShardCoordinator,
-		trieSyncStatisticsProvider:      args.TrieSyncStatisticsProvider,
-		nodeProcessingMode:              args.NodeProcessingMode,
-		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
-		nodeOperationMode:               common.NormalOperation,nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
+		coreComponentsHolder:             args.CoreComponentsHolder,
+		cryptoComponentsHolder:           args.CryptoComponentsHolder,
+		mainMessenger:                    args.MainMessenger,
+		fullArchiveMessenger:             args.FullArchiveMessenger,
+		generalConfig:                    args.GeneralConfig,
+		prefsConfig:                      args.PrefsConfig,
+		flagsConfig:                      args.FlagsConfig,
+		economicsData:                    args.EconomicsData,
+		genesisNodesConfig:               args.GenesisNodesConfig,
+		genesisShardCoordinator:          args.GenesisShardCoordinator,
+		rater:                            args.Rater,
+		destinationShardAsObserver:       args.DestinationShardAsObserver,
+		nodeShuffler:                     args.NodeShuffler,
+		roundHandler:                     args.RoundHandler,
+		storageOpenerHandler:             args.StorageUnitOpener,
+		latestStorageDataProvider:        args.LatestStorageDataProvider,
+		shuffledOut:                      false,
+		statusHandler:                    args.StatusHandler,
+		nodeType:                         core.NodeTypeObserver,
+		argumentsParser:                  args.ArgumentsParser,
+		headerIntegrityVerifier:          args.HeaderIntegrityVerifier,
+		numConcurrentTrieSyncers:         args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes:        args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
+		trieSyncerVersion:                args.GeneralConfig.TrieSync.TrieSyncerVersion,
+		checkNodesOnDisk:                 args.GeneralConfig.TrieSync.CheckNodesOnDisk,
+		dataSyncerFactory:                args.DataSyncerCreator,
+		storerScheduledSCRs:              args.ScheduledSCRsStorer,
+		shardCoordinator:                 args.GenesisShardCoordinator,
+		trieSyncStatisticsProvider:       args.TrieSyncStatisticsProvider,
+		nodeProcessingMode:               args.NodeProcessingMode,
+		additionalStorageServiceCreator:  args.AdditionalStorageServiceCreator,
+		nodeOperationMode:                common.NormalOperation,
+		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
 

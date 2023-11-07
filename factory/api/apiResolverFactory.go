@@ -55,19 +55,19 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs              *config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	GasScheduleNotifier  common.GasScheduleNotifierAPI
-	Bootstrapper         process.Bootstrapper
-	AllowVMQueriesChan   chan struct{}
-	ProcessingMode       common.NodeProcessingMode
+	Configs               *config.Configs
+	CoreComponents        factory.CoreComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHolder
+	ProcessComponents     factory.ProcessComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	StatusComponents      factory.StatusComponentsHolder
+	GasScheduleNotifier   common.GasScheduleNotifierAPI
+	Bootstrapper          process.Bootstrapper
+	AllowVMQueriesChan    chan struct{}
+	ProcessingMode        common.NodeProcessingMode
 	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
@@ -408,10 +408,6 @@ func createScQueryElement(
 
 	var apiBlockchain data.ChainHandler
 	var vmFactory process.VirtualMachinesContainerFactory
-	blockChainHookImpl, errBlockChainHook := args.blockChainHookCreator.CreateBlockChainHookHandler(argsHook)
-	if errBlockChainHook != nil {
-		return nil, errBlockChainHook
-	}
 
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
@@ -476,7 +472,7 @@ func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBl
 	argsHook.BlockChain = apiBlockchain
 	argsHook.Accounts = accountsAdapterApi
 
-	blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, errBlockChainHook := args.blockChainHookCreator.CreateBlockChainHookHandler(argsHook)
 	if errBlockChainHook != nil {
 		return nil, nil, errBlockChainHook
 	}
@@ -525,7 +521,7 @@ func createShardVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgB
 		return nil, nil, errParser
 	}
 
-	blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, errBlockChainHook := args.blockChainHookCreator.CreateBlockChainHookHandler(argsHook)
 	if errBlockChainHook != nil {
 		return nil, nil, errBlockChainHook
 	}

@@ -407,7 +407,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		RunTypeComponents: GetRunTypeComponents(),
+		RunTypeComponents:                GetRunTypeComponents(),
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -576,7 +576,8 @@ func GetProcessArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
-		TxExecutionOrderHandler:               &commonMocks.TxExecutionOrderHandlerStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		// TODO: add mocks
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -584,7 +585,7 @@ func GetProcessArgs(
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents: GetRunTypeComponents(),
+		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
 

@@ -436,7 +436,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		}
 		expectedError := errors.New("createBlockchainHook failed")
 		args.BlockChainHookCreator = &factory.BlockChainHookHandlerFactoryMock{
-			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 				return nil, expectedError
 			},
 		}
@@ -480,7 +480,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args.CoreComponents = coreCompStub
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.Nil(t, scQueryService)
 	})
 	t.Run("shard - NewBlockChainHookImpl fails", func(t *testing.T) {
@@ -489,7 +489,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args := createMockSCQueryElementArgs()
 		expectedErr := errors.New("createBlockchainHook failed")
 		args.BlockChainHookCreator = &factory.BlockChainHookHandlerFactoryMock{
-			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+			CreateBlockChainHookHandlerCalled: func(args hooks.ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 				return nil, expectedErr
 			},
 		}

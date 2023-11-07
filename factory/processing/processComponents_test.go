@@ -250,7 +250,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
 		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		RunTypeComponents: components.GetRunTypeComponents(),
+		RunTypeComponents:                     components.GetRunTypeComponents(),
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -778,7 +778,7 @@ func TestProcessComponentsFactory_AddSystemVMToContainerIfNeeded(t *testing.T) {
 
 		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-		processArgs.ChainRunType = common.ChainRunTypeSovereign
+		processArgs.RunTypeComponents = components.GetSovereignRunTypeComponents()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
 
@@ -806,7 +806,6 @@ func TestProcessComponentsFactory_AddSystemVMToContainerIfNeeded(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-		processArgs.ChainRunType = common.ChainRunTypeRegular
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
 

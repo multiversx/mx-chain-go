@@ -1780,8 +1780,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
 		SmartContractResultPreProcessorCreator: scrPreProcessorFactory,
-		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
-		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		TxExecutionOrderHandler:                tpn.TxExecutionOrderHandler,
+		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
 	}
 	fact, err := shard.NewPreProcessorsContainerFactory(args)
 	if err != nil {
@@ -3622,7 +3622,7 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 }
 
 // CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
-func CreateBlockChainHook(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+func CreateBlockChainHook(args hooks.ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 	blockChainHookFactory, err := hooks.NewBlockChainHookFactory()
 	if err != nil {
 		return nil, err

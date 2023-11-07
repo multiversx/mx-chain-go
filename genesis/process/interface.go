@@ -3,9 +3,9 @@ package process
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // GenesisBlockCreatorHandler defines genesis block creator behavior

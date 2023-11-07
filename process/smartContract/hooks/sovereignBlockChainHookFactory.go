@@ -22,7 +22,7 @@ func NewSovereignBlockChainHookFactory(blockChainHookFactory BlockChainHookHandl
 }
 
 // CreateBlockChainHookHandler creates a blockchain hook based on the chain run type sovereign
-func (bhf *sovereignBlockChainHookFactory) CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+func (bhf *sovereignBlockChainHookFactory) CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 	bh, err := NewBlockChainHookImpl(args)
 	if err != nil {
 		return nil, err

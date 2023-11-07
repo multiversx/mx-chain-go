@@ -41,7 +41,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
-	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -162,7 +161,7 @@ type ProcessComponentsFactoryArgs struct {
 	StatusCoreComponents    factory.StatusCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 
-	RunTypeComponents    factory.RunTypeComponentsHolder
+	RunTypeComponents                     factory.RunTypeComponentsHolder
 	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker               GenesisMetaBlockChecker
@@ -206,7 +205,7 @@ type processComponentsFactory struct {
 	statusCoreComponents    factory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
 
-	runTypeComponents    factory.RunTypeComponentsHolder
+	runTypeComponents                     factory.RunTypeComponentsHolder
 	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker               GenesisMetaBlockChecker
@@ -250,7 +249,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochNotifier:                         args.CoreData.EpochNotifier(),
 		statusCoreComponents:                  args.StatusCoreComponents,
 		flagsConfig:                           args.FlagsConfig,
-		runTypeComponents:      args.RunTypeComponents,
+		runTypeComponents:                     args.RunTypeComponents,
 		shardCoordinatorFactory:               args.ShardCoordinatorFactory,
 		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
 		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
@@ -757,12 +756,12 @@ func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (proce
 	}
 
 	args := preprocess.ScheduledTxsExecutionFactoryArgs{
-		TxProcessor:      &disabled.TxProcessor{},
-		TxCoordinator:    &disabled.TxCoordinator{},
-		Storer:           scheduledSCRSStorer,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Hasher:           pcf.coreData.Hasher(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		TxProcessor:             &disabled.TxProcessor{},
+		TxCoordinator:           &disabled.TxCoordinator{},
+		Storer:                  scheduledSCRSStorer,
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
@@ -910,7 +909,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNodePrice:        genesisNodePrice,
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
-		RunTypeComponents:    pcf.runTypeComponents,
+		RunTypeComponents:       pcf.runTypeComponents,
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
 		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
