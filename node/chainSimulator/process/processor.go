@@ -29,7 +29,7 @@ func (creator *blocksCreator) IncrementRound() {
 	manual.IncrementIndex()
 }
 
-// CreateNewBlock create and process a new block
+// CreateNewBlock creates and process a new block
 func (creator *blocksCreator) CreateNewBlock() error {
 	bp := creator.nodeHandler.GetProcessComponents().BlockProcessor()
 
