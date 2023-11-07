@@ -15,6 +15,7 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -43,6 +44,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock, enabl
 	srSignature, _ := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	return srSignature
@@ -59,6 +61,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSubroundShouldFail(t *testing.
 	srSignature, err := bls.NewSubroundSignature(
 		nil,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -93,6 +96,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -126,6 +130,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -159,6 +164,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -193,6 +199,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -226,6 +233,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -259,6 +267,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
 		extend,
+		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
 	)
 
 	assert.False(t, check.IfNil(srSignature))

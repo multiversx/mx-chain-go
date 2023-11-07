@@ -667,3 +667,6 @@ var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been p
 
 // ErrNilStartRoundExtraSignersHolder signals that a nil start round extra signers holder has been provided
 var ErrNilStartRoundExtraSignersHolder = errors.New("nil start round extra signers holder has been provided")
+
+// ErrNilSignatureRoundExtraSignersHolder signals that a nil signature round extra signers holder has been provided
+var ErrNilSignatureRoundExtraSignersHolder = errors.New("nil signature round extra signers holder has been provided")

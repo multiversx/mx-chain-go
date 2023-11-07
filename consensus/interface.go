@@ -53,6 +53,14 @@ type SubRoundStartExtraSignatureHandler interface {
 	IsInterfaceNil() bool
 }
 
+type SubRoundSignatureExtraSignatureHandler interface {
+	CreateSignatureShare(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
+	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *Message)
+	StoreSignatureShare(index uint16, cnsMsg *Message) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
 	Close() error

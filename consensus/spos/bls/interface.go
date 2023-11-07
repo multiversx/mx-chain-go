@@ -11,10 +11,10 @@ type SubRoundStartExtraSignersHolder interface {
 	IsInterfaceNil() bool
 }
 
-type SubRoundSignatureExtraSignatureHandler interface {
-	CreateSignatureShare(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
-	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message)
-	StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error
-	Identifier() string
+type SubRoundSignatureExtraSignersHolder interface {
+	CreateExtraSignatureShares(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) (map[string][]byte, error)
+	AddExtraSigSharesToConsensusMessage(extraSigShares map[string][]byte, cnsMsg *consensus.Message) error
+	StoreExtraSignatureShare(index uint16, cnsMsg *consensus.Message) error
+	RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error
 	IsInterfaceNil() bool
 }
