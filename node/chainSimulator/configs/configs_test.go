@@ -17,6 +17,8 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 		OriginalConfigsPath:       "../../../cmd/node/config",
 		GenesisAddressWithStake:   "erd10z6sdhwfy8jtuf87j5gnq7lt7fd2wfmhkg8zfzf79lrapzq265yqlnmtm7",
 		GenesisAddressWithBalance: "erd1rhrm20mmf2pugzxc3twlu3fa264hxeefnglsy4ads4dpccs9s3jsg6qdrz",
+		RoundDurationInMillis:     6000,
+		GenesisTimeStamp:          0,
 	})
 	require.Nil(t, err)
 

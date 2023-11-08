@@ -6,12 +6,17 @@ import (
 )
 
 type manualRoundHandler struct {
-	index int64
+	index            int64
+	genesisTimeStamp int64
+	roundDuration    time.Duration
 }
 
 // NewManualRoundHandler returns a manual round handler instance
-func NewManualRoundHandler() *manualRoundHandler {
-	return &manualRoundHandler{}
+func NewManualRoundHandler(genesisTimeStamp int64, roundDuration time.Duration) *manualRoundHandler {
+	return &manualRoundHandler{
+		genesisTimeStamp: genesisTimeStamp,
+		roundDuration:    roundDuration,
+	}
 }
 
 // IncrementIndex will increment the current round index
@@ -33,14 +38,18 @@ func (handler *manualRoundHandler) BeforeGenesis() bool {
 func (handler *manualRoundHandler) UpdateRound(_ time.Time, _ time.Time) {
 }
 
-// TimeStamp returns the empty time.Time value
+// TimeStamp returns the time based of the genesis timestamp and the current round
 func (handler *manualRoundHandler) TimeStamp() time.Time {
-	return time.Time{}
+	rounds := atomic.LoadInt64(&handler.index)
+	timeFromGenesis := handler.roundDuration * time.Duration(rounds)
+	timestamp := time.Unix(handler.genesisTimeStamp, 0).Add(timeFromGenesis)
+
+	return timestamp
 }
 
-// TimeDuration returns a hardcoded value
+// TimeDuration returns the provided time duration for this instance
 func (handler *manualRoundHandler) TimeDuration() time.Duration {
-	return 0
+	return handler.roundDuration
 }
 
 // RemainingTime returns the max time as the start time is not taken into account

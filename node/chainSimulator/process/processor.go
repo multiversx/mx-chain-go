@@ -63,11 +63,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	// TODO set the timestamp but refactor the baseForkDetector.computeGenesisTimeFromHeader function
-	// err = newHeader.SetTimeStamp(uint64(time.Now().Unix()))
-	// if err != nil {
-	//	return err
-	// }
+	headerCreationTime := creator.nodeHandler.GetProcessComponents().RoundHandler().TimeStamp()
+	err = newHeader.SetTimeStamp(uint64(headerCreationTime.Unix()))
+	if err != nil {
+		return err
+	}
 
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
 	randSeed, err := signingHandler.CreateSignatureForPublicKey(newHeader.GetPrevRandSeed(), creator.blsKeyBytes)

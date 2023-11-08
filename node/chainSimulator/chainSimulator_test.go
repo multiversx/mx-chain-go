@@ -12,9 +12,23 @@ const (
 )
 
 func TestNewChainSimulator(t *testing.T) {
-	chainSimulator, err := NewChainSimulator(3, defaultPathToInitialConfig)
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	chainSimulator, err := NewChainSimulator(3, defaultPathToInitialConfig, startTime, roundDurationInMillis)
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
+	defer chainSimulator.Stop()
+
+	time.Sleep(time.Second)
+}
+
+func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	chainSimulator, err := NewChainSimulator(3, defaultPathToInitialConfig, startTime, roundDurationInMillis)
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+	defer chainSimulator.Stop()
 
 	time.Sleep(time.Second)
 

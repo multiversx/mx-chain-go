@@ -136,7 +136,14 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.watchdog = &watchdog.DisabledWatchdog{}
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
-	instance.roundHandler = NewManualRoundHandler()
+
+	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	if err != nil {
+		return nil, err
+	}
+
+	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
+	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration)
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
@@ -190,10 +197,6 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 	instance.ratingsData = &testscommon.RatingsInfoMock{}
 	instance.rater = &testscommon.RaterMock{}
 
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
-	if err != nil {
-		return nil, err
-	}
 	// TODO check if we need nodes shuffler
 	instance.nodesShuffler = &shardingMocks.NodeShufflerMock{}
 

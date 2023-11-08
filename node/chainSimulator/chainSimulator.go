@@ -15,10 +15,16 @@ type simulator struct {
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	nodes                  []ChainHandler
 	numOfShards            uint32
+	genesisTimestamp       int64
 }
 
 // NewChainSimulator will create a new instance of simulator
-func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulator, error) {
+func NewChainSimulator(
+	numOfShards uint32,
+	pathToInitialConfig string,
+	genesisTimestamp int64,
+	roundDurationInMillis uint64,
+) (*simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
 	instance := &simulator{
@@ -28,7 +34,7 @@ func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulat
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 	}
 
-	err := instance.createChainHandlers(numOfShards, pathToInitialConfig)
+	err := instance.createChainHandlers(numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis)
 	if err != nil {
 		return nil, err
 	}
@@ -36,12 +42,19 @@ func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulat
 	return instance, nil
 }
 
-func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath string) error {
+func (s *simulator) createChainHandlers(
+	numOfShards uint32,
+	originalConfigPath string,
+	genesisTimestamp int64,
+	roundDurationInMillis uint64,
+) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:               numOfShards,
 		OriginalConfigsPath:       originalConfigPath,
 		GenesisAddressWithStake:   testdata.GenesisAddressWithStake,
 		GenesisAddressWithBalance: testdata.GenesisAddressWithBalance,
+		GenesisTimeStamp:          genesisTimestamp,
+		RoundDurationInMillis:     roundDurationInMillis,
 	})
 	if err != nil {
 		return err
@@ -68,7 +81,13 @@ func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath s
 	return nil
 }
 
-func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, skIndex int, gasScheduleFilename string, blsKeyBytes []byte) (ChainHandler, error) {
+func (s *simulator) createChainHandler(
+	shardID uint32,
+	configs *config.Configs,
+	skIndex int,
+	gasScheduleFilename string,
+	blsKeyBytes []byte,
+) (ChainHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
 		Config:                   *configs.GeneralConfig,
 		EpochConfig:              *configs.EpochConfig,
