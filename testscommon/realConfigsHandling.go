@@ -12,9 +12,7 @@ import (
 
 // CreateTestConfigs will try to copy the whole configs directory to a temp directory and return the configs after load
 // The copying of the configs is required because minor adjustments of their contents is required for the tests to pass
-func CreateTestConfigs(originalConfigsPath string) (*config.Configs, error) {
-	tempDir := os.TempDir()
-
+func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Configs, error) {
 	newConfigsPath := path.Join(tempDir, "config")
 
 	// TODO refactor this cp to work on all OSes

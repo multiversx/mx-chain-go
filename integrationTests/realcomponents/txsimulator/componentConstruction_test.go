@@ -23,7 +23,7 @@ func TestTransactionSimulationComponentConstructionOnMetachain(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cfg, err := testscommon.CreateTestConfigs("../../../cmd/node/config")
+	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../../cmd/node/config")
 	require.Nil(t, err)
 
 	cfg.EpochConfig.EnableEpochs.ESDTEnableEpoch = 0
@@ -74,7 +74,7 @@ func TestTransactionSimulationComponentConstructionOnShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cfg, err := testscommon.CreateTestConfigs("../../../cmd/node/config")
+	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../../cmd/node/config")
 	require.Nil(t, err)
 
 	cfg.EpochConfig.EnableEpochs.SCDeployEnableEpoch = 0

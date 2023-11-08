@@ -14,7 +14,7 @@ const (
 func TestNewChainSimulator(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(3, defaultPathToInitialConfig, startTime, roundDurationInMillis)
+	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis)
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 	defer chainSimulator.Stop()
@@ -25,7 +25,7 @@ func TestNewChainSimulator(t *testing.T) {
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(3, defaultPathToInitialConfig, startTime, roundDurationInMillis)
+	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis)
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 	defer chainSimulator.Stop()

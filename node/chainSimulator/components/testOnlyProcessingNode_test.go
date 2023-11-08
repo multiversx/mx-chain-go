@@ -63,7 +63,6 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		EconomicsConfig:        economicsConfig,
 		GasScheduleFilename:    gasScheduleName,
 		NumShards:              3,
-		ShardID:                0,
 		PreferencesConfig:      prefsConfig,
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
 		ImportDBConfig:         config.ImportDbConfig{},
@@ -86,15 +85,6 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 func TestNewTestOnlyProcessingNode(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid shard configuration should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgsTestOnlyProcessingNode(t)
-		args.ShardID = args.NumShards
-		node, err := NewTestOnlyProcessingNode(args)
-		assert.NotNil(t, err)
-		assert.Nil(t, node)
-	})
 	t.Run("should work", func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("cannot run with -race -short; requires Wasm VM fix")

@@ -1,7 +1,6 @@
 package chainSimulator
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
@@ -19,6 +18,7 @@ type simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(
+	tempDir string,
 	numOfShards uint32,
 	pathToInitialConfig string,
 	genesisTimestamp int64,
@@ -33,7 +33,7 @@ func NewChainSimulator(
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 	}
 
-	err := instance.createChainHandlers(numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis)
+	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +42,7 @@ func NewChainSimulator(
 }
 
 func (s *simulator) createChainHandlers(
+	tempDir string,
 	numOfShards uint32,
 	originalConfigPath string,
 	genesisTimestamp int64,
@@ -54,38 +55,28 @@ func (s *simulator) createChainHandlers(
 		GenesisAddressWithBalance: testdata.GenesisAddressWithBalance,
 		GenesisTimeStamp:          genesisTimestamp,
 		RoundDurationInMillis:     roundDurationInMillis,
+		TempDir:                   tempDir,
 	})
 	if err != nil {
 		return err
 	}
 
-	blsKey := outputConfigs.ValidatorsPublicKeys[core.MetachainShardId]
-	metaChainHandler, err := s.createChainHandler(core.MetachainShardId, outputConfigs.Configs, 0, outputConfigs.GasScheduleFilename, blsKey)
-	if err != nil {
-		return err
-	}
-
-	s.nodes = append(s.nodes, metaChainHandler)
-
-	for idx := uint32(0); idx < numOfShards; idx++ {
-		blsKey = outputConfigs.ValidatorsPublicKeys[idx+1]
-		shardChainHandler, errS := s.createChainHandler(idx, outputConfigs.Configs, int(idx)+1, outputConfigs.GasScheduleFilename, blsKey)
-		if errS != nil {
-			return errS
+	for idx := range outputConfigs.ValidatorsPrivateKeys {
+		chainHandler, errCreate := s.createChainHandler(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename)
+		if errCreate != nil {
+			return errCreate
 		}
 
-		s.nodes = append(s.nodes, shardChainHandler)
+		s.nodes = append(s.nodes, chainHandler)
 	}
 
 	return nil
 }
 
 func (s *simulator) createChainHandler(
-	shardID uint32,
 	configs *config.Configs,
 	skIndex int,
 	gasScheduleFilename string,
-	blsKeyBytes []byte,
 ) (ChainHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
 		Config:                   *configs.GeneralConfig,
@@ -101,7 +92,6 @@ func (s *simulator) createChainHandler(
 		SyncedBroadcastNetwork:   s.syncedBroadcastNetwork,
 		NumShards:                s.numOfShards,
 		GasScheduleFilename:      gasScheduleFilename,
-		ShardID:                  shardID,
 		SkIndex:                  skIndex,
 	}
 
@@ -110,7 +100,7 @@ func (s *simulator) createChainHandler(
 		return nil, err
 	}
 
-	return process.NewBlocksCreator(testNode, blsKeyBytes)
+	return process.NewBlocksCreator(testNode)
 }
 
 // GenerateBlocks will generate the provided number of blocks

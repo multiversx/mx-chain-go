@@ -12,7 +12,7 @@ func TestNewProcessorRunnerAndClose(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cfg, err := testscommon.CreateTestConfigs("../../cmd/node/config")
+	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../cmd/node/config")
 	require.Nil(t, err)
 
 	pr := NewProcessorRunner(t, *cfg)

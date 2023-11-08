@@ -19,6 +19,7 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 		GenesisAddressWithBalance: "erd1rhrm20mmf2pugzxc3twlu3fa264hxeefnglsy4ads4dpccs9s3jsg6qdrz",
 		RoundDurationInMillis:     6000,
 		GenesisTimeStamp:          0,
+		TempDir:                   t.TempDir(),
 	})
 	require.Nil(t, err)
 
