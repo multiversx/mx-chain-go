@@ -15,7 +15,6 @@ type simulator struct {
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	nodes                  []ChainHandler
 	numOfShards            uint32
-	genesisTimestamp       int64
 }
 
 // NewChainSimulator will create a new instance of simulator
