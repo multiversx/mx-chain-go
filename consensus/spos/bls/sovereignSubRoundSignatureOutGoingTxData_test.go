@@ -5,10 +5,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	consensus2 "github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	cnsTest "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func TestNewSovereignSubRoundEndOutGoingTxData(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		sovSigHandler, err := NewSovereignSubRoundEndOutGoingTxData(&consensus.SigningHandlerStub{})
+		sovSigHandler, err := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
 		require.Nil(t, err)
 		require.False(t, sovSigHandler.IsInterfaceNil())
 	})
@@ -46,7 +46,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_CreateSignatureShare(t *testin
 
 	expectedSigShare := []byte("sigShare")
 	createSigShareCt := 0
-	signingHandler := &consensus.SigningHandlerStub{
+	signingHandler := &cnsTest.SigningHandlerStub{
 		CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			require.Equal(t, outGoingOpHash, message)
 			require.Equal(t, selfIndex, index)
@@ -83,27 +83,31 @@ func TestSovereignSubRoundSignatureOutGoingTxData_CreateSignatureShare(t *testin
 }
 
 func TestSovereignSubRoundSignatureOutGoingTxData_AddSigShareToConsensusMessage(t *testing.T) {
-	cnsMsg := &consensus2.Message{
+	t.Parallel()
+
+	cnsMsg := &consensus.Message{
 		SignatureShare: []byte("sigShare"),
 	}
 
-	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&consensus.SigningHandlerStub{})
+	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
 	sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), cnsMsg)
-	require.Equal(t, &consensus2.Message{
+	require.Equal(t, &consensus.Message{
 		SignatureShare:               []byte("sigShare"),
 		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
 	}, cnsMsg)
 }
 
 func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing.T) {
-	cnsMsg := &consensus2.Message{
+	t.Parallel()
+
+	cnsMsg := &consensus.Message{
 		SignatureShare:               []byte("sigShare"),
 		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
 	}
 
 	expectedIdx := uint16(4)
 	wasSigStored := false
-	signHandler := &consensus.SigningHandlerStub{
+	signHandler := &cnsTest.SigningHandlerStub{
 		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
 			require.Equal(t, expectedIdx, index)
 			require.Equal(t, cnsMsg.SignatureShareOutGoingTxData, sig)
@@ -120,6 +124,8 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 }
 
 func TestSovereignSubRoundSignatureOutGoingTxData_Identifier(t *testing.T) {
-	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&consensus.SigningHandlerStub{})
+	t.Parallel()
+
+	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
 	require.Equal(t, "sovereignSubRoundSignatureOutGoingTxData", sovSigHandler.Identifier())
 }

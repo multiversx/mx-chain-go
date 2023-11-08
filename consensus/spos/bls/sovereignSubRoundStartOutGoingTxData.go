@@ -1,12 +1,20 @@
 package bls
 
-import "github.com/multiversx/mx-chain-go/consensus"
+import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+)
 
 type sovereignSubRoundStartOutGoingTxData struct {
 	signingHandler consensus.SigningHandler
 }
 
 func NewSovereignSubRoundStartOutGoingTxData(signingHandler consensus.SigningHandler) (*sovereignSubRoundStartOutGoingTxData, error) {
+	if check.IfNil(signingHandler) {
+		return nil, spos.ErrNilSigningHandler
+	}
+
 	return &sovereignSubRoundStartOutGoingTxData{
 		signingHandler: signingHandler,
 	}, nil
