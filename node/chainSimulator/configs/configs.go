@@ -10,7 +10,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
@@ -22,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -36,6 +34,9 @@ type ArgsChainSimulatorConfigs struct {
 	OriginalConfigsPath       string
 	GenesisAddressWithStake   string
 	GenesisAddressWithBalance string
+	GenesisTimeStamp          int64
+	RoundDurationInMillis     uint64
+	TempDir                   string
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -43,12 +44,11 @@ type ArgsConfigsSimulator struct {
 	GasScheduleFilename   string
 	Configs               *config.Configs
 	ValidatorsPrivateKeys []crypto.PrivateKey
-	ValidatorsPublicKeys  map[uint32][]byte
 }
 
 // CreateChainSimulatorConfigs will create the chain simulator configs
 func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSimulator, error) {
-	configs, err := testscommon.CreateTestConfigs(args.OriginalConfigsPath)
+	configs, err := testscommon.CreateTestConfigs(args.TempDir, args.OriginalConfigsPath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,16 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	// generate validators key and nodesSetup.json
-	privateKeys, publicKeys := generateValidatorsKeyAndUpdateFiles(nil, configs, args.NumOfShards, args.GenesisAddressWithStake)
+	privateKeys, publicKeys, err := generateValidatorsKeyAndUpdateFiles(
+		configs,
+		args.NumOfShards,
+		args.GenesisAddressWithStake,
+		args.GenesisTimeStamp,
+		args.RoundDurationInMillis,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	// update genesis.json
 	addresses := make([]data.InitialAccount, 0)
@@ -110,35 +119,31 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
-	publicKeysBytes := make(map[uint32][]byte)
-	publicKeysBytes[core.MetachainShardId], err = publicKeys[0].ToByteArray()
-	if err != nil {
-		return nil, err
-	}
-
-	for idx := uint32(1); idx < uint32(len(publicKeys)); idx++ {
-		publicKeysBytes[idx], err = publicKeys[idx].ToByteArray()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return &ArgsConfigsSimulator{
 		Configs:               configs,
 		ValidatorsPrivateKeys: privateKeys,
 		GasScheduleFilename:   gasScheduleName,
-		ValidatorsPublicKeys:  publicKeysBytes,
 	}, nil
 }
 
-func generateValidatorsKeyAndUpdateFiles(tb testing.TB, configs *config.Configs, numOfShards uint32, address string) ([]crypto.PrivateKey, []crypto.PublicKey) {
+func generateValidatorsKeyAndUpdateFiles(
+	configs *config.Configs,
+	numOfShards uint32,
+	address string,
+	genesisTimeStamp int64,
+	roundDurationInMillis uint64,
+) ([]crypto.PrivateKey, []crypto.PublicKey, error) {
 	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 	nodesSetupFile := configs.ConfigurationPathsHolder.Nodes
 	nodes := &sharding.NodesSetup{}
 	err := core.LoadJsonFile(nodes, nodesSetupFile)
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, nil, err
+	}
 
+	nodes.RoundDuration = roundDurationInMillis
+	nodes.StartTime = genesisTimeStamp
 	nodes.ConsensusGroupSize = 1
 	nodes.MinNodesPerShard = 1
 	nodes.MetaChainMinNodes = 1
@@ -153,7 +158,9 @@ func generateValidatorsKeyAndUpdateFiles(tb testing.TB, configs *config.Configs,
 		publicKeys = append(publicKeys, pk)
 
 		pkBytes, errB := pk.ToByteArray()
-		require.Nil(tb, errB)
+		if errB != nil {
+			return nil, nil, errB
+		}
 
 		nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
 			PubKey:  hex.EncodeToString(pkBytes),
@@ -162,12 +169,16 @@ func generateValidatorsKeyAndUpdateFiles(tb testing.TB, configs *config.Configs,
 	}
 
 	marshaledNodes, err := json.Marshal(nodes)
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	err = os.WriteFile(nodesSetupFile, marshaledNodes, os.ModePerm)
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return privateKeys, publicKeys
+	return privateKeys, publicKeys, nil
 }
 
 func generateValidatorsPem(validatorsFile string, publicKeys []crypto.PublicKey, privateKey []crypto.PrivateKey) error {

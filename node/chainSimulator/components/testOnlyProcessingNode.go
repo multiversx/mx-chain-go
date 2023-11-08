@@ -36,10 +36,8 @@ type ArgsTestOnlyProcessingNode struct {
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
 	GasScheduleFilename string
-
-	NumShards uint32
-	ShardID   uint32
-	SkIndex   int
+	NumShards           uint32
+	SkIndex             int
 }
 
 type testOnlyProcessingNode struct {
@@ -55,7 +53,6 @@ type testOnlyProcessingNode struct {
 
 	NodesCoordinator            nodesCoordinator.NodesCoordinator
 	ChainHandler                chainData.ChainHandler
-	ShardCoordinator            sharding.Coordinator
 	ArgumentsParser             process.ArgumentsParser
 	TransactionFeeHandler       process.TransactionFeeHandler
 	StoreService                dataRetriever.StorageService
@@ -71,7 +68,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		ArgumentsParser: smartContract.NewArgumentParser(),
 		StoreService:    CreateStore(args.NumShards),
 	}
-	err := instance.createBasicComponents(args.NumShards, args.ShardID)
+
+	var err error
+	instance.TransactionFeeHandler, err = postprocess.NewFeeAccumulator()
 	if err != nil {
 		return nil, err
 	}
@@ -96,25 +95,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createBlockChain(args.ShardID)
-	if err != nil {
-		return nil, err
-	}
-
-	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
-		Config:         args.Config,
-		CoreComponents: instance.CoreComponentsHolder,
-		StatusCore:     instance.StatusCoreComponents,
-		StoreService:   instance.StoreService,
-		ChainHandler:   instance.ChainHandler,
-	})
-	if err != nil {
-		return nil, err
-	}
-	instance.StatusComponentsHolder, err = CreateStatusComponentsHolder(args.ShardID)
-	if err != nil {
-		return nil, err
-	}
 	instance.CryptoComponentsHolder, err = CreateCryptoComponentsHolder(ArgsCryptoComponentsHolder{
 		Config:                  args.Config,
 		EnableEpochsConfig:      args.EpochConfig.EnableEpochs,
@@ -142,6 +122,28 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		ImportDBConfig:       args.ImportDBConfig,
 		PrefsConfig:          args.PreferencesConfig,
 		Config:               args.Config,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	selfShardID := instance.GetShardCoordinator().SelfId()
+	instance.StatusComponentsHolder, err = CreateStatusComponentsHolder(selfShardID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createBlockChain(selfShardID)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
+		Config:         args.Config,
+		CoreComponents: instance.CoreComponentsHolder,
+		StatusCore:     instance.StatusCoreComponents,
+		StoreService:   instance.StoreService,
+		ChainHandler:   instance.ChainHandler,
 	})
 	if err != nil {
 		return nil, err
@@ -197,21 +199,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	return instance, nil
 }
 
-func (node *testOnlyProcessingNode) createBasicComponents(numShards, selfShardID uint32) error {
-	var err error
-
-	node.TransactionFeeHandler, err = postprocess.NewFeeAccumulator()
-	if err != nil {
-		return err
-	}
-	node.ShardCoordinator, err = sharding.NewMultiShardCoordinator(numShards, selfShardID)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
 	var err error
 	if selfShardID == core.MetachainShardId {
@@ -229,7 +216,7 @@ func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNo
 	argsDataPool := dataRetrieverFactory.ArgsDataPool{
 		Config:           &args.Config,
 		EconomicsData:    node.CoreComponentsHolder.EconomicsData(),
-		ShardCoordinator: node.ShardCoordinator,
+		ShardCoordinator: node.BootstrapComponentsHolder.ShardCoordinator(),
 		Marshalizer:      node.CoreComponentsHolder.InternalMarshalizer(),
 		PathManager:      node.CoreComponentsHolder.PathHandler(),
 	}
@@ -265,7 +252,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.Rater(),
 		bootstrapStorer,
 		node.CoreComponentsHolder.NodesShuffler(),
-		node.ShardCoordinator.SelfId(),
+		node.BootstrapComponentsHolder.ShardCoordinator().SelfId(),
 		node.BootstrapComponentsHolder.EpochBootstrapParams(),
 		node.BootstrapComponentsHolder.EpochBootstrapParams().Epoch(),
 		node.CoreComponentsHolder.ChanStopNodeProcess(),
@@ -313,7 +300,7 @@ func (node *testOnlyProcessingNode) GetBroadcastMessenger() consensus.BroadcastM
 
 // GetShardCoordinator will return the shard coordinator
 func (node *testOnlyProcessingNode) GetShardCoordinator() sharding.Coordinator {
-	return node.ShardCoordinator
+	return node.BootstrapComponentsHolder.ShardCoordinator()
 }
 
 // GetCryptoComponents will return the crypto components

@@ -35,7 +35,7 @@ func TestNewNodeRunner(t *testing.T) {
 	t.Run("with valid configs should work", func(t *testing.T) {
 		t.Parallel()
 
-		configs, err := testscommon.CreateTestConfigs(originalConfigsPath)
+		configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
 		require.Nil(t, err)
 
 		runner, err := NewNodeRunner(configs)
@@ -47,7 +47,7 @@ func TestNewNodeRunner(t *testing.T) {
 func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 	t.Parallel()
 
-	configs, err := testscommon.CreateTestConfigs(originalConfigsPath)
+	configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
 	require.Nil(t, err)
 
 	runner, _ := NewNodeRunner(configs)

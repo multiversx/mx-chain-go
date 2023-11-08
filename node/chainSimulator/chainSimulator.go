@@ -1,7 +1,6 @@
 package chainSimulator
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
@@ -18,7 +17,13 @@ type simulator struct {
 }
 
 // NewChainSimulator will create a new instance of simulator
-func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulator, error) {
+func NewChainSimulator(
+	tempDir string,
+	numOfShards uint32,
+	pathToInitialConfig string,
+	genesisTimestamp int64,
+	roundDurationInMillis uint64,
+) (*simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
 	instance := &simulator{
@@ -28,7 +33,7 @@ func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulat
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 	}
 
-	err := instance.createChainHandlers(numOfShards, pathToInitialConfig)
+	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis)
 	if err != nil {
 		return nil, err
 	}
@@ -36,39 +41,43 @@ func NewChainSimulator(numOfShards uint32, pathToInitialConfig string) (*simulat
 	return instance, nil
 }
 
-func (s *simulator) createChainHandlers(numOfShards uint32, originalConfigPath string) error {
+func (s *simulator) createChainHandlers(
+	tempDir string,
+	numOfShards uint32,
+	originalConfigPath string,
+	genesisTimestamp int64,
+	roundDurationInMillis uint64,
+) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:               numOfShards,
 		OriginalConfigsPath:       originalConfigPath,
 		GenesisAddressWithStake:   testdata.GenesisAddressWithStake,
 		GenesisAddressWithBalance: testdata.GenesisAddressWithBalance,
+		GenesisTimeStamp:          genesisTimestamp,
+		RoundDurationInMillis:     roundDurationInMillis,
+		TempDir:                   tempDir,
 	})
 	if err != nil {
 		return err
 	}
 
-	blsKey := outputConfigs.ValidatorsPublicKeys[core.MetachainShardId]
-	metaChainHandler, err := s.createChainHandler(core.MetachainShardId, outputConfigs.Configs, 0, outputConfigs.GasScheduleFilename, blsKey)
-	if err != nil {
-		return err
-	}
-
-	s.nodes = append(s.nodes, metaChainHandler)
-
-	for idx := uint32(0); idx < numOfShards; idx++ {
-		blsKey = outputConfigs.ValidatorsPublicKeys[idx+1]
-		shardChainHandler, errS := s.createChainHandler(idx, outputConfigs.Configs, int(idx)+1, outputConfigs.GasScheduleFilename, blsKey)
-		if errS != nil {
-			return errS
+	for idx := range outputConfigs.ValidatorsPrivateKeys {
+		chainHandler, errCreate := s.createChainHandler(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename)
+		if errCreate != nil {
+			return errCreate
 		}
 
-		s.nodes = append(s.nodes, shardChainHandler)
+		s.nodes = append(s.nodes, chainHandler)
 	}
 
 	return nil
 }
 
-func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, skIndex int, gasScheduleFilename string, blsKeyBytes []byte) (ChainHandler, error) {
+func (s *simulator) createChainHandler(
+	configs *config.Configs,
+	skIndex int,
+	gasScheduleFilename string,
+) (ChainHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
 		Config:                   *configs.GeneralConfig,
 		EpochConfig:              *configs.EpochConfig,
@@ -83,7 +92,6 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 		SyncedBroadcastNetwork:   s.syncedBroadcastNetwork,
 		NumShards:                s.numOfShards,
 		GasScheduleFilename:      gasScheduleFilename,
-		ShardID:                  shardID,
 		SkIndex:                  skIndex,
 	}
 
@@ -92,28 +100,35 @@ func (s *simulator) createChainHandler(shardID uint32, configs *config.Configs, 
 		return nil, err
 	}
 
-	return process.NewBlocksCreator(testNode, blsKeyBytes)
+	return process.NewBlocksCreator(testNode)
 }
 
 // GenerateBlocks will generate the provided number of blocks
 func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	for idx := 0; idx < numOfBlocks; idx++ {
-		for idxNode, node := range s.nodes {
-			// TODO change this
-			if idxNode == 0 {
-				err := node.CreateNewBlock()
-				if err != nil {
-					return err
-				}
-			} else if idxNode == 1 {
-				err := node.CreateNewBlock()
-				if err != nil {
-					return err
-				}
-			}
-
+		s.incrementRoundOnAllValidators()
+		err := s.allNodesCreateBlocks()
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func (s *simulator) incrementRoundOnAllValidators() {
+	for _, node := range s.nodes {
+		node.IncrementRound()
+	}
+}
+
+func (s *simulator) allNodesCreateBlocks() error {
+	for _, node := range s.nodes {
+		err := node.CreateNewBlock()
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
