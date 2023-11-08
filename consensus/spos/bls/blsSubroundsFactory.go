@@ -26,8 +26,6 @@ type factory struct {
 	currentPid         core.PeerID
 	consensusModel     consensus.ConsensusModel
 	enableEpochHandler common.EnableEpochsHandler
-
-	extraSignerHandler consensus.SigningHandler
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -110,9 +108,9 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
 	// TODO: Wee need to have a components holder here which shall be injected
-	fct.extraSignerHandler = fct.consensusCore.SigningHandler().ShallowClone()
+	extraSignerHandler := fct.consensusCore.SigningHandler().ShallowClone()
 	startRoundExtraSignersHolder := NewSubRoundStartExtraSignersHolder()
-	extraSignerStartRound, err := NewSovereignSubRoundStartOutGoingTxData(fct.extraSignerHandler)
+	extraSignerStartRound, err := NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return err
 	}
@@ -128,7 +126,7 @@ func (fct *factory) GenerateSubrounds() error {
 	}
 
 	signRoundExtraSignersHolder := NewSubRoundSignatureExtraSignersHolder()
-	extraSubRoundSigner, err := NewSovereignSubRoundEndOutGoingTxData(fct.extraSignerHandler)
+	extraSubRoundSigner, err := NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return err
 	}

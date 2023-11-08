@@ -16,13 +16,13 @@ func TestNewSovereignSubRoundEndOutGoingTxData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil signing handler, should return error", func(t *testing.T) {
-		sovSigHandler, err := NewSovereignSubRoundEndOutGoingTxData(nil)
+		sovSigHandler, err := NewSovereignSubRoundSignatureOutGoingTxData(nil)
 		require.Equal(t, spos.ErrNilSigningHandler, err)
 		require.True(t, check.IfNil(sovSigHandler))
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		sovSigHandler, err := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
+		sovSigHandler, err := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
 		require.Nil(t, err)
 		require.False(t, sovSigHandler.IsInterfaceNil())
 	})
@@ -57,7 +57,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_CreateSignatureShare(t *testin
 			return expectedSigShare, nil
 		},
 	}
-	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(signingHandler)
+	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(signingHandler)
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
 		sigShare, err := sovSigHandler.CreateSignatureShare(sovHdr.Header, selfIndex, selfPubKey)
@@ -89,7 +89,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_AddSigShareToConsensusMessage(
 		SignatureShare: []byte("sigShare"),
 	}
 
-	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
+	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
 	sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), cnsMsg)
 	require.Equal(t, &consensus.Message{
 		SignatureShare:               []byte("sigShare"),
@@ -117,7 +117,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 		},
 	}
 
-	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(signHandler)
+	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(signHandler)
 	err := sovSigHandler.StoreSignatureShare(expectedIdx, cnsMsg)
 	require.Nil(t, err)
 	require.True(t, wasSigStored)
@@ -126,6 +126,6 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 func TestSovereignSubRoundSignatureOutGoingTxData_Identifier(t *testing.T) {
 	t.Parallel()
 
-	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
+	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
 	require.Equal(t, "sovereignSubRoundSignatureOutGoingTxData", sovSigHandler.Identifier())
 }

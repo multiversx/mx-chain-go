@@ -106,6 +106,7 @@ func (stub *SigningHandlerStub) Verify(msg []byte, bitmap []byte, epoch uint32) 
 	return nil
 }
 
+// ShallowClone -
 func (stub *SigningHandlerStub) ShallowClone() consensus.SigningHandler {
 	return &SigningHandlerStub{}
 }
