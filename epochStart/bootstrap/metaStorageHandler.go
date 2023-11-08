@@ -39,6 +39,7 @@ func NewMetaStorageHandler(
 	nodeTypeProvider NodeTypeProviderHandler,
 	nodeProcessingMode common.NodeProcessingMode,
 	managedPeersHolder common.ManagedPeersHolder,
+	stateStatsHandler common.StateStatisticsHandler,
 ) (*metaStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -55,6 +56,7 @@ func NewMetaStorageHandler(
 			NodeProcessingMode:            nodeProcessingMode,
 			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:            managedPeersHolder,
+			StateStatsHandler:             stateStatsHandler,
 		},
 	)
 	if err != nil {

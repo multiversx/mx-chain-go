@@ -1529,6 +1529,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:             pcf.statusCoreComponents.StateStatsHandler(),
 		},
 	)
 	if err != nil {
@@ -1582,6 +1583,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1611,6 +1613,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)

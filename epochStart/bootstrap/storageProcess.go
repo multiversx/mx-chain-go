@@ -152,6 +152,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
+		sesb.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -252,6 +253,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
 		EnableEpochsHandler:      sesb.coreComponentsHolder.EnableEpochsHandler(),
+		StateStatsHandler:        sesb.stateStatsHandler,
 	}
 
 	var requestersContainerFactory dataRetriever.RequestersContainerFactory

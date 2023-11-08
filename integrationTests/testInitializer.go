@@ -72,7 +72,6 @@ import (
 	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -376,7 +375,6 @@ func CreateMemUnit() storage.Storer {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(10000000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
 	return unit
 }
 
@@ -410,17 +408,11 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 	if err != nil {
 		fmt.Println("err creating main storer" + err.Error())
 	}
-	checkpointsStorer, _, err := testStorage.CreateTestingTriePruningStorer(coordinator, notifier)
-	if err != nil {
-		fmt.Println("err creating checkpoints storer" + err.Error())
-	}
 
 	args := testcommonStorage.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
-	args.CheckpointsStorer = checkpointsStorer
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size()))
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -433,7 +425,6 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	args.MainStorer = store
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size()))
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -838,7 +829,7 @@ func CreateGenesisMetaBlock(
 		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
+		trieStorage, _ := CreateTrieStorageManager(testscommon.CreateMemUnit())
 		newAccounts, _ := CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorage, coreComponents.EnableEpochsHandler())
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -1043,7 +1034,6 @@ func CreateNewDefaultTrie() common.Trie {
 	args := testcommonStorage.GetStorageManagerArgs()
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size()))
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -1574,58 +1564,6 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 	ConnectNodes(connectableNodes)
 
 	return nodes, hardforkStarter
-}
-
-// CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
-func CreateNodesWithCustomStateCheckpointModulus(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	stateCheckpointModulus uint,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
-	enableEpochsConfig := GetDefaultEnableEpochsConfig()
-	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
-
-	scm := &IntWrapper{
-		Value: stateCheckpointModulus,
-	}
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(ArgTestProcessorNode{
-				MaxShards:              uint32(numOfShards),
-				NodeShardId:            shardId,
-				TxSignPrivKeyShardId:   shardId,
-				StateCheckpointModulus: scm,
-				EpochsConfig:           enableEpochsConfig,
-			})
-
-			nodes[idx] = n
-			connectableNodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:              uint32(numOfShards),
-			NodeShardId:            core.MetachainShardId,
-			TxSignPrivKeyShardId:   0,
-			StateCheckpointModulus: scm,
-			EpochsConfig:           enableEpochsConfig,
-		})
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-		connectableNodes[idx] = metaNode
-	}
-
-	ConnectNodes(connectableNodes)
-
-	return nodes
 }
 
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node

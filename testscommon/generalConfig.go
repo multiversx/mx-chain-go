@@ -95,16 +95,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		AccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
-				Type:              string(storageunit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -115,19 +105,8 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("PeerAccountsTrieCheckpoints"),
-				Type:              string(storageunit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus:     100,
-			CheckpointsEnabled:          false,
+			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,

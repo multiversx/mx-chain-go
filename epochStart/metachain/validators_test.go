@@ -122,8 +122,8 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 
 	argsNewEpochEconomics := ArgsNewValidatorInfoCreator{
 		ShardCoordinator:     shardCoordinator,
-		ValidatorInfoStorage: createMemUnit(),
-		MiniBlockStorage:     createMemUnit(),
+		ValidatorInfoStorage: testscommon.CreateMemUnit(),
+		MiniBlockStorage:     testscommon.CreateMemUnit(),
 		Hasher:               &hashingMocks.HasherMock{},
 		Marshalizer:          &mock.MarshalizerMock{},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
@@ -975,7 +975,7 @@ func TestEpochValidatorInfoCreator_SaveValidatorInfoShouldWork(t *testing.T) {
 	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
 	marshalledSVI2, _ := arguments.Marshalizer.Marshal(svi2)
 
-	storer := createMemUnit()
+	storer := testscommon.CreateMemUnit()
 	arguments.ValidatorInfoStorage = storer
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
@@ -1015,7 +1015,7 @@ func TestEpochValidatorInfoCreator_RemoveValidatorInfoShouldWork(t *testing.T) {
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
 
-	storer := createMemUnit()
+	storer := testscommon.CreateMemUnit()
 	arguments.ValidatorInfoStorage = storer
 	vic, _ := NewValidatorInfoCreator(arguments)
 
@@ -1165,7 +1165,7 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 		},
 	}
 
-	storer := createMemUnit()
+	storer := testscommon.CreateMemUnit()
 	arguments.ValidatorInfoStorage = storer
 	vic, _ := NewValidatorInfoCreator(arguments)
 

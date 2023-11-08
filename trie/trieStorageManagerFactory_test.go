@@ -15,9 +15,8 @@ import (
 
 func getTrieStorageManagerOptions() trie.StorageManagerOptions {
 	return trie.StorageManagerOptions{
-		PruningEnabled:     true,
-		SnapshotsEnabled:   true,
-		CheckpointsEnabled: true,
+		PruningEnabled:   true,
+		SnapshotsEnabled: true,
 	}
 }
 
@@ -39,16 +38,6 @@ func TestTrieFactory_CreateWithoutSnapshot(t *testing.T) {
 	tsm, err := trie.CreateTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters(), options)
 	assert.Nil(t, err)
 	assert.Equal(t, "*trie.trieStorageManagerWithoutSnapshot", fmt.Sprintf("%T", tsm))
-}
-
-func TestTrieFactory_CreateWithoutCheckpoints(t *testing.T) {
-	t.Parallel()
-
-	options := getTrieStorageManagerOptions()
-	options.CheckpointsEnabled = false
-	tsm, err := trie.CreateTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters(), options)
-	assert.Nil(t, err)
-	assert.Equal(t, "*trie.trieStorageManagerWithoutCheckpoints", fmt.Sprintf("%T", tsm))
 }
 
 func TestTrieFactory_CreateNormal(t *testing.T) {
@@ -94,9 +83,6 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 		ShouldTakeSnapshotCalled: func() bool {
 			return true
 		},
-		AddDirtyCheckpointHashesCalled: func(_ []byte, _ common.ModifiedHashes) bool {
-			return true
-		},
 		GetBaseTrieStorageManagerCalled: func() common.StorageManager {
 			tsm, _ = trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 			return tsm
@@ -122,30 +108,10 @@ func TestTrieStorageManager_SerialFuncShadowingCallsExpectedImpl(t *testing.T) {
 	assert.Equal(t, 2, putCalled)
 	assert.True(t, getCalled)
 
-	// NewTrieStorageManagerWithoutCheckpoints testing
-	tsm, err = trie.NewTrieStorageManagerWithoutCheckpoints(tsm)
-	assert.Nil(t, err)
-
-	testTsmWithoutPruning(t, tsm)
-
 	getCalled = false
 	testTsmWithoutSnapshot(t, tsm, returnedVal)
 	assert.Equal(t, 4, putCalled)
 	assert.True(t, getCalled)
-
-	iteratorChannels := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	tsm.SetCheckpoint(nil, nil, iteratorChannels, nil, &trieMock.MockStatistics{})
-
-	select {
-	case <-iteratorChannels.LeavesChan:
-	default:
-		assert.Fail(t, "unclosed channel")
-	}
-
-	assert.False(t, tsm.AddDirtyCheckpointHashes([]byte("hash"), make(map[string]struct{})))
 }
 
 func testTsmWithoutPruning(t *testing.T, tsm common.StorageManager) {

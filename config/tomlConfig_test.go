@@ -134,8 +134,6 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			CheckpointRoundsModulus:     37,
-			CheckpointsEnabled:          true,
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
@@ -232,8 +230,6 @@ func TestTomlParser(t *testing.T) {
         DoProfileOnShuffleOut = true
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 37
-    CheckpointsEnabled = true
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true

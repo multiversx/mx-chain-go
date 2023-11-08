@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -48,6 +49,7 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		disabled.NewStateStatistics(),
 	)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
@@ -79,6 +81,7 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		disabled.NewStateStatistics(),
 	)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
@@ -111,6 +114,7 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		disabled.NewStateStatistics(),
 	)
 
 	header := &block.MetaBlock{Nonce: 0}
@@ -152,6 +156,7 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		disabled.NewStateStatistics(),
 	)
 
 	hdr1 := &block.Header{Nonce: 1}
@@ -199,6 +204,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		disabled.NewStateStatistics(),
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -237,6 +243,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		nodeTypeProvider,
 		common.Normal,
 		managedPeersHolder,
+		disabled.NewStateStatistics(),
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -293,6 +300,7 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			nodeTypeProvider,
 			common.Normal,
 			managedPeersHolder,
+			disabled.NewStateStatistics(),
 		)
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{

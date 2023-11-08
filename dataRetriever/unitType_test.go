@@ -51,12 +51,8 @@ func TestUnitType_String(t *testing.T) {
 	require.Equal(t, "RoundHdrHashDataUnit", ut.String())
 	ut = UserAccountsUnit
 	require.Equal(t, "UserAccountsUnit", ut.String())
-	ut = UserAccountsCheckpointsUnit
-	require.Equal(t, "UserAccountsCheckpointsUnit", ut.String())
 	ut = PeerAccountsUnit
 	require.Equal(t, "PeerAccountsUnit", ut.String())
-	ut = PeerAccountsCheckpointsUnit
-	require.Equal(t, "PeerAccountsCheckpointsUnit", ut.String())
 	ut = ScheduledSCRsUnit
 	require.Equal(t, "ScheduledSCRsUnit", ut.String())
 	ut = EpochStartStaticUnit
