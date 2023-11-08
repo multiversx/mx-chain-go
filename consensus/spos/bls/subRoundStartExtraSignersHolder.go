@@ -47,9 +47,13 @@ func (holder *subRoundStartExtraSignersHolder) RegisterExtraSingingHandler(extra
 	log.Debug("holder.registerExtraSingingHandler", "identifier", id)
 
 	holder.mutExtraSigners.Lock()
-	holder.extraSigners[id] = extraSigner
-	holder.mutExtraSigners.Unlock()
+	defer holder.mutExtraSigners.Unlock()
 
+	if _, exists := holder.extraSigners[id]; exists {
+		return errors.ErrExtraSignerIdAlreadyExists
+	}
+
+	holder.extraSigners[id] = extraSigner
 	return nil
 }
 

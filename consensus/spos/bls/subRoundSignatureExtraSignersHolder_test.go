@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +17,7 @@ func TestSubRoundSignatureExtraSignersHolder_CreateExtraSignatureShares(t *testi
 	expectedHdr := &block.SovereignChainHeader{}
 	expectedSelfIndex := uint16(4)
 	expectedSelfPubKey := []byte("selfPubKey")
-	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerStub{
+	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
 		CreateSignatureShareCalled: func(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error) {
 			require.Equal(t, expectedHdr, header)
 			require.Equal(t, expectedSelfIndex, selfIndex)
@@ -28,7 +29,7 @@ func TestSubRoundSignatureExtraSignersHolder_CreateExtraSignatureShares(t *testi
 			return "id1"
 		},
 	}
-	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerStub{
+	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
 		CreateSignatureShareCalled: func(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error) {
 			require.Equal(t, expectedHdr, header)
 			require.Equal(t, expectedSelfIndex, selfIndex)
@@ -48,6 +49,8 @@ func TestSubRoundSignatureExtraSignersHolder_CreateExtraSignatureShares(t *testi
 	require.Nil(t, err)
 	err = holder.RegisterExtraSingingHandler(extraSigner2)
 	require.Nil(t, err)
+	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	require.Equal(t, errors.ErrExtraSignerIdAlreadyExists, err)
 
 	res, err := holder.CreateExtraSignatureShares(expectedHdr, expectedSelfIndex, expectedSelfPubKey)
 	require.Nil(t, err)
@@ -68,7 +71,7 @@ func TestSubRoundSignatureExtraSignersHolder_AddExtraSigSharesToConsensusMessage
 
 	wasAdded1 := false
 	wasAdded2 := false
-	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerStub{
+	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
 		AddSigShareToConsensusMessageCalled: func(sigShare []byte, cnsMsg *consensus.Message) {
 			require.Equal(t, []byte("sigShare1"), sigShare)
 			require.Equal(t, expectedCnsMsg, cnsMsg)
@@ -79,7 +82,7 @@ func TestSubRoundSignatureExtraSignersHolder_AddExtraSigSharesToConsensusMessage
 			return "id1"
 		},
 	}
-	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerStub{
+	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
 		AddSigShareToConsensusMessageCalled: func(sigShare []byte, cnsMsg *consensus.Message) {
 			require.Equal(t, []byte("sigShare2"), sigShare)
 			require.Equal(t, expectedCnsMsg, cnsMsg)
@@ -111,7 +114,7 @@ func TestSubRoundSignatureExtraSignersHolder_StoreExtraSignatureShare(t *testing
 
 	wasStored1 := false
 	wasStored2 := false
-	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerStub{
+	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
 		StoreSignatureShareCalled: func(index uint16, cnsMsg *consensus.Message) error {
 			require.Equal(t, expectedSelfIndex, index)
 			require.Equal(t, expectedCnsMsg, cnsMsg)
@@ -123,7 +126,7 @@ func TestSubRoundSignatureExtraSignersHolder_StoreExtraSignatureShare(t *testing
 			return "id1"
 		},
 	}
-	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerStub{
+	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
 		StoreSignatureShareCalled: func(index uint16, cnsMsg *consensus.Message) error {
 			require.Equal(t, expectedSelfIndex, index)
 			require.Equal(t, expectedCnsMsg, cnsMsg)
