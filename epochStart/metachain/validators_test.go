@@ -141,7 +141,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 				return flag == common.RefactorPeersMiniBlocksFlag
 			},
 		},
-		EpochStartStaticStorage: createMemUnit(),
+		EpochStartStaticStorage: testscommon.CreateMemUnit(),
 	}
 	return argsNewEpochEconomics
 }
