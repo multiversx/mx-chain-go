@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
@@ -14,6 +15,10 @@ type sovereignSubRoundSignatureOutGoingTxData struct {
 }
 
 func NewSovereignSubRoundEndOutGoingTxData(signingHandler consensus.SigningHandler) (*sovereignSubRoundSignatureOutGoingTxData, error) {
+	if check.IfNil(signingHandler) {
+		return nil, spos.ErrNilSigningHandler
+	}
+
 	return &sovereignSubRoundSignatureOutGoingTxData{
 		signingHandler: signingHandler,
 	}, nil
