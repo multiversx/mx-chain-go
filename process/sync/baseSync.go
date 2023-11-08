@@ -58,9 +58,10 @@ type baseBootstrap struct {
 	historyRepo dblookupext.HistoryRepository
 	headers     dataRetriever.HeadersPool
 
-	chainHandler   data.ChainHandler
-	blockProcessor process.BlockProcessor
-	store          dataRetriever.StorageService
+	chainHandler             data.ChainHandler
+	blockProcessor           process.BlockProcessor
+	blockProcessorWithRevert process.BlockProcessor
+	store                    dataRetriever.StorageService
 
 	roundHandler      consensus.RoundHandler
 	hasher            hashing.Hasher
@@ -646,6 +647,43 @@ func (boot *baseBootstrap) syncBlock() error {
 	waitTime := boot.processWaitTime
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
+	}
+
+	withRevertErr := func() error {
+		defer func() {
+			boot.blockProcessorWithRevert.RevertCurrentBlock()
+			log.Info("========================================ProcessBlockWithRevert - END ========================================")
+		}()
+		//if true {
+		//	return nil
+		//}
+
+		log.Info("========================================ProcessBlockWithRevert - START ========================================")
+		startProcessBlockTime := time.Now()
+		err = boot.blockProcessorWithRevert.ProcessBlock(header, body, haveTime)
+		elapsedTime := time.Since(startProcessBlockTime)
+		log.Debug("ProcessBlockWithRevert elapsed time to process block",
+			"time [s]", elapsedTime,
+		)
+		if err != nil {
+			return err
+		}
+
+		startProcessScheduledBlockTime := time.Now()
+		err = boot.blockProcessorWithRevert.ProcessScheduledBlock(header, body, haveTime)
+		elapsedTime = time.Since(startProcessScheduledBlockTime)
+		log.Debug("ProcessBlockWithRevert elapsed time to process scheduled block",
+			"time [s]", elapsedTime,
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
+	if withRevertErr != nil {
+		log.Debug("ProcessBlockWithRevert syncBlock.ProcessBlock", "error", withRevertErr.Error())
 	}
 
 	startProcessBlockTime := time.Now()

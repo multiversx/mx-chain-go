@@ -140,6 +140,11 @@ func (pcs *ProcessComponentsStub) BlockProcessor() process.BlockProcessor {
 	return pcs.BlockProcess
 }
 
+// BlockProcessorWithRevert -
+func (pcs *ProcessComponentsStub) BlockProcessorWithRevert() process.BlockProcessor {
+	return pcs.BlockProcess
+}
+
 // BlackListHandler -
 func (pcs *ProcessComponentsStub) BlackListHandler() process.TimeCacher {
 	return pcs.BlackListHdl

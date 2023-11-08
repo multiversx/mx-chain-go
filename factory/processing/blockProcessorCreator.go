@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -65,6 +66,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+	hardCodedToV15 bool,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -82,6 +84,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			receiptsRepository,
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
+			hardCodedToV15,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -121,6 +124,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+	hardCodedToV15 bool,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -143,15 +147,20 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
+	scStorage := pcf.config.SmartContractsStorage
+	if hardCodedToV15 {
+		scStorage.DB.FilePath = scStorage.DB.FilePath + "_v15"
+	}
 	vmFactory, err := pcf.createVMFactoryShard(
 		pcf.state.AccountsAdapter(),
 		missingTrieNodesNotifier,
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		wasmVMChangeLocker,
-		pcf.config.SmartContractsStorage,
+		scStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		hardCodedToV15,
 	)
 	if err != nil {
 		return nil, err
@@ -256,7 +265,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	var scProcessorProxy process.SmartContractProcessorFacade
+	if hardCodedToV15 {
+		scProcessorProxy, err = processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
+	} else {
+		scProcessorProxy, err = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -968,6 +982,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
+	hardCodedToV15 bool,
 ) (process.VirtualMachinesContainerFactory, error) {
 	counter, err := counters.NewUsageCounter(esdtTransferParser)
 	if err != nil {
@@ -1013,6 +1028,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              pcf.coreData.Hasher(),
+		HardCodedToVM15:     hardCodedToV15,
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)

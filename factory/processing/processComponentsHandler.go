@@ -310,6 +310,18 @@ func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
 	return m.processComponents.blockProcessor
 }
 
+// BlockProcessorWithRevert returns the block processor
+func (m *managedProcessComponents) BlockProcessorWithRevert() process.BlockProcessor {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.blockProcessorWithRevert
+}
+
 // BlackListHandler returns the black list handler
 func (m *managedProcessComponents) BlackListHandler() process.TimeCacher {
 	m.mutProcessComponents.RLock()

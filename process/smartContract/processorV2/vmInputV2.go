@@ -163,6 +163,9 @@ func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte,
 	}
 
 	noOfCallArguments := len(arguments) - noOfAsyncArguments
+	if noOfCallArguments < 0 {
+		log.Error("noOfCallArguments < 0")
+	}
 	asyncArguments := make([][]byte, noOfAsyncArguments)
 	callArguments := make([][]byte, noOfCallArguments)
 

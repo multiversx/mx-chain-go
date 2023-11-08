@@ -40,6 +40,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		receiptsRepository,
 		blockProcessingCutoff,
 		missingTrieNodesNotifier,
+		false,
 	)
 	if err != nil {
 		return nil, err

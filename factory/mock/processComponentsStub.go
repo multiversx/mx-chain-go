@@ -128,6 +128,11 @@ func (pcm *ProcessComponentsMock) BlockProcessor() process.BlockProcessor {
 	return pcm.BlockProcess
 }
 
+// BlockProcessorWithRevert -
+func (pcm *ProcessComponentsMock) BlockProcessorWithRevert() process.BlockProcessor {
+	return pcm.BlockProcess
+}
+
 // BlackListHandler -
 func (pcm *ProcessComponentsMock) BlackListHandler() process.TimeCacher {
 	return pcm.BlackListHdl
