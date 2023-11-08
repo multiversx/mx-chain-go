@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
@@ -79,6 +80,22 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		executeStoredMessages,
 		resetConsensusMessages,
 		&subRounds.SubRoundStartExtraSignersHolderMock{},
+	)
+
+	return srStartRound
+}
+
+func initSubroundStartRoundWithContainerAndSigners(container spos.ConsensusCoreHandler, extraSignersHolder bls.SubRoundStartExtraSignersHolder) bls.SubroundStartRound {
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubround(consensusState, ch, container)
+	srStartRound, _ := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		extraSignersHolder,
 	)
 
 	return srStartRound
@@ -427,6 +444,31 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
+}
+
+func TestSubroundStartRound_InitCurrentRoundShouldInitExtraSigners(t *testing.T) {
+	t.Parallel()
+
+	bootstrapperMock := &mock.BootstrapperStub{}
+	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
+		return common.NsSynchronized
+	}
+
+	container := mock.InitConsensusCore()
+	container.SetBootStrapper(bootstrapperMock)
+
+	wasResetCalled := false
+	extraSignersHolder := &subRounds.SubRoundStartExtraSignersHolderMock{
+		ResetCalled: func(pubKeys []string) error {
+			wasResetCalled = true
+			return nil
+		},
+	}
+
+	srStartRound := *initSubroundStartRoundWithContainerAndSigners(container, extraSignersHolder)
+	startedRound := srStartRound.InitCurrentRound()
+	require.True(t, startedRound)
+	require.True(t, wasResetCalled)
 }
 
 func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {

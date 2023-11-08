@@ -736,7 +736,7 @@ func TestSigningHandler_ShallowClone(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, expectedSigShare, sigShare)
 
-	err = clone.VerifySignatureShare(0, expectedSigShare, []byte("msg"), 0)
+	err = clone.VerifySignatureShare(0, expectedSigShare, expectedMsg, 0)
 	require.Nil(t, err)
 	require.True(t, verifySigCalled)
 }
