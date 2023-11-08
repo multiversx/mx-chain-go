@@ -48,13 +48,9 @@ const (
 	// PeerAccountsUnit is the peer accounts storage unit identifier
 	PeerAccountsUnit UnitType = 21
 	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
-<<<<<<< HEAD
-	ScheduledSCRsUnit UnitType = 24
-	// EpochStartStaticUnit is the epochstart metablocks storage unit identifier
-	EpochStartStaticUnit UnitType = 25
-=======
 	ScheduledSCRsUnit UnitType = 22
->>>>>>> rc/v1.7.0
+	// EpochStartStaticUnit is the epochstart metablocks storage unit identifier
+	EpochStartStaticUnit UnitType = 23
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100

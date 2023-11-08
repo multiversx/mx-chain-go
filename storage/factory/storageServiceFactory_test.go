@@ -29,27 +29,6 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 				NumEpochsToKeep:            4,
 				ObserverCleanOldEpochsData: true,
 			},
-<<<<<<< HEAD
-			ShardHdrNonceHashStorage:           createMockStorageConfig("ShardHdrNonceHashStorage"),
-			TxStorage:                          createMockStorageConfig("TxStorage"),
-			UnsignedTransactionStorage:         createMockStorageConfig("UnsignedTransactionStorage"),
-			RewardTxStorage:                    createMockStorageConfig("RewardTxStorage"),
-			ReceiptsStorage:                    createMockStorageConfig("ReceiptsStorage"),
-			ScheduledSCRsStorage:               createMockStorageConfig("ScheduledSCRsStorage"),
-			BootstrapStorage:                   createMockStorageConfig("BootstrapStorage"),
-			MiniBlocksStorage:                  createMockStorageConfig("MiniBlocksStorage"),
-			EpochStartStaticStorage:            createMockStorageConfig("EpochStartStaticStorage"),
-			MetaBlockStorage:                   createMockStorageConfig("MetaBlockStorage"),
-			MetaHdrNonceHashStorage:            createMockStorageConfig("MetaHdrNonceHashStorage"),
-			BlockHeaderStorage:                 createMockStorageConfig("BlockHeaderStorage"),
-			AccountsTrieStorage:                createMockStorageConfig("AccountsTrieStorage"),
-			AccountsTrieCheckpointsStorage:     createMockStorageConfig("AccountsTrieCheckpointsStorage"),
-			PeerAccountsTrieStorage:            createMockStorageConfig("PeerAccountsTrieStorage"),
-			PeerAccountsTrieCheckpointsStorage: createMockStorageConfig("PeerAccountsTrieCheckpointsStorage"),
-			StatusMetricsStorage:               createMockStorageConfig("StatusMetricsStorage"),
-			PeerBlockBodyStorage:               createMockStorageConfig("PeerBlockBodyStorage"),
-			TrieEpochRootHashStorage:           createMockStorageConfig("TrieEpochRootHashStorage"),
-=======
 			ShardHdrNonceHashStorage:   createMockStorageConfig("ShardHdrNonceHashStorage"),
 			TxStorage:                  createMockStorageConfig("TxStorage"),
 			UnsignedTransactionStorage: createMockStorageConfig("UnsignedTransactionStorage"),
@@ -58,6 +37,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			ScheduledSCRsStorage:       createMockStorageConfig("ScheduledSCRsStorage"),
 			BootstrapStorage:           createMockStorageConfig("BootstrapStorage"),
 			MiniBlocksStorage:          createMockStorageConfig("MiniBlocksStorage"),
+			EpochStartStaticStorage:    createMockStorageConfig("EpochStartStaticStorage"),
 			MetaBlockStorage:           createMockStorageConfig("MetaBlockStorage"),
 			MetaHdrNonceHashStorage:    createMockStorageConfig("MetaHdrNonceHashStorage"),
 			BlockHeaderStorage:         createMockStorageConfig("BlockHeaderStorage"),
@@ -66,7 +46,6 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			StatusMetricsStorage:       createMockStorageConfig("StatusMetricsStorage"),
 			PeerBlockBodyStorage:       createMockStorageConfig("PeerBlockBodyStorage"),
 			TrieEpochRootHashStorage:   createMockStorageConfig("TrieEpochRootHashStorage"),
->>>>>>> rc/v1.7.0
 			DbLookupExtensions: config.DbLookupExtensionsConfig{
 				Enabled:                            true,
 				DbLookupMaxActivePersisters:        10,
@@ -438,11 +417,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-<<<<<<< HEAD
-		expectedStorers := 26
-=======
-		expectedStorers := 23
->>>>>>> rc/v1.7.0
+		expectedStorers := 24
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -457,11 +432,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		numDBLookupExtensionUnits := 6
-<<<<<<< HEAD
-		expectedStorers := 26 - numDBLookupExtensionUnits
-=======
-		expectedStorers := 23 - numDBLookupExtensionUnits
->>>>>>> rc/v1.7.0
+		expectedStorers := 24 - numDBLookupExtensionUnits
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -475,11 +446,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-<<<<<<< HEAD
-		expectedStorers := 26 // we still have a storer for trie epoch root hash
-=======
-		expectedStorers := 23 // we still have a storer for trie epoch root hash
->>>>>>> rc/v1.7.0
+		expectedStorers := 24 // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -551,11 +518,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-<<<<<<< HEAD
-		expectedStorers := 26 - missingStorers + numShardHdrStorage
-=======
-		expectedStorers := 23 - missingStorers + numShardHdrStorage
->>>>>>> rc/v1.7.0
+		expectedStorers := 24 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
