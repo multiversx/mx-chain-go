@@ -12,6 +12,8 @@ import (
 
 const faultyChance = 1000000
 
+var randomizer = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 func shouldTestNode(n node, key []byte) bool {
 	hasher := n.getHasher()
 	randomness := string(key) + core.GetAnonymizedMachineID("") + fmt.Sprintf("%d", time.Now().UnixNano())
@@ -26,8 +28,7 @@ func shouldTestNode(n node, key []byte) bool {
 }
 
 func snapshotGetTestPoint(key []byte, faultyChance int) error {
-	rand.Seed(time.Now().UnixNano())
-	checkVal := rand.Intn(math.MaxInt)
+	checkVal := randomizer.Intn(math.MaxInt)
 	if checkVal%faultyChance == 0 {
 		log.Debug("deliberately not returning hash", "hash", key)
 		return fmt.Errorf("snapshot get error")
