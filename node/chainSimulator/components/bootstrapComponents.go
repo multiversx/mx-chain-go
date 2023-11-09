@@ -26,6 +26,7 @@ type ArgsBootstrapComponentsHolder struct {
 }
 
 type bootstrapComponentsHolder struct {
+	closeHandler            *closeHandler
 	epochStartBootstrapper  factory.EpochStartBootstrapper
 	epochBootstrapParams    factory.BootstrapParamsHolder
 	nodeType                core.NodeType
@@ -38,7 +39,9 @@ type bootstrapComponentsHolder struct {
 
 // CreateBootstrapComponentHolder will create a new instance of bootstrap components holder
 func CreateBootstrapComponentHolder(args ArgsBootstrapComponentsHolder) (factory.BootstrapComponentsHolder, error) {
-	instance := &bootstrapComponentsHolder{}
+	instance := &bootstrapComponentsHolder{
+		closeHandler: NewCloseHandler(),
+	}
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
 		Config:               args.Config,
@@ -75,6 +78,8 @@ func CreateBootstrapComponentHolder(args ArgsBootstrapComponentsHolder) (factory
 	instance.headerVersionHandler = managedBootstrapComponents.HeaderVersionHandler()
 	instance.headerIntegrityVerifier = managedBootstrapComponents.HeaderIntegrityVerifier()
 	instance.guardedAccountHandler = managedBootstrapComponents.GuardedAccountHandler()
+
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -117,6 +122,15 @@ func (b *bootstrapComponentsHolder) HeaderIntegrityVerifier() nodeFactory.Header
 // GuardedAccountHandler will return guarded account handler
 func (b *bootstrapComponentsHolder) GuardedAccountHandler() process.GuardedAccountHandler {
 	return b.guardedAccountHandler
+}
+
+func (b *bootstrapComponentsHolder) collectClosableComponents() {
+	b.closeHandler.AddComponent(b.epochStartBootstrapper)
+}
+
+// Close will call the Close methods on all inner components
+func (b *bootstrapComponentsHolder) Close() error {
+	return b.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

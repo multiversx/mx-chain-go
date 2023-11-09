@@ -23,6 +23,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
+var oneEgld = big.NewInt(1000000000000000000)
+var initialStakedEgldPerNode = big.NewInt(0).Mul(oneEgld, big.NewInt(2500))
+var initialSupply = big.NewInt(0).Mul(oneEgld, big.NewInt(20000000)) // 20 million EGLD
 const (
 	// ChainID contains the chain id
 	ChainID = "chain"
@@ -75,19 +78,20 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	// update genesis.json
 	addresses := make([]data.InitialAccount, 0)
-	// 10_000 egld
-	bigValue, _ := big.NewInt(0).SetString("10000000000000000000000", 0)
+	stakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
+	stakedValue = stakedValue.Mul(stakedValue, big.NewInt(int64(len(privateKeys)))) // 2500 EGLD * number of nodes
 	addresses = append(addresses, data.InitialAccount{
 		Address:      args.GenesisAddressWithStake,
-		StakingValue: bigValue,
-		Supply:       bigValue,
+		StakingValue: stakedValue,
+		Supply:       stakedValue,
 	})
 
-	bigValueAddr, _ := big.NewInt(0).SetString("19990000000000000000000000", 10)
+	initialBalance := big.NewInt(0).Set(initialSupply)
+	initialBalance = initialBalance.Sub(initialBalance, stakedValue)
 	addresses = append(addresses, data.InitialAccount{
 		Address: args.GenesisAddressWithBalance,
-		Balance: bigValueAddr,
-		Supply:  bigValueAddr,
+		Balance: initialBalance,
+		Supply:  initialBalance,
 	})
 
 	addressesBytes, errM := json.Marshal(addresses)
@@ -115,6 +119,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorage.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
+
+	// set compatible trie configs
+	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
 
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true

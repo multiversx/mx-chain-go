@@ -13,6 +13,7 @@ import (
 )
 
 type statusComponentsHolder struct {
+	closeHandler           *closeHandler
 	outportHandler         outport.OutportHandler
 	softwareVersionChecker statistics.SoftwareVersionChecker
 	managedPeerMonitor     common.ManagedPeersMonitor
@@ -21,7 +22,9 @@ type statusComponentsHolder struct {
 // CreateStatusComponentsHolder will create a new instance of status components holder
 func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHolder, error) {
 	var err error
-	instance := &statusComponentsHolder{}
+	instance := &statusComponentsHolder{
+		closeHandler: NewCloseHandler(),
+	}
 
 	// TODO add drivers to index data
 	instance.outportHandler, err = outport.NewOutport(100*time.Millisecond, outportCfg.OutportConfig{
@@ -32,6 +35,8 @@ func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHolde
 	}
 	instance.softwareVersionChecker = &mock.SoftwareVersionCheckerMock{}
 	instance.managedPeerMonitor = &testscommon.ManagedPeersMonitorStub{}
+
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -49,6 +54,16 @@ func (s *statusComponentsHolder) SoftwareVersionChecker() statistics.SoftwareVer
 // ManagedPeersMonitor will return the managed peers monitor
 func (s *statusComponentsHolder) ManagedPeersMonitor() common.ManagedPeersMonitor {
 	return s.managedPeerMonitor
+}
+
+func (s *statusComponentsHolder) collectClosableComponents() {
+	s.closeHandler.AddComponent(s.outportHandler)
+	s.closeHandler.AddComponent(s.softwareVersionChecker)
+}
+
+// Close will call the Close methods on all inner components
+func (s *statusComponentsHolder) Close() error {
+	return s.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

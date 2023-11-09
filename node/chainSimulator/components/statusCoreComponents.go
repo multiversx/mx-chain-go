@@ -14,6 +14,7 @@ import (
 )
 
 type statusCoreComponentsHolder struct {
+	closeHandler               *closeHandler
 	resourceMonitor            factory.ResourceMonitor
 	networkStatisticsProvider  factory.NetworkStatisticsProvider
 	trieSyncStatisticsProvider factory.TrieSyncStatisticsProvider
@@ -26,6 +27,7 @@ type statusCoreComponentsHolder struct {
 func CreateStatusCoreComponentsHolder(cfg config.Config, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHolder, error) {
 	var err error
 	instance := &statusCoreComponentsHolder{
+		closeHandler:               NewCloseHandler(),
 		networkStatisticsProvider:  machine.NewNetStatistics(),
 		trieSyncStatisticsProvider: statisticsTrie.NewTrieSyncStatistics(),
 		statusHandler:              presenter.NewPresenterStatusHandler(),
@@ -40,6 +42,8 @@ func CreateStatusCoreComponentsHolder(cfg config.Config, coreComponents factory.
 	if err != nil {
 		return nil, err
 	}
+
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -72,6 +76,18 @@ func (s *statusCoreComponentsHolder) StatusMetrics() external.StatusMetricsHandl
 // PersistentStatusHandler will return the persistent status handler
 func (s *statusCoreComponentsHolder) PersistentStatusHandler() factory.PersistentStatusHandler {
 	return s.persistentStatusHandler
+}
+
+func (s *statusCoreComponentsHolder) collectClosableComponents() {
+	s.closeHandler.AddComponent(s.resourceMonitor)
+	s.closeHandler.AddComponent(s.networkStatisticsProvider)
+	s.closeHandler.AddComponent(s.statusHandler)
+	s.closeHandler.AddComponent(s.persistentStatusHandler)
+}
+
+// Close will call the Close methods on all inner components
+func (s *statusCoreComponentsHolder) Close() error {
+	return s.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

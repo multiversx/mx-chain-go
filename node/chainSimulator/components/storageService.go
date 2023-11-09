@@ -20,9 +20,9 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.TxLogsUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.UserAccountsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UserAccountsUnit, CreateMemUnitForTries())
 	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.PeerAccountsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.PeerAccountsUnit, CreateMemUnitForTries())
 	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ESDTSuppliesUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RoundHdrHashDataUnit, CreateMemUnit())
@@ -30,7 +30,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.MiniblockHashByTxHashUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.EpochByHashUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ResultsHashesByTxHashUnit, CreateMemUnit())
-	// TODO add the rest of units
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
