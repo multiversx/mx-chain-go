@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -158,7 +159,7 @@ func createScAccount(address []byte, leaves [][]byte, rootHash []byte, timeSleep
 					go func() {
 						time.Sleep(timeSleep)
 						for _, leafBuff := range leaves {
-							leaf := keyValStorage.NewKeyValStorage(leafBuff, nil)
+							leaf := keyValStorage.NewKeyValStorage(leafBuff, nil, core.NotSpecified)
 							leavesChannels.LeavesChan <- leaf
 						}
 

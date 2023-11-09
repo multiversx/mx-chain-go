@@ -9,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -833,8 +834,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 				addrOk, _ := addrPubKeyConv.Decode("erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4")
 				addrNOK, _ := addrPubKeyConv.Decode("erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp")
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(addrOk, []byte("value")) // coverage
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(addrNOK, []byte("value"))
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(addrOk, []byte("value"), core.NotSpecified) // coverage
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(addrNOK, []byte("value"), core.NotSpecified)
 				close(leavesChannels.LeavesChan)
 				leavesChannels.ErrChan.Close()
 				return nil
@@ -925,7 +926,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args.State = &factoryMocks.StateComponentsMock{
 			Accounts: &testState.AccountsStub{
 				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
-					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("invalid addr"), []byte("value"))
+					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("invalid addr"), []byte("value"), core.NotSpecified)
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
 					return nil

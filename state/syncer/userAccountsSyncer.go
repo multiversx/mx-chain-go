@@ -311,7 +311,6 @@ func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup
 			if ok {
 				code, ok := codeData.([]byte)
 				if !ok {
-					log.Error(errors.ErrWrongTypeAssertion.Error())
 					errChan.WriteInChanNonBlocking(errors.ErrWrongTypeAssertion)
 					break
 				}
@@ -325,6 +324,7 @@ func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup
 			}
 
 			u.requestHandler.RequestTrieNodes(u.shardId, [][]byte{codeHash}, factory.AccountTrieNodesTopic)
+
 			log.Debug("requested trie node", "codeHash", codeHash)
 
 			select {

@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-go/common"
@@ -146,7 +147,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"))
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("not a token key"), []byte("not a token value"), core.NotSpecified)
 
 				close(leavesChannels.LeavesChan)
 				return nil
@@ -178,7 +179,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 				tknKey := []byte("ELRONDesdtTKN-00aacc")
 				value := append(esBytes, tknKey...)
 				value = append(value, []byte("addr")...)
-				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, value)
+				leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage(tknKey, value, core.NotSpecified)
 
 				close(leavesChannels.LeavesChan)
 				return nil

@@ -3,6 +3,7 @@ package syncer_test
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -173,23 +174,23 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 
 		args := getDefaultUserAccountsSyncerArgs()
 
-		numCalls := 0
+		numCalls := uint32(0)
 		args.Cacher = &testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				if numCalls == 3 {
+				if atomic.LoadUint32(&numCalls) == 1 {
 					return codeData, true
 				}
 
-				numCalls++
+				atomic.AddUint32(&numCalls, 1)
 
 				return nil, false
 			},
 		}
 
-		requestWasCalled := false
+		requestWasCalled := uint32(0)
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
-				requestWasCalled = true
+				atomic.AddUint32(&requestWasCalled, 1)
 			},
 		}
 
@@ -229,7 +230,8 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 
 		err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 		require.Nil(t, err)
-		require.True(t, requestWasCalled)
+
+		require.GreaterOrEqual(t, atomic.LoadUint32(&requestWasCalled), uint32(1))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -242,23 +244,23 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 
 		args := getDefaultUserAccountsSyncerArgs()
 
-		numCalls := 0
+		numCalls := uint32(0)
 		args.Cacher = &testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				if numCalls == 1 {
+				if atomic.LoadUint32(&numCalls) == 1 {
 					return codeData, true
 				}
 
-				numCalls++
+				atomic.AddUint32(&numCalls, 1)
 
 				return nil, false
 			},
 		}
 
-		requestWasCalled := false
+		requestWasCalled := uint32(0)
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
-				requestWasCalled = true
+				atomic.AddUint32(&requestWasCalled, 1)
 			},
 		}
 
@@ -296,7 +298,7 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 		err = s.SyncAccountDataTries(leavesChannels, ctx)
 		require.Nil(t, err)
 
-		require.True(t, requestWasCalled)
+		require.GreaterOrEqual(t, atomic.LoadUint32(&requestWasCalled), uint32(1))
 	})
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
@@ -126,7 +127,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: []byte("rootHash"),
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},
@@ -153,8 +154,8 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: []byte("rootHash"),
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("non-addr"), []byte("not an account"))
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("non-addr"), []byte("not an account"), core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},
@@ -181,7 +182,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: nil,
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},
@@ -208,7 +209,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: []byte("root"),
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},
@@ -235,7 +236,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: []byte("rootHash"),
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},
@@ -268,7 +269,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: []byte("rootHash"),
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},
@@ -304,7 +305,7 @@ func TestTrieAccountsIterator_Process(t *testing.T) {
 					RootHash: []byte("rootHash"),
 				}
 				userAccBytes, _ := args.Marshaller.Marshal(userAcc)
-				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes)
+				iter.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("addr"), userAccBytes, core.NotSpecified)
 				close(iter.LeavesChan)
 				return nil
 			},

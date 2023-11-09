@@ -1,5 +1,7 @@
 package mock
 
+import "sync"
+
 // ThrottlerStub -
 type ThrottlerStub struct {
 	CanProcessCalled      func() bool
@@ -7,6 +9,7 @@ type ThrottlerStub struct {
 	EndProcessingCalled   func()
 	StartWasCalled        bool
 	EndWasCalled          bool
+	mutex                 sync.RWMutex
 }
 
 // CanProcess -
@@ -20,6 +23,9 @@ func (ts *ThrottlerStub) CanProcess() bool {
 
 // StartProcessing -
 func (ts *ThrottlerStub) StartProcessing() {
+	ts.mutex.Lock()
+	defer ts.mutex.Unlock()
+
 	ts.StartWasCalled = true
 	if ts.StartProcessingCalled != nil {
 		ts.StartProcessingCalled()
@@ -28,6 +34,9 @@ func (ts *ThrottlerStub) StartProcessing() {
 
 // EndProcessing -
 func (ts *ThrottlerStub) EndProcessing() {
+	ts.mutex.Lock()
+	defer ts.mutex.Unlock()
+
 	ts.EndWasCalled = true
 	if ts.EndProcessingCalled != nil {
 		ts.EndProcessingCalled()

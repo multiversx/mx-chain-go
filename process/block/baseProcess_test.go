@@ -2069,7 +2069,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 					}
 
 					go func() {
-						channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"))
+						channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("address"), []byte("bytes"), core.NotSpecified)
 						close(channels.LeavesChan)
 						channels.ErrChan.Close()
 					}()

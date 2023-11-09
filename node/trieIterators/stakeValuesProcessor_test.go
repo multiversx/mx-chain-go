@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/common"
@@ -293,22 +294,22 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 		},
 		GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 			go func() {
-				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...))
+				leaf1 := keyValStorage.NewKeyValStorage(rootHash, append(marshalledData, suffix...), core.NotSpecified)
 				channels.LeavesChan <- leaf1
 
-				leaf2 := keyValStorage.NewKeyValStorage([]byte(leafKey2), nil)
+				leaf2 := keyValStorage.NewKeyValStorage([]byte(leafKey2), nil, core.NotSpecified)
 				channels.LeavesChan <- leaf2
 
-				leaf3 := keyValStorage.NewKeyValStorage([]byte(leafKey3), nil)
+				leaf3 := keyValStorage.NewKeyValStorage([]byte(leafKey3), nil, core.NotSpecified)
 				channels.LeavesChan <- leaf3
 
-				leaf4 := keyValStorage.NewKeyValStorage([]byte(leafKey4), nil)
+				leaf4 := keyValStorage.NewKeyValStorage([]byte(leafKey4), nil, core.NotSpecified)
 				channels.LeavesChan <- leaf4
 
-				leaf5 := keyValStorage.NewKeyValStorage([]byte(leafKey5), nil)
+				leaf5 := keyValStorage.NewKeyValStorage([]byte(leafKey5), nil, core.NotSpecified)
 				channels.LeavesChan <- leaf5
 
-				leaf6 := keyValStorage.NewKeyValStorage([]byte(leafKey6), nil)
+				leaf6 := keyValStorage.NewKeyValStorage([]byte(leafKey6), nil, core.NotSpecified)
 				channels.LeavesChan <- leaf6
 
 				close(channels.LeavesChan)
