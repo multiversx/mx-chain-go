@@ -67,6 +67,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	accountAfterRewards, err := facade.GetExistingAccountFromBech32AddressString(testdata.GenesisAddressWithStake)
+	require.Nil(t, err)
 
 	assert.True(t, accountAfterRewards.GetBalance().Cmp(initialAccount.GetBalance()) > 0,
 		fmt.Sprintf("initial balance %s, balance after rewards %s", initialAccount.GetBalance().String(), accountAfterRewards.GetBalance().String()))
