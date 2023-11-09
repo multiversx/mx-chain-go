@@ -2237,13 +2237,16 @@ func (e *esdt) updateTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		}
 	}
 
+	// TODO allow this to be called only once
+	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+
 	return vmcommon.Ok
 }
 
 func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ESDTDataV2, vmcommon.ReturnCode) {
 	if !e.enableEpochsHandler.DynamicESDTEnabled() {
 		e.eei.AddReturnMessage("invalid method to call")
-		return nil, nil, vmcommon.UserError
+		return nil, nil, vmcommon.FunctionNotFound
 	}
 	returnCode := e.checkBasicCreateArguments(args)
 	if returnCode != vmcommon.Ok {
@@ -2264,6 +2267,11 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 	numOfDecimals := uint32(0)
 	if isWithDecimals {
 		propertiesStart++
+		if len(args.Arguments) < propertiesStart {
+			e.eei.AddReturnMessage("not enough arguments")
+			return nil, nil, vmcommon.UserError
+		}
+
 		numOfDecimals = uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
 		if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
 			e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
@@ -2360,7 +2368,7 @@ func (e *esdt) checkRolesAreCompatibleToChangeToDynamic(token *ESDTDataV2) error
 func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.enableEpochsHandler.DynamicESDTEnabled() {
 		e.eei.AddReturnMessage("invalid method to call")
-		return vmcommon.UserError
+		return vmcommon.FunctionNotFound
 	}
 
 	token, returnCode := e.basicOwnershipChecks(args)
