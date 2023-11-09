@@ -1,25 +1,23 @@
 <div style="text-align:center">
   <img
-  src="https://raw.githubusercontent.com/ElrondNetwork/elrond-go/master/elrond_logo_01.svg"
-  alt="Elrond Network">
+  src="https://raw.githubusercontent.com/multiversx/mx-chain-go/master/multiversx-logo.svg"
+  alt="MultiversX">
 </div>
 <br>
 
-[![](https://img.shields.io/badge/made%20by-Elrond%20Network-blue.svg)](http://elrond.com/)
-[![](https://img.shields.io/badge/project-Elrond%20Network%20Mainnet-blue.svg)](https://explorer.elrond.com/)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ElrondNetwork/elrond-go)](https://goreportcard.com/report/github.com/ElrondNetwork/elrond-go)
-[![LoC](https://tokei.rs/b1/github/ElrondNetwork/elrond-go?category=code)](https://github.com/ElrondNetwork/elrond-go)
-[![API Reference](https://godoc.org/github.com/ElrondNetwork/elrond-go?status.svg)](https://godoc.org/github.com/ElrondNetwork/elrond-go)
-[![codecov](https://codecov.io/gh/ElrondNetwork/elrond-go/branch/master/graph/badge.svg?token=MYS5EDASOJ)](https://codecov.io/gh/ElrondNetwork/elrond-go)
+[![](https://img.shields.io/badge/made%20by-MultiversX-blue.svg)](http://multiversx.com/)
+[![](https://img.shields.io/badge/project-MultiversX%20Mainnet-blue.svg)](https://explorer.multiversx.com/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/multiversx/mx-chain-go)](https://goreportcard.com/report/github.com/multiversx/mx-chain-go)
+[![codecov](https://codecov.io/gh/multiversx/mx-chain-go/branch/master/graph/badge.svg?token=MYS5EDASOJ)](https://codecov.io/gh/multiversx/mx-chain-go)
+[![Contributors](https://img.shields.io/github/contributors/multiversx/mx-chain-go)](https://github.com/multiversx/mx-chain-go/graphs/contributors)
 
-# Elrond go
+# mx-chain-go
 
-The go implementation for the Elrond Network protocol
+The go implementation for the MultiversX protocol
 
 ## Installation and running
 
-In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below. 
-Alternatively, in order to use the Docker Image, jump to [Using the Docker Image](#using-the-docker-image).
+In order to join the network as an observer or as a validator, the required steps to **build from source and setup explicitly** are explained below.
 
 ### Step 1: install & configure go:
 The installation of go should proceed as shown in official golang installation guide https://golang.org/doc/install . In order to run the node, minimum golang version should be 1.17.6.
@@ -30,26 +28,26 @@ The main branch that will be used is the master branch. Alternatively, an older 
 ```
 # set $GOPATH if not set and export to ~/.profile along with Go binary path
 $ if [[ $GOPATH=="" ]]; then GOPATH="$HOME/go" fi
-$ mkdir -p $GOPATH/src/github.com/ElrondNetwork
-$ cd $GOPATH/src/github.com/ElrondNetwork
-$ git clone https://github.com/ElrondNetwork/elrond-go
-$ cd elrond-go && git checkout master
+$ mkdir -p $GOPATH/src/github.com/multiversx
+$ cd $GOPATH/src/github.com/multiversx
+$ git clone https://github.com/multiversx/mx-chain-go
+$ cd mx-chain-go && git checkout master
 $ cd cmd/node && go build
 ```
-The node depends on the Arwen Virtual Machine, which is automatically managed by the node.
+The node depends on the Wasm Virtual Machine, which is automatically managed by the node.
 
 ### Step 3: creating the node’s identity:
-In order to be registered in the Elrond Network, a node must possess 2 types of (secret key, public key) pairs. One is used to identify the node’s credential used to generate transactions (having the sender field its account address) and the other is used in the process of the block signing. Please note that this is a preliminary mechanism, in the next releases the first (private, public key) pair will be dropped when the staking mechanism will be fully implemented. To build and run the keygenerator, the following commands will need to be run:
+In order to be registered in the MultiversX Network, a node must possess 2 types of (secret key, public key) pairs. One is used to identify the node’s credential used to generate transactions (having the sender field its account address) and the other is used in the process of the block signing. Please note that this is a preliminary mechanism, in the next releases the first (private, public key) pair will be dropped when the staking mechanism will be fully implemented. To build and run the keygenerator, the following commands will need to be run:
 
 ```
-$ cd $GOPATH/src/github.com/ElrondNetwork/elrond-go/cmd/keygenerator
+$ cd $GOPATH/src/github.com/multiversx/mx-chain-go/cmd/keygenerator
 $ go build
 $ ./keygenerator
 ```
 
 ### Start the node 
-#### Step 4a: Join Elrond testnet:
-Follow the steps outlined [here](https://docs.elrond.com/validators/testnet/config-scripts/). This is because in order to join the testnet you need a specific node configuration.
+#### Step 4a: Join MultiversX testnet:
+Follow the steps outlined [here](https://docs.multiversx.com/validators/nodes-scripts/config-scripts/). This is because in order to join the testnet you need a specific node configuration.
 ______
 OR
 ______
@@ -75,7 +73,7 @@ $ go test ./...
 `sudo cp -r google /usr/include`
 3. Copy bin/protoc using <br>
 `sudo cp protoc  /usr/bin` 
-4. Fetch the repo github.com/ElrondNetwork/protobuf
+4. Fetch the repo github.com/multiversx/protobuf
 5. Compile gogo slick & copy binary using
 ```
 cd protoc-gen-gogoslick
@@ -84,22 +82,6 @@ sudo cp protoc-gen-gogoslick /usr/bin/
 ```
 
 Done
-
-## Using the Docker Image
-
-The following command runs a Node using the **latest** [Docker image](https://hub.docker.com/r/elrondnetwork/elrond-go-node) and maps a container folder to a local one that holds the necessary configuration:
-
-```
-docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:latest \
- --nodes-setup-file="/data/nodesSetup.json" \
- --p2p-config="/data/config/p2p.toml" \
- --validator-key-pem-file="/data/keys/validatorKey.pem"
- ```
-
- In the snippet above, make sure you adjust the path to a valid configuration folder and also provide the appropriate command line arguments to the Node. For more details go to [Node CLI](https://docs.elrond.com/validators/node-cli).
-
- In order to run a container using the latest **development** version instead, use the image **`elrondnetwork/elrond-go-node:devlatest`**. Furthermore, in order to use a specific release or tagged branch, use the image **`elrondnetwork/elrond-go-node:<tag>`**.
-
 
 ## Progress
 
@@ -191,9 +173,9 @@ docker run -d -v /absolute/path/to/config/:/data/ elrondnetwork/elrond-go-node:l
 
 
 ## Contribution
-Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes to Elrond!
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes to MultiversX!
 
-If you'd like to contribute to Elrond, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. If you wish to submit more complex changes though, please check up with the core developers first here on GitHub, to ensure those changes are in line with the general philosophy of the project and/or get some early feedback which can make both your efforts much lighter as well as our review and merge procedures quick and simple.
+If you'd like to contribute to MultiversX, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base. If you wish to submit more complex changes though, please check up with the core developers first here on GitHub, to ensure those changes are in line with the general philosophy of the project and/or get some early feedback which can make both your efforts much lighter as well as our review and merge procedures quick and simple.
 
 Please make sure your contributions adhere to our coding guidelines:
 
@@ -201,7 +183,7 @@ Please make sure your contributions adhere to our coding guidelines:
  - Code must be documented adhering to the official Go [commentary](https://golang.org/doc/effective_go.html#commentary) guidelines.
  - Pull requests need to be based on and opened against the master branch.
  - Commit messages should be prefixed with the package(s) they modify.
-    - E.g. "core/indexer: fixed a typo"
+    - E.g. "outport/process: fixed a typo"
 
-Please see the [documentation](https://docs.elrond.com/) for more details on the Elrond project.
+Please see the [documentation](https://docs.multiversx.com/) for more details on the MultiversX protocol.
 

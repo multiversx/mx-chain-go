@@ -3,6 +3,7 @@ package processor
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -10,12 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	mxAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
@@ -27,7 +30,7 @@ func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationReq
 		Epoch:                   0,
 		MinPeersThreshold:       0.8,
 		DelayBetweenRequests:    time.Second,
-		MaxTimeout:              5 * time.Second,
+		MaxTimeoutForRequests:   5 * time.Second,
 		MaxMissingKeysInRequest: 10,
 		Randomizer:              &random.ConcurrentSafeIntRandomizer{},
 	}
@@ -107,7 +110,7 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "DelayBetweenRequests"))
 		assert.True(t, check.IfNil(processor))
 	})
-	t.Run("invalid max timeout should error", func(t *testing.T) {
+	t.Run("invalid max missing keys should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerAuthenticationRequestsProcessor()
@@ -118,15 +121,15 @@ func TestNewPeerAuthenticationRequestsProcessor(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "MaxMissingKeysInRequest"))
 		assert.True(t, check.IfNil(processor))
 	})
-	t.Run("invalid max missing keys should error", func(t *testing.T) {
+	t.Run("invalid max timeout for requests should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerAuthenticationRequestsProcessor()
-		args.MaxTimeout = time.Second - time.Nanosecond
+		args.MaxTimeoutForRequests = time.Second - time.Nanosecond
 
 		processor, err := NewPeerAuthenticationRequestsProcessor(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
-		assert.True(t, strings.Contains(err.Error(), "MaxTimeout"))
+		assert.True(t, strings.Contains(err.Error(), "MaxTimeoutForRequests"))
 		assert.True(t, check.IfNil(processor))
 	})
 	t.Run("nil randomizer should error", func(t *testing.T) {
@@ -252,7 +255,7 @@ func TestPeerAuthenticationRequestsProcessor_isThresholdReached(t *testing.T) {
 		},
 	}
 
-	processor, err := NewPeerAuthenticationRequestsProcessor(args)
+	processor, err := NewPeerAuthenticationRequestsProcessorWithoutGoRoutine(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
 
@@ -276,7 +279,7 @@ func TestPeerAuthenticationRequestsProcessor_requestMissingKeys(t *testing.T) {
 			},
 		}
 
-		processor, err := NewPeerAuthenticationRequestsProcessor(args)
+		processor, err := NewPeerAuthenticationRequestsProcessorWithoutGoRoutine(args)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(processor))
 
@@ -293,7 +296,7 @@ func TestPeerAuthenticationRequestsProcessor_getRandMaxMissingKeys(t *testing.T)
 
 	args := createMockArgPeerAuthenticationRequestsProcessor()
 	args.MaxMissingKeysInRequest = 3
-	processor, err := NewPeerAuthenticationRequestsProcessor(args)
+	processor, err := NewPeerAuthenticationRequestsProcessorWithoutGoRoutine(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(processor))
 
@@ -306,4 +309,59 @@ func TestPeerAuthenticationRequestsProcessor_getRandMaxMissingKeys(t *testing.T)
 			assert.NotEqual(t, randMissingKeys[j], randMissingKeys[j+1])
 		}
 	}
+}
+
+func TestPeerAuthenticationRequestsProcessor_goRoutineIsWorkingAndCloseShouldStopIt(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgPeerAuthenticationRequestsProcessor()
+	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
+			return map[uint32][][]byte{
+				0: {[]byte("pk0")},
+			}, nil
+		},
+	}
+	keysCalled := &mxAtomic.Flag{}
+	args.PeerAuthenticationPool = &testscommon.CacherStub{
+		KeysCalled: func() [][]byte {
+			keysCalled.SetValue(true)
+			return make([][]byte, 0)
+		},
+	}
+
+	processor, _ := NewPeerAuthenticationRequestsProcessor(args)
+	time.Sleep(args.DelayBetweenRequests*2 + time.Millisecond*300) // wait for the go routine to start and execute at least once
+	assert.True(t, keysCalled.IsSet())
+
+	err := processor.Close()
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second) // wait for the go routine to stop
+	keysCalled.SetValue(false)
+
+	time.Sleep(args.DelayBetweenRequests*2 + time.Millisecond*300) // if the go routine did not stop it will set again the flag
+	assert.False(t, keysCalled.IsSet())
+}
+
+func TestPeerAuthenticationRequestsProcessor_CloseCalledTwiceShouldNotPanicNorError(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			require.Fail(t, fmt.Sprintf("should have not panicked: %v", r))
+		}
+	}()
+
+	args := createMockArgPeerAuthenticationRequestsProcessor()
+	processor, _ := NewPeerAuthenticationRequestsProcessor(args)
+
+	time.Sleep(args.DelayBetweenRequests*2 + time.Millisecond*300) // wait for the go routine to start and execute at least once
+
+	err := processor.Close()
+	assert.Nil(t, err)
+
+	err = processor.Close()
+	assert.Nil(t, err)
 }

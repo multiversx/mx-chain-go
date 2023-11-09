@@ -3,20 +3,20 @@ package preprocess
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/sliceUtil"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/sliceUtil"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.DataMarshalizer = (*smartContractResults)(nil)
@@ -49,6 +49,7 @@ func NewSmartContractResultPreprocessor(
 	balanceComputation BalanceComputationHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -96,6 +97,9 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -111,6 +115,7 @@ func NewSmartContractResultPreprocessor(
 		pubkeyConverter:            pubkeyConverter,
 		enableEpochsHandler:        enableEpochsHandler,
 		processedMiniBlocksTracker: processedMiniBlocksTracker,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	scr := &smartContractResults{
@@ -329,9 +334,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 			}
 
-			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			err = scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			if err != nil {
+				return err
+			}
 
-			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
+			scr.txExecutionOrderHandler.Add(txHash)
+			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
 			}
@@ -458,7 +467,7 @@ func (scr *smartContractResults) computeMissingScrsHashesForMiniBlock(miniBlock 
 			miniBlock.ReceiverShardID,
 			txHash,
 			scr.scrPool,
-			false)
+			process.SearchMethodPeekWithFallbackSearchFirst)
 
 		if check.IfNil(tx) {
 			missingSmartContractResultsHashes = append(missingSmartContractResultsHashes, txHash)
@@ -490,7 +499,14 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 
 		tmp, _ := txCache.Peek(txHash)
 		if tmp == nil {
-			return nil, nil, process.ErrNilSmartContractResult
+			tmp, _ = scr.scrPool.SearchFirstData(txHash)
+			if tmp == nil {
+				return nil, nil, process.ErrNilSmartContractResult
+			}
+
+			log.Debug("scr hash not found with Peek method but found with SearchFirstData",
+				"scr hash", txHash,
+				"strCache", strCache)
 		}
 
 		tx, ok := tmp.(*smartContractResult.SmartContractResult)
@@ -604,9 +620,14 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			}
 		}
 
-		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
+		err = scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+
+		scr.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
 			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])

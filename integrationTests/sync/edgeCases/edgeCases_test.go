@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,12 +89,12 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	for _, n := range nodes {
 		for _, sn := range syncNodesSlice {
-			_ = sn.ConnectTo(n)
+			_ = sn.ConnectOnMain(n)
 		}
 	}
 	integrationTests.BootstrapDelay()
 
-	require.True(t, len(syncMetaNode.Messenger.ConnectedPeers()) > 1, "not enough peers connected to this node."+
+	require.True(t, len(syncMetaNode.MainMessenger.ConnectedPeers()) > 1, "not enough peers connected to this node."+
 		" Check that the peer discovery mechanism works properly.")
 
 	integrationTests.StartSyncingBlocks(syncNodesSlice)

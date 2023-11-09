@@ -1,8 +1,8 @@
 package esdtSupply
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const (

@@ -1,11 +1,11 @@
 package node
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ import (
 func TestMemoryConfig(t *testing.T) {
 	nodeConfig := config.Config{}
 
-	tomlBytes, err := ioutil.ReadFile("../cmd/node/config/config.toml")
+	tomlBytes, err := os.ReadFile("../cmd/node/config/config.toml")
 	require.Nil(t, err)
 	err = toml.Unmarshal(tomlBytes, &nodeConfig)
 	require.Nil(t, err)

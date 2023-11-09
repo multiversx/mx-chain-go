@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/chronology"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/chronology"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 

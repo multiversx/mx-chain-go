@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // MiniBlockProvider defines what a miniblock data provider should do
@@ -52,8 +52,9 @@ func (dcm *DataComponentsMock) MiniBlocksProvider() MiniBlockProvider {
 }
 
 // SetBlockchain -
-func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) {
+func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) error {
 	dcm.Blkc = chain
+	return nil
 }
 
 // IsInterfaceNil -

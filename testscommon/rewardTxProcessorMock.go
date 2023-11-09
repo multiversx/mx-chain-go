@@ -1,7 +1,7 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 )
 
 // RewardTxProcessorMock -

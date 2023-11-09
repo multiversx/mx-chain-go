@@ -3,7 +3,7 @@ package esdtMultiTransferToVaultCrossShard
 import (
 	"testing"
 
-	multitransfer "github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/multi-transfer"
+	multitransfer "github.com/multiversx/mx-chain-go/integrationTests/vm/esdt/multi-transfer"
 )
 
 func TestESDTMultiTransferToVaultCrossShard(t *testing.T) {

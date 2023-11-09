@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package delegation
 
@@ -12,30 +11,32 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	mclsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/singlesig"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDelegationSystemNodesOperationsTest(t *testing.T) {
+func TestDelegationSystemNodesOperationsTestBackwardComp(t *testing.T) {
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
 		TxSignPrivKeyShardId: 0,
+		EpochsConfig:         &config.EnableEpochs{MultiClaimOnDelegationEnableEpoch: 5},
 	})
 	tpn.InitDelegationManager()
 	maxDelegationCap := big.NewInt(5000)
@@ -45,7 +46,7 @@ func TestDelegationSystemNodesOperationsTest(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
 
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
-		EpochField: integrationTests.UnreachableEpoch + 1,
+		EpochField: 3,
 	})
 
 	// create new delegation contract
@@ -69,6 +70,15 @@ func TestDelegationSystemNodesOperationsTest(t *testing.T) {
 	}
 
 	assert.Equal(t, 2, numExpectedScrsFound)
+
+	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
+		EpochField: 6,
+	})
+	scrsHandler.CreateBlockStarted()
+	// create new delegation contract
+	delegationScAddress = deployNewSc(t, tpn, maxDelegationCap, serviceFee, value, bytes.Repeat([]byte{1}, 32))
+	assert.NotNil(t, delegationScAddress)
+	assert.Equal(t, 0, len(scrsHandler.GetAllCurrentFinishedTxs()))
 }
 
 func TestDelegationSystemNodesOperations(t *testing.T) {
@@ -262,7 +272,7 @@ func TestDelegationChangeConfig(t *testing.T) {
 		CallValue:  big.NewInt(0),
 		Arguments:  make([][]byte, 0),
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(scQuery)
 	require.Nil(t, err)
 	assert.Equal(t, newMinDelegationAmount.Bytes(), vmOutput.ReturnData[5])
 
@@ -324,7 +334,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 	verifyUserUndelegatedList(t, tpn, delegationScAddress, delegators[0], []*big.Int{big.NewInt(delegationVal)})
 	// withdraw unDelegated delegators should not withdraw because of unBond period
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
+	processMultipleWithdraws(t, tpn, delegators[:numDelegators-2], delegationScAddress, vmcommon.UserError)
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
@@ -332,7 +342,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	// withdraw unDelegated delegators should withdraw after unBond period has passed
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
+	processMultipleWithdraws(t, tpn, delegators[:numDelegators-2], delegationScAddress, vmcommon.Ok)
 
 	verifyDelegatorIsDeleted(t, tpn, delegators[:numDelegators-2], delegationScAddress)
 }
@@ -384,7 +394,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 
 	// withdraw unDelegated delegators should not withdraw because of unBond period
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
+	processMultipleWithdraws(t, tpn, delegators[:numDelegators-2], delegationScAddress, vmcommon.UserError)
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
@@ -392,7 +402,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 
 	// withdraw unDelegated delegators should withdraw after unBond period has passed
-	processMultipleTransactions(t, tpn, delegators[:numDelegators-2], delegationScAddress, "withdraw", big.NewInt(0))
+	processMultipleWithdraws(t, tpn, delegators[:numDelegators-2], delegationScAddress, vmcommon.Ok)
 
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
@@ -879,7 +889,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 	tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 5, Nonce: 50})
 
 	for i := range delegationScAddresses {
-		processMultipleTransactions(t, tpn, firstTwoDelegators, delegationScAddresses[i], "withdraw", big.NewInt(0))
+		processMultipleWithdraws(t, tpn, firstTwoDelegators, delegationScAddresses[i], vmcommon.UserError)
 
 		txData = "unDelegate" + "@" + intToString(uint32(quarterDelegationVal))
 		processMultipleTransactions(t, tpn, lastTwoDelegators, delegationScAddresses[i], txData, big.NewInt(0))
@@ -1148,7 +1158,7 @@ func verifyUserUndelegatedList(
 		Arguments:  [][]byte{delegator},
 		CallValue:  big.NewInt(0),
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assert.Equal(t, len(values)*2, len(vmOutput.ReturnData))
@@ -1181,7 +1191,7 @@ func verifyValidatorSCStake(
 		CallValue:  big.NewInt(0),
 		Arguments:  [][]byte{delegationAddr},
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 	assert.Equal(t, string(vmOutput.ReturnData[0]), expectedRes.String())
@@ -1280,7 +1290,7 @@ func verifyDelegatorIsDeleted(
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{address},
 		}
-		vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+		vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 		assert.Nil(t, err)
 		assert.Equal(t, vmOutput.ReturnMessage, "view function works only for existing delegators")
 		assert.Equal(t, vmOutput.ReturnCode, vmcommon.UserError)
@@ -1314,6 +1324,19 @@ func deployNewSc(
 	}
 
 	return []byte{}
+}
+
+func changeOwner(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	ownerAddress []byte,
+	newAddress []byte,
+	scAddress []byte,
+) {
+	txData := "changeOwner@" + hex.EncodeToString(newAddress)
+	returnedCode, err := processTransaction(tpn, ownerAddress, scAddress, txData, big.NewInt(0))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, returnedCode)
 }
 
 func viewFuncSingleResult(
@@ -1351,7 +1374,7 @@ func getReturnDataFromQuery(
 		CallValue:  big.NewInt(0),
 		Arguments:  arguments,
 	}
-	vmOutput, err := tpn.SCQueryService.ExecuteQuery(query)
+	vmOutput, _, err := tpn.SCQueryService.ExecuteQuery(query)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
 
@@ -1376,6 +1399,20 @@ func processMultipleTransactions(
 		returnedCode, err := processTransaction(tpn, delegatorsAddr[i], receiverAddr, txData, value)
 		assert.Nil(t, err)
 		assert.Equal(t, vmcommon.Ok, returnedCode)
+	}
+}
+
+func processMultipleWithdraws(
+	t *testing.T,
+	tpn *integrationTests.TestProcessorNode,
+	delegatorsAddr [][]byte,
+	receiverAddr []byte,
+	expected vmcommon.ReturnCode,
+) {
+	for i := range delegatorsAddr {
+		returnCode, err := processTransaction(tpn, delegatorsAddr[i], receiverAddr, "withdraw", big.NewInt(0))
+		assert.Nil(t, err)
+		assert.Equal(t, expected, returnCode)
 	}
 }
 

@@ -5,13 +5,12 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/receipt"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +30,6 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -56,13 +54,6 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
-
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(5), indexerTx.GasUsed)
-	require.Equal(t, "50", indexerTx.Fee)
 }
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
@@ -80,7 +71,6 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(10000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -105,7 +95,6 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(10000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(100)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -130,11 +119,4 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(50), accumulatedFees)
-
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, nil)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(5), indexerTx.GasUsed)
-	require.Equal(t, "50", indexerTx.Fee)
 }

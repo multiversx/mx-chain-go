@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type headersCache struct {
@@ -53,7 +53,7 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	return true
 }
 
-//tryToDoEviction will check if pool is full and if it is will do eviction
+// tryToDoEviction will check if pool is full and if so, it will do the eviction
 func (cache *headersCache) tryToDoEviction(shardId uint32) {
 	numHeaders := cache.getNumHeaders(shardId)
 	if int(numHeaders) >= cache.maxHeadersPerShard {

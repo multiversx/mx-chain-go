@@ -7,20 +7,19 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicFlags "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	atomicFlags "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
@@ -810,7 +809,7 @@ func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message strin
 	}
 
 	logLevel := logger.LogError
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		logLevel = logger.LogDebug
 	}
 

@@ -1,25 +1,26 @@
 package bootstrap
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // CreateShardCoordinator is the shard coordinator factory
@@ -29,6 +30,15 @@ func CreateShardCoordinator(
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
+	if check.IfNil(nodesConfig) {
+		return nil, "", errErd.ErrNilGenesisNodesSetupHandler
+	}
+	if check.IfNil(pubKey) {
+		return nil, "", errErd.ErrNilPublicKey
+	}
+	if check.IfNil(log) {
+		return nil, "", errErd.ErrNilLogger
+	}
 
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
@@ -71,10 +81,6 @@ func CreateShardCoordinator(
 }
 
 func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig sharding.GenesisNodesSetupHandler) (uint32, error) {
-	if pubKey == nil {
-		return 0, errors.New("nil public key")
-	}
-
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return 0, err
@@ -108,6 +114,21 @@ func CreateNodesCoordinator(
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 ) (nodesCoordinator.NodesCoordinator, error) {
+	if check.IfNil(nodeShufflerOut) {
+		return nil, errErd.ErrNilShuffleOutCloser
+	}
+	if check.IfNil(nodesConfig) {
+		return nil, errErd.ErrNilGenesisNodesSetupHandler
+	}
+	if check.IfNil(epochStartNotifier) {
+		return nil, errErd.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(pubKey) {
+		return nil, errErd.ErrNilPublicKey
+	}
+	if check.IfNil(bootstrapParameters) {
+		return nil, errErd.ErrNilBootstrapParamsHandler
+	}
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
 	}
@@ -218,6 +239,10 @@ func CreateNodesShuffleOut(
 	epochConfig config.EpochStartConfig,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (factory.ShuffleOutCloser, error) {
+
+	if check.IfNil(nodesConfig) {
+		return nil, errErd.ErrNilGenesisNodesSetupHandler
+	}
 
 	maxThresholdEpochDuration := epochConfig.MaxShuffledOutRestartThreshold
 	if !(maxThresholdEpochDuration >= 0.0 && maxThresholdEpochDuration <= 1.0) {

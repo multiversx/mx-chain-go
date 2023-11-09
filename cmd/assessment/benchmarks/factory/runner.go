@@ -1,7 +1,7 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
+	"github.com/multiversx/mx-chain-go/cmd/assessment/benchmarks"
 )
 
 type runner struct {

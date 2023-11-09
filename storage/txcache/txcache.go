@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/txcache"
+	"github.com/multiversx/mx-chain-storage-go/txcache"
 )
 
 // WrappedTransaction contains a transaction, its hash and extra information

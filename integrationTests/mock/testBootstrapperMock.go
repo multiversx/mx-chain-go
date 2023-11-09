@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 )
 
 type testBootstrapperMock struct {

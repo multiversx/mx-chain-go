@@ -3,14 +3,14 @@ package resolvers
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // maxBuffToSendPeerAuthentications represents max buffer size to send in bytes
@@ -73,41 +73,9 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 	return nil
 }
 
-// RequestDataFromHash requests peer authentication data from other peers having input a public key hash
-func (res *peerAuthenticationResolver) RequestDataFromHash(hash []byte, epoch uint32) error {
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashType,
-			Value: hash,
-			Epoch: epoch,
-		},
-		[][]byte{hash},
-	)
-}
-
-// RequestDataFromHashArray requests peer authentication data from other peers having input multiple public key hashes
-func (res *peerAuthenticationResolver) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
-	b := &batch.Batch{
-		Data: hashes,
-	}
-	buffHashes, err := res.marshalizer.Marshal(b)
-	if err != nil {
-		return err
-	}
-
-	return res.SendOnRequestTopic(
-		&dataRetriever.RequestData{
-			Type:  dataRetriever.HashArrayType,
-			Value: buffHashes,
-			Epoch: epoch,
-		},
-		hashes,
-	)
-}
-
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
 	err := res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -123,7 +91,7 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 
 	switch rd.Type {
 	case dataRetriever.HashArrayType:
-		return res.resolveMultipleHashesRequest(rd.Value, message.Peer())
+		return res.resolveMultipleHashesRequest(rd.Value, message.Peer(), source)
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -135,7 +103,7 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request
-func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff []byte, pid core.PeerID) error {
+func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff []byte, pid core.PeerID, source p2p.MessageHandler) error {
 	b := batch.Batch{}
 	err := res.marshalizer.Unmarshal(&b, hashesBuff)
 	if err != nil {
@@ -148,18 +116,18 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %x", err, hashesBuff)
 	}
 
-	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid)
+	return res.sendPeerAuthsForHashes(peerAuthsForHashes, pid, source)
 }
 
 // sendPeerAuthsForHashes sends multiple peer authentication messages for specific hashes
-func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte, pid core.PeerID) error {
+func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte, pid core.PeerID, source p2p.MessageHandler) error {
 	buffsToSend, err := res.dataPacker.PackDataInChunks(dataBuff, maxBuffToSendPeerAuthentications)
 	if err != nil {
 		return err
 	}
 
 	for _, buff := range buffsToSend {
-		err = res.Send(buff, pid)
+		err = res.Send(buff, pid, source)
 		if err != nil {
 			return err
 		}

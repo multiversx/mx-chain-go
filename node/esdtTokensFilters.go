@@ -3,8 +3,8 @@ package node
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type getRegisteredNftsFilter struct {

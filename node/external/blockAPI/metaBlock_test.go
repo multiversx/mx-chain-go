@@ -6,18 +6,24 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +58,11 @@ func createMockMetaAPIProcessor(
 				return withHistory
 			},
 		},
-		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		AddressPubkeyConverter:       &testscommon.PubkeyConverterMock{},
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}, nil)
 }
 
@@ -539,6 +549,13 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		DeveloperFees:          big.NewInt(0),
 		AccumulatedFeesInEpoch: big.NewInt(10),
 		DevFeesInEpoch:         big.NewInt(5),
+		PubKeysBitmap:          []byte("010101"),
+		Signature:              []byte("sig"),
+		LeaderSignature:        []byte("leader"),
+		ChainID:                []byte("1"),
+		SoftwareVersion:        []byte("2"),
+		ReceiptsHash:           []byte("recHash"),
+		Reserved:               []byte("res"),
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -565,6 +582,13 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusReverted,
+		PubKeyBitmap:           "303130313031",
+		Signature:              "736967",
+		LeaderSignature:        "6c6561646572",
+		ChainID:                "1",
+		SoftwareVersion:        "32",
+		ReceiptsHash:           "72656348617368",
+		Reserved:               []byte("res"),
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -787,4 +811,133 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 	blk, err = metaAPIBlockProc.GetBlockByRound(round, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
+}
+
+func TestMetaAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("header not found in storage - should err", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+		storerMock := genericMocks.NewStorerMockWithEpoch(1)
+		metaAPIBlockProc := createMockMetaAPIProcessor(
+			headerHash,
+			storerMock,
+			true,
+			true,
+		)
+
+		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{
+			GetBlockParameters: api.GetBlockParameters{
+				RequestType: api.BlockFetchTypeByHash,
+				Hash:        headerHash,
+			},
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "not found")
+		require.Nil(t, res)
+	})
+
+	t.Run("get altered account by block hash - should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &marshallerMock.MarshalizerMock{}
+		headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+		mbHash := []byte("mb-hash")
+		txHash0, txHash1 := []byte("tx-hash-0"), []byte("tx-hash-1")
+
+		mbhReserved := block.MiniBlockHeaderReserved{}
+
+		mbhReserved.IndexOfLastTxProcessed = 1
+		reserved, _ := mbhReserved.Marshal()
+
+		metaBlock := &block.MetaBlock{
+			Nonce: 37,
+			Epoch: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:     mbHash,
+					Reserved: reserved,
+				},
+			},
+		}
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{txHash0, txHash1},
+		}
+		tx0 := &transaction.Transaction{
+			SndAddr: []byte("addr0"),
+			RcvAddr: []byte("addr1"),
+		}
+		tx1 := &transaction.Transaction{
+			SndAddr: []byte("addr2"),
+			RcvAddr: []byte("addr3"),
+		}
+		miniBlockBytes, _ := marshaller.Marshal(miniBlock)
+		metaBlockBytes, _ := marshaller.Marshal(metaBlock)
+		tx0Bytes, _ := marshaller.Marshal(tx0)
+		tx1Bytes, _ := marshaller.Marshal(tx1)
+
+		storerMock := genericMocks.NewStorerMockWithEpoch(1)
+		_ = storerMock.Put(headerHash, metaBlockBytes)
+		_ = storerMock.Put(mbHash, miniBlockBytes)
+		_ = storerMock.Put(txHash0, tx0Bytes)
+		_ = storerMock.Put(txHash1, tx1Bytes)
+
+		metaAPIBlockProc := createMockMetaAPIProcessor(
+			headerHash,
+			storerMock,
+			true,
+			true,
+		)
+
+		metaAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
+			UnmarshalTransactionCalled: func(txBytes []byte, _ transaction.TxType) (*transaction.ApiTransactionResult, error) {
+				var tx transaction.Transaction
+				_ = marshaller.Unmarshal(&tx, txBytes)
+
+				return &transaction.ApiTransactionResult{
+					Type:     "normal",
+					Sender:   hex.EncodeToString(tx.SndAddr),
+					Receiver: hex.EncodeToString(tx.RcvAddr),
+				}, nil
+			},
+		}
+		metaAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{}
+
+		metaAPIBlockProc.logsFacade = &testscommon.LogsFacadeStub{}
+		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+			ExtractAlteredAccountsFromPoolCalled: func(outportPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				retMap := map[string]*alteredAccount.AlteredAccount{}
+				for _, tx := range outportPool.Transactions {
+					retMap[string(tx.Transaction.GetSndAddr())] = &alteredAccount.AlteredAccount{
+						Address: string(tx.Transaction.GetSndAddr()),
+						Balance: "10",
+					}
+				}
+
+				return retMap, nil
+			},
+		}
+
+		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{
+			GetBlockParameters: api.GetBlockParameters{
+				RequestType: api.BlockFetchTypeByHash,
+				Hash:        headerHash,
+			},
+		})
+		require.NoError(t, err)
+		require.True(t, areAlteredAccountsResponsesTheSame([]*alteredAccount.AlteredAccount{
+			{
+				Address: "addr0",
+				Balance: "10",
+			},
+			{
+				Address: "addr2",
+				Balance: "10",
+			},
+		},
+			res))
+	})
 }

@@ -3,13 +3,14 @@ package testscommon
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 )
 
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
 	EpochField                             uint32
+	RoundField                             uint64
 	TimestampField                         uint64
 	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
 	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
@@ -26,6 +27,7 @@ type HeaderHandlerStub struct {
 	IsStartOfEpochBlockCalled              func() bool
 	HasScheduledMiniBlocksCalled           func() bool
 	GetNonceCalled                         func() uint64
+	CheckFieldsForNilCalled                func() error
 }
 
 // GetAccumulatedFees -
@@ -92,7 +94,7 @@ func (hhs *HeaderHandlerStub) GetEpoch() uint32 {
 
 // GetRound -
 func (hhs *HeaderHandlerStub) GetRound() uint64 {
-	return 1
+	return hhs.RoundField
 }
 
 // GetTimeStamp -
@@ -357,6 +359,15 @@ func (hhs *HeaderHandlerStub) HasScheduledSupport() bool {
 // MapMiniBlockHashesToShards -
 func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 	panic("implement me")
+}
+
+// CheckFieldsForNil -
+func (hhs *HeaderHandlerStub) CheckFieldsForNil() error {
+	if hhs.CheckFieldsForNilCalled != nil {
+		return hhs.CheckFieldsForNilCalled()
+	}
+
+	return nil
 }
 
 // HasScheduledMiniBlocks -

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
-	"github.com/ElrondNetwork/elrond-go/common"
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/cmd/termui/view"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 const (
@@ -124,11 +124,15 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	peerType := wr.presenter.GetPeerType()
+	peerSubType := wr.presenter.GetPeerSubType()
 	chainID := wr.presenter.GetChainID()
 
 	nodeTypeAndListDisplay := instanceType
 	if peerType != string(common.ObserverList) && !strings.Contains(peerType, invalidKey) {
 		nodeTypeAndListDisplay += fmt.Sprintf(" - %s", peerType)
+	}
+	if peerSubType == core.FullHistoryObserver.String() {
+		nodeTypeAndListDisplay += " - full archive"
 	}
 	shardIdStr := fmt.Sprintf("%d", shardId)
 	if shardId == uint64(core.MetachainShardId) {
@@ -169,7 +173,7 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	rows[5] = []string{computeRedundancyStr(wr.presenter.GetRedundancyLevel(), wr.presenter.GetRedundancyIsMainActive())}
 	rows[6] = []string{fmt.Sprintf("Chain ID: %s", chainID)}
 
-	wr.instanceInfo.Title = "Elrond instance info"
+	wr.instanceInfo.Title = "MultiversX instance info:"
 	wr.instanceInfo.RowSeparator = false
 	wr.instanceInfo.Rows = rows
 }
@@ -182,13 +186,20 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	synchronizedRound := wr.presenter.GetSynchronizedRound()
 	currentRound := wr.presenter.GetCurrentRound()
 
-	var syncingStr, remainingTimeMessage, blocksPerSecondMessage string
+	nodesProcessed := wr.presenter.GetTrieSyncNumProcessedNodes()
+	isNodeSyncingTrie := nodesProcessed != 0
+
+	var syncingStr, statusMessage, blocksPerSecondMessage string
 	switch {
+	case isNodeSyncingTrie:
+		syncingStr = statusSyncing
+		bytesReceived := wr.presenter.GetTrieSyncNumBytesReceived()
+		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 
 		remainingTime := wr.presenter.CalculateTimeToSynchronize(numMillisecondsRefreshTime)
-		remainingTimeMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
+		statusMessage = fmt.Sprintf("Synchronization time remaining: ~%s", remainingTime)
 
 		blocksPerSecond := wr.presenter.CalculateSynchronizationSpeed(numMillisecondsRefreshTime)
 		blocksPerSecondMessage = fmt.Sprintf("%d blocks/sec", blocksPerSecond)
@@ -203,9 +214,10 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorGreen)
 	} else {
 		wr.chainInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
+		wr.chainInfo.RowStyles[1] = ui.NewStyle(ui.ColorYellow)
 	}
 
-	rows[1] = []string{remainingTimeMessage}
+	rows[1] = []string{statusMessage}
 
 	shardId := wr.presenter.GetShardId()
 	if shardId == uint64(core.MetachainShardId) {
@@ -243,7 +255,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		numConnectedPeers, numIntraShardValidators, numConnectedNodes)}
 	rows[9] = []string{fmt.Sprintf("All known validators: %d", numLiveValidators)}
 
-	wr.chainInfo.Title = "Chain info"
+	wr.chainInfo.Title = "Chain info:"
 	wr.chainInfo.RowSeparator = false
 	wr.chainInfo.Rows = rows
 }
@@ -315,18 +327,18 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
 	rows[7] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
-	wr.blockInfo.Title = "Block info"
+	wr.blockInfo.Title = "Block info:"
 	wr.blockInfo.RowSeparator = false
 	wr.blockInfo.Rows = rows
 }
 
 func (wr *WidgetsRender) prepareListWithLogsForDisplay() {
-	wr.lLog.Title = "Log info"
+	wr.lLog.Title = "Log info:"
 	wr.lLog.TextStyle = ui.NewStyle(ui.ColorWhite)
 
 	logData := wr.presenter.GetLogLines()
 	wr.lLog.Rows = wr.prepareLogLines(logData, wr.lLog.Size().Y)
-	wr.lLog.WrapText = true
+	wr.lLog.WrapText = false
 }
 
 func (wr *WidgetsRender) prepareLogLines(logData []string, size int) []string {
@@ -362,13 +374,13 @@ func fitStringToWidth(original string, maxWidth int) string {
 
 func (wr *WidgetsRender) prepareLoads() {
 	cpuLoadPercent := wr.presenter.GetCpuLoadPercent()
-	wr.cpuLoad.Title = "CPU load"
+	wr.cpuLoad.Title = "CPU load:"
 	wr.cpuLoad.Percent = int(cpuLoadPercent)
 
 	memLoadPercent := wr.presenter.GetMemLoadPercent()
 	memTotalMemoryBytes := wr.presenter.GetTotalMem()
 	memUsed := wr.presenter.GetMemUsedByNode()
-	wr.memoryLoad.Title = "Memory load"
+	wr.memoryLoad.Title = "Memory load:"
 	wr.memoryLoad.Percent = int(memLoadPercent)
 	str := fmt.Sprintf("%d%% / used: %s / total: %s", memLoadPercent, core.ConvertBytes(memUsed), core.ConvertBytes(memTotalMemoryBytes))
 	wr.memoryLoad.Label = fitStringToWidth(str, wr.memoryLoad.Size().X)

@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // TriesHolderStub -

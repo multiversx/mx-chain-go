@@ -1,6 +1,6 @@
 package cryptoMocks
 
-import "github.com/ElrondNetwork/elrond-go-crypto"
+import "github.com/multiversx/mx-chain-crypto-go"
 
 // SingleSignerStub -
 type SingleSignerStub struct {

@@ -10,16 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/random"
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
-	"github.com/ElrondNetwork/elrond-go/storage/pruning"
+	"github.com/multiversx/mx-chain-core-go/core/random"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/pathmanager"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +33,7 @@ func TestNewFullHistoryPruningStorer_OkValsShouldWork(t *testing.T) {
 	}
 	fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
 
-	assert.False(t, check.IfNil(fhps))
+	assert.NotNil(t, fhps)
 	assert.Nil(t, err)
 }
 
@@ -295,14 +294,19 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	fmt.Println(testDir)
 	args := getDefaultArgs()
-	args.PersisterFactory = factory.NewPersisterFactory(config.DBConfig{
-		FilePath:          filepath.Join(testDir, dbName),
-		Type:              "LvlDBSerial",
-		MaxBatchSize:      100,
-		MaxOpenFiles:      10,
-		BatchDelaySeconds: 2,
-	})
-	var err error
+	dbConfigHandler := factory.NewDBConfigHandler(
+		config.DBConfig{
+			FilePath:          filepath.Join(testDir, dbName),
+			Type:              "LvlDBSerial",
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+			BatchDelaySeconds: 2,
+		},
+	)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	require.Nil(t, err)
+	args.PersisterFactory = persisterFactory
+
 	args.PathManager, err = pathmanager.NewPathManager(testDir+"/epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	require.NoError(t, err)
 	fhArgs := pruning.FullHistoryStorerArgs{
@@ -382,4 +386,19 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 	elapsedTime := time.Since(startTime)
 	// if the "resource temporary unavailable" occurs, this test will take longer than this to execute
 	require.True(t, elapsedTime < 100*time.Second)
+}
+
+func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var fhps *pruning.FullHistoryPruningStorer
+	require.True(t, fhps.IsInterfaceNil())
+
+	args := getDefaultArgs()
+	fhArgs := pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 10,
+	}
+	fhps, _ = pruning.NewFullHistoryPruningStorer(fhArgs)
+	require.False(t, fhps.IsInterfaceNil())
 }

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 )
 
 var _ factory.ComponentHandler = (*managedDataComponents)(nil)
@@ -103,10 +103,16 @@ func (mdc *managedDataComponents) Blockchain() data.ChainHandler {
 }
 
 // SetBlockchain sets the blockchain subcomponent
-func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) {
+func (mdc *managedDataComponents) SetBlockchain(chain data.ChainHandler) error {
+	if check.IfNil(chain) {
+		return errors.ErrNilBlockChainHandler
+	}
+
 	mdc.mutDataComponents.Lock()
 	mdc.blkc = chain
 	mdc.mutDataComponents.Unlock()
+
+	return nil
 }
 
 // StorageService returns the storage service

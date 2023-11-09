@@ -3,38 +3,27 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 )
 
 // BlockProcessorMock mocks the implementation for a blockProcessor
 type BlockProcessorMock struct {
-	NrCommitBlockCalled                     uint32
-	Marshalizer                             marshal.Marshalizer
-	ProcessBlockCalled                      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	ProcessScheduledBlockCalled             func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	CommitBlockCalled                       func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled                func()
-	CreateBlockCalled                       func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	RestoreBlockIntoPoolsCalled             func(header data.HeaderHandler, body data.BodyHandler) error
-	RestoreBlockBodyIntoPoolsCalled         func(body data.BodyHandler) error
-	MarshalizedDataToBroadcastCalled        func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
-	DecodeBlockBodyCalled                   func(dta []byte) data.BodyHandler
-	DecodeBlockHeaderCalled                 func(dta []byte) data.HeaderHandler
-	AddLastNotarizedHdrCalled               func(shardId uint32, processedHdr data.HeaderHandler)
-	CreateNewHeaderCalled                   func(round uint64, nonce uint64) (data.HeaderHandler, error)
-	PruneStateOnRollbackCalled              func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
-	RestoreLastNotarizedHrdsToGenesisCalled func()
-	RevertStateToBlockCalled                func(header data.HeaderHandler, rootHash []byte) error
-	RevertIndexedBlockCalled                func(header data.HeaderHandler)
-}
-
-// RestoreLastNotarizedHrdsToGenesis -
-func (bpm *BlockProcessorMock) RestoreLastNotarizedHrdsToGenesis() {
-	if bpm.RestoreLastNotarizedHrdsToGenesisCalled != nil {
-		bpm.RestoreLastNotarizedHrdsToGenesisCalled()
-	}
+	NumCommitBlockCalled             uint32
+	Marshalizer                      marshal.Marshalizer
+	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
+	RevertCurrentBlockCalled         func()
+	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
+	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
+	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
+	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
+	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 }
 
 // ProcessBlock mocks processing a block
@@ -162,21 +151,16 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 	return &header
 }
 
-// AddLastNotarizedHdr -
-func (bpm *BlockProcessorMock) AddLastNotarizedHdr(shardId uint32, processedHdr data.HeaderHandler) {
-	bpm.AddLastNotarizedHdrCalled(shardId, processedHdr)
+// NonceOfFirstCommittedBlock -
+func (bpm *BlockProcessorMock) NonceOfFirstCommittedBlock() core.OptionalUint64 {
+	return core.OptionalUint64{
+		HasValue: false,
+	}
 }
 
 // Close -
 func (bpm *BlockProcessorMock) Close() error {
 	return nil
-}
-
-// RevertIndexedBlock -
-func (bpm *BlockProcessorMock) RevertIndexedBlock(header data.HeaderHandler) {
-	if bpm.RevertIndexedBlockCalled != nil {
-		bpm.RevertIndexedBlockCalled(header)
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

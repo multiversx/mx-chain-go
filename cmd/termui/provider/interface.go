@@ -1,7 +1,7 @@
 package provider
 
 import (
-	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
+	"github.com/multiversx/mx-chain-go/cmd/termui/view"
 )
 
 // PresenterHandler defines what a component which will handle the presentation of data in the termui should do

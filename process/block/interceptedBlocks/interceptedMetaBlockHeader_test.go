@@ -2,14 +2,15 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,19 +38,25 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 
 func createMockMetaHeader() *dataBlock.MetaBlock {
 	return &dataBlock.MetaBlock{
-		Nonce:         hdrNonce,
-		PrevHash:      []byte("prev hash"),
-		PrevRandSeed:  []byte("prev rand seed"),
-		RandSeed:      []byte("rand seed"),
-		PubKeysBitmap: []byte{1},
-		TimeStamp:     0,
-		Round:         hdrRound,
-		Epoch:         hdrEpoch,
-		Signature:     []byte("signature"),
-		RootHash:      []byte("root hash"),
-		TxCount:       0,
-		ShardInfo:     nil,
-		ChainID:       []byte("chain ID"),
+		Nonce:                  hdrNonce,
+		PrevHash:               []byte("prev hash"),
+		PrevRandSeed:           []byte("prev rand seed"),
+		RandSeed:               []byte("rand seed"),
+		PubKeysBitmap:          []byte{1},
+		TimeStamp:              0,
+		Round:                  hdrRound,
+		Epoch:                  hdrEpoch,
+		Signature:              []byte("signature"),
+		RootHash:               []byte("root hash"),
+		TxCount:                0,
+		ShardInfo:              nil,
+		ChainID:                []byte("chain ID"),
+		SoftwareVersion:        []byte("software version"),
+		DeveloperFees:          big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		ValidatorStatsRootHash: []byte("validator stats root hash"),
 	}
 }
 

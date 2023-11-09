@@ -8,17 +8,17 @@ import (
 	"runtime/debug"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/clean"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/clean"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ storage.Storer = (*PruningStorer)(nil)

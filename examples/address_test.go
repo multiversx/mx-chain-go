@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,8 @@ func TestHexAddressToBech32Address(t *testing.T) {
 	hexEncodedAddressBytes, err := hex.DecodeString(hexEncodedAddress)
 	require.NoError(t, err)
 
-	bech32Address := addressEncoder.Encode(hexEncodedAddressBytes)
+	bech32Address, err := addressEncoder.Encode(hexEncodedAddressBytes)
+	require.NoError(t, err)
 	require.Equal(t, "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49", bech32Address)
 }
 
@@ -61,20 +62,33 @@ func computeShardID(t *testing.T, addressBech32 string, shardCoordinator shardin
 }
 
 func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
-	contractDeployScAdress := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
-	stakingScAddress := addressEncoder.Encode(vm.StakingSCAddress)
-	validatorScAddress := addressEncoder.Encode(vm.ValidatorSCAddress)
-	esdtScAddress := addressEncoder.Encode(vm.ESDTSCAddress)
-	governanceScAddress := addressEncoder.Encode(vm.GovernanceSCAddress)
-	jailingAddress := addressEncoder.Encode(vm.JailingAddress)
-	endOfEpochAddress := addressEncoder.Encode(vm.EndOfEpochAddress)
-	delegationManagerScAddress := addressEncoder.Encode(vm.DelegationManagerSCAddress)
-	firstDelegationScAddress := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+	contractDeployScAdress, err := addressEncoder.Encode(make([]byte, addressEncoder.Len()))
+	require.NoError(t, err)
+	stakingScAddress, err := addressEncoder.Encode(vm.StakingSCAddress)
+	require.NoError(t, err)
+	validatorScAddress, err := addressEncoder.Encode(vm.ValidatorSCAddress)
+	require.NoError(t, err)
+	esdtScAddress, err := addressEncoder.Encode(vm.ESDTSCAddress)
+	require.NoError(t, err)
+	governanceScAddress, err := addressEncoder.Encode(vm.GovernanceSCAddress)
+	require.NoError(t, err)
+	jailingAddress, err := addressEncoder.Encode(vm.JailingAddress)
+	require.NoError(t, err)
+	endOfEpochAddress, err := addressEncoder.Encode(vm.EndOfEpochAddress)
+	require.NoError(t, err)
+	delegationManagerScAddress, err := addressEncoder.Encode(vm.DelegationManagerSCAddress)
+	require.NoError(t, err)
+	firstDelegationScAddress, err := addressEncoder.Encode(vm.FirstDelegationSCAddress)
+	require.NoError(t, err)
 
 	genesisMintingAddressBytes, err := hex.DecodeString("f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0")
 	require.NoError(t, err)
-	genesisMintingAddress := addressEncoder.Encode(genesisMintingAddressBytes)
-	systemAccountAddress := addressEncoder.Encode(core.SystemAccountAddress)
+	genesisMintingAddress, err := addressEncoder.Encode(genesisMintingAddressBytes)
+	require.NoError(t, err)
+	systemAccountAddress, err := addressEncoder.Encode(core.SystemAccountAddress)
+	require.NoError(t, err)
+
+	esdtGlobalSettingsAddresses := getGlobalSettingsAddresses()
 
 	header := []string{"Smart contract/Special address", "Address"}
 	lines := []*display.LineData{
@@ -89,6 +103,9 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 		display.NewLineData(false, []string{"First delegation", firstDelegationScAddress}),
 		display.NewLineData(false, []string{"Genesis Minting Address", genesisMintingAddress}),
 		display.NewLineData(false, []string{"System Account Address", systemAccountAddress}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 0", esdtGlobalSettingsAddresses[0]}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 1", esdtGlobalSettingsAddresses[1]}),
+		display.NewLineData(false, []string{"ESDT Global Settings Shard 2", esdtGlobalSettingsAddresses[2]}),
 	}
 
 	table, _ := display.CreateTableString(header, lines)
@@ -105,4 +122,27 @@ func TestSystemSCsAddressesAndSpecialAddresses(t *testing.T) {
 	assert.Equal(t, "erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu", contractDeployScAdress)
 	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", genesisMintingAddress)
 	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", systemAccountAddress)
+	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqq2m3f0f", esdtGlobalSettingsAddresses[0])
+	assert.Equal(t, "erd1llllllllllllllllllllllllllllllllllllllllllllllllluqsl6e366", esdtGlobalSettingsAddresses[1])
+	assert.Equal(t, "erd1lllllllllllllllllllllllllllllllllllllllllllllllllupq9x7ny0", esdtGlobalSettingsAddresses[2])
+}
+
+func getGlobalSettingsAddresses() map[uint32]string {
+	numShards := uint32(3)
+	addressesMap := make(map[uint32]string, numShards)
+	for i := uint32(0); i < numShards; i++ {
+		addressesMap[i] = computeGlobalSettingsAddr(i)
+	}
+
+	return addressesMap
+}
+
+func computeGlobalSettingsAddr(shardID uint32) string {
+	baseSystemAccountAddress := core.SystemAccountAddress
+	globalSettingsAddress := baseSystemAccountAddress
+	globalSettingsAddress[len(globalSettingsAddress)-1] = uint8(shardID)
+
+	computedAddress, _ := addressEncoder.Encode(globalSettingsAddress)
+
+	return computedAddress
 }

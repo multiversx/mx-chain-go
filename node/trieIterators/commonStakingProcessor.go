@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type stakingValidatorInfo struct {
@@ -30,7 +30,7 @@ func (csp *commonStakingProcessor) getValidatorInfoFromSC(validatorAddress []byt
 		Arguments:  [][]byte{validatorAddress},
 	}
 
-	vmOutput, err := csp.queryService.ExecuteQuery(scQuery)
+	vmOutput, _, err := csp.queryService.ExecuteQuery(scQuery)
 	if err != nil {
 		return nil, err
 	}

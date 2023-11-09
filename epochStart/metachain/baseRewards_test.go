@@ -7,28 +7,28 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -816,36 +816,58 @@ func TestBaseRewardsCreator_RemoveBlockDataFromPools(t *testing.T) {
 func TestBaseRewardsCreator_isSystemDelegationSC(t *testing.T) {
 	t.Parallel()
 
+	nonExistentAccountAddress := []byte("address")
+	peerAccountAddress := []byte("addressPeer")
+	userAccountAddress := []byte("addressUser")
+
 	args := getBaseRewardsArguments()
+	args.UserAccountsDB = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+			if bytes.Equal(addressContainer, nonExistentAccountAddress) {
+				return nil, fmt.Errorf("account does not exist")
+			}
+
+			if bytes.Equal(addressContainer, peerAccountAddress) {
+				peerAccount := &stateMock.PeerAccountHandlerMock{
+					AddressBytesCalled: func() []byte {
+						return peerAccountAddress
+					},
+				}
+
+				return peerAccount, nil
+			}
+
+			if bytes.Equal(addressContainer, userAccountAddress) {
+				userAccount := &stateMock.UserAccountStub{
+					RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+						if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
+							return []byte("delegation"), 0, nil
+						}
+						return nil, 0, fmt.Errorf("not found")
+					},
+				}
+
+				return userAccount, nil
+			}
+
+			return &stateMock.UserAccountStub{}, nil
+		},
+	}
 	rwd, err := NewBaseRewardsCreator(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
 	// not existing account
-	isDelegationSCAddress := rwd.isSystemDelegationSC([]byte("address"))
+	isDelegationSCAddress := rwd.isSystemDelegationSC(nonExistentAccountAddress)
 	require.False(t, isDelegationSCAddress)
 
 	// peer account
-	peerAccount, err := state.NewPeerAccount([]byte("addressPeer"))
-	require.Nil(t, err)
-	err = rwd.userAccountsDB.SaveAccount(peerAccount)
-	require.Nil(t, err)
-	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccount.AddressBytes())
+	isDelegationSCAddress = rwd.isSystemDelegationSC(peerAccountAddress)
 	require.False(t, isDelegationSCAddress)
 
 	// existing user account
-	userAccount, err := state.NewUserAccount([]byte("userAddress"))
-	require.Nil(t, err)
-
-	userAccount.SetDataTrie(&trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, uint32, error) {
-			if bytes.Equal(key, []byte(core.DelegationSystemSCKey)) {
-				return []byte("delegation"), 0, nil
-			}
-			return nil, 0, fmt.Errorf("not found")
-		},
-	})
-
+	isDelegationSCAddress = rwd.isSystemDelegationSC(userAccountAddress)
+	require.True(t, isDelegationSCAddress)
 }
 
 func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
@@ -1136,12 +1158,21 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
-	storageManagerArgs, options := storage.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := storage.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
-	userAccountsDB := createAccountsDB(hasher, marshalizer, factory.NewAccountCreator(), trieFactoryManager)
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:              hasher,
+		Marshaller:          marshalizer,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		SwitchJailWaitingEnableEpochField: 0,
+	}
+	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
@@ -1150,7 +1181,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 
 	return BaseRewardsCreatorArgs{
 		ShardCoordinator:              shardCoordinator,
-		PubkeyConverter:               mock.NewPubkeyConverterMock(32),
+		PubkeyConverter:               testscommon.NewPubkeyConverterMock(32),
 		RewardsStorage:                mock.NewStorerMock(),
 		MiniBlockStorage:              mock.NewStorerMock(),
 		Hasher:                        &hashingMocks.HasherMock{},
@@ -1165,10 +1196,9 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB: userAccountsDB,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			SwitchJailWaitingEnableEpochField: 0,
-		},
+		UserAccountsDB:        userAccountsDB,
+		EnableEpochsHandler:   enableEpochsHandler,
+		ExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 }
 

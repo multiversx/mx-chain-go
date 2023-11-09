@@ -10,24 +10,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/genesis/process"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	factoryTests "github.com/ElrondNetwork/elrond-go/testscommon/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genesisMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/update/factory"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/update/factory"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -72,7 +75,7 @@ func TestHardForkWithoutTransactionInMultiShardedEnvironment(t *testing.T) {
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	round := uint64(0)
@@ -143,7 +146,7 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 			n.Close()
 		}
 
-		_ = hardforkTriggerNode.Messenger.Close()
+		hardforkTriggerNode.Close()
 	}()
 
 	initialVal := big.NewInt(1000000000)
@@ -168,14 +171,14 @@ func TestHardForkWithContinuousTransactionsInMultiShardedEnvironment(t *testing.
 	transferToken := big.NewInt(10)
 	ownerNode := nodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
 		integrationTests.MaxGasLimitPerBlock-1,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -284,14 +287,14 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	transferToken := big.NewInt(10)
 	ownerNode := consensusNodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		consensusNodes[0],
 		big.NewInt(0),
 		integrationTests.MaxGasLimitPerBlock-1,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -379,7 +382,7 @@ func hardForkImport(
 	importStorageConfigs map[uint32][]config.StorageConfig,
 ) {
 	for _, node := range nodes {
-		gasSchedule := arwenConfig.MakeGasMapForTests()
+		gasSchedule := wasmConfig.MakeGasMapForTests()
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
@@ -402,6 +405,8 @@ func hardForkImport(
 		dataComponents.DataPool = node.DataPool
 		dataComponents.BlockChain = node.BlockChain
 
+		roundConfig := integrationTests.GetDefaultRoundsConfig()
+
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:       0,
 			StartEpochNum:     100,
@@ -415,7 +420,7 @@ func hardForkImport(
 			GasSchedule:       mock.NewGasScheduleNotifierMock(gasSchedule),
 			TxLogsProcessor:   &mock.TxLogsProcessorStub{},
 			VirtualMachineConfig: config.VirtualMachineConfig{
-				ArwenVersions: []config.ArwenVersionByEpoch{
+				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
 			},
@@ -435,13 +440,17 @@ func hardForkImport(
 					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+					V1: config.GovernanceSystemSCConfigV1{
+						ProposalCost: "500",
+					},
 					Active: config.GovernanceSystemSCConfigActive{
 						ProposalCost:     "500",
-						MinQuorum:        "50",
-						MinPassThreshold: "50",
-						MinVetoThreshold: "50",
+						MinQuorum:        0.5,
+						MinPassThreshold: 0.5,
+						MinVetoThreshold: 0.5,
+						LostProposalFee:  "1",
 					},
-					FirstWhitelistedAddress: integrationTests.DelegationManagerConfigChangeAddress,
+					OwnerAddress: integrationTests.DelegationManagerConfigChangeAddress,
 				},
 				StakingSystemSCConfig: config.StakingSystemSCConfig{
 					GenesisNodePrice:                     "1000",
@@ -469,11 +478,6 @@ func hardForkImport(
 			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
-			ImportStartHandler: &mock.ImportStartHandlerStub{
-				ShouldStartImportCalled: func() bool {
-					return true
-				},
-			},
 			EpochConfig: &config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					BuiltInFunctionsEnableEpoch:        0,
@@ -486,6 +490,9 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			RoundConfig:             &roundConfig,
+			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -563,6 +570,7 @@ func createHardForkExporter(
 			return string(node.ChainID)
 		}
 		coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 
 		cryptoComponents := integrationTests.GetDefaultCryptoComponents()
 		cryptoComponents.BlockSig = node.OwnAccount.BlockSingleSigner
@@ -575,16 +583,22 @@ func createHardForkExporter(
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		}
 
+		networkComponents := integrationTests.GetDefaultNetworkComponents()
+		networkComponents.Messenger = node.MainMessenger
+		networkComponents.FullArchiveNetworkMessengerField = node.FullArchiveMessenger
+		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
+		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
 			StatusCoreComponents: statusCoreComponents,
+			NetworkComponents:    networkComponents,
 			HeaderValidator:      node.HeaderValidator,
 			DataPool:             node.DataPool,
 			StorageService:       node.Storage,
 			RequestHandler:       node.RequestHandler,
 			ShardCoordinator:     node.ShardCoordinator,
-			Messenger:            node.Messenger,
 			ActiveAccountsDBs:    accountsDBs,
 			ExportFolder:         node.ExportFolder,
 			ExportTriesStorageConfig: config.StorageConfig{
@@ -601,20 +615,20 @@ func createHardForkExporter(
 					MaxOpenFiles:      10,
 				},
 			},
-			ExportStateStorageConfig: exportConfig,
-			ExportStateKeysConfig:    keysConfig,
-			MaxTrieLevelInMemory:     uint(5),
-			WhiteListHandler:         node.WhiteListHandler,
-			WhiteListerVerifiedTxs:   node.WhiteListerVerifiedTxs,
-			InterceptorsContainer:    node.InterceptorsContainer,
-			ExistingResolvers:        node.ResolversContainer,
-			NodesCoordinator:         node.NodesCoordinator,
-			HeaderSigVerifier:        node.HeaderSigVerifier,
-			HeaderIntegrityVerifier:  node.HeaderIntegrityVerifier,
-			ValidityAttester:         node.BlockTracker,
-			OutputAntifloodHandler:   &mock.NilAntifloodHandler{},
-			InputAntifloodHandler:    &mock.NilAntifloodHandler{},
-			RoundHandler:             &mock.RoundHandlerMock{},
+			ExportStateStorageConfig:         exportConfig,
+			ExportStateKeysConfig:            keysConfig,
+			MaxTrieLevelInMemory:             uint(5),
+			WhiteListHandler:                 node.WhiteListHandler,
+			WhiteListerVerifiedTxs:           node.WhiteListerVerifiedTxs,
+			MainInterceptorsContainer:        node.MainInterceptorsContainer,
+			FullArchiveInterceptorsContainer: node.FullArchiveInterceptorsContainer,
+			ExistingResolvers:                node.ResolversContainer,
+			ExistingRequesters:               node.RequestersContainer,
+			NodesCoordinator:                 node.NodesCoordinator,
+			HeaderSigVerifier:                node.HeaderSigVerifier,
+			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
+			ValidityAttester:                 node.BlockTracker,
+			RoundHandler:                     &mock.RoundHandlerMock{},
 			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
 				Enabled:                    true,
 				EnablePrint:                true,
@@ -627,8 +641,8 @@ func createHardForkExporter(
 			MaxHardCapForMissingNodes: 500,
 			NumConcurrentTrieSyncers:  50,
 			TrieSyncerVersion:         2,
-			PeersRatingHandler:        node.PeersRatingHandler,
 			CheckNodesOnDisk:          false,
+			NodeOperationMode:         node.NodeOperationMode,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
@@ -682,18 +696,18 @@ func verifyIfAddedShardHeadersAreWithNewEpoch(
 		shardHDrStorage, err := node.Storage.GetStorer(dataRetriever.BlockHeaderUnit)
 		assert.Nil(t, err)
 		for _, shardInfo := range currentMetaHdr.ShardInfo {
-			header, err := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
-			if err == nil {
+			header, errGet := node.DataPool.Headers().GetHeaderByHash(shardInfo.HeaderHash)
+			if errGet == nil {
 				assert.Equal(t, currentMetaHdr.GetEpoch(), header.GetEpoch())
 				continue
 			}
 
-			buff, err := shardHDrStorage.Get(shardInfo.HeaderHash)
-			assert.Nil(t, err)
+			buff, errGet := shardHDrStorage.Get(shardInfo.HeaderHash)
+			assert.Nil(t, errGet)
 
 			shardHeader := block.Header{}
-			err = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
-			assert.Nil(t, err)
+			errGet = integrationTests.TestMarshalizer.Unmarshal(&shardHeader, buff)
+			assert.Nil(t, errGet)
 			assert.Equal(t, shardHeader.GetEpoch(), currentMetaHdr.GetEpoch())
 		}
 	}

@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/p2p"
+import "github.com/multiversx/mx-chain-go/p2p"
 
 // MessageSigningHandlerStub -
 type MessageSigningHandlerStub struct {

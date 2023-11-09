@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/factory"
+import "github.com/multiversx/mx-chain-go/factory"
 
 // HeartbeatV2ComponentsStub -
 type HeartbeatV2ComponentsStub struct {

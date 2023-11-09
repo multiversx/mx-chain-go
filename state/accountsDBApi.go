@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsDBApi struct {
@@ -164,9 +164,10 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 	return blockInfo.GetRootHash(), nil
 }
 
-// RecreateTrie is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) RecreateTrie(_ []byte) error {
-	return ErrOperationNotPermitted
+// RecreateTrie is used to reload the trie based on an existing rootHash
+func (accountsDB *accountsDBApi) RecreateTrie(rootHash []byte) error {
+	_, err := accountsDB.doRecreateTrieWithBlockInfo(holders.NewBlockInfo([]byte{}, 0, rootHash))
+	return err
 }
 
 // RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
@@ -183,7 +184,7 @@ func (accountsDB *accountsDBApi) CancelPrune(_ []byte, _ TriePruningIdentifier) 
 }
 
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApi) SnapshotState(_ []byte) {
+func (accountsDB *accountsDBApi) SnapshotState(_ []byte, _ uint32) {
 }
 
 // SetStateCheckpoint is a not permitted operation in this implementation and thus, does nothing
@@ -196,13 +197,13 @@ func (accountsDB *accountsDBApi) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will call the inner accountsAdapter method after trying to recreate the trie
-func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+func (accountsDB *accountsDBApi) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
 	_, err := accountsDB.recreateTrieIfNecessary()
 	if err != nil {
 		return err
 	}
 
-	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannels, ctx, rootHash)
+	return accountsDB.innerAccountsAdapter.GetAllLeaves(leavesChannels, ctx, rootHash, trieLeafParser)
 }
 
 // RecreateAllTries is a not permitted operation in this implementation and thus, will return an error

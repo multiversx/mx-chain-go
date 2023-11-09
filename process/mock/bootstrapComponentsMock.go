@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // BootstrapComponentsMock -

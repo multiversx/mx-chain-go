@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TxProcessor implements the TransactionProcessor interface but does nothing as it is disabled

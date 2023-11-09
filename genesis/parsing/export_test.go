@@ -3,17 +3,17 @@ package parsing
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	coreData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 )
 
 func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
@@ -43,7 +43,7 @@ func (ap *accountsParser) CreateMintTransactions() []coreData.TransactionHandler
 func (ap *accountsParser) SetScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-	txsPoolPerShard map[uint32]*indexer.Pool,
+	txsPoolPerShard map[uint32]*outport.TransactionPool,
 ) {
 	ap.setScrsTxsPool(shardCoordinator, indexingData, txsPoolPerShard)
 }
@@ -53,10 +53,11 @@ func (ap *accountsParser) CreateMintTransaction(ia genesis.InitialAccountHandler
 }
 
 func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser {
+	addrBytes, _ := pubkeyConverter.Decode("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")
 	return &accountsParser{
 		pubkeyConverter:    pubkeyConverter,
 		initialAccounts:    make([]*data.InitialAccount, 0),
-		minterAddressBytes: []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"),
+		minterAddressBytes: addrBytes,
 		keyGenerator:       &mock.KeyGeneratorStub{},
 		hasher:             &hashingMocks.HasherMock{},
 		marshalizer:        &mock.MarshalizerMock{},

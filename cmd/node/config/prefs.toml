@@ -4,10 +4,12 @@
    # if "disabled" is provided then the node will start in the corresponding shard for its public key or 0 otherwise
    DestinationShardAsObserver = "disabled"
 
-   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor
+   # NodeDisplayName represents the friendly name a user can pick for his node in the status monitor when the node does not run in multikey mode
+   # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    NodeDisplayName = ""
 
-   # Identity represents the keybase's identity
+   # Identity represents the keybase/GitHub identity when the node does not run in multikey mode
+   # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    Identity = ""
 
    # RedundancyLevel represents the level of redundancy used by the node (-1 = disabled, 0 = main instance (default),
@@ -32,14 +34,49 @@
    #  - "print" - new connection found will be printed in the log file
    ConnectionWatcherType = "disabled"
 
-   # OverridableConfigTomlValues represents an array of items to be overloaded inside config.toml, which can be helpful
-   # when performing upgrades that bring a new config toml, and certain flags need to changed.
-   # The Path indicates what value to change, while Value represents the new value represented as string. The node operator must make sure
+   # OverridableConfigTomlValues represents an array of items to be overloaded inside other configuration files, which can be helpful
+   # so that certain config values need to remain the same during upgrades.
+   # (for example, an Elasticsearch user wants external.toml->ElasticSearchConnector.Enabled to remain true all the time during upgrades, while the default
+   # configuration of the node has the false value)
+   # The Path indicates what value to change, while Value represents the new value in string format. The node operator must make sure
    # to follow the same type of the original value (ex: uint32: "37", float32: "37.0", bool: "true")
+   # File represents the file name that holds the configuration. Currently, the supported files are: config.toml, external.toml, p2p.toml and enableEpochs.toml
    # -------------------------------
    # Un-comment and update the following section in order to enable config values overloading
    # -------------------------------
    # OverridableConfigTomlValues = [
-   #    { Path = "StoragePruning.NumEpochsToKeep", Value = "4" },
-   #    { Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" }
+   #    { File = "config.toml", Path = "StoragePruning.NumEpochsToKeep", Value = "4" },
+   #    { File = "config.toml", Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" },
+   #    { File = "external.toml", Path = "ElasticSearchConnector.Enabled", Value = "true" }
    #]
+
+# BlockProcessingCutoff can be used to stop processing blocks at a certain round, nonce or epoch.
+# This can be useful for snapshotting different stuff and also for debugging purposes.
+[BlockProcessingCutoff]
+   # If set to true, the node will stop at the given coordinate
+   Enabled = false
+
+   # Mode represents the cutoff mode. possible values: "pause" or "process-error".
+   # "pause" mode will halt the processing at the block with the given coordinates. Useful for snapshots/analytics
+   # "process-error" will return an error when processing the block with the given coordinates. Useful for debugging
+   Mode = "pause"
+
+   # CutoffTrigger represents the kind of coordinate to look after when cutting off the processing.
+   # Possible values: "round", "nonce", or "epoch"
+   CutoffTrigger = "round"
+
+   # The minimum value of the cutoff. For example, if CutoffType is set to "round", and Value to 20, then the node will stop processing at round 20+
+   Value = 0
+
+# NamedIdentity represents an identity that runs nodes on the multikey
+# There can be multiple identities set on the same node, each one of them having different bls keys, just by duplicating the NamedIdentity
+[[NamedIdentity]]
+   # Identity represents the keybase/GitHub identity for the current NamedIdentity
+   Identity = ""
+   # NodeName represents the name that will be given to the names of the current identity
+   NodeName = ""
+   # BLSKeys represents the BLS keys assigned to the current NamedIdentity
+   BLSKeys = [
+      "",
+      ""
+   ]

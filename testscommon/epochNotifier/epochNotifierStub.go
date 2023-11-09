@@ -1,10 +1,10 @@
 package epochNotifier
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // EpochNotifierStub -

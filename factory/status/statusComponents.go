@@ -2,35 +2,37 @@ package status
 
 import (
 	"context"
-	"fmt"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	nodeData "github.com/ElrondNetwork/elrond-go-core/data"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/statistics"
-	swVersionFactory "github.com/ElrondNetwork/elrond-go/common/statistics/softwareVersion/factory"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	outportDriverFactory "github.com/ElrondNetwork/elrond-go/outport/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	nodeData "github.com/multiversx/mx-chain-core-go/data"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	swVersionFactory "github.com/multiversx/mx-chain-go/common/statistics/softwareVersion/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/keysManagement"
+	"github.com/multiversx/mx-chain-go/outport"
+	outportDriverFactory "github.com/multiversx/mx-chain-go/outport/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type statusComponents struct {
-	nodesCoordinator nodesCoordinator.NodesCoordinator
-	statusHandler    core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	softwareVersion  statistics.SoftwareVersionChecker
-	cancelFunc       func()
+	nodesCoordinator    nodesCoordinator.NodesCoordinator
+	statusHandler       core.AppStatusHandler
+	outportHandler      outport.OutportHandler
+	softwareVersion     statistics.SoftwareVersionChecker
+	managedPeersMonitor common.ManagedPeersMonitor
+	cancelFunc          func()
 }
 
 // StatusComponentsFactoryArgs redefines the arguments structure needed for the status components factory
@@ -43,9 +45,9 @@ type StatusComponentsFactoryArgs struct {
 	EpochStartNotifier   factory.EpochStartNotifier
 	CoreComponents       factory.CoreComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
 	StateComponents      factory.StateComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
 }
 
@@ -59,9 +61,9 @@ type statusComponentsFactory struct {
 	forkDetector         process.ForkDetector
 	coreComponents       factory.CoreComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
-	dataComponents       factory.DataComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
 	stateComponents      factory.StateComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
 }
 
@@ -72,17 +74,11 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
 	}
-	if check.IfNil(args.DataComponents) {
-		return nil, errors.ErrNilDataComponentsHolder
+	if check.IfNil(args.CoreComponents.GenesisNodesSetup()) {
+		return nil, errors.ErrNilGenesisNodesSetupHandler
 	}
 	if check.IfNil(args.NetworkComponents) {
 		return nil, errors.ErrNilNetworkComponentsHolder
-	}
-	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, fmt.Errorf("%w for address", errors.ErrNilPubKeyConverter)
-	}
-	if check.IfNil(args.CoreComponents.ValidatorPubKeyConverter()) {
-		return nil, fmt.Errorf("%w for validator", errors.ErrNilPubKeyConverter)
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, errors.ErrNilShardCoordinator
@@ -96,8 +92,8 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 	if check.IfNil(args.StatusCoreComponents) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
-	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
+	if check.IfNil(args.CryptoComponents) {
+		return nil, errors.ErrNilCryptoComponents
 	}
 
 	return &statusComponentsFactory{
@@ -109,10 +105,10 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		epochStartNotifier:   args.EpochStartNotifier,
 		coreComponents:       args.CoreComponents,
 		statusCoreComponents: args.StatusCoreComponents,
-		dataComponents:       args.DataComponents,
 		networkComponents:    args.NetworkComponents,
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
+		cryptoComponents:     args.CryptoComponents,
 	}, nil
 }
 
@@ -146,14 +142,26 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		return nil, err
 	}
 
+	managedPeersMonitorArgs := keysManagement.ArgManagedPeersMonitor{
+		ManagedPeersHolder: scf.cryptoComponents.ManagedPeersHolder(),
+		NodesCoordinator:   scf.nodesCoordinator,
+		ShardProvider:      scf.shardCoordinator,
+		EpochProvider:      scf.coreComponents.EpochNotifier(),
+	}
+	managedPeersMonitor, err := keysManagement.NewManagedPeersMonitor(managedPeersMonitorArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	_, cancelFunc := context.WithCancel(context.Background())
 
 	statusComponentsInstance := &statusComponents{
-		nodesCoordinator: scf.nodesCoordinator,
-		softwareVersion:  softwareVersionChecker,
-		outportHandler:   outportHandler,
-		statusHandler:    scf.statusCoreComponents.AppStatusHandler(),
-		cancelFunc:       cancelFunc,
+		nodesCoordinator:    scf.nodesCoordinator,
+		softwareVersion:     softwareVersionChecker,
+		outportHandler:      outportHandler,
+		statusHandler:       scf.statusCoreComponents.AppStatusHandler(),
+		managedPeersMonitor: managedPeersMonitor,
+		cancelFunc:          cancelFunc,
 	}
 
 	if scf.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -173,7 +181,11 @@ func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
 				"error", err.Error())
 		}
 
-		pc.outportHandler.SaveValidatorsPubKeys(validatorsPubKeys, currentEpoch)
+		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                hdr.GetShardID(),
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  currentEpoch,
+		})
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 
@@ -199,24 +211,33 @@ func (pc *statusComponents) Close() error {
 // createOutportDriver creates a new outport.OutportHandler which is used to register outport drivers
 // once a driver is subscribed it will receive data through the implemented outport.Driver methods
 func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandler, error) {
+	hostDriversArgs, err := scf.makeHostDriversArgs()
+	if err != nil {
+		return nil, err
+	}
+
+	eventNotifierArgs, err := scf.makeEventNotifierArgs()
+	if err != nil {
+		return nil, err
+	}
 
 	outportFactoryArgs := &outportDriverFactory.OutportFactoryArgs{
-		RetrialInterval:            common.RetrialIntervalForOutportDriver,
-		ElasticIndexerFactoryArgs:  scf.makeElasticIndexerArgs(),
-		EventNotifierFactoryArgs:   scf.makeEventNotifierArgs(),
-		CovalentIndexerFactoryArgs: scf.makeCovalentIndexerArgs(),
+		ShardID:                   scf.shardCoordinator.SelfId(),
+		RetrialInterval:           common.RetrialIntervalForOutportDriver,
+		ElasticIndexerFactoryArgs: scf.makeElasticIndexerArgs(),
+		EventNotifierFactoryArgs:  eventNotifierArgs,
+		HostDriversArgs:           hostDriversArgs,
+		IsImportDB:                scf.isInImportMode,
 	}
 
 	return outportDriverFactory.CreateOutport(outportFactoryArgs)
 }
 
-func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.ArgsIndexerFactory {
+func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	return &indexerFactory.ArgsIndexerFactory{
+	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
-		IndexerCacheSize:         elasticSearchConfig.IndexerCacheSize,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
-		ShardCoordinator:         scf.shardCoordinator,
 		Url:                      elasticSearchConfig.URL,
 		UserName:                 elasticSearchConfig.Username,
 		Password:                 elasticSearchConfig.Password,
@@ -225,16 +246,21 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() *indexerFactory.Arg
 		AddressPubkeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
-		AccountsDB:               scf.stateComponents.AccountsAdapter(),
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
-		TransactionFeeCalculator: scf.coreComponents.EconomicsData(),
 		UseKibana:                elasticSearchConfig.UseKibana,
-		IsInImportDBMode:         scf.isInImportMode,
+		ImportDB:                 scf.isInImportMode,
+		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
 	}
 }
 
-func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactory.EventNotifierFactoryArgs {
+func (scf *statusComponentsFactory) makeEventNotifierArgs() (*outportDriverFactory.EventNotifierFactoryArgs, error) {
 	eventNotifierConfig := scf.externalConfig.EventNotifierConnector
+
+	marshaller, err := factoryMarshalizer.NewMarshalizer(eventNotifierConfig.MarshallerType)
+	if err != nil {
+		return &outportDriverFactory.EventNotifierFactoryArgs{}, err
+	}
+
 	return &outportDriverFactory.EventNotifierFactoryArgs{
 		Enabled:           eventNotifierConfig.Enabled,
 		UseAuthorization:  eventNotifierConfig.UseAuthorization,
@@ -242,22 +268,28 @@ func (scf *statusComponentsFactory) makeEventNotifierArgs() *outportDriverFactor
 		Username:          eventNotifierConfig.Username,
 		Password:          eventNotifierConfig.Password,
 		RequestTimeoutSec: eventNotifierConfig.RequestTimeoutSec,
-		Marshaller:        scf.coreComponents.InternalMarshalizer(),
-		Hasher:            scf.coreComponents.Hasher(),
-		PubKeyConverter:   scf.coreComponents.AddressPubKeyConverter(),
-	}
+		Marshaller:        marshaller,
+	}, nil
 }
 
-func (scf *statusComponentsFactory) makeCovalentIndexerArgs() *covalentFactory.ArgsCovalentIndexerFactory {
-	return &covalentFactory.ArgsCovalentIndexerFactory{
-		Enabled:              scf.externalConfig.CovalentConnector.Enabled,
-		URL:                  scf.externalConfig.CovalentConnector.URL,
-		RouteSendData:        scf.externalConfig.CovalentConnector.RouteSendData,
-		RouteAcknowledgeData: scf.externalConfig.CovalentConnector.RouteAcknowledgeData,
-		PubKeyConverter:      scf.coreComponents.AddressPubKeyConverter(),
-		Accounts:             scf.stateComponents.AccountsAdapter(),
-		Hasher:               scf.coreComponents.Hasher(),
-		Marshaller:           scf.coreComponents.InternalMarshalizer(),
-		ShardCoordinator:     scf.shardCoordinator,
+func (scf *statusComponentsFactory) makeHostDriversArgs() ([]outportDriverFactory.ArgsHostDriverFactory, error) {
+	argsHostDriverFactorySlice := make([]outportDriverFactory.ArgsHostDriverFactory, 0, len(scf.externalConfig.HostDriversConfig))
+	for idx := 0; idx < len(scf.externalConfig.HostDriversConfig); idx++ {
+		hostConfig := scf.externalConfig.HostDriversConfig[idx]
+		if !hostConfig.Enabled {
+			continue
+		}
+
+		marshaller, err := factoryMarshalizer.NewMarshalizer(hostConfig.MarshallerType)
+		if err != nil {
+			return argsHostDriverFactorySlice, err
+		}
+
+		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, outportDriverFactory.ArgsHostDriverFactory{
+			Marshaller: marshaller,
+			HostConfig: hostConfig,
+		})
 	}
+
+	return argsHostDriverFactorySlice, nil
 }

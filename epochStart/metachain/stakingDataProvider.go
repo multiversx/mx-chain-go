@@ -7,12 +7,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type ownerStats struct {
@@ -80,7 +80,7 @@ func (sdp *stakingDataProvider) GetTotalStakeEligibleNodes() *big.Int {
 }
 
 // GetTotalTopUpStakeEligibleNodes returns the stake in excess of the minimum stake required, that is backing the
-//current epoch eligible nodes
+// current epoch eligible nodes
 // This value is populated by a previous call to PrepareStakingData (done for epoch start)
 func (sdp *stakingDataProvider) GetTotalTopUpStakeEligibleNodes() *big.Int {
 	sdp.mutStakingData.RLock()
@@ -261,7 +261,7 @@ func (sdp *stakingDataProvider) getValidatorInfoFromSC(validatorAddress string) 
 		VMInput: vmcommon.VMInput{
 			CallerAddr:  vm.EndOfEpochAddress,
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 			Arguments:   [][]byte{validatorAddressBytes},
 		},
 		RecipientAddr: vm.ValidatorSCAddress,

@@ -1,6 +1,6 @@
 package rating
 
-import "github.com/ElrondNetwork/elrond-go/process"
+import "github.com/multiversx/mx-chain-go/process"
 
 var _ process.SelectionChance = (*SelectionChance)(nil)
 

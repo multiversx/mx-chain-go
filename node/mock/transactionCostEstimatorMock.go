@@ -1,13 +1,17 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/data/transaction"
+import (
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+)
 
-// TransactionCostEstimatorMock  --
+// TransactionCostEstimatorMock  -
 type TransactionCostEstimatorMock struct {
-	ComputeTransactionGasLimitCalled func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	ComputeTransactionGasLimitCalled   func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	SimulateTransactionExecutionCalled func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 }
 
-// ComputeTransactionGasLimit --
+// ComputeTransactionGasLimit -
 func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	if tcem.ComputeTransactionGasLimitCalled != nil {
 		return tcem.ComputeTransactionGasLimitCalled(tx)
@@ -15,7 +19,16 @@ func (tcem *TransactionCostEstimatorMock) ComputeTransactionGasLimit(tx *transac
 	return &transaction.CostResponse{}, nil
 }
 
-// IsInterfaceNil --
+// SimulateTransactionExecution -
+func (tcem *TransactionCostEstimatorMock) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	if tcem.SimulateTransactionExecutionCalled != nil {
+		return tcem.SimulateTransactionExecutionCalled(tx)
+	}
+
+	return &txSimData.SimulationResultsWithVMOutput{}, nil
+}
+
+// IsInterfaceNil -
 func (tcem *TransactionCostEstimatorMock) IsInterfaceNil() bool {
 	return tcem == nil
 }

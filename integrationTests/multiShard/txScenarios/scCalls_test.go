@@ -2,14 +2,14 @@ package txScenarios
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,8 +24,8 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 
 	net.Increment()
 
-	scPath := "./../../vm/arwen/testdata/counter/counter.wasm"
-	scCode, err := ioutil.ReadFile(scPath)
+	scPath := "./../../vm/wasm/testdata/counter/counter_old.wasm"
+	scCode, err := os.ReadFile(scPath)
 
 	if err != nil {
 		panic(fmt.Sprintf("cannotReadContractCode: %s", err))
@@ -36,7 +36,7 @@ func TestTransaction_TransactionSCScenarios(t *testing.T) {
 	scCodeMetadataString := "0000"
 	builder := txDataBuilder.NewBuilder().
 		Bytes(scCode).
-		Bytes(factory.ArwenVirtualMachine).
+		Bytes(factory.WasmVirtualMachine).
 		Str(scCodeMetadataString)
 	txData := builder.ToBytes()
 

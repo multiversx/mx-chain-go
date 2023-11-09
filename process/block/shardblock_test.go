@@ -13,41 +13,47 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	atomicCore "github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/blockchain"
-	"github.com/ElrondNetwork/elrond-go/process"
-	blproc "github.com/ElrondNetwork/elrond-go/process/block"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/process/coordinator"
-	"github.com/ElrondNetwork/elrond-go/process/factory/shard"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/process"
+	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 // ------- NewShardProcessor
@@ -263,17 +269,16 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	round := uint64(4)
 	checkRoundCt := atomicCore.Counter{}
 
-	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
-		CheckRoundCalled: func(r uint64) {
+	roundsNotifier := &epochNotifier.RoundNotifierStub{
+		CheckRoundCalled: func(header data.HeaderHandler) {
 			checkRoundCt.Increment()
-			require.Equal(t, round, r)
+			require.Equal(t, round, header.GetRound())
 		},
 	}
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.RoundNotifierField = roundsNotifier
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	arguments.EnableRoundsHandler = enableRoundsHandler
 
 	shardProcessor, _ := blproc.NewShardProcessor(arguments)
 	header := &block.Header{Round: round}
@@ -285,19 +290,18 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
 
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
-	assert.True(t, statusIdleSet && statusBusySet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -446,11 +450,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -468,10 +472,11 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -667,11 +672,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -689,10 +694,11 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -1834,9 +1840,14 @@ func TestShardProcessor_CommitBlockMarshalizerFailForHeaderShouldErr(t *testing.
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	sp, _ := blproc.NewShardProcessor(arguments)
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 
 	err := sp.CommitBlock(hdr, body)
 	assert.Equal(t, errMarshalizer, err)
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) {
@@ -1916,20 +1927,27 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
 	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	statusBusySet := false
-	statusIdleSet := false
+	busyIdleCalled := make([]string, 0)
 	mockProcessHandler.SetIdleCalled = func() {
-		statusIdleSet = true
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
 	mockProcessHandler.SetBusyCalled = func(reason string) {
-		statusBusySet = true
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 	}
+	expectedFirstNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 
 	err := sp.CommitBlock(hdr, body)
 	wg.Wait()
 	assert.True(t, atomic.LoadUint32(&putCalledNr) > 0)
 	assert.Nil(t, err)
-	assert.True(t, statusBusySet && statusIdleSet)
+	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+
+	expectedFirstNonce.HasValue = true
+	expectedFirstNonce.Value = hdr.Nonce
+	assert.Equal(t, expectedFirstNonce, sp.NonceOfFirstCommittedBlock())
 }
 
 func TestShardProcessor_CommitBlockStorageFailsForBodyShouldWork(t *testing.T) {
@@ -2198,9 +2216,6 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	store := initStore()
 
-	var txsPool *indexer.Pool
-	saveBlockCalledMutex := sync.Mutex{}
-
 	blkc := createTestBlockchain()
 	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 		return prevHdr
@@ -2216,37 +2231,30 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	statusComponents.Outport = &testscommon.OutportStub{
-		SaveBlockCalled: func(args *indexer.ArgsSaveBlockData) {
-			saveBlockCalledMutex.Lock()
-			txsPool = args.TransactionsPool
-			saveBlockCalledMutex.Unlock()
+	called := false
+	statusComponents.Outport = &outport.OutportStub{
+		SaveBlockCalled: func(args *outportcore.OutportBlockWithHeaderAndBody) error {
+			called = true
+			return nil
 		},
 		HasDriversCalled: func() bool {
 			return true
 		},
 	}
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(_ processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+			return &outportcore.OutportBlockWithHeaderAndBody{
+				HeaderDataWithBody: &outportcore.HeaderDataWithBody{
+					Body:       &block.Body{},
+					Header:     &block.HeaderV2{},
+					HeaderHash: []byte("hash"),
+				},
+				OutportBlock: &outportcore.OutportBlock{},
+			}, nil
+		}}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.ForkDetector = fd
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
-		GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
-			switch blockType {
-			case block.TxBlock:
-				return map[string]data.TransactionHandler{
-					"tx_1": &transaction.Transaction{Nonce: 1},
-					"tx_2": &transaction.Transaction{Nonce: 2},
-				}
-			case block.SmartContractResultBlock:
-				return map[string]data.TransactionHandler{
-					"utx_1": &smartContractResult.SmartContractResult{Nonce: 1},
-					"utx_2": &smartContractResult.SmartContractResult{Nonce: 2},
-				}
-			default:
-				return nil
-			}
-		},
-	}
 	blockTrackerMock := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.MetaBlock{}, []byte("hash"), nil
@@ -2263,8 +2271,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
 
-	assert.Equal(t, 2, len(txsPool.Txs))
-	assert.Equal(t, 2, len(txsPool.Scrs))
+	require.True(t, called)
 }
 
 func TestShardProcessor_CreateTxBlockBodyWithDirtyAccStateShouldReturnEmptyBody(t *testing.T) {
@@ -2432,10 +2439,6 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	hasher := hashingMocks.HasherMock{}
 	hdr, txBlock := createTestHdrTxBlockBody()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
-	statusHandler := &statusHandlerMock.AppStatusHandlerStub{
-		SetUInt64ValueHandler: func(key string, value uint64) {
-		},
-	}
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.DataPool = tdp
@@ -2444,7 +2447,7 @@ func TestShardProcessor_DisplayLogInfo(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 	assert.NotNil(t, sp)
 	hdr.PrevHash = hasher.Compute("prev hash")
-	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, statusHandler, &mock.BlockTrackerMock{})
+	sp.DisplayLogInfo(hdr, txBlock, []byte("tx_hash1"), shardCoordinator.NumberOfShards(), shardCoordinator.SelfId(), tdp, &mock.BlockTrackerMock{})
 }
 
 func TestBlockProcessor_ApplyBodyToHeaderNilBodyError(t *testing.T) {
@@ -2590,15 +2593,16 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2698,15 +2702,16 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -2770,15 +2775,17 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash3Requested := int32(0)
 
 	requestHandler := &testscommon.RequestHandlerStub{
-		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
-			if bytes.Equal(miniBlockHash1, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash1Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash2, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash2Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash3, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash3Requested, 1)
+		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+			for _, mbHash := range miniblocksHashes {
+				if bytes.Equal(miniBlockHash1, mbHash) {
+					atomic.AddInt32(&miniBlockHash1Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash2, mbHash) {
+					atomic.AddInt32(&miniBlockHash2Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash3, mbHash) {
+					atomic.AddInt32(&miniBlockHash3Requested, 1)
+				}
 			}
 		},
 	}
@@ -3069,11 +3076,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{
+		&economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return 0
 			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return MaxGasLimitPerBlock
 			},
 		},
@@ -3095,10 +3102,11 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -3271,15 +3279,16 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		&testscommon.SCProcessorMock{},
 		&testscommon.SmartContractResultsProcessorMock{},
 		&testscommon.RewardTxProcessorMock{},
-		&mock.FeeHandlerStub{},
+		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.GasHandlerStub{},
 		&mock.BlockTrackerMock{},
 		&testscommon.BlockSizeComputationStub{},
 		&testscommon.BalanceComputationStub{},
-		&testscommon.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&testscommon.TxTypeHandlerMock{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
+		&commonMock.TxExecutionOrderHandlerStub{},
 	)
 	container, _ := factory.Create()
 
@@ -5038,7 +5047,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
-	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsScheduledMiniBlocksFlagEnabledField: true,
 	}
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -5054,7 +5063,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	}
 
 	var called = &atomicCore.Flag{}
-	arguments.TxCoordinator = &mock.TransactionCoordinatorMock{
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		AddTransactionsCalled: func(txHandlers []data.TransactionHandler, blockType block.Type) {
 			require.Equal(t, block.TxBlock, blockType)
 			require.Equal(t, txs, txHandlers)
@@ -5247,4 +5256,148 @@ func TestShardProcessor_RollBackProcessedMiniBlocksInfo(t *testing.T) {
 	assert.Equal(t, metaHash, processedMetaHash)
 	assert.False(t, processedMbInfo.FullyProcessed)
 	assert.Equal(t, indexOfFirstTxProcessed-1, processedMbInfo.IndexOfLastTxProcessed)
+}
+
+func TestShardProcessor_CreateBlock(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	busyIdleCalled := make([]string, 0)
+	mockProcessHandler.SetIdleCalled = func() {
+		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+	}
+	mockProcessHandler.SetBusyCalled = func(reason string) {
+		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+	}
+
+	expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+	sp, errConstructor := blproc.NewShardProcessor(arguments)
+	assert.Nil(t, errConstructor)
+
+	doesHaveTime := func() bool {
+		return true
+	}
+	t.Run("nil block should error", func(t *testing.T) {
+		hdr, body, err := sp.CreateBlock(nil, doesHaveTime)
+		assert.True(t, check.IfNil(body))
+		assert.True(t, check.IfNil(hdr))
+		assert.Equal(t, process.ErrNilBlockHeader, err)
+		assert.Zero(t, len(busyIdleCalled))
+	})
+	t.Run("wrong block type should error", func(t *testing.T) {
+		meta := &block.MetaBlock{}
+
+		hdr, body, err := sp.CreateBlock(meta, doesHaveTime)
+		assert.True(t, check.IfNil(body))
+		assert.True(t, check.IfNil(hdr))
+		assert.Equal(t, process.ErrWrongTypeAssertion, err)
+		assert.Zero(t, len(busyIdleCalled))
+	})
+	t.Run("should work with empty header v1", func(t *testing.T) {
+		header := &block.Header{
+			Nonce: 37,
+			Round: 38,
+			Epoch: 1,
+		}
+
+		expectedHeader := &block.Header{
+			Nonce:           37,
+			Round:           38,
+			Epoch:           1,
+			ReceiptsHash:    []byte("receiptHash"),
+			DeveloperFees:   big.NewInt(0),
+			AccumulatedFees: big.NewInt(0),
+		}
+
+		// reset the slice, do not call these tests in parallel
+		busyIdleCalled = make([]string, 0)
+		hdr, bodyHandler, err := sp.CreateBlock(header, doesHaveTime)
+		assert.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		assert.True(t, ok)
+
+		assert.Zero(t, len(body.MiniBlocks))
+		assert.False(t, check.IfNil(hdr))
+		assert.Equal(t, expectedHeader, header)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+	t.Run("should work with empty header v2", func(t *testing.T) {
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 37,
+				Round: 38,
+				Epoch: 1,
+			},
+		}
+
+		expectedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce:           37,
+				Round:           38,
+				Epoch:           1,
+				ReceiptsHash:    []byte("receiptHash"),
+				DeveloperFees:   big.NewInt(0),
+				AccumulatedFees: big.NewInt(0),
+			},
+		}
+
+		// reset the slice, do not call these tests in parallel
+		busyIdleCalled = make([]string, 0)
+		hdr, bodyHandler, err := sp.CreateBlock(header, doesHaveTime)
+		assert.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		assert.True(t, ok)
+
+		assert.Zero(t, len(body.MiniBlocks))
+		assert.False(t, check.IfNil(hdr))
+		assert.Equal(t, expectedHeader, header)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+	t.Run("should work with empty header v2 and epoch start rewriting the epoch value", func(t *testing.T) {
+		argumentsLocal := CreateMockArguments(createComponentHolderMocks())
+		argumentsLocal.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return true
+			},
+			MetaEpochCalled: func() uint32 {
+				return 2
+			},
+		}
+
+		spLocal, err := blproc.NewShardProcessor(argumentsLocal)
+		assert.Nil(t, err)
+
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 37,
+				Round: 38,
+				Epoch: 1,
+			},
+		}
+
+		expectedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce:           37,
+				Round:           38,
+				Epoch:           2, // epoch should be re-written
+				ReceiptsHash:    []byte("receiptHash"),
+				DeveloperFees:   big.NewInt(0),
+				AccumulatedFees: big.NewInt(0),
+			},
+		}
+
+		hdr, bodyHandler, err := spLocal.CreateBlock(header, doesHaveTime)
+		assert.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		assert.True(t, ok)
+
+		assert.Zero(t, len(body.MiniBlocks))
+		assert.False(t, check.IfNil(hdr))
+		assert.Equal(t, expectedHeader, header)
+		assert.Nil(t, err)
+	})
 }

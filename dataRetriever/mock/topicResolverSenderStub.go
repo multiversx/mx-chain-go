@@ -1,35 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // TopicResolverSenderStub -
 type TopicResolverSenderStub struct {
-	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
-	SendCalled               func(buff []byte, peer core.PeerID) error
-	TargetShardIDCalled      func() uint32
-	SetNumPeersToQueryCalled func(intra int, cross int)
-	GetNumPeersToQueryCalled func() (int, int)
-	debugHandler             dataRetriever.ResolverDebugHandler
-}
-
-// SetNumPeersToQuery -
-func (trss *TopicResolverSenderStub) SetNumPeersToQuery(intra int, cross int) {
-	if trss.SetNumPeersToQueryCalled != nil {
-		trss.SetNumPeersToQueryCalled(intra, cross)
-	}
-}
-
-// NumPeersToQuery -
-func (trss *TopicResolverSenderStub) NumPeersToQuery() (int, int) {
-	if trss.GetNumPeersToQueryCalled != nil {
-		return trss.GetNumPeersToQueryCalled()
-	}
-
-	return 2, 2
+	SendCalled          func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error
+	TargetShardIDCalled func() uint32
+	debugHandler        dataRetriever.DebugHandler
 }
 
 // RequestTopic -
@@ -37,19 +19,10 @@ func (trss *TopicResolverSenderStub) RequestTopic() string {
 	return "topic_REQUEST"
 }
 
-// SendOnRequestTopic -
-func (trss *TopicResolverSenderStub) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-	if trss.SendOnRequestTopicCalled != nil {
-		return trss.SendOnRequestTopicCalled(rd, originalHashes)
-	}
-
-	return nil
-}
-
 // Send -
-func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID) error {
+func (trss *TopicResolverSenderStub) Send(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
 	if trss.SendCalled != nil {
-		return trss.SendCalled(buff, peer)
+		return trss.SendCalled(buff, peer, source)
 	}
 
 	return nil
@@ -64,17 +37,17 @@ func (trss *TopicResolverSenderStub) TargetShardID() uint32 {
 	return 0
 }
 
-// ResolverDebugHandler -
-func (trss *TopicResolverSenderStub) ResolverDebugHandler() dataRetriever.ResolverDebugHandler {
+// DebugHandler -
+func (trss *TopicResolverSenderStub) DebugHandler() dataRetriever.DebugHandler {
 	if check.IfNil(trss.debugHandler) {
-		return &ResolverDebugHandler{}
+		return &DebugHandler{}
 	}
 
 	return trss.debugHandler
 }
 
-// SetResolverDebugHandler -
-func (trss *TopicResolverSenderStub) SetResolverDebugHandler(handler dataRetriever.ResolverDebugHandler) error {
+// SetDebugHandler -
+func (trss *TopicResolverSenderStub) SetDebugHandler(handler dataRetriever.DebugHandler) error {
 	trss.debugHandler = handler
 
 	return nil

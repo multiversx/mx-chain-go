@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/genesis"
 )
 
 var _ update.EpochStartTriesSyncHandler = (*syncAccountsDBs)(nil)
@@ -149,7 +150,7 @@ func (st *syncAccountsDBs) syncAccountsOfType(accountType genesis.Type, trieID s
 		return err
 	}
 
-	err = accountsDBSyncer.SyncAccounts(rootHash)
+	err = accountsDBSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
 	if err != nil {
 		// TODO: critical error - should not happen - maybe recreate trie syncer here
 		return err

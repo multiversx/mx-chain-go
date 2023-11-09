@@ -4,9 +4,10 @@
 # Each activation round definition contains an optional slice of strings. These are useful, for example, when we have
 # some exceptions to process in a different manner at a special round (say a block, a transaction, a smart contract result and such)
 
+# The Options field for each activation round can have some custom array of strings (for using them in exceptions or other use cases)
+# Example: Options = ["test string1", "test string 2"]
+
 [RoundActivations]
-    # RoundActivations.Example represents an example how to use the round activation
-    # mechanism. Replace this with the first real use case
-    [RoundActivations.Example]
-        Options = ["test string1", "test string 2"]
+    [RoundActivations.DisableAsyncCallV1]
+        Options = []
         Round = "18446744073709551614"

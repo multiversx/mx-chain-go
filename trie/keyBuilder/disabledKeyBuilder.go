@@ -1,7 +1,7 @@
 package keyBuilder
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type disabledKeyBuilder struct {
@@ -25,4 +25,9 @@ func (dkb *disabledKeyBuilder) GetKey() ([]byte, error) {
 // Clone returns a new disabled key builder
 func (dkb *disabledKeyBuilder) Clone() common.KeyBuilder {
 	return &disabledKeyBuilder{}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dkb *disabledKeyBuilder) IsInterfaceNil() bool {
+	return dkb == nil
 }

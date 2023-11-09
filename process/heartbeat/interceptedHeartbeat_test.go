@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/mock"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
 )
 

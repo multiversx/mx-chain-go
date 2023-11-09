@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"testing"
 
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 

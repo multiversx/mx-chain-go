@@ -6,16 +6,17 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,14 +28,14 @@ func createMockArguments() ArgNewTxTypeHandler {
 		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
 		ArgumentParser:     parsers.NewCallArgsParser(),
 		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
 		},
 	}
 }
 
-func createMockPubkeyConverter() *mock.PubkeyConverterMock {
-	return mock.NewPubkeyConverterMock(32)
+func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func TestNewTxTypeHandler_NilAddrConv(t *testing.T) {
@@ -285,7 +286,7 @@ func TestTxTypeHandler_ComputeTransactionTypeMoveBalance(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -311,7 +312,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -340,7 +341,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveMoveBalance(t *
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -371,7 +372,7 @@ func TestTxTypeHandler_ComputeTransactionTypeBuiltInFuncNotActiveSCCall(t *testi
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -402,7 +403,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedFunc(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -428,7 +429,7 @@ func TestTxTypeHandler_ComputeTransactionTypeRelayedV2Func(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},
@@ -455,7 +456,7 @@ func TestTxTypeHandler_ComputeTransactionTypeForSCRCallBack(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.PubkeyConverter = &mock.PubkeyConverterStub{
+	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
 		},

@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 func (d *delegation) createAndAddLogEntry(contractCallInput *vmcommon.ContractCallInput, topics ...[]byte) {
@@ -30,9 +30,12 @@ func (d *delegation) createAndAddLogEntryForWithdraw(
 	delegator *DelegatorData,
 	numUsers uint64,
 	wasDeleted bool,
+	withdrawFundKeys [][]byte,
 ) {
 	activeFund := d.getFundForLogEntry(delegator.ActiveFund)
-	d.createAndAddLogEntryCustom(function, address, actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	topics := append(make([][]byte, 0), actualUserUnBond.Bytes(), activeFund.Bytes(), big.NewInt(0).SetUint64(numUsers).Bytes(), globalFund.TotalActive.Bytes(), boolToSlice(wasDeleted))
+	topics = append(topics, withdrawFundKeys...)
+	d.createAndAddLogEntryCustom(function, address, topics...)
 }
 
 func (d *delegation) createAndAddLogEntryForDelegate(
@@ -112,7 +115,14 @@ func (d *delegation) createLogEventsForChangeOwner(
 	}
 
 	d.createAndAddLogEntryForDelegate(args, big.NewInt(0), globalFund, ownerDelegatorData, dStatus, false)
-	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true)
+	d.createAndAddLogEntryForWithdraw(withdraw, args.CallerAddr, big.NewInt(0), globalFund, ownerDelegatorData, d.numUsers(), true, nil)
+
+	entry := &vmcommon.LogEntry{
+		Identifier: []byte(core.BuiltInFunctionChangeOwnerAddress),
+		Address:    args.RecipientAddr,
+		Topics:     [][]byte{args.Arguments[0]},
+	}
+	d.eei.AddLogEntry(entry)
 }
 
 func boolToSlice(b bool) []byte {

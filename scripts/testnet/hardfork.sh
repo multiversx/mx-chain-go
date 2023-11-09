@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
-source "$ELRONDTESTNETSCRIPTSDIR/include/config.sh"
+export MULTIVERSXTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/config.sh"
 
 VALIDATOR_RES_PORT="$PORT_ORIGIN_VALIDATOR_REST"
 

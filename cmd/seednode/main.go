@@ -9,28 +9,33 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	factoryMarshalizer "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/file"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/cmd/seednode/api"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/facade"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	secp256k1SinglerSig "github.com/multiversx/mx-chain-crypto-go/signing/secp256k1/singlesig"
+	"github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/cmd/seednode/api"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	p2pDebug "github.com/multiversx/mx-chain-go/debug/p2p"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/facade"
+	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
 )
 
 const (
 	defaultLogsPath     = "logs"
-	logFilePrefix       = "elrond-seed"
+	logFilePrefix       = "multiversx-seed"
 	filePathPlaceholder = "[path]"
 )
 
@@ -113,8 +118,8 @@ func main() {
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 
@@ -195,12 +200,7 @@ func startNode(ctx *cli.Context) error {
 	}
 
 	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
-	p2pKeyBytes, err := common.GetSkBytesFromP2pKey(p2pKeyPemFileName)
-	if err != nil {
-		return err
-	}
-
-	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyBytes)
+	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyPemFileName)
 	if err != nil {
 		return err
 	}
@@ -245,20 +245,44 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 	return cfg, nil
 }
 
-func createNode(p2pConfig p2pConfig.P2PConfig, marshalizer marshal.Marshalizer, p2pKeyBytes []byte) (p2p.Messenger, error) {
+func createNode(
+	p2pConfig p2pConfig.P2PConfig,
+	marshalizer marshal.Marshalizer,
+	p2pKeyFileName string,
+) (p2p.Messenger, error) {
+	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
+	p2pKeyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
+
+	p2pKey, _, err := cryptoFactory.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
+	if err != nil {
+		return nil, err
+	}
+
 	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           marshalizer,
-		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
+		Marshaller:            marshalizer,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
-		P2pPrivateKeyBytes:    p2pKeyBytes,
+		P2pPrivateKey:         p2pKey,
+		P2pSingleSigner:       p2pSingleSigner,
+		P2pKeyGenerator:       p2pKeyGen,
+		NetworkType:           p2p.MainNetwork,
+		Logger:                logger.GetOrCreate("seed/p2p"),
 	}
 
-	return p2pFactory.NewNetworkMessenger(arg)
+	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netMessenger.SetDebugger(p2pDebug.NewP2PDebugger(netMessenger.ID()))
+	if err != nil {
+		return nil, err
+	}
+
+	return netMessenger, err
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {

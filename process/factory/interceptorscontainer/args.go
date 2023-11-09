@@ -1,13 +1,14 @@
 package interceptorscontainer
 
 import (
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // CommonInterceptorsContainerFactoryArgs holds the arguments needed for the metachain/shard interceptors factories
@@ -17,7 +18,8 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	Accounts                     state.AccountsAdapter
 	ShardCoordinator             sharding.Coordinator
 	NodesCoordinator             nodesCoordinator.NodesCoordinator
-	Messenger                    process.TopicHandler
+	MainMessenger                process.TopicHandler
+	FullArchiveMessenger         process.TopicHandler
 	Store                        dataRetriever.StorageService
 	DataPool                     dataRetriever.PoolsHolder
 	MaxTxNonceDeltaAllowed       int
@@ -37,6 +39,8 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	PeerSignatureHandler         crypto.PeerSignatureHandler
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
-	PeerShardMapper              process.PeerShardMapper
+	MainPeerShardMapper          process.PeerShardMapper
+	FullArchivePeerShardMapper   process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
+	NodeOperationMode            common.NodeOperation
 }

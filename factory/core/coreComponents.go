@@ -6,40 +6,40 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/alarm"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/nodetype"
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
-	"github.com/ElrondNetwork/elrond-go-core/core/watchdog"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	hasherFactory "github.com/ElrondNetwork/elrond-go-core/hashing/factory"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	marshalizerFactory "github.com/ElrondNetwork/elrond-go-core/marshal/factory"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	commonFactory "github.com/ElrondNetwork/elrond-go/common/factory"
-	"github.com/ElrondNetwork/elrond-go/common/forking"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/alarm"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/nodetype"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/core/watchdog"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/round"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/storage"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -98,12 +98,13 @@ type coreComponents struct {
 	chainID                       string
 	minTransactionVersion         uint32
 	epochNotifier                 process.EpochNotifier
+	roundNotifier                 process.RoundNotifier
 	enableRoundsHandler           process.EnableRoundsHandler
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	encodedAddressLen             uint32
-	arwenChangeLocker             common.Locker
+	wasmVMChangeLocker            common.Locker
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
@@ -224,29 +225,31 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	alarmScheduler := alarm.NewAlarmScheduler()
+	// TODO: disable watchdog if block processing cutoff is enabled
 	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
 	if err != nil {
 		return nil, err
 	}
 
-	epochNotifier := forking.NewGenericEpochNotifier()
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig)
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}
 
+	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
 
-	arwenChangeLocker := &sync.RWMutex{}
+	wasmVMChangeLocker := &sync.RWMutex{}
 	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: ccf.epochConfig.GasSchedule,
-		ConfigDir:         gasScheduleConfigurationFolderName,
-		EpochNotifier:     epochNotifier,
-		ArwenChangeLocker: arwenChangeLocker,
+		GasScheduleConfig:  ccf.epochConfig.GasSchedule,
+		ConfigDir:          gasScheduleConfigurationFolderName,
+		EpochNotifier:      epochNotifier,
+		WasmVMChangeLocker: wasmVMChangeLocker,
 	}
 	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
 	if err != nil {
@@ -261,12 +264,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
+
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:                   &ccf.economicsConfig,
 		EpochNotifier:               epochNotifier,
 		EnableEpochsHandler:         enableEpochsHandler,
 		BuiltInFunctionsCostHandler: builtInCostHandler,
+		TxVersionChecker:            txVersionChecker,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -312,13 +318,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
-
 	// set as observer at first - it will be updated when creating the nodes coordinator
 	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
 	pubKeyStr := ccf.config.Hardfork.PublicKeyToListenFrom
 	pubKeyBytes, err := validatorPubkeyConverter.Decode(pubKeyStr)
+	if err != nil {
+		return nil, err
+	}
+
+	encodedAddressLen, err := computeEncodedAddressLen(addressPubkeyConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -348,12 +357,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		chainID:                       ccf.config.GeneralSettings.ChainID,
 		minTransactionVersion:         ccf.config.GeneralSettings.MinTransactionVersion,
 		epochNotifier:                 epochNotifier,
+		roundNotifier:                 roundNotifier,
 		enableRoundsHandler:           enableRoundsHandler,
 		epochStartNotifierWithConfirm: notifier.NewEpochStartSubscriptionHandler(),
 		chanStopNodeProcess:           ccf.chanStopNodeProcess,
-		encodedAddressLen:             computeEncodedAddressLen(addressPubkeyConverter),
+		encodedAddressLen:             encodedAddressLen,
 		nodeTypeProvider:              nodeTypeProvider,
-		arwenChangeLocker:             arwenChangeLocker,
+		wasmVMChangeLocker:            wasmVMChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
@@ -374,8 +384,12 @@ func (cc *coreComponents) Close() error {
 	return nil
 }
 
-func computeEncodedAddressLen(converter core.PubkeyConverter) uint32 {
+func computeEncodedAddressLen(converter core.PubkeyConverter) (uint32, error) {
 	emptyAddress := bytes.Repeat([]byte{0}, converter.Len())
-	encodedEmptyAddress := converter.Encode(emptyAddress)
-	return uint32(len(encodedEmptyAddress))
+	encodedEmptyAddress, err := converter.Encode(emptyAddress)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(len(encodedEmptyAddress)), nil
 }

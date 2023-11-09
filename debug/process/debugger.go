@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (

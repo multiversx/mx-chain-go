@@ -1,8 +1,8 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type trieStorageManagerWithoutSnapshot struct {
@@ -36,9 +36,9 @@ func (tsm *trieStorageManagerWithoutSnapshot) PutInEpochWithoutCache(key []byte,
 }
 
 // TakeSnapshot does nothing, as snapshots are disabled for this implementation
-func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ []byte, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+func (tsm *trieStorageManagerWithoutSnapshot) TakeSnapshot(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 	if iteratorChannels != nil {
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 	}
 	stats.SnapshotFinished()
 }

@@ -4,8 +4,8 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 )
 
 // FeeHandler represents a disabled fee handler implementation
@@ -39,6 +39,16 @@ func (fh *FeeHandler) MinGasPrice() uint64 {
 
 // MinGasLimit returns 0
 func (fh *FeeHandler) MinGasLimit() uint64 {
+	return 0
+}
+
+// ExtraGasLimitGuardedTx returns 0
+func (fh *FeeHandler) ExtraGasLimitGuardedTx() uint64 {
+	return 0
+}
+
+// MaxGasPriceSetGuardian returns 0
+func (fh *FeeHandler) MaxGasPriceSetGuardian() uint64 {
 	return 0
 }
 

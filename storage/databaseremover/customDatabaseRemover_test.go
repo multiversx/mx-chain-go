@@ -4,8 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,7 +25,7 @@ func TestCustomDatabaseRemover(t *testing.T) {
 
 		cdr, err := NewCustomDatabaseRemover(createCfgWithPattern(","))
 		require.True(t, errors.Is(err, errEmptyPatternArgument))
-		require.True(t, check.IfNil(cdr))
+		require.Nil(t, cdr)
 	})
 
 	t.Run("invalid pattern argument, should error", func(t *testing.T) {
@@ -88,4 +87,14 @@ func createCfgWithPattern(pattern string) config.StoragePruningConfig {
 	return config.StoragePruningConfig{
 		AccountsTrieSkipRemovalCustomPattern: pattern,
 	}
+}
+
+func TestCustomDatabaseRemover_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var cdr *customDatabaseRemover
+	require.True(t, cdr.IsInterfaceNil())
+
+	cdr, _ = NewCustomDatabaseRemover(createCfgWithPattern("%2,%3"))
+	require.False(t, cdr.IsInterfaceNil())
 }

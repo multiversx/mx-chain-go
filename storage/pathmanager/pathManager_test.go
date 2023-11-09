@@ -3,8 +3,9 @@ package pathmanager_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/storage/pathmanager"
+	"github.com/multiversx/mx-chain-go/storage/pathmanager"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewPathManager_EmptyPruningPathTemplateShouldErr(t *testing.T) {
@@ -21,6 +22,14 @@ func TestNewPathManager_EmptyStaticPathTemplateShouldErr(t *testing.T) {
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "", "db")
 	assert.Nil(t, pm)
 	assert.Equal(t, pathmanager.ErrEmptyStaticPathTemplate, err)
+}
+
+func TestNewPathManager_EmptyDBPathTemplateShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "")
+	assert.Nil(t, pm)
+	assert.Equal(t, pathmanager.ErrInvalidDatabasePath, err)
 }
 
 func TestNewPathManager_InvalidPruningPathTemplate_NoShardPlaceholder_ShouldErr(t *testing.T) {
@@ -69,6 +78,14 @@ func TestNewPathManager_OkValsShouldWork(t *testing.T) {
 	pm, err := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
 	assert.NotNil(t, pm)
 	assert.Nil(t, err)
+}
+
+func TestPathManager_DatabasePath(t *testing.T) {
+	t.Parallel()
+
+	dbPath := "db"
+	pm, _ := pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", dbPath)
+	assert.Equal(t, dbPath, pm.DatabasePath())
 }
 
 func TestPathManager_PathForEpoch(t *testing.T) {
@@ -150,4 +167,14 @@ func TestPathManager_PathForStatic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPathManager_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pm *pathmanager.PathManager
+	require.True(t, pm.IsInterfaceNil())
+
+	pm, _ = pathmanager.NewPathManager("epoch_[E]/shard_[S]/[I]", "shard_[S]/[I]", "db")
+	require.False(t, pm.IsInterfaceNil())
 }

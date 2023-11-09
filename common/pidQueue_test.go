@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,6 +90,9 @@ func TestPidQueue_PromoteTwoElementsShouldWork(t *testing.T) {
 	pid1 := core.PeerID("pid 1")
 	pq.Push(pid0)
 	pq.Push(pid1)
+
+	pq.Promote(-1) // early return
+	pq.Promote(2)  // early return
 
 	pq.Promote(0)
 
@@ -235,4 +238,14 @@ func TestPidQueue_TestConcurrency(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestPidQueue_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pq *pidQueue
+	assert.True(t, pq.IsInterfaceNil())
+
+	pq = NewPidQueue()
+	assert.False(t, pq.IsInterfaceNil())
 }

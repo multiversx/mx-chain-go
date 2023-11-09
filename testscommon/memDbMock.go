@@ -10,9 +10,11 @@ import (
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
 // and a mutex to handle concurrent accesses to the map
 type MemDbMock struct {
-	db        map[string][]byte
-	mutx      sync.RWMutex
-	PutCalled func(key, val []byte) error
+	db                  map[string][]byte
+	mutx                sync.RWMutex
+	PutCalled           func(key, val []byte) error
+	GetCalled           func(key []byte) ([]byte, error)
+	GetIdentifierCalled func() string
 }
 
 // NewMemDbMock creates a new memorydb object
@@ -43,6 +45,10 @@ func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 	defer s.mutx.RUnlock()
 
 	val, ok := s.db[string(key)]
+
+	if s.GetCalled != nil {
+		return s.GetCalled(key)
+	}
 
 	if !ok {
 		return nil, fmt.Errorf("key: %s not found", base64.StdEncoding.EncodeToString(key))
@@ -110,6 +116,15 @@ func (s *MemDbMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 			return
 		}
 	}
+}
+
+// GetIdentifier returns the identifier of the storage medium
+func (s *MemDbMock) GetIdentifier() string {
+	if s.GetIdentifierCalled != nil {
+		return s.GetIdentifierCalled()
+	}
+
+	return ""
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

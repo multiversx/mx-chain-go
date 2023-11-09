@@ -12,11 +12,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/proto"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gorilla/websocket"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/proto"
 	"github.com/urfave/cli"
 )
 
@@ -39,7 +39,7 @@ VERSION:
 	// addressFlag defines a flag for setting the address and port on which the node will listen for connections
 	addressFlag = cli.StringFlag{
 		Name:        "address",
-		Usage:       "Address and port number on which the application will try to connect to the elrond-go node",
+		Usage:       "Address and port number on which the application will try to connect to the mx-chain-go node",
 		Value:       "127.0.0.1:8080",
 		Destination: &address,
 	}
@@ -78,7 +78,7 @@ func main() {
 func initCliFlags() {
 	cliApp = cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	cliApp.Name = "Elrond Logviewer Testing App"
+	cliApp.Name = "MultiversX Logviewer Testing App"
 	cliApp.Version = fmt.Sprintf("%s/%s/%s-%s", "1.0.0", runtime.Version(), runtime.GOOS, runtime.GOARCH)
 	cliApp.Usage = "Testing application for Logwiever"
 	cliApp.Flags = []cli.Flag{
@@ -86,8 +86,8 @@ func initCliFlags() {
 	}
 	cliApp.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 }

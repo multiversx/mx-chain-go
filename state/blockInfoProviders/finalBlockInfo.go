@@ -1,10 +1,10 @@
 package blockInfoProviders
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 )
 
 type finalBlockInfo struct {

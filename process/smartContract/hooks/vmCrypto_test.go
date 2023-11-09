@@ -4,9 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing/keccak"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/sha256"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/stretchr/testify/assert"
 )
 

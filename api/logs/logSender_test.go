@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/logs"
-	"github.com/ElrondNetwork/elrond-go/api/mock"
 	"github.com/gorilla/websocket"
+	"github.com/multiversx/mx-chain-go/api/logs"
+	"github.com/multiversx/mx-chain-go/api/mock"
+	"github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 

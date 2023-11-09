@@ -2,17 +2,17 @@ package integrationTests
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -84,7 +84,7 @@ func NewTestNetworkSized(
 }
 
 // Start initializes the test network and starts its nodes
-func (net *TestNetwork) Start() {
+func (net *TestNetwork) Start() *TestNetwork {
 	net.Round = 0
 	net.Nonce = 0
 
@@ -93,6 +93,8 @@ func (net *TestNetwork) Start() {
 	net.startNodes()
 	net.mapNodesByShard()
 	net.initDefaults()
+
+	return net
 }
 
 // Increment only increments the Round and the Nonce, without triggering the
@@ -143,13 +145,29 @@ func (net *TestNetwork) MintNodeAccountsUint64(value uint64) {
 
 // CreateWallets initializes the internal test wallets
 func (net *TestNetwork) CreateWallets(count int) {
-	net.Wallets = make([]*TestWalletAccount, count)
-
+	net.CreateUninitializedWallets(count)
 	for i := 0; i < count; i++ {
 		shardID := ShardIdentifier(i % net.NumShards)
 		node := net.firstNodeInShard(shardID)
 		net.Wallets[i] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
 	}
+}
+
+// SetWallet -
+func (net *TestNetwork) SetWallet(walletIndex int, wallet *TestWalletAccount) {
+	net.Wallets[walletIndex] = wallet
+}
+
+// CreateUninitializedWallets -
+func (net *TestNetwork) CreateUninitializedWallets(count int) {
+	net.Wallets = make([]*TestWalletAccount, count)
+}
+
+// CreateWalletOnShard -
+func (net *TestNetwork) CreateWalletOnShard(walletIndex int, shardID uint32) *TestWalletAccount {
+	node := net.firstNodeInShard(shardID)
+	net.Wallets[walletIndex] = CreateTestWalletAccount(node.ShardCoordinator, shardID)
+	return net.Wallets[walletIndex]
 }
 
 // MintWallets adds the specified value to the test wallets.
@@ -211,7 +229,7 @@ func (net *TestNetwork) DeploySCWithInitArgs(
 	args ...[]byte,
 ) []byte {
 	scAddress := net.NewAddress(owner)
-	code, err := ioutil.ReadFile(filepath.Clean(fileName))
+	code, err := os.ReadFile(filepath.Clean(fileName))
 	require.Nil(net.T, err)
 
 	codeMetadata := &vmcommon.CodeMetadata{
@@ -309,7 +327,7 @@ func (net *TestNetwork) CreateTx(
 
 // SignTx signs a transaction with the provided `signer` wallet.
 func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transaction) {
-	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer)
+	txBuff, err := tx.GetDataForSigning(TestAddressPubkeyConverter, TestTxSignMarshalizer, TestTxSignHasher)
 	net.handleOrBypassError(err)
 
 	signature, err := signer.SingleSigner.Sign(signer.SkTxSign, txBuff)
@@ -321,10 +339,16 @@ func (net *TestNetwork) SignTx(signer *TestWalletAccount, tx *transaction.Transa
 // NewAddress creates a new child address of the provided wallet; used to
 // compute the address of newly deployed smart contracts.
 func (net *TestNetwork) NewAddress(creator *TestWalletAccount) Address {
+	return net.NewAddressWithVM(creator, net.DefaultVM)
+}
+
+// NewAddressWithVM creates a new child address of the provided wallet; used to
+// compute the address of newly deployed smart contracts.
+func (net *TestNetwork) NewAddressWithVM(creator *TestWalletAccount, vmType []byte) Address {
 	address, err := net.DefaultNode.BlockchainHook.NewAddress(
 		creator.Address,
 		creator.Nonce,
-		net.DefaultVM)
+		vmType)
 	net.handleOrBypassError(err)
 
 	return address
@@ -432,7 +456,7 @@ func (net *TestNetwork) initDefaults() {
 	net.DefaultNode = net.Nodes[0]
 	net.DefaultGasPrice = MinTxGasPrice
 	net.DefaultGasSchedule = nil
-	net.DefaultVM = factory.ArwenVirtualMachine
+	net.DefaultVM = factory.WasmVirtualMachine
 
 	defaultNodeShardID := net.DefaultNode.ShardCoordinator.SelfId()
 	net.MinGasLimit = MinTxGasLimit
@@ -441,7 +465,7 @@ func (net *TestNetwork) initDefaults() {
 
 func (net *TestNetwork) closeNodes() {
 	for _, node := range net.Nodes {
-		err := node.Messenger.Close()
+		err := node.MainMessenger.Close()
 		net.handleOrBypassError(err)
 		_ = node.VMContainer.Close()
 	}

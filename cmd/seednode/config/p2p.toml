@@ -13,6 +13,16 @@
     #not have a sync and consensus mechanism. Default is 0.
     ThresholdMinConnectedPeers = 0
 
+    # available transports. All defined addresses contains a single '%d' markup that is mandatory and will
+    # be replaced at runtime with the actual port value
+    [Node.Transports]
+        QUICAddress = "" # optional QUIC address. If this transport should be activated, should be in this format: /ip4/0.0.0.0/udp/%d/quic
+        WebSocketAddress = "" # optional WebSocket address. If this transport should be activated, should be in this format: /ip4/0.0.0.0/tcp/%d/ws
+        WebTransportAddress = "" # optional WebTransport address. If this transport should be activated, should be in this format: /ip4/0.0.0.0/udp/%d/quic-v1/webtransport
+        [Node.Transports.TCP]
+            ListenAddress = "/ip4/0.0.0.0/tcp/%d" # TCP listen address
+            PreventPortReuse = true # seeder nodes will need to enable this option
+
 # P2P peer discovery section
 
 #The following sections correspond to the way new peers will be discovered
@@ -69,7 +79,3 @@
     #              the shard membership of the connected peers
     #  `NilListSharder` will disable conection trimming (sharder is off)
     Type = "NilListSharder"
-
-    [AdditionalConnections]
-        #this value will be added to the target peer count automatically when the node will be in full archive mode
-        MaxFullHistoryObservers = 0

@@ -5,9 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const (
@@ -162,6 +162,23 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	}
 
 	return ps.activePersisters[currentEpochIndex].epoch, nil
+}
+
+// RemoveFromAllActiveEpochs removes the data associated to the given key from both cache and epochs storers
+func (ps *triePruningStorer) RemoveFromAllActiveEpochs(key []byte) error {
+	var err error
+	ps.cacher.Remove(key)
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	for _, pd := range ps.activePersisters {
+		err = pd.persister.Remove(key)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

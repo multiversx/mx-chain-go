@@ -2,14 +2,16 @@ package metrics
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const millisecondsInSecond = 1000
@@ -17,6 +19,8 @@ const initUint = uint64(0)
 const initInt = int64(0)
 const initString = ""
 const initZeroString = "0"
+
+var log = logger.GetOrCreate("node/metrics")
 
 // InitBaseMetrics will initialize base, default metrics to 0 values
 func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
@@ -45,6 +49,10 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumConnectedPeers, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotNumNodes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
@@ -61,10 +69,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricP2PIntraShardObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardValidators, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PCrossShardObservers, initString)
-	appStatusHandler.SetStringValue(common.MetricP2PFullHistoryObservers, initString)
 	appStatusHandler.SetStringValue(common.MetricP2PUnknownPeers, initString)
-	appStatusHandler.SetStringValue(common.MetricAccountsSnapshotInProgress, initString)
-	appStatusHandler.SetStringValue(common.MetricPeersSnapshotInProgress, initString)
 
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
@@ -122,6 +127,8 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricSetGuardianEnableEpoch, uint64(enableEpochs.SetGuardianEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricSetScToScLogEventEnableEpoch, uint64(enableEpochs.ScToScLogEventEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
@@ -231,8 +238,12 @@ func InitMetrics(
 	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(roundsPerEpoch))
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		key := fmt.Sprintf("%s_%d", common.MetricCrossCheckBlockHeight, i)
+		appStatusHandler.SetUInt64Value(key, 0)
+	}
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, 0)
 	appStatusHandler.SetUInt64Value(common.MetricIsSyncing, isSyncing)
-	// TODO: add all other rewards parameters
 	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
 	appStatusHandler.SetUInt64Value(common.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
 
@@ -265,10 +276,20 @@ func InitMetrics(
 
 // SaveUint64Metric will save an uint64 metric in status handler
 func SaveUint64Metric(ash core.AppStatusHandler, key string, value uint64) {
+	if check.IfNil(ash) {
+		log.Error("programming error: nil AppStatusHandler in SaveUint64Metric", "stack", string(debug.Stack()))
+		return
+	}
+
 	ash.SetUInt64Value(key, value)
 }
 
 // SaveStringMetric will save a string metric in status handler
 func SaveStringMetric(ash core.AppStatusHandler, key, value string) {
+	if check.IfNil(ash) {
+		log.Error("programming error: nil AppStatusHandler in SaveStringMetric", "stack", string(debug.Stack()))
+		return
+	}
+
 	ash.SetStringValue(key, value)
 }

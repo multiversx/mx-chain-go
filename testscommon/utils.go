@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 // HashSize holds the size of a typical hash used by the protocol

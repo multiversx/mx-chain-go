@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-crypto-go"
 )
 
 // SinglesignMock -

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - main
       - rc/*
   workflow_dispatch:
 
@@ -16,14 +15,14 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-latest]
+        runs-on: [ubuntu-latest] # TODO add macos-latest when builds are possible on macs
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.17.6
+      - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.6
+          go-version: 1.20.7
         id: go
 
       - name: Check out code into the Go module directory
@@ -46,27 +45,24 @@ jobs:
           GOOS=$(go env GOOS)
           GOARCH=$(go env GOARCH)
           GOPATH=$(go env GOPATH)
-          ARCHIVE="elrond_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
+          ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
-          ARWEN_VERSION=$(cat go.mod | grep arwen | sed 's/^.*arwen-wasm-vm *//' | tail -n 1)
-          ARWEN_PATH=${GITHUB_WORKSPACE}/build/arwen
-          WASMER_DIR=${GOPATH}/pkg/mod/github.com/\!elrond\!network/arwen-wasm-vm@${ARWEN_VERSION}/wasmer
+          WASM_VERSION=$(cat go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
+          WASMER_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${WASM_VERSION}/wasmer
 
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
           echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
           echo "BUILD_DIR=${BUILD_DIR}" >> $GITHUB_ENV
-          echo "ARWEN_VERSION=${ARWEN_VERSION}" >> $GITHUB_ENV
-          echo "ARWEN_PATH=${ARWEN_PATH}" >> $GITHUB_ENV
           echo "WASMER_DIR=${WASMER_DIR}" >> $GITHUB_ENV
 
       - name: Build
         run: |
           mkdir -p ${BUILD_DIR}
-          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -i -ldflags="-X main.appVersion=${APP_VER}"
-          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -i -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -ldflags="-X main.appVersion=${APP_VER}"
 
       - name: Package
         run: |
@@ -115,8 +111,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          hub release create --draft --message="Release draft from Github Actions" vNext
+          gh release create --draft --notes="Release draft from Github Actions" vNext
           sleep 10
           for i in $(find ./assets -name '*.tgz' -type f); do
-            hub release edit --attach=${i} --message="" vNext
+            gh release upload vNext ${i}
           done

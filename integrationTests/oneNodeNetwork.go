@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type oneNodeNetwork struct {
@@ -32,8 +32,7 @@ func NewOneNodeNetwork() *oneNodeNetwork {
 
 // Stop stops the test network
 func (n *oneNodeNetwork) Stop() {
-	_ = n.Node.Messenger.Close()
-	_ = n.Node.VMContainer.Close()
+	n.Node.Close()
 }
 
 // Mint mints the given address

@@ -9,23 +9,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/closing"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -997,7 +996,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	errNotCritical = t.shardHdrStorage.Put([]byte(epochStartIdentifier), shardHdrBuff)
 	if errNotCritical != nil {
 		logLevel := logger.LogWarning
-		if errors.IsClosingError(errNotCritical) {
+		if core.IsClosingError(errNotCritical) {
 			logLevel = logger.LogDebug
 		}
 		log.Log(logLevel, "SetProcessed put to shard header storage error", "error", errNotCritical)

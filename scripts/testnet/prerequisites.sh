@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-export ELRONDTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-source "$ELRONDTESTNETSCRIPTSDIR/variables.sh"
+export MULTIVERSXTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
 
 export DISTRIBUTION=$(cat /etc/os-release | grep "^ID=" | sed 's/ID=//')
 
@@ -53,13 +53,13 @@ if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
 fi
 
 
-cd $(dirname $ELRONDDIR)
-git clone git@github.com:ElrondNetwork/elrond-deploy-go.git
-git clone git@github.com:ElrondNetwork/elrond-proxy-go.git
+cd $(dirname $MULTIVERSXDIR)
+git clone git@github.com:multiversx/mx-chain-deploy-go.git
+git clone git@github.com:multiversx/mx-chain-proxy-go.git
 
 
 if [[ $PRIVATE_REPOS -eq 1 ]]; then
-  git clone git@github.com:ElrondNetwork/elrond-txgen-go.git
-  cd elrond-txgen-go
+  git clone git@github.com:multiversx/mx-chain-txgen-go.git
+  cd mx-chain-txgen-go
   git checkout master
 fi

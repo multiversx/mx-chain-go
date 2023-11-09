@@ -3,7 +3,7 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 )
 
 // FeeAccumulatorStub is a stub which implements TransactionFeeHandler interface

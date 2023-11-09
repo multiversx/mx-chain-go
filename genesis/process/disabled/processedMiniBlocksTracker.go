@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
 // ProcessedMiniBlocksTracker implements the ProcessedMiniBlocksTracker interface but does nothing as it is disabled

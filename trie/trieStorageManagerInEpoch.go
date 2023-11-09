@@ -3,9 +3,9 @@ package trie
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // numEpochsToVerify needs to be at least 2 due to a snapshotting edge-case.
@@ -49,7 +49,7 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 
 	if tsmie.closed {
 		log.Debug("trieStorageManagerInEpoch get context closing", "key", key)
-		return nil, errors.ErrContextClosing
+		return nil, core.ErrContextClosing
 	}
 
 	for i := uint32(0); i < numEpochsToVerify; i++ {
@@ -73,7 +73,7 @@ func treatGetFromEpochError(err error, epoch uint32) {
 		return
 	}
 
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("trieStorageManagerInEpoch closing err", "error", err.Error(), "epoch", epoch)
 		return
 	}

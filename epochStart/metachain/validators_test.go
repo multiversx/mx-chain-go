@@ -2,25 +2,30 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
+	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	vics "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	vics "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -131,7 +136,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 				return &vics.ValidatorInfoCacherStub{}
 			},
 		},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
 	}
@@ -340,7 +345,7 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNumberNoMatch(t 
 	require.Equal(t, epochStart.ErrValidatorInfoMiniBlocksNumDoesNotMatch, err)
 }
 
-func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashNoMatchT(t *testing.T) {
+func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksTxHashDoNotMatch(t *testing.T) {
 	t.Parallel()
 
 	validatorInfo := createMockValidatorInfo()
@@ -569,7 +574,7 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: false,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
@@ -586,7 +591,7 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
@@ -607,7 +612,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: false,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
@@ -621,7 +626,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
@@ -634,7 +639,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
@@ -648,7 +653,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
@@ -662,7 +667,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochValidatorInfoCreatorsArguments()
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -695,7 +700,7 @@ func TestEpochValidatorInfoCreator_CreateMarshalledData(t *testing.T) {
 		svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
 		marshalledSVI3, _ := arguments.Marshalizer.Marshal(svi3)
 
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -739,7 +744,7 @@ func TestEpochValidatorInfoCreator_SetMarshalledValidatorInfoTxsShouldWork(t *te
 	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
 	marshalledSVI2, _ := arguments.Marshalizer.Marshal(svi2)
 
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRefactorPeersMiniBlocksFlagEnabledField: true,
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -776,7 +781,7 @@ func TestEpochValidatorInfoCreator_GetValidatorInfoTxsShouldWork(t *testing.T) {
 	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
 	svi3 := &state.ShardValidatorInfo{PublicKey: []byte("z")}
 
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRefactorPeersMiniBlocksFlagEnabledField: true,
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -818,7 +823,7 @@ func TestEpochValidatorInfoCreator_SetMapShardValidatorInfoShouldWork(t *testing
 	svi1 := &state.ShardValidatorInfo{PublicKey: []byte("x")}
 	svi2 := &state.ShardValidatorInfo{PublicKey: []byte("y")}
 
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsRefactorPeersMiniBlocksFlagEnabledField: true,
 	}
 	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -858,7 +863,7 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T)
 		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
 		marshalledSVI, _ := arguments.Marshalizer.Marshal(svi)
 
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: false,
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -886,7 +891,7 @@ func TestEpochValidatorInfoCreator_GetShardValidatorInfoShouldWork(t *testing.T)
 
 		svi := &state.ShardValidatorInfo{PublicKey: []byte("x")}
 
-		arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		}
 		arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -1056,5 +1061,222 @@ func createMockMiniBlock(senderShardID, receiverShardID uint32, blockType block.
 			[]byte("b"),
 			[]byte("c"),
 		},
+	}
+}
+
+// TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility will test the sorting call for the backwards compatibility issues
+func TestValidatorInfoCreator_CreateMiniblockBackwardsCompatibility(t *testing.T) {
+	t.Parallel()
+
+	t.Run("legacy mode", func(t *testing.T) {
+		testCreateMiniblockBackwardsCompatibility(t, false, "./testdata/expected-legacy.data")
+	})
+	t.Run("full deterministic mode", func(t *testing.T) {
+		// this will prevent changes to the deterministic algorithm and ensure the backward compatibility
+		testCreateMiniblockBackwardsCompatibility(t, true, "./testdata/expected-deterministic.data")
+	})
+}
+
+func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabled bool, expectedDataFilename string) {
+	inputRAW, err := os.ReadFile("./testdata/input.data")
+	require.Nil(t, err)
+
+	expectedRAW, err := os.ReadFile(expectedDataFilename)
+	require.Nil(t, err)
+
+	filterCutSet := " \r\n\t"
+	input := strings.Split(strings.Trim(string(inputRAW), filterCutSet), "\n")
+	expected := strings.Split(strings.Trim(string(expectedRAW), filterCutSet), "\n")
+
+	require.Equal(t, len(input), len(expected))
+
+	validators := make([]*state.ValidatorInfo, 0, len(input))
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	for _, marshalledData := range input {
+		vinfo := &state.ValidatorInfo{}
+		buffMarshalledData, errDecode := hex.DecodeString(marshalledData)
+		require.Nil(t, errDecode)
+
+		err = marshaller.Unmarshal(vinfo, buffMarshalledData)
+		require.Nil(t, err)
+
+		validators = append(validators, vinfo)
+	}
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.Marshalizer = &marshal.GogoProtoMarshalizer{} // we need the real marshaller that generated the test set
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsRefactorPeersMiniBlocksFlagEnabledField:          false,
+		IsDeterministicSortOnValidatorsInfoFixEnabledField: deterministFixEnabled,
+	}
+
+	storer := createMemUnit()
+	arguments.ValidatorInfoStorage = storer
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	mb, err := vic.createMiniBlock(validators)
+	require.Nil(t, err)
+
+	// test all generated miniblock's "txhashes" are the same with the expected ones
+	require.Equal(t, len(expected), len(mb.TxHashes))
+	for i, hash := range mb.TxHashes {
+		assert.Equal(t, expected[i], hex.EncodeToString(hash), "not matching for index %d", i)
+	}
+}
+
+func TestValidatorInfoCreator_printAllMiniBlocksShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+		}
+	}()
+
+	testSlice := []*block.MiniBlock{
+		{
+			TxHashes:        nil,
+			ReceiverShardID: 0,
+			SenderShardID:   0,
+			Type:            -1,
+			Reserved:        nil,
+		},
+		{
+			TxHashes:        make([][]byte, 0),
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            0,
+			Reserved:        nil,
+		},
+		{
+			TxHashes:        [][]byte{[]byte("tx hash 1"), []byte("tx hash 2")},
+			ReceiverShardID: 0,
+			SenderShardID:   0,
+			Type:            1,
+			Reserved:        nil,
+		},
+		{
+			TxHashes:        [][]byte{[]byte("tx hash 3"), nil, []byte("tx hash 4")}, // a nil tx hash should not cause panic
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            block.PeerBlock,
+			Reserved:        nil,
+		},
+	}
+
+	testSliceWithNilMiniblock := []*block.MiniBlock{
+		{
+			TxHashes:        [][]byte{[]byte("tx hash 3"), []byte("tx hash 4")},
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            block.PeerBlock,
+			Reserved:        nil,
+		},
+		nil,
+		{
+			TxHashes:        make([][]byte, 0),
+			ReceiverShardID: core.MetachainShardId,
+			SenderShardID:   core.AllShardId,
+			Type:            0,
+			Reserved:        nil,
+		},
+	}
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+
+	// do not run these tests in parallel so the panic will be caught by the main defer function
+	t.Run("nil and empty slices, should not panic", func(t *testing.T) {
+		vic.printAllMiniBlocks(nil, make([]*block.MiniBlock, 0))
+		vic.printAllMiniBlocks(make([]*block.MiniBlock, 0), nil)
+		vic.printAllMiniBlocks(make([]*block.MiniBlock, 0), testSlice)
+		vic.printAllMiniBlocks(nil, testSlice)
+	})
+	t.Run("slice contains a nil miniblock, should not panic", func(t *testing.T) {
+		vic.printAllMiniBlocks(testSlice, testSliceWithNilMiniblock)
+		vic.printAllMiniBlocks(testSliceWithNilMiniblock, testSlice)
+	})
+	t.Run("marshal outputs error, should not panic", func(t *testing.T) {
+		localArguments := arguments
+		localArguments.Marshalizer = &testscommon.MarshallerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, fmt.Errorf("marshal error")
+			},
+		}
+		instance, _ := NewValidatorInfoCreator(localArguments)
+		instance.printAllMiniBlocks(testSlice, testSlice)
+	})
+}
+
+func TestValidatorInfoCreator_sortValidators(t *testing.T) {
+	t.Parallel()
+
+	firstValidator := createTestValidatorInfo()
+	firstValidator.List = "a"
+
+	secondValidator := createTestValidatorInfo()
+	secondValidator.List = "b"
+
+	thirdValidator := createTestValidatorInfo()
+	thirdValidator.List = "b"
+	thirdValidator.PublicKey = []byte("xxxx")
+
+	t.Run("legacy sort should not change order", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
+			IsDeterministicSortOnValidatorsInfoFixEnabledField: false,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		list := []*state.ValidatorInfo{thirdValidator, secondValidator, firstValidator}
+		vic.sortValidators(list)
+
+		assert.Equal(t, list[0], secondValidator) // order not changed for the ones with same public key
+		assert.Equal(t, list[1], firstValidator)
+		assert.Equal(t, list[2], thirdValidator)
+	})
+	t.Run("deterministic sort should change order taking into consideration all fields", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochValidatorInfoCreatorsArguments()
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsRefactorPeersMiniBlocksFlagEnabledField:          false,
+			IsDeterministicSortOnValidatorsInfoFixEnabledField: true,
+		}
+		vic, _ := NewValidatorInfoCreator(arguments)
+
+		list := []*state.ValidatorInfo{thirdValidator, secondValidator, firstValidator}
+		vic.sortValidators(list)
+
+		assert.Equal(t, list[0], firstValidator) // proper sorting
+		assert.Equal(t, list[1], secondValidator)
+		assert.Equal(t, list[2], thirdValidator)
+	})
+}
+
+func createTestValidatorInfo() *state.ValidatorInfo {
+	return &state.ValidatorInfo{
+		PublicKey:                       []byte("pubkey"),
+		ShardId:                         1,
+		List:                            "new",
+		Index:                           2,
+		TempRating:                      3,
+		Rating:                          4,
+		RatingModifier:                  5,
+		RewardAddress:                   []byte("reward address"),
+		LeaderSuccess:                   6,
+		LeaderFailure:                   7,
+		ValidatorSuccess:                8,
+		ValidatorFailure:                9,
+		ValidatorIgnoredSignatures:      10,
+		NumSelectedInSuccessBlocks:      11,
+		AccumulatedFees:                 big.NewInt(12),
+		TotalLeaderSuccess:              13,
+		TotalLeaderFailure:              14,
+		TotalValidatorSuccess:           15,
+		TotalValidatorFailure:           16,
+		TotalValidatorIgnoredSignatures: 17,
 	}
 }

@@ -6,28 +6,26 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/queue"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/headerVersionData"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/processedMb"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
 
 const (
 	timeBetweenCheckForEpochStart = 100 * time.Millisecond
-	pruningDelayMultiplier        = 2
-	defaultPruningDelay           = 10
+	pruningDelay                  = 10
 )
 
 type createAndProcessMiniBlocksDestMeInfo struct {
@@ -49,14 +47,11 @@ type shardProcessor struct {
 	*baseProcessor
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
-
-	userStatePruningQueue core.Queue
-	processStatusHandler  common.ProcessStatusHandler
 }
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
-	err := checkProcessorNilParameters(arguments.ArgBaseProcessor)
+	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -73,13 +68,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHdr) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
-	}
-
-	pruningQueueSize := arguments.Config.StateTriesConfig.UserStatePruningQueueSize
-	pruningDelay := uint32(pruningQueueSize * pruningDelayMultiplier)
-	if pruningDelay < defaultPruningDelay {
-		log.Warn("using default pruning delay", "user state pruning queue size", pruningQueueSize)
-		pruningDelay = defaultPruningDelay
 	}
 
 	processDebugger, err := createDisabledProcessDebugger()
@@ -117,7 +105,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		historyRepo:                   arguments.HistoryRepository,
 		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
 		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		enableRoundsHandler:           arguments.EnableRoundsHandler,
+		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
+		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -128,14 +117,23 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
 		receiptsRepository:            arguments.ReceiptsRepository,
 		processDebugger:               processDebugger,
+		outportDataProvider:           arguments.OutportDataProvider,
+		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
+		managedPeersHolder:            arguments.ManagedPeersHolder,
 	}
 
 	sp := shardProcessor{
-		baseProcessor:        base,
-		processStatusHandler: arguments.CoreComponents.ProcessStatusHandler(),
+		baseProcessor: base,
 	}
 
-	sp.txCounter, err = NewTransactionCounter(sp.hasher, sp.marshalizer)
+	argsTransactionCounter := ArgsTransactionCounter{
+		AppStatusHandler: sp.appStatusHandler,
+		Hasher:           sp.hasher,
+		Marshalizer:      sp.marshalizer,
+		ShardID:          sp.shardCoordinator.SelfId(),
+	}
+	sp.txCounter, err = NewTransactionCounter(argsTransactionCounter)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +149,6 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 	headersPool.RegisterHandler(sp.receivedMetaBlock)
 
 	sp.metaBlockFinality = process.BlockFinality
-	sp.userStatePruningQueue = queue.NewSliceQueue(arguments.Config.StateTriesConfig.UserStatePruningQueueSize)
 
 	return &sp, nil
 }
@@ -183,7 +180,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.enableRoundsHandler.CheckRound(headerHandler.GetRound())
+	sp.roundNotifier.CheckRound(headerHandler)
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
@@ -349,6 +346,11 @@ func (sp *shardProcessor) ProcessBlock(
 
 	if !sp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
 		return err
 	}
 
@@ -599,98 +601,32 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	if !sp.outportHandler.HasDrivers() {
 		return
 	}
-	if check.IfNil(header) {
-		return
-	}
-	if check.IfNil(body) {
-		return
-	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
-
-	pool := &indexer.Pool{
-		Txs:      sp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
-		Scrs:     sp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
-		Rewards:  sp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock),
-		Invalid:  sp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock),
-		Receipts: sp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock),
-		Logs:     sp.txCoordinator.GetAllCurrentLogs(),
-	}
-
-	shardId := sp.shardCoordinator.SelfId()
-
-	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
-	pubKeys, err := sp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
-		header.GetPrevRandSeed(),
-		header.GetRound(),
-		shardId,
-		epoch,
-	)
+	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
+		HeaderHash:             headerHash,
+		Header:                 header,
+		Body:                   body,
+		PreviousHeader:         lastBlockHeader,
+		HighestFinalBlockNonce: sp.forkDetector.GetHighestFinalBlockNonce(),
+		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
+	})
 	if err != nil {
-		log.Debug("indexBlockIfNeeded: GetConsensusValidatorsPublicKeys",
-			"hash", headerHash,
-			"epoch", epoch,
-			"error", err.Error())
+		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error(),
+			"hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 		return
 	}
-
-	nodesCoordinatorShardID, err := sp.nodesCoordinator.ShardIdForEpoch(epoch)
+	err = sp.outportHandler.SaveBlock(argSaveBlock)
 	if err != nil {
-		log.Debug("indexBlockIfNeeded: ShardIdForEpoch",
-			"hash", headerHash,
-			"epoch", epoch,
-			"error", err.Error())
+		log.Error("shardProcessor.outportHandler.SaveBlock cannot save block", "error", err,
+			"hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 		return
 	}
 
-	if shardId != nodesCoordinatorShardID {
-		log.Debug("indexBlockIfNeeded: shardId != nodesCoordinatorShardID",
-			"epoch", epoch,
-			"shardCoordinator.ShardID", shardId,
-			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
-		return
-	}
-
-	signersIndexes, err := sp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
-	if err != nil {
-		log.Error("indexBlockIfNeeded: GetValidatorsIndexes",
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"hash", headerHash,
-			"error", err.Error(),
-		)
-		return
-	}
-
-	gasProvidedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasProvidedWithScheduled()
-	gasPenalizedInheader := sp.baseProcessor.gasConsumedProvider.TotalGasPenalized()
-	gasRefundedInHeader := sp.baseProcessor.gasConsumedProvider.TotalGasRefunded()
-	maxGasInHeader := sp.baseProcessor.economicsData.MaxGasLimitPerBlock(sp.shardCoordinator.SelfId())
-
-	args := &indexer.ArgsSaveBlockData{
-		HeaderHash:     headerHash,
-		Body:           body,
-		Header:         header,
-		SignersIndexes: signersIndexes,
-		HeaderGasConsumption: indexer.HeaderGasConsumption{
-			GasProvided:    gasProvidedInHeader,
-			GasRefunded:    gasRefundedInHeader,
-			GasPenalized:   gasPenalizedInheader,
-			MaxGasPerBlock: maxGasInHeader,
-		},
-		NotarizedHeadersHashes: nil,
-		TransactionsPool:       pool,
-	}
-
-	sp.outportHandler.SaveBlock(args)
 	log.Debug("indexed block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 
-	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardId, header, lastBlockHeader, signersIndexes)
+	shardID := sp.shardCoordinator.SelfId()
+	indexRoundInfo(sp.outportHandler, sp.nodesCoordinator, shardID, header, lastBlockHeader, argSaveBlock.SignersIndexes)
 }
 
 // RestoreBlockIntoPools restores the TxBlock and MetaBlock into associated pools
@@ -710,7 +646,7 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 		return err
 	}
 
-	sp.restoreBlockBody(bodyHandler)
+	sp.restoreBlockBody(headerHandler, bodyHandler)
 
 	sp.blockTracker.RemoveLastNotarizedHeaders()
 
@@ -894,6 +830,16 @@ func (sp *shardProcessor) CreateBlock(
 		if err != nil {
 			return nil, nil, err
 		}
+
+		epoch := sp.epochStartTrigger.MetaEpoch()
+		if initialHdr.GetEpoch() != epoch {
+			log.Debug("shardProcessor.CreateBlock: epoch from header is not the same as epoch from epoch start trigger, overwriting",
+				"epoch from header", initialHdr.GetEpoch(), "epoch from epoch start trigger", epoch)
+			err = shardHdr.SetEpoch(epoch)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr)
@@ -1037,6 +983,7 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", header.GetNonce(),
 		"hash", headerHash,
 	)
+	sp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
@@ -1098,6 +1045,7 @@ func (sp *shardProcessor) CommitBlock(
 		highestFinalBlockNonce,
 		lastCrossNotarizedHeader,
 		header,
+		sp.managedPeersHolder,
 	)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{
@@ -1123,16 +1071,18 @@ func (sp *shardProcessor) CommitBlock(
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
-	go sp.txCounter.displayLogInfo(
-		header,
-		body,
-		headerHash,
-		sp.shardCoordinator.NumberOfShards(),
-		sp.shardCoordinator.SelfId(),
-		sp.dataPool,
-		sp.appStatusHandler,
-		sp.blockTracker,
-	)
+	go func() {
+		sp.txCounter.headerExecuted(header)
+		sp.txCounter.displayLogInfo(
+			header,
+			body,
+			headerHash,
+			sp.shardCoordinator.NumberOfShards(),
+			sp.shardCoordinator.SelfId(),
+			sp.dataPool,
+			sp.blockTracker,
+		)
+	}()
 
 	sp.blockSizeThrottler.Succeed(header.GetRound())
 
@@ -1144,6 +1094,8 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+
+	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
 }
@@ -1263,7 +1215,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			headerRootHashForPruning,
 			prevHeaderRootHashForPruning,
 			sp.accountsDB[state.UserAccountsState],
-			sp.userStatePruningQueue,
 		)
 
 		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
@@ -1307,8 +1258,9 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 				log.Debug("using scheduled root hash for snapshotting", "schRootHash", schRootHash)
 				rootHash = schRootHash
 			}
-			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			accounts.SnapshotState(rootHash)
+			epoch := sp.epochStartTrigger.MetaEpoch()
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash, "epoch", epoch)
+			accounts.SnapshotState(rootHash, epoch)
 			sp.markSnapshotDoneInPeerAccounts()
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {
@@ -1428,7 +1380,6 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	sp.enableRoundsHandler.CheckRound(round)
 	epoch := sp.epochStartTrigger.MetaEpoch()
 	header := sp.versionedHeaderFactory.Create(epoch)
 
@@ -1441,6 +1392,8 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	if err != nil {
 		return nil, err
 	}
+
+	sp.roundNotifier.CheckRound(header)
 
 	err = shardHeader.SetNonce(nonce)
 	if err != nil {

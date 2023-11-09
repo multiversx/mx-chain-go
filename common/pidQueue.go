@@ -3,7 +3,7 @@ package common
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 const indexNotFound = -1

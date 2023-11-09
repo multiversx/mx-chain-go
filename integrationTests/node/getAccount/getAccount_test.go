@@ -4,14 +4,14 @@ import (
 	"math/big"
 	"testing"
 
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/blockInfoProviders"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +53,8 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	encodedAddress, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	require.Nil(t, err)
 	recovAccnt, _, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
@@ -92,7 +93,8 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	testAddress := coreComponents.AddressPubKeyConverter().Encode(testPubkey)
+	testAddress, err := coreComponents.AddressPubKeyConverter().Encode(testPubkey)
+	require.Nil(t, err)
 	recovAccnt, _, err := n.GetAccount(testAddress, api.AccountQueryOptions{})
 
 	require.Nil(t, err)

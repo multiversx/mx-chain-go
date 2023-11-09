@@ -3,14 +3,19 @@ package groups
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func TestExtractAccountQueryOptions(t *testing.T) {
+	t.Parallel()
+
 	t.Run("good options", func(t *testing.T) {
+		t.Parallel()
+
 		options, err := extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onFinalBlock=true"))
 		require.Nil(t, err)
 		require.True(t, options.OnFinalBlock)
@@ -38,6 +43,8 @@ func TestExtractAccountQueryOptions(t *testing.T) {
 	})
 
 	t.Run("bad options", func(t *testing.T) {
+		t.Parallel()
+
 		options, err := extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockNonce=42&blockHash=aaaa"))
 		require.ErrorContains(t, err, "only one block coordinate")
 		require.Equal(t, api.AccountQueryOptions{}, options)
@@ -62,5 +69,46 @@ func TestExtractAccountQueryOptions(t *testing.T) {
 		require.ErrorContains(t, err, "hintEpoch is optional, but only compatible with blockRootHash")
 		require.Equal(t, api.AccountQueryOptions{}, options)
 
+		options, err = extractAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockNonce=aaaa"))
+		require.ErrorContains(t, err, errors.ErrBadUrlParams.Error())
+		require.Equal(t, api.AccountQueryOptions{}, options)
 	})
+}
+
+func TestParseAccountQueryOptions(t *testing.T) {
+	t.Parallel()
+
+	options, err := parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onFinalBlock=test"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
+	require.Equal(t, api.AccountQueryOptions{}, options)
+
+	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("onStartOfEpoch=test"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
+	require.Equal(t, api.AccountQueryOptions{}, options)
+
+	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockNonce=test"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
+	require.Equal(t, api.AccountQueryOptions{}, options)
+
+	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockHash=test"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid byte")
+	require.Equal(t, api.AccountQueryOptions{}, options)
+
+	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("blockRootHash=test"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid byte")
+	require.Equal(t, api.AccountQueryOptions{}, options)
+
+	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery("hintEpoch=test"))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid syntax")
+	require.Equal(t, api.AccountQueryOptions{}, options)
+
+	options, err = parseAccountQueryOptions(testscommon.CreateGinContextWithRawQuery(""))
+	require.NoError(t, err)
+	require.Equal(t, api.AccountQueryOptions{}, options)
 }

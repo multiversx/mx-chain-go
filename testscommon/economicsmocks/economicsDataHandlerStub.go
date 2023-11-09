@@ -3,8 +3,8 @@ package economicsmocks
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // EconomicsHandlerStub -
@@ -28,6 +28,8 @@ type EconomicsHandlerStub struct {
 	MaxInflationRateCalled                         func(year uint32) float64
 	GasPerDataByteCalled                           func() uint64
 	MinGasLimitCalled                              func() uint64
+	ExtraGasLimitGuardedTxCalled                   func() uint64
+	MaxGasPriceSetGuardianCalled                   func() uint64
 	GenesisTotalSupplyCalled                       func() *big.Int
 	ComputeFeeForProcessingCalled                  func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	RewardsTopUpGradientPointCalled                func() *big.Int
@@ -110,6 +112,22 @@ func (e *EconomicsHandlerStub) GasPerDataByte() uint64 {
 func (e *EconomicsHandlerStub) MinGasLimit() uint64 {
 	if e.MinGasLimitCalled != nil {
 		return e.MinGasLimitCalled()
+	}
+	return 0
+}
+
+// ExtraGasLimitGuardedTx -
+func (e *EconomicsHandlerStub) ExtraGasLimitGuardedTx() uint64 {
+	if e.ExtraGasLimitGuardedTxCalled != nil {
+		return e.ExtraGasLimitGuardedTxCalled()
+	}
+	return 0
+}
+
+// MaxGasPriceSetGuardian -
+func (e *EconomicsHandlerStub) MaxGasPriceSetGuardian() uint64 {
+	if e.MaxGasPriceSetGuardianCalled != nil {
+		return e.MaxGasPriceSetGuardianCalled()
 	}
 	return 0
 }

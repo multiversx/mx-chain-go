@@ -6,18 +6,20 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/genesis/process/intermediate"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
+
+var expectedErr = errors.New("expected error")
 
 func TestNewTxExecutionProcessor_NilTxProcessorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -81,7 +83,6 @@ func TestTxExecutionProcessor_ExecuteTransaction(t *testing.T) {
 func TestTxExecutionProcessor_GetNonceAccountsErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
@@ -118,12 +119,64 @@ func TestTxExecutionProcessor_GetNonceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestTxExecutionProcessor_GetAccount(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetExistingAccount error should error", func(t *testing.T) {
+		t.Parallel()
+
+		tep, _ := intermediate.NewTxExecutionProcessor(
+			&testscommon.TxProcessorStub{},
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+					return nil, expectedErr
+				},
+			},
+		)
+
+		acc, found := tep.GetAccount([]byte("address"))
+		assert.False(t, found)
+		assert.Nil(t, acc)
+	})
+	t.Run("GetExistingAccount returns invalid data should error", func(t *testing.T) {
+		t.Parallel()
+
+		tep, _ := intermediate.NewTxExecutionProcessor(
+			&testscommon.TxProcessorStub{},
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+					return &stateMock.PeerAccountHandlerMock{}, nil
+				},
+			},
+		)
+
+		acc, found := tep.GetAccount([]byte("address"))
+		assert.False(t, found)
+		assert.Nil(t, acc)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tep, _ := intermediate.NewTxExecutionProcessor(
+			&testscommon.TxProcessorStub{},
+			&stateMock.AccountsStub{
+				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+					return &stateMock.UserAccountStub{}, nil
+				},
+			},
+		)
+
+		acc, found := tep.GetAccount([]byte("address"))
+		assert.True(t, found)
+		assert.Equal(t, &stateMock.UserAccountStub{}, acc)
+	})
+}
+
 //------- AddBalance
 
 func TestTxExecutionProcessor_AddBalanceAccountsErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
@@ -213,7 +266,6 @@ func TestTxExecutionProcessor_AddBalanceShouldWork(t *testing.T) {
 func TestTxExecutionProcessor_AddNonceAccountsErrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	tep, _ := intermediate.NewTxExecutionProcessor(
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{

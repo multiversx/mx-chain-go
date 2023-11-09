@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("state/evictionWaitingList")
 
 type hashInfo struct {
 	roothashes [][]byte
@@ -20,11 +23,16 @@ type MemoryEvictionWaitingListArgs struct {
 	HashesSize     uint
 }
 
+type rootHashData struct {
+	numReferences uint
+	hashes        common.ModifiedHashes
+}
+
 // memoryEvictionWaitingList is a structure that caches keys that need to be removed from a certain database.
 // If the cache is full, the caches will be emptied automatically. Writing at the same key in
 // cacher and db will overwrite the previous values.
 type memoryEvictionWaitingList struct {
-	cache          map[string]common.ModifiedHashes
+	cache          map[string]*rootHashData
 	reversedCache  map[string]*hashInfo
 	rootHashesSize uint
 	hashesSize     uint
@@ -41,7 +49,7 @@ func NewMemoryEvictionWaitingList(args MemoryEvictionWaitingListArgs) (*memoryEv
 	}
 
 	return &memoryEvictionWaitingList{
-		cache:          make(map[string]common.ModifiedHashes),
+		cache:          make(map[string]*rootHashData),
 		reversedCache:  make(map[string]*hashInfo),
 		rootHashesSize: args.RootHashesSize,
 		hashesSize:     args.HashesSize,
@@ -56,17 +64,31 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes common.Modifi
 	log.Trace("trie eviction waiting list", "size", len(mewl.cache))
 
 	mewl.putInReversedCache(rootHash, hashes)
-	mewl.cache[string(rootHash)] = hashes
+	mewl.putInCache(rootHash, hashes)
 
 	if !mewl.cachesFull() {
 		return nil
 	}
 
 	log.Debug("trie nodes eviction waiting list full, emptying...")
-	mewl.cache = make(map[string]common.ModifiedHashes)
+	mewl.cache = make(map[string]*rootHashData)
 	mewl.reversedCache = make(map[string]*hashInfo)
 
 	return nil
+}
+
+func (mewl *memoryEvictionWaitingList) putInCache(rootHash []byte, hashes common.ModifiedHashes) {
+	rhData, ok := mewl.cache[string(rootHash)]
+	if !ok {
+		mewl.cache[string(rootHash)] = &rootHashData{
+			numReferences: 1,
+			hashes:        hashes,
+		}
+
+		return
+	}
+
+	rhData.numReferences++
 }
 
 func (mewl *memoryEvictionWaitingList) cachesFull() bool {
@@ -134,15 +156,21 @@ func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHa
 	mewl.opMutex.Lock()
 	defer mewl.opMutex.Unlock()
 
-	hashes, ok := mewl.cache[string(rootHash)]
+	rhData, ok := mewl.cache[string(rootHash)]
 	if !ok {
-		return make(common.ModifiedHashes), nil
+		return make(common.ModifiedHashes, 0), nil
 	}
 
-	delete(mewl.cache, string(rootHash))
-	defer mewl.removeFromReversedCache(rootHash, hashes)
+	if rhData.numReferences <= 1 {
+		delete(mewl.cache, string(rootHash))
+		mewl.removeFromReversedCache(rootHash, rhData.hashes)
 
-	return hashes, nil
+		return rhData.hashes, nil
+	}
+
+	rhData.numReferences--
+
+	return make(common.ModifiedHashes, 0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

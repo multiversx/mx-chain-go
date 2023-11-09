@@ -1,8 +1,8 @@
 package bootstrap
 
 import (
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 type testManagedBootstrapComponents struct {

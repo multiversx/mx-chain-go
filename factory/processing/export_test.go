@@ -1,14 +1,11 @@
 package processing
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 )
 
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests
@@ -21,12 +18,13 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	headerValidator process.HeaderConstructionValidator,
 	blockTracker process.BlockTracker,
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	txSimulatorProcessorArgs *txsimulator.ArgsTxSimulator,
-	arwenChangeLocker common.Locker,
+	wasmVMChangeLocker common.Locker,
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository factory.ReceiptsRepository,
-) (process.BlockProcessor, process.VirtualMachinesContainerFactory, error) {
+	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+) (process.BlockProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -36,25 +34,21 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		headerValidator,
 		blockTracker,
 		pendingMiniBlocksHandler,
-		txSimulatorProcessorArgs,
-		arwenChangeLocker,
+		wasmVMChangeLocker,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		receiptsRepository,
+		blockProcessingCutoff,
+		missingTrieNodesNotifier,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return blockProcessorComponents.blockProcessor, blockProcessorComponents.vmFactoryForTxSimulate, nil
+	return blockProcessorComponents.blockProcessor, nil
 }
 
-// IndexGenesisBlocks -
-func (pcf *processComponentsFactory) IndexGenesisBlocks(genesisBlocks map[uint32]data.HeaderHandler, indexingData map[uint32]*genesis.IndexingData) error {
-	return pcf.indexGenesisBlocks(genesisBlocks, indexingData)
-}
-
-// DecodeAddresses -
-func DecodeAddresses(pkConverter core.PubkeyConverter, automaticCrawlerAddressesStrings []string) ([][]byte, error) {
-	return factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
+// CreateAPITransactionEvaluator -
+func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+	return pcf.createAPITransactionEvaluator()
 }

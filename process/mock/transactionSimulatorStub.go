@@ -1,17 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 )
 
 // TransactionSimulatorStub -
 type TransactionSimulatorStub struct {
-	ProcessTxCalled func(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	ProcessTxCalled func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 }
 
 // ProcessTx -
-func (tss *TransactionSimulatorStub) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (tss *TransactionSimulatorStub) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	if tss.ProcessTxCalled != nil {
 		return tss.ProcessTxCalled(tx)
 	}

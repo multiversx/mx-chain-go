@@ -1,6 +1,6 @@
 package testscommon
 
-import "github.com/ElrondNetwork/elrond-go/update"
+import "github.com/multiversx/mx-chain-go/update"
 
 // HardforkTriggerStub -
 type HardforkTriggerStub struct {

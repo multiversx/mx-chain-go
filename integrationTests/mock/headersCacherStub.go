@@ -3,7 +3,7 @@ package mock
 import (
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // HeadersCacherStub -
@@ -14,10 +14,35 @@ type HeadersCacherStub struct {
 	GetHeaderByNonceAndShardIdCalled    func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
 	GetHeaderByHashCalled               func(hash []byte) (data.HeaderHandler, error)
 	ClearCalled                         func()
-	RegisterHandlerCalled               func(handler func(key []byte, value interface{}))
 	KeysCalled                          func(shardId uint32) []uint64
 	LenCalled                           func() int
 	MaxSizeCalled                       func() int
+	RegisterHandlerCalled               func(handler func(headerHandler data.HeaderHandler, headerHash []byte))
+	GetNumHeadersCalled                 func(shardId uint32) int
+	NoncesCalled                        func(shardId uint32) []uint64
+}
+
+// RegisterHandler -
+func (hcs *HeadersCacherStub) RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte)) {
+	if hcs.RegisterHandlerCalled != nil {
+		hcs.RegisterHandlerCalled(handler)
+	}
+}
+
+// Nonces -
+func (hcs *HeadersCacherStub) Nonces(shardId uint32) []uint64 {
+	if hcs.NoncesCalled != nil {
+		return hcs.NoncesCalled(shardId)
+	}
+	return nil
+}
+
+// GetNumHeaders -
+func (hcs *HeadersCacherStub) GetNumHeaders(shardId uint32) int {
+	if hcs.GetNumHeadersCalled != nil {
+		return hcs.GetNumHeadersCalled(shardId)
+	}
+	return 0
 }
 
 // AddHeader -
@@ -61,13 +86,6 @@ func (hcs *HeadersCacherStub) GetHeaderByHash(hash []byte) (data.HeaderHandler, 
 func (hcs *HeadersCacherStub) Clear() {
 	if hcs.ClearCalled != nil {
 		hcs.ClearCalled()
-	}
-}
-
-// RegisterHandler -
-func (hcs *HeadersCacherStub) RegisterHandler(handler func(key []byte, value interface{})) {
-	if hcs.RegisterHandlerCalled != nil {
-		hcs.RegisterHandlerCalled(handler)
 	}
 }
 

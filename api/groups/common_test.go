@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 func init() {

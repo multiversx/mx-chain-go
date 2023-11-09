@@ -1,6 +1,6 @@
 package disabled
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 type disabledPeersRatingHandler struct {
 }
@@ -8,10 +8,6 @@ type disabledPeersRatingHandler struct {
 // NewDisabledPeersRatingHandler returns a new instance of disabledPeersRatingHandler
 func NewDisabledPeersRatingHandler() *disabledPeersRatingHandler {
 	return &disabledPeersRatingHandler{}
-}
-
-// AddPeer does nothing as it is disabled
-func (dprs *disabledPeersRatingHandler) AddPeer(_ core.PeerID) {
 }
 
 // IncreaseRating does nothing as it is disabled

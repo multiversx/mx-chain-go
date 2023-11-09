@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -147,6 +147,25 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldPutCorrectSh
 	assert.True(t, strings.Contains(strRes, expectedMetricOutput))
 }
 
+func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldComputeRoundsAndNoncesPassedInEpoch(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(2)
+	sm := statusHandler.NewStatusMetrics()
+	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 0)
+	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 0)
+	sm.SetUInt64Value(common.MetricShardId, uint64(shardID))
+	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
+	sm.SetUInt64Value(common.MetricCurrentRound, 137)
+	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 100)
+	sm.SetUInt64Value(common.MetricNonce, 138)
+
+	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
+
+	assert.Contains(t, strRes, `erd_rounds_passed_in_current_epoch{erd_shard_id="2"} 37`)
+	assert.Contains(t, strRes, `erd_nonces_passed_in_current_epoch{erd_shard_id="2"} 38`)
+}
+
 func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	t.Parallel()
 
@@ -159,6 +178,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMetaConsensusGroupSize, 25)
 	sm.SetUInt64Value(common.MetricMinGasPrice, 1000)
 	sm.SetUInt64Value(common.MetricMinGasLimit, 50000)
+	sm.SetUInt64Value(common.MetricExtraGasLimitGuardedTx, 50000)
 	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
 	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
 	sm.SetStringValue(common.MetricChainId, "local-id")
@@ -181,6 +201,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_latest_tag_software_version":   "version1.0",
 		"erd_meta_consensus_group_size":     uint64(25),
 		"erd_min_gas_limit":                 uint64(50000),
+		"erd_extra_gas_limit_guarded_tx":    uint64(50000),
 		"erd_min_gas_price":                 uint64(1000),
 		"erd_min_transaction_version":       uint64(2),
 		"erd_num_metachain_nodes":           uint64(50),
@@ -241,6 +262,32 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	})
 }
 
+func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricCurrentRound, 100)
+	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 200)
+	sm.SetUInt64Value(common.MetricNonce, 300)
+	sm.SetStringValue(common.MetricAppVersion, "400")
+	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 95)
+	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 1)
+	sm.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, 100)
+	sm.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, 101)
+
+	res, _ := sm.StatusMetricsMapWithoutP2P()
+
+	require.Equal(t, uint64(100), res[common.MetricCurrentRound])
+	require.Equal(t, uint64(200), res[common.MetricRoundAtEpochStart])
+	require.Equal(t, uint64(300), res[common.MetricNonce])
+	require.Equal(t, "400", res[common.MetricAppVersion])
+	require.NotContains(t, res, common.MetricRoundsPassedInCurrentEpoch)
+	require.NotContains(t, res, common.MetricNoncesPassedInCurrentEpoch)
+	require.NotContains(t, res, common.MetricTrieSyncNumReceivedBytes)
+	require.NotContains(t, res, common.MetricTrieSyncNumProcessedNodes)
+}
+
 func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	t.Parallel()
 
@@ -269,6 +316,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
 	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
+	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -318,6 +366,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
 		common.MetricWaitingListFixEnableEpoch:                   uint64(1),
+		common.MetricSetGuardianEnableEpoch:                      uint64(3),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
@@ -427,6 +476,24 @@ func TestStatusMetrics_RatingsConfig(t *testing.T) {
 	assert.Equal(t, expectedConfig, configMetrics)
 }
 
+func TestStatusMetrics_BootstrapMetrics(t *testing.T) {
+	t.Parallel()
+
+	sm := statusHandler.NewStatusMetrics()
+
+	sm.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(5001))
+	sm.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(10000))
+
+	expectedMetrics := map[string]interface{}{
+		common.MetricTrieSyncNumReceivedBytes:  uint64(5001),
+		common.MetricTrieSyncNumProcessedNodes: uint64(10000),
+	}
+
+	bootstrapMetrics, err := sm.BootstrapMetrics()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedMetrics, bootstrapMetrics)
+}
+
 func TestStatusMetrics_IncrementConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
@@ -502,7 +569,7 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			switch idx % 13 {
+			switch idx % 14 {
 			case 0:
 				sm.AddUint64("test", uint64(idx))
 			case 1:
@@ -529,6 +596,8 @@ func TestStatusMetrics_ConcurrentOperations(t *testing.T) {
 				_, _ = sm.StatusMetricsWithoutP2PPrometheusString()
 			case 12:
 				_, _ = sm.StatusP2pMetricsMap()
+			case 13:
+				_, _ = sm.BootstrapMetrics()
 			}
 			wg.Done()
 		}(i)

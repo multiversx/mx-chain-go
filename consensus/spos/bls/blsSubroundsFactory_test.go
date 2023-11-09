@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/outport"
+	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,6 +76,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	return fct
@@ -124,6 +125,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -143,6 +145,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -164,6 +167,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -185,6 +189,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -206,6 +211,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -227,6 +233,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -248,6 +255,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -269,6 +277,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -290,6 +299,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -311,6 +321,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -332,6 +343,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -353,6 +365,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -374,6 +387,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -393,10 +407,53 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilWorker, err)
+}
+
+func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		nil,
+		&mock.SentSignatureTrackerStub{},
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -421,6 +478,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		nil,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -539,7 +597,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	container := mock.InitConsensusCore()
 	container.SetChronology(chrm)
 	fct := *initFactoryWithContainer(container)
-	fct.SetOutportHandler(&testscommon.OutportStub{})
+	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
 	err := fct.GenerateSubrounds()
 	assert.Nil(t, err)
@@ -563,7 +621,7 @@ func TestFactory_SetIndexerShouldWork(t *testing.T) {
 	container := mock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	outportHandler := &testscommon.OutportStub{}
+	outportHandler := &testscommonOutport.OutportStub{}
 	fct.SetOutportHandler(outportHandler)
 
 	assert.Equal(t, outportHandler, fct.Outport())

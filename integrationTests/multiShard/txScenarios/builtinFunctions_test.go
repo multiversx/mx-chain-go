@@ -3,13 +3,13 @@ package txScenarios
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,8 +31,8 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scPath := "./../../vm/arwen/testdata/counter/counter.wasm"
-	scCode, err := ioutil.ReadFile(scPath)
+	scPath := "./../../vm/wasm/testdata/counter/counter_old.wasm"
+	scCode, err := os.ReadFile(scPath)
 
 	if err != nil {
 		panic(fmt.Sprintf("cannotReadContractCode: %s", err))
@@ -41,9 +41,9 @@ func TestTransaction_TransactionBuiltinFunctionsScenarios(t *testing.T) {
 	scCodeString := hex.EncodeToString(scCode)
 	scCodeMetadataString := "0000"
 
-	txData := []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString)
+	txData := []byte(scCodeString + "@" + hex.EncodeToString(factory.WasmVirtualMachine) + "@" + scCodeMetadataString)
 	// contract deploy should work
-	scAddressBytes, _ := nodes[0].BlockchainHook.NewAddress(players[0].Address, 0, factory.ArwenVirtualMachine)
+	scAddressBytes, _ := nodes[0].BlockchainHook.NewAddress(players[0].Address, 0, factory.WasmVirtualMachine)
 	_ = createAndSendTransaction(nodes[0], players[0], make([]byte, 32), big.NewInt(0), txData, integrationTests.MinTxGasPrice, nodes[0].EconomicsData.MaxGasLimitPerBlock(0)-1)
 	time.Sleep(time.Second)
 

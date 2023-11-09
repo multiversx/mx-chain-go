@@ -8,15 +8,16 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	mockState "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -194,7 +195,7 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RevertToSnapshot(0))
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrieFromEpoch(nil))
 
 	buff, err := accountsApi.CommitInEpoch(0, 0)
 	assert.Nil(t, buff)
@@ -207,6 +208,22 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	resultedMap, err := accountsApi.RecreateAllTries(nil)
 	assert.Nil(t, resultedMap)
 	assert.Equal(t, state.ErrOperationNotPermitted, err)
+}
+
+func TestAccountsDBApi_RecreateTrie(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			wasCalled = true
+			return nil
+		},
+	}, createBlockInfoProviderStub(dummyRootHash))
+
+	err := accountsApi.RecreateTrie(nil)
+	assert.NoError(t, err)
+	assert.True(t, wasCalled)
 }
 
 func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
@@ -223,7 +240,7 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 
 	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
-	accountsApi.SnapshotState(nil)
+	accountsApi.SnapshotState(nil, 0)
 	accountsApi.SetStateCheckpoint(nil)
 
 	assert.Equal(t, 0, accountsApi.JournalLen())
@@ -308,7 +325,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 				return nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(addressContainer)
+				return createUserAcc(addressContainer), nil
 			},
 		}
 
@@ -352,7 +369,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 				return nil
 			},
 			GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address)
+				return createUserAcc(address), nil
 			},
 		}
 
@@ -396,7 +413,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 				return nil
 			},
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return state.NewUserAccount(address)
+				return createUserAcc(address), nil
 			},
 		}
 
@@ -462,14 +479,14 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 			RecreateTrieCalled: func(rootHash []byte) error {
 				return expectedErr
 			},
-			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				require.Fail(t, "should have not called inner method")
 				return nil
 			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{})
+		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, parsers.NewMainTrieLeafParser())
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
@@ -485,7 +502,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
-		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"))
+		err := accountsApi.GetAllLeaves(providedChan, context.Background(), []byte("address"), parsers.NewMainTrieLeafParser())
 		assert.Nil(t, err)
 		assert.True(t, recreateTrieCalled)
 	})
@@ -562,7 +579,9 @@ func TestAccountsDBApi_GetAccountWithBlockInfoWhenHighConcurrency(t *testing.T) 
 }
 
 func createDummyAccountWithBalanceBytes(balanceBytes []byte) state.UserAccountHandler {
-	dummyAccount := state.NewEmptyUserAccount()
+	dummyAccount := &mockState.AccountWrapMock{
+		Balance: big.NewInt(0),
+	}
 	dummyBalance := big.NewInt(0).SetBytes(balanceBytes)
 	_ = dummyAccount.AddToBalance(dummyBalance)
 

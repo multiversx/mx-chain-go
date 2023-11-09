@@ -3,19 +3,19 @@ package state
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	chainData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/syncer"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 // TODO: merge this with data components
@@ -23,7 +23,6 @@ import (
 // StateComponentsFactoryArgs holds the arguments needed for creating a state components factory
 type StateComponentsFactoryArgs struct {
 	Config                   config.Config
-	ShardCoordinator         sharding.Coordinator
 	Core                     factory.CoreComponentsHolder
 	StatusCore               factory.StatusCoreComponentsHolder
 	StorageService           dataRetriever.StorageService
@@ -34,7 +33,6 @@ type StateComponentsFactoryArgs struct {
 
 type stateComponentsFactory struct {
 	config                   config.Config
-	shardCoordinator         sharding.Coordinator
 	core                     factory.CoreComponentsHolder
 	statusCore               factory.StatusCoreComponentsHolder
 	storageService           dataRetriever.StorageService
@@ -43,49 +41,31 @@ type stateComponentsFactory struct {
 	chainHandler             chainData.ChainHandler
 }
 
-// stateComponents struct holds the state components of the Elrond protocol
+// stateComponents struct holds the state components of the MultiversX protocol
 type stateComponents struct {
-	peerAccounts        state.AccountsAdapter
-	accountsAdapter     state.AccountsAdapter
-	accountsAdapterAPI  state.AccountsAdapter
-	accountsRepository  state.AccountsRepository
-	triesContainer      common.TriesHolder
-	trieStorageManagers map[string]common.StorageManager
+	peerAccounts             state.AccountsAdapter
+	accountsAdapter          state.AccountsAdapter
+	accountsAdapterAPI       state.AccountsAdapter
+	accountsRepository       state.AccountsRepository
+	triesContainer           common.TriesHolder
+	trieStorageManagers      map[string]common.StorageManager
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
 func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponentsFactory, error) {
-	if args.Core == nil {
+	if check.IfNil(args.Core) {
 		return nil, errors.ErrNilCoreComponents
-	}
-	if check.IfNil(args.Core.Hasher()) {
-		return nil, errors.ErrNilHasher
-	}
-	if check.IfNil(args.Core.InternalMarshalizer()) {
-		return nil, errors.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, errors.ErrNilPathHandler
-	}
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, errors.ErrNilShardCoordinator
 	}
 	if check.IfNil(args.StorageService) {
 		return nil, errors.ErrNilStorageService
 	}
-	if check.IfNil(args.ChainHandler) {
-		return nil, errors.ErrNilBlockChainHandler
-	}
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
-	}
-	if check.IfNil(args.StatusCore.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
 	}
 
 	return &stateComponentsFactory{
 		config:                   args.Config,
-		shardCoordinator:         args.ShardCoordinator,
 		core:                     args.Core,
 		statusCore:               args.StatusCore,
 		storageService:           args.StorageService,
@@ -117,18 +97,28 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	}
 
 	return &stateComponents{
-		peerAccounts:        peerAdapter,
-		accountsAdapter:     accountsAdapter,
-		accountsAdapterAPI:  accountsAdapterAPI,
-		accountsRepository:  accountsRepository,
-		triesContainer:      triesContainer,
-		trieStorageManagers: trieStorageManagers,
+		peerAccounts:             peerAdapter,
+		accountsAdapter:          accountsAdapter,
+		accountsAdapterAPI:       accountsAdapterAPI,
+		accountsRepository:       accountsRepository,
+		triesContainer:           triesContainer,
+		trieStorageManagers:      trieStorageManagers,
+		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}, nil
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
-	accountFactory := factoryState.NewAccountCreator()
-	merkleTrie := triesContainer.Get([]byte(trieFactory.UserAccountTrie))
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:              scf.core.Hasher(),
+		Marshaller:          scf.core.InternalMarshalizer(),
+		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
+	}
+	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	merkleTrie := triesContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, nil, nil, err
@@ -144,6 +134,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -159,6 +150,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		ProcessingMode:        scf.processingMode,
 		ProcessStatusHandler:  scf.core.ProcessStatusHandler(),
 		AppStatusHandler:      scf.statusCore.AppStatusHandler(),
+		AddressConverter:      scf.core.AddressPubKeyConverter(),
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -192,7 +184,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
-	merkleTrie := triesContainer.Get([]byte(trieFactory.PeerAccountTrie))
+	merkleTrie := triesContainer.Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
 		return nil, err
@@ -208,6 +200,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
 		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
 		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

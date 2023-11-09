@@ -1,7 +1,7 @@
-source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startObservers() {
-  setTerminalSession "elrond-nodes"
+  setTerminalSession "multiversx-nodes"
   setTerminalLayout "tiled"
   setWorkdirForNextCommands "$TESTNETDIR/node"
   iterateOverObservers startSingleObserver

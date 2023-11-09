@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/heartbeat"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 

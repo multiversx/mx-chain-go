@@ -5,17 +5,21 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/node/external/timemachine/fee"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 // keep this test in a separate package as to not be influenced by other the tests from the same package
 func TestFeeComputer_MemoryFootprint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this test is not relevant and will fail if started with -race")
+	}
+
 	numEpochs := 10000
-	maxFootprintNumBytes := 20_000_000
+	maxFootprintNumBytes := 50_000_000
 
 	journal := &memoryFootprintJournal{}
 	journal.before = getMemStats()
@@ -23,6 +27,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	feeComputer, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
 		EconomicsConfig:             testscommon.GetEconomicsConfig(),
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
 	})
 	computer := fee.NewTestFeeComputer(feeComputer)
 

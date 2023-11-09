@@ -1,10 +1,10 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/trieIterators"
-	"github.com/ElrondNetwork/elrond-go/node/trieIterators/disabled"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/trieIterators"
+	"github.com/multiversx/mx-chain-go/node/trieIterators/disabled"
 )
 
 // CreateDelegatedListHandler will create a new instance of DirectStakedListHandler

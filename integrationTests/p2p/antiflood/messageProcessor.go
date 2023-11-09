@@ -4,11 +4,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	antiflood2 "github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	antiflood2 "github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 )
 
 // MessageProcessor -
@@ -30,7 +30,7 @@ func newMessageProcessor() *MessageProcessor {
 }
 
 // ProcessReceivedMessage is the callback function from the p2p side whenever a new message is received
-func (mp *MessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mp *MessageProcessor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
 	atomic.AddUint32(&mp.numMessagesReceived, 1)
 	atomic.AddUint64(&mp.sizeMessagesReceived, uint64(len(message.Data())))
 

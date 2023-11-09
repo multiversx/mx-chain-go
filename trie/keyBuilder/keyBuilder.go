@@ -1,7 +1,7 @@
 package keyBuilder
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 const (
@@ -58,4 +58,9 @@ func hexToTrieKeyBytes(hex []byte) ([]byte, error) {
 	}
 
 	return key, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (kb *keyBuilder) IsInterfaceNil() bool {
+	return kb == nil
 }

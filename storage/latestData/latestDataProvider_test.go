@@ -7,15 +7,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/mock"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,9 +22,39 @@ import (
 func TestNewLatestDataProvider_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	ldp, err := NewLatestDataProvider(getLatestDataProviderArgs())
-	require.False(t, check.IfNil(ldp))
-	require.NoError(t, err)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ldp, err := NewLatestDataProvider(getLatestDataProviderArgs())
+		require.NotNil(t, ldp)
+		require.NoError(t, err)
+	})
+	t.Run("nil DirectoryReader should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getLatestDataProviderArgs()
+		args.DirectoryReader = nil
+		ldp, err := NewLatestDataProvider(args)
+		require.Nil(t, ldp)
+		require.Equal(t, storage.ErrNilDirectoryReader, err)
+	})
+	t.Run("nil BootstrapDataProvider should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getLatestDataProviderArgs()
+		args.BootstrapDataProvider = nil
+		ldp, err := NewLatestDataProvider(args)
+		require.Nil(t, ldp)
+		require.Equal(t, storage.ErrNilBootstrapDataProvider, err)
+	})
+}
+
+func TestLatestDataProvider_GetParentDirectory(t *testing.T) {
+	t.Parallel()
+
+	args := getLatestDataProviderArgs()
+	ldp, _ := NewLatestDataProvider(args)
+	require.Equal(t, args.ParentDir, ldp.GetParentDirectory())
 }
 
 func TestGetShardsFromDirectory(t *testing.T) {
@@ -365,4 +394,14 @@ func TestFullHistoryLoadEpochStartRoundMetachain(t *testing.T) {
 	round, err := ldp.loadEpochStartRound(shardID, key, storer)
 	assert.NoError(t, err)
 	assert.Equal(t, startRound, round)
+}
+
+func TestLatestDataProvider_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var ldp *latestDataProvider
+	require.True(t, ldp.IsInterfaceNil())
+
+	ldp, _ = NewLatestDataProvider(getLatestDataProviderArgs())
+	require.False(t, ldp.IsInterfaceNil())
 }

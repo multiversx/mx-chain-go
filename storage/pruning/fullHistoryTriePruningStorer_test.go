@@ -3,11 +3,11 @@ package pruning_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewFullHistoryTriePruningStorer(t *testing.T) {
@@ -20,7 +20,7 @@ func TestNewFullHistoryTriePruningStorer(t *testing.T) {
 	}
 	fhps, err := pruning.NewFullHistoryTriePruningStorer(fhArgs)
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(fhps))
+	assert.NotNil(t, fhps)
 }
 
 func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T) {
@@ -117,4 +117,19 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 
 		assert.True(t, closeCalled)
 	})
+}
+
+func TestFullHistoryTriePruningStorer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	fhtps, _ := pruning.NewFullHistoryTriePruningStorer(pruning.FullHistoryStorerArgs{})
+	require.True(t, fhtps.IsInterfaceNil())
+
+	args := getDefaultArgs()
+	fhArgs := pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 10,
+	}
+	fhtps, _ = pruning.NewFullHistoryTriePruningStorer(fhArgs)
+	require.False(t, fhtps.IsInterfaceNil())
 }

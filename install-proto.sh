@@ -37,12 +37,12 @@ sudo chmod +x /usr/bin/protoc
 echo "Removing temporally files ..."
 rm -r ${TEMP_LOCATION}
 
-cd "${GOPATH}"/src/github.com/ElrondNetwork
+cd "${GOPATH}"/src/github.com/multiversx
 
 if [ ! -d "protobuf" ]
 then
-  echo "Cloning ElrondNetwork/protobuf..."
-  git clone https://github.com/ElrondNetwork/protobuf.git
+  echo "Cloning multiversx/protobuf..."
+  git clone https://github.com/multiversx/protobuf.git
 fi
 
 echo "Building protoc-gen-gogoslick binary..."

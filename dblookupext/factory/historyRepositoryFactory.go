@@ -1,17 +1,17 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/disabled"
-	"github.com/ElrondNetwork/elrond-go/dblookupext/esdtSupply"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/dblookupext/disabled"
+	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ArgsHistoryRepositoryFactory holds all dependencies required by the history processor factory in order to create

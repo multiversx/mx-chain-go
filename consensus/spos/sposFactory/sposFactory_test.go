@@ -3,15 +3,17 @@ package sposFactory_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/sposFactory"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,7 +44,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 	consensusType := consensus.BlsConsensusType
 	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 	chainID := []byte("chain-id")
-	indexer := &testscommon.OutportStub{}
+	indexer := &outport.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
 		nil,
 		&spos.ConsensusState{},
@@ -50,6 +52,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		consensusType,
 		statusHandler,
 		indexer,
+		&mock.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
 	)
@@ -65,7 +68,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 	worker := &mock.SposWorkerMock{}
 	consensusType := consensus.BlsConsensusType
 	chainID := []byte("chain-id")
-	indexer := &testscommon.OutportStub{}
+	indexer := &outport.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
 		consensusCore,
 		&spos.ConsensusState{},
@@ -73,6 +76,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		consensusType,
 		nil,
 		indexer,
+		&mock.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
 	)
@@ -89,7 +93,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 	consensusType := consensus.BlsConsensusType
 	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()
 	chainID := []byte("chain-id")
-	indexer := &testscommon.OutportStub{}
+	indexer := &outport.OutportStub{}
 	sf, err := sposFactory.GetSubroundsFactory(
 		consensusCore,
 		&spos.ConsensusState{},
@@ -97,6 +101,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		consensusType,
 		statusHandler,
 		indexer,
+		&mock.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
 	)
@@ -116,6 +121,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		currentPid,
 	)
 
@@ -128,12 +134,11 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	messenger := &mock.MessengerStub{}
+	messenger := &p2pmocks.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 0
 	}
-	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
@@ -144,11 +149,11 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		hasher,
 		messenger,
 		shardCoord,
-		privateKey,
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -160,12 +165,11 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 
 	marshalizer := &mock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	messenger := &mock.MessengerStub{}
+	messenger := &p2pmocks.MessengerStub{}
 	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
 	shardCoord.SelfIDCalled = func() uint32 {
 		return core.MetachainShardId
 	}
-	privateKey := &mock.PrivateKeyMock{}
 	peerSigHandler := &mock.PeerSignatureHandler{}
 	headersSubscriber := &mock.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
@@ -176,11 +180,11 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		hasher,
 		messenger,
 		shardCoord,
-		privateKey,
 		peerSigHandler,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -200,10 +204,10 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		nil,
 		nil,
-		nil,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, bm)
@@ -227,10 +231,10 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		nil,
 		shardCoord,
 		nil,
-		nil,
 		headersSubscriber,
 		interceptosContainer,
 		alarmSchedulerStub,
+		&testscommon.KeysHandlerStub{},
 	)
 
 	assert.Nil(t, bm)

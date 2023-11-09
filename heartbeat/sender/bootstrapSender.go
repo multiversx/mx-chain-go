@@ -3,21 +3,22 @@ package sender
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/sender/disabled"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/heartbeat/sender/disabled"
 )
 
 // ArgBootstrapSender represents the arguments for the bootstrap bootstrapSender
 type ArgBootstrapSender struct {
-	Messenger                          heartbeat.P2PMessenger
+	MainMessenger                      heartbeat.P2PMessenger
+	FullArchiveMessenger               heartbeat.P2PMessenger
 	Marshaller                         marshal.Marshalizer
 	HeartbeatTopic                     string
 	HeartbeatTimeBetweenSends          time.Duration
 	HeartbeatTimeBetweenSendsWhenError time.Duration
-	HeartbeatThresholdBetweenSends     float64
+	HeartbeatTimeThresholdBetweenSends float64
 	VersionNumber                      string
 	NodeDisplayName                    string
 	Identity                           string
@@ -39,12 +40,13 @@ type bootstrapSender struct {
 func NewBootstrapSender(args ArgBootstrapSender) (*bootstrapSender, error) {
 	hbs, err := newHeartbeatSender(argHeartbeatSender{
 		argBaseSender: argBaseSender{
-			messenger:                 args.Messenger,
+			mainMessenger:             args.MainMessenger,
+			fullArchiveMessenger:      args.FullArchiveMessenger,
 			marshaller:                args.Marshaller,
 			topic:                     args.HeartbeatTopic,
 			timeBetweenSends:          args.HeartbeatTimeBetweenSends,
 			timeBetweenSendsWhenError: args.HeartbeatTimeBetweenSendsWhenError,
-			thresholdBetweenSends:     args.HeartbeatThresholdBetweenSends,
+			thresholdBetweenSends:     args.HeartbeatTimeThresholdBetweenSends,
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},

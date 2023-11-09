@@ -7,9 +7,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

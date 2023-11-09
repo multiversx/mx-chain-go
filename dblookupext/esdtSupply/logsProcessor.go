@@ -1,4 +1,4 @@
-//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. processedBlockNonce.proto
+//go:generate protoc -I=proto -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. processedBlockNonce.proto
 
 package esdtSupply
 
@@ -7,12 +7,12 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type logsProcessor struct {
@@ -118,7 +118,9 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 	}
 
 	tokenIdentifier := txLog.Topics[0]
+	isESDTFungible := true
 	if len(txLog.Topics[1]) != 0 {
+		isESDTFungible = false
 		nonceBytes := txLog.Topics[1]
 		nonceHexStr := hex.EncodeToString(nonceBytes)
 
@@ -127,20 +129,39 @@ func (lp *logsProcessor) processEvent(txLog *transaction.Event, supplies map[str
 
 	valueFromEvent := big.NewInt(0).SetBytes(txLog.Topics[2])
 
-	tokenIDStr := string(tokenIdentifier)
-	tokenSupply, found := supplies[tokenIDStr]
-	if found {
-		lp.updateTokenSupply(tokenSupply, valueFromEvent, string(txLog.Identifier), isRevert)
-		return nil
-	}
-
-	supply, err := lp.getESDTSupply(tokenIdentifier)
+	err := lp.updateOrCreateTokenSupply(tokenIdentifier, valueFromEvent, string(txLog.Identifier), supplies, isRevert)
 	if err != nil {
 		return err
 	}
 
-	supplies[tokenIDStr] = supply
-	lp.updateTokenSupply(supplies[tokenIDStr], valueFromEvent, string(txLog.Identifier), isRevert)
+	if isESDTFungible {
+		return nil
+	}
+
+	collectionIdentifier := txLog.Topics[0]
+	err = lp.updateOrCreateTokenSupply(collectionIdentifier, valueFromEvent, string(txLog.Identifier), supplies, isRevert)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (lp *logsProcessor) updateOrCreateTokenSupply(identifier []byte, valueFromEvent *big.Int, eventIdentifier string, supplies map[string]*SupplyESDT, isRevert bool) error {
+	identifierStr := string(identifier)
+	tokenSupply, found := supplies[identifierStr]
+	if found {
+		lp.updateTokenSupply(tokenSupply, valueFromEvent, eventIdentifier, isRevert)
+		return nil
+	}
+
+	supply, err := lp.getESDTSupply(identifier)
+	if err != nil {
+		return err
+	}
+
+	supplies[identifierStr] = supply
+	lp.updateTokenSupply(supplies[identifierStr], valueFromEvent, eventIdentifier, isRevert)
 
 	return nil
 }

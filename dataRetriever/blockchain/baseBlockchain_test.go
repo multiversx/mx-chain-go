@@ -3,7 +3,7 @@ package blockchain
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/mock"
+	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,8 +3,8 @@ package processedMb
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/processedMb")

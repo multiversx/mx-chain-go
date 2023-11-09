@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/multiversx/mx-chain-core-go/core"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("sharding/nodesCoordinator")

@@ -1,8 +1,8 @@
 package storageMarker
 
 import (
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -38,4 +38,9 @@ func (sm *trieStorageMarker) MarkStorerAsSyncedAndActive(storer common.StorageMa
 		log.Error("error while putting activeDB value into main storer after sync", "error", err)
 	}
 	log.Debug("set activeDB in epoch", "epoch", lastEpoch)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sm *trieStorageMarker) IsInterfaceNil() bool {
+	return sm == nil
 }

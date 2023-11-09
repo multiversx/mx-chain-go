@@ -4,12 +4,12 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type txExecutionProcessor struct {
@@ -53,7 +53,7 @@ func (tep *txExecutionProcessor) ExecuteTransaction(
 		Value:     value,
 		RcvAddr:   rcvAddress,
 		GasPrice:  0,
-		GasLimit:  math.MaxUint64,
+		GasLimit:  math.MaxInt64,
 		Data:      data,
 		Signature: nil,
 	}

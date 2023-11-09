@@ -1,22 +1,23 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // SCProcessorMock -
 type SCProcessorMock struct {
-	ComputeTransactionTypeCalled          func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
-	ExecuteSmartContractTransactionCalled func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	ExecuteBuiltInFunctionCalled          func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	DeploySmartContractCalled             func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
-	ProcessSmartContractResultCalled      func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
-	ProcessIfErrorCalled                  func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
-	IsPayableCalled                       func(sndAddress, recvAddress []byte) (bool, error)
+	ComputeTransactionTypeCalled           func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
+	ExecuteSmartContractTransactionCalled  func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ExecuteBuiltInFunctionCalled           func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	DeploySmartContractCalled              func(tx data.TransactionHandler, acntSrc state.UserAccountHandler) (vmcommon.ReturnCode, error)
+	ProcessSmartContractResultCalled       func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
+	ProcessIfErrorCalled                   func(acntSnd state.UserAccountHandler, txHash []byte, tx data.TransactionHandler, returnCode string, returnMessage []byte, snapshot int, gasLocked uint64) error
+	IsPayableCalled                        func(sndAddress, recvAddress []byte) (bool, error)
+	CheckBuiltinFunctionIsExecutableCalled func(expectedBuiltinFunction string, tx data.TransactionHandler) error
 }
 
 // IsPayable -
@@ -92,6 +93,15 @@ func (sc *SCProcessorMock) ProcessSmartContractResult(scr *smartContractResult.S
 	}
 
 	return sc.ProcessSmartContractResultCalled(scr)
+}
+
+// CheckBuiltinFunctionIsExecutable -
+func (sc *SCProcessorMock) CheckBuiltinFunctionIsExecutable(expectedBuiltinFunction string, tx data.TransactionHandler) error {
+	if sc.CheckBuiltinFunctionIsExecutableCalled == nil {
+		return nil
+	}
+
+	return sc.CheckBuiltinFunctionIsExecutableCalled(expectedBuiltinFunction, tx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

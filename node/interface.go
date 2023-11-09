@@ -4,27 +4,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
-
-// P2PMessenger defines a subset of the p2p.Messenger interface
-type P2PMessenger interface {
-	io.Closer
-	Bootstrap() error
-	Broadcast(topic string, buff []byte)
-	BroadcastOnChannel(channel string, topic string, buff []byte)
-	BroadcastOnChannelBlocking(channel string, topic string, buff []byte) error
-	CreateTopic(name string, createChannelForTopic bool) error
-	HasTopic(name string) bool
-	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
-	PeerAddresses(pid core.PeerID) []string
-	IsConnectedToTheNetwork() bool
-	ID() core.PeerID
-	Peers() []core.PeerID
-	IsInterfaceNil() bool
-}
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
 // The interface assures that the collected data will be used by the p2p network sharding components
@@ -72,4 +56,9 @@ type Throttler interface {
 type HealthService interface {
 	io.Closer
 	RegisterComponent(component interface{})
+}
+
+type accountHandlerWithDataTrieMigrationStatus interface {
+	vmcommon.AccountHandler
+	IsDataTrieMigrated() (bool, error)
 }

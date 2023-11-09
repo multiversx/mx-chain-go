@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // ConsensusStateMock -

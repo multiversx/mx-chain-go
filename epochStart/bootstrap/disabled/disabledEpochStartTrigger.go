@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type epochStartTrigger struct {

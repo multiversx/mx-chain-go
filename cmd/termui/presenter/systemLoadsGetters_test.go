@@ -3,7 +3,7 @@ package presenter
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 )
 

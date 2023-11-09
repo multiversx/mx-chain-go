@@ -1,10 +1,10 @@
 package epochProviders
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/resolvers/epochproviders/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders"
+	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders/disabled"
 )
 
 // CreateCurrentEpochProvider will create an instance of dataRetriever.CurrentNetworkEpochProviderHandler

@@ -2,7 +2,7 @@ name: Build
 
 on:
   pull_request:
-    branches: [development]
+    branches: [ master, rc/* ]
     types: [opened, ready_for_review]
   push:
   workflow_dispatch:
@@ -15,10 +15,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.17.6
+      - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.6
+          go-version: 1.20.7
         id: go
 
       - name: Check out code into the Go module directory
@@ -33,9 +33,7 @@ jobs:
           fi
       - name: Build
         run: |
-          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
           cd ${GITHUB_WORKSPACE}/cmd/node && go build .
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
-          cd ${GITHUB_WORKSPACE} && make arwen

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 

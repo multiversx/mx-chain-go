@@ -3,8 +3,8 @@ package logs
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/external/logs")
@@ -38,6 +38,7 @@ func (facade *logsFacade) GetLog(logKey []byte, epoch uint32) (*transaction.ApiL
 	}
 
 	apiResource := facade.converter.txLogToApiResource(logKey, txLog)
+
 	return apiResource, nil
 }
 

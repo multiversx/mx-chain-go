@@ -1,16 +1,18 @@
 package transaction
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"errors"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
@@ -33,6 +35,8 @@ type ArgsNewMetaTxProcessor struct {
 	TxTypeHandler       process.TxTypeHandler
 	EconomicsFee        process.FeeHandler
 	EnableEpochsHandler common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	GuardianChecker     process.GuardianChecker
 }
 
 // NewMetaTxProcessor creates a new txProcessor engine
@@ -59,6 +63,12 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -69,6 +79,8 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		marshalizer:         args.Marshalizer,
 		scProcessor:         args.ScProcessor,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
+		guardianChecker:     args.GuardianChecker,
 	}
 	// backwards compatibility
 	baseTxProcess.enableEpochsHandler.ResetPenalizedTooMuchGasFlag()
@@ -108,6 +120,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
+		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			if errProcessIfErr != nil {
+				return 0, errProcessIfErr
+			}
+			return vmcommon.UserError, nil
+		}
 		return 0, err
 	}
 
@@ -135,20 +154,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	}
 
 	return vmcommon.UserError, nil
-}
-
-// VerifyTransaction verifies the account states in respect with the transaction data
-func (txProc *metaTxProcessor) VerifyTransaction(tx *transaction.Transaction) error {
-	if check.IfNil(tx) {
-		return process.ErrNilTransaction
-	}
-
-	senderAccount, receiverAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
-	if err != nil {
-		return err
-	}
-
-	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
 func (txProc *metaTxProcessor) processSCDeployment(

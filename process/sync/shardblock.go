@@ -2,18 +2,16 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"math"
-	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ShardBootstrap implements the bootstrap mechanism
@@ -67,6 +65,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
 	}
 
 	if base.isInImportMode {
@@ -124,7 +123,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 }
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
-func (boot *ShardBootstrap) StartSyncingBlocks() {
+func (boot *ShardBootstrap) StartSyncingBlocks() error {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
@@ -134,7 +133,15 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+
+	err := boot.handleAccountsTrieIteration()
+	if err != nil {
+		return fmt.Errorf("%w while handling accounts trie iteration", err)
+	}
+
 	go boot.syncBlocks(ctx)
+
+	return nil
 }
 
 // SyncBlock method actually does the synchronization. It requests the next block header from the pool
@@ -145,32 +152,17 @@ func (boot *ShardBootstrap) StartSyncingBlocks() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	if isErrGetNodeFromDB(err) {
-		errSync := boot.syncUserAccountsState()
+	if core.IsGetNodeFromDBError(err) {
+		getNodeErr := core.UnwrapGetNodeFromDBErr(err)
+		if getNodeErr == nil {
+			return err
+		}
+
+		errSync := boot.syncUserAccountsState(getNodeErr.GetKey())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
-}
-
-func isErrGetNodeFromDB(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if strings.Contains(err.Error(), storage.ErrDBIsClosed.Error()) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), errors.ErrContextClosing.Error()) {
-		return false
-	}
-
-	if strings.Contains(err.Error(), common.GetNodeFromDBErrorString) {
-		return true
-	}
-
-	return false
 }
 
 // Close closes the synchronization loop

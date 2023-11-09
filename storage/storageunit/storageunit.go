@@ -1,10 +1,10 @@
 package storageunit
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-storage/storageCacherAdapter"
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-storage-go/storageCacherAdapter"
+	"github.com/multiversx/mx-chain-storage-go/storageUnit"
 )
 
 // Unit represents a storer's data bank
@@ -28,6 +28,9 @@ type CacheType = storageUnit.CacheType
 
 // DBType represents the type of the supported databases
 type DBType = storageUnit.DBType
+
+// ShardIDProviderType represents the type of the supported shard id providers
+type ShardIDProviderType = storageUnit.ShardIDProviderType
 
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.

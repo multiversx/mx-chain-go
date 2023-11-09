@@ -5,18 +5,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 	argsBaseBootstrapper := ArgsBaseStorageBootstrapper{
 		BootStorer:     &mock.BoostrapStorerMock{},
 		ForkDetector:   &mock.ForkDetectorMock{},
-		BlockProcessor: &mock.BlockProcessorMock{},
+		BlockProcessor: &testscommon.BlockProcessorStub{},
 		ChainHandler:   &testscommon.ChainHandlerStub{},
 		Marshalizer:    &mock.MarshalizerMock{},
 		Store: &storageStubs.ChainStorerStub{
@@ -264,7 +264,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 			return nil, nil
 		},
 	}
-	baseArgs.BlockProcessor = &mock.BlockProcessorMock{
+	baseArgs.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockBodyIntoPoolsCalled: func(body data.BodyHandler) error {
 			return expectedError
 		},
@@ -298,7 +298,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 			return nil, nil
 		},
 	}
-	baseArgs.BlockProcessor = &mock.BlockProcessorMock{
+	baseArgs.BlockProcessor = &testscommon.BlockProcessorStub{
 		RestoreBlockBodyIntoPoolsCalled: func(body data.BodyHandler) error {
 			return nil
 		},

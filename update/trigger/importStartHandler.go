@@ -1,13 +1,12 @@
 package trigger
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 const filename = "mustimport"
@@ -49,7 +48,7 @@ func (ish *importStartHandler) loadFileStatus() (string, bool) {
 		return "", false
 	}
 
-	contents, err := ioutil.ReadFile(ish.getFilename())
+	contents, err := os.ReadFile(ish.getFilename())
 	if err != nil {
 		log.Error("error reading must import file",
 			"file", ish.getFilename(),

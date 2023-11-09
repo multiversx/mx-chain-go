@@ -22,5 +22,5 @@ message Message {
 	bytes    AggregateSignature = 11;
 	bytes    LeaderSignature    = 12;
 	bytes    OriginatorPid      = 13;
-    bytes    InvalidSigners     = 14;
+	bytes    InvalidSigners     = 14;
 }

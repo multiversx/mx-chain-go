@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -98,7 +99,7 @@ func Test_computeGasProvidedSelfSenderMoveBalanceIntra(t *testing.T) {
 	receiverShardID := uint32(0)
 	rcvAddr, _ := hex.DecodeString("addrReceiver" + suffixShard0)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 75000,
@@ -133,7 +134,7 @@ func Test_computeGasProvidedSelfSenderSCCallIntra(t *testing.T) {
 	receiverShardID := uint32(0)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard0)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
@@ -169,7 +170,7 @@ func Test_computeGasProvidedByTxSelfSenderMoveBalanceCross(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString("addrReceiver" + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 75000,
@@ -204,7 +205,7 @@ func Test_computeGasProvidedByTxSelfSenderScCallCross(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
@@ -240,7 +241,7 @@ func Test_computeGasProvidedByTxGasHandlerComputeGasErrors(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
@@ -283,7 +284,7 @@ func Test_computeGasProvidedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T)
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   500000,
 		consumedReceiverShard: 500000,
@@ -329,7 +330,7 @@ func Test_computeGasProvidedWithErrorForGasConsumedForTx(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 1600000000,
@@ -371,7 +372,7 @@ func Test_computeGasProvidedMaxGasLimitInSenderShardReached(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
@@ -408,7 +409,7 @@ func Test_computeGasProvidedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
@@ -445,7 +446,7 @@ func Test_computeGasProvidedMaxGasLimitPerBlockReached(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,
@@ -482,7 +483,7 @@ func Test_computeGasProvidedOK(t *testing.T) {
 	receiverShardID := uint32(1)
 	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
 	hasher := &hashingMocks.HasherMock{}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	gcr := &gasConsumedResult{
 		consumedSenderShard:   75000,
 		consumedReceiverShard: 500000,

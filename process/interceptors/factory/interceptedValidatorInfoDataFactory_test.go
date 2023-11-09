@@ -3,11 +3,11 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,7 +21,7 @@ func createMockValidatorInfoBuff() []byte {
 		Rating:    10,
 	}
 
-	marshalizerMock := testscommon.MarshalizerMock{}
+	marshalizerMock := marshallerMock.MarshalizerMock{}
 	buff, _ := marshalizerMock.Marshal(vi)
 
 	return buff

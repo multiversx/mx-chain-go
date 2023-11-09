@@ -3,12 +3,12 @@ package heartbeat
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const uint32Size = 4
@@ -70,7 +70,12 @@ func createHeartbeat(marshaller marshal.Marshalizer, buff []byte) (*heartbeat.He
 		return nil, nil, err
 	}
 
-	log.Trace("interceptedHeartbeat successfully created")
+	log.Trace("interceptedHeartbeat successfully created",
+		"pubkey", hb.Pubkey,
+		"identity", hb.Identity,
+		"node name", hb.NodeDisplayName,
+		"version", hb.VersionNumber,
+		"timestamp", payload.Timestamp)
 
 	return hb, payload, nil
 }

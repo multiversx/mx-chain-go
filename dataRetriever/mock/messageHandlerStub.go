@@ -1,25 +1,21 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // MessageHandlerStub -
 type MessageHandlerStub struct {
-	ConnectedPeersOnTopicCalled            func(topic string) []core.PeerID
-	ConnectedFullHistoryPeersOnTopicCalled func(topic string) []core.PeerID
-	SendToConnectedPeerCalled              func(topic string, buff []byte, peerID core.PeerID) error
-	IDCalled                               func() core.PeerID
+	ConnectedPeersOnTopicCalled func(topic string) []core.PeerID
+	SendToConnectedPeerCalled   func(topic string, buff []byte, peerID core.PeerID) error
+	IDCalled                    func() core.PeerID
+	ConnectedPeersCalled        func() []core.PeerID
+	IsConnectedCalled           func(peerID core.PeerID) bool
 }
 
 // ConnectedPeersOnTopic -
 func (mhs *MessageHandlerStub) ConnectedPeersOnTopic(topic string) []core.PeerID {
 	return mhs.ConnectedPeersOnTopicCalled(topic)
-}
-
-// ConnectedFullHistoryPeersOnTopic -
-func (mhs *MessageHandlerStub) ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID {
-	return mhs.ConnectedFullHistoryPeersOnTopicCalled(topic)
 }
 
 // SendToConnectedPeer -
@@ -34,6 +30,24 @@ func (mhs *MessageHandlerStub) ID() core.PeerID {
 	}
 
 	return ""
+}
+
+// ConnectedPeers -
+func (mhs *MessageHandlerStub) ConnectedPeers() []core.PeerID {
+	if mhs.ConnectedPeersCalled != nil {
+		return mhs.ConnectedPeersCalled()
+	}
+
+	return make([]core.PeerID, 0)
+}
+
+// IsConnected -
+func (mhs *MessageHandlerStub) IsConnected(peerID core.PeerID) bool {
+	if mhs.IsConnectedCalled != nil {
+		return mhs.IsConnectedCalled(peerID)
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

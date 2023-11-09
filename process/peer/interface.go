@@ -1,7 +1,7 @@
 package peer
 
 import (
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // DataPool indicates the main functionality needed in order to fetch the required blocks from the pool

@@ -1,6 +1,6 @@
 package sharding
 
-import "github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+import "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {

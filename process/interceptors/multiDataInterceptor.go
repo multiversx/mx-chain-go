@@ -3,16 +3,16 @@ package interceptors
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug/resolver"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug/handler"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/interceptors")
@@ -78,7 +78,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			currentPeerId:        arg.CurrentPeerId,
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
-			debugHandler:         resolver.NewDisabledInterceptorResolver(),
+			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
@@ -91,7 +91,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
 	err := mdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
 		return err

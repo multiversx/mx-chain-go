@@ -1,4 +1,4 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. validator.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. validator.proto
 package systemSmartContracts
 
 import (
@@ -9,14 +9,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const unJailedFunds = "unJailFunds"
@@ -1222,11 +1222,6 @@ func (v *validatorSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
-		v.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	// continue by unstaking tokens as well
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	returnCode = v.processUnStakeTokensFromNodes(registrationData, validatorConfig, numSuccessFromWaiting, 0)
@@ -1541,10 +1536,6 @@ func (v *validatorSC) unStakeTokens(args *vmcommon.ContractCallInput) vmcommon.R
 		v.eei.AddReturnMessage("should have specified one argument containing the unstake value")
 		return vmcommon.UserError
 	}
-	if isStakeLocked(v.eei, v.governanceSCAddress, args.CallerAddr) {
-		v.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
 
 	unStakeValue := big.NewInt(0).SetBytes(args.Arguments[0])
 	unStakedEpoch := v.eei.BlockChainHook().CurrentEpoch()
@@ -1709,6 +1700,9 @@ func (v *validatorSC) unBondTokens(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 	if totalUnBond.Cmp(zero) == 0 {
 		v.eei.AddReturnMessage("no tokens that can be unbond at this time")
+		if v.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -2134,6 +2128,9 @@ func (v *validatorSC) getBlsKeysStatus(args *vmcommon.ContractCallInput) vmcommo
 
 	if len(registrationData.BlsPubKeys) == 0 {
 		v.eei.AddReturnMessage("no bls keys")
+		if v.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 

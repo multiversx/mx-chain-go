@@ -1,14 +1,16 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/state"
+import (
+	"github.com/multiversx/mx-chain-go/state/accounts"
+)
 
 // ValidatorsProviderStub -
 type ValidatorsProviderStub struct {
-	GetLatestValidatorsCalled func() map[string]*state.ValidatorApiResponse
+	GetLatestValidatorsCalled func() map[string]*accounts.ValidatorApiResponse
 }
 
 // GetLatestValidators -
-func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*state.ValidatorApiResponse {
+func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*accounts.ValidatorApiResponse {
 	if vp.GetLatestValidatorsCalled != nil {
 		return vp.GetLatestValidatorsCalled()
 	}

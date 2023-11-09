@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const maxNumPidsPerPk = 3
@@ -230,7 +230,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
-// the same Elrond PK that will make the node prone to an eclipse attack
+// the same MultiversX PK that will make the node prone to an eclipse attack
 func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
 	isNew := psm.updatePeerIDPublicKey(pid, pk)
 	if isNew {
@@ -240,7 +240,7 @@ func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte
 
 // UpdatePeerIDInfo updates the public keys and the shard ID for the peer ID in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
-// the same Elrond PK that will make the node prone to an eclipse attack
+// the same MultiversX PK that will make the node prone to an eclipse attack
 func (psm *PeerShardMapper) UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32) {
 	isNew := psm.updatePeerIDPublicKey(pid, pk)
 	if isNew {

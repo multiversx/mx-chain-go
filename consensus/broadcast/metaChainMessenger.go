@@ -1,14 +1,14 @@
 package broadcast
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 var _ consensus.BroadcastMessenger = (*metaChainMessenger)(nil)
@@ -50,10 +50,10 @@ func NewMetaChainMessenger(
 		marshalizer:             args.Marshalizer,
 		hasher:                  args.Hasher,
 		messenger:               args.Messenger,
-		privateKey:              args.PrivateKey,
 		shardCoordinator:        args.ShardCoordinator,
 		peerSignatureHandler:    args.PeerSignatureHandler,
 		delayedBlockBroadcaster: dbb,
+		keysHandler:             args.KeysHandler,
 	}
 
 	mcm := &metaChainMessenger{
@@ -109,7 +109,7 @@ func (mcm *metaChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header
 }
 
 // BroadcastHeader will send on metachain blocks topic the header
-func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error {
+func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler, pkBytes []byte) error {
 	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
@@ -119,7 +119,7 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler) error 
 		return err
 	}
 
-	mcm.messenger.Broadcast(factory.MetachainBlocksTopic, msgHeader)
+	mcm.broadcast(factory.MetachainBlocksTopic, msgHeader, pkBytes)
 
 	return nil
 }
@@ -129,8 +129,9 @@ func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
 	_ data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
+	pkBytes []byte,
 ) error {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, common.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
 
@@ -140,6 +141,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	idx int,
+	pkBytes []byte,
 ) {
 	if check.IfNil(header) {
 		log.Error("metaChainMessenger.PrepareBroadcastHeaderValidator", "error", spos.ErrNilHeader)
@@ -158,6 +160,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 		metaMiniBlocksData:   miniBlocks,
 		metaTransactionsData: transactions,
 		order:                uint32(idx),
+		pkBytes:              pkBytes,
 	}
 
 	err = mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
@@ -173,6 +176,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 	_ map[uint32][]byte,
 	_ map[string][][]byte,
 	_ int,
+	_ []byte,
 ) {
 }
 

@@ -1,19 +1,22 @@
 package factory
 
 import (
+	"fmt"
 	"time"
 
-	covalentFactory "github.com/ElrondNetwork/covalent-indexer-go/factory"
-	indexerFactory "github.com/ElrondNetwork/elastic-indexer-go/factory"
-	"github.com/ElrondNetwork/elrond-go/outport"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-go/outport"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
 type OutportFactoryArgs struct {
-	RetrialInterval            time.Duration
-	ElasticIndexerFactoryArgs  *indexerFactory.ArgsIndexerFactory
-	EventNotifierFactoryArgs   *EventNotifierFactoryArgs
-	CovalentIndexerFactoryArgs *covalentFactory.ArgsCovalentIndexerFactory
+	IsImportDB                bool
+	ShardID                   uint32
+	RetrialInterval           time.Duration
+	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
+	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
+	HostDriversArgs           []ArgsHostDriverFactory
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -23,7 +26,12 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 		return nil, err
 	}
 
-	outportHandler, err := outport.NewOutport(args.RetrialInterval)
+	cfg := outportcore.OutportConfig{
+		ShardID:          args.ShardID,
+		IsInImportDBMode: args.IsImportDB,
+	}
+
+	outportHandler, err := outport.NewOutport(args.RetrialInterval, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -47,33 +55,19 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		return err
 	}
 
-	err = createAndSubscribeCovalentDriverIfNeeded(outport, args.CovalentIndexerFactoryArgs)
-	if err != nil {
-		return err
+	for idx := 0; idx < len(args.HostDriversArgs); idx++ {
+		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
+		if err != nil {
+			return fmt.Errorf("%w when calling createAndSubscribeHostDriverIfNeeded, host driver index %d", err, idx)
+		}
 	}
 
 	return nil
 }
 
-func createAndSubscribeCovalentDriverIfNeeded(
-	outport outport.OutportHandler,
-	args *covalentFactory.ArgsCovalentIndexerFactory,
-) error {
-	if !args.Enabled {
-		return nil
-	}
-
-	covalentDriver, err := covalentFactory.CreateCovalentIndexer(args)
-	if err != nil {
-		return err
-	}
-
-	return outport.SubscribeDriver(covalentDriver)
-}
-
 func createAndSubscribeElasticDriverIfNeeded(
 	outport outport.OutportHandler,
-	args *indexerFactory.ArgsIndexerFactory,
+	args indexerFactory.ArgsIndexerFactory,
 ) error {
 	if !args.Enabled {
 		return nil
@@ -109,4 +103,20 @@ func checkArguments(args *OutportFactoryArgs) error {
 	}
 
 	return nil
+}
+
+func createAndSubscribeHostDriverIfNeeded(
+	outport outport.OutportHandler,
+	args ArgsHostDriverFactory,
+) error {
+	if !args.HostConfig.Enabled {
+		return nil
+	}
+
+	hostDriver, err := CreateHostDriver(args)
+	if err != nil {
+		return err
+	}
+
+	return outport.SubscribeDriver(hostDriver)
 }

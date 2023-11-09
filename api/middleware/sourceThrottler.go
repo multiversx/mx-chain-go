@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-go/api/shared"
 )
 
 // globalThrottler is a middleware limiter used to limit total number of requests originating from the same source

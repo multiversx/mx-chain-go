@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
@@ -115,7 +114,7 @@ func createUserTx(
 		ChainID:  integrationTests.ChainID,
 		Version:  integrationTests.MinTransactionVersion,
 	}
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
 	player.Nonce++
 	return tx
@@ -142,7 +141,7 @@ func createRelayedTx(
 	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit
 
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
 	txFee := economicsFee.ComputeTxFee(tx)
@@ -158,28 +157,20 @@ func createRelayedTxV2(
 	userTx *transaction.Transaction,
 	gasLimitForUserTx uint64,
 ) *transaction.Transaction {
-	dataBuilder := txDataBuilder.NewBuilder()
-	txData := dataBuilder.
-		Func(core.RelayedTransactionV2).
-		Bytes(userTx.RcvAddr).
-		Int64(int64(userTx.Nonce)).
-		Bytes(userTx.Data).
-		Bytes(userTx.Signature)
-
 	tx := &transaction.Transaction{
 		Nonce:    relayer.Nonce,
 		Value:    big.NewInt(0).Set(userTx.Value),
 		RcvAddr:  userTx.SndAddr,
 		SndAddr:  relayer.Address,
 		GasPrice: integrationTests.MinTxGasPrice,
-		Data:     txData.ToBytes(),
+		Data:     integrationTests.PrepareRelayedTxDataV2(userTx),
 		ChainID:  userTx.ChainID,
 		Version:  userTx.Version,
 	}
 	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = gasLimitForUserTx + gasLimit
 
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer)
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
 	txFee := economicsFee.ComputeTxFee(tx)

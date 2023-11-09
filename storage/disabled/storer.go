@@ -1,8 +1,8 @@
 package disabled
 
 import (
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go-storage/common"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-storage-go/common"
 )
 
 type storer struct{}

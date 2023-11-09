@@ -1,9 +1,9 @@
 package process
 
 import (
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 type genesisProcessors struct {

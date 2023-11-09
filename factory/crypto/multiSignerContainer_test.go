@@ -4,14 +4,14 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	disabledMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/disabled/multisig"
-	mclMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	disabledMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/multisig"
+	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -269,9 +269,6 @@ func TestContainer_sortMultiSignerConfig(t *testing.T) {
 
 func Test_getMultiSigHasherFromConfigInvalidHasherShouldErr(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := createDefaultMultiSignerArgs()
 	args.ConsensusType = ""
@@ -284,9 +281,6 @@ func Test_getMultiSigHasherFromConfigInvalidHasherShouldErr(t *testing.T) {
 
 func Test_getMultiSigHasherFromConfigMismatchConsensusTypeMultiSigHasher(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := createDefaultMultiSignerArgs()
 	args.MultiSigHasherType = "sha256"
@@ -298,9 +292,6 @@ func Test_getMultiSigHasherFromConfigMismatchConsensusTypeMultiSigHasher(t *test
 
 func Test_getMultiSigHasherFromConfigOK(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	args := createDefaultMultiSignerArgs()
 	args.ConsensusType = "bls"

@@ -3,30 +3,34 @@ package components
 import (
 	"time"
 
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 )
 
 // GetDefaultCoreComponents -
 func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 	return &mock.CoreComponentsMock{
-		IntMarsh:            &testscommon.MarshalizerMock{},
-		TxMarsh:             &testscommon.MarshalizerMock{},
-		VmMarsh:             &testscommon.MarshalizerMock{},
+		IntMarsh:            &marshallerMock.MarshalizerMock{},
+		TxMarsh:             &marshallerMock.MarshalizerMock{},
+		VmMarsh:             &marshallerMock.MarshalizerMock{},
 		Hash:                &testscommon.HasherStub{},
 		UInt64ByteSliceConv: testscommon.NewNonceHashConverterMock(),
 		AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
@@ -48,25 +52,30 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		NodesConfig:           &testscommon.NodesSetupStub{},
 		StartTime:             time.Time{},
 		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:   &epochNotifierMock.EpochNotifierStub{},
 	}
 }
 
 // GetDefaultCryptoComponents -
 func GetDefaultCryptoComponents() *mock.CryptoComponentsMock {
 	return &mock.CryptoComponentsMock{
-		PubKey:            &mock.PublicKeyMock{},
-		PrivKey:           &mock.PrivateKeyStub{},
-		PubKeyString:      "pubKey",
-		PrivKeyBytes:      []byte("privKey"),
-		PubKeyBytes:       []byte("pubKey"),
-		BlockSig:          &mock.SinglesignMock{},
-		TxSig:             &mock.SinglesignMock{},
-		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{}),
-		PeerSignHandler:   &mock.PeerSignatureHandler{},
-		BlKeyGen:          &mock.KeyGenMock{},
-		TxKeyGen:          &mock.KeyGenMock{},
-		MsgSigVerifier:    &testscommon.MessageSignVerifierMock{},
-		SigHandler:        &consensusMocks.SignatureHandlerStub{},
+		PubKey:                  &mock.PublicKeyMock{},
+		PrivKey:                 &mock.PrivateKeyStub{},
+		P2pPubKey:               &mock.PublicKeyMock{},
+		P2pPrivKey:              mock.NewP2pPrivateKeyMock(),
+		P2pSig:                  &mock.SinglesignMock{},
+		PubKeyString:            "pubKey",
+		PubKeyBytes:             []byte("pubKey"),
+		BlockSig:                &mock.SinglesignMock{},
+		TxSig:                   &mock.SinglesignMock{},
+		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{}),
+		PeerSignHandler:         &mock.PeerSignatureHandler{},
+		BlKeyGen:                &mock.KeyGenMock{},
+		TxKeyGen:                &mock.KeyGenMock{},
+		P2PKeyGen:               &mock.KeyGenMock{},
+		MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
+		SigHandler:              &consensus.SigningHandlerStub{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -81,16 +90,17 @@ func GetDefaultNetworkComponents() *mock.NetworkComponentsMock {
 }
 
 // GetDefaultStateComponents -
-func GetDefaultStateComponents() *testscommon.StateComponentsMock {
-	return &testscommon.StateComponentsMock{
+func GetDefaultStateComponents() *factory.StateComponentsMock {
+	return &factory.StateComponentsMock{
 		PeersAcc: &stateMock.AccountsStub{},
 		Accounts: &stateMock.AccountsStub{},
 		Tries:    &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
-			"0":                         &testscommon.StorageManagerStub{},
-			trieFactory.UserAccountTrie: &testscommon.StorageManagerStub{},
-			trieFactory.PeerAccountTrie: &testscommon.StorageManagerStub{},
+			"0":                                     &storageManager.StorageManagerStub{},
+			dataRetriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},
+			dataRetriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		},
+		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 }
 
@@ -99,7 +109,7 @@ func GetDefaultDataComponents() *mock.DataComponentsMock {
 	return &mock.DataComponentsMock{
 		Blkc:              &testscommon.ChainHandlerStub{},
 		Storage:           &storage.ChainStorerStub{},
-		DataPool:          &dataRetrieverMock.PoolsHolderMock{},
+		DataPool:          &dataRetrieverTests.PoolsHolderMock{},
 		MiniBlockProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
@@ -110,12 +120,13 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		NodesCoord:               &shardingMocks.NodesCoordinatorMock{},
 		ShardCoord:               shardCoordinator,
 		IntContainer:             &testscommon.InterceptorsContainerStub{},
-		ResFinder:                &mock.ResolversFinderStub{},
+		ResContainer:             &dataRetrieverTests.ResolversContainerStub{},
+		ReqFinder:                &dataRetrieverTests.RequestersFinderStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
 		EpochTrigger:             &testscommon.EpochStartTriggerStub{},
 		EpochNotifier:            &mock.EpochStartNotifierStub{},
 		ForkDetect:               &mock.ForkDetectorMock{},
-		BlockProcess:             &mock.BlockProcessorStub{},
+		BlockProcess:             &testscommon.BlockProcessorStub{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BootstrapStorerMock{},
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
@@ -127,7 +138,8 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		ReqHandler:               &testscommon.RequestHandlerStub{},
 		TxLogsProcess:            &mock.TxLogProcessorMock{},
 		HeaderConstructValidator: &mock.HeaderValidatorStub{},
-		PeerMapper:               &p2pmocks.NetworkShardingCollectorStub{},
+		MainPeerMapper:           &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerMapper:    &p2pmocks.NetworkShardingCollectorStub{},
 		FallbackHdrValidator:     &testscommon.FallBackHeaderValidatorStub{},
 		NodeRedundancyHandlerInternal: &mock.RedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {

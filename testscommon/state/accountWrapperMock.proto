@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "state";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message AccountWrapMockData {
+  int64 MockValue = 1 [(gogoproto.jsontag) = "MockValue"];
+}

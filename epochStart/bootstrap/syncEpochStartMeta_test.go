@@ -5,19 +5,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -137,7 +137,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			Marsh:               &mock.MarshalizerMock{},
 			Hash:                &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv: &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:      mock.NewPubkeyConverterMock(32),
+			AddrPubKeyConv:      testscommon.NewPubkeyConverterMock(32),
 			PathHdl:             &testscommon.PathManagerStub{},
 			ChainIdCalled: func() string {
 				return "chain-ID"

@@ -62,7 +62,7 @@
     ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 1000000
+    GovernanceEnableEpoch = 5
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -163,7 +163,7 @@
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
     CleanUpInformativeSCRsEnableEpoch = 1
 
-    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 1
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
@@ -221,16 +221,73 @@
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
     FixOldTokenLiquidityEnableEpoch = 1
 
+    # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
+    RuntimeMemStoreLimitEnableEpoch = 1
+
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 4
+    SetSenderInEeiOutputTransferEnableEpoch = 1
 
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
-    RefactorPeersMiniBlocksEnableEpoch = 5
+    RefactorPeersMiniBlocksEnableEpoch = 1
+
+    # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
+    MaxBlockchainHookCountersEnableEpoch = 1
+
+    # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 1
+
+    # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
+    AlwaysSaveTokenMetaDataEnableEpoch = 1
+
+    # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
+    RuntimeCodeSizeFixEnableEpoch = 1
+
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 1
+
+    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
+    SetGuardianEnableEpoch = 1
+
+    # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
+    DeterministicSortOnValidatorsInfoEnableEpoch = 1
+
+    # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
+    SCProcessorV2EnableEpoch = 3
+
+    # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
+    AutoBalanceDataTriesEnableEpoch = 3
+
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 3
+
+    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
+    MultiClaimOnDelegationEnableEpoch = 3
+
+    # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
+    ChangeUsernameEnableEpoch = 3
+
+    # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+    ConsistentTokensValuesLengthCheckEnableEpoch = 3
+
+    # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 3
+
+    # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+
+    # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+    ScToScLogEventEnableEpoch = 3
+
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 3
+
+    # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 3
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
-        { EnableEpoch = 0, Type = "no-KOSK"},
-        { EnableEpoch = 3, Type = "KOSK"}
+        { EnableEpoch = 0, Type = "no-KOSK" },
+        { EnableEpoch = 1, Type = "KOSK" }
     ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
@@ -243,6 +300,5 @@
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV6.toml" },
-        { StartEpoch = 5, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 1, FileName = "gasScheduleV7.toml" },
     ]

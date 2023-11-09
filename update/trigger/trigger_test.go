@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
-	"github.com/ElrondNetwork/elrond-go/update/trigger"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/mock"
+	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/stretchr/testify/assert"
 )
 

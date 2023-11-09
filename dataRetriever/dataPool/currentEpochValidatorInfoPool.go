@@ -3,9 +3,9 @@ package dataPool
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ dataRetriever.ValidatorInfoCacher = (*validatorInfoMapCacher)(nil)

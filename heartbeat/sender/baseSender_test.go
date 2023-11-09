@@ -4,17 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/heartbeat/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/heartbeat/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockBaseArgs() argBaseSender {
 	return argBaseSender{
-		messenger:                 &p2pmocks.MessengerStub{},
-		marshaller:                &testscommon.MarshalizerMock{},
+		mainMessenger:             &p2pmocks.MessengerStub{},
+		fullArchiveMessenger:      &p2pmocks.MessengerStub{},
+		marshaller:                &marshallerMock.MarshalizerMock{},
 		topic:                     "topic",
 		timeBetweenSends:          time.Second,
 		timeBetweenSendsWhenError: time.Second,

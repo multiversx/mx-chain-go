@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/mock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -80,4 +81,15 @@ func TestBlockChain_SettersAndGettersNilValues(t *testing.T) {
 	assert.Nil(t, bc.GetGenesisHeader())
 	assert.Nil(t, bc.GetCurrentBlockHeader())
 	assert.Empty(t, bc.GetCurrentBlockRootHash())
+}
+
+func TestBlockChain_SettersInvalidValues(t *testing.T) {
+	t.Parallel()
+
+	bc, _ := NewBlockChain(&mock.AppStatusHandlerStub{})
+	err := bc.SetGenesisHeader(&block.MetaBlock{})
+	assert.Equal(t, err, data.ErrInvalidHeaderType)
+
+	err = bc.SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{}, []byte("root hash"))
+	assert.Equal(t, err, data.ErrInvalidHeaderType)
 }

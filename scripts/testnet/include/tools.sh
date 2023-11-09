@@ -1,7 +1,7 @@
-source "$ELRONDTESTNETSCRIPTSDIR/include/terminal.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/terminal.sh"
 
 startProxy() {
-  setTerminalSession "elrond-tools"
+  setTerminalSession "multiversx-tools"
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
@@ -21,7 +21,7 @@ stopProxy() {
 }
 
 startTxGen_NewAccounts() {
-  setTerminalSession "elrond-tools"
+  setTerminalSession "multiversx-tools"
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
@@ -30,7 +30,7 @@ startTxGen_NewAccounts() {
 }
 
 startTxGen_ExistingAccounts() {
-  setTerminalSession "elrond-tools"
+  setTerminalSession "multiversx-tools"
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/txgen" v
@@ -51,7 +51,7 @@ stopTxGen() {
 }
 
 startSeednode() {
-  setTerminalSession "elrond-tools"
+  setTerminalSession "multiversx-tools"
   setTerminalLayout "even-horizontal"
 
   setWorkdirForNextCommands "$TESTNETDIR/seednode"

@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTriePersistersTracker(t *testing.T) {
 	t.Parallel()
 
 	pt := NewTriePersisterTracker(getArgs())
-	assert.False(t, check.IfNil(pt))
+	assert.NotNil(t, pt)
 	assert.Equal(t, int64(7), pt.oldestEpochKeep)
 	assert.Equal(t, int64(8), pt.oldestEpochActive)
 	assert.Equal(t, 0, pt.numDbsMarkedAsActive)
@@ -136,4 +136,14 @@ func TestTriePersistersTracker_ShouldClosePersister(t *testing.T) {
 	assert.True(t, pt.ShouldClosePersister(7))
 
 	assert.False(t, pt.ShouldClosePersister(8))
+}
+
+func TestTriePersistersTracker_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var tpt *triePersistersTracker
+	require.True(t, tpt.IsInterfaceNil())
+
+	tpt = NewTriePersisterTracker(getArgs())
+	require.False(t, tpt.IsInterfaceNil())
 }

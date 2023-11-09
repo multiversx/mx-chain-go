@@ -1,8 +1,10 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
+	"bytes"
+
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 )
 
 // PublicKeyMock -
@@ -50,7 +52,11 @@ func (sspk *PublicKeyMock) IsInterfaceNil() bool {
 
 // ToByteArray -
 func (sk *PrivateKeyStub) ToByteArray() ([]byte, error) {
-	return sk.ToByteArrayHandler()
+	if sk.ToByteArrayHandler != nil {
+		return sk.ToByteArrayHandler()
+	}
+
+	return []byte{}, nil
 }
 
 // GeneratePublic -
@@ -101,4 +107,19 @@ func (keyGen *KeyGenMock) Suite() crypto.Suite {
 // IsInterfaceNil returns true if there is no value under the interface
 func (keyGen *KeyGenMock) IsInterfaceNil() bool {
 	return keyGen == nil
+}
+
+// P2pPrivateKeyMock -
+type P2pPrivateKeyMock struct {
+	*PrivateKeyStub
+}
+
+// NewP2pPrivateKeyMock -
+func NewP2pPrivateKeyMock() *P2pPrivateKeyMock {
+	return &P2pPrivateKeyMock{&PrivateKeyStub{}}
+}
+
+// ToByteArray -
+func (sk *P2pPrivateKeyMock) ToByteArray() ([]byte, error) {
+	return bytes.Repeat([]byte("a"), 32), nil
 }

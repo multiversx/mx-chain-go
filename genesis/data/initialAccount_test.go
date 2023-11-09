@@ -7,8 +7,8 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +24,14 @@ func createMockInitialAccount() *InitialAccount {
 			Value:   big.NewInt(4442),
 		},
 	}
+}
+
+func TestInitialAccount_UnmarshalJSONInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	acc := &InitialAccount{}
+	err := acc.UnmarshalJSON([]byte("invalid data"))
+	assert.Error(t, err)
 }
 
 func TestInitialAccount_UnmarshalJSON_MarshalUnmarshalEmptyStruct(t *testing.T) {

@@ -5,18 +5,18 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,7 +101,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV2
 	}
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV1, rCreatorV1)
-	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	stub.StakingV2EnableEpochField = 1
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics
@@ -128,7 +128,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 	}
 
 	rewardsCreatorProxy, vInfo, metaBlock := createTestData(rewardCreatorV2, rCreatorV2)
-	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*testscommon.EnableEpochsHandlerStub)
+	stub, _ := rewardsCreatorProxy.args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	stub.StakingV2EnableEpochField = 5
 	metaBlock.Epoch = 3
 	economics := &metaBlock.EpochStart.Economics

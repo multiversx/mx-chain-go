@@ -2,17 +2,23 @@ package rewardTransaction_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/rewardTransaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -158,7 +164,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHold
 
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return &mock.PeerAccountHandlerMock{}, nil
+			return &stateMock.PeerAccountHandlerMock{}, nil
 		},
 	}
 
@@ -186,7 +192,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			return state.NewUserAccount(address)
+			return accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		},
 		SaveAccountCalled: func(accountHandler vmcommon.AccountHandler) error {
 			saveAccountWasCalled = true
@@ -212,13 +218,50 @@ func TestRewardTxProcessor_ProcessRewardTransactionShouldWork(t *testing.T) {
 	assert.True(t, saveAccountWasCalled)
 }
 
+func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
+	accountsDb := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			acc := stateMock.NewAccountWrapMock(address)
+			acc.SetDataTrie(&trie.TrieStub{
+				GetCalled: func(key []byte) ([]byte, uint32, error) {
+					return nil, 0, missingNodeErr
+				},
+			},
+			)
+
+			return acc, nil
+		},
+	}
+
+	rtp, _ := rewardTransaction.NewRewardTxProcessor(
+		accountsDb,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+	)
+
+	rwdTx := rewardTx.RewardTx{
+		Round:   0,
+		Epoch:   0,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6},
+	}
+
+	err := rtp.ProcessRewardTransaction(&rwdTx)
+	assert.Equal(t, missingNodeErr, err)
+}
+
 func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t *testing.T) {
 	t.Parallel()
 
 	saveAccountWasCalled := false
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
-	userAccount, _ := state.NewUserAccount(address)
+
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	userAccount, _ := accounts.NewUserAccount(address, dtt, &trie.TrieLeafParserStub{})
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			return userAccount, nil
@@ -245,14 +288,14 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
-	val, _, err := userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
+	val, _, err := userAccount.RetrieveValue([]byte(core.ProtectedKeyPrefix + rewardTransaction.RewardKey))
 	assert.Nil(t, err)
 	assert.True(t, rwdTx.Value.Cmp(big.NewInt(0).SetBytes(val)) == 0)
 
 	err = rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Nil(t, err)
 	assert.True(t, saveAccountWasCalled)
-	val, _, err = userAccount.RetrieveValue([]byte(core.ElrondProtectedKeyPrefix + rewardTransaction.RewardKey))
+	val, _, err = userAccount.RetrieveValue([]byte(core.ProtectedKeyPrefix + rewardTransaction.RewardKey))
 	assert.Nil(t, err)
 	rwdTx.Value.Add(rwdTx.Value, rwdTx.Value)
 	assert.True(t, rwdTx.Value.Cmp(big.NewInt(0).SetBytes(val)) == 0)

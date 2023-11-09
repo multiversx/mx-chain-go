@@ -3,15 +3,15 @@ package processor
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	heartbeatMessages "github.com/ElrondNetwork/elrond-go/heartbeat"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	processP2P "github.com/ElrondNetwork/elrond-go/process/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/heartbeat"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	processP2P "github.com/multiversx/mx-chain-go/process/p2p"
 	"github.com/stretchr/testify/assert"
 )
 

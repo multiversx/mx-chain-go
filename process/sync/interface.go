@@ -3,8 +3,8 @@ package sync
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // blockBootstrapper is the interface needed by base sync to deal with shards and meta nodes while they bootstrap

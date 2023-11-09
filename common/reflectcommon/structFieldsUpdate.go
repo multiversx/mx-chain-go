@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 func getReflectValue(original reflect.Value, fieldName string) (value reflect.Value, err error) {
@@ -39,7 +41,7 @@ func AdaptStructureValueBasedOnPath(structure interface{}, path string, newValue
 		}
 	}()
 
-	if structure == nil {
+	if check.IfNilReflect(structure) {
 		return errNilStructure
 	}
 	if len(path) == 0 {

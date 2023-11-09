@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // statusMetrics will handle displaying at /node/details all metrics already collected for other status handlers
@@ -110,6 +110,23 @@ func (sm *statusMetrics) Close() {
 
 // StatusMetricsMapWithoutP2P will return the non-p2p metrics in a map
 func (sm *statusMetrics) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
+	metrics, err := sm.getMetricsWithoutP2P()
+	if err != nil {
+		return nil, err
+	}
+
+	// remove these metrics, since they are computed at call time and would return 0 otherwise
+	delete(metrics, common.MetricNoncesPassedInCurrentEpoch)
+	delete(metrics, common.MetricRoundsPassedInCurrentEpoch)
+
+	// remove these metrics, since they are returned through the /node/bootstrapstatus endpoint
+	delete(metrics, common.MetricTrieSyncNumReceivedBytes)
+	delete(metrics, common.MetricTrieSyncNumProcessedNodes)
+
+	return metrics, nil
+}
+
+func (sm *statusMetrics) getMetricsWithoutP2P() (map[string]interface{}, error) {
 	return sm.getMetricsWithKeyFilterMutexProtected(func(input string) bool {
 		return !strings.Contains(input, "_p2p_")
 	}), nil
@@ -160,7 +177,7 @@ func (sm *statusMetrics) getMetricsWithKeyFilterMutexProtected(filterFunc func(i
 
 // StatusMetricsWithoutP2PPrometheusString returns the metrics in a string format which respects prometheus style
 func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() (string, error) {
-	metrics, err := sm.StatusMetricsMapWithoutP2P()
+	metrics, err := sm.getMetricsWithoutP2P()
 	if err != nil {
 		return "", err
 	}
@@ -171,15 +188,31 @@ func (sm *statusMetrics) StatusMetricsWithoutP2PPrometheusString() (string, erro
 
 	stringBuilder := strings.Builder{}
 	for key, value := range metrics {
-		_, isUint64 := value.(uint64)
-		_, isInt64 := value.(int64)
-		isNumericValue := isUint64 || isInt64
-		if isNumericValue {
-			stringBuilder.WriteString(fmt.Sprintf("%s{%s=\"%d\"} %v\n", key, common.MetricShardId, shardID, value))
-		}
+		sm.addPrometheusMetricToStringBuilder(&stringBuilder, shardID, key, value)
 	}
 
 	return stringBuilder.String(), nil
+}
+
+func (sm *statusMetrics) addPrometheusMetricToStringBuilder(builder *strings.Builder, shardID uint64, key string, value interface{}) {
+	// only numeric values are accepted for prometheus. return if the value is not int64 or uint64
+	switch value.(type) {
+	case int64, uint64:
+	default:
+		return
+	}
+
+	if key == common.MetricNoncesPassedInCurrentEpoch {
+		sm.mutUint64Operations.RLock()
+		value = computeDelta(sm.uint64Metrics[common.MetricNonce], sm.uint64Metrics[common.MetricNonceAtEpochStart])
+		sm.mutUint64Operations.RUnlock()
+	}
+	if key == common.MetricRoundsPassedInCurrentEpoch {
+		sm.mutUint64Operations.RLock()
+		value = computeDelta(sm.uint64Metrics[common.MetricCurrentRound], sm.uint64Metrics[common.MetricRoundAtEpochStart])
+		sm.mutUint64Operations.RUnlock()
+	}
+	builder.WriteString(fmt.Sprintf("%s{%s=\"%d\"} %v\n", key, common.MetricShardId, shardID, value))
 }
 
 // EconomicsMetrics returns the economics related metrics
@@ -212,6 +245,7 @@ func (sm *statusMetrics) ConfigMetrics() (map[string]interface{}, error) {
 	configMetrics[common.MetricMetaConsensusGroupSize] = sm.uint64Metrics[common.MetricMetaConsensusGroupSize]
 	configMetrics[common.MetricMinGasPrice] = sm.uint64Metrics[common.MetricMinGasPrice]
 	configMetrics[common.MetricMinGasLimit] = sm.uint64Metrics[common.MetricMinGasLimit]
+	configMetrics[common.MetricExtraGasLimitGuardedTx] = sm.uint64Metrics[common.MetricExtraGasLimitGuardedTx]
 	configMetrics[common.MetricMaxGasPerTransaction] = sm.uint64Metrics[common.MetricMaxGasPerTransaction]
 	configMetrics[common.MetricRoundDuration] = sm.uint64Metrics[common.MetricRoundDuration]
 	configMetrics[common.MetricStartTime] = sm.uint64Metrics[common.MetricStartTime]
@@ -262,6 +296,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricBalanceWaitingListsEnableEpoch] = sm.uint64Metrics[common.MetricBalanceWaitingListsEnableEpoch]
 	enableEpochsMetrics[common.MetricWaitingListFixEnableEpoch] = sm.uint64Metrics[common.MetricWaitingListFixEnableEpoch]
+	enableEpochsMetrics[common.MetricSetGuardianEnableEpoch] = sm.uint64Metrics[common.MetricSetGuardianEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 
@@ -290,13 +325,13 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
 	networkMetrics := make(map[string]interface{})
 
-	sm.saveUint64MetricsInMap(networkMetrics)
-	sm.saveStringMetricsInMap(networkMetrics)
+	sm.saveUint64NetworkMetricsInMap(networkMetrics)
+	sm.saveStringNetworkMetricsInMap(networkMetrics)
 
 	return networkMetrics, nil
 }
 
-func (sm *statusMetrics) saveUint64MetricsInMap(networkMetrics map[string]interface{}) {
+func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string]interface{}) {
 	sm.mutUint64Operations.RLock()
 	defer sm.mutUint64Operations.RUnlock()
 
@@ -312,20 +347,11 @@ func (sm *statusMetrics) saveUint64MetricsInMap(networkMetrics map[string]interf
 	networkMetrics[common.MetricNonceAtEpochStart] = nonceAtEpochStart
 	networkMetrics[common.MetricEpochNumber] = sm.uint64Metrics[common.MetricEpochNumber]
 	networkMetrics[common.MetricRoundsPerEpoch] = sm.uint64Metrics[common.MetricRoundsPerEpoch]
-	roundsPassedInEpoch := uint64(0)
-	if currentRound >= roundNumberAtEpochStart {
-		roundsPassedInEpoch = currentRound - roundNumberAtEpochStart
-	}
-	networkMetrics[common.MetricRoundsPassedInCurrentEpoch] = roundsPassedInEpoch
-
-	noncesPassedInEpoch := uint64(0)
-	if currentNonce >= nonceAtEpochStart {
-		noncesPassedInEpoch = currentNonce - nonceAtEpochStart
-	}
-	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = noncesPassedInEpoch
+	networkMetrics[common.MetricRoundsPassedInCurrentEpoch] = computeDelta(currentRound, roundNumberAtEpochStart)
+	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = computeDelta(currentNonce, nonceAtEpochStart)
 }
 
-func (sm *statusMetrics) saveStringMetricsInMap(networkMetrics map[string]interface{}) {
+func (sm *statusMetrics) saveStringNetworkMetricsInMap(networkMetrics map[string]interface{}) {
 	sm.mutStringOperations.RLock()
 	defer sm.mutStringOperations.RUnlock()
 
@@ -379,4 +405,24 @@ func (sm *statusMetrics) RatingsMetrics() (map[string]interface{}, error) {
 	sm.mutStringOperations.RUnlock()
 
 	return ratingsMetrics, nil
+}
+
+// BootstrapMetrics returns the metrics available during bootstrap
+func (sm *statusMetrics) BootstrapMetrics() (map[string]interface{}, error) {
+	bootstrapMetrics := make(map[string]interface{})
+
+	sm.mutUint64Operations.RLock()
+	bootstrapMetrics[common.MetricTrieSyncNumReceivedBytes] = sm.uint64Metrics[common.MetricTrieSyncNumReceivedBytes]
+	bootstrapMetrics[common.MetricTrieSyncNumProcessedNodes] = sm.uint64Metrics[common.MetricTrieSyncNumProcessedNodes]
+	sm.mutUint64Operations.RUnlock()
+
+	return bootstrapMetrics, nil
+}
+
+func computeDelta(biggerNum uint64, lowerNum uint64) uint64 {
+	if biggerNum >= lowerNum {
+		return biggerNum - lowerNum
+	}
+
+	return 0
 }

@@ -5,24 +5,30 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/node/external/blockAPI"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+var log = logger.GetOrCreate("node/external")
 
 // ArgNodeApiResolver represents the DTO structure used in the NewNodeApiResolver constructor
 type ArgNodeApiResolver struct {
 	SCQueryService           SCQueryService
 	StatusMetricsHandler     StatusMetricsHandler
-	TxCostHandler            TransactionCostHandler
+	APITransactionEvaluator  TransactionEvaluator
 	TotalStakedValueHandler  TotalStakedValueHandler
 	DirectStakedListHandler  DirectStakedListHandler
 	DelegatedListHandler     DelegatedListHandler
@@ -33,13 +39,14 @@ type ArgNodeApiResolver struct {
 	ValidatorPubKeyConverter core.PubkeyConverter
 	AccountsParser           genesis.AccountsParser
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
+	ManagedPeersMonitor      common.ManagedPeersMonitor
 }
 
 // nodeApiResolver can resolve API requests
 type nodeApiResolver struct {
 	scQueryService           SCQueryService
 	statusMetricsHandler     StatusMetricsHandler
-	txCostHandler            TransactionCostHandler
+	apiTransactionEvaluator  TransactionEvaluator
 	totalStakedValueHandler  TotalStakedValueHandler
 	directStakedListHandler  DirectStakedListHandler
 	delegatedListHandler     DelegatedListHandler
@@ -50,6 +57,7 @@ type nodeApiResolver struct {
 	validatorPubKeyConverter core.PubkeyConverter
 	accountsParser           genesis.AccountsParser
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
+	managedPeersMonitor      common.ManagedPeersMonitor
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -60,8 +68,8 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.StatusMetricsHandler) {
 		return nil, ErrNilStatusMetrics
 	}
-	if check.IfNil(arg.TxCostHandler) {
-		return nil, ErrNilTransactionCostHandler
+	if check.IfNil(arg.APITransactionEvaluator) {
+		return nil, ErrNilAPITransactionEvaluator
 	}
 	if check.IfNil(arg.TotalStakedValueHandler) {
 		return nil, ErrNilTotalStakedValueHandler
@@ -93,11 +101,14 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.GasScheduleNotifier) {
 		return nil, ErrNilGasScheduler
 	}
+	if check.IfNil(arg.ManagedPeersMonitor) {
+		return nil, ErrNilManagedPeersMonitor
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
 		statusMetricsHandler:     arg.StatusMetricsHandler,
-		txCostHandler:            arg.TxCostHandler,
+		apiTransactionEvaluator:  arg.APITransactionEvaluator,
 		totalStakedValueHandler:  arg.TotalStakedValueHandler,
 		directStakedListHandler:  arg.DirectStakedListHandler,
 		delegatedListHandler:     arg.DelegatedListHandler,
@@ -108,11 +119,12 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		validatorPubKeyConverter: arg.ValidatorPubKeyConverter,
 		accountsParser:           arg.AccountsParser,
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
+		managedPeersMonitor:      arg.ManagedPeersMonitor,
 	}, nil
 }
 
 // ExecuteSCQuery retrieves data stored in a SC account through a VM
-func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (nar *nodeApiResolver) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	return nar.scQueryService.ExecuteQuery(query)
 }
 
@@ -123,7 +135,12 @@ func (nar *nodeApiResolver) StatusMetrics() StatusMetricsHandler {
 
 // ComputeTransactionGasLimit will calculate how many gas a transaction will consume
 func (nar *nodeApiResolver) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	return nar.txCostHandler.ComputeTransactionGasLimit(tx)
+	return nar.apiTransactionEvaluator.ComputeTransactionGasLimit(tx)
+}
+
+// SimulateTransactionExecution will simulate the provided transaction and return the simulation results
+func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return nar.apiTransactionEvaluator.SimulateTransactionExecution(tx)
 }
 
 // Close closes all underlying components
@@ -167,8 +184,8 @@ func (nar *nodeApiResolver) GetLastPoolNonceForSender(sender string) (uint64, er
 }
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
-func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender)
+func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
+	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
 }
 
 // GetBlockByHash will return the block with the given hash and optionally with transactions
@@ -189,6 +206,11 @@ func (nar *nodeApiResolver) GetBlockByNonce(nonce uint64, options api.BlockQuery
 // GetBlockByRound will return the block with the given round and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
 	return nar.apiBlockHandler.GetBlockByRound(round, options)
+}
+
+// GetAlteredAccountsForBlock will return the altered accounts for the desired block
+func (nar *nodeApiResolver) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
+	return nar.apiBlockHandler.GetAlteredAccountsForBlock(options)
 }
 
 // GetInternalMetaBlockByHash will return a meta block by hash
@@ -215,6 +237,12 @@ func (nar *nodeApiResolver) GetInternalMetaBlockByRound(format common.ApiOutputF
 // for the specified epoch
 func (nar *nodeApiResolver) GetInternalStartOfEpochMetaBlock(format common.ApiOutputFormat, epoch uint32) (interface{}, error) {
 	return nar.apiInternalBlockHandler.GetInternalStartOfEpochMetaBlock(format, epoch)
+}
+
+// GetInternalStartOfEpochValidatorsInfo will return the start of epoch validators info
+// for the specified epoch
+func (nar *nodeApiResolver) GetInternalStartOfEpochValidatorsInfo(epoch uint32) ([]*state.ShardValidatorInfo, error) {
+	return nar.apiInternalBlockHandler.GetInternalStartOfEpochValidatorsInfo(epoch)
 }
 
 // GetInternalShardBlockByHash will return a shard block by hash
@@ -281,7 +309,11 @@ func bigInToString(input *big.Int) string {
 // GetGenesisNodesPubKeys will return genesis nodes public keys by shard
 func (nar *nodeApiResolver) GetGenesisNodesPubKeys() (map[uint32][]string, map[uint32][]string) {
 	eligibleNodesConfig, waitingNodesConfig := nar.genesisNodesSetupHandler.InitialNodesInfo()
-	return nar.getInitialNodesPubKeysBytes(eligibleNodesConfig), nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	eligibleNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(eligibleNodesConfig)
+	waitingNodesPubKeysBytes := nar.getInitialNodesPubKeysBytes(waitingNodesConfig)
+
+	return eligibleNodesPubKeysBytes, waitingNodesPubKeysBytes
 }
 
 func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) map[uint32][]string {
@@ -289,7 +321,8 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 
 	for shardID, ni := range nodesInfo {
 		for i := 0; i < len(ni); i++ {
-			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], nar.validatorPubKeyConverter.Encode(ni[i].PubKeyBytes()))
+			validatorPubKey := nar.validatorPubKeyConverter.SilentEncode(ni[i].PubKeyBytes(), log)
+			nodesInfoPubkeys[shardID] = append(nodesInfoPubkeys[shardID], validatorPubKey)
 		}
 	}
 
@@ -299,6 +332,46 @@ func (nar *nodeApiResolver) getInitialNodesPubKeysBytes(nodesInfo map[uint32][]n
 // GetGasConfigs return currently used gas schedule config
 func (nar *nodeApiResolver) GetGasConfigs() map[string]map[string]uint64 {
 	return nar.gasScheduleNotifier.LatestGasScheduleCopy()
+}
+
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetManagedKeysCount() int {
+	return nar.managedPeersMonitor.GetManagedKeysCount()
+}
+
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nar *nodeApiResolver) GetManagedKeys() []string {
+	managedKeys := nar.managedPeersMonitor.GetManagedKeys()
+	return nar.parseKeys(managedKeys)
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetEligibleManagedKeys() ([]string, error) {
+	eligibleKeys, err := nar.managedPeersMonitor.GetEligibleManagedKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.parseKeys(eligibleKeys), nil
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nar *nodeApiResolver) GetWaitingManagedKeys() ([]string, error) {
+	waitingKeys, err := nar.managedPeersMonitor.GetWaitingManagedKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	return nar.parseKeys(waitingKeys), nil
+}
+
+func (nar *nodeApiResolver) parseKeys(keys [][]byte) []string {
+	keysSlice := make([]string, len(keys))
+	for i, key := range keys {
+		keysSlice[i] = nar.validatorPubKeyConverter.SilentEncode(key, log)
+	}
+
+	return keysSlice
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

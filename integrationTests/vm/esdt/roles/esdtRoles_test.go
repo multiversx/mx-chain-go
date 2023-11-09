@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package roles
 
@@ -9,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
 

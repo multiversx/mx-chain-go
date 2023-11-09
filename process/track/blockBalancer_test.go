@@ -3,7 +3,7 @@ package track_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/process/track"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/common"
+import "github.com/multiversx/mx-chain-go/common"
 
 // KeyBuilderStub -
 type KeyBuilderStub struct {
@@ -32,4 +32,9 @@ func (stub *KeyBuilderStub) Clone() common.KeyBuilder {
 	}
 
 	return &KeyBuilderStub{}
+}
+
+// IsInterfaceNil -
+func (stub *KeyBuilderStub) IsInterfaceNil() bool {
+	return stub == nil
 }

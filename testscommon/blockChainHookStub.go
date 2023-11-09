@@ -1,49 +1,59 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // BlockChainHookStub -
 type BlockChainHookStub struct {
-	NewAddressCalled                     func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetStorageDataCalled                 func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
-	GetBlockHashCalled                   func(nonce uint64) ([]byte, error)
-	LastNonceCalled                      func() uint64
-	LastRoundCalled                      func() uint64
-	LastTimeStampCalled                  func() uint64
-	LastRandomSeedCalled                 func() []byte
-	LastEpochCalled                      func() uint32
-	GetStateRootHashCalled               func() []byte
-	CurrentNonceCalled                   func() uint64
-	CurrentRoundCalled                   func() uint64
-	CurrentTimeStampCalled               func() uint64
-	CurrentRandomSeedCalled              func() []byte
-	CurrentEpochCalled                   func() uint32
-	ProcessBuiltInFunctionCalled         func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	GetBuiltinFunctionNamesCalled        func() vmcommon.FunctionNames
-	GetBuiltinFunctionsContainerCalled   func() vmcommon.BuiltInFunctionContainer
-	GetAllStateCalled                    func(address []byte) (map[string][]byte, error)
-	GetUserAccountCalled                 func(address []byte) (vmcommon.UserAccountHandler, error)
-	GetShardOfAddressCalled              func(address []byte) uint32
-	IsSmartContractCalled                func(address []byte) bool
-	IsPayableCalled                      func(sndAddress []byte, recvAddress []byte) (bool, error)
-	GetCompiledCodeCalled                func(codeHash []byte) (bool, []byte)
-	SaveCompiledCodeCalled               func(codeHash []byte, code []byte)
-	ClearCompiledCodesCalled             func()
-	GetCodeCalled                        func(account vmcommon.UserAccountHandler) []byte
-	GetESDTTokenCalled                   func(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
-	NumberOfShardsCalled                 func() uint32
-	GetSnapshotCalled                    func() int
-	RevertToSnapshotCalled               func(snapshot int) error
-	SetCurrentHeaderCalled               func(hdr data.HeaderHandler)
-	DeleteCompiledCodeCalled             func(codeHash []byte)
-	SaveNFTMetaDataToSystemAccountCalled func(tx data.TransactionHandler) error
-	CloseCalled                          func() error
-	FilterCodeMetadataForUpgradeCalled   func(input []byte) ([]byte, error)
-	ApplyFiltersOnCodeMetadataCalled     func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	NewAddressCalled                        func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	GetStorageDataCalled                    func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
+	GetBlockHashCalled                      func(nonce uint64) ([]byte, error)
+	LastNonceCalled                         func() uint64
+	LastRoundCalled                         func() uint64
+	LastTimeStampCalled                     func() uint64
+	LastRandomSeedCalled                    func() []byte
+	LastEpochCalled                         func() uint32
+	GetStateRootHashCalled                  func() []byte
+	CurrentNonceCalled                      func() uint64
+	CurrentRoundCalled                      func() uint64
+	CurrentTimeStampCalled                  func() uint64
+	CurrentRandomSeedCalled                 func() []byte
+	CurrentEpochCalled                      func() uint32
+	ProcessBuiltInFunctionCalled            func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	GetBuiltinFunctionNamesCalled           func() vmcommon.FunctionNames
+	GetBuiltinFunctionsContainerCalled      func() vmcommon.BuiltInFunctionContainer
+	GetAllStateCalled                       func(address []byte) (map[string][]byte, error)
+	GetUserAccountCalled                    func(address []byte) (vmcommon.UserAccountHandler, error)
+	GetShardOfAddressCalled                 func(address []byte) uint32
+	IsSmartContractCalled                   func(address []byte) bool
+	IsPayableCalled                         func(sndAddress []byte, recvAddress []byte) (bool, error)
+	GetCompiledCodeCalled                   func(codeHash []byte) (bool, []byte)
+	SaveCompiledCodeCalled                  func(codeHash []byte, code []byte)
+	ClearCompiledCodesCalled                func()
+	GetCodeCalled                           func(account vmcommon.UserAccountHandler) []byte
+	GetESDTTokenCalled                      func(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error)
+	NumberOfShardsCalled                    func() uint32
+	GetSnapshotCalled                       func() int
+	RevertToSnapshotCalled                  func(snapshot int) error
+	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler)
+	DeleteCompiledCodeCalled                func(codeHash []byte)
+	SaveNFTMetaDataToSystemAccountCalled    func(tx data.TransactionHandler) error
+	CloseCalled                             func() error
+	FilterCodeMetadataForUpgradeCalled      func(input []byte) ([]byte, error)
+	ApplyFiltersOnCodeMetadataCalled        func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
+	ResetCountersCalled                     func()
+	GetCounterValuesCalled                  func() map[string]uint64
+	IsBuiltinFunctionNameCalled             func(functionName string)
+	IsPausedCalled                          func(_ []byte) bool
+	IsLimitedTransferCalled                 func(_ []byte) bool
+	ExecuteSmartContractCallOnOtherVMCalled func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	SetVMContainerCalled                    func(vmContainer process.VirtualMachinesContainer) error
+	GetAccountsAdapterCalled                func() state.AccountsAdapter
 }
 
 // GetCode -
@@ -335,6 +345,23 @@ func (stub *BlockChainHookStub) RevertToSnapshot(snapshot int) error {
 	return nil
 }
 
+// ExecuteSmartContractCallOnOtherVM -
+func (stub *BlockChainHookStub) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	if stub.ExecuteSmartContractCallOnOtherVMCalled != nil {
+		return stub.ExecuteSmartContractCallOnOtherVMCalled(input)
+	}
+
+	return nil, nil
+}
+
+// SetVMContainer -
+func (stub *BlockChainHookStub) SetVMContainer(vmContainer process.VirtualMachinesContainer) error {
+	if stub.ExecuteSmartContractCallOnOtherVMCalled != nil {
+		return stub.SetVMContainerCalled(vmContainer)
+	}
+	return nil
+}
+
 // FilterCodeMetadataForUpgrade -
 func (stub *BlockChainHookStub) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
 	if stub.FilterCodeMetadataForUpgradeCalled != nil {
@@ -344,23 +371,13 @@ func (stub *BlockChainHookStub) FilterCodeMetadataForUpgrade(input []byte) ([]by
 	return input, nil
 }
 
-// ApplyFiltersOnCodeMetadata -
-func (stub *BlockChainHookStub) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+// ApplyFiltersOnSCCodeMetadata -
+func (stub *BlockChainHookStub) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
 	if stub.ApplyFiltersOnCodeMetadataCalled != nil {
 		stub.ApplyFiltersOnCodeMetadataCalled(codeMetadata)
 	}
 
 	return codeMetadata
-}
-
-// IsPaused -
-func (stub *BlockChainHookStub) IsPaused(_ []byte) bool {
-	return false
-}
-
-// IsLimitedTransfer -
-func (stub *BlockChainHookStub) IsLimitedTransfer(_ []byte) bool {
-	return false
 }
 
 // Close -
@@ -372,7 +389,58 @@ func (stub *BlockChainHookStub) Close() error {
 	return nil
 }
 
+// ResetCounters -
+func (stub *BlockChainHookStub) ResetCounters() {
+	if stub.ResetCountersCalled != nil {
+		stub.ResetCountersCalled()
+	}
+}
+
+// GetCounterValues -
+func (stub *BlockChainHookStub) GetCounterValues() map[string]uint64 {
+	if stub.GetCounterValuesCalled != nil {
+		return stub.GetCounterValuesCalled()
+	}
+
+	return make(map[string]uint64)
+}
+
 // IsInterfaceNil -
 func (stub *BlockChainHookStub) IsInterfaceNil() bool {
 	return stub == nil
+}
+
+// IsBuiltinFunctionName -
+func (stub *BlockChainHookStub) IsBuiltinFunctionName(functionName string) bool {
+	if stub.IsBuiltinFunctionNameCalled != nil {
+		return stub.IsBuiltinFunctionName(functionName)
+	}
+
+	return false
+}
+
+// IsPaused -
+func (stub *BlockChainHookStub) IsPaused(arg []byte) bool {
+	if stub.IsPausedCalled != nil {
+		return stub.IsPaused(arg)
+	}
+
+	return false
+}
+
+// IsLimitedTransfer -
+func (stub *BlockChainHookStub) IsLimitedTransfer(arg []byte) bool {
+	if stub.IsLimitedTransferCalled != nil {
+		return stub.IsLimitedTransfer(arg)
+	}
+
+	return false
+}
+
+// GetAccountsAdapter -
+func (stub *BlockChainHookStub) GetAccountsAdapter() state.AccountsAdapter {
+	if stub.GetAccountsAdapterCalled != nil {
+		return stub.GetAccountsAdapterCalled()
+	}
+	return nil
 }

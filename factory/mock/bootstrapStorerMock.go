@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
+import "github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 
 // BootstrapStorerMock -
 type BootstrapStorerMock struct {

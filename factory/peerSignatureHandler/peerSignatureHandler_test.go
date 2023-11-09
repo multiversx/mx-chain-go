@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	errorsErd "github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-crypto-go"
+	errorsErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 )
 

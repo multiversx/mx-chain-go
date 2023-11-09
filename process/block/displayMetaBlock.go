@@ -4,18 +4,24 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/display"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-logger-go"
 )
+
+type transactionCountersProvider interface {
+	CurrentBlockTxs() uint64
+	TotalTxs() uint64
+	IsInterfaceNil() bool
+}
 
 type headersCounter struct {
 	shardMBHeaderCounterMutex           sync.RWMutex
 	shardMBHeadersCurrentBlockProcessed uint64
 	shardMBHeadersTotalProcessed        uint64
-	peakTPS                             uint64
 }
 
 // NewHeaderCounter returns a new object that keeps track of how many headers
@@ -25,7 +31,6 @@ func NewHeaderCounter() *headersCounter {
 		shardMBHeaderCounterMutex:           sync.RWMutex{},
 		shardMBHeadersCurrentBlockProcessed: 0,
 		shardMBHeadersTotalProcessed:        0,
-		peakTPS:                             0,
 	}
 }
 
@@ -59,13 +64,18 @@ func (hc *headersCounter) calculateNumOfShardMBHeaders(header *block.MetaBlock) 
 }
 
 func (hc *headersCounter) displayLogInfo(
+	countersProvider transactionCountersProvider,
 	header *block.MetaBlock,
 	body *block.Body,
 	headerHash []byte,
 	numShardHeadersFromPool int,
 	blockTracker process.BlockTracker,
-	roundDuration uint64,
 ) {
+	if check.IfNil(countersProvider) {
+		log.Warn("programming error in headersCounter.displayLogInfo - nil countersProvider")
+		return
+	}
+
 	hc.calculateNumOfShardMBHeaders(header)
 
 	dispHeader, dispLines := hc.createDisplayableMetaHeader(header)
@@ -88,19 +98,11 @@ func (hc *headersCounter) displayLogInfo(
 
 	log.Debug(message, arguments...)
 
-	numTxs := getNumTxs(header, body)
-	tps := numTxs / roundDuration
-	if tps > hc.peakTPS {
-		hc.peakTPS = tps
-	}
-
-	log.Debug("tps info",
-		"shard", header.GetShardID(),
-		"round", header.GetRound(),
-		"nonce", header.GetNonce(),
-		"num txs", numTxs,
-		"tps", tps,
-		"peak tps", hc.peakTPS)
+	log.Debug("metablock metrics info",
+		"total txs processed", countersProvider.TotalTxs(),
+		"block txs processed", countersProvider.CurrentBlockTxs(),
+		"hash", headerHash,
+	)
 
 	blockTracker.DisplayTrackedHeaders()
 }
@@ -319,39 +321,4 @@ func displayEconomicsData(economics block.Economics) []*display.LineData {
 			"PrevEpochStartRound",
 			fmt.Sprintf("%d", economics.PrevEpochStartRound)}),
 	}
-}
-
-func getNumTxs(metaBlock *block.MetaBlock, body *block.Body) uint64 {
-	shardInfo := metaBlock.ShardInfo
-	numTxs := uint64(0)
-	for i := 0; i < len(shardInfo); i++ {
-		shardMiniBlockHeaders := shardInfo[i].ShardMiniBlockHeaders
-		numTxsInShardHeader := uint64(0)
-		for j := 0; j < len(shardMiniBlockHeaders); j++ {
-			numTxsInShardHeader += uint64(shardMiniBlockHeaders[j].TxCount)
-		}
-
-		log.Trace("txs info",
-			"shard", shardInfo[i].GetShardID(),
-			"round", shardInfo[i].GetRound(),
-			"nonce", shardInfo[i].GetNonce(),
-			"num txs", numTxsInShardHeader)
-
-		numTxs += numTxsInShardHeader
-	}
-
-	numTxsInMetaBlock := uint64(0)
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		numTxsInMetaBlock += uint64(len(body.MiniBlocks[i].TxHashes))
-	}
-
-	log.Trace("txs info",
-		"shard", metaBlock.GetShardID(),
-		"round", metaBlock.GetRound(),
-		"nonce", metaBlock.GetNonce(),
-		"num txs", numTxsInMetaBlock)
-
-	numTxs += numTxsInMetaBlock
-
-	return numTxs
 }

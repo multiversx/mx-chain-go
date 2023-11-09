@@ -1,12 +1,12 @@
 package economics
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
 	"github.com/mitchellh/mapstructure"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ArgsBuiltInFunctionCost holds all components that are needed to create a new instance of builtInFunctionsCost
@@ -107,6 +107,12 @@ func (bc *builtInFunctionsCost) ComputeBuiltInCost(tx data.TransactionWithFeeHan
 	case core.BuiltInFunctionESDTNFTCreate:
 		costStorage := calculateLenOfArguments(arguments) * bc.gasConfig.BaseOperationCost.StorePerByte
 		return bc.gasConfig.BuiltInCost.ESDTNFTCreate + costStorage
+	case core.BuiltInFunctionSetGuardian:
+		return bc.gasConfig.BuiltInCost.SetGuardian
+	case core.BuiltInFunctionGuardAccount:
+		return bc.gasConfig.BuiltInCost.GuardAccount
+	case core.BuiltInFunctionUnGuardAccount:
+		return bc.gasConfig.BuiltInCost.UnGuardAccount
 	default:
 		return 0
 	}

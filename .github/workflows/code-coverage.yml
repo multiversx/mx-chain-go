@@ -5,7 +5,7 @@ on:
     branches:
       - master
   pull_request:
-    branches: [ master, development, feat/*, rc/* ]
+    branches: [ master, feat/*, rc/* ]
 
   workflow_dispatch:
 
@@ -17,10 +17,10 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.17.6
+      - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
         with:
-          go-version: 1.17.6
+          go-version: 1.20.7
         id: go
 
       - name: Check out code into the Go module directory
@@ -35,7 +35,6 @@ jobs:
           fi
       - name: Run unit tests
         run: |
-          export ARWEN_PATH=${GITHUB_WORKSPACE}/arwen
           make test-coverage
 
       - name: Upload coverage

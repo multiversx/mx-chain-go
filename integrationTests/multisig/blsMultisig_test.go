@@ -4,22 +4,42 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	llsig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	llsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 	"github.com/stretchr/testify/assert"
 )
 
-func createKeysAndMultiSignerBls(
+func createKeysAndMultiSignerBlsKOSK(
+	grSize uint16,
+	suite crypto.Suite,
+) ([][]byte, [][]byte, crypto.MultiSigner) {
+
+	kg, privKeys, pubKeys := createMultiSignerSetup(grSize, suite)
+	llSigner := &llsig.BlsMultiSignerKOSK{}
+	multiSigner, _ := multisig.NewBLSMultisig(llSigner, kg)
+
+	return privKeys, pubKeys, multiSigner
+}
+
+func createKeysAndMultiSignerBlsNoKOSK(
 	grSize uint16,
 	hasher hashing.Hasher,
 	suite crypto.Suite,
 ) ([][]byte, [][]byte, crypto.MultiSigner) {
+	kg, privKeys, pubKeys := createMultiSignerSetup(grSize, suite)
+	llSigner := &llsig.BlsMultiSigner{Hasher: hasher}
 
+	multiSigner, _ := multisig.NewBLSMultisig(llSigner, kg)
+
+	return privKeys, pubKeys, multiSigner
+}
+
+func createMultiSignerSetup(grSize uint16, suite crypto.Suite) (crypto.KeyGenerator, [][]byte, [][]byte) {
 	kg := signing.NewKeyGenerator(suite)
 	privKeys := make([][]byte, grSize)
 	pubKeys := make([][]byte, grSize)
@@ -29,11 +49,7 @@ func createKeysAndMultiSignerBls(
 		privKeys[i], _ = sk.ToByteArray()
 		pubKeys[i], _ = pk.ToByteArray()
 	}
-	llSigner := &llsig.BlsMultiSigner{Hasher: hasher}
-
-	multiSigner, _ := multisig.NewBLSMultisig(llSigner, kg)
-
-	return privKeys, pubKeys, multiSigner
+	return kg, privKeys, pubKeys
 }
 
 func createSignaturesShares(privKeys [][]byte, multiSigner crypto.MultiSigner, message []byte) [][]byte {
@@ -58,7 +74,7 @@ func TestMultiSig_Bls(t *testing.T) {
 	hasher, _ := blake2b.NewBlake2bWithSize(hashSize)
 	suite := mcl.NewSuiteBLS12()
 
-	privKeys, pubKeys, multiSigner := createKeysAndMultiSignerBls(numSigners, hasher, suite)
+	privKeys, pubKeys, multiSigner := createKeysAndMultiSignerBlsNoKOSK(numSigners, hasher, suite)
 
 	numOfTimesToRepeatTests := 100
 	for currentIdx := 0; currentIdx < numOfTimesToRepeatTests; currentIdx++ {

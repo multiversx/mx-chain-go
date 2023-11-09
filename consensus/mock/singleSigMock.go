@@ -1,6 +1,8 @@
 package mock
 
-import crypto "github.com/ElrondNetwork/elrond-go-crypto"
+import (
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+)
 
 // SingleSignerMock -
 type SingleSignerMock struct {

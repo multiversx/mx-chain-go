@@ -3,10 +3,10 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // AccountsParserStub -
@@ -16,7 +16,8 @@ type AccountsParserStub struct {
 	InitialAccountsCalled                                 func() []genesis.InitialAccountHandler
 	GetTotalStakedForDelegationAddressCalled              func(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegatedCalled                  func(addressBytes []byte) []genesis.InitialAccountHandler
-	GenerateInitialTransactionsCalled                     func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error)
+	GenerateInitialTransactionsCalled                     func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error)
+	GenesisMintingAddressCalled                           func() string
 }
 
 // GetTotalStakedForDelegationAddress -
@@ -46,6 +47,15 @@ func (aps *AccountsParserStub) InitialAccountsSplitOnAddressesShards(shardCoordi
 	return make(map[uint32][]genesis.InitialAccountHandler), nil
 }
 
+// GenesisMintingAddress -
+func (aps *AccountsParserStub) GenesisMintingAddress() string {
+	if aps.GenesisMintingAddressCalled != nil {
+		return aps.GenesisMintingAddressCalled()
+	}
+
+	return ""
+}
+
 // InitialAccountsSplitOnDelegationAddressesShards -
 func (aps *AccountsParserStub) InitialAccountsSplitOnDelegationAddressesShards(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialAccountHandler, error) {
 	if aps.InitialAccountsSplitOnDelegationAddressesShardsCalled != nil {
@@ -65,12 +75,12 @@ func (aps *AccountsParserStub) InitialAccounts() []genesis.InitialAccountHandler
 }
 
 // GenerateInitialTransactions -
-func (aps *AccountsParserStub) GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*indexer.Pool, error) {
+func (aps *AccountsParserStub) GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
 	if aps.GenerateInitialTransactionsCalled != nil {
 		return aps.GenerateInitialTransactionsCalled(shardCoordinator, initialIndexingData)
 	}
 
-	return make([]*block.MiniBlock, 0), make(map[uint32]*indexer.Pool), nil
+	return make([]*block.MiniBlock, 0), make(map[uint32]*outport.TransactionPool), nil
 }
 
 // IsInterfaceNil -

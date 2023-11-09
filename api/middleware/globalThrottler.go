@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("api/middleware")

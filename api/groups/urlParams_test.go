@@ -3,7 +3,7 @@ package groups
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 

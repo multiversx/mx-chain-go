@@ -2,16 +2,17 @@ package interceptedBlocks
 
 import (
 	"fmt"
+	"math/big"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	testBlock "github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/block"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	testBlock "github.com/multiversx/mx-chain-go/integrationTests/multiShard/block"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -129,19 +130,24 @@ func TestMetaHeadersAreRequsted(t *testing.T) {
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	metaHdrFromMetachain := &block.MetaBlock{
-		Nonce:           1,
-		Round:           1,
-		Epoch:           0,
-		ShardInfo:       nil,
-		Signature:       []byte("signature"),
-		PubKeysBitmap:   []byte{1},
-		PrevHash:        []byte("prev hash"),
-		PrevRandSeed:    []byte("prev rand seed"),
-		RandSeed:        []byte("rand seed"),
-		RootHash:        []byte("root hash"),
-		TxCount:         0,
-		ChainID:         integrationTests.ChainID,
-		SoftwareVersion: integrationTests.SoftwareVersion,
+		Nonce:                  1,
+		Round:                  1,
+		Epoch:                  0,
+		ShardInfo:              nil,
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte{1},
+		PrevHash:               []byte("prev hash"),
+		PrevRandSeed:           []byte("prev rand seed"),
+		RandSeed:               []byte("rand seed"),
+		RootHash:               []byte("root hash"),
+		TxCount:                0,
+		ChainID:                integrationTests.ChainID,
+		SoftwareVersion:        integrationTests.SoftwareVersion,
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		ValidatorStatsRootHash: []byte("validator stats root hash"),
+		DevFeesInEpoch:         big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
 	}
 	metaHdrHashFromMetachain, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaHdrFromMetachain)
 
@@ -227,36 +233,46 @@ func TestMetaHeadersAreRequestedByAMetachainNode(t *testing.T) {
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
 	metaBlock1 := &block.MetaBlock{
-		Nonce:           1,
-		Round:           1,
-		Epoch:           0,
-		ShardInfo:       nil,
-		Signature:       []byte("signature"),
-		PubKeysBitmap:   []byte{1},
-		PrevHash:        []byte("prev hash"),
-		PrevRandSeed:    []byte("prev rand seed"),
-		RandSeed:        []byte("rand seed"),
-		RootHash:        []byte("root hash"),
-		TxCount:         0,
-		ChainID:         integrationTests.ChainID,
-		SoftwareVersion: integrationTests.SoftwareVersion,
+		Nonce:                  1,
+		Round:                  1,
+		Epoch:                  0,
+		ShardInfo:              nil,
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte{1},
+		PrevHash:               []byte("prev hash"),
+		PrevRandSeed:           []byte("prev rand seed"),
+		RandSeed:               []byte("rand seed"),
+		RootHash:               []byte("root hash"),
+		TxCount:                0,
+		ChainID:                integrationTests.ChainID,
+		SoftwareVersion:        integrationTests.SoftwareVersion,
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		ValidatorStatsRootHash: []byte("validator stats root hash"),
+		DevFeesInEpoch:         big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
 	}
 	metaBlock1Hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaBlock1)
 
 	metaBlock2 := &block.MetaBlock{
-		Nonce:           2,
-		Round:           2,
-		Epoch:           0,
-		ShardInfo:       nil,
-		Signature:       []byte("signature"),
-		PubKeysBitmap:   []byte{1},
-		PrevHash:        []byte("prev hash"),
-		PrevRandSeed:    []byte("prev rand seed"),
-		RandSeed:        []byte("rand seed"),
-		RootHash:        []byte("root hash"),
-		TxCount:         0,
-		ChainID:         integrationTests.ChainID,
-		SoftwareVersion: integrationTests.SoftwareVersion,
+		Nonce:                  2,
+		Round:                  2,
+		Epoch:                  0,
+		ShardInfo:              nil,
+		Signature:              []byte("signature"),
+		PubKeysBitmap:          []byte{1},
+		PrevHash:               []byte("prev hash"),
+		PrevRandSeed:           []byte("prev rand seed"),
+		RandSeed:               []byte("rand seed"),
+		RootHash:               []byte("root hash"),
+		TxCount:                0,
+		ChainID:                integrationTests.ChainID,
+		SoftwareVersion:        integrationTests.SoftwareVersion,
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		ValidatorStatsRootHash: []byte("validator stats root hash"),
+		DevFeesInEpoch:         big.NewInt(0),
+		AccumulatedFees:        big.NewInt(0),
+		DeveloperFees:          big.NewInt(0),
 	}
 	metaBlock2Hash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, metaBlock2)
 
@@ -278,7 +294,7 @@ func requestAndRetrieveMetaHeader(
 	chanReceived chan struct{},
 ) *block.MetaBlock {
 
-	resolver, _ := node.ResolverFinder.MetaChainResolver(factory.MetachainBlocksTopic)
+	resolver, _ := node.RequestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
 	_ = resolver.RequestDataFromHash(hash, 0)
 
 	select {

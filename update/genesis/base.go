@@ -6,14 +6,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/update"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // EpochStartMetaBlockIdentifier is the constant which defines the export/import identifier for epoch start metaBlock
@@ -84,19 +82,6 @@ func NewObject(objType Type) (interface{}, error) {
 		return &block.MetaBlock{}, nil
 	case RootHash:
 		return make([]byte, 0), nil
-	}
-	return nil, update.ErrUnknownType
-}
-
-// NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type, address []byte) (vmcommon.AccountHandler, error) {
-	switch accType {
-	case UserAccount:
-		return state.NewUserAccount(address)
-	case ValidatorAccount:
-		return state.NewPeerAccount(address)
-	case DataTrie:
-		return nil, nil
 	}
 	return nil, update.ErrUnknownType
 }

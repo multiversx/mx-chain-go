@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/consensus/blacklist"
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/consensus/blacklist"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/stretchr/testify/require"
 )
 

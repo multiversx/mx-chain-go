@@ -1,7 +1,7 @@
 package dataValidators
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // disabledTxValidator represents a tx handler validator that doesn't check the validity of provided txHandler
@@ -14,7 +14,7 @@ func NewDisabledTxValidator() *disabledTxValidator {
 }
 
 // CheckTxValidity is a disabled implementation that will return nil
-func (dtv *disabledTxValidator) CheckTxValidity(_ process.TxValidatorHandler) error {
+func (dtv *disabledTxValidator) CheckTxValidity(_ process.InterceptedTransactionHandler) error {
 	return nil
 }
 

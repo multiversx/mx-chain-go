@@ -3,8 +3,8 @@ package mock
 import (
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 type nodesHandlerMock struct {

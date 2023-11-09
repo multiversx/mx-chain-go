@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const noDoubledTransactionsFoundMessage = "no double transactions found"

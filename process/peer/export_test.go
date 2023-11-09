@@ -1,9 +1,10 @@
 package peer
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // CheckForMissedBlocks -
@@ -48,7 +49,7 @@ func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
 }
 
 // GetCache -
-func (vp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
+func (vp *validatorsProvider) GetCache() map[string]*accounts.ValidatorApiResponse {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 	return vp.cache

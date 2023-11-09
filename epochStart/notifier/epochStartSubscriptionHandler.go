@@ -1,11 +1,13 @@
 package notifier
 
 import (
+	"runtime/debug"
 	"sort"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -39,34 +41,43 @@ func NewEpochStartSubscriptionHandler() *epochStartSubscriptionHandler {
 
 // RegisterHandler will subscribe a function, so it will be called when NotifyAll method is called
 func (essh *epochStartSubscriptionHandler) RegisterHandler(handler epochStart.ActionHandler) {
-	if handler != nil {
-		essh.mutEpochStartHandler.Lock()
-		essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
-		essh.mutEpochStartHandler.Unlock()
+	if check.IfNilReflect(handler) {
+		return
 	}
+
+	essh.mutEpochStartHandler.Lock()
+	defer essh.mutEpochStartHandler.Unlock()
+
+	for _, existingHandler := range essh.epochStartHandlers {
+		if existingHandler == handler {
+			log.Error("epochStartSubscriptionHandler.RegisterHandler - trying to add a duplicated handler", "stack trace", string(debug.Stack()))
+			return
+		}
+	}
+
+	essh.epochStartHandlers = append(essh.epochStartHandlers, handler)
+	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
+		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
+	})
 }
 
 // UnregisterHandler will unsubscribe a function from the slice
 func (essh *epochStartSubscriptionHandler) UnregisterHandler(handlerToUnregister epochStart.ActionHandler) {
-	if handlerToUnregister != nil {
-		essh.mutEpochStartHandler.Lock()
-		for idx, handler := range essh.epochStartHandlers {
-			if handler == handlerToUnregister {
-				essh.epochStartHandlers = append(essh.epochStartHandlers[:idx], essh.epochStartHandlers[idx+1:]...)
-			}
-		}
-		essh.mutEpochStartHandler.Unlock()
+	if check.IfNilReflect(handlerToUnregister) {
+		return
 	}
+	essh.mutEpochStartHandler.Lock()
+	for idx, handler := range essh.epochStartHandlers {
+		if handler == handlerToUnregister {
+			essh.epochStartHandlers = append(essh.epochStartHandlers[:idx], essh.epochStartHandlers[idx+1:]...)
+		}
+	}
+	essh.mutEpochStartHandler.Unlock()
 }
 
 // NotifyAll will call all the subscribed functions from the internal slice
 func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 	essh.mutEpochStartHandler.RLock()
-
-	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
-		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
-	})
-
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
 		essh.epochStartHandlers[i].EpochStartAction(hdr)
 	}
@@ -77,11 +88,6 @@ func (essh *epochStartSubscriptionHandler) NotifyAll(hdr data.HeaderHandler) {
 // observed, but not yet confirmed/committed. Some components may need to do some initialisation/preparation
 func (essh *epochStartSubscriptionHandler) NotifyAllPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
 	essh.mutEpochStartHandler.RLock()
-
-	sort.Slice(essh.epochStartHandlers, func(i, j int) bool {
-		return essh.epochStartHandlers[i].NotifyOrder() < essh.epochStartHandlers[j].NotifyOrder()
-	})
-
 	for i := 0; i < len(essh.epochStartHandlers); i++ {
 		essh.epochStartHandlers[i].EpochStartPrepare(metaHdr, body)
 	}

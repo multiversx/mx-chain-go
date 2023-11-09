@@ -4,29 +4,31 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/factory/block"
-	"github.com/ElrondNetwork/elrond-go/process/headerCheck"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/directoryhandler"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/latestData"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/guardian"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
 
-// BootstrapComponentsFactoryArgs holds the arguments needed to create a botstrap components factory
+// BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
 	Config               config.Config
 	RoundConfig          config.RoundConfig
@@ -60,6 +62,7 @@ type bootstrapComponents struct {
 	headerVersionHandler    nodeFactory.HeaderVersionHandler
 	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler   process.GuardedAccountHandler
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -81,9 +84,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	}
 	if args.WorkingDir == "" {
 		return nil, errors.ErrInvalidWorkingDir
-	}
-	if check.IfNil(args.StatusCoreComponents) {
-		return nil, errors.ErrNilStatusCoreComponents
 	}
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
@@ -179,10 +179,17 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	tss := bcf.statusCoreComponents.TrieSyncStatistics()
 	tss.AddNumProcessed(1)
 
+	setGuardianEpochsDelay := bcf.config.GeneralSettings.SetGuardianEpochsDelay
+	guardedAccountHandler, err := guardian.NewGuardedAccount(bcf.coreComponents.InternalMarshalizer(), bcf.coreComponents.EpochNotifier(), setGuardianEpochsDelay)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:       bcf.coreComponents,
 		CryptoComponentsHolder:     bcf.cryptoComponents,
-		Messenger:                  bcf.networkComponents.NetworkMessenger(),
+		MainMessenger:              bcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:       bcf.networkComponents.FullArchiveNetworkMessenger(),
 		GeneralConfig:              bcf.config,
 		PrefsConfig:                bcf.prefConfig.Preferences,
 		FlagsConfig:                bcf.flagsConfig,
@@ -201,6 +208,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		DataSyncerCreator:          dataSyncerFactory,
 		ScheduledSCRsStorer:        nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider: tss,
+		NodeProcessingMode:         common.GetNodeProcessingMode(&bcf.importDbConfig),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -256,6 +264,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		headerVersionHandler:    headerVersionHandler,
 		headerIntegrityVerifier: headerIntegrityVerifier,
 		versionedHeaderFactory:  versionedHeaderFactory,
+		guardedAccountHandler:   guardedAccountHandler,
 	}, nil
 }
 

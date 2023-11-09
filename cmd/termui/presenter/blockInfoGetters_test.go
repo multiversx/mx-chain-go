@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 )
 

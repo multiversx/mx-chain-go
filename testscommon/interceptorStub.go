@@ -1,9 +1,9 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // InterceptorStub -
@@ -15,7 +15,7 @@ type InterceptorStub struct {
 }
 
 // ProcessReceivedMessage -
-func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	if is.ProcessReceivedMessageCalled != nil {
 		return is.ProcessReceivedMessageCalled(message)
 	}

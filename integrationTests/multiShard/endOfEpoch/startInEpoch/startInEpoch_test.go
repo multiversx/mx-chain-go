@@ -6,35 +6,37 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters/uint64ByteSlice"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/types"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/process/block/pendingMb"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/sync/storageBootstrap"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	epochNotifierMock "github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/scheduledDataSyncer"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -133,6 +135,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 	for _, node := range nodes {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
+		_ = dataRetriever.SetEpochHandlerToHdrRequester(node.RequestersContainer, epochHandler)
 	}
 
 	generalConfig := getGeneralConfig()
@@ -181,6 +184,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
 		assert.NoError(t, errRemoveDir)
+
+		errRemoveDir = os.RemoveAll("Static")
+		assert.NoError(t, errRemoveDir)
 	}()
 
 	genesisShardCoordinator, _ := sharding.NewMultiShardCoordinator(nodesConfig.NumberOfShards(), 0)
@@ -194,15 +200,17 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	})
 	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
-	nodeToJoinLate.Messenger = messenger
+	nodeToJoinLate.MainMessenger = messenger
+
+	nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 
 	for _, n := range nodes {
-		_ = n.ConnectTo(nodeToJoinLate)
+		_ = n.ConnectOnMain(nodeToJoinLate)
 	}
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
-	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.MainKey.Pk
 	cryptoComponents.BlockSig = &mock.SignerMock{}
 	cryptoComponents.TxSig = &mock.SignerMock{}
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
@@ -225,7 +233,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		CryptoComponentsHolder: cryptoComponents,
 		CoreComponentsHolder:   coreComponents,
-		Messenger:              nodeToJoinLate.Messenger,
+		MainMessenger:          nodeToJoinLate.MainMessenger,
+		FullArchiveMessenger:   nodeToJoinLate.FullArchiveMessenger,
 		GeneralConfig:          generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
@@ -245,8 +254,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
-					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
-						return notarizedShardHeader, nil, nil
+					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
+						return notarizedShardHeader, nil, nil, nil
 					},
 					GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 						return notarizedShardHeader.GetRootHash()
@@ -282,6 +291,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            common.Normal,
+			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 		},
 	)
 	assert.NoError(t, err)

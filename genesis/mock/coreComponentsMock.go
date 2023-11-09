@@ -1,11 +1,12 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // CoreComponentsMock -
@@ -20,6 +21,7 @@ type CoreComponentsMock struct {
 	MinTxVersion             uint32
 	StatHandler              core.AppStatusHandler
 	EnableEpochsHandlerField common.EnableEpochsHandler
+	TxVersionCheck           process.TxVersionCheckerHandler
 }
 
 // InternalMarshalizer -
@@ -65,6 +67,11 @@ func (ccm *CoreComponentsMock) MinTransactionVersion() uint32 {
 // EnableEpochsHandler -
 func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccm.EnableEpochsHandlerField
+}
+
+// TxVersionChecker -
+func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
+	return ccm.TxVersionCheck
 }
 
 // IsInterfaceNil -

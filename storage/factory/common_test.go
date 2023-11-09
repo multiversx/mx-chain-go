@@ -3,8 +3,8 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
 )
 

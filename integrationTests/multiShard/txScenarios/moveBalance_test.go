@@ -5,10 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/mock"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +32,8 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 
 	// shard 1
 	bechAddrShard1 := "erd1qhmhf5grwtep3n6ynkpz5u5lxw8n2s38yuq9ge8950lc0zqlwkfs3cus7a"
-	bech32, _ := pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	bech32, err := pubkeyConverter.NewBech32PubkeyConverter(32, integrationTests.AddressHrp)
+	assert.Nil(t, err)
 	receiverAddress, _ := bech32.Decode(bechAddrShard1)
 
 	senderShardID := nodes[0].ShardCoordinator.ComputeId(players[0].Address)

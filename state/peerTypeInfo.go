@@ -1,6 +1,6 @@
 package state
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 // PeerTypeInfo contains information related to the peertypes needed by the peerTypeProvider
 type PeerTypeInfo struct {

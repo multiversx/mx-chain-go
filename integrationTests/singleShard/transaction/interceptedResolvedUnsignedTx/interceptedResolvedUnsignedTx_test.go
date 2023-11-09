@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,13 +38,13 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
 	})
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	//connect messengers together
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -90,8 +90,8 @@ func TestNode_RequestInterceptUnsignedTransactionWithMessenger(t *testing.T) {
 	)
 
 	//Step 4. request unsigned tx
-	scrResolver, _ := nRequester.ResolverFinder.IntraShardResolver(factory.UnsignedTransactionTopic)
-	err = scrResolver.RequestDataFromHash(scrHash, 0)
+	scrRequester, _ := nRequester.RequestersFinder.IntraShardRequester(factory.UnsignedTransactionTopic)
+	err = scrRequester.RequestDataFromHash(scrHash, 0)
 	assert.Nil(t, err)
 
 	select {

@@ -1,8 +1,8 @@
 package testscommon
 
 import (
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // InterceptorsContainerStub -

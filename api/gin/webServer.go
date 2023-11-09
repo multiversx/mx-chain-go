@@ -7,17 +7,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/api/middleware"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/api/middleware"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/facade"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("api/gin")
@@ -46,18 +47,20 @@ func NewGinWebServerHandler(args ArgsNewWebServer) (*webServer, error) {
 		return nil, err
 	}
 
-	gws := &webServer{
+	return &webServer{
 		facade:          args.Facade,
 		antiFloodConfig: args.AntiFloodConfig,
 		apiConfig:       args.ApiConfig,
-	}
-
-	return gws, nil
+	}, nil
 }
 
 // UpdateFacade updates the main api handler by closing the old server and starting it with the new facade. Returns the
 // new web server
 func (ws *webServer) UpdateFacade(facade shared.FacadeHandler) error {
+	if check.IfNil(facade) {
+		return errors.ErrNilFacadeHandler
+	}
+
 	ws.Lock()
 	defer ws.Unlock()
 
@@ -80,6 +83,7 @@ func (ws *webServer) StartHttpServer() error {
 	defer ws.Unlock()
 
 	if ws.facade.RestApiInterface() == facade.DefaultRestPortOff {
+		log.Debug("web server is turned off")
 		return nil
 	}
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // deltaEpochActive represents how many epochs behind the current computed epoch are to be considered "active" and

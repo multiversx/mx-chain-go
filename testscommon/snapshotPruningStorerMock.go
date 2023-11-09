@@ -1,6 +1,6 @@
 package testscommon
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 // SnapshotPruningStorerMock -
 type SnapshotPruningStorerMock struct {
@@ -47,6 +47,11 @@ func (spsm *SnapshotPruningStorerMock) GetFromEpoch(key []byte, _ uint32) ([]byt
 // GetLatestStorageEpoch -
 func (spsm *SnapshotPruningStorerMock) GetLatestStorageEpoch() (uint32, error) {
 	return 0, nil
+}
+
+// RemoveFromAllActiveEpochs -
+func (spsm *SnapshotPruningStorerMock) RemoveFromAllActiveEpochs(_ []byte) error {
+	return nil
 }
 
 // RemoveFromCurrentEpoch -

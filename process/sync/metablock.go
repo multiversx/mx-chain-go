@@ -2,15 +2,17 @@ package sync
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
@@ -135,7 +137,7 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 }
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
-func (boot *MetaBootstrap) StartSyncingBlocks() {
+func (boot *MetaBootstrap) StartSyncingBlocks() error {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
@@ -147,6 +149,8 @@ func (boot *MetaBootstrap) StartSyncingBlocks() {
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
 	go boot.syncBlocks(ctx)
+
+	return nil
 }
 
 func (boot *MetaBootstrap) setLastEpochStartRound() {
@@ -178,38 +182,34 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	err := boot.syncBlock()
-	if isErrGetNodeFromDB(err) {
-		errSync := boot.syncAccountsDBs()
+	if core.IsGetNodeFromDBError(err) {
+		getNodeErr := core.UnwrapGetNodeFromDBErr(err)
+		if getNodeErr == nil {
+			return err
+		}
+
+		errSync := boot.syncAccountsDBs(getNodeErr.GetKey(), getNodeErr.GetIdentifier())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
 }
 
-func (boot *MetaBootstrap) syncAccountsDBs() error {
-	var err error
-
-	err = boot.syncValidatorAccountsState()
-	if err != nil {
-		return err
+func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
+	// TODO: refactor this in order to avoid treatment based on identifier
+	switch id {
+	case dataRetriever.UserAccountsUnit.String():
+		return boot.syncUserAccountsState(key)
+	case dataRetriever.PeerAccountsUnit.String():
+		return boot.syncValidatorAccountsState(key)
+	default:
+		return fmt.Errorf("invalid trie identifier, id: %s", id)
 	}
-
-	err = boot.syncUserAccountsState()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func (boot *MetaBootstrap) syncValidatorAccountsState() error {
-	rootHash, err := boot.validatorAccountsDB.RootHash()
-	if err != nil {
-		return err
-	}
-
+func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
 	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(rootHash)
+	return boot.validatorStatisticsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 // Close closes the synchronization loop

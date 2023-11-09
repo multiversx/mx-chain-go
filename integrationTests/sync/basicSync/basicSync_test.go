@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -168,7 +168,9 @@ func proposeBlockWithPubKeyBitmap(n *integrationTests.TestProcessorNode, round u
 	if err != nil {
 		log.Error("header.SetPubKeysBitmap", "error", err.Error())
 	}
-	n.BroadcastBlock(body, header)
+
+	pk := n.NodeKeys.MainKey.Pk
+	n.BroadcastBlock(body, header, pk)
 	n.CommitBlock(body, header)
 }
 

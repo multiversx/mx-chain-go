@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ factory.ComponentHandler = (*managedStateComponents)(nil)
@@ -89,6 +89,9 @@ func (msc *managedStateComponents) CheckSubcomponents() error {
 		if check.IfNil(trieStorageManager) {
 			return errors.ErrNilTrieStorageManager
 		}
+	}
+	if check.IfNil(msc.missingTrieNodesNotifier) {
+		return errors.ErrNilMissingTrieNodesNotifier
 	}
 
 	return nil
@@ -197,6 +200,18 @@ func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]c
 	msc.mutStateComponents.Unlock()
 
 	return nil
+}
+
+// MissingTrieNodesNotifier returns the missing trie nodes notifier
+func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.missingTrieNodesNotifier
 }
 
 // IsInterfaceNil returns true if the interface is nil

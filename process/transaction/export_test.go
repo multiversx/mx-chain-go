@@ -3,11 +3,12 @@ package transaction
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type TxProcessor *txProcessor
@@ -78,4 +79,22 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		originalTx,
 		originalTxHash,
 		errorMsg)
+}
+
+func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
+	return inTx.checkMaxGasPrice()
+}
+
+func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
+	return txProc.verifyGuardian(tx, account)
+}
+
+// ShouldIncreaseNonce -
+func (txProc *txProcessor) ShouldIncreaseNonce(executionErr error) bool {
+	return txProc.shouldIncreaseNonce(executionErr)
+}
+
+// AddNonExecutableLog -
+func (txProc *txProcessor) AddNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+	return txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
 }

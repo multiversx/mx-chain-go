@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,7 +64,7 @@ func TestMemoryEvictionWaitingList_Put(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mewl.cache))
-	assert.Equal(t, hashesMap, mewl.cache[string(root)])
+	assert.Equal(t, hashesMap, mewl.cache[string(root)].hashes)
 }
 
 func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
@@ -95,7 +95,7 @@ func TestMemoryEvictionWaitingList_PutMultiple(t *testing.T) {
 
 	assert.Equal(t, 0, len(mewl.cache)) // 2 resets
 	_ = mewl.Put(roots[0], hashesMap)
-	assert.Equal(t, hashesMap, mewl.cache[string(roots[0])])
+	assert.Equal(t, hashesMap, mewl.cache[string(roots[0])].hashes)
 }
 
 func TestMemoryEvictionWaitingList_PutMultipleCleanDB(t *testing.T) {
@@ -272,6 +272,7 @@ func TestMemoryEvictionWaitingList_ShouldKeepHashSearchInDb(t *testing.T) {
 			"hash-2": {},
 		},
 	}
+
 	roots := [][]byte{
 		root1,
 		root2,

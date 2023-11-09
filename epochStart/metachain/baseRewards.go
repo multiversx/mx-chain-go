@@ -8,23 +8,23 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // BaseRewardsCreatorArgs defines the arguments structure needed to create a base rewards creator
@@ -40,6 +40,7 @@ type BaseRewardsCreatorArgs struct {
 	NodesConfigProvider           epochStart.NodesConfigProvider
 	UserAccountsDB                state.AccountsAdapter
 	EnableEpochsHandler           common.EnableEpochsHandler
+	ExecutionOrderHandler         common.TxExecutionOrderHandler
 }
 
 type baseRewardsCreator struct {
@@ -60,6 +61,7 @@ type baseRewardsCreator struct {
 	userAccountsDB                     state.AccountsAdapter
 	enableEpochsHandler                common.EnableEpochsHandler
 	mutRewardsData                     sync.RWMutex
+	executionOrderHandler              common.TxExecutionOrderHandler
 }
 
 // NewBaseRewardsCreator will create a new base rewards creator instance
@@ -97,6 +99,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
 		enableEpochsHandler:                args.EnableEpochsHandler,
+		executionOrderHandler:              args.ExecutionOrderHandler,
 	}
 
 	return brc, nil
@@ -308,6 +311,9 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return epochStart.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ExecutionOrderHandler) {
+		return epochStart.ErrNilExecutionOrderHandler
+	}
 
 	return nil
 }
@@ -425,9 +431,16 @@ func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlic
 	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
+			brc.addExecutionOrdering(miniBlocks[i].TxHashes)
 		}
 	}
 	return finalMiniBlocks
+}
+
+func (brc *baseRewardsCreator) addExecutionOrdering(txHashes [][]byte) {
+	for _, txHash := range txHashes {
+		brc.executionOrderHandler.Add(txHash)
+	}
 }
 
 func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *big.Int) {

@@ -6,18 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+const leaderIndex = 0
 
 func getMetricsFromMetaHeader(
 	header *block.MetaBlock,
@@ -89,58 +91,14 @@ func saveMetricsForCommittedShardBlock(
 	highestFinalBlockNonce uint64,
 	metaBlock data.HeaderHandler,
 	shardHeader data.HeaderHandler,
+	managedPeersHolder common.ManagedPeersHolder,
 ) {
-	incrementCountAcceptedBlocks(nodesCoordinator, appStatusHandler, shardHeader)
+	incrementMetricCountConsensusAcceptedBlocks(shardHeader, shardHeader.GetEpoch(), nodesCoordinator, appStatusHandler, managedPeersHolder)
 	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
-}
-
-func incrementCountAcceptedBlocks(
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	appStatusHandler core.AppStatusHandler,
-	header data.HeaderHandler,
-) {
-	consensusGroup, err := nodesCoordinator.ComputeConsensusGroup(
-		header.GetPrevRandSeed(),
-		header.GetRound(),
-		header.GetShardID(),
-		header.GetEpoch(),
-	)
-	if err != nil {
-		return
-	}
-
-	ownPubKey := nodesCoordinator.GetOwnPublicKey()
-	myIndex := 0
-	found := false
-	for idx, val := range consensusGroup {
-		if bytes.Equal(ownPubKey, val.PubKey()) {
-			myIndex = idx
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return
-	}
-
-	bitMap := header.GetPubKeysBitmap()
-	indexOutOfBounds := myIndex/8 >= len(bitMap)
-	if indexOutOfBounds {
-		log.Trace("process blocks metrics: index out of bounds",
-			"index", myIndex,
-			"bitMap", bitMap,
-			"bitMap length", len(bitMap))
-		return
-	}
-
-	indexInBitmap := myIndex != 0 && bitMap[myIndex/8]&(1<<uint8(myIndex%8)) != 0
-	if indexInBitmap {
-		appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
-	}
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
 }
 
 func saveMetricsForCommitMetachainBlock(
@@ -149,6 +107,7 @@ func saveMetricsForCommitMetachainBlock(
 	headerHash []byte,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
+	managedPeersHolder common.ManagedPeersHolder,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
 	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
@@ -160,42 +119,40 @@ func saveMetricsForCommitMetachainBlock(
 		epoch = epoch - 1
 	}
 
+	incrementMetricCountConsensusAcceptedBlocks(header, epoch, nodesCoordinator, appStatusHandler, managedPeersHolder)
+}
+
+func incrementMetricCountConsensusAcceptedBlocks(
+	header data.HeaderHandler,
+	epoch uint32,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	appStatusHandler core.AppStatusHandler,
+	managedPeersHolder common.ManagedPeersHolder,
+) {
 	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
-		header.PrevRandSeed,
-		header.Round,
-		core.MetachainShardId,
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		header.GetShardID(),
 		epoch,
 	)
 	if err != nil {
 		log.Debug("cannot get validators public keys", "error", err.Error())
-	}
-
-	countMetaAcceptedSignedBlocks(pubKeys, nodesCoordinator.GetOwnPublicKey(), appStatusHandler)
-}
-
-func countMetaAcceptedSignedBlocks(
-	publicKeys []string,
-	ownPublicKey []byte,
-	appStatusHandler core.AppStatusHandler,
-) {
-	isInConsensus := false
-
-	for index, publicKey := range publicKeys {
-		if bytes.Equal([]byte(publicKey), ownPublicKey) {
-			if index == 0 {
-				return
-			}
-
-			isInConsensus = true
-			break
-		}
-	}
-
-	if !isInConsensus {
 		return
 	}
 
-	appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
+	ownPublicKey := nodesCoordinator.GetOwnPublicKey()
+
+	for index, publicKey := range pubKeys {
+		if index == leaderIndex {
+			continue
+		}
+
+		isOwnKey := bytes.Equal([]byte(publicKey), ownPublicKey)
+		isManagedByCurrentNode := managedPeersHolder.IsKeyManagedByCurrentNode([]byte(publicKey))
+		if isOwnKey || isManagedByCurrentNode {
+			appStatusHandler.Increment(common.MetricCountConsensusAcceptedBlocks)
+		}
+	}
 }
 
 func indexRoundInfo(
@@ -206,17 +163,17 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 ) {
-	roundInfo := &indexer.RoundInfo{
-		Index:            header.GetRound(),
+	roundInfo := &outportcore.RoundInfo{
+		Round:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        time.Duration(header.GetTimeStamp()),
+		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
 	}
 
 	if check.IfNil(lastHeader) {
-		outportHandler.SaveRoundsInfo([]*indexer.RoundInfo{roundInfo})
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: []*outportcore.RoundInfo{roundInfo}})
 		return
 	}
 
@@ -224,7 +181,7 @@ func indexRoundInfo(
 	currentBlockRound := header.GetRound()
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
-	roundsInfo := make([]*indexer.RoundInfo, 0)
+	roundsInfo := make([]*outportcore.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
@@ -237,19 +194,19 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundInfo = &indexer.RoundInfo{
-			Index:            i,
+		roundInfo = &outportcore.RoundInfo{
+			Round:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
 			Epoch:            header.GetEpoch(),
-			Timestamp:        time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)),
+			Timestamp:        uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration))),
 		}
 
 		roundsInfo = append(roundsInfo, roundInfo)
 	}
 
-	outportHandler.SaveRoundsInfo(roundsInfo)
+	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
 }
 
 func indexValidatorsRating(
@@ -268,29 +225,20 @@ func indexValidatorsRating(
 		return
 	}
 
-	shardValidatorsRating := make(map[string][]*indexer.ValidatorRatingInfo)
 	for shardID, validatorInfosInShard := range validators {
-		validatorsInfos := make([]*indexer.ValidatorRatingInfo, 0)
+		validatorsInfos := make([]*outportcore.ValidatorRatingInfo, 0)
 		for _, validatorInfo := range validatorInfosInShard {
-			validatorsInfos = append(validatorsInfos, &indexer.ValidatorRatingInfo{
+			validatorsInfos = append(validatorsInfos, &outportcore.ValidatorRatingInfo{
 				PublicKey: hex.EncodeToString(validatorInfo.PublicKey),
 				Rating:    float32(validatorInfo.Rating) * 100 / 10000000,
 			})
 		}
 
-		indexID := fmt.Sprintf("%d_%d", shardID, metaBlock.GetEpoch())
-		shardValidatorsRating[indexID] = validatorsInfos
-	}
-
-	indexShardValidatorsRating(outportHandler, shardValidatorsRating)
-}
-
-func indexShardValidatorsRating(
-	outportHandler outport.OutportHandler,
-	shardValidatorsRating map[string][]*indexer.ValidatorRatingInfo,
-) {
-	for indexID, validatorsInfos := range shardValidatorsRating {
-		outportHandler.SaveValidatorsRating(indexID, validatorsInfos)
+		outportHandler.SaveValidatorsRating(&outportcore.ValidatorsRating{
+			ShardID:              shardID,
+			Epoch:                metaBlock.GetEpoch(),
+			ValidatorsRatingInfo: validatorsInfos,
+		})
 	}
 }
 

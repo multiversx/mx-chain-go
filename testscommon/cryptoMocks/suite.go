@@ -3,7 +3,7 @@ package cryptoMocks
 import (
 	"crypto/cipher"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
+	"github.com/multiversx/mx-chain-crypto-go"
 )
 
 // SuiteMock -

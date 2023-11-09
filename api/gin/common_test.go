@@ -4,9 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/facade/initial"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/facade/initial"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +22,8 @@ func TestCommon_checkArgs(t *testing.T) {
 	err := checkArgs(args)
 	require.True(t, errors.Is(err, apiErrors.ErrCannotCreateGinWebServer))
 
-	args.Facade = initial.NewInitialNodeFacade("api interface", false)
+	args.Facade, err = initial.NewInitialNodeFacade("api interface", false, &testscommon.StatusMetricsStub{})
+	require.NoError(t, err)
 	err = checkArgs(args)
 	require.NoError(t, err)
 }
@@ -44,4 +46,5 @@ func TestCommon_isLogRouteEnabled(t *testing.T) {
 		},
 	}
 	require.True(t, isLogRouteEnabled(routesConfig))
+	require.False(t, isLogRouteEnabled(config.ApiRoutesConfig{}))
 }

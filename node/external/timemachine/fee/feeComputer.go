@@ -4,24 +4,23 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/enablers"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/node/external/timemachine"
-	"github.com/ElrondNetwork/elrond-go/process/economics"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/external/timemachine"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/external/timemachine/fee")
 
 type feeComputer struct {
+	txVersionChecker            process.TxVersionCheckerHandler
 	builtInFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	economicsConfig             config.EconomicsConfig
 	economicsInstances          map[uint32]economicsDataWithComputeFee
-	enableEpochsHandler         common.EnableEpochsHandler
+	enableEpochsConfig          config.EnableEpochs
 	mutex                       sync.RWMutex
 }
 
@@ -32,17 +31,13 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 		return nil, err
 	}
 
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, &timemachine.DisabledEpochNotifier{})
-	if err != nil {
-		return nil, err
-	}
-
 	computer := &feeComputer{
 		builtInFunctionsCostHandler: args.BuiltInFunctionsCostHandler,
 		economicsConfig:             args.EconomicsConfig,
 		// TODO: use a LRU cache instead
-		economicsInstances:  make(map[uint32]economicsDataWithComputeFee),
-		enableEpochsHandler: enableEpochsHandler,
+		economicsInstances: make(map[uint32]economicsDataWithComputeFee),
+		enableEpochsConfig: args.EnableEpochsConfig,
+		txVersionChecker:   args.TxVersionChecker,
 	}
 
 	// Create some economics data instance (but do not save them) in order to validate the arguments:
@@ -54,6 +49,39 @@ func NewFeeComputer(args ArgsNewFeeComputer) (*feeComputer, error) {
 	// TODO: Handle fees for guarded transactions, when enabled.
 
 	return computer, nil
+}
+
+// ComputeGasUsedAndFeeBasedOnRefundValue computes gas used and fee based on the refund value, at a given epoch
+func (computer *feeComputer) ComputeGasUsedAndFeeBasedOnRefundValue(tx *transaction.ApiTransactionResult, refundValue *big.Int) (uint64, *big.Int) {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
+	if err != nil {
+		log.Error("ComputeGasUsedAndFeeBasedOnRefundValue(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
+		return 0, big.NewInt(0)
+	}
+
+	return instance.ComputeGasUsedAndFeeBasedOnRefundValue(tx.Tx, refundValue)
+}
+
+// ComputeTxFeeBasedOnGasUsed computes fee based on gas used, at a given epoch
+func (computer *feeComputer) ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
+	if err != nil {
+		log.Error("ComputeTxFeeBasedOnGasUsed(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
+		return big.NewInt(0)
+	}
+
+	return instance.ComputeTxFeeBasedOnGasUsed(tx.Tx, gasUsed)
+}
+
+// ComputeGasLimit computes a transaction gas limit, at a given epoch
+func (computer *feeComputer) ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64 {
+	instance, err := computer.getOrCreateInstance(tx.Epoch)
+	if err != nil {
+		log.Error("ComputeGasLimit(): unexpected error when creating an economicsData instance", "epoch", tx.Epoch, "error", err)
+		return 0
+	}
+
+	return instance.ComputeGasLimit(tx.Tx)
 }
 
 // ComputeTransactionFee computes a transaction fee, at a given epoch
@@ -94,18 +122,20 @@ func (computer *feeComputer) getOrCreateInstance(epoch uint32) (economicsDataWit
 }
 
 func (computer *feeComputer) createEconomicsInstance(epoch uint32) (economicsDataWithComputeFee, error) {
-	epochSubscriberHandler, ok := computer.enableEpochsHandler.(core.EpochSubscriberHandler)
-	if !ok {
-		return nil, external.ErrEpochSubscriberHandlerWrongTypeAssertion
+	epochNotifier := &timemachine.DisabledEpochNotifier{}
+	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(computer.enableEpochsConfig, epochNotifier)
+	if err != nil {
+		return nil, err
 	}
 
-	epochSubscriberHandler.EpochConfirmed(epoch, 0)
+	enableEpochsHandler.EpochConfirmed(epoch, 0)
 
 	args := economics.ArgsNewEconomicsData{
 		Economics:                   &computer.economicsConfig,
 		BuiltInFunctionsCostHandler: computer.builtInFunctionsCostHandler,
 		EpochNotifier:               &timemachine.DisabledEpochNotifier{},
-		EnableEpochsHandler:         computer.enableEpochsHandler,
+		EnableEpochsHandler:         enableEpochsHandler,
+		TxVersionChecker:            computer.txVersionChecker,
 	}
 
 	economicsData, err := economics.NewEconomicsData(args)

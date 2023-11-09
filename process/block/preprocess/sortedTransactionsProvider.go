@@ -1,9 +1,9 @@
 package preprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore

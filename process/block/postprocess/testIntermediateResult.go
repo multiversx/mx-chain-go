@@ -1,14 +1,7 @@
 package postprocess
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // TestIntermediateResProc extends intermediateResultsProcessor and is used in integration tests
@@ -20,16 +13,9 @@ type TestIntermediateResProc struct {
 
 // NewTestIntermediateResultsProcessor creates a new instance of TestIntermediateResProc
 func NewTestIntermediateResultsProcessor(
-	hasher hashing.Hasher,
-	marshalizer marshal.Marshalizer,
-	coordinator sharding.Coordinator,
-	pubkeyConv core.PubkeyConverter,
-	store dataRetriever.StorageService,
-	blockType block.Type,
-	currTxs dataRetriever.TransactionCacher,
-	economicsFee process.FeeHandler,
+	args ArgsNewIntermediateResultsProcessor,
 ) (*TestIntermediateResProc, error) {
-	interimProc, err := NewIntermediateResultsProcessor(hasher, marshalizer, coordinator, pubkeyConv, store, blockType, currTxs, economicsFee)
+	interimProc, err := NewIntermediateResultsProcessor(args)
 	return &TestIntermediateResProc{interimProc}, err
 }
 

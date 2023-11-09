@@ -7,12 +7,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("heartbeat/processor")
@@ -34,7 +34,7 @@ type ArgPeerAuthenticationRequestsProcessor struct {
 	Epoch                   uint32
 	MinPeersThreshold       float32
 	DelayBetweenRequests    time.Duration
-	MaxTimeout              time.Duration
+	MaxTimeoutForRequests   time.Duration
 	MaxMissingKeysInRequest uint32
 	Randomizer              dataRetriever.IntRandomizer
 }
@@ -55,12 +55,26 @@ type peerAuthenticationRequestsProcessor struct {
 
 // NewPeerAuthenticationRequestsProcessor creates a new instance of peerAuthenticationRequestsProcessor
 func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsProcessor) (*peerAuthenticationRequestsProcessor, error) {
+	processor, err := newPeerAuthenticationRequestsProcessor(args)
+	if err != nil {
+		return nil, err
+	}
+
+	var ctx context.Context
+	ctx, processor.cancel = context.WithTimeout(context.Background(), args.MaxTimeoutForRequests)
+
+	go processor.startRequestingMessages(ctx)
+
+	return processor, nil
+}
+
+func newPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsProcessor) (*peerAuthenticationRequestsProcessor, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
 	}
 
-	processor := &peerAuthenticationRequestsProcessor{
+	return &peerAuthenticationRequestsProcessor{
 		requestHandler:          args.RequestHandler,
 		nodesCoordinator:        args.NodesCoordinator,
 		peerAuthenticationPool:  args.PeerAuthenticationPool,
@@ -70,14 +84,7 @@ func NewPeerAuthenticationRequestsProcessor(args ArgPeerAuthenticationRequestsPr
 		delayBetweenRequests:    args.DelayBetweenRequests,
 		maxMissingKeysInRequest: args.MaxMissingKeysInRequest,
 		randomizer:              args.Randomizer,
-	}
-
-	var ctx context.Context
-	ctx, processor.cancel = context.WithTimeout(context.Background(), args.MaxTimeout)
-
-	go processor.startRequestingMessages(ctx)
-
-	return processor, nil
+	}, nil
 }
 
 func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
@@ -98,9 +105,9 @@ func checkArgs(args ArgPeerAuthenticationRequestsProcessor) error {
 		return fmt.Errorf("%w for DelayBetweenRequests, provided %d, min expected %d",
 			heartbeat.ErrInvalidTimeDuration, args.DelayBetweenRequests, minDelayBetweenRequests)
 	}
-	if args.MaxTimeout < minTimeout {
-		return fmt.Errorf("%w for MaxTimeout, provided %d, min expected %d",
-			heartbeat.ErrInvalidTimeDuration, args.MaxTimeout, minTimeout)
+	if args.MaxTimeoutForRequests < minTimeout {
+		return fmt.Errorf("%w for MaxTimeoutForRequests, provided %d, min expected %d",
+			heartbeat.ErrInvalidTimeDuration, args.MaxTimeoutForRequests, minTimeout)
 	}
 	if args.MaxMissingKeysInRequest < minMissingKeysAllowed {
 		return fmt.Errorf("%w for MaxMissingKeysInRequest, provided %d, min expected %d",

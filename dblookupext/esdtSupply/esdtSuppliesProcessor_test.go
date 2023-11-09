@@ -1,20 +1,21 @@
 package esdtSupply
 
 import (
-	"encoding/hex"
 	"errors"
 	"math/big"
+	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,13 +34,13 @@ func TestNewSuppliesProcessor(t *testing.T) {
 	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
-	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilStore, err)
 
-	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
 	require.Equal(t, core.ErrNilStore, err)
 
-	proc, err := NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, proc)
 	require.False(t, proc.IsInterfaceNil())
@@ -56,6 +57,24 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(testNftCreateValue).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(testAddQuantityValue).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(testBurnValue).Bytes(),
+						},
 					},
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
@@ -83,8 +102,8 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 		},
 	}
 
-	wasPutCalled := false
-	marshalizer := testscommon.MarshalizerMock{}
+	putCalledNum := 0
+	marshalizer := marshallerMock.MarshalizerMock{}
 	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if string(key) == "processed-block" {
@@ -100,15 +119,17 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 				return nil
 			}
 
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			require.Equal(t, supplyKey, string(key))
+			isCollectionSupply := strings.Count(string(key), "-") == 1
 
 			var supplyESDT SupplyESDT
 			_ = marshalizer.Unmarshal(&supplyESDT, data)
-			require.Equal(t, big.NewInt(30), supplyESDT.Supply)
+			if isCollectionSupply {
+				require.Equal(t, big.NewInt(60), supplyESDT.Supply)
+			} else {
+				require.Equal(t, big.NewInt(30), supplyESDT.Supply)
+			}
 
-			wasPutCalled = true
-
+			putCalledNum++
 			return nil
 		},
 	}
@@ -119,7 +140,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	err = suppliesProc.ProcessLogs(6, logs)
 	require.Nil(t, err)
 
-	require.True(t, wasPutCalled)
+	require.Equal(t, 3, putCalledNum)
 }
 
 func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
@@ -133,6 +154,12 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(testNftCreateValue).Bytes(),
+						},
 					},
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTCreate),
@@ -154,6 +181,12 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
+						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(testAddQuantityValue).Bytes(),
+						},
 					},
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTAddQuantity),
@@ -180,6 +213,12 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
 						Topics: [][]byte{
+							token, big.NewInt(1).Bytes(), big.NewInt(testBurnValue).Bytes(),
+						},
+					},
+					{
+						Identifier: []byte(core.BuiltInFunctionESDTNFTBurn),
+						Topics: [][]byte{
 							token, big.NewInt(2).Bytes(), big.NewInt(testBurnValue).Bytes(),
 						},
 					},
@@ -192,51 +231,66 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	}
 
 	membDB := testscommon.NewMemDbMock()
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	numTimesCalled := 0
 	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			if string(key) == "processed-block" {
+			if string(key) == processedBlockKey {
 				pbn := ProcessedBlockNonce{Nonce: 5}
 				pbnB, _ := marshalizer.Marshal(pbn)
 				return pbnB, nil
 			}
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			if string(key) == supplyKey {
-				val, err := membDB.Get(key)
-				if err != nil {
-					return nil, storage.ErrKeyNotFound
-				}
-				return val, nil
+
+			val, err := membDB.Get(key)
+			if err != nil {
+				return nil, storage.ErrKeyNotFound
 			}
-			return nil, storage.ErrKeyNotFound
+			return val, nil
 		},
 		PutCalled: func(key, data []byte) error {
-			supplyKey := string(token) + "-" + hex.EncodeToString(big.NewInt(2).Bytes())
-			if string(key) == supplyKey {
-				switch numTimesCalled {
-				case 0:
-					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue), supplyEsdt.Minted)
-				case 1:
-					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
-				case 2:
-					supplyEsdt := getSupplyESDT(marshalizer, data)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue-testBurnValue), supplyEsdt.Supply)
-					require.Equal(t, big.NewInt(testBurnValue), supplyEsdt.Burned)
-					require.Equal(t, big.NewInt(testNftCreateValue+testAddQuantityValue), supplyEsdt.Minted)
-				}
-
-				_ = membDB.Put(key, data)
-				numTimesCalled++
-
+			if string(key) == processedBlockKey {
 				return nil
 			}
+
+			isCollectionSupply := strings.Count(string(key), "-") == 1
+
+			switch numTimesCalled {
+			case 0, 1, 2:
+				supplyEsdt := getSupplyESDT(marshalizer, data)
+				valueToCheck := int64(testNftCreateValue)
+				if isCollectionSupply {
+					valueToCheck *= 2
+				}
+				require.Equal(t, big.NewInt(valueToCheck), supplyEsdt.Supply)
+				require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
+				require.Equal(t, big.NewInt(valueToCheck), supplyEsdt.Minted)
+			case 3, 4, 5:
+				supplyEsdt := getSupplyESDT(marshalizer, data)
+				valueToCheck := int64(testNftCreateValue + testAddQuantityValue)
+				if isCollectionSupply {
+					valueToCheck *= 2
+				}
+				require.Equal(t, big.NewInt(valueToCheck), supplyEsdt.Supply)
+				require.Equal(t, big.NewInt(0), supplyEsdt.Burned)
+				require.Equal(t, big.NewInt(valueToCheck), supplyEsdt.Minted)
+			case 6, 7, 8:
+				supplyEsdt := getSupplyESDT(marshalizer, data)
+
+				supplyValue := int64(testNftCreateValue + testAddQuantityValue - testBurnValue)
+				mintedValue := int64(testNftCreateValue + testAddQuantityValue)
+				burnValue := int64(testBurnValue)
+				if isCollectionSupply {
+					supplyValue *= 2
+					mintedValue *= 2
+					burnValue *= 2
+				}
+				require.Equal(t, big.NewInt(supplyValue), supplyEsdt.Supply)
+				require.Equal(t, big.NewInt(burnValue), supplyEsdt.Burned)
+				require.Equal(t, big.NewInt(mintedValue), supplyEsdt.Minted)
+			}
+
+			_ = membDB.Put(key, data)
+			numTimesCalled++
 
 			return nil
 		},
@@ -254,7 +308,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	err = suppliesProc.ProcessLogs(8, logsBurn)
 	require.Nil(t, err)
 
-	require.Equal(t, 3, numTimesCalled)
+	require.Equal(t, 9, numTimesCalled)
 }
 
 func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
@@ -308,7 +362,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 		},
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 
 	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
@@ -399,7 +453,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 		},
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 
 	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
@@ -472,7 +526,7 @@ func getSupplyESDT(marshalizer marshal.Marshalizer, data []byte) SupplyESDT {
 func TestSupplyESDT_GetSupply(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &testscommon.MarshalizerMock{}
+	marshalizer := &marshallerMock.MarshalizerMock{}
 	proc, _ := NewSuppliesProcessor(marshalizer, &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if string(key) == "my-token" {

@@ -7,14 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,16 +28,18 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 	args := ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:          gasScheduleNotifier,
 		MapDNSAddresses:      make(map[string]struct{}),
+		MapDNSV2Addresses:    make(map[string]struct{}),
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &stateMock.AccountsStub{},
 		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(1),
 		EpochNotifier:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		AutomaticCrawlerAddresses: [][]byte{
 			bytes.Repeat([]byte{1}, 32),
 		},
 		MaxNumNodesInTransferRole: 100,
+		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
 	}
 
 	return args
@@ -84,6 +88,10 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTAddUri"] = value
 	gasMap["ESDTNFTUpdateAttributes"] = value
 	gasMap["ESDTNFTMultiTransfer"] = value
+	gasMap["SetGuardian"] = value
+	gasMap["GuardAccount"] = value
+	gasMap["TrieLoadPerNode"] = value
+	gasMap["TrieStorePerNode"] = value
 
 	return gasMap
 }
@@ -160,7 +168,7 @@ func TestCreateBuiltInFunctionContainer(t *testing.T) {
 		args := createMockArguments()
 		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
 		assert.Nil(t, err)
-		assert.Equal(t, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()), 31)
+		assert.Equal(t, 36, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
 
 		err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
 		assert.Nil(t, err)

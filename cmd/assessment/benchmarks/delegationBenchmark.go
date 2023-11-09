@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen/delegation"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm/delegation"
 )
 
 // ArgDelegationBenchmark is the delegation type benchmark argument used in constructor
@@ -27,7 +27,7 @@ type delegationBenchmark struct {
 	numQueriesPerBatch uint32
 }
 
-// NewDelegationBenchmark creates a new benchmark based on delegation SC execution through Arwen VM
+// NewDelegationBenchmark creates a new benchmark based on delegation SC execution through Wasm VM
 func NewDelegationBenchmark(arg ArgDelegationBenchmark) *delegationBenchmark {
 	return &delegationBenchmark{
 		name:               arg.Name,

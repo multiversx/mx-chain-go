@@ -3,8 +3,8 @@ package mock
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 )
 
 // TxForCurrentBlockStub -

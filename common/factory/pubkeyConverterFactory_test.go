@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,11 +32,13 @@ func TestNewPubkeyConverter_Bech32ShouldWork(t *testing.T) {
 		config.PubkeyConfig{
 			Length: 32,
 			Type:   "bech32",
+			Hrp:    "erd",
 		},
 	)
 
 	assert.Nil(t, err)
-	expected, _ := pubkeyConverter.NewBech32PubkeyConverter(32, log)
+	expected, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	assert.Nil(t, err)
 	assert.IsType(t, expected, pc)
 }
 

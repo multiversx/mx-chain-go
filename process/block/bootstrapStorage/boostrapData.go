@@ -1,6 +1,6 @@
 package bootstrapStorage
 
-import "github.com/ElrondNetwork/elrond-go/common"
+import "github.com/multiversx/mx-chain-go/common"
 
 // IsFullyProcessed returns if the mini block at the given index is fully processed or not
 func (m *MiniBlocksInMeta) IsFullyProcessed(index int) bool {

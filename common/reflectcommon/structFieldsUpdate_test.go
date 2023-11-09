@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,6 +31,17 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, "invalid structure name: InvalidFieldName", err.Error())
 	})
 
+	t.Run("empty path, should not panic, but catch the error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedNewValue := "%5050"
+		cfg := &config.Config{}
+
+		err := AdaptStructureValueBasedOnPath(cfg, "", expectedNewValue)
+
+		require.Equal(t, "empty path to update", err.Error())
+	})
+
 	t.Run("should error when invalid field during multiple levels depth", func(t *testing.T) {
 		t.Parallel()
 
@@ -55,6 +66,18 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
 		require.Equal(t, "invalid structure name: FilePath2", err.Error())
+	})
+
+	t.Run("should error when setting on unsupported type", func(t *testing.T) {
+		t.Parallel()
+
+		path := "TrieSyncStorage.DB"
+		expectedNewValue := "provided value"
+		cfg := &config.Config{}
+
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
+
+		require.ErrorContains(t, err, "unsupported type <struct> when trying to set the value <provided value>")
 	})
 
 	t.Run("should error when setting invalid uint32", func(t *testing.T) {
@@ -99,10 +122,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error when setting invalid float64", func(t *testing.T) {
 		t.Parallel()
 
-		path := "HeartbeatV2.PeerShardThresholdBetweenSends"
+		path := "HeartbeatV2.PeerShardTimeThresholdBetweenSends"
 		expectedNewValue := "invalid float64"
 		cfg := &config.Config{}
-		cfg.HeartbeatV2.PeerShardThresholdBetweenSends = 37.0
+		cfg.HeartbeatV2.PeerShardTimeThresholdBetweenSends = 37.0
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
@@ -279,15 +302,15 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should work and override float64 value", func(t *testing.T) {
 		t.Parallel()
 
-		path := "HeartbeatV2.PeerAuthenticationThresholdBetweenSends"
+		path := "HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends"
 		expectedNewValue := 38.0
 		cfg := &config.Config{}
-		cfg.HeartbeatV2.PeerAuthenticationThresholdBetweenSends = 37.0
+		cfg.HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends = 37.0
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%f", expectedNewValue))
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.PeerAuthenticationThresholdBetweenSends)
+		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends)
 	})
 
 	t.Run("should work and override int value", func(t *testing.T) {

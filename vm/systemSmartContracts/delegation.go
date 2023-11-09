@@ -1,4 +1,4 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/ElrondNetwork/protobuf/protobuf  --gogoslick_out=. delegation.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. delegation.proto
 package systemSmartContracts
 
 import (
@@ -8,13 +8,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const delegationConfigKey = "delegationConfig"
@@ -34,6 +34,9 @@ const deleteWhitelistForMerge = "deleteWhitelistForMerge"
 const whitelistedAddress = "whitelistedAddress"
 const changeOwner = "changeOwner"
 const withdraw = "withdraw"
+const claimRewards = "claimRewards"
+const reDelegateRewards = "reDelegateRewards"
+const delegate = "delegate"
 
 const (
 	active    = uint32(0)
@@ -199,7 +202,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unBondNodes(args)
 	case "unJailNodes":
 		return d.unJailNodes(args)
-	case "delegate":
+	case delegate:
 		return d.delegate(args)
 	case "unDelegate":
 		return d.unDelegate(args)
@@ -215,7 +218,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
 		return d.updateRewards(args)
-	case "claimRewards":
+	case claimRewards:
 		return d.claimRewards(args)
 	case "getRewardData":
 		return d.getRewardData(args)
@@ -245,7 +248,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getContractConfig(args)
 	case "unStakeAtEndOfEpoch":
 		return d.unStakeAtEndOfEpoch(args)
-	case "reDelegateRewards":
+	case reDelegateRewards:
 		return d.reDelegateRewards(args)
 	case "reStakeUnStakedNodes":
 		return d.reStakeUnStakedNodes(args)
@@ -265,6 +268,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.correctNodesStatus(args)
 	case changeOwner:
 		return d.changeOwner(args)
+	case "synchronizeOwner":
+		return d.synchronizeOwner(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -914,7 +919,8 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage("wrong number of arguments, expected 1")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) {
+	newOwner := args.Arguments[0]
+	if len(newOwner) != len(args.CallerAddr) {
 		d.eei.AddReturnMessage("invalid argument, wanted an address")
 		return vmcommon.UserError
 	}
@@ -925,7 +931,7 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	isNew, _, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	isNew, _, err := d.getOrCreateDelegatorData(newOwner)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -946,17 +952,61 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	d.eei.SetStorage(args.CallerAddr, nil)
-	err = d.saveDelegatorData(args.Arguments[0], ownerDelegatorData)
+	err = d.saveDelegatorData(newOwner, ownerDelegatorData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, newOwner, args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
-	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+	d.eei.SetStorage([]byte(ownerKey), newOwner)
+
+	err = d.saveOwnerToAccount(newOwner)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	d.createLogEventsForChangeOwner(args, ownerDelegatorData)
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+		return nil
+	}
+
+	return d.eei.SetOwnerOperatingOnAccount(newOwner)
+}
+
+func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("invalid number of arguments, expected 0")
+		return vmcommon.UserError
+	}
+
+	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+	err = d.eei.SetOwnerOperatingOnAccount(ownerAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -1685,11 +1735,6 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
-		d.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
@@ -1769,7 +1814,8 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	zeroValueByteSlice := make([]byte, 0)
-	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes())
+	unDelegateFundKey := delegator.UnStakedFunds[len(delegator.UnStakedFunds)-1]
+	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes(), unDelegateFundKey)
 
 	return vmcommon.Ok
 }
@@ -2084,6 +2130,9 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	if totalUnBondable.Cmp(zero) == 0 {
 		d.eei.AddReturnMessage("nothing to unBond")
+		if d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -2107,6 +2156,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	totalUnBonded := big.NewInt(0)
 	tempUnStakedFunds := make([][]byte, 0)
 	var fund *Fund
+	withdrawFundKeys := make([][]byte, 0)
 	for fundIndex, fundKey := range delegator.UnStakedFunds {
 		fund, err = d.getFund(fundKey)
 		if err != nil {
@@ -2129,6 +2179,8 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 			}
 			break
 		}
+
+		withdrawFundKeys = append(withdrawFundKeys, fundKey)
 		d.eei.SetStorage(fundKey, nil)
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
@@ -2158,7 +2210,7 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return vmcommon.UserError
 	}
 
-	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted)
+	d.createAndAddLogEntryForWithdraw(args.Function, args.CallerAddr, actualUserUnBond, globalFund, delegator, d.numUsers(), wasDeleted, withdrawFundKeys)
 
 	return vmcommon.Ok
 }

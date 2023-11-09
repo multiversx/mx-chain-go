@@ -8,14 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,7 +123,7 @@ func TestCalculateHash_Good(t *testing.T) {
 	marshaledData := "marshalized random string"
 	hashedData := "hashed marshalized random string"
 	hash, err := core.CalculateHash(
-		&testscommon.MarshalizerStub{
+		&marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				marshalCalled = true
 				assert.Equal(t, initialObject, obj)
@@ -328,4 +329,49 @@ func TestShardAssignment(t *testing.T) {
 	for sh, cnt := range counts {
 		fmt.Printf("Shard %d:\n\t\t%d accounts\n", sh, cnt)
 	}
+}
+
+func TestProcessDestinationShardAsObserver(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty shard should error", testProcessDestinationShardAsObserver("", 0, "option DestinationShardAsObserver is not set in prefs.toml"))
+	t.Run("disabled shard should return disabled",
+		testProcessDestinationShardAsObserver(common.NotSetDestinationShardID, common.DisabledShardIDAsObserver, ""))
+	t.Run("metachain should return metachain",
+		testProcessDestinationShardAsObserver("metachain", common.MetachainShardId, ""))
+	t.Run("MeTaChAiN should return metachain",
+		testProcessDestinationShardAsObserver("MeTaChAiN", common.MetachainShardId, ""))
+	t.Run("METACHAIN should return metachain",
+		testProcessDestinationShardAsObserver("METACHAIN", common.MetachainShardId, ""))
+	t.Run("invalid uint should error",
+		testProcessDestinationShardAsObserver("not uint", 0, "error parsing DestinationShardAsObserver"))
+	t.Run("should work",
+		testProcessDestinationShardAsObserver("1", 1, ""))
+}
+
+func testProcessDestinationShardAsObserver(providedShard string, expectedShard uint32, expectedError string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		shard, err := common.ProcessDestinationShardAsObserver(providedShard)
+		if len(expectedError) == 0 {
+			require.NoError(t, err)
+		} else {
+			require.True(t, strings.Contains(err.Error(), expectedError))
+		}
+		require.Equal(t, expectedShard, shard)
+	}
+}
+
+func TestSuffixedMetric(t *testing.T) {
+	t.Parallel()
+
+	providedMetric := common.MetricP2PPeerInfo
+	providedSuffix := ""
+	expectedMetric := providedMetric
+	require.Equal(t, expectedMetric, common.SuffixedMetric(providedMetric, providedSuffix))
+
+	providedSuffix = common.FullArchiveMetricSuffix
+	expectedMetric = providedMetric + providedSuffix
+	require.Equal(t, expectedMetric, common.SuffixedMetric(providedMetric, providedSuffix))
 }

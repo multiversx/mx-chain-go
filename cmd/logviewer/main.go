@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
 	"github.com/gorilla/websocket"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-logger-go"
 	"github.com/urfave/cli"
 )
 
@@ -55,7 +55,7 @@ VERSION:
 	// address defines a flag for setting the address and port on which the node will listen for connections
 	address = cli.StringFlag{
 		Name:        "address",
-		Usage:       "Address and port number on which the application will try to connect to the elrond-go node",
+		Usage:       "Address and port number on which the application will try to connect to the mx-chain-go node",
 		Value:       "127.0.0.1:8080",
 		Destination: &argsConfig.address,
 	}
@@ -129,9 +129,9 @@ func main() {
 func initCliFlags() {
 	cliApp = cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	cliApp.Name = "Elrond Logviewer App"
+	cliApp.Name = "MultiversX Logviewer App"
 	cliApp.Version = fmt.Sprintf("%s/%s/%s-%s", "1.0.0", runtime.Version(), runtime.GOOS, runtime.GOARCH)
-	cliApp.Usage = "Logviewer application used to communicate with elrond-go node to log the message lines"
+	cliApp.Usage = "Logviewer application used to communicate with mx-chain-go node to log the message lines"
 	cliApp.Flags = []cli.Flag{
 		address,
 		logLevel,
@@ -143,8 +143,8 @@ func initCliFlags() {
 	}
 	cliApp.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 }
@@ -209,7 +209,7 @@ func startLogViewer(ctx *cli.Context) error {
 		}
 	}()
 
-	// set this log's level to the lowest desired log level that matches received logs from elrond-go
+	// set this log's level to the lowest desired log level that matches received logs from mx-chain-go
 	lowestLogLevel := getLowestLogLevel(logLevels)
 	log.SetLevel(lowestLogLevel)
 

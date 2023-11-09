@@ -1,8 +1,8 @@
 package heartbeat
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // NodesCoordinator defines the behavior of a struct able to do validator selection

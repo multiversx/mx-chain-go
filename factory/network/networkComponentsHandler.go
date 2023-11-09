@@ -4,16 +4,21 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ factory.ComponentHandler = (*managedNetworkComponents)(nil)
 var _ factory.NetworkComponentsHolder = (*managedNetworkComponents)(nil)
 var _ factory.NetworkComponentsHandler = (*managedNetworkComponents)(nil)
+
+const (
+	errorOnMainNetworkString        = "on main network"
+	errorOnFullArchiveNetworkString = "on full archive network"
+)
 
 // managedNetworkComponents creates the data components handler that can create, close and access the data components
 type managedNetworkComponents struct {
@@ -74,9 +79,20 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	if mnc.networkComponents == nil {
 		return errors.ErrNilNetworkComponents
 	}
-	if check.IfNil(mnc.netMessenger) {
-		return errors.ErrNilMessenger
+	if check.IfNil(mnc.mainNetworkHolder.netMessenger) {
+		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnMainNetworkString)
 	}
+	if check.IfNil(mnc.peersRatingHandler) {
+		return errors.ErrNilPeersRatingHandler
+	}
+	if check.IfNil(mnc.peersRatingMonitor) {
+		return errors.ErrNilPeersRatingMonitor
+	}
+
+	if check.IfNil(mnc.fullArchiveNetworkHolder.netMessenger) {
+		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnFullArchiveNetworkString)
+	}
+
 	if check.IfNil(mnc.inputAntifloodHandler) {
 		return errors.ErrNilInputAntiFloodHandler
 	}
@@ -93,7 +109,7 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 	return nil
 }
 
-// NetworkMessenger returns the p2p messenger
+// NetworkMessenger returns the p2p messenger of the main network
 func (mnc *managedNetworkComponents) NetworkMessenger() p2p.Messenger {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
@@ -102,7 +118,7 @@ func (mnc *managedNetworkComponents) NetworkMessenger() p2p.Messenger {
 		return nil
 	}
 
-	return mnc.netMessenger
+	return mnc.mainNetworkHolder.netMessenger
 }
 
 // InputAntiFloodHandler returns the input p2p anti-flood handler
@@ -165,7 +181,7 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() factory.PeerHonestyHan
 	return mnc.networkComponents.peerHonestyHandler
 }
 
-// PreferredPeersHolderHandler returns the preferred peers holder
+// PreferredPeersHolderHandler returns the preferred peers holder of the main network
 func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
@@ -174,10 +190,10 @@ func (mnc *managedNetworkComponents) PreferredPeersHolderHandler() factory.Prefe
 		return nil
 	}
 
-	return mnc.networkComponents.peersHolder
+	return mnc.mainNetworkHolder.preferredPeersHolder
 }
 
-// PeersRatingHandler returns the peers rating handler
+// PeersRatingHandler returns the peers rating handler of the main network
 func (mnc *managedNetworkComponents) PeersRatingHandler() p2p.PeersRatingHandler {
 	mnc.mutNetworkComponents.RLock()
 	defer mnc.mutNetworkComponents.RUnlock()
@@ -186,7 +202,43 @@ func (mnc *managedNetworkComponents) PeersRatingHandler() p2p.PeersRatingHandler
 		return nil
 	}
 
-	return mnc.networkComponents.peersRatingHandler
+	return mnc.peersRatingHandler
+}
+
+// PeersRatingMonitor returns the peers rating monitor of the main network
+func (mnc *managedNetworkComponents) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.peersRatingMonitor
+}
+
+// FullArchiveNetworkMessenger returns the p2p messenger of the full archive network
+func (mnc *managedNetworkComponents) FullArchiveNetworkMessenger() p2p.Messenger {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.fullArchiveNetworkHolder.netMessenger
+}
+
+// FullArchivePreferredPeersHolderHandler returns the preferred peers holder of the full archive network
+func (mnc *managedNetworkComponents) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	mnc.mutNetworkComponents.RLock()
+	defer mnc.mutNetworkComponents.RUnlock()
+
+	if mnc.networkComponents == nil {
+		return nil
+	}
+
+	return mnc.fullArchiveNetworkHolder.preferredPeersHolder
 }
 
 // IsInterfaceNil returns true if the value under the interface is nil

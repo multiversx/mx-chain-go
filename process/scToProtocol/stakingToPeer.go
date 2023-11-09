@@ -5,20 +5,20 @@ import (
 	"encoding/hex"
 	"math"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	"github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.SmartContractToProtocolHandler = (*stakingToPeer)(nil)
@@ -226,13 +226,6 @@ func (stp *stakingToPeer) updatePeerStateV1(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
-	}
-
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
 
@@ -276,15 +269,15 @@ func (stp *stakingToPeer) updatePeerState(
 		return stp.updatePeerStateV1(stakingData, blsPubKey, nonce)
 	}
 
-	account, err := stp.getPeerAccount(blsPubKey)
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(stp.peerState, blsPubKey)
 	if err != nil {
 		return err
 	}
 
-	isUnJailForInactive := len(account.GetBLSPublicKey()) > 0 && !stakingData.Staked &&
+	isUnJailForInactive := !isNew && !stakingData.Staked &&
 		stakingData.UnJailedNonce == nonce && account.GetList() == string(common.JailedList)
 	if isUnJailForInactive {
-		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.GetBLSPublicKey(), "unStakedEpoch", stakingData.UnStakedEpoch)
+		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.AddressBytes(), "unStakedEpoch", stakingData.UnStakedEpoch)
 		account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce))
 		if account.GetTempRating() < stp.unJailRating {
 			account.SetTempRating(stp.unJailRating)
@@ -314,12 +307,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+	if isNew {
 		log.Debug("new node", "blsKey", blsPubKey)
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
 	}
 
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)

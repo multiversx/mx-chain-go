@@ -1,9 +1,9 @@
 package logging
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	elrondErrors "github.com/ElrondNetwork/elrond-go/errors"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // LogErrAsWarnExceptAsDebugIfClosingError logs an error
@@ -24,7 +24,7 @@ func logErrAsLevelExceptAsDebugIfClosingError(logInstance logger.Logger, logLeve
 		return
 	}
 
-	if elrondErrors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		logLevel = logger.LogDebug
 	}
 

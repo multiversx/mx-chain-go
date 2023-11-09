@@ -7,14 +7,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type trieNodeInfo struct {
@@ -33,7 +33,7 @@ type trieSyncer struct {
 	waitTimeBetweenRequests   time.Duration
 	marshalizer               marshal.Marshalizer
 	hasher                    hashing.Hasher
-	db                        common.DBWriteCacher
+	db                        common.TrieStorageInteractor
 	requestHandler            RequestHandler
 	interceptedNodesCacher    storage.Cacher
 	mutOperation              sync.RWMutex
@@ -41,6 +41,7 @@ type trieSyncer struct {
 	trieSyncStatistics        data.SyncStatisticsHandler
 	timeoutHandler            TimeoutHandler
 	maxHardCapForMissingNodes int
+	leavesChan                chan core.KeyValueHolder
 }
 
 const maxNewMissingAddedPerTurn = 10
@@ -58,6 +59,7 @@ type ArgTrieSyncer struct {
 	MaxHardCapForMissingNodes int
 	CheckNodesOnDisk          bool
 	TimeoutHandler            TimeoutHandler
+	LeavesChan                chan core.KeyValueHolder
 }
 
 // NewTrieSyncer creates a new instance of trieSyncer
@@ -86,6 +88,7 @@ func NewTrieSyncer(arg ArgTrieSyncer) (*trieSyncer, error) {
 		trieSyncStatistics:        arg.TrieSyncStatistics,
 		timeoutHandler:            arg.TimeoutHandler,
 		maxHardCapForMissingNodes: arg.MaxHardCapForMissingNodes,
+		leavesChan:                arg.LeavesChan,
 	}
 
 	return ts, nil
@@ -160,7 +163,7 @@ func (ts *trieSyncer) StartSyncing(rootHash []byte, ctx context.Context) error {
 		case <-time.After(ts.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			return errors.ErrContextClosing
+			return core.ErrContextClosing
 		}
 	}
 }
@@ -245,6 +248,9 @@ func (ts *trieSyncer) checkIfSynced() (bool, error) {
 			if err != nil {
 				return false, err
 			}
+
+			writeLeafNodeToChan(currentNode, ts.leavesChan)
+
 			ts.timeoutHandler.ResetWatchdog()
 
 			ts.updateStats(uint64(numBytes), currentNode)
@@ -304,7 +310,7 @@ func (ts *trieSyncer) getNode(hash []byte) (node, error) {
 func getNodeFromCacheOrStorage(
 	hash []byte,
 	interceptedNodesCacher storage.Cacher,
-	db common.DBWriteCacher,
+	db common.TrieStorageInteractor,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 ) (node, error) {
@@ -362,6 +368,20 @@ func trieNode(
 	decodedNode.setDirty(true)
 
 	return decodedNode, nil
+}
+
+func writeLeafNodeToChan(element node, ch chan core.KeyValueHolder) {
+	if ch == nil {
+		return
+	}
+
+	leafNodeElement, isLeaf := element.(*leafNode)
+	if !isLeaf {
+		return
+	}
+
+	trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+	ch <- trieLeaf
 }
 
 func (ts *trieSyncer) requestNodes() uint32 {

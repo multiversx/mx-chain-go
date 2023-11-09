@@ -8,11 +8,19 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/genesis"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDelegationData_UnmarshalJSONInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	data := &DelegationData{}
+	err := data.UnmarshalJSON([]byte("invalid data"))
+	assert.Error(t, err)
+}
 
 func TestDelegationData_MarshalUnmarshalEmptyStruct(t *testing.T) {
 	t.Parallel()

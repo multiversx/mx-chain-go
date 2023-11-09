@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/debug"
+import "github.com/multiversx/mx-chain-go/debug"
 
 // NodeWrapperStub -
 type NodeWrapperStub struct {

@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // StateSyncer interface defines the methods needed to sync and get all states
@@ -175,7 +175,7 @@ type WhiteListHandler interface {
 // AccountsDBSyncer defines the methods for the accounts db syncer
 type AccountsDBSyncer interface {
 	GetSyncedTries() map[string]common.Trie
-	SyncAccounts(rootHash []byte) error
+	SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error
 	IsInterfaceNil() bool
 }
 

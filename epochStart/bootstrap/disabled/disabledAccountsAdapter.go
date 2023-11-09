@@ -3,9 +3,9 @@ package disabled
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsAdapter struct {
@@ -100,7 +100,7 @@ func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState -
-func (a *accountsAdapter) SnapshotState(_ []byte) {
+func (a *accountsAdapter) SnapshotState(_ []byte, _ uint32) {
 }
 
 // SetStateCheckpoint -
@@ -118,7 +118,7 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+func (a *accountsAdapter) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 	return nil
 }
 

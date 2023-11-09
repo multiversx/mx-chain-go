@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/storage"
+	"github.com/multiversx/mx-chain-core-go/storage"
 )
 
 // StorerStub -
@@ -19,6 +19,7 @@ type StorerStub struct {
 	GetBulkFromEpochCalled       func(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
 	GetOldestEpochCalled         func() (uint32, error)
 	RangeKeysCalled              func(handler func(key []byte, val []byte) bool)
+	GetIdentifierCalled          func() string
 	CloseCalled                  func() error
 }
 
@@ -122,6 +123,14 @@ func (ss *StorerStub) RangeKeys(handler func(key []byte, val []byte) bool) {
 	if ss.RangeKeysCalled != nil {
 		ss.RangeKeysCalled(handler)
 	}
+}
+
+// GetIdentifier -
+func (ss *StorerStub) GetIdentifier() string {
+	if ss.GetIdentifierCalled != nil {
+		return ss.GetIdentifierCalled()
+	}
+	return ""
 }
 
 // Close -

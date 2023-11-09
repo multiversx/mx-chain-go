@@ -1,7 +1,7 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // MockStatistics -
@@ -25,5 +25,20 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats -
-func (m *MockStatistics) AddTrieStats(_ *statistics.TrieStatsDTO) {
+func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler, _ common.TrieType) {
+}
+
+// GetSnapshotDuration -
+func (m *MockStatistics) GetSnapshotDuration() int64 {
+	return 0
+}
+
+// GetSnapshotNumNodes -
+func (m *MockStatistics) GetSnapshotNumNodes() uint64 {
+	return 0
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (m *MockStatistics) IsInterfaceNil() bool {
+	return m == nil
 }

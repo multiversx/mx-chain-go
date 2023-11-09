@@ -28,6 +28,7 @@ type fieldsHandler struct {
 }
 
 func newFieldsHandler(parameters string) fieldsHandler {
+	parameters = strings.ToLower(parameters)
 	ph := fieldsHandler{
 		HasNonce:       strings.Contains(parameters, nonceField),
 		HasSender:      strings.Contains(parameters, senderField),

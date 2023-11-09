@@ -5,12 +5,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +35,7 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, []byte("aaaa"))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -56,15 +55,6 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(1000), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2750", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testing.T) {
@@ -91,7 +81,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddrBytes, gasPrice, gasLimit, nil)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -110,15 +100,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(1000), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
@@ -151,7 +132,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddrBytes, gasPrice, gasLimit, nil)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -166,15 +147,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(1630), accumulatedFees)
-
-	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, false, testContextSource.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(163), indexerTx.GasUsed)
-	require.Equal(t, "1630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
 
 	// execute on destination shard
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
@@ -192,15 +164,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(1000), accumulatedFees)
-
-	intermediateTxs = testContextDst.GetIntermediateTransactions(t)
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(t *testing.T) {
@@ -231,7 +194,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -248,15 +211,6 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 	// check accumulated fees
 	accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(2630), accumulatedFees)
-
-	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, true, testContextSource.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	// get scr for destination shard
 	txs := testContextSource.GetIntermediateTransactions(t)
@@ -300,7 +254,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 
 	innerTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -322,15 +276,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 	expectedAccFees := big.NewInt(1630)
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
-	intermediateTxs := testContextSource.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextSource.ShardCoordinator, testContextSource.EconomicsData, false, testContextSource.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(163), indexerTx.GasUsed)
-	require.Equal(t, "1630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
-
 	// execute on destination shard
 	retCode, err = testContextDst.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -345,14 +290,6 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 
 	txs := testContextDst.GetIntermediateTransactions(t)
 	scr := txs[0]
-
-	testIndexer = vm.CreateTestIndexer(t, testContextDst.ShardCoordinator, testContextDst.EconomicsData, true, testContextDst.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	// execute generated SCR from shard1 on shard 0
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
@@ -393,7 +330,7 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 
 	innerTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, rcvAddr, gasPrice, gasLimit, nil)
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -415,15 +352,6 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	expectedAccFees := big.NewInt(1630)
 	require.Equal(t, expectedAccFees, accumulatedFees)
 
-	intermediateTxs := testContextRelayer.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContextRelayer.ShardCoordinator, testContextRelayer.EconomicsData, false, testContextRelayer.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(163), indexerTx.GasUsed)
-	require.Equal(t, "1630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusPending.String(), indexerTx.Status)
-
 	// execute on inner tx sender shard
 	retCode, err = testContextInnerSource.TxProcessor.ProcessTransaction(rtx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -439,14 +367,6 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 	// execute on inner tx receiver shard
 	txs := testContextInnerSource.GetIntermediateTransactions(t)
 	scr := txs[0]
-
-	testIndexer = vm.CreateTestIndexer(t, testContextInnerSource.ShardCoordinator, testContextInnerSource.EconomicsData, true, testContextInnerSource.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, txs)
-
-	indexerTx = testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "2630", indexerTx.Fee)
-	require.Equal(t, transaction.TxStatusSuccess.String(), indexerTx.Status)
 
 	utils.ProcessSCRResult(t, testContextDst, scr, vmcommon.Ok, nil)
 

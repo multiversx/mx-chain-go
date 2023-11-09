@@ -5,10 +5,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

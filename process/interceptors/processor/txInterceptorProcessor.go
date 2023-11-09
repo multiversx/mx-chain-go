@@ -1,10 +1,10 @@
 package processor
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.InterceptorProcessor = (*TxInterceptorProcessor)(nil)
@@ -13,7 +13,7 @@ var txLog = logger.GetOrCreate("process/interceptors/processor/txlog")
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
-	shardedPool ShardedPool
+	shardedPool process.ShardedPool
 	txValidator process.TxValidator
 }
 
@@ -37,7 +37,7 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 
 // Validate checks if the intercepted data can be processed
 func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
-	interceptedTx, ok := data.(InterceptedTransactionHandler)
+	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -47,7 +47,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 
 // Save will save the received data into the cacher
 func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string) error {
-	interceptedTx, ok := data.(InterceptedTransactionHandler)
+	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // VmMachinesContainerFactoryMock -
@@ -20,7 +20,7 @@ func (v *VmMachinesContainerFactoryMock) Close() error {
 }
 
 // BlockChainHookImpl -
-func (v *VmMachinesContainerFactoryMock) BlockChainHookImpl() process.BlockChainHookHandler {
+func (v *VmMachinesContainerFactoryMock) BlockChainHookImpl() process.BlockChainHookWithAccountsAdapter {
 	return &testscommon.BlockChainHookStub{}
 }
 

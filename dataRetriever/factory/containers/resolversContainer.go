@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/container"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/container"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.ResolversContainer = (*resolversContainer)(nil)

@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.TopicFloodPreventer = (*topicFloodPreventer)(nil)

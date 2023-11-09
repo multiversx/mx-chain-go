@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-core/core"
+import "github.com/multiversx/mx-chain-core-go/core"
 
 // PeerTopicNotifierStub -
 type PeerTopicNotifierStub struct {

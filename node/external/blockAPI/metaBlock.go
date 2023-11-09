@@ -4,11 +4,12 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 type metaAPIBlockProcessor struct {
@@ -21,19 +22,23 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 
 	return &metaAPIBlockProcessor{
 		baseAPIBlockProcessor: &baseAPIBlockProcessor{
-			hasDbLookupExtensions:    hasDbLookupExtensions,
-			selfShardID:              arg.SelfShardID,
-			store:                    arg.Store,
-			marshalizer:              arg.Marshalizer,
-			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
-			historyRepo:              arg.HistoryRepo,
-			apiTransactionHandler:    arg.APITransactionHandler,
-			txStatusComputer:         arg.StatusComputer,
-			hasher:                   arg.Hasher,
-			addressPubKeyConverter:   arg.AddressPubkeyConverter,
-			emptyReceiptsHash:        emptyReceiptsHash,
-			logsFacade:               arg.LogsFacade,
-			receiptsRepository:       arg.ReceiptsRepository,
+			hasDbLookupExtensions:        hasDbLookupExtensions,
+			selfShardID:                  arg.SelfShardID,
+			store:                        arg.Store,
+			marshalizer:                  arg.Marshalizer,
+			uint64ByteSliceConverter:     arg.Uint64ByteSliceConverter,
+			historyRepo:                  arg.HistoryRepo,
+			apiTransactionHandler:        arg.APITransactionHandler,
+			txStatusComputer:             arg.StatusComputer,
+			hasher:                       arg.Hasher,
+			addressPubKeyConverter:       arg.AddressPubkeyConverter,
+			emptyReceiptsHash:            emptyReceiptsHash,
+			logsFacade:                   arg.LogsFacade,
+			receiptsRepository:           arg.ReceiptsRepository,
+			alteredAccountsProvider:      arg.AlteredAccountsProvider,
+			accountsRepository:           arg.AccountsRepository,
+			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+			enableEpochsHandler:          arg.EnableEpochsHandler,
 		},
 	}
 }
@@ -106,14 +111,56 @@ func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.Bloc
 	return mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, options)
 }
 
+// GetAlteredAccountsForBlock returns the altered accounts for the desired meta block
+func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
+	headerHash, blockBytes, err := mbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlock, err := mbp.convertMetaBlockBytesToAPIBlock(headerHash, blockBytes, api.BlockQueryOptions{WithTransactions: true, WithLogs: true})
+	if err != nil {
+		return nil, err
+	}
+
+	return mbp.apiBlockToAlteredAccounts(apiBlock, options)
+}
+
+func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
+	switch params.RequestType {
+	case api.BlockFetchTypeByHash:
+		return mbp.getHashAndBlockBytesFromStorerByHash(params)
+	case api.BlockFetchTypeByNonce:
+		return mbp.getHashAndBlockBytesFromStorerByNonce(params)
+	default:
+		return nil, nil, errUnknownBlockRequestType
+	}
+}
+
+func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params api.GetBlockParameters) ([]byte, []byte, error) {
+	headerBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, params.Hash)
+	return params.Hash, headerBytes, err
+}
+
+func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params api.GetBlockParameters) ([]byte, []byte, error) {
+	storerUnit := dataRetriever.MetaHdrNonceHashDataUnit
+
+	nonceToByteSlice := mbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)
+	headerHash, err := mbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	headerBytes, err := mbp.getFromStorer(dataRetriever.MetaBlockUnit, headerHash)
+	return headerHash, headerBytes, err
+}
+
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockHeader := &block.MetaBlock{}
 	err := mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
 	if err != nil {
 		return nil, err
 	}
-
-	headerEpoch := blockHeader.Epoch
 
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
@@ -132,7 +179,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -181,6 +228,13 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
+		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
+		Signature:              hex.EncodeToString(blockHeader.GetSignature()),
+		LeaderSignature:        hex.EncodeToString(blockHeader.GetLeaderSignature()),
+		ChainID:                string(blockHeader.GetChainID()),
+		SoftwareVersion:        hex.EncodeToString(blockHeader.GetSoftwareVersion()),
+		ReceiptsHash:           hex.EncodeToString(blockHeader.GetReceiptsHash()),
+		Reserved:               blockHeader.GetReserved(),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)

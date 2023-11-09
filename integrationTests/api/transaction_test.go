@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

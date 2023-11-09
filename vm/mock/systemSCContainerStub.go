@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/vm"
+import "github.com/multiversx/mx-chain-go/vm"
 
 // SystemSCContainerStub -
 type SystemSCContainerStub struct {

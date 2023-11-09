@@ -9,7 +9,8 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // SupplyESDT is used to store information a shard esdt token supply
 message SupplyESDT {
-  bytes  Supply = 1  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
-  bytes  Burned = 2  [(gogoproto.jsontag) = "burned", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
-  bytes  Minted = 3  [(gogoproto.jsontag) = "minted", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+  bytes  Supply = 1  [(gogoproto.jsontag) = "value", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+  bytes  Burned = 2  [(gogoproto.jsontag) = "burned", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+  bytes  Minted = 3  [(gogoproto.jsontag) = "minted", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+  bool   RecomputedSupply = 4 [(gogoproto.jsontag) = "recomputedSupply"];
 }

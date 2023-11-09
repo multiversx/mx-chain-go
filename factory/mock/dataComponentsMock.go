@@ -1,9 +1,9 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/factory"
 )
 
 // DataComponentsMock -
@@ -50,8 +50,9 @@ func (dcm *DataComponentsMock) EconomicsHandler() factory.EconomicsHandler {
 }
 
 // SetBlockchain -
-func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) {
+func (dcm *DataComponentsMock) SetBlockchain(chain data.ChainHandler) error {
 	dcm.Blkc = chain
+	return nil
 }
 
 // IsInterfaceNil -

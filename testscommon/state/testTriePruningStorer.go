@@ -3,13 +3,13 @@ package state
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
-	storageMock "github.com/ElrondNetwork/elrond-go/storage/mock"
-	"github.com/ElrondNetwork/elrond-go/storage/pruning"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	storageMock "github.com/multiversx/mx-chain-go/storage/mock"
+	"github.com/multiversx/mx-chain-go/storage/pruning"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // CreateTestingTriePruningStorer creates a new trie pruning storer that is used for testing

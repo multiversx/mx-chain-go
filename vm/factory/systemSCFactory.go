@@ -3,17 +3,17 @@ package factory
 import (
 	"fmt"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts"
 	"github.com/mitchellh/mapstructure"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("vm/factory")
@@ -219,22 +219,23 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 }
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
-	firstWhitelistAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.FirstWhitelistedAddress)
+	ownerAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.OwnerAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.FirstWhitelistedAddress in systemSCFactory", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.OwnerAddress in systemSCFactory", vm.ErrInvalidAddress)
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                         scf.systemEI,
-		GasCost:                     scf.gasCost,
-		GovernanceConfig:            scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:                 scf.marshalizer,
-		Hasher:                      scf.hasher,
-		GovernanceSCAddress:         vm.GovernanceSCAddress,
-		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:          vm.ValidatorSCAddress,
-		EnableEpochsHandler:         scf.enableEpochsHandler,
-		InitialWhiteListedAddresses: [][]byte{firstWhitelistAddress},
+		Eei:                    scf.systemEI,
+		GasCost:                scf.gasCost,
+		GovernanceConfig:       scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:            scf.marshalizer,
+		Hasher:                 scf.hasher,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
+		UnBondPeriodInEpochs:   scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
+		OwnerAddress:           ownerAddress,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -27,10 +27,10 @@ type AccountsStub struct {
 	RecreateTrieFromEpochCalled   func(options common.RootHashHolder) error
 	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
-	SnapshotStateCalled           func(rootHash []byte)
+	SnapshotStateCalled           func(rootHash []byte, epoch uint32)
 	SetStateCheckpointCalled      func(rootHash []byte)
 	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error
+	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
 	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
 	GetCodeCalled                 func([]byte) []byte
 	GetTrieCalled                 func([]byte) (common.Trie, error)
@@ -40,6 +40,10 @@ type AccountsStub struct {
 	CloseCalled                   func() error
 	SetSyncerCalled               func(syncer state.AccountsDBSyncer) error
 	StartSnapshotIfNeededCalled   func() error
+}
+
+// CleanCache -
+func (as *AccountsStub) CleanCache() {
 }
 
 // SetSyncer -
@@ -102,9 +106,9 @@ func (as *AccountsStub) SaveAccount(account vmcommon.AccountHandler) error {
 }
 
 // GetAllLeaves -
-func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte) error {
+func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
 	if as.GetAllLeavesCalled != nil {
-		return as.GetAllLeavesCalled(leavesChannels, ctx, rootHash)
+		return as.GetAllLeavesCalled(leavesChannels, ctx, rootHash, trieLeafParser)
 	}
 	return nil
 }
@@ -203,9 +207,9 @@ func (as *AccountsStub) CancelPrune(rootHash []byte, identifier state.TriePrunin
 }
 
 // SnapshotState -
-func (as *AccountsStub) SnapshotState(rootHash []byte) {
+func (as *AccountsStub) SnapshotState(rootHash []byte, epoch uint32) {
 	if as.SnapshotStateCalled != nil {
-		as.SnapshotStateCalled(rootHash)
+		as.SnapshotStateCalled(rootHash, epoch)
 	}
 }
 

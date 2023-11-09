@@ -1,6 +1,6 @@
 package pruning
 
-import "github.com/ElrondNetwork/elrond-go/storage"
+import "github.com/multiversx/mx-chain-go/storage"
 
 type normalPersistersTracker struct {
 	oldestEpochKeep   int64

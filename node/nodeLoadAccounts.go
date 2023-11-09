@@ -4,13 +4,28 @@ import (
 	"encoding/hex"
 	"errors"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+func (n *Node) loadSystemAccountWithOptions(options api.AccountQueryOptions) (vmcommon.UserAccountHandler, api.BlockInfo, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(core.SystemAccountAddress, options)
+	if err != nil {
+		return nil, api.BlockInfo{}, err
+	}
+
+	userAccountVmCommon, ok := userAccount.(vmcommon.UserAccountHandler)
+	if !ok {
+		return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
+	}
+
+	return userAccountVmCommon, blockInfo, nil
+}
 
 func (n *Node) loadUserAccountHandlerByAddress(address string, options api.AccountQueryOptions) (state.UserAccountHandler, api.BlockInfo, error) {
 	pubKey, err := n.decodeAddressToPubKey(address)

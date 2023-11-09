@@ -5,13 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +21,7 @@ func createMockArgsPendingTransactionProcessor() ArgsPendingTransactionProcessor
 		TxProcessor:      &testscommon.TxProcessorMock{},
 		RwdTxProcessor:   &testscommon.RewardTxProcessorMock{},
 		ScrTxProcessor:   &testscommon.SCProcessorMock{},
-		PubKeyConv:       &mock.PubkeyConverterStub{},
+		PubKeyConv:       &testscommon.PubkeyConverterStub{},
 		ShardCoordinator: mock.NewOneShardCoordinatorMock(),
 	}
 }
@@ -45,7 +45,7 @@ func TestPendingTransactionProcessor_ProcessTransactionsDstMe(t *testing.T) {
 	addr4 := []byte("addr4")
 	addr5 := []byte("addr5")
 	args := createMockArgsPendingTransactionProcessor()
-	args.PubKeyConv = &mock.PubkeyConverterStub{}
+	args.PubKeyConv = &testscommon.PubkeyConverterStub{}
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {

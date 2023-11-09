@@ -1,12 +1,16 @@
 package validatorInfo
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // WasActiveInCurrentEpoch returns true if the node was active in current epoch
 func WasActiveInCurrentEpoch(valInfo *state.ValidatorInfo) bool {
+	if valInfo == nil {
+		return false
+	}
+
 	active := valInfo.LeaderFailure > 0 || valInfo.LeaderSuccess > 0 || valInfo.ValidatorSuccess > 0 || valInfo.ValidatorFailure > 0
 	return active
 }
@@ -32,6 +36,10 @@ func WasJailedEligibleInCurrentEpoch(valInfo *state.ValidatorInfo) bool {
 
 // WasEligibleInCurrentEpoch returns true if the validator was eligible for consensus in current epoch
 func WasEligibleInCurrentEpoch(valInfo *state.ValidatorInfo) bool {
+	if valInfo == nil {
+		return false
+	}
+
 	wasEligibleInShard := valInfo.List == string(common.EligibleList) ||
 		WasLeavingEligibleInCurrentEpoch(valInfo) ||
 		WasJailedEligibleInCurrentEpoch(valInfo)

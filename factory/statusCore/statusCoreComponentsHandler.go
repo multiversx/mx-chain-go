@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/external"
 )
 
 var _ factory.ComponentHandler = (*managedStatusCoreComponents)(nil)
@@ -25,7 +25,7 @@ type managedStatusCoreComponents struct {
 // NewManagedStatusCoreComponents creates a new status core components handler implementation
 func NewManagedStatusCoreComponents(sccf *statusCoreComponentsFactory) (*managedStatusCoreComponents, error) {
 	if sccf == nil {
-		return nil, errors.ErrNilCoreComponentsFactory
+		return nil, errors.ErrNilStatusCoreComponentsFactory
 	}
 
 	mcc := &managedStatusCoreComponents{

@@ -5,17 +5,18 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	testsCommonStorage "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,7 +36,7 @@ func TestNewReceiptsRepository(t *testing.T) {
 
 	t.Run("NilHasher", func(t *testing.T) {
 		arguments := ArgsNewReceiptsRepository{
-			Marshaller: testscommon.MarshalizerMock{},
+			Marshaller: marshallerMock.MarshalizerMock{},
 			Hasher:     nil,
 			Store:      genericMocks.NewChainStorerMock(0),
 		}
@@ -48,7 +49,7 @@ func TestNewReceiptsRepository(t *testing.T) {
 
 	t.Run("NilStorer", func(t *testing.T) {
 		arguments := ArgsNewReceiptsRepository{
-			Marshaller: testscommon.MarshalizerMock{},
+			Marshaller: marshallerMock.MarshalizerMock{},
 			Hasher:     &testscommon.HasherStub{},
 			Store:      nil,
 		}
@@ -62,7 +63,7 @@ func TestNewReceiptsRepository(t *testing.T) {
 	t.Run("storer not found", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 		arguments := ArgsNewReceiptsRepository{
-			Marshaller: testscommon.MarshalizerMock{},
+			Marshaller: marshallerMock.MarshalizerMock{},
 			Hasher:     &testscommon.HasherStub{},
 			Store: &testsCommonStorage.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -79,7 +80,7 @@ func TestNewReceiptsRepository(t *testing.T) {
 
 	t.Run("no error", func(t *testing.T) {
 		arguments := ArgsNewReceiptsRepository{
-			Marshaller: testscommon.MarshalizerMock{},
+			Marshaller: marshallerMock.MarshalizerMock{},
 			Hasher:     &testscommon.HasherStub{},
 			Store:      genericMocks.NewChainStorerMock(0),
 		}
@@ -245,7 +246,7 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 	}
 
 	repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{
-		Marshaller: testscommon.MarshalizerMock{},
+		Marshaller: marshallerMock.MarshalizerMock{},
 		Hasher:     &testscommon.HasherStub{},
 		Store:      store,
 	})
@@ -269,7 +270,7 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 
 func TestReceiptsRepository_DecideStorageKey(t *testing.T) {
 	repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{
-		Marshaller: testscommon.MarshalizerMock{},
+		Marshaller: marshallerMock.MarshalizerMock{},
 		Hasher:     &testscommon.HasherStub{},
 		Store:      genericMocks.NewChainStorerMock(0),
 	})

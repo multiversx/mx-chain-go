@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	"github.com/ElrondNetwork/elrond-go/process/rating"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {

@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,6 +75,13 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidShards.Error())
+
+	args = goodArgs
+	args.TxGasHandler = nil
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrNilTxGasHandler.Error())
 
 	args = goodArgs
 	args.TxGasHandler = &txcachemocks.TxGasHandlerMock{
@@ -167,6 +174,7 @@ func Test_AddData(t *testing.T) {
 	pool := poolAsInterface.(*shardedTxPool)
 	cache := pool.getTxCache("0")
 
+	pool.AddData([]byte("hash-invalid-cache"), createTx("alice", 0), 0, "invalid-cache-id")
 	pool.AddData([]byte("hash-x"), createTx("alice", 42), 0, "0")
 	pool.AddData([]byte("hash-y"), createTx("alice", 43), 0, "0")
 	require.Equal(t, 2, cache.Len())
@@ -346,6 +354,23 @@ func Test_Keys(t *testing.T) {
 	require.ElementsMatch(t, txsHashes, pool.Keys())
 }
 
+func TestShardedTxPool_Diagnose(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+	pool.AddData([]byte("hash"), createTx("alice", 10), 0, "0")
+	pool.Diagnose(true)
+}
+
+func TestShardedTxPool_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+	pool.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("hash")}, "0")
+}
+
 func Test_IsInterfaceNil(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	require.False(t, check.IfNil(poolAsInterface))
@@ -421,5 +446,3 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	}
 	return NewShardedTxPool(args)
 }
-
-// TODO: Add high load test, reach maximum capacity and inspect RAM usage. EN-6735.

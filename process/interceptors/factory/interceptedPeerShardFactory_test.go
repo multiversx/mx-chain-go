@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	p2pFactory "github.com/ElrondNetwork/elrond-go/p2p/factory"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
 )
 

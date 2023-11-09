@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/config"
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 // LoadP2PConfig returns a P2PConfig by reading the config file provided
@@ -162,4 +162,13 @@ func GetSkBytesFromP2pKey(p2pKeyFilename string) ([]byte, error) {
 	}
 
 	return skBytes, nil
+}
+
+// GetNodeProcessingMode returns the node processing mode based on the provided config
+func GetNodeProcessingMode(importDbConfig *config.ImportDbConfig) NodeProcessingMode {
+	if importDbConfig.IsImportDBMode {
+		return ImportDb
+	}
+
+	return Normal
 }

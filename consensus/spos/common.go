@@ -1,8 +1,8 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // GetConsensusTopicID will construct and return the topic ID based on shard coordinator

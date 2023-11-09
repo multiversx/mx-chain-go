@@ -1,18 +1,17 @@
-FROM golang:1.15.7 as builder
-MAINTAINER ElrondNetwork
+FROM golang:1.20.7 as builder
 
 RUN apt-get update && apt-get install -y
-WORKDIR /go/elrond-go
+WORKDIR /go/mx-chain-go
 COPY . .
-RUN GO111MODULE=on go mod vendor
+RUN go mod tidy
 # Seed node
-WORKDIR /go/elrond-go/cmd/seednode
+WORKDIR /go/mx-chain-go/cmd/seednode
 RUN go build
 
 # ===== SECOND STAGE ======
-FROM ubuntu:18.04
-COPY --from=builder /go/elrond-go/cmd/seednode /go/elrond-go/cmd/seednode
+FROM ubuntu:22.04
+COPY --from=builder /go/mx-chain-go/cmd/seednode /go/mx-chain-go/cmd/seednode
 
-WORKDIR /go/elrond-go/cmd/seednode/
+WORKDIR /go/mx-chain-go/cmd/seednode/
 EXPOSE 10000
 ENTRYPOINT ["./seednode"]

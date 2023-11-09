@@ -4,22 +4,24 @@ import (
 	"encoding/hex"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // TxDataBuilder constructs a string to be used for transaction arguments
 type TxDataBuilder struct {
-	function  string
-	elements  []string
-	separator string
+	function        string
+	elements        []string
+	elementsAsBytes [][]byte
+	separator       string
 }
 
 // NewBuilder creates a new txDataBuilder instance.
 func NewBuilder() *TxDataBuilder {
 	return &TxDataBuilder{
-		function:  "",
-		elements:  make([]string, 0),
-		separator: "@",
+		function:        "",
+		elements:        make([]string, 0),
+		elementsAsBytes: make([][]byte, 0),
+		separator:       "@",
 	}
 }
 
@@ -28,13 +30,23 @@ func NewBuilder() *TxDataBuilder {
 func (builder *TxDataBuilder) Clear() *TxDataBuilder {
 	builder.function = ""
 	builder.elements = make([]string, 0)
-
+	builder.elementsAsBytes = make([][]byte, 0)
 	return builder
 }
 
 // Elements returns the individual elements added to the builder
 func (builder *TxDataBuilder) Elements() []string {
 	return builder.elements
+}
+
+// ElementsAsBytes returns the individual elements added to the builder
+func (builder *TxDataBuilder) ElementsAsBytes() [][]byte {
+	return builder.elementsAsBytes
+}
+
+// Function returns the individual elements added to the builder
+func (builder *TxDataBuilder) Function() string {
+	return builder.function
 }
 
 // ToString returns the data as a string.
@@ -78,9 +90,10 @@ func (builder *TxDataBuilder) Func(function string) *TxDataBuilder {
 
 // Byte appends a single byte to the data string.
 func (builder *TxDataBuilder) Byte(value byte) *TxDataBuilder {
-	element := hex.EncodeToString([]byte{value})
+	elementAsBytes := []byte{value}
+	element := hex.EncodeToString(elementAsBytes)
 	builder.elements = append(builder.elements, element)
-
+	builder.elementsAsBytes = append(builder.elementsAsBytes, elementAsBytes)
 	return builder
 }
 
@@ -88,31 +101,34 @@ func (builder *TxDataBuilder) Byte(value byte) *TxDataBuilder {
 func (builder *TxDataBuilder) Bytes(bytes []byte) *TxDataBuilder {
 	element := hex.EncodeToString(bytes)
 	builder.elements = append(builder.elements, element)
-
+	builder.elementsAsBytes = append(builder.elementsAsBytes, bytes)
 	return builder
 }
 
 // Str appends a string to the data string.
 func (builder *TxDataBuilder) Str(str string) *TxDataBuilder {
-	element := hex.EncodeToString([]byte(str))
+	elementAsBytes := []byte(str)
+	element := hex.EncodeToString(elementAsBytes)
 	builder.elements = append(builder.elements, element)
-
+	builder.elementsAsBytes = append(builder.elementsAsBytes, elementAsBytes)
 	return builder
 }
 
 // Int appends an integer to the data string.
 func (builder *TxDataBuilder) Int(value int) *TxDataBuilder {
-	element := hex.EncodeToString(big.NewInt(int64(value)).Bytes())
+	elementAsBytes := big.NewInt(int64(value)).Bytes()
+	element := hex.EncodeToString(elementAsBytes)
 	builder.elements = append(builder.elements, element)
-
+	builder.elementsAsBytes = append(builder.elementsAsBytes, elementAsBytes)
 	return builder
 }
 
 // Int64 appends an int64 to the data string.
 func (builder *TxDataBuilder) Int64(value int64) *TxDataBuilder {
-	element := hex.EncodeToString(big.NewInt(value).Bytes())
+	elementAsBytes := big.NewInt(value).Bytes()
+	element := hex.EncodeToString(elementAsBytes)
 	builder.elements = append(builder.elements, element)
-
+	builder.elementsAsBytes = append(builder.elementsAsBytes, elementAsBytes)
 	return builder
 }
 
@@ -146,6 +162,15 @@ func (builder *TxDataBuilder) IssueESDT(token string, ticker string, supply int6
 	return builder.Func("issue").Str(token).Str(ticker).Int64(supply).Byte(numDecimals)
 }
 
+// IssueESDTWithAsyncArgs appends to the data string all the elements required to request an ESDT issuing.
+func (builder *TxDataBuilder) IssueESDTWithAsyncArgs(token string, ticker string, supply int64, numDecimals byte) *TxDataBuilder {
+	return builder.Func("issue").
+		Str(token).
+		Str(ticker).
+		Int64(supply).
+		Byte(numDecimals)
+}
+
 // TransferESDT appends to the data string all the elements required to request an ESDT transfer.
 func (builder *TxDataBuilder) TransferESDT(token string, value int64) *TxDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTTransfer).Str(token).Int64(value)
@@ -164,6 +189,11 @@ func (builder *TxDataBuilder) BurnESDT(token string, value int64) *TxDataBuilder
 // LocalBurnESDT appends to the data string all the elements required to local burn ESDT tokens.
 func (builder *TxDataBuilder) LocalBurnESDT(token string, value int64) *TxDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTLocalBurn).Str(token).Int64(value)
+}
+
+// LocalMintESDT appends to the data string all the elements required to local burn ESDT tokens.
+func (builder *TxDataBuilder) LocalMintESDT(token string, value int64) *TxDataBuilder {
+	return builder.Func(core.BuiltInFunctionESDTLocalMint).Str(token).Int64(value)
 }
 
 // CanFreeze appends "canFreeze" followed by the provided boolean value.
@@ -199,6 +229,17 @@ func (builder *TxDataBuilder) CanTransferNFTCreateRole(prop bool) *TxDataBuilder
 // CanAddSpecialRoles appends "canAddSpecialRoles" followed by the provided boolean value.
 func (builder *TxDataBuilder) CanAddSpecialRoles(prop bool) *TxDataBuilder {
 	return builder.Str("canAddSpecialRoles").Bool(prop)
+}
+
+// TransferMultiESDT appends to the data string all the elements required to request an multi ESDT transfer.
+func (builder *TxDataBuilder) TransferMultiESDT(destAddress []byte, args [][]byte) *TxDataBuilder {
+	builder.Func(core.BuiltInFunctionMultiESDTNFTTransfer)
+	builder.Bytes(destAddress)
+	builder.Int(len(args) / 3) // no of triplets
+	for a := 0; a < len(args); a++ {
+		builder.Bytes(args[a])
+	}
+	return builder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

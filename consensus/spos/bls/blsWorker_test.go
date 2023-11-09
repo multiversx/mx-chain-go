@@ -3,10 +3,11 @@ package bls_test
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,6 +20,10 @@ func createEligibleList(size int) []string {
 }
 
 func initConsensusState() *spos.ConsensusState {
+	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+}
+
+func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
 
@@ -28,10 +33,12 @@ func initConsensusState() *spos.ConsensusState {
 	}
 
 	indexLeader := 1
-	rcns := spos.NewRoundConsensus(
+	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		consensusGroupSize,
-		eligibleList[indexLeader])
+		eligibleList[indexLeader],
+		keysHandler,
+	)
 
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()

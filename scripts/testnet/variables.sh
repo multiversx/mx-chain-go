@@ -3,33 +3,33 @@
 # METASHARD_ID will be used to identify a shard ID as metachain
 export METASHARD_ID=4294967295
 
-# Path to elrond-go. Determined automatically. Do not change.
-export ELRONDDIR=$(dirname $(dirname $ELRONDTESTNETSCRIPTSDIR))
+# Path to mx-chain-go. Determined automatically. Do not change.
+export MULTIVERSXDIR=$(dirname $(dirname $MULTIVERSXTESTNETSCRIPTSDIR))
 
-# Enable the Elrond Proxy. Note that this is a private repository
-# (elrond-proxy-go).
+# Enable the MultiversX Proxy. Note that this is a private repository
+# (mx-chain-proxy-go).
 export USE_PROXY=1
 
-# Enable the Elrond Transaction Generator. Note that this is a private
-# repository (elrond-txgen-go).
+# Enable the MultiversX Transaction Generator. Note that this is a private
+# repository (mx-chain-txgen-go).
 export USE_TXGEN=0
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.
-export TESTNETDIR="$HOME/Elrond/testnet"
+export TESTNETDIR="$HOME/MultiversX/testnet"
 
-# Path to elrond-deploy-go, branch: master. Default: near elrond-go.
-export CONFIGGENERATORDIR="$(dirname $ELRONDDIR)/elrond-deploy-go/cmd/filegen"
+# Path to mx-chain-deploy-go, branch: master. Default: near mx-chain-go.
+export CONFIGGENERATORDIR="$(dirname $MULTIVERSXDIR)/mx-chain-deploy-go/cmd/filegen"
 export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"    # Leave unchanged.
 export CONFIGGENERATOROUTPUTDIR="output"
 
 # Path to the executable node. Leave unchanged unless well justified.
-export NODEDIR="$ELRONDDIR/cmd/node"
+export NODEDIR="$MULTIVERSXDIR/cmd/node"
 export NODE="$NODEDIR/node"     # Leave unchanged
 
 # Path to the executable seednode. Leave unchanged unless well justified.
-export SEEDNODEDIR="$ELRONDDIR/cmd/seednode"
+export SEEDNODEDIR="$MULTIVERSXDIR/cmd/seednode"
 export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
@@ -62,8 +62,17 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
+# MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
+export MULTI_KEY_NODES=0
+
+# EXTRA_KEYS if set to 1, extra keys will be added to the generated keys
+export EXTRA_KEYS=1
+
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
+# ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
+export ROUNDS_PER_EPOCH=0
 
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
@@ -75,9 +84,6 @@ export ALWAYS_NEW_APP_VERSION=0
 # Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
-
-# Always rebuild Arwen from its sources and copy the executable to the testnet folder.
-export ALWAYS_BUILD_ARWEN=1
 
 # IP of the seednode
 export SEEDNODE_IP="127.0.0.1"
@@ -111,8 +117,8 @@ fi
 ########################################################################
 # Proxy configuration
 
-# Path to elrond-proxy-go, branch: master. Default: near elrond-go.
-export PROXYDIR="$(dirname $ELRONDDIR)/elrond-proxy-go/cmd/proxy"
+# Path to mx-chain-proxy-go, branch: master. Default: near mx-chain-go.
+export PROXYDIR="$(dirname $MULTIVERSXDIR)/mx-chain-proxy-go/cmd/proxy"
 export PROXY=$PROXYDIR/proxy    # Leave unchanged.
 
 export PORT_PROXY="7950"
@@ -123,8 +129,8 @@ export PROXY_DELAY=10
 ########################################################################
 # TxGen configuration
 
-# Path to elrond-txgen-go. Default: near elrond-go.
-export TXGENDIR="$(dirname $ELRONDDIR)/elrond-txgen-go/cmd/txgen"
+# Path to mx-chain-txgen-go. Default: near mx-chain-go.
+export TXGENDIR="$(dirname $MULTIVERSXDIR)/mx-chain-txgen-go/cmd/txgen"
 export TXGEN=$TXGENDIR/txgen    # Leave unchanged.
 
 export PORT_TXGEN="7951"
@@ -152,9 +158,9 @@ export SKIP_OBSERVER_IDX=-1
 export USE_HARDFORK=1
 
 # Load local overrides, .gitignored
-LOCAL_OVERRIDES="$ELRONDTESTNETSCRIPTSDIR/local.sh"
+LOCAL_OVERRIDES="$MULTIVERSXTESTNETSCRIPTSDIR/local.sh"
 if [ -f "$LOCAL_OVERRIDES" ]; then
-  source "$ELRONDTESTNETSCRIPTSDIR/local.sh"
+  source "$MULTIVERSXTESTNETSCRIPTSDIR/local.sh"
 fi
 
 # Leave unchanged.
@@ -162,8 +168,21 @@ let "total_observer_count = $SHARD_OBSERVERCOUNT * $SHARDCOUNT + $META_OBSERVERC
 export TOTAL_OBSERVERCOUNT=$total_observer_count
 
 # to enable the full archive feature on the observers, please use the --full-archive flag
-export EXTRA_OBSERVERS_FLAGS=""
+export EXTRA_OBSERVERS_FLAGS="-operation-mode db-lookup-extension"
+
+if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+  EXTRA_OBSERVERS_FLAGS="--no-key"
+fi
 
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
 export TOTAL_NODECOUNT=$total_node_count
+
+# VALIDATOR_KEY_PEM_FILE is the pem file name when running single key mode, with all nodes' keys
+export VALIDATOR_KEY_PEM_FILE="validatorKey.pem"
+
+# MULTI_KEY_PEM_FILE is the pem file name when running multi key mode, with all managed
+export MULTI_KEY_PEM_FILE="allValidatorsKeys.pem"
+
+# EXTRA_KEY_PEM_FILE is the pem file name when running multi key mode, with all extra managed
+export EXTRA_KEY_PEM_FILE="extraValidatorsKeys.pem"

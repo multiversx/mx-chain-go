@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/storageUnit"
+	"github.com/multiversx/mx-chain-storage-go/storageUnit"
 )
 
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed

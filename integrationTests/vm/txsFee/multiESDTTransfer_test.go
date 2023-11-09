@@ -4,11 +4,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,7 +29,6 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 	secondToken := []byte("second")
 	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), secondToken, 0, esdtBalance)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	tx := utils.CreateMultiTransferTX(0, sndAddr, rcvAddr, gasPrice, gasLimit, &utils.TransferESDTData{
 		Token: token,
@@ -63,14 +64,38 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(40000), accumulatedFees)
 
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(133), indexerTx.GasUsed)
-	require.Equal(t, "1330", indexerTx.Fee)
-
 	allLogs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, allLogs)
+}
+
+func TestMultiESDTTransferFailsBecauseOfMaxLimit(t *testing.T) {
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{},
+		func(gasMap wasmConfig.GasScheduleMap) {
+			gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 1
+		})
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	sndAddr := []byte("12345678901234567890123456789012")
+	rcvAddr := []byte("12345678901234567890123456789022")
+
+	egldBalance := big.NewInt(100000000)
+	esdtBalance := big.NewInt(100000000)
+	token := []byte("miiutoken")
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	secondToken := []byte("second")
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), secondToken, 0, esdtBalance)
+
+	gasLimit := uint64(4000)
+	tx := utils.CreateMultiTransferTX(0, sndAddr, rcvAddr, gasPrice, gasLimit, &utils.TransferESDTData{
+		Token: token,
+		Value: big.NewInt(100),
+	}, &utils.TransferESDTData{
+		Token: secondToken,
+		Value: big.NewInt(200),
+	})
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	require.NotNil(t, err)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, testContext.GetCompositeTestError().Error(), process.ErrMaxCallsReached.Error())
 }

@@ -6,17 +6,24 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/node/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/testscommon/genericMocks"
-	storageMocks "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockShardAPIProcessor(
@@ -50,7 +57,11 @@ func createMockShardAPIProcessor(
 				return withHistory
 			},
 		},
-		ReceiptsRepository: &testscommon.ReceiptsRepositoryStub{},
+		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
+		AddressPubkeyConverter:       &testscommon.PubkeyConverterMock{},
+		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
+		AccountsRepository:           &state.AccountsRepositoryStub{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 	}, nil)
 }
 
@@ -302,6 +313,13 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		},
 		AccumulatedFees: big.NewInt(100),
 		DeveloperFees:   big.NewInt(50),
+		PubKeysBitmap:   []byte("010101"),
+		Signature:       []byte("sig"),
+		LeaderSignature: []byte("leader"),
+		ChainID:         []byte("1"),
+		SoftwareVersion: []byte("2"),
+		ReceiptsHash:    []byte("recHash"),
+		Reserved:        []byte("res"),
 	}
 	headerBytes, _ := json.Marshal(header)
 	_ = storerMock.Put(headerHash, headerBytes)
@@ -326,6 +344,13 @@ func TestShardAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		AccumulatedFees: "100",
 		DeveloperFees:   "50",
 		Status:          BlockStatusOnChain,
+		PubKeyBitmap:    "303130313031",
+		Signature:       "736967",
+		LeaderSignature: "6c6561646572",
+		ChainID:         "1",
+		SoftwareVersion: "32",
+		ReceiptsHash:    "72656348617368",
+		Reserved:        []byte("res"),
 	}
 
 	blk, err := shardAPIBlockProcessor.GetBlockByNonce(1, api.BlockQueryOptions{})
@@ -554,4 +579,157 @@ func TestShardAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *t
 	blk, err := shardAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBlock, blk)
+}
+
+func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("header not found in storage - should err", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+
+		storerMock := genericMocks.NewStorerMockWithEpoch(1)
+		metaAPIBlockProc := createMockShardAPIProcessor(
+			0,
+			headerHash,
+			storerMock,
+			true,
+			true,
+		)
+
+		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{
+			GetBlockParameters: api.GetBlockParameters{
+				RequestType: api.BlockFetchTypeByHash,
+				Hash:        headerHash,
+			},
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "not found")
+		require.Nil(t, res)
+	})
+
+	t.Run("get altered account by block hash - should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &marshallerMock.MarshalizerMock{}
+		headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+		mbHash := []byte("mb-hash")
+		txHash0, txHash1 := []byte("tx-hash-0"), []byte("tx-hash-1")
+
+		mbhReserved := block.MiniBlockHeaderReserved{}
+
+		mbhReserved.IndexOfLastTxProcessed = 1
+		reserved, _ := mbhReserved.Marshal()
+
+		metaBlock := &block.Header{
+			Nonce: 37,
+			Epoch: 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:     mbHash,
+					Reserved: reserved,
+				},
+			},
+		}
+		miniBlock := &block.MiniBlock{
+			TxHashes: [][]byte{txHash0, txHash1},
+		}
+		tx0 := &transaction.Transaction{
+			SndAddr: []byte("addr0"),
+			RcvAddr: []byte("addr1"),
+		}
+		tx1 := &transaction.Transaction{
+			SndAddr: []byte("addr2"),
+			RcvAddr: []byte("addr3"),
+		}
+		miniBlockBytes, _ := marshaller.Marshal(miniBlock)
+		metaBlockBytes, _ := marshaller.Marshal(metaBlock)
+		tx0Bytes, _ := marshaller.Marshal(tx0)
+		tx1Bytes, _ := marshaller.Marshal(tx1)
+
+		storerMock := genericMocks.NewStorerMockWithEpoch(1)
+		_ = storerMock.Put(headerHash, metaBlockBytes)
+		_ = storerMock.Put(mbHash, miniBlockBytes)
+		_ = storerMock.Put(txHash0, tx0Bytes)
+		_ = storerMock.Put(txHash1, tx1Bytes)
+
+		metaAPIBlockProc := createMockShardAPIProcessor(
+			0,
+			headerHash,
+			storerMock,
+			true,
+			true,
+		)
+
+		metaAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
+			UnmarshalTransactionCalled: func(txBytes []byte, _ transaction.TxType) (*transaction.ApiTransactionResult, error) {
+				var tx transaction.Transaction
+				_ = marshaller.Unmarshal(&tx, txBytes)
+
+				return &transaction.ApiTransactionResult{
+					Type:     "normal",
+					Sender:   hex.EncodeToString(tx.SndAddr),
+					Receiver: hex.EncodeToString(tx.RcvAddr),
+				}, nil
+			},
+		}
+		metaAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{}
+
+		metaAPIBlockProc.logsFacade = &testscommon.LogsFacadeStub{}
+		metaAPIBlockProc.alteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				retMap := map[string]*alteredAccount.AlteredAccount{}
+				for _, tx := range txPool.Transactions {
+					retMap[string(tx.Transaction.GetSndAddr())] = &alteredAccount.AlteredAccount{
+						Address: string(tx.Transaction.GetSndAddr()),
+						Balance: "10",
+					}
+				}
+
+				return retMap, nil
+			},
+		}
+
+		res, err := metaAPIBlockProc.GetAlteredAccountsForBlock(api.GetAlteredAccountsForBlockOptions{
+			GetBlockParameters: api.GetBlockParameters{
+				RequestType: api.BlockFetchTypeByHash,
+				Hash:        headerHash,
+			},
+		})
+		require.NoError(t, err)
+		require.True(t, areAlteredAccountsResponsesTheSame([]*alteredAccount.AlteredAccount{
+			{
+				Address: "addr0",
+				Balance: "10",
+			},
+			{
+				Address: "addr2",
+				Balance: "10",
+			},
+		},
+			res))
+	})
+}
+
+func areAlteredAccountsResponsesTheSame(first []*alteredAccount.AlteredAccount, second []*alteredAccount.AlteredAccount) bool {
+	if len(first) != len(second) {
+		return false
+	}
+
+	for _, firstAcc := range first {
+		found := false
+		for _, secondAcc := range second {
+			if firstAcc.Address == secondAcc.Address && firstAcc.Balance == secondAcc.Balance {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return false
+		}
+	}
+
+	return true
 }

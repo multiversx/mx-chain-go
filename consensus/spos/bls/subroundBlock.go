@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -63,7 +63,7 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
 
@@ -71,7 +71,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	if sr.IsSelfJobDone(sr.Current()) {
+	if sr.IsLeaderJobDone(sr.Current()) {
 		return false
 	}
 
@@ -99,7 +99,13 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	err = sr.SetSelfJobDone(sr.Current(), true)
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		return false
+	}
+
+	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
 		return false
@@ -182,12 +188,18 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 ) bool {
 	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("sendBlockBodyAndHeader.GetLeader", "error", errGetLeader)
+		return false
+	}
+
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
 		nil,
 		marshalizedBody,
 		marshalizedHeader,
-		[]byte(sr.SelfPubKey()),
+		[]byte(leader),
 		nil,
 		int(MtBlockBodyAndHeader),
 		sr.RoundHandler().Index(),
@@ -195,7 +207,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		nil,
 		nil,
 		nil,
-		sr.CurrentPid(),
+		sr.GetAssociatedPid([]byte(leader)),
 		nil,
 	)
 
@@ -218,12 +230,18 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 
 // sendBlockBody method sends the proposed block body in the subround Block
 func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalizedBody []byte) bool {
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("sendBlockBody.GetLeader", "error", errGetLeader)
+		return false
+	}
+
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
 		marshalizedBody,
 		nil,
-		[]byte(sr.SelfPubKey()),
+		[]byte(leader),
 		nil,
 		int(MtBlockBody),
 		sr.RoundHandler().Index(),
@@ -231,7 +249,7 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 		nil,
 		nil,
 		nil,
-		sr.CurrentPid(),
+		sr.GetAssociatedPid([]byte(leader)),
 		nil,
 	)
 
@@ -252,12 +270,18 @@ func (sr *subroundBlock) sendBlockBody(bodyHandler data.BodyHandler, marshalized
 func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marshalizedHeader []byte) bool {
 	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("sendBlockBody.GetLeader", "error", errGetLeader)
+		return false
+	}
+
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
 		nil,
 		nil,
 		marshalizedHeader,
-		[]byte(sr.SelfPubKey()),
+		[]byte(leader),
 		nil,
 		int(MtBlockHeader),
 		sr.RoundHandler().Index(),
@@ -265,7 +289,7 @@ func (sr *subroundBlock) sendBlockHeader(headerHandler data.HeaderHandler, marsh
 		nil,
 		nil,
 		nil,
-		sr.CurrentPid(),
+		sr.GetAssociatedPid([]byte(leader)),
 		nil,
 	)
 
@@ -312,7 +336,12 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	randSeed, err := sr.SingleSigner().Sign(sr.PrivateKey(), prevRandSeed)
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		return nil, errGetLeader
+	}
+
+	randSeed, err := sr.SigningHandler().CreateSignatureForPublicKey(prevRandSeed, []byte(leader))
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +416,8 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
-	if sr.Data == nil || check.IfNil(sr.Body) || check.IfNil(sr.Header) {
+	isInvalidData := check.IfNil(sr.Body) || sr.isInvalidHeaderOrData()
+	if isInvalidData {
 		return false
 	}
 
@@ -406,6 +436,10 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	)
 
 	return blockProcessedWithSuccess
+}
+
+func (sr *subroundBlock) isInvalidHeaderOrData() bool {
+	return sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
@@ -480,7 +514,7 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
-	if sr.Data == nil || check.IfNil(sr.Header) {
+	if sr.isInvalidHeaderOrData() {
 		return false
 	}
 

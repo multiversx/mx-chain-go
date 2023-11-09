@@ -6,17 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/arwen"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract/hooks"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -97,15 +97,15 @@ func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing
 
 	ownerNode := nodes[0]
 	initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
-	scCode := arwen.GetSCCode("../../vm/arwen/testdata/erc20-c-03/wrc20_arwen.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("../../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
 		20000,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+initialSupply),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -278,8 +278,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	nonce++
 
 	ownerNode := nodes[0]
-	scCode := arwen.GetSCCode("attestation.wasm")
-	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.ArwenVirtualMachine)
+	scCode := wasm.GetSCCode("attestation.wasm")
+	scAddress, _ := ownerNode.BlockchainHook.NewAddress(ownerNode.OwnAccount.Address, ownerNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 
 	registerValue := big.NewInt(100)
 	integrationTests.CreateAndSendTransactionWithGasLimit(
@@ -287,7 +287,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 		big.NewInt(0),
 		200000,
 		make([]byte, 32),
-		[]byte(arwen.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
+		[]byte(wasm.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
@@ -357,7 +357,7 @@ func checkAttestedPublicKeys(
 	userAddress []byte,
 ) {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  "getPublicKey",
 		Arguments: [][]byte{obfuscatedData},
@@ -369,7 +369,7 @@ func checkAttestedPublicKeys(
 
 func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, userAddress []byte, balance *big.Int) {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  "balanceOf",
 		Arguments: [][]byte{userAddress},
@@ -399,7 +399,7 @@ func CheckAddressHasTokens(
 ) {
 	userAcc := GetUserAccount(nodes, address)
 
-	tokenKey := []byte(core.ElrondProtectedKeyPrefix + "esdt" + tokenName)
+	tokenKey := []byte(core.ProtectedKeyPrefix + "esdt" + tokenName)
 	esdtData, err := getESDTDataFromKey(userAcc, tokenKey)
 	assert.Nil(t, err)
 

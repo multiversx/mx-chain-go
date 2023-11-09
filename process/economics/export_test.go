@@ -3,7 +3,7 @@ package economics
 import (
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go/config"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 // GetRewardsActiveConfig -
@@ -38,6 +38,7 @@ func (ed *economicsData) GetGasLimitSetting() *config.GasLimitSetting {
 	gasLimitSetting.MaxGasLimitPerMetaMiniBlock = strconv.FormatUint(ed.maxGasLimitPerMetaMiniBlock, 10)
 	gasLimitSetting.MaxGasLimitPerTx = strconv.FormatUint(ed.maxGasLimitPerTx, 10)
 	gasLimitSetting.MinGasLimit = strconv.FormatUint(ed.minGasLimit, 10)
+	gasLimitSetting.ExtraGasLimitGuardedTx = strconv.FormatUint(ed.extraGasLimitGuardedTx, 10)
 
 	return gasLimitSetting
 }

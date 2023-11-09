@@ -1,16 +1,17 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsMock -
@@ -18,7 +19,9 @@ type ProcessComponentsMock struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	FullArchiveIntContainer              process.InterceptorsContainer
+	ResContainer                         dataRetriever.ResolversContainer
+	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
@@ -35,8 +38,9 @@ type ProcessComponentsMock struct {
 	ReqHandler                           process.RequestHandler
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
-	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
+	MainPeerMapper                       process.NetworkShardingCollector
+	FullArchivePeerMapper                process.NetworkShardingCollector
+	TransactionEvaluator                 factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
@@ -49,6 +53,7 @@ type ProcessComponentsMock struct {
 	TxsSenderHandlerField                process.TxsSenderHandler
 	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
+	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 }
@@ -83,9 +88,19 @@ func (pcm *ProcessComponentsMock) InterceptorsContainer() process.InterceptorsCo
 	return pcm.IntContainer
 }
 
-// ResolversFinder -
-func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcm.ResFinder
+// FullArchiveInterceptorsContainer -
+func (pcm *ProcessComponentsMock) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
+	return pcm.FullArchiveIntContainer
+}
+
+// ResolversContainer -
+func (pcm *ProcessComponentsMock) ResolversContainer() dataRetriever.ResolversContainer {
+	return pcm.ResContainer
+}
+
+// RequestersFinder -
+func (pcm *ProcessComponentsMock) RequestersFinder() dataRetriever.RequestersFinder {
+	return pcm.ReqFinder
 }
 
 // RoundHandler -
@@ -170,7 +185,12 @@ func (pcm *ProcessComponentsMock) HeaderConstructionValidator() process.HeaderCo
 
 // PeerShardMapper -
 func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingCollector {
-	return pcm.PeerMapper
+	return pcm.MainPeerMapper
+}
+
+// FullArchivePeerShardMapper -
+func (pcm *ProcessComponentsMock) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	return pcm.FullArchivePeerMapper
 }
 
 // FallbackHeaderValidator -
@@ -178,9 +198,9 @@ func (pcm *ProcessComponentsMock) FallbackHeaderValidator() process.FallbackHead
 	return pcm.FallbackHdrValidator
 }
 
-// TransactionSimulatorProcessor -
-func (pcm *ProcessComponentsMock) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
-	return pcm.TxSimulatorProcessor
+// APITransactionEvaluator -
+func (pcm *ProcessComponentsMock) APITransactionEvaluator() factory.TransactionEvaluator {
+	return pcm.TransactionEvaluator
 }
 
 // WhiteListHandler -
@@ -246,6 +266,11 @@ func (pcm *ProcessComponentsMock) HardforkTrigger() factory.HardforkTrigger {
 // ProcessedMiniBlocksTracker -
 func (pcm *ProcessComponentsMock) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
 	return pcm.ProcessedMiniBlocksTrackerInternal
+}
+
+// ESDTDataStorageHandlerForAPI -
+func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler {
+	return pcm.ESDTDataStorageHandlerForAPIInternal
 }
 
 // ReceiptsRepository -

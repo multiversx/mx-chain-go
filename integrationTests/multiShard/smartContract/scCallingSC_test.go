@@ -5,25 +5,25 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/state"
-	systemVm "github.com/ElrondNetwork/elrond-go/vm"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	systemVm "github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -78,7 +78,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -88,7 +88,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -134,6 +134,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	numShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 2
+	incrementAdditionalGas := uint64(500)
 
 	nodes := integrationTests.CreateNodes(
 		numShards,
@@ -162,7 +163,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/arwen/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter_old.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -184,7 +185,7 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 	for _, node := range nodes {
 		txData := "increment"
 		for i := 0; i < 10; i++ {
-			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, integrationTests.AdditionalGasLimit)
+			integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), firstSCAddress, txData, incrementAdditionalGas)
 		}
 	}
 
@@ -272,7 +273,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 	nodes[0].OwnAccount.Nonce += 1
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"../../vm/arwen/testdata/counter/counter.wasm",
+		"../../vm/wasm/testdata/counter/counter.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -413,7 +414,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -423,7 +424,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -491,6 +492,7 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 		vmOutput.ReturnCode = vmcommon.Ok
 		vmOutput.OutputAccounts = make(map[string]*vmcommon.OutputAccount)
 		outTransfer := vmcommon.OutputTransfer{
+			Index:     1,
 			Value:     big.NewInt(0),
 			GasLimit:  200000,
 			GasLocked: vmInput.GasLocked,
@@ -575,7 +577,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
-
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
 	require.Equal(t, uint64(255), testValue1.Uint64())
@@ -642,7 +643,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool(
-		"./testdata/delegate-mock/delegate.wasm",
+		"./testdata/delegate-mock/output/delegate.wasm",
 		delegateSCOwner,
 		0,
 		big.NewInt(50),
@@ -677,7 +678,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
@@ -768,7 +769,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "version",
 		Arguments: [][]byte{},
 	}
-	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
+	vmOutputVersion, _, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
 	assert.NotNil(t, vmOutputVersion)
 	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
@@ -816,7 +817,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getNumNodes",
 		Arguments: [][]byte{},
 	}
-	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
+	vmOutput1, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
 	require.NotNil(t, vmOutput1)
 	require.Equal(t, len(vmOutput1.ReturnData), 1)
 	require.True(t, bytes.Equal(vmOutput1.ReturnData[0], []byte{1}))
@@ -827,7 +828,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getNodeSignature",
 		Arguments: [][]byte{stakerBLSKey},
 	}
-	vmOutput2, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
+	vmOutput2, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
 	require.NotNil(t, vmOutput2)
 	require.Equal(t, len(vmOutput2.ReturnData), 1)
 	require.True(t, bytes.Equal(stakerBLSSignature, vmOutput2.ReturnData[0]))
@@ -838,7 +839,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
-	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
+	vmOutput3, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
 	require.NotNil(t, vmOutput3)
 	require.Equal(t, len(vmOutput3.ReturnData), 1)
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
@@ -849,7 +850,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserActiveStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
-	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
+	vmOutput4, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
 	require.NotNil(t, vmOutput4)
 	require.Equal(t, len(vmOutput4.ReturnData), 1)
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
@@ -864,7 +865,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
@@ -921,7 +922,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 
 	// deploy the smart contracts
 	_ = putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -931,7 +932,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -982,7 +983,7 @@ func putDeploySCToDataPool(
 	nodes []*integrationTests.TestProcessorNode,
 	gasLimit uint64,
 ) []byte {
-	scCode, err := ioutil.ReadFile(fileName)
+	scCode, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
 	}
@@ -992,7 +993,7 @@ func putDeploySCToDataPool(
 
 	blockChainHook := nodes[0].BlockchainHook
 
-	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.ArwenVirtualMachine)
+	scAddressBytes, _ := blockChainHook.NewAddress(pubkey, nonce, factory.WasmVirtualMachine)
 
 	tx := &transaction.Transaction{
 		Nonce:    nonce,
@@ -1001,7 +1002,7 @@ func putDeploySCToDataPool(
 		SndAddr:  pubkey,
 		GasPrice: nodes[0].EconomicsData.GetMinGasPrice(),
 		GasLimit: gasLimit,
-		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.ArwenVirtualMachine) + "@" + scCodeMetadataString + initArgs),
+		Data:     []byte(scCodeString + "@" + hex.EncodeToString(factory.WasmVirtualMachine) + "@" + scCodeMetadataString + initArgs),
 		ChainID:  integrationTests.ChainID,
 	}
 	txHash, _ := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, tx)

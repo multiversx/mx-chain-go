@@ -3,14 +3,15 @@ package syncer
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
-var _ epochStart.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
+var _ state.AccountsDBSyncer = (*validatorAccountsSyncer)(nil)
 
 type validatorAccountsSyncer struct {
 	*baseAccountsSyncer
@@ -42,14 +43,14 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		timeoutHandler:                    timeoutHandler,
 		shardId:                           core.MetachainShardId,
 		cacher:                            args.Cacher,
-		rootHash:                          nil,
 		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
 		name:                              "peer accounts",
 		maxHardCapForMissingNodes:         args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:                 args.TrieSyncerVersion,
 		checkNodesOnDisk:                  args.CheckNodesOnDisk,
-		storageMarker:                     args.StorageMarker,
 		userAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+		appStatusHandler:                  args.AppStatusHandler,
+		enableEpochsHandler:               args.EnableEpochsHandler,
 	}
 
 	u := &validatorAccountsSyncer{
@@ -60,7 +61,11 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 }
 
 // SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
-func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
+func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
+	if check.IfNil(storageMarker) {
+		return ErrNilStorageMarker
+	}
+
 	v.mutex.Lock()
 	defer v.mutex.Unlock()
 
@@ -72,14 +77,19 @@ func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte) error {
 		cancel()
 	}()
 
-	go v.printStatistics(ctx)
+	go v.printStatisticsAndUpdateMetrics(ctx)
 
-	mainTrie, err := v.syncMainTrie(rootHash, factory.ValidatorTrieNodesTopic, ctx)
+	err := v.syncMainTrie(
+		rootHash,
+		factory.ValidatorTrieNodesTopic,
+		ctx,
+		nil, // not used for validator accounts syncer
+	)
 	if err != nil {
 		return err
 	}
 
-	v.storageMarker.MarkStorerAsSyncedAndActive(mainTrie.GetStorageManager())
+	storageMarker.MarkStorerAsSyncedAndActive(v.trieStorageManager)
 
 	return nil
 }

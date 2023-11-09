@@ -4,12 +4,13 @@ import (
 	"encoding/hex"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/node/filters"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/node/filters"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type shardAPIBlockProcessor struct {
@@ -22,19 +23,23 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 
 	return &shardAPIBlockProcessor{
 		baseAPIBlockProcessor: &baseAPIBlockProcessor{
-			hasDbLookupExtensions:    hasDbLookupExtensions,
-			selfShardID:              arg.SelfShardID,
-			store:                    arg.Store,
-			marshalizer:              arg.Marshalizer,
-			uint64ByteSliceConverter: arg.Uint64ByteSliceConverter,
-			historyRepo:              arg.HistoryRepo,
-			apiTransactionHandler:    arg.APITransactionHandler,
-			txStatusComputer:         arg.StatusComputer,
-			hasher:                   arg.Hasher,
-			addressPubKeyConverter:   arg.AddressPubkeyConverter,
-			emptyReceiptsHash:        emptyReceiptsHash,
-			logsFacade:               arg.LogsFacade,
-			receiptsRepository:       arg.ReceiptsRepository,
+			hasDbLookupExtensions:        hasDbLookupExtensions,
+			selfShardID:                  arg.SelfShardID,
+			store:                        arg.Store,
+			marshalizer:                  arg.Marshalizer,
+			uint64ByteSliceConverter:     arg.Uint64ByteSliceConverter,
+			historyRepo:                  arg.HistoryRepo,
+			apiTransactionHandler:        arg.APITransactionHandler,
+			txStatusComputer:             arg.StatusComputer,
+			hasher:                       arg.Hasher,
+			addressPubKeyConverter:       arg.AddressPubkeyConverter,
+			emptyReceiptsHash:            emptyReceiptsHash,
+			logsFacade:                   arg.LogsFacade,
+			receiptsRepository:           arg.ReceiptsRepository,
+			alteredAccountsProvider:      arg.AlteredAccountsProvider,
+			accountsRepository:           arg.AccountsRepository,
+			scheduledTxsExecutionHandler: arg.ScheduledTxsExecutionHandler,
+			enableEpochsHandler:          arg.EnableEpochsHandler,
 		},
 	}
 }
@@ -108,13 +113,55 @@ func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.Blo
 	return sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, options)
 }
 
+// GetAlteredAccountsForBlock will return the altered accounts for the desired shard block
+func (sbp *shardAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
+	headerHash, blockBytes, err := sbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlock, err := sbp.convertShardBlockBytesToAPIBlock(headerHash, blockBytes, api.BlockQueryOptions{WithTransactions: true, WithLogs: true})
+	if err != nil {
+		return nil, err
+	}
+
+	return sbp.apiBlockToAlteredAccounts(apiBlock, options)
+}
+
+func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorer(params api.GetBlockParameters) ([]byte, []byte, error) {
+	switch params.RequestType {
+	case api.BlockFetchTypeByHash:
+		return sbp.getHashAndBlockBytesFromStorerByHash(params)
+	case api.BlockFetchTypeByNonce:
+		return sbp.getHashAndBlockBytesFromStorerByNonce(params)
+	default:
+		return nil, nil, errUnknownBlockRequestType
+	}
+}
+
+func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByHash(params api.GetBlockParameters) ([]byte, []byte, error) {
+	headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, params.Hash)
+	return params.Hash, headerBytes, err
+}
+
+func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params api.GetBlockParameters) ([]byte, []byte, error) {
+	storerUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(sbp.selfShardID)
+
+	nonceToByteSlice := sbp.uint64ByteSliceConverter.ToByteSlice(params.Nonce)
+	headerHash, err := sbp.store.Get(storerUnit, nonceToByteSlice)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	headerBytes, err := sbp.getFromStorer(dataRetriever.BlockHeaderUnit, headerHash)
+	return headerHash, headerBytes, err
+}
+
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}
-
-	headerEpoch := blockHeader.GetEpoch()
 
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
@@ -138,7 +185,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err = sbp.getAndAttachTxsToMb(miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = sbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -172,6 +219,13 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Timestamp:       time.Duration(blockHeader.GetTimeStamp()),
 		Status:          BlockStatusOnChain,
 		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),
+		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
+		Signature:       hex.EncodeToString(blockHeader.GetSignature()),
+		LeaderSignature: hex.EncodeToString(blockHeader.GetLeaderSignature()),
+		ChainID:         string(blockHeader.GetChainID()),
+		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
+		ReceiptsHash:    hex.EncodeToString(blockHeader.GetReceiptsHash()),
+		Reserved:        blockHeader.GetReserved(),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)

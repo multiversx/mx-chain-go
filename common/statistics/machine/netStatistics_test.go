@@ -1,14 +1,15 @@
 package machine
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/shirou/gopsutil/net"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func TestNewNetStatistics_ShouldWorkAndNotPanic(t *testing.T) {
 	ns := NewNetStatistics()
 	assert.False(t, check.IfNil(ns))
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 }
 
 func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.T) {
@@ -52,7 +53,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.
 
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 
 	checkResetFieldsAreZero(t, ns)
 }
@@ -78,7 +79,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsReturnsEmptyFirstTime(t *te
 	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -104,7 +105,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsSecondTime(t *testing
 	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -129,7 +130,7 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsReturnsEmptySecondTime(t *t
 	ns := newNetStatistics(testGetStats)
 	populateFields(ns)
 
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 	checkResetFieldsAreZero(t, ns)
 }
 
@@ -171,7 +172,7 @@ func TestNetStatistics_ResetShouldWork(t *testing.T) {
 	}
 
 	ns := newNetStatistics(testGetStats)
-	ns.computeStatistics()
+	ns.computeStatistics(context.Background())
 
 	ns.setZeroStatsAndWait()
 
@@ -261,7 +262,9 @@ func TestNetStatistics_EpochConfirmed(t *testing.T) {
 	ns.EpochConfirmed(0, 0)
 
 	assert.Equal(t, uint64(0), ns.TotalBytesSentInCurrentEpoch())
+	assert.Equal(t, "0 B", ns.TotalSentInCurrentEpoch())
 	assert.Equal(t, uint64(0), ns.TotalBytesReceivedInCurrentEpoch())
+	assert.Equal(t, "0 B", ns.TotalReceivedInCurrentEpoch())
 	assert.Equal(t, uint64(0), ns.BpsRecvPeak())
 	assert.Equal(t, uint64(0), ns.BpsSentPeak())
 }

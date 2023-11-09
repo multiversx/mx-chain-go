@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
@@ -12,15 +11,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/ed25519"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/mcl"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	libp2pCrypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/cmd/keygenerator/converter"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/urfave/cli"
 )
 
@@ -41,10 +41,17 @@ const minedWalletPrefixKeys = "mined-wallet"
 const nopattern = "nopattern"
 const desiredpattern = "[0-f]+"
 const noshard = -1
+const pubkeyHrp = "erd"
 
 type key struct {
 	skBytes []byte
 	pkBytes []byte
+}
+
+type pubKeyConverter interface {
+	Decode(humanReadable string) ([]byte, error)
+	Encode(pkBytes []byte) (string, error)
+	IsInterfaceNil() bool
 }
 
 const keysFolderPattern = "node-%d"
@@ -125,8 +132,8 @@ VERSION:
 	log = logger.GetOrCreate("keygenerator")
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
-	p2pPubKeyConverter          = NewP2pConverter()
-	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
+	pidPubKeyConverter          = converter.NewPidPubkeyConverter()
+	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, pubkeyHrp)
 )
 
 func main() {
@@ -137,8 +144,8 @@ func main() {
 	app.Usage = "This binary will generate a validatorKey.pem and walletKey.pem, each containing private key(s)"
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 	app.Flags = []cli.Flag{
@@ -183,6 +190,7 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 
 	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 	txSigningGenerator := signing.NewKeyGenerator(ed25519.NewEd25519())
+	p2pKeyGenerator := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 	for i := 0; i < numKeys; i++ {
 		switch typeKey {
@@ -197,7 +205,7 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 				return nil, nil, nil, err
 			}
 		case p2pType:
-			p2pKeys, err = generateP2pKey(p2pKeys)
+			p2pKeys, err = generateKey(p2pKeyGenerator, p2pKeys)
 			if err != nil {
 				return nil, nil, nil, err
 			}
@@ -224,33 +232,6 @@ func generateKeys(typeKey string, numKeys int, prefix string, shardID int) ([]ke
 	}
 
 	return validatorKeys, walletKeys, p2pKeys, nil
-}
-
-func generateP2pKey(list []key) ([]key, error) {
-	privateKey, publicKey, err := libp2pCrypto.GenerateSecp256k1Key(rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	skBytes, err := privateKey.Raw()
-	if err != nil {
-		return nil, err
-	}
-
-	pkBytes, err := publicKey.Raw()
-	if err != nil {
-		return nil, err
-	}
-
-	list = append(
-		list,
-		key{
-			skBytes: skBytes,
-			pkBytes: pkBytes,
-		},
-	)
-
-	return list, nil
 }
 
 func generateKey(keyGen crypto.KeyGenerator, list []key) ([]key, error) {
@@ -354,7 +335,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := printSliceKeys("P2p keys:", p2pKeys, p2pPubKeyConverter)
+		err := printSliceKeys("P2p keys:", p2pKeys, pidPubKeyConverter)
 		if err != nil {
 			errFound = err
 		}
@@ -363,7 +344,7 @@ func printKeys(validatorKeys, walletKeys, p2pKeys []key) error {
 	return errFound
 }
 
-func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConverter) error {
+func printSliceKeys(message string, sliceKeys []key, converter pubKeyConverter) error {
 	data := []string{message + "\n"}
 
 	for _, k := range sliceKeys {
@@ -380,12 +361,15 @@ func printSliceKeys(message string, sliceKeys []key, converter core.PubkeyConver
 	return nil
 }
 
-func writeKeyToStream(writer io.Writer, key key, pubkeyConverter core.PubkeyConverter) error {
+func writeKeyToStream(writer io.Writer, key key, converter pubKeyConverter) error {
 	if check.IfNilReflect(writer) {
 		return fmt.Errorf("nil writer")
 	}
 
-	pkString := pubkeyConverter.Encode(key.pkBytes)
+	pkString, err := converter.Encode(key.pkBytes)
+	if err != nil {
+		return err
+	}
 
 	blk := pem.Block{
 		Type:  "PRIVATE KEY for " + pkString,
@@ -414,7 +398,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 		}
 	}
 	if len(p2pKeys) > 0 {
-		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, p2pPubKeyConverter, noSplit)
+		err := saveSliceKeys(p2pKeyFilenameTemplate, p2pKeys, pidPubKeyConverter, noSplit)
 		if err != nil {
 			errFound = err
 		}
@@ -423,7 +407,7 @@ func saveKeys(validatorKeys, walletKeys, p2pKeys []key, noSplit bool) error {
 	return errFound
 }
 
-func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core.PubkeyConverter, noSplit bool) error {
+func saveSliceKeys(baseFilenameTemplate string, keys []key, converter pubKeyConverter, noSplit bool) error {
 	var file *os.File
 	var err error
 	for i, k := range keys {
@@ -435,7 +419,7 @@ func saveSliceKeys(baseFilenameTemplate string, keys []key, pubkeyConverter core
 			}
 		}
 
-		err = writeKeyToStream(file, k, pubkeyConverter)
+		err = writeKeyToStream(file, k, converter)
 		if err != nil {
 			return err
 		}

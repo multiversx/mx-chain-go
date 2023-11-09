@@ -7,15 +7,15 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data/batch"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/txsSender"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/txsSender"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 const maxGoRoutinesSendMessage = 30
@@ -126,18 +126,13 @@ func (n *Node) GenerateAndSendBulkTransactions(
 
 	atomic.AddInt32(&currentSendingGoRoutines, int32(len(packets)))
 	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			err = n.networkComponents.NetworkMessenger().BroadcastOnChannelBlocking(
-				txsSender.SendTransactionsPipe,
-				identifier,
-				bufferToSend,
-			)
-			if err != nil {
-				log.Debug("BroadcastOnChannelBlocking", "error", err.Error())
-			}
+		n.networkComponents.NetworkMessenger().BroadcastOnChannel(
+			txsSender.SendTransactionsPipe,
+			identifier,
+			buff,
+		)
 
-			atomic.AddInt32(&currentSendingGoRoutines, -1)
-		}(buff)
+		atomic.AddInt32(&currentSendingGoRoutines, -1)
 	}
 
 	return nil
@@ -227,12 +222,12 @@ func (n *Node) generateAndSignSingleTx(
 		Version:  minTxVersion,
 	}
 
-	marshalizedTx, err := tx.GetDataForSigning(n.coreComponents.AddressPubKeyConverter(), n.coreComponents.TxMarshalizer())
+	txSigningData, err := tx.GetDataForSigning(n.coreComponents.AddressPubKeyConverter(), n.coreComponents.TxMarshalizer(), n.coreComponents.TxSignHasher())
 	if err != nil {
 		return nil, nil, errors.New("could not marshal transaction")
 	}
 
-	sig, err := n.cryptoComponents.TxSingleSigner().Sign(sk, marshalizedTx)
+	sig, err := n.cryptoComponents.TxSingleSigner().Sign(sk, txSigningData)
 	if err != nil {
 		return nil, nil, errors.New("could not sign the transaction")
 	}

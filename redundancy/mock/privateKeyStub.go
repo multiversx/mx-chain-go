@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go-crypto"
+import "github.com/multiversx/mx-chain-crypto-go"
 
 // PrivateKeyStub -
 type PrivateKeyStub struct {

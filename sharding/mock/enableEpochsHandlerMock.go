@@ -5,6 +5,13 @@ type EnableEpochsHandlerMock struct {
 	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
+	IsSCProcessorV2FlagEnabledField           bool
+	IsFixOldTokenLiquidityFlagEnabledField    bool
+}
+
+// IsChangeOwnerAddressCrossShardThroughSCEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
+	return false
 }
 
 // BlockGasAndFeesReCheckEnableEpoch returns 0
@@ -531,6 +538,11 @@ func (mock *EnableEpochsHandlerMock) IsRefactorPeersMiniBlocksFlagEnabled() bool
 	return mock.IsRefactorPeersMiniBlocksFlagEnabledField
 }
 
+// IsSCProcessorV2FlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsSCProcessorV2FlagEnabled() bool {
+	return mock.IsSCProcessorV2FlagEnabledField
+}
+
 // IsFixAsyncCallBackArgsListFlagEnabled -
 func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() bool {
 	return false
@@ -538,6 +550,91 @@ func (mock *EnableEpochsHandlerMock) IsFixAsyncCallBackArgsListFlagEnabled() boo
 
 // IsFixOldTokenLiquidityEnabled -
 func (mock *EnableEpochsHandlerMock) IsFixOldTokenLiquidityEnabled() bool {
+	return false
+}
+
+// IsRuntimeMemStoreLimitEnabled -
+func (mock *EnableEpochsHandlerMock) IsRuntimeMemStoreLimitEnabled() bool {
+	return false
+}
+
+// IsRuntimeCodeSizeFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRuntimeCodeSizeFixEnabled() bool {
+	return false
+}
+
+// IsMaxBlockchainHookCountersFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsMaxBlockchainHookCountersFlagEnabled() bool {
+	return false
+}
+
+// IsWipeSingleNFTLiquidityDecreaseEnabled -
+func (mock *EnableEpochsHandlerMock) IsWipeSingleNFTLiquidityDecreaseEnabled() bool {
+	return false
+}
+
+// IsAlwaysSaveTokenMetaDataEnabled -
+func (mock *EnableEpochsHandlerMock) IsAlwaysSaveTokenMetaDataEnabled() bool {
+	return false
+}
+
+// IsSetGuardianEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsSetGuardianEnabled() bool {
+	return false
+}
+
+// IsScToScEventLogEnabled returns false
+func (mock *EnableEpochsHandlerMock) IsScToScEventLogEnabled() bool {
+	return false
+}
+
+// IsRelayedNonceFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsRelayedNonceFixEnabled() bool {
+	return false
+}
+
+// IsKeepExecOrderOnCreatedSCRsEnabled -
+func (mock *EnableEpochsHandlerMock) IsKeepExecOrderOnCreatedSCRsEnabled() bool {
+	return false
+}
+
+// IsMultiClaimOnDelegationEnabled -
+func (mock *EnableEpochsHandlerMock) IsMultiClaimOnDelegationEnabled() bool {
+	return false
+}
+
+// IsChangeUsernameEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeUsernameEnabled() bool {
+	return false
+}
+
+// IsConsistentTokensValuesLengthCheckEnabled -
+func (mock *EnableEpochsHandlerMock) IsConsistentTokensValuesLengthCheckEnabled() bool {
+	return false
+}
+
+// IsAutoBalanceDataTriesEnabled -
+func (mock *EnableEpochsHandlerMock) IsAutoBalanceDataTriesEnabled() bool {
+	return false
+}
+
+// FixDelegationChangeOwnerOnAccountEnabled -
+func (mock *EnableEpochsHandlerMock) FixDelegationChangeOwnerOnAccountEnabled() bool {
+	return false
+}
+
+// IsDeterministicSortOnValidatorsInfoFixEnabled -
+func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabled() bool {
+	return false
+}
+
+// IsDynamicGasCostForDataTrieStorageLoadEnabled -
+func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	return false
+}
+
+// NFTStopCreateEnabled -
+func (mock *EnableEpochsHandlerMock) NFTStopCreateEnabled() bool {
 	return false
 }
 

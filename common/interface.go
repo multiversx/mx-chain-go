@@ -4,25 +4,35 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
-
-// NumNodesDTO represents the DTO structure that will hold the number of nodes split by category and other
-// trie structure relevant data such as maximum number of trie levels including the roothash node and all leaves
-type NumNodesDTO struct {
-	Leaves     int
-	Extensions int
-	Branches   int
-	MaxLevel   int
-}
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
 type TrieIteratorChannels struct {
 	LeavesChan chan core.KeyValueHolder
-	ErrChan    chan error
+	ErrChan    BufferedErrChan
+}
+
+// TrieType defines the type of the trie
+type TrieType string
+
+const (
+	// MainTrie represents the main trie in which all the accounts and SC code are stored
+	MainTrie TrieType = "mainTrie"
+
+	// DataTrie represents a data trie in which all the data related to an account is stored
+	DataTrie TrieType = "dataTrie"
+)
+
+// BufferedErrChan is an interface that defines the methods for a buffered error channel
+type BufferedErrChan interface {
+	WriteInChanNonBlocking(err error)
+	ReadFromChanNonBlocking() error
+	Close()
+	IsInterfaceNil() bool
 }
 
 // Trie is an interface for Merkle Trees implementations
@@ -40,19 +50,31 @@ type Trie interface {
 	GetOldRoot() []byte
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
-	GetNumNodes() NumNodesDTO
-	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
 	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
+	IsMigratedToLatestVersion() (bool, error)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// TrieLeafParser is used to parse trie leaves
+type TrieLeafParser interface {
+	ParseLeaf(key []byte, val []byte, version core.TrieNodeVersion) (core.KeyValueHolder, error)
 	IsInterfaceNil() bool
 }
 
 // TrieStats is used to collect the trie statistics for the given rootHash
 type TrieStats interface {
-	GetTrieStats(address []byte, rootHash []byte) (*statistics.TrieStatsDTO, error)
+	GetTrieStats(address string, rootHash []byte) (TrieStatisticsHandler, error)
+}
+
+// StorageMarker is used to mark the given storer as synced and active
+type StorageMarker interface {
+	MarkStorerAsSyncedAndActive(storer StorageManager)
+	IsInterfaceNil() bool
 }
 
 // KeyBuilder is used for building trie keys as you traverse the trie
@@ -60,23 +82,24 @@ type KeyBuilder interface {
 	BuildKey(keyPart []byte)
 	GetKey() ([]byte, error)
 	Clone() KeyBuilder
+	IsInterfaceNil() bool
 }
 
 // DataTrieHandler is an interface that declares the methods used for dataTries
 type DataTrieHandler interface {
 	RootHash() ([]byte, error)
-	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder) error
+	GetAllLeavesOnChannel(leavesChannels *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
+	IsMigratedToLatestVersion() (bool, error)
 	IsInterfaceNil() bool
 }
 
 // StorageManager manages all trie storage operations
 type StorageManager interface {
-	Get(key []byte) ([]byte, error)
+	TrieStorageInteractor
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
-	Put(key []byte, val []byte) error
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
-	TakeSnapshot(address []byte, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
+	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
 	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
@@ -84,7 +107,7 @@ type StorageManager interface {
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
 	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
-	Remove(hash []byte) error
+	RemoveFromAllActiveEpochs(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
 	GetBaseTrieStorageManager() StorageManager
@@ -93,8 +116,14 @@ type StorageManager interface {
 	IsInterfaceNil() bool
 }
 
-// DBWriteCacher is used to cache changes made to the trie, and only write to the database when it's needed
-type DBWriteCacher interface {
+// TrieStorageInteractor defines the methods used for interacting with the trie storage
+type TrieStorageInteractor interface {
+	BaseStorer
+	GetIdentifier() string
+}
+
+// BaseStorer define the base methods needed for a storer
+type BaseStorer interface {
 	Put(key, val []byte) error
 	Get(key []byte) ([]byte, error)
 	Remove(key []byte) error
@@ -104,7 +133,7 @@ type DBWriteCacher interface {
 
 // SnapshotDbHandler is used to keep track of how many references a snapshot db has
 type SnapshotDbHandler interface {
-	DBWriteCacher
+	BaseStorer
 	IsInUse() bool
 	DecreaseNumReferences()
 	IncreaseNumReferences()
@@ -153,21 +182,38 @@ type SnapshotStatisticsHandler interface {
 	SnapshotFinished()
 	NewSnapshotStarted()
 	WaitForSnapshotsToFinish()
-	AddTrieStats(*statistics.TrieStatsDTO)
+	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
+	GetSnapshotDuration() int64
+	GetSnapshotNumNodes() uint64
+	IsInterfaceNil() bool
 }
 
 // TrieStatisticsHandler is used to collect different statistics about a single trie
 type TrieStatisticsHandler interface {
 	AddBranchNode(level int, size uint64)
 	AddExtensionNode(level int, size uint64)
-	AddLeafNode(level int, size uint64)
-	AddAccountInfo(address []byte, rootHash []byte)
-	GetTrieStats() *statistics.TrieStatsDTO
+	AddLeafNode(level int, size uint64, version core.TrieNodeVersion)
+	AddAccountInfo(address string, rootHash []byte)
+
+	GetTotalNodesSize() uint64
+	GetTotalNumNodes() uint64
+	GetMaxTrieDepth() uint32
+	GetBranchNodesSize() uint64
+	GetNumBranchNodes() uint64
+	GetExtensionNodesSize() uint64
+	GetNumExtensionNodes() uint64
+	GetLeafNodesSize() uint64
+	GetNumLeafNodes() uint64
+	GetLeavesMigrationStats() map[core.TrieNodeVersion]uint64
+
+	MergeTriesStatistics(statsToBeMerged TrieStatisticsHandler)
+	ToString() []string
+	IsInterfaceNil() bool
 }
 
 // TriesStatisticsCollector is used to merge the statistics for multiple tries
 type TriesStatisticsCollector interface {
-	Add(trieStats *statistics.TrieStatsDTO)
+	Add(trieStats TrieStatisticsHandler, trieType TrieType)
 	Print()
 	GetNumNodes() uint64
 }
@@ -330,8 +376,94 @@ type EnableEpochsHandler interface {
 	IsSetSenderInEeiOutputTransferFlagEnabled() bool
 	IsChangeDelegationOwnerFlagEnabled() bool
 	IsRefactorPeersMiniBlocksFlagEnabled() bool
+	IsSCProcessorV2FlagEnabled() bool
 	IsFixAsyncCallBackArgsListFlagEnabled() bool
 	IsFixOldTokenLiquidityEnabled() bool
+	IsRuntimeMemStoreLimitEnabled() bool
+	IsRuntimeCodeSizeFixEnabled() bool
+	IsMaxBlockchainHookCountersFlagEnabled() bool
+	IsWipeSingleNFTLiquidityDecreaseEnabled() bool
+	IsAlwaysSaveTokenMetaDataEnabled() bool
+	IsSetGuardianEnabled() bool
+	IsScToScEventLogEnabled() bool
+	IsRelayedNonceFixEnabled() bool
+	IsDeterministicSortOnValidatorsInfoFixEnabled() bool
+	IsKeepExecOrderOnCreatedSCRsEnabled() bool
+	IsMultiClaimOnDelegationEnabled() bool
+	IsChangeUsernameEnabled() bool
+	IsConsistentTokensValuesLengthCheckEnabled() bool
+	IsAutoBalanceDataTriesEnabled() bool
+	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
+	FixDelegationChangeOwnerOnAccountEnabled() bool
+	NFTStopCreateEnabled() bool
+	IsChangeOwnerAddressCrossShardThroughSCEnabled() bool
 
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
+type ManagedPeersHolder interface {
+	AddManagedPeer(privateKeyBytes []byte) error
+	GetPrivateKey(pkBytes []byte) (crypto.PrivateKey, error)
+	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
+	GetMachineID(pkBytes []byte) (string, error)
+	GetNameAndIdentity(pkBytes []byte) (string, string, error)
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
+	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
+	IsKeyRegistered(pkBytes []byte) bool
+	IsPidManagedByCurrentNode(pid core.PeerID) bool
+	IsKeyValidator(pkBytes []byte) bool
+	SetValidatorState(pkBytes []byte, state bool)
+	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
+	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
+	IsMultiKeyMode() bool
+	IsInterfaceNil() bool
+}
+
+// MissingTrieNodesNotifier defines the operations of an entity that notifies about missing trie nodes
+type MissingTrieNodesNotifier interface {
+	RegisterHandler(handler StateSyncNotifierSubscriber) error
+	AsyncNotifyMissingTrieNode(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// StateSyncNotifierSubscriber defines the operations of an entity that subscribes to a missing trie nodes notifier
+type StateSyncNotifierSubscriber interface {
+	MissingDataTrieNodeFound(hash []byte)
+	IsInterfaceNil() bool
+}
+
+// ManagedPeersMonitor defines the operations of an entity that monitors the managed peers holder
+type ManagedPeersMonitor interface {
+	GetManagedKeysCount() int
+	GetManagedKeys() [][]byte
+	GetEligibleManagedKeys() ([][]byte, error)
+	GetWaitingManagedKeys() ([][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TxExecutionOrderHandler is used to collect and provide the order of transactions execution
+type TxExecutionOrderHandler interface {
+	Add(txHash []byte)
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	Remove(txHash []byte)
+	RemoveMultiple(txHashes [][]byte)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Clear()
+	Len() int
+	IsInterfaceNil() bool
+}
+
+// ExecutionOrderGetter defines the functionality of a component that can return the execution order of a block transactions
+type ExecutionOrderGetter interface {
+	GetItemAtIndex(index uint32) ([]byte, error)
+	GetOrder(txHash []byte) (int, error)
+	GetItems() [][]byte
+	Contains(txHash []byte) bool
+	Len() int
 	IsInterfaceNil() bool
 }

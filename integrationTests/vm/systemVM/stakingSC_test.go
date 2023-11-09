@@ -8,15 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/multiShard/endOfEpoch"
-	integrationTestsVm "github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
+	integrationTestsVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -412,7 +413,7 @@ func manualSetToInactiveStateStakedPeers(t *testing.T, nodes []*integrationTests
 
 		for index := range nodes {
 			pubKey, _ := hex.DecodeString(generateUniqueKey(index))
-			peerAccount, _ := state.NewPeerAccount(pubKey)
+			peerAccount, _ := accounts.NewPeerAccount(pubKey)
 			peerAccount.List = string(common.InactiveList)
 			peerAccount.BLSPublicKey = pubKey
 			err := node.PeerState.SaveAccount(peerAccount)

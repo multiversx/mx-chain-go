@@ -1,7 +1,7 @@
 package resolvers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type baseSimpleResolver struct {

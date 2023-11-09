@@ -1,9 +1,9 @@
 package pruning
 
 import (
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // EpochStartNotifier defines what a component which will handle registration to epoch start event should do

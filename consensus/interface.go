@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // BlsConsensusType specifies the signature scheme used in the consensus
@@ -60,19 +60,20 @@ type ChronologyHandler interface {
 // BroadcastMessenger defines the behaviour of the broadcast messages by the consensus group
 type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
-	BroadcastHeader(data.HeaderHandler) error
-	BroadcastMiniBlocks(map[uint32][]byte) error
-	BroadcastTransactions(map[string][][]byte) error
+	BroadcastHeader(data.HeaderHandler, []byte) error
+	BroadcastMiniBlocks(map[uint32][]byte, []byte) error
+	BroadcastTransactions(map[string][][]byte, []byte) error
 	BroadcastConsensusMessage(*Message) error
-	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte) error
-	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, order int)
-	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int)
+	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
+	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
+	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 
 // P2PMessenger defines a subset of the p2p.Messenger interface
 type P2PMessenger interface {
 	Broadcast(topic string, buff []byte)
+	BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	IsInterfaceNil() bool
 }
 
@@ -160,18 +161,34 @@ type P2PSigningHandler interface {
 type PeerBlacklistHandler interface {
 	IsPeerBlacklisted(peer core.PeerID) bool
 	BlacklistPeer(peer core.PeerID, duration time.Duration)
+	Close() error
 	IsInterfaceNil() bool
 }
 
-// SignatureHandler defines the behaviour of a component that handles signatures in consensus
-type SignatureHandler interface {
+// SigningHandler defines the behaviour of a component that handles multi and single signatures used in consensus operations
+type SigningHandler interface {
 	Reset(pubKeys []string) error
-	CreateSignatureShare(msg []byte, index uint16, epoch uint32) ([]byte, error)
+	CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error)
+	VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShare(index uint16, sig []byte) error
 	SignatureShare(index uint16) ([]byte, error)
 	VerifySignatureShare(index uint16, sig []byte, msg []byte, epoch uint32) error
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	IsInterfaceNil() bool
+}
+
+// KeysHandler defines the operations implemented by a component that will manage all keys,
+// including the single signer keys or the set of multi-keys
+type KeysHandler interface {
+	GetHandledPrivateKey(pkBytes []byte) crypto.PrivateKey
+	GetP2PIdentity(pkBytes []byte) ([]byte, core.PeerID, error)
+	IsKeyManagedByCurrentNode(pkBytes []byte) bool
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
+	GetAssociatedPid(pkBytes []byte) core.PeerID
+	IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
 }

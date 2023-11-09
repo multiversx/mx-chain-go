@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 // codeMetadataHexForInitialSC used for initial SC deployment, set to upgrade-able
@@ -104,7 +104,7 @@ func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, 
 		Arguments: [][]byte{},
 	}
 
-	vmOutputVersion, err := dp.scQueryService.ExecuteQuery(scQueryVersion)
+	vmOutputVersion, _, err := dp.scQueryService.ExecuteQuery(scQueryVersion)
 	if err != nil {
 		return err
 	}

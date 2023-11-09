@@ -2,48 +2,53 @@ package integrationTests
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	dataBlock "github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/hashing/blake2b"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	mclMultiSig "github.com/ElrondNetwork/elrond-go-crypto/signing/mcl/multisig"
-	"github.com/ElrondNetwork/elrond-go-crypto/signing/multisig"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus/round"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/notifier"
-	cryptoFactory "github.com/ElrondNetwork/elrond-go/factory/crypto"
-	"github.com/ElrondNetwork/elrond-go/factory/peerSignatureHandler"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/node"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	syncFork "github.com/ElrondNetwork/elrond-go/process/sync"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	elrondShardingMocks "github.com/ElrondNetwork/elrond-go/sharding/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	testFactory "github.com/ElrondNetwork/elrond-go/testscommon/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon/nodeTypeProviderMock"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	statusHandlerMock "github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	vic "github.com/ElrondNetwork/elrond-go/testscommon/validatorInfoCacher"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus/round"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
+	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/keysManagement"
+	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/p2p"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	syncFork "github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/sharding"
+	chainShardingMocks "github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
 const (
@@ -51,46 +56,51 @@ const (
 	signatureSize    = 48
 	publicKeySize    = 96
 	maxShards        = 1
-	nodeShardId      = 0
 )
 
 var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
+// ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
+type ArgsTestConsensusNode struct {
+	ShardID       uint32
+	ConsensusSize int
+	RoundTime     uint64
+	ConsensusType string
+	NodeKeys      *TestNodeKeys
+	EligibleMap   map[uint32][]nodesCoordinator.Validator
+	WaitingMap    map[uint32][]nodesCoordinator.Validator
+	KeyGen        crypto.KeyGenerator
+	P2PKeyGen     crypto.KeyGenerator
+	MultiSigner   *cryptoMocks.MultisignerMock
+	StartTime     int64
+}
+
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
 type TestConsensusNode struct {
-	Node             *node.Node
-	Messenger        p2p.Messenger
-	NodesCoordinator nodesCoordinator.NodesCoordinator
-	ShardCoordinator sharding.Coordinator
-	ChainHandler     data.ChainHandler
-	BlockProcessor   *mock.BlockProcessorMock
-	ResolverFinder   dataRetriever.ResolversFinder
-	AccountsDB       *state.AccountsDB
-	NodeKeys         TestKeyPair
-	MultiSigner      cryptoMocks.MultisignerMock
+	Node                 *node.Node
+	MainMessenger        p2p.Messenger
+	FullArchiveMessenger p2p.Messenger
+	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	ShardCoordinator     sharding.Coordinator
+	ChainHandler         data.ChainHandler
+	BlockProcessor       *mock.BlockProcessorMock
+	RequestersFinder     dataRetriever.RequestersFinder
+	AccountsDB           *state.AccountsDB
+	NodeKeys             *TestKeyPair
+	MultiSigner          *cryptoMocks.MultisignerMock
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
-func NewTestConsensusNode(
-	shardID uint32,
-	consensusSize int,
-	roundTime uint64,
-	consensusType string,
-	nodeKeys TestKeyPair,
-	eligibleMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
-	keyGen crypto.KeyGenerator,
-	multiSigner cryptoMocks.MultisignerMock,
-) *TestConsensusNode {
+func NewTestConsensusNode(args ArgsTestConsensusNode) *TestConsensusNode {
 
-	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, shardID)
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, args.ShardID)
 
 	tcn := &TestConsensusNode{
-		NodeKeys:         nodeKeys,
+		NodeKeys:         args.NodeKeys.MainKey,
 		ShardCoordinator: shardCoordinator,
-		MultiSigner:      multiSigner,
+		MultiSigner:      args.MultiSigner,
 	}
-	tcn.initNode(consensusSize, roundTime, consensusType, eligibleMap, waitingMap, keyGen)
+	tcn.initNode(args)
 
 	return tcn
 }
@@ -102,33 +112,40 @@ func CreateNodesWithTestConsensusNode(
 	consensusSize int,
 	roundTime uint64,
 	consensusType string,
+	numKeysOnEachNode int,
 ) map[uint32][]*TestConsensusNode {
 
 	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
-	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards)
-	keysMap := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(nodesPerShard, numMetaNodes, maxShards, numKeysOnEachNode)
+	keysMap := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(keysMap, maxShards)
 	eligibleMap, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make(map[uint32][]Connectable, 0)
 
+	startTime := time.Now().Unix()
 	testHasher := createHasher(consensusType)
-	multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
-	multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
-	for shardID := range cp.Keys {
-		for _, keysPair := range cp.Keys[shardID] {
-			tcn := NewTestConsensusNode(
-				shardID,
-				consensusSize,
-				roundTime,
-				consensusType,
-				*keysPair,
-				eligibleMap,
-				waitingMap,
-				cp.KeyGen,
-				multiSignerMock,
-			)
+	for shardID := range cp.NodesKeys {
+		for _, keysPair := range cp.NodesKeys[shardID] {
+			multiSigner, _ := multisig.NewBLSMultisig(&mclMultiSig.BlsMultiSigner{Hasher: testHasher}, cp.KeyGen)
+			multiSignerMock := createCustomMultiSignerMock(multiSigner)
+
+			args := ArgsTestConsensusNode{
+				ShardID:       shardID,
+				ConsensusSize: consensusSize,
+				RoundTime:     roundTime,
+				ConsensusType: consensusType,
+				NodeKeys:      keysPair,
+				EligibleMap:   eligibleMap,
+				WaitingMap:    waitingMap,
+				KeyGen:        cp.KeyGen,
+				P2PKeyGen:     cp.P2PKeyGen,
+				MultiSigner:   multiSignerMock,
+				StartTime:     startTime,
+			}
+
+			tcn := NewTestConsensusNode(args)
 			nodes[shardID] = append(nodes[shardID], tcn)
 			connectableNodes[shardID] = append(connectableNodes[shardID], tcn)
 		}
@@ -141,8 +158,8 @@ func CreateNodesWithTestConsensusNode(
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) cryptoMocks.MultisignerMock {
-	multiSignerMock := cryptoMocks.MultisignerMock{}
+func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
+	multiSignerMock := &cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	}
@@ -159,45 +176,36 @@ func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) cryptoMocks.Mul
 	return multiSignerMock
 }
 
-func (tcn *TestConsensusNode) initNode(
-	consensusSize int,
-	roundTime uint64,
-	consensusType string,
-	eligibleMap map[uint32][]nodesCoordinator.Validator,
-	waitingMap map[uint32][]nodesCoordinator.Validator,
-	keyGen crypto.KeyGenerator,
-) {
-
-	testHasher := createHasher(consensusType)
+func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
+	testHasher := createHasher(args.ConsensusType)
 	epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
-	tcn.initNodesCoordinator(consensusSize, testHasher, epochStartRegistrationHandler, eligibleMap, waitingMap, pkBytes, consensusCache)
-	tcn.Messenger = CreateMessengerWithNoDiscovery()
+	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
+	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
+	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor()
-
-	startTime := time.Now().Unix()
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
 	roundHandler, _ := round.NewRound(
-		time.Unix(startTime, 0),
+		time.Unix(args.StartTime, 0),
 		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(roundTime),
+		time.Millisecond*time.Duration(args.RoundTime),
 		syncer,
 		0)
 
 	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 
 	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		GenesisTime:        time.Unix(startTime, 0),
+		GenesisTime:        time.Unix(args.StartTime, 0),
 		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
 		Settings: &config.EpochStartConfig{
 			MinRoundsBetweenEpochs: 1,
-			RoundsPerEpoch:         3,
+			RoundsPerEpoch:         1000,
 		},
 		Epoch:            0,
 		Storage:          createTestStore(),
@@ -212,15 +220,15 @@ func (tcn *TestConsensusNode) initNode(
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
-		startTime,
+		args.StartTime,
 	)
 
-	tcn.initResolverFinder()
+	tcn.initRequestersFinder()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
-	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, keyGen)
+	peerSigHandler, _ := peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, TestSingleBlsSigner, args.KeyGen)
 
-	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(&tcn.MultiSigner)
+	multiSigContainer := cryptoMocks.NewMultiSignerContainerMock(tcn.MultiSigner)
 	privKey := tcn.NodeKeys.Sk
 	pubKey := tcn.NodeKeys.Sk.GeneratePublic()
 
@@ -235,26 +243,53 @@ func (tcn *TestConsensusNode) initNode(
 	coreComponents.ChainIdCalled = func() string {
 		return string(ChainID)
 	}
-	coreComponents.GenesisTimeField = time.Unix(startTime, 0)
+	coreComponents.GenesisTimeField = time.Unix(args.StartTime, 0)
 	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
-			return uint32(consensusSize)
+			return uint32(args.ConsensusSize)
 		},
 		GetMetaConsensusGroupSizeCalled: func() uint32 {
-			return uint32(consensusSize)
+			return uint32(args.ConsensusSize)
 		},
 	}
 
-	pubKeyBytes, _ := pubKey.ToByteArray()
-	pubKeyString := coreComponents.ValidatorPubKeyConverterField.Encode(pubKeyBytes)
-	privKeyBytes, _ := privKey.ToByteArray()
-	signatureHolderArgs := cryptoFactory.ArgsSignatureHolder{
-		PubKeys:              []string{pubKeyString},
-		PrivKeyBytes:         privKeyBytes,
-		MultiSignerContainer: multiSigContainer,
-		KeyGenerator:         keyGen,
+	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
+		KeyGenerator:          args.KeyGen,
+		P2PKeyGenerator:       args.P2PKeyGen,
+		MaxRoundsOfInactivity: 0,
+		PrefsConfig:           config.Preferences{},
+		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
-	sigHandler, _ := cryptoFactory.NewSignatureHolder(signatureHolderArgs)
+	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
+
+	// adding provided handled keys
+	for _, key := range args.NodeKeys.HandledKeys {
+		skBytes, _ := key.Sk.ToByteArray()
+		_ = keysHolder.AddManagedPeer(skBytes)
+	}
+
+	pubKeyBytes, _ := pubKey.ToByteArray()
+	pubKeyString := coreComponents.ValidatorPubKeyConverterField.SilentEncode(pubKeyBytes, log)
+	argsKeysHandler := keysManagement.ArgsKeysHandler{
+		ManagedPeersHolder: keysHolder,
+		PrivateKey:         tcn.NodeKeys.Sk,
+		Pid:                tcn.MainMessenger.ID(),
+	}
+	keysHandler, _ := keysManagement.NewKeysHandler(argsKeysHandler)
+
+	signingHandlerArgs := cryptoFactory.ArgsSigningHandler{
+		PubKeys:              []string{pubKeyString},
+		MultiSignerContainer: multiSigContainer,
+		KeyGenerator:         args.KeyGen,
+		KeysHandler:          keysHandler,
+		SingleSigner:         TestSingleBlsSigner,
+	}
+	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
+
+	networkComponents := GetDefaultNetworkComponents()
+	networkComponents.Messenger = tcn.MainMessenger
+	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
+	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = privKey
@@ -262,16 +297,17 @@ func (tcn *TestConsensusNode) initNode(
 	cryptoComponents.BlockSig = TestSingleBlsSigner
 	cryptoComponents.TxSig = TestSingleSigner
 	cryptoComponents.MultiSigContainer = multiSigContainer
-	cryptoComponents.BlKeyGen = keyGen
+	cryptoComponents.BlKeyGen = args.KeyGen
 	cryptoComponents.PeerSignHandler = peerSigHandler
 	cryptoComponents.SigHandler = sigHandler
+	cryptoComponents.KeysHandlerField = keysHandler
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
 	processComponents.ShardCoord = tcn.ShardCoordinator
 	processComponents.NodesCoord = tcn.NodesCoordinator
 	processComponents.BlockProcess = tcn.BlockProcessor
-	processComponents.ResFinder = tcn.ResolverFinder
+	processComponents.ReqFinder = tcn.RequestersFinder
 	processComponents.EpochTrigger = epochStartTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
 	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}
@@ -279,7 +315,8 @@ func (tcn *TestConsensusNode) initNode(
 	processComponents.HeaderSigVerif = &mock.HeaderSigVerifierStub{}
 	processComponents.HeaderIntegrVerif = &mock.HeaderIntegrityVerifierStub{}
 	processComponents.ReqHandler = &testscommon.RequestHandlerStub{}
-	processComponents.PeerMapper = mock.NewNetworkShardingCollectorMock()
+	processComponents.MainPeerMapper = mock.NewNetworkShardingCollectorMock()
+	processComponents.FullArchivePeerMapper = mock.NewNetworkShardingCollectorMock()
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
@@ -292,11 +329,6 @@ func (tcn *TestConsensusNode) initNode(
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB
 	stateComponents.AccountsAPI = tcn.AccountsDB
-
-	networkComponents := GetDefaultNetworkComponents()
-	networkComponents.Messenger = tcn.Messenger
-	networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
-	networkComponents.PeerHonesty = &mock.PeerHonestyHandlerStub{}
 
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
@@ -311,10 +343,10 @@ func (tcn *TestConsensusNode) initNode(
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithNetworkComponents(networkComponents),
-		node.WithRoundDuration(roundTime),
-		node.WithConsensusGroupSize(consensusSize),
-		node.WithConsensusType(consensusType),
-		node.WithGenesisTime(time.Unix(startTime, 0)),
+		node.WithRoundDuration(args.RoundTime),
+		node.WithConsensusGroupSize(args.ConsensusSize),
+		node.WithConsensusType(args.ConsensusType),
+		node.WithGenesisTime(time.Unix(args.StartTime, 0)),
 		node.WithValidatorSignatureSize(signatureSize),
 		node.WithPublicKeySize(publicKeySize),
 	)
@@ -346,14 +378,15 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		WaitingNodes:            waitingMap,
 		SelfPublicKey:           pkBytes,
 		ConsensusGroupCache:     cache,
-		ShuffledOutHandler:      &elrondShardingMocks.ShuffledOutHandlerStub{},
+		ShuffledOutHandler:      &chainShardingMocks.ShuffledOutHandlerStub{},
 		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsWaitingListFixFlagEnabledField: true,
 		},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:   tcn.ShardCoordinator.SelfId(),
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -396,11 +429,20 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 
 func (tcn *TestConsensusNode) initBlockProcessor() {
 	tcn.BlockProcessor = &mock.BlockProcessorMock{
+		Marshalizer: TestMarshalizer,
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+			tcn.BlockProcessor.NumCommitBlockCalled++
+			headerHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
+			tcn.ChainHandler.SetCurrentBlockHeaderHash(headerHash)
 			_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+
 			return nil
 		},
 		CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			_ = header.SetAccumulatedFees(big.NewInt(0))
+			_ = header.SetDeveloperFees(big.NewInt(0))
+			_ = header.SetRootHash([]byte("roothash"))
+
 			return header, &dataBlock.Body{}, nil
 		},
 		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
@@ -416,28 +458,21 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 			}, nil
 		},
 	}
-
-	tcn.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-		tcn.BlockProcessor.NrCommitBlockCalled++
-		_ = tcn.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
-		return nil
-	}
-	tcn.BlockProcessor.Marshalizer = TestMarshalizer
 }
 
-func (tcn *TestConsensusNode) initResolverFinder() {
-	hdrResolver := &mock.HeaderResolverStub{}
-	mbResolver := &mock.MiniBlocksResolverStub{}
-	tcn.ResolverFinder = &mock.ResolversFinderStub{
-		IntraShardResolverCalled: func(baseTopic string) (resolver dataRetriever.Resolver, e error) {
+func (tcn *TestConsensusNode) initRequestersFinder() {
+	hdrRequester := &dataRetrieverMock.HeaderRequesterStub{}
+	mbRequester := &dataRetrieverMock.HashSliceRequesterStub{}
+	tcn.RequestersFinder = &dataRetrieverMock.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (resolver dataRetriever.Requester, e error) {
 			if baseTopic == factory.MiniBlocksTopic {
-				return mbResolver, nil
+				return mbRequester, nil
 			}
 			return nil, nil
 		},
-		CrossShardResolverCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Resolver, err error) {
+		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (resolver dataRetriever.Requester, err error) {
 			if baseTopic == factory.ShardBlocksTopic {
-				return hdrResolver, nil
+				return hdrRequester, nil
 			}
 			return nil, nil
 		},
@@ -479,22 +514,40 @@ func createTestStore() dataRetriever.StorageService {
 	return store
 }
 
-// ConnectTo will try to initiate a connection to the provided parameter
-func (tcn *TestConsensusNode) ConnectTo(connectable Connectable) error {
+// ConnectOnMain will try to initiate a connection to the provided parameter on the main messenger
+func (tcn *TestConsensusNode) ConnectOnMain(connectable Connectable) error {
 	if check.IfNil(connectable) {
 		return fmt.Errorf("trying to connect to a nil Connectable parameter")
 	}
 
-	return tcn.Messenger.ConnectToPeer(connectable.GetConnectableAddress())
+	return tcn.MainMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
 }
 
-// GetConnectableAddress returns a non circuit, non windows default connectable p2p address
-func (tcn *TestConsensusNode) GetConnectableAddress() string {
+// ConnectOnFullArchive will try to initiate a connection to the provided parameter on the full archive messenger
+func (tcn *TestConsensusNode) ConnectOnFullArchive(connectable Connectable) error {
+	if check.IfNil(connectable) {
+		return fmt.Errorf("trying to connect to a nil Connectable parameter")
+	}
+
+	return tcn.FullArchiveMessenger.ConnectToPeer(connectable.GetMainConnectableAddress())
+}
+
+// GetMainConnectableAddress returns a non circuit, non windows default connectable p2p address
+func (tcn *TestConsensusNode) GetMainConnectableAddress() string {
 	if tcn == nil {
 		return "nil"
 	}
 
-	return GetConnectableAddress(tcn.Messenger)
+	return GetConnectableAddress(tcn.MainMessenger)
+}
+
+// GetFullArchiveConnectableAddress returns a non circuit, non windows default connectable p2p address of the full archive network
+func (tcn *TestConsensusNode) GetFullArchiveConnectableAddress() string {
+	if tcn == nil {
+		return "nil"
+	}
+
+	return GetConnectableAddress(tcn.FullArchiveMessenger)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

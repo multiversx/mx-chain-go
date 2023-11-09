@@ -5,11 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/require"
 )
+
+var testTrieSyncersVal = &mock.TrieSyncersStub{}
 
 func TestNewTrieSyncersContainer(t *testing.T) {
 	t.Parallel()
@@ -18,82 +20,157 @@ func TestNewTrieSyncersContainer(t *testing.T) {
 	require.False(t, check.IfNil(tsc))
 }
 
-func TestTrieSyncers_AddGetShouldWork(t *testing.T) {
+func TestTrieSyncers_Get(t *testing.T) {
 	t.Parallel()
 
-	tsc := NewTrieSyncersContainer()
-	testKey := "key"
-	testVal := &mock.TrieSyncersStub{}
-	err := tsc.Add(testKey, testVal)
-	require.NoError(t, err)
+	t.Run("missing key should error", func(t *testing.T) {
+		t.Parallel()
 
-	res, err := tsc.Get(testKey)
-	require.NoError(t, err)
-	require.Equal(t, testVal, res)
+		tsc := NewTrieSyncersContainer()
+		val, err := tsc.Get(testKey)
+		require.Equal(t, update.ErrInvalidContainerKey, err)
+		require.Nil(t, val)
+	})
+	t.Run("invalid data should error", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+
+		_ = tsc.AddInterface(testKey, "not an account db syncer")
+		val, err := tsc.Get(testKey)
+		require.Equal(t, update.ErrWrongTypeInContainer, err)
+		require.Nil(t, val)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+		err := tsc.Add(testKey, testTrieSyncersVal)
+		require.NoError(t, err)
+
+		res, err := tsc.Get(testKey)
+		require.NoError(t, err)
+		require.Equal(t, testTrieSyncersVal, res)
+	})
 }
 
-func TestTrieSyncers_AddMultipleShouldWork(t *testing.T) {
+func TestTrieSyncers_Add(t *testing.T) {
 	t.Parallel()
 
-	tsc := NewTrieSyncersContainer()
+	t.Run("nil value should error", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+		err := tsc.Add(testKey, nil)
+		require.Equal(t, update.ErrNilContainerElement, err)
+	})
+	t.Run("duplicated key should error", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+		err := tsc.Add(testKey, testTrieSyncersVal)
+		require.NoError(t, err)
+
+		err = tsc.Add(testKey, testTrieSyncersVal)
+		require.Equal(t, update.ErrContainerKeyAlreadyExists, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+		err := tsc.Add(testKey, testTrieSyncersVal)
+		require.NoError(t, err)
+	})
+}
+
+func TestTrieSyncers_AddMultiple(t *testing.T) {
+	t.Parallel()
+
 	testKey0 := "key0"
-	testVal0 := &mock.TrieSyncersStub{}
+	testTrieSyncersVal0 := &mock.TrieSyncersStub{}
 	testKey1 := "key1"
-	testVal1 := &mock.TrieSyncersStub{}
+	testTrieSyncersVal1 := &mock.TrieSyncersStub{}
 
-	err := tsc.AddMultiple([]string{testKey0, testKey1}, []update.TrieSyncer{testVal0, testVal1})
-	require.NoError(t, err)
+	t.Run("different lengths should error", func(t *testing.T) {
+		t.Parallel()
 
-	res0, err := tsc.Get(testKey0)
-	require.NoError(t, err)
-	require.Equal(t, testVal0, res0)
+		tsc := NewTrieSyncersContainer()
+		err := tsc.AddMultiple([]string{testKey0}, nil)
+		require.Equal(t, update.ErrLenMismatch, err)
+	})
+	t.Run("duplicated keys should error on Add", func(t *testing.T) {
+		t.Parallel()
 
-	res1, err := tsc.Get(testKey1)
-	require.NoError(t, err)
-	require.Equal(t, testVal1, res1)
+		tsc := NewTrieSyncersContainer()
+		err := tsc.AddMultiple([]string{testKey0, testKey1, testKey1}, []update.TrieSyncer{testTrieSyncersVal0, testTrieSyncersVal1, testTrieSyncersVal1})
+		require.Equal(t, update.ErrContainerKeyAlreadyExists, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	require.Equal(t, 2, tsc.Len())
+		tsc := NewTrieSyncersContainer()
+
+		err := tsc.AddMultiple([]string{testKey0, testKey1}, []update.TrieSyncer{testTrieSyncersVal0, testTrieSyncersVal1})
+		require.NoError(t, err)
+
+		res0, err := tsc.Get(testKey0)
+		require.NoError(t, err)
+		require.Equal(t, testTrieSyncersVal0, res0)
+
+		res1, err := tsc.Get(testKey1)
+		require.NoError(t, err)
+		require.Equal(t, testTrieSyncersVal1, res1)
+
+		require.Equal(t, 2, tsc.Len())
+	})
 }
 
-func TestTrieSyncers_ReplaceShouldWork(t *testing.T) {
+func TestTrieSyncers_Replace(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil val should error", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+		err := tsc.Replace(testKey, nil)
+		require.Equal(t, update.ErrNilContainerElement, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tsc := NewTrieSyncersContainer()
+		err := tsc.Add(testKey, testTrieSyncersVal)
+		require.NoError(t, err)
+
+		res, err := tsc.Get(testKey)
+		require.NoError(t, err)
+		require.Equal(t, testTrieSyncersVal, res)
+
+		// update
+		newtestTrieSyncersVal := &mock.TrieSyncersStub{
+			StartSyncingCalled: func(_ []byte, _ context.Context) error {
+				return errors.New("local err")
+			},
+		}
+		err = tsc.Replace(testKey, newtestTrieSyncersVal)
+		require.NoError(t, err)
+
+		res, err = tsc.Get(testKey)
+		require.NoError(t, err)
+		require.Equal(t, newtestTrieSyncersVal, res)
+	})
+}
+
+func TestTrieSyncers_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tsc := NewTrieSyncersContainer()
-	testKey := "key"
-	testVal := &mock.TrieSyncersStub{}
-	err := tsc.Add(testKey, testVal)
+	err := tsc.Add(testKey, testTrieSyncersVal)
 	require.NoError(t, err)
 
 	res, err := tsc.Get(testKey)
 	require.NoError(t, err)
-	require.Equal(t, testVal, res)
-
-	// update
-	newTestVal := &mock.TrieSyncersStub{
-		StartSyncingCalled: func(_ []byte, _ context.Context) error {
-			return errors.New("local err")
-		},
-	}
-	err = tsc.Replace(testKey, newTestVal)
-	require.NoError(t, err)
-
-	res, err = tsc.Get(testKey)
-	require.NoError(t, err)
-	require.Equal(t, newTestVal, res)
-}
-
-func TestTrieSyncers_DeleteShouldWork(t *testing.T) {
-	t.Parallel()
-
-	tsc := NewTrieSyncersContainer()
-	testKey := "key"
-	testVal := &mock.TrieSyncersStub{}
-	err := tsc.Add(testKey, testVal)
-	require.NoError(t, err)
-
-	res, err := tsc.Get(testKey)
-	require.NoError(t, err)
-	require.Equal(t, testVal, res)
+	require.Equal(t, testTrieSyncersVal, res)
 
 	tsc.Remove(testKey)
 

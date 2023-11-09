@@ -5,20 +5,21 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/database"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +76,7 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 		ShardCoordinator:    shardCoordinator,
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	return argsNewEpochStartData
 }
@@ -706,7 +707,7 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldNotSetReserved(t *testing.T) {
 	partialExecutionEnableEpoch := uint32(5)
 
 	arguments := createMockEpochStartCreatorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
 	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
@@ -732,7 +733,7 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 	partialExecutionEnableEpoch := uint32(5)
 
 	arguments := createMockEpochStartCreatorArguments()
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
 	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{

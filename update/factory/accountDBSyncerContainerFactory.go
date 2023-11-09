@@ -3,21 +3,21 @@ package factory
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/throttler"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state/syncer"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
-	"github.com/ElrondNetwork/elrond-go/trie/storageMarker"
-	"github.com/ElrondNetwork/elrond-go/update"
-	containers "github.com/ElrondNetwork/elrond-go/update/container"
-	"github.com/ElrondNetwork/elrond-go/update/genesis"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/update"
+	containers "github.com/multiversx/mx-chain-go/update/container"
+	"github.com/multiversx/mx-chain-go/update/genesis"
 )
 
 // ArgsNewAccountsDBSyncersContainerFactory defines the arguments needed to create accounts DB syncers container
@@ -35,6 +35,7 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	TrieSyncerVersion         int
 	CheckNodesOnDisk          bool
 	AddressPubKeyConverter    core.PubkeyConverter
+	EnableEpochsHandler       common.EnableEpochsHandler
 }
 
 type accountDBSyncersContainerFactory struct {
@@ -52,6 +53,7 @@ type accountDBSyncersContainerFactory struct {
 	trieSyncerVersion         int
 	checkNodesOnDisk          bool
 	addressPubKeyConverter    core.PubkeyConverter
+	enableEpochsHandler       common.EnableEpochsHandler
 }
 
 // NewAccountsDBSContainerFactory creates a factory for trie syncers container
@@ -87,6 +89,9 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, update.ErrNilPubKeyConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, update.ErrNilEnableEpochsHandler
+	}
 
 	t := &accountDBSyncersContainerFactory{
 		shardCoordinator:          args.ShardCoordinator,
@@ -102,6 +107,7 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		trieSyncerVersion:         args.TrieSyncerVersion,
 		checkNodesOnDisk:          args.CheckNodesOnDisk,
 		addressPubKeyConverter:    args.AddressPubKeyConverter,
+		enableEpochsHandler:       args.EnableEpochsHandler,
 	}
 
 	return t, nil
@@ -149,8 +155,9 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  disabled.NewAppStatusHandler(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 		ShardId:                shardId,
 		Throttler:              thr,
@@ -178,8 +185,9 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
+			AppStatusHandler:                  disabled.NewAppStatusHandler(),
+			EnableEpochsHandler:               a.enableEpochsHandler,
 		},
 	}
 	accountSyncer, err := syncer.NewValidatorAccountsSyncer(args)

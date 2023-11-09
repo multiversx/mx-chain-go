@@ -3,7 +3,7 @@ package holders
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,4 +34,14 @@ func TestNewRootHashHolder_String(t *testing.T) {
 	)
 	expectedString := "root hash rootHash, epoch 5, has value true"
 	assert.Equal(t, expectedString, holder.String())
+}
+
+func TestNewRootHashHolder_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var holder *rootHashHolder
+	require.True(t, holder.IsInterfaceNil())
+
+	holder = NewRootHashHolder([]byte("rootHash"), core.OptionalUint32{})
+	require.False(t, holder.IsInterfaceNil())
 }

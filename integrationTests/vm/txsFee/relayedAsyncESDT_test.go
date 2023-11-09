@@ -1,7 +1,6 @@
 //go:build !race
-// +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
@@ -10,34 +9,35 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789012")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
-	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -55,7 +55,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
 	innerTx.Data = []byte(string(innerTx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractHalf")))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -75,14 +75,6 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(5003570)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "5003570", indexerTx.Fee)
 }
 
 func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
@@ -90,21 +82,20 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789012")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
-	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -122,7 +113,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
 	innerTx.Data = []byte(string(innerTx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractRejected")))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -142,14 +133,6 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(4003740)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, uint64(400374), indexerTx.GasUsed)
-	require.Equal(t, "4003740", indexerTx.Fee)
 }
 
 func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
@@ -157,21 +140,20 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	egldBalance := big.NewInt(100000000)
+	localEgldBalance := big.NewInt(100000000)
 	ownerAddr := []byte("12345678901234567890123456789010")
-	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, egldBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, ownerAddr, 0, localEgldBalance)
 
 	// create an address with ESDT token
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789012")
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, esdtBalance)
-	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, egldBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
-	gasPrice := uint64(10)
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
@@ -189,7 +171,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	innerTx := utils.CreateESDTTransferTx(0, sndAddr, firstSCAddress, token, big.NewInt(5000), gasPrice, gasLimit)
 	innerTx.Data = []byte(string(innerTx.Data) + "@" + hex.EncodeToString([]byte("transferToSecondContractHalf")))
 
-	rtxData := utils.PrepareRelayerTxData(innerTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -210,12 +192,4 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 	expectedAccumulatedFees := big.NewInt(23550)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(rtx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, rtx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "23550", indexerTx.Fee)
 }

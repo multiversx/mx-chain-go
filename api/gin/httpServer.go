@@ -5,15 +5,15 @@ import (
 	"net/http"
 	"time"
 
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 )
 
 type httpServer struct {
-	server *http.Server
+	server server
 }
 
 // NewHttpServer returns a new instance of httpServer
-func NewHttpServer(server *http.Server) (*httpServer, error) {
+func NewHttpServer(server server) (*httpServer, error) {
 	if server == nil {
 		return nil, apiErrors.ErrNilHttpServer
 	}
@@ -27,15 +27,18 @@ func NewHttpServer(server *http.Server) (*httpServer, error) {
 // called on a go routine (different from the main one)
 func (h *httpServer) Start() {
 	err := h.server.ListenAndServe()
-	if err != nil {
-		if err != http.ErrServerClosed {
-			log.Error("could not start webserver",
-				"error", err.Error(),
-			)
-		} else {
-			log.Debug("ListenAndServe - webserver closed")
-		}
+	if err == nil {
+		return
 	}
+
+	if err == http.ErrServerClosed {
+		log.Debug("ListenAndServe - webserver closed")
+		return
+	}
+
+	log.Error("could not start webserver",
+		"error", err.Error(),
+	)
 }
 
 // Close will handle the stopping of the gin web server

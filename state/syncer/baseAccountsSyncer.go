@@ -7,14 +7,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/trie"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie"
 )
 
 type baseAccountsSyncer struct {
@@ -27,13 +27,13 @@ type baseAccountsSyncer struct {
 	timeoutHandler                    trie.TimeoutHandler
 	shardId                           uint32
 	cacher                            storage.Cacher
-	rootHash                          []byte
 	maxTrieLevelInMemory              uint
 	name                              string
 	maxHardCapForMissingNodes         int
 	checkNodesOnDisk                  bool
-	storageMarker                     trie.StorageMarker
 	userAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	appStatusHandler                  core.AppStatusHandler
+	enableEpochsHandler               common.EnableEpochsHandler
 
 	trieSyncerVersion int
 	numTriesSynced    int32
@@ -47,11 +47,12 @@ type ArgsNewBaseAccountsSyncer struct {
 	Hasher                            hashing.Hasher
 	Marshalizer                       marshal.Marshalizer
 	TrieStorageManager                common.StorageManager
-	StorageMarker                     trie.StorageMarker
 	RequestHandler                    trie.RequestHandler
 	Timeout                           time.Duration
 	Cacher                            storage.Cacher
 	UserAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
+	AppStatusHandler                  core.AppStatusHandler
+	EnableEpochsHandler               common.EnableEpochsHandler
 	MaxTrieLevelInMemory              uint
 	MaxHardCapForMissingNodes         int
 	TrieSyncerVersion                 int
@@ -77,6 +78,12 @@ func checkArgs(args ArgsNewBaseAccountsSyncer) error {
 	if check.IfNil(args.UserAccountsSyncStatisticsHandler) {
 		return state.ErrNilSyncStatisticsHandler
 	}
+	if check.IfNil(args.AppStatusHandler) {
+		return state.ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return state.ErrNilEnableEpochsHandler
+	}
 	if args.MaxHardCapForMissingNodes < 1 {
 		return state.ErrInvalidMaxHardCapForMissingNodes
 	}
@@ -88,15 +95,11 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	rootHash []byte,
 	trieTopic string,
 	ctx context.Context,
-) (common.Trie, error) {
-	b.rootHash = rootHash
+	leavesChan chan core.KeyValueHolder,
+) error {
 	atomic.AddInt32(&b.numMaxTries, 1)
 
 	log.Trace("syncing main trie", "roothash", rootHash)
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
-	if err != nil {
-		return nil, err
-	}
 
 	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
@@ -111,25 +114,26 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
 		CheckNodesOnDisk:          b.checkNodesOnDisk,
+		LeavesChan:                leavesChan,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = trieSyncer.StartSyncing(rootHash, ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	atomic.AddInt32(&b.numTriesSynced, 1)
 
 	log.Trace("finished syncing main trie", "roothash", rootHash)
 
-	return dataTrie.Recreate(rootHash)
+	return nil
 }
 
-func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
+func (b *baseAccountsSyncer) printStatisticsAndUpdateMetrics(ctx context.Context) {
 	lastDataReceived := uint64(0)
 	peakDataReceived := uint64(0)
 	startedSync := time.Now()
@@ -154,6 +158,7 @@ func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
 				"average processing speed", averageSpeed,
 			)
 			b.userAccountsSyncStatisticsHandler.Reset()
+			b.updateMetrics()
 			return
 		case <-time.After(timeBetweenStatisticsPrints):
 			bytesReceivedDelta := b.userAccountsSyncStatisticsHandler.NumBytesReceived() - lastDataReceived
@@ -181,8 +186,15 @@ func (b *baseAccountsSyncer) printStatistics(ctx context.Context) {
 				"iterations", b.userAccountsSyncStatisticsHandler.NumIterations(),
 				"CPU time", b.userAccountsSyncStatisticsHandler.ProcessingTime(),
 				"processing speed", speed)
+
+			b.updateMetrics()
 		}
 	}
+}
+
+func (b *baseAccountsSyncer) updateMetrics() {
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(b.userAccountsSyncStatisticsHandler.NumProcessed()))
+	b.appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, b.userAccountsSyncStatisticsHandler.NumBytesReceived())
 }
 
 func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string {
@@ -203,7 +215,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)

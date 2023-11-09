@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/shared"
 )
 
 type throttlerGetter interface {

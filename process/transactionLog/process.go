@@ -4,16 +4,16 @@ import (
 	"encoding/hex"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.TransactionLogProcessor = (*txLogProcessor)(nil)
@@ -153,10 +153,11 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 
 	for _, logEntry := range logEntries {
 		txLog.Events = append(txLog.Events, &transaction.Event{
-			Identifier: logEntry.Identifier,
-			Address:    logEntry.Address,
-			Topics:     logEntry.Topics,
-			Data:       logEntry.Data,
+			Identifier:     logEntry.Identifier,
+			Address:        logEntry.Address,
+			Topics:         logEntry.Topics,
+			Data:           logEntry.GetFirstDataItem(),
+			AdditionalData: logEntry.Data,
 		})
 	}
 

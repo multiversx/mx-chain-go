@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 func TestSnapshotStatistics_Concurrency(t *testing.T) {
@@ -21,7 +21,7 @@ func TestSnapshotStatistics_Concurrency(t *testing.T) {
 	for i := 0; i < numRuns; i++ {
 		ss.NewSnapshotStarted()
 		go func() {
-			ss.AddTrieStats(getTrieStatsDTO(5, 60).GetTrieStats())
+			ss.AddTrieStats(getTrieStatsDTO(5, 60), common.DataTrie)
 			ss.SnapshotFinished()
 		}()
 	}

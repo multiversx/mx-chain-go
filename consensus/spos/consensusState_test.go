@@ -1,19 +1,25 @@
 package spos_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func internalInitConsensusState() *spos.ConsensusState {
+	return internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+}
+
+func internalInitConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	eligibleList := []string{"1", "2", "3"}
 
 	eligibleNodesPubKeys := make(map[string]struct{})
@@ -21,10 +27,12 @@ func internalInitConsensusState() *spos.ConsensusState {
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
 
-	rcns := spos.NewRoundConsensus(
+	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		3,
-		"2")
+		"2",
+		keysHandler,
+	)
 
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
@@ -495,4 +503,82 @@ func TestConsensusState_SetAndGetProcessingBlockShouldWork(t *testing.T) {
 	cns.SetProcessingBlock(true)
 
 	assert.Equal(t, true, cns.ProcessingBlock())
+}
+
+func TestConsensusState_IsMultiKeyLeaderInCurrentRound(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+	t.Run("no managed keys from consensus group should return false", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return false
+		}
+		assert.False(t, cns.IsMultiKeyLeaderInCurrentRound())
+	})
+	t.Run("node has managed keys but no managed key is leader should return false", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("2"), pkBytes)
+		}
+
+		assert.False(t, cns.IsMultiKeyLeaderInCurrentRound())
+	})
+	t.Run("node has managed keys and one key is leader should return true", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte("1"), pkBytes)
+		}
+
+		assert.True(t, cns.IsMultiKeyLeaderInCurrentRound())
+	})
+}
+
+func TestConsensusState_IsLeaderJobDone(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+	t.Run("should work", func(t *testing.T) {
+		assert.False(t, cns.IsLeaderJobDone(0))
+		leader, _ := cns.GetLeader()
+		_ = cns.SetJobDone(leader, 0, true)
+		assert.True(t, cns.IsLeaderJobDone(0))
+	})
+	t.Run("GetLeader errors should return false", func(t *testing.T) {
+		leader, _ := cns.GetLeader()
+		_ = cns.SetJobDone(leader, 0, true)
+		cns.SetConsensusGroup(make([]string, 0))
+		assert.False(t, cns.IsLeaderJobDone(0))
+	})
+}
+
+func TestConsensusState_IsMultiKeyJobDone(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+	managedKeyInConsensus := "1"
+	managedKeyNotInConsensus := "managed key not in consensus group"
+	t.Run("no managed keys should return true", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return false
+		}
+
+		assert.True(t, cns.IsMultiKeyJobDone(0))
+	})
+	t.Run("node has managed keys but no key is in consensus group should return true", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte(managedKeyNotInConsensus), pkBytes)
+		}
+
+		assert.True(t, cns.IsMultiKeyJobDone(0))
+	})
+	t.Run("node has managed keys and one key is in consensus group", func(t *testing.T) {
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return bytes.Equal([]byte(managedKeyInConsensus), pkBytes)
+		}
+
+		assert.False(t, cns.IsMultiKeyJobDone(0))
+		_ = cns.SetJobDone(managedKeyInConsensus, 0, true)
+		assert.True(t, cns.IsMultiKeyJobDone(0))
+	})
 }

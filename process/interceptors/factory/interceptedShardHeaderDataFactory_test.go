@@ -3,11 +3,11 @@ package factory
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,18 +1,18 @@
 package sposFactory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/broadcast"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos/bls"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // GetSubroundsFactory returns a subrounds factory depending on the given parameter
@@ -23,6 +23,7 @@ func GetSubroundsFactory(
 	consensusType string,
 	appStatusHandler core.AppStatusHandler,
 	outportHandler outport.OutportHandler,
+	sentSignatureTracker spos.SentSignaturesTracker,
 	chainID []byte,
 	currentPid core.PeerID,
 ) (spos.SubroundsFactory, error) {
@@ -35,6 +36,7 @@ func GetSubroundsFactory(
 			chainID,
 			currentPid,
 			appStatusHandler,
+			sentSignatureTracker,
 		)
 		if err != nil {
 			return nil, err
@@ -64,11 +66,11 @@ func GetBroadcastMessenger(
 	hasher hashing.Hasher,
 	messenger consensus.P2PMessenger,
 	shardCoordinator sharding.Coordinator,
-	privateKey crypto.PrivateKey,
 	peerSignatureHandler crypto.PeerSignatureHandler,
 	headersSubscriber consensus.HeadersPoolSubscriber,
 	interceptorsContainer process.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
+	keysHandler consensus.KeysHandler,
 ) (consensus.BroadcastMessenger, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -79,7 +81,6 @@ func GetBroadcastMessenger(
 		Marshalizer:                marshalizer,
 		Hasher:                     hasher,
 		Messenger:                  messenger,
-		PrivateKey:                 privateKey,
 		ShardCoordinator:           shardCoordinator,
 		PeerSignatureHandler:       peerSignatureHandler,
 		HeadersSubscriber:          headersSubscriber,
@@ -87,6 +88,7 @@ func GetBroadcastMessenger(
 		MaxValidatorDelayCacheSize: maxDelayCacheSize,
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
+		KeysHandler:                keysHandler,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

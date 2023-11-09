@@ -3,7 +3,7 @@ package preprocess
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 // SortedTransactionsProvider defines the public API of the transactions cache

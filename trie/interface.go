@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type node interface {
@@ -24,37 +24,38 @@ type node interface {
 	isPosCollapsed(pos int) bool
 	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsed(pos byte, db common.DBWriteCacher) error
+	resolveCollapsed(pos byte, db common.TrieStorageInteractor) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, depth uint32, db common.DBWriteCacher) ([]byte, uint32, error)
-	getNext(key []byte, db common.DBWriteCacher) (node, []byte, error)
-	insert(n *leafNode, db common.DBWriteCacher) (node, [][]byte, error)
-	delete(key []byte, db common.DBWriteCacher) (bool, node, [][]byte, error)
+	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
+	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
+	insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error)
+	delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
-	print(writer io.Writer, index int, db common.DBWriteCacher)
+	print(writer io.Writer, index int, db common.TrieStorageInteractor)
 	getDirtyHashes(common.ModifiedHashes) error
-	getChildren(db common.DBWriteCacher) ([]node, error)
+	getChildren(db common.TrieStorageInteractor) ([]node, error)
 	isValid() bool
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
-	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.DBWriteCacher, marshal.Marshalizer, chan struct{}, context.Context) error
-	getAllHashes(db common.DBWriteCacher) ([][]byte, error)
+	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
+	getAllHashes(db common.TrieStorageInteractor) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
-	getNumNodes() common.NumNodesDTO
 	getValue() []byte
+	getVersion() (core.TrieNodeVersion, error)
+	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
-	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.DBWriteCacher, targetDb common.DBWriteCacher) error
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
+	commitCheckpoint(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
 	sizeInBytes() int
-	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.DBWriteCacher) error
+	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error
 
 	IsInterfaceNil() bool
 }
@@ -64,8 +65,8 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb common.DBWriteCacher, targetDb common.DBWriteCacher, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
-	commitSnapshot(originDb common.DBWriteCacher, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitCheckpoint(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -97,7 +98,7 @@ type epochStorer interface {
 }
 
 type snapshotPruningStorer interface {
-	common.DBWriteCacher
+	common.BaseStorer
 	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
@@ -106,6 +107,7 @@ type snapshotPruningStorer interface {
 	GetFromCurrentEpoch(key []byte) ([]byte, error)
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
 	RemoveFromCurrentEpoch(key []byte) error
+	RemoveFromAllActiveEpochs(key []byte) error
 }
 
 // EpochNotifier can notify upon an epoch change and provide the current epoch
@@ -122,9 +124,4 @@ type IdleNodeProvider interface {
 
 type storageManagerExtension interface {
 	RemoveFromCheckpointHashesHolder(hash []byte)
-}
-
-// StorageMarker is used to mark the given storer as synced and active
-type StorageMarker interface {
-	MarkStorerAsSyncedAndActive(storer common.StorageManager)
 }

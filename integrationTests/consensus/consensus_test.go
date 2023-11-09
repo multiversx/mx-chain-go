@@ -7,14 +7,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/pubkeyConverter"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/config"
-	consensusComp "github.com/ElrondNetwork/elrond-go/factory/consensus"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/process"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/config"
+	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,6 +28,7 @@ const (
 var (
 	p2pBootstrapDelay      = time.Second * 5
 	testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
 
 func encodeAddress(address []byte) string {
@@ -48,6 +51,7 @@ func initNodesAndTest(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
+	numKeysOnEachNode int,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -58,6 +62,7 @@ func initNodesAndTest(
 		int(consensusSize),
 		roundTime,
 		consensusType,
+		numKeysOnEachNode,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -100,8 +105,16 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 	for _, n := range nodes {
 		nCopy := n
 		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
-			nCopy.BlockProcessor.NrCommitBlockCalled++
+			nCopy.BlockProcessor.NumCommitBlockCalled++
+			headerHash, _ := core.CalculateHash(
+				n.Node.GetCoreComponents().InternalMarshalizer(),
+				n.Node.GetCoreComponents().Hasher(),
+				header,
+			)
+			nCopy.ChainHandler.SetCurrentBlockHeaderHash(headerHash)
 			_ = nCopy.ChainHandler.SetCurrentBlockHeaderAndRootHash(header, header.GetRootHash())
+
+			log.Info("BlockProcessor.CommitBlockCalled", "shard", header.GetShardID(), "nonce", header.GetNonce(), "round", header.GetRound())
 
 			mutex.Lock()
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
@@ -185,7 +198,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 				for i := minRound; i <= maxRound; i++ {
 					if _, ok := nonceForRoundMap[i]; !ok {
 						assert.Fail(t, "consensus not reached in each round")
-						fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
+						log.Error("currently saved nonces for rounds", "nonceForRoundMap", nonceForRoundMap)
 						mutex.Unlock()
 						return
 					}
@@ -202,20 +215,27 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
-	consensusSize := uint32(4)
+	consensusSize := uint32(4 * numKeysOnEachNode)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	log.Info("runFullConsensusTest",
+		"numNodes", numNodes,
+		"numKeysOnEachNode", numKeysOnEachNode,
+		"consensusSize", consensusSize,
+	)
+
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
 
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.Messenger.Close()
+				_ = n.MainMessenger.Close()
+				_ = n.FullArchiveMessenger.Close()
 			}
 		}
 	}()
@@ -236,9 +256,10 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 		go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 		extraTime := uint64(2)
-		endTime := time.Duration(roundTime) * time.Duration(numCommBlock+extraTime) * time.Millisecond
+		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
 		select {
 		case <-chDone:
+			log.Info("consensus done", "shard", shardID)
 		case <-time.After(endTime):
 			mutex.Lock()
 			fmt.Println("currently saved nonces for rounds: \n", nonceForRoundMap)
@@ -249,12 +270,20 @@ func runFullConsensusTest(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSFullTest(t *testing.T) {
+func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType)
+	runFullConsensusTest(t, blsConsensusType, 1)
+}
+
+func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, 5)
 }
 
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
@@ -263,12 +292,13 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
 
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.Messenger.Close()
+				_ = n.MainMessenger.Close()
+				_ = n.FullArchiveMessenger.Close()
 			}
 		}
 	}()
@@ -308,10 +338,12 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
 		pkBuff, _ := n.NodeKeys.Pk.ToByteArray()
 
+		encodedNodePkBuff := testPubkeyConverter.SilentEncode(pkBuff, log)
+
 		fmt.Printf("Shard ID: %v, sk: %s, pk: %s\n",
 			shardID,
 			hex.EncodeToString(skBuff),
-			testPubkeyConverter.Encode(pkBuff),
+			encodedNodePkBuff,
 		)
 	}
 }

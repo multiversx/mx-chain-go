@@ -6,22 +6,22 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go-logger/file"
-	"github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/reflectcommon"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/node"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/config/overridableConfig"
+	"github.com/multiversx/mx-chain-go/node"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
 	// test point 1 for custom profiler
 )
 
 const (
 	defaultLogsPath = "logs"
-	logFilePrefix   = "elrond-go"
+	logFilePrefix   = "mx-chain-go"
 )
 
 var (
@@ -46,10 +46,10 @@ VERSION:
 // appVersion should be populated at build time using ldflags
 // Usage examples:
 // linux/mac:
-//            go build -i -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
+//            go build -v -ldflags="-X main.appVersion=$(git describe --tags --long --dirty)"
 // windows:
 //            for /f %i in ('git describe --tags --long --dirty') do set VERS=%i
-//            go build -i -v -ldflags="-X main.appVersion=%VERS%"
+//            go build -v -ldflags="-X main.appVersion=%VERS%"
 var appVersion = common.UnVersionedAppString
 
 func main() {
@@ -60,21 +60,22 @@ func main() {
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	app.Name = "Elrond Node CLI App"
+	app.Name = "MultiversX Node CLI App"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
-	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
-	app.Usage = "This is the entry point for starting a new Elrond node - the app will start after the genesis timestamp"
+	baseVersion := fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	app.Version = fmt.Sprintf("%s/%s", baseVersion, machineID)
+	app.Usage = "This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp"
 	app.Flags = getFlags()
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 
 	app.Action = func(c *cli.Context) error {
-		return startNodeRunner(c, log, app.Version)
+		return startNodeRunner(c, log, baseVersion, app.Version)
 	}
 
 	err := app.Run(os.Args)
@@ -84,7 +85,7 @@ func main() {
 	}
 }
 
-func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
+func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) error {
 	flagsConfig := getFlagsConfig(c, log)
 
 	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
@@ -95,6 +96,11 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
 		return errCfg
+	}
+
+	errCfgOverride := overridableConfig.OverrideConfigValues(cfgs.PreferencesConfig.Preferences.OverridableConfigTomlValues, cfgs)
+	if errCfgOverride != nil {
+		return errCfgOverride
 	}
 
 	if !check.IfNil(fileLogging) {
@@ -120,6 +126,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		log.Debug("initialized memory ballast object", "size", core.ConvertBytes(uint64(len(memoryBallastObject))))
 	}
 
+	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
@@ -187,15 +194,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.Preferences)
 
-	for _, overridable := range preferencesConfig.Preferences.OverridableConfigTomlValues {
-		err = reflectcommon.AdaptStructureValueBasedOnPath(generalConfig, overridable.Path, overridable.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Info("updated config toml value", "path", overridable.Path, "new value", overridable.Value)
-	}
-
 	configurationPaths.External = ctx.GlobalString(externalConfigFile.Name)
 	externalConfig, err := common.LoadExternalConfig(configurationPaths.External)
 	if err != nil {
@@ -203,12 +201,19 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.External)
 
-	configurationPaths.P2p = ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := common.LoadP2PConfig(configurationPaths.P2p)
+	configurationPaths.MainP2p = ctx.GlobalString(p2pConfigurationFile.Name)
+	mainP2PConfig, err := common.LoadP2PConfig(configurationPaths.MainP2p)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationPaths.P2p)
+	log.Debug("config", "file", configurationPaths.MainP2p)
+
+	configurationPaths.FullArchiveP2p = ctx.GlobalString(fullArchiveP2PConfigurationFile.Name)
+	fullArchiveP2PConfig, err := common.LoadP2PConfig(configurationPaths.FullArchiveP2p)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.FullArchiveP2p)
 
 	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
 	epochConfig, err := common.LoadEpochConfig(configurationPaths.Epoch)
@@ -225,7 +230,10 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	log.Debug("config", "file", configurationPaths.RoundActivation)
 
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+		mainP2PConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+	if ctx.IsSet(fullArchivePort.Name) {
+		fullArchiveP2PConfig.Node.Port = ctx.GlobalString(fullArchivePort.Name)
 	}
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -245,7 +253,8 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		RatingsConfig:            ratingsConfig,
 		PreferencesConfig:        preferencesConfig,
 		ExternalConfig:           externalConfig,
-		P2pConfig:                p2pConfig,
+		MainP2pConfig:            mainP2PConfig,
+		FullArchiveP2pConfig:     fullArchiveP2PConfig,
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
 		RoundConfig:              roundConfig,
@@ -257,7 +266,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var err error
 	if flagsConfig.SaveLogFile {
 		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.WorkingDir,
+			WorkingDir:      flagsConfig.LogsDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}

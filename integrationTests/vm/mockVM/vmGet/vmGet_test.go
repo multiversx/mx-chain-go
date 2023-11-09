@@ -8,18 +8,22 @@ import (
 	"sync"
 	"testing"
 
-	vmData "github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/smartContract"
-	"github.com/ElrondNetwork/elrond-go/process/sync/disabled"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/sync/disabled"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,16 +38,23 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		}}
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer: vmContainer,
-		EconomicsFee: &mock.FeeHandlerStub{
-			MaxGasLimitPerBlockCalled: func() uint64 {
+		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
 		},
 		BlockChainHook:           &testscommon.BlockChainHookStub{},
-		BlockChain:               &testscommon.ChainHandlerStub{},
-		ArwenChangeLocker:        &sync.RWMutex{},
+		MainBlockChain:           &testscommon.ChainHandlerStub{},
+		APIBlockChain:            &testscommon.ChainHandlerStub{},
+		WasmVMChangeLocker:       &sync.RWMutex{},
 		Bootstrapper:             disabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         testscommon.NewMultiShardsCoordinatorMock(1),
+		StorageService:           &storageStubs.ChainStorerStub{},
+		Marshaller:               &marshallerMock.MarshalizerStub{},
+		Hasher:                   &testscommon.HasherStub{},
+		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 	}
 	service, _ := smartContract.NewSCQueryService(argsNewSCQueryService)
 
@@ -54,7 +65,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		Arguments: [][]byte{},
 	}
 
-	vmOutput, err := service.ExecuteQuery(&query)
+	vmOutput, _, err := service.ExecuteQuery(&query)
 	assert.Nil(t, err)
 
 	returnData, _ := vmOutput.GetFirstReturnData(vmData.AsBigInt)

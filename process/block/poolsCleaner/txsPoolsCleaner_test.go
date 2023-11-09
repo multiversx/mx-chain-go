@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,7 +23,7 @@ func createMockArgTxsPoolsCleaner() ArgTxsPoolsCleaner {
 			ShardCoordinator:               mock.NewMultipleShardsCoordinatorMock(),
 			MaxRoundsToKeepUnprocessedData: 1,
 		},
-		AddressPubkeyConverter: &mock.PubkeyConverterStub{},
+		AddressPubkeyConverter: &testscommon.PubkeyConverterStub{},
 		DataPool:               dataRetrieverMock.NewPoolsHolderMock(),
 	}
 }
@@ -143,7 +143,7 @@ func TestGetShardFromAddress(t *testing.T) {
 
 	args := createMockArgTxsPoolsCleaner()
 	addrLen := 64
-	args.AddressPubkeyConverter = &mock.PubkeyConverterStub{
+	args.AddressPubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return addrLen
 		},

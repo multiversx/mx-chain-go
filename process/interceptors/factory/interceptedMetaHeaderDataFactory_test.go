@@ -5,20 +5,22 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/core/versioning"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/block/interceptedBlocks"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	processMocks "github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/epochNotifier"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,11 +52,11 @@ func createMockSigner() crypto.SingleSigner {
 }
 
 func createMockPubkeyConverter() core.PubkeyConverter {
-	return mock.NewPubkeyConverterMock(32)
+	return testscommon.NewPubkeyConverterMock(32)
 }
 
 func createMockFeeHandler() process.FeeHandler {
-	return &mock.FeeHandlerStub{}
+	return &economicsmocks.EconomicsHandlerStub{}
 }
 
 func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
@@ -71,7 +73,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		TxVersionCheckField:        versioning.NewTxVersionChecker(1),
 		EpochNotifierField:         &epochNotifier.EpochNotifierStub{},
 		HardforkTriggerPubKeyField: []byte("provided hardfork pub key"),
-		EnableEpochsHandlerField:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	cryptoComponents := &mock.CryptoComponentsMock{
 		BlockSig:          createMockSigner(),

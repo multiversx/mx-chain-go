@@ -3,27 +3,24 @@ package spos
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/consensus/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	consensusMocks "github.com/ElrondNetwork/elrond-go/testscommon/consensus"
-	"github.com/ElrondNetwork/elrond-go/testscommon/cryptoMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
 
 func initConsensusDataContainer() *ConsensusCore {
+	marshalizerMock := mock.MarshalizerMock{}
 	blockChain := &testscommon.ChainHandlerStub{}
-	blockProcessorMock := mock.InitBlockProcessorMock()
+	blockProcessorMock := mock.InitBlockProcessorMock(marshalizerMock)
 	bootstrapperMock := &mock.BootstrapperStub{}
 	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
 	chronologyHandlerMock := mock.InitChronologyHandlerMock()
-	blsPrivateKeyMock := &mock.PrivateKeyMock{}
-	blsSingleSignerMock := &mock.SingleSignerMock{}
 	multiSignerMock := cryptoMocks.NewMultiSigner()
-	keyGenerator := &mock.KeyGenMock{}
 	hasherMock := &hashingMocks.HasherMock{}
-	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &mock.SyncTimerMock{}
@@ -37,7 +34,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
-	signatureHandler := &mock.SignatureHandlerStub{}
+	signingHandler := &consensusMocks.SigningHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -47,9 +44,6 @@ func initConsensusDataContainer() *ConsensusCore {
 		chronologyHandler:       chronologyHandlerMock,
 		hasher:                  hasherMock,
 		marshalizer:             marshalizerMock,
-		blsPrivateKey:           blsPrivateKeyMock,
-		blsSingleSigner:         blsSingleSignerMock,
-		keyGenerator:            keyGenerator,
 		multiSignerContainer:    multiSignerContainer,
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
@@ -63,7 +57,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		scheduledProcessor:      scheduledProcessor,
 		messageSigningHandler:   messageSigningHandler,
 		peerBlacklistHandler:    peerBlacklistHandler,
-		signatureHandler:        signatureHandler,
+		signingHandler:          signingHandler,
 	}
 }
 
@@ -258,11 +252,11 @@ func TestConsensusContainerValidator_ValidateNilSignatureHandlerShouldFail(t *te
 	t.Parallel()
 
 	container := initConsensusDataContainer()
-	container.signatureHandler = nil
+	container.signingHandler = nil
 
 	err := ValidateConsensusCore(container)
 
-	assert.Equal(t, ErrNilSignatureHandler, err)
+	assert.Equal(t, ErrNilSigningHandler, err)
 }
 
 func TestConsensusContainerValidator_ShouldWork(t *testing.T) {

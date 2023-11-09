@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go/debug"
+	"github.com/multiversx/mx-chain-go/debug"
 )
 
 const newRoutineMarker = "\n\n"

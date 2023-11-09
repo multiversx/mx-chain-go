@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("consensus/blacklist")
@@ -84,12 +84,17 @@ func (pb *peerBlacklist) startSweepingTimeCache() {
 }
 
 func (pb *peerBlacklist) startSweepingPeerCache(ctx context.Context) {
+	timer := time.NewTimer(durationSweepP2PBlacklist)
+	defer timer.Stop()
+
 	for {
+		timer.Reset(durationSweepP2PBlacklist)
+
 		select {
 		case <-ctx.Done():
 			log.Debug("peerBlacklist's go routine is stopping...")
 			return
-		case <-time.After(durationSweepP2PBlacklist):
+		case <-timer.C:
 		}
 
 		pb.peerCacher.Sweep()

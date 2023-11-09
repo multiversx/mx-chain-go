@@ -1,10 +1,10 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/databaseremover"
-	"github.com/ElrondNetwork/elrond-go/storage/databaseremover/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/databaseremover"
+	"github.com/multiversx/mx-chain-go/storage/databaseremover/disabled"
 )
 
 // CreateCustomDatabaseRemover will handle the creation of a custom database remover based on the configuration

@@ -4,14 +4,24 @@ import (
 	"testing"
 	"time"
 
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/heartbeat"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("inteagrationtests/node/heartbeatv2")
+
+func generateTestKeyPair() *integrationTests.TestKeyPair {
+	sk, pk := integrationTests.TestBLSKeyGenerator.GeneratePair()
+	return &integrationTests.TestKeyPair{
+		Sk: sk,
+		Pk: pk,
+	}
+}
 
 func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	if testing.Short() {
@@ -22,7 +32,11 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60)
+		key := &integrationTests.TestNodeKeys{
+			MainKey: generateTestKeyPair(),
+		}
+
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60, key, nil)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -40,6 +54,51 @@ func TestHeartbeatV2_AllPeersSendMessages(t *testing.T) {
 	checkMessages(t, nodes, maxMessageAgeAllowed)
 }
 
+func TestHeartbeatV2_AllPeersSendMessagesOnMultikeyMode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numHandledKeys := 6
+	handledKeys := make([]*integrationTests.TestKeyPair, 0, numHandledKeys)
+	for i := 0; i < numHandledKeys; i++ {
+		key := generateTestKeyPair()
+		handledKeys = append(handledKeys, key)
+
+		pkBytes, _ := key.Pk.ToByteArray()
+		log.Debug("generated handled key", "pubkey", pkBytes)
+	}
+	validators := []*integrationTests.TestKeyPair{handledKeys[1], handledKeys[2], handledKeys[4], handledKeys[5]}
+
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
+	node0Keys := &integrationTests.TestNodeKeys{
+		MainKey:     handledKeys[0],
+		HandledKeys: []*integrationTests.TestKeyPair{handledKeys[1], handledKeys[2]},
+	}
+	node0 := integrationTests.NewTestHeartbeatNode(t, 3, 0, 2, p2pConfig, 60, node0Keys, validators)
+
+	node1Keys := &integrationTests.TestNodeKeys{
+		MainKey:     handledKeys[3],
+		HandledKeys: []*integrationTests.TestKeyPair{handledKeys[4], handledKeys[5]},
+	}
+	node1 := integrationTests.NewTestHeartbeatNode(t, 3, 0, 2, p2pConfig, 60, node1Keys, validators)
+
+	nodes := []*integrationTests.TestHeartbeatNode{node0, node1}
+	connectNodes(nodes, len(nodes))
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 15)
+
+	for i := 0; i < len(nodes); i++ {
+		nodes[i].Close()
+	}
+
+	// Check sent messages
+	maxMessageAgeAllowed := time.Second * 5
+
+	checkMessages(t, nodes, maxMessageAgeAllowed)
+}
+
 func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -49,7 +108,11 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60)
+		key := &integrationTests.TestNodeKeys{
+			MainKey: generateTestKeyPair(),
+		}
+
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60, key, nil)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -63,7 +126,10 @@ func TestHeartbeatV2_PeerJoiningLate(t *testing.T) {
 	checkMessages(t, nodes, maxMessageAgeAllowed)
 
 	// Add new delayed node which requests messages
-	delayedNode := integrationTests.NewTestHeartbeatNode(t, 3, 0, 0, p2pConfig, 60)
+	key := &integrationTests.TestNodeKeys{
+		MainKey: generateTestKeyPair(),
+	}
+	delayedNode := integrationTests.NewTestHeartbeatNode(t, 3, 0, 0, p2pConfig, 60, key, nil)
 	nodes = append(nodes, delayedNode)
 	connectNodes(nodes, len(nodes))
 	// Wait for messages to broadcast and requests to finish
@@ -87,7 +153,11 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
 	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
 	for i := 0; i < interactingNodes; i++ {
-		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 20)
+		key := &integrationTests.TestNodeKeys{
+			MainKey: generateTestKeyPair(),
+		}
+
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 20, key, nil)
 	}
 	assert.Equal(t, interactingNodes, len(nodes))
 
@@ -114,7 +184,7 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 
 	requestHashes := make([][]byte, 0)
 	for i := 1; i < len(nodes); i++ {
-		pkBytes, err := nodes[i].NodeKeys.Pk.ToByteArray()
+		pkBytes, err := nodes[i].NodeKeys.MainKey.Pk.ToByteArray()
 		assert.Nil(t, err)
 
 		requestHashes = append(requestHashes, pkBytes)
@@ -130,46 +200,167 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 	assert.Equal(t, interactingNodes-2, nodes[0].DataPool.PeerAuthentications().Len())
 }
 
+func TestHeartbeatV2_AllPeersSendMessagesOnAllNetworks(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	interactingNodes := 3
+	nodes := make([]*integrationTests.TestHeartbeatNode, interactingNodes)
+	p2pConfig := integrationTests.CreateP2PConfigWithNoDiscovery()
+	for i := 0; i < interactingNodes; i++ {
+		key := &integrationTests.TestNodeKeys{
+			MainKey: generateTestKeyPair(),
+		}
+
+		nodes[i] = integrationTests.NewTestHeartbeatNode(t, 3, 0, interactingNodes, p2pConfig, 60, key, nil)
+	}
+	assert.Equal(t, interactingNodes, len(nodes))
+
+	// connect nodes on main network only
+	for i := 0; i < interactingNodes-1; i++ {
+		for j := i + 1; j < interactingNodes; j++ {
+			src := nodes[i]
+			dst := nodes[j]
+			_ = src.ConnectOnMain(dst)
+		}
+	}
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 15)
+
+	// check peer shard mappers
+	// full archive should not be updated at this point
+	for i := 0; i < interactingNodes; i++ {
+		for j := 0; j < interactingNodes; j++ {
+			if i == j {
+				continue
+			}
+
+			peerInfo := nodes[i].FullArchivePeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, core.UnknownPeer, peerInfo.PeerType) // nodes not connected on this network
+
+			peerInfoMain := nodes[i].MainPeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfoMain.ShardID)
+			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType) // on main network they are all validators
+		}
+	}
+
+	// connect nodes on full archive network as well
+	for i := 0; i < interactingNodes-1; i++ {
+		for j := i + 1; j < interactingNodes; j++ {
+			src := nodes[i]
+			dst := nodes[j]
+			_ = src.ConnectOnFullArchive(dst)
+		}
+	}
+
+	// Wait for messages to broadcast
+	time.Sleep(time.Second * 15)
+
+	// check peer shard mappers
+	// full archive should be updated at this point
+	for i := 0; i < interactingNodes; i++ {
+		for j := 0; j < interactingNodes; j++ {
+			if i == j {
+				continue
+			}
+
+			peerInfo := nodes[i].FullArchivePeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfo.ShardID)
+			assert.Equal(t, core.ObserverPeer, peerInfo.PeerType) // observers because the peerAuth is not sent on this network
+
+			peerInfoMain := nodes[i].MainPeerShardMapper.GetPeerInfo(nodes[j].MainMessenger.ID())
+			assert.Equal(t, nodes[j].ShardCoordinator.SelfId(), peerInfoMain.ShardID)
+			assert.Equal(t, core.ValidatorPeer, peerInfoMain.PeerType)
+		}
+	}
+
+	for i := 0; i < len(nodes); i++ {
+		nodes[i].Close()
+	}
+}
+
 func connectNodes(nodes []*integrationTests.TestHeartbeatNode, interactingNodes int) {
 	for i := 0; i < interactingNodes-1; i++ {
 		for j := i + 1; j < interactingNodes; j++ {
 			src := nodes[i]
 			dst := nodes[j]
-			_ = src.ConnectTo(dst)
+			_ = src.ConnectOnMain(dst)
+			_ = src.ConnectOnFullArchive(dst)
 		}
 	}
 }
 
 func checkMessages(t *testing.T, nodes []*integrationTests.TestHeartbeatNode, maxMessageAgeAllowed time.Duration) {
-	numOfNodes := len(nodes)
-	for i := 0; i < numOfNodes; i++ {
-		paCache := nodes[i].DataPool.PeerAuthentications()
-		hbCache := nodes[i].DataPool.Heartbeats()
+	validators := make([][]byte, 0)
+	observers := make([][]byte, 0)
+	for _, node := range nodes {
+		pkBuff, err := node.NodeKeys.MainKey.Pk.ToByteArray()
+		require.Nil(t, err)
 
-		assert.Equal(t, numOfNodes, paCache.Len())
-		assert.Equal(t, numOfNodes, hbCache.Len())
-
-		// Check this node received messages from all peers
-		for _, node := range nodes {
-			pkBytes, err := node.NodeKeys.Pk.ToByteArray()
-			assert.Nil(t, err)
-
-			assert.True(t, paCache.Has(pkBytes))
-			assert.True(t, hbCache.Has(node.Messenger.ID().Bytes()))
-
-			// Also check message age
-			value, found := paCache.Get(pkBytes)
-			require.True(t, found)
-			msg := value.(*heartbeat.PeerAuthentication)
-
-			marshaller := integrationTests.TestMarshaller
-			payload := &heartbeat.Payload{}
-			err = marshaller.Unmarshal(payload, msg.Payload)
-			assert.Nil(t, err)
-
-			currentTimestamp := time.Now().Unix()
-			messageAge := time.Duration(currentTimestamp - payload.Timestamp)
-			assert.True(t, messageAge < maxMessageAgeAllowed)
+		if len(node.NodeKeys.HandledKeys) == 0 {
+			// single mode, the node's public key should be a validator
+			validators = append(validators, pkBuff)
+			continue
 		}
+
+		// multikey mode, all handled keys are validators
+		validators = append(validators, getHandledPublicKeys(t, node.NodeKeys)...)
+		observers = append(observers, pkBuff)
+	}
+
+	for _, node := range nodes {
+		paCache := node.DataPool.PeerAuthentications()
+		hbCache := node.DataPool.Heartbeats()
+
+		assert.Equal(t, len(validators), paCache.Len())
+		assert.Equal(t, len(observers)+len(validators), hbCache.Len())
+
+		checkPeerAuthenticationMessages(t, paCache, validators, maxMessageAgeAllowed)
+		checkHeartbeatMessages(t, hbCache)
+	}
+}
+
+func getHandledPublicKeys(tb testing.TB, keys *integrationTests.TestNodeKeys) [][]byte {
+	publicKeys := make([][]byte, 0, len(keys.HandledKeys))
+	for _, key := range keys.HandledKeys {
+		pkBuff, err := key.Pk.ToByteArray()
+		require.Nil(tb, err)
+
+		publicKeys = append(publicKeys, pkBuff)
+	}
+
+	return publicKeys
+}
+
+func checkPeerAuthenticationMessages(tb testing.TB, cache storage.Cacher, validators [][]byte, maxMessageAgeAllowed time.Duration) {
+	for _, validatorPk := range validators {
+		value, found := cache.Get(validatorPk)
+		require.True(tb, found)
+		msg := value.(*heartbeat.PeerAuthentication)
+
+		marshaller := integrationTests.TestMarshaller
+		payload := &heartbeat.Payload{}
+		err := marshaller.Unmarshal(payload, msg.Payload)
+		assert.Nil(tb, err)
+
+		// check message age
+		currentTimestamp := time.Now().Unix()
+		messageAge := time.Duration(currentTimestamp - payload.Timestamp)
+		assert.True(tb, messageAge < maxMessageAgeAllowed)
+	}
+}
+
+func checkHeartbeatMessages(tb testing.TB, cache storage.Cacher) {
+	allHbKeys := cache.Keys()
+	for _, key := range allHbKeys {
+		hbData, found := cache.Get(key)
+		assert.True(tb, found)
+
+		hbMessage := hbData.(*heartbeat.HeartbeatV2)
+
+		assert.Equal(tb, integrationTests.DefaultIdentity, hbMessage.Identity)
+		assert.Contains(tb, hbMessage.NodeDisplayName, integrationTests.DefaultNodeName)
 	}
 }

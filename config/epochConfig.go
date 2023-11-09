@@ -86,8 +86,27 @@ type EnableEpochs struct {
 	ESDTMetadataContinuousCleanupEnableEpoch          uint32
 	FixAsyncCallBackArgsListEnableEpoch               uint32
 	FixOldTokenLiquidityEnableEpoch                   uint32
+	RuntimeMemStoreLimitEnableEpoch                   uint32
+	RuntimeCodeSizeFixEnableEpoch                     uint32
 	SetSenderInEeiOutputTransferEnableEpoch           uint32
 	RefactorPeersMiniBlocksEnableEpoch                uint32
+	SCProcessorV2EnableEpoch                          uint32
+	MaxBlockchainHookCountersEnableEpoch              uint32
+	WipeSingleNFTLiquidityDecreaseEnableEpoch         uint32
+	AlwaysSaveTokenMetaDataEnableEpoch                uint32
+	SetGuardianEnableEpoch                            uint32
+	ScToScLogEventEnableEpoch                         uint32
+	RelayedNonceFixEnableEpoch                        uint32
+	DeterministicSortOnValidatorsInfoEnableEpoch      uint32
+	KeepExecOrderOnCreatedSCRsEnableEpoch             uint32
+	MultiClaimOnDelegationEnableEpoch                 uint32
+	ChangeUsernameEnableEpoch                         uint32
+	AutoBalanceDataTriesEnableEpoch                   uint32
+	ConsistentTokensValuesLengthCheckEnableEpoch      uint32
+	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
+	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
+	NFTStopCreateEnableEpoch                          uint32
+	ChangeOwnerAddressCrossShardThroughSCEnableEpoch  uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

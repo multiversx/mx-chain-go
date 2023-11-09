@@ -2,20 +2,20 @@ package dataRetriever
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/shardedData"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/txpool"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txcachemocks"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
+	"github.com/multiversx/mx-chain-go/dataRetriever/shardedData"
+	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 var peerAuthDuration = 10 * time.Second
@@ -87,7 +87,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	cacher, err := cache.NewCapacityLRU(10, 10000)
 	panicIfError("Create trieSync cacher", err)
 
-	tempDir, _ := ioutil.TempDir("", "integrationTests")
+	tempDir, _ := os.MkdirTemp("", "integrationTests")
 	cfg := storageunit.ArgDB{
 		Path:              tempDir,
 		DBType:            storageunit.LvlDBSerial,

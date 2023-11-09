@@ -1,9 +1,9 @@
 package factory
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	"github.com/ElrondNetwork/elrond-go/node/external"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/external"
 )
 
 // StatusCoreComponentsStub -
@@ -12,6 +12,7 @@ type StatusCoreComponentsStub struct {
 	NetworkStatisticsField       factory.NetworkStatisticsProvider
 	TrieSyncStatisticsField      factory.TrieSyncStatisticsProvider
 	AppStatusHandlerField        core.AppStatusHandler
+	AppStatusHandlerCalled       func() core.AppStatusHandler
 	StatusMetricsField           external.StatusMetricsHandler
 	PersistentStatusHandlerField factory.PersistentStatusHandler
 }
@@ -53,6 +54,9 @@ func (stub *StatusCoreComponentsStub) TrieSyncStatistics() factory.TrieSyncStati
 
 // AppStatusHandler -
 func (stub *StatusCoreComponentsStub) AppStatusHandler() core.AppStatusHandler {
+	if stub.AppStatusHandlerCalled != nil {
+		return stub.AppStatusHandlerCalled()
+	}
 	return stub.AppStatusHandlerField
 }
 

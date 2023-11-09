@@ -4,18 +4,18 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/consensus/spos"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
@@ -152,6 +152,11 @@ func (sr *subroundStartRound) InitCurrentRound() bool {
 	return sr.initCurrentRound()
 }
 
+// GetSentSignatureTracker returns the subroundStartRound's SentSignaturesTracker instance
+func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
+	return sr.sentSignatureTracker
+}
+
 // subroundBlock
 
 // SubroundBlock defines a type for the subroundBlock structure
@@ -267,63 +272,87 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
+// DoEndRoundJobByParticipant calls the unexported doEndRoundJobByParticipant function
 func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
+// DoEndRoundJobByLeader calls the unexported doEndRoundJobByLeader function
 func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
 	return sr.doEndRoundJobByLeader()
 }
 
+// HaveConsensusHeaderWithFullInfo calls the unexported haveConsensusHeaderWithFullInfo function
 func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
 	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
 }
 
+// CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
 func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
 	sr.createAndBroadcastHeaderFinalInfo()
 }
 
+// ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
 func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
 }
 
+// IsBlockHeaderFinalInfoValid calls the unexported isBlockHeaderFinalInfoValid function
 func (sr *subroundEndRound) IsBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
 	return sr.isBlockHeaderFinalInfoValid(cnsDta)
 }
 
+// IsConsensusHeaderReceived calls the unexported isConsensusHeaderReceived function
 func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
 	return sr.isConsensusHeaderReceived()
 }
 
+// IsOutOfTime calls the unexported isOutOfTime function
 func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
+// VerifyNodesOnAggSigFail calls the unexported verifyNodesOnAggSigFail function
 func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
 	return sr.verifyNodesOnAggSigFail()
 }
 
+// ComputeAggSigOnValidNodes calls the unexported computeAggSigOnValidNodes function
 func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) {
 	return sr.computeAggSigOnValidNodes()
 }
 
+// ReceivedInvalidSignersInfo calls the unexported receivedInvalidSignersInfo function
 func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message) bool {
 	return sr.receivedInvalidSignersInfo(context.Background(), cnsDta)
 }
 
+// VerifyInvalidSigners calls the unexported verifyInvalidSigners function
 func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
 	return sr.verifyInvalidSigners(invalidSigners)
 }
 
-// GetStringValue gets the name of the message type
-func GetStringValue(messageType consensus.MessageType) string {
-	return getStringValue(messageType)
+// GetMinConsensusGroupIndexOfManagedKeys calls the unexported getMinConsensusGroupIndexOfManagedKeys function
+func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
+	return sr.getMinConsensusGroupIndexOfManagedKeys()
 }
 
+// CreateAndBroadcastInvalidSigners calls the unexported createAndBroadcastInvalidSigners function
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
 	sr.createAndBroadcastInvalidSigners(invalidSigners)
 }
 
+// GetFullMessagesForInvalidSigners calls the unexported getFullMessagesForInvalidSigners function
 func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	return sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+}
+
+// GetSentSignatureTracker returns the subroundEndRound's SentSignaturesTracker instance
+func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
+	return sr.sentSignatureTracker
+}
+
+// GetStringValue calls the unexported getStringValue function
+func GetStringValue(messageType consensus.MessageType) string {
+	return getStringValue(messageType)
 }

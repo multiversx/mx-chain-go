@@ -4,18 +4,18 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type tagVersion struct {
 	TagVersion string `json:"tag_name"`
 }
 
-// SoftwareVersionChecker is a component which is used to check if a new software stable tag is available
-type SoftwareVersionChecker struct {
+// softwareVersionChecker is a component which is used to check if a new software stable tag is available
+type softwareVersionChecker struct {
 	statusHandler             core.AppStatusHandler
 	stableTagProvider         StableTagProviderHandler
 	mostRecentSoftwareVersion string
@@ -30,7 +30,7 @@ func NewSoftwareVersionChecker(
 	appStatusHandler core.AppStatusHandler,
 	stableTagProvider StableTagProviderHandler,
 	pollingIntervalInMinutes int,
-) (*SoftwareVersionChecker, error) {
+) (*softwareVersionChecker, error) {
 	if check.IfNil(appStatusHandler) {
 		return nil, core.ErrNilAppStatusHandler
 	}
@@ -43,7 +43,7 @@ func NewSoftwareVersionChecker(
 
 	checkInterval := time.Duration(pollingIntervalInMinutes) * time.Minute
 
-	return &SoftwareVersionChecker{
+	return &softwareVersionChecker{
 		statusHandler:             appStatusHandler,
 		stableTagProvider:         stableTagProvider,
 		mostRecentSoftwareVersion: "",
@@ -53,13 +53,13 @@ func NewSoftwareVersionChecker(
 }
 
 // StartCheckSoftwareVersion will check on a specific interval if a new software version is available
-func (svc *SoftwareVersionChecker) StartCheckSoftwareVersion() {
+func (svc *softwareVersionChecker) StartCheckSoftwareVersion() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	svc.closeFunc = cancelFunc
 	go svc.checkSoftwareVersion(ctx)
 }
 
-func (svc *SoftwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
+func (svc *softwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
 	for {
 		svc.readLatestStableVersion()
 
@@ -72,7 +72,7 @@ func (svc *SoftwareVersionChecker) checkSoftwareVersion(ctx context.Context) {
 	}
 }
 
-func (svc *SoftwareVersionChecker) readLatestStableVersion() {
+func (svc *softwareVersionChecker) readLatestStableVersion() {
 	tagVersionFromURL, err := svc.stableTagProvider.FetchTagVersion()
 	if err != nil {
 		log.Debug("cannot read json with latest stable tag", "error", err)
@@ -86,12 +86,12 @@ func (svc *SoftwareVersionChecker) readLatestStableVersion() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (svc *SoftwareVersionChecker) IsInterfaceNil() bool {
+func (svc *softwareVersionChecker) IsInterfaceNil() bool {
 	return svc == nil
 }
 
 // Close will handle the closing of opened go routines
-func (svc *SoftwareVersionChecker) Close() error {
+func (svc *softwareVersionChecker) Close() error {
 	if svc.closeFunc != nil {
 		svc.closeFunc()
 	}

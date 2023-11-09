@@ -1,8 +1,8 @@
 package txpool
 
 import (
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 type txCache interface {

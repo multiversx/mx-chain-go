@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +19,7 @@ func TestPersister_MethodsDoNotPanic(t *testing.T) {
 	}()
 
 	p := NewPersister()
-	assert.False(t, check.IfNil(p))
+	assert.False(t, p.IsInterfaceNil())
 	assert.Nil(t, p.Put(nil, nil))
 	assert.Equal(t, storage.ErrKeyNotFound, p.Has(nil))
 	assert.Nil(t, p.Close())

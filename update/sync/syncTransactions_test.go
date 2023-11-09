@@ -8,22 +8,23 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/atomic"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	dataTransaction "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	dataRetrieverMock "github.com/ElrondNetwork/elrond-go/testscommon/dataRetriever"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	"github.com/ElrondNetwork/elrond-go/update"
-	"github.com/ElrondNetwork/elrond-go/update/mock"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -424,17 +425,20 @@ func TestTransactionsSync_ReceivedValidatorInfo(t *testing.T) {
 	transactionsSyncer.mutPendingTx.Unlock()
 
 	wasReceivedAll := atomic.Flag{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		select {
 		case <-transactionsSyncer.chReceivedAll:
 			wasReceivedAll.SetValue(true)
-			return
 		case <-time.After(time.Second):
 		}
+		wg.Done()
 	}()
 
 	// received all missing validators info with success
 	transactionsSyncer.receivedValidatorInfo(txHash, svi)
+	wg.Wait()
 	transactionsSyncer.mutPendingTx.Lock()
 	assert.Equal(t, 1, len(transactionsSyncer.mapValidatorsInfo))
 	transactionsSyncer.mutPendingTx.Unlock()

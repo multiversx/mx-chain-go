@@ -5,18 +5,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/accumulator"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/accumulator"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("txsSender")
@@ -173,18 +173,15 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 	}
 
 	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			log.Trace("txsSender.sendBulkTransactionsFromShard",
-				"topic", identifier,
-				"size", len(bufferToSend),
-			)
-			err = ts.networkMessenger.BroadcastOnChannelBlocking(
-				SendTransactionsPipe,
-				identifier,
-				bufferToSend,
-			)
-			log.LogIfError(err)
-		}(buff)
+		log.Trace("txsSender.sendBulkTransactionsFromShard",
+			"topic", identifier,
+			"size", len(buff),
+		)
+
+		ts.networkMessenger.BroadcastOnChannel(
+			SendTransactionsPipe,
+			identifier,
+			buff)
 	}
 
 	return nil

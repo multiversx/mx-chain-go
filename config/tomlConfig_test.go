@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/ElrondNetwork/elrond-go/p2p/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,7 @@ func TestTomlParser(t *testing.T) {
 
 	consensusType := "bls"
 
-	arwenVersions := []ArwenVersionByEpoch{
+	wasmVMVersions := []WasmVMVersionByEpoch{
 		{StartEpoch: 12, Version: "v0.3"},
 		{StartEpoch: 88, Version: "v1.2"},
 	}
@@ -99,13 +99,13 @@ func TestTomlParser(t *testing.T) {
 		},
 		VirtualMachine: VirtualMachineServicesConfig{
 			Execution: VirtualMachineConfig{
-				ArwenVersions:                       arwenVersions,
+				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
-				VirtualMachineConfig: VirtualMachineConfig{ArwenVersions: arwenVersions},
+				VirtualMachineConfig: VirtualMachineConfig{WasmVMVersions: wasmVMVersions},
 			},
 			GasConfig: VirtualMachineGasConfig{
 				ShardMaxGasPerVmQuery: 1_500_000_000,
@@ -133,13 +133,25 @@ func TestTomlParser(t *testing.T) {
 				DoProfileOnShuffleOut:   true,
 			},
 		},
+		StateTriesConfig: StateTriesConfig{
+			CheckpointRoundsModulus:     37,
+			CheckpointsEnabled:          true,
+			SnapshotsEnabled:            true,
+			AccountsStatePruningEnabled: true,
+			PeerStatePruningEnabled:     true,
+			MaxStateTrieLevelInMemory:   38,
+			MaxPeerTrieLevelInMemory:    39,
+		},
+		Redundancy: RedundancyConfig{
+			MaxRoundsOfInactivityAccepted: 3,
+		},
 	}
 	testString := `
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
         Type = "` + txBlockBodyStorageType + `"
-		Shards = ` + strconv.Itoa(txBlockBodyStorageShards) + `
+        Shards = ` + strconv.Itoa(txBlockBodyStorageShards) + `
     [MiniBlocksStorage.DB]
         FilePath = "` + txBlockBodyStorageFile + `"
         Type = "` + txBlockBodyStorageTypeDB + `"
@@ -173,39 +185,39 @@ func TestTomlParser(t *testing.T) {
         Type = "` + accountsStorageTypeDB + `"
 
 [Hasher]
-	Type = "` + hasherType + `"
+    Type = "` + hasherType + `"
 
 [MultisigHasher]
-	Type = "` + multiSigHasherType + `"
+    Type = "` + multiSigHasherType + `"
 
 [Consensus]
-	Type = "` + consensusType + `"
+    Type = "` + consensusType + `"
 
 [VirtualMachine]
     [VirtualMachine.Execution]
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = true
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
-        ArwenVersions = [
+        WasmVMVersions = [
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
 
-	[VirtualMachine.GasConfig]
-		ShardMaxGasPerVmQuery = 1500000000
-		MetaMaxGasPerVmQuery = 0
+    [VirtualMachine.GasConfig]
+        ShardMaxGasPerVmQuery = 1500000000
+        MetaMaxGasPerVmQuery = 0
 
 [Debug]
     [Debug.InterceptorResolver]
         Enabled = true
         CacheSize = 10000
-        EnablePrint	= true
+        EnablePrint = true
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
@@ -218,6 +230,20 @@ func TestTomlParser(t *testing.T) {
         CallGCWhenShuffleOut = true
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
+
+[StateTriesConfig]
+    CheckpointRoundsModulus = 37
+    CheckpointsEnabled = true
+    SnapshotsEnabled = true
+    AccountsStatePruningEnabled = true
+    PeerStatePruningEnabled = true
+    MaxStateTrieLevelInMemory = 38
+    MaxPeerTrieLevelInMemory = 39
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 
@@ -237,6 +263,8 @@ func TestTomlEconomicsParser(t *testing.T) {
 	maxGasLimitPerBlock := "18446744073709551615"
 	minGasPrice := "18446744073709551615"
 	minGasLimit := "18446744073709551615"
+	extraGasLimitGuardedTx := "50000"
+	maxGasPriceSetGuardian := "1234567"
 	protocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 	denomination := 18
 
@@ -265,11 +293,13 @@ func TestTomlEconomicsParser(t *testing.T) {
 		FeeSettings: FeeSettings{
 			GasLimitSettings: []GasLimitSetting{
 				{
-					MaxGasLimitPerBlock: maxGasLimitPerBlock,
-					MinGasLimit:         minGasLimit,
+					MaxGasLimitPerBlock:    maxGasLimitPerBlock,
+					MinGasLimit:            minGasLimit,
+					ExtraGasLimitGuardedTx: extraGasLimitGuardedTx,
 				},
 			},
-			MinGasPrice: minGasPrice,
+			MinGasPrice:            minGasPrice,
+			MaxGasPriceSetGuardian: maxGasPriceSetGuardian,
 		},
 	}
 
@@ -277,23 +307,24 @@ func TestTomlEconomicsParser(t *testing.T) {
 [GlobalSettings]
     Denomination = ` + fmt.Sprintf("%d", denomination) + `
 [RewardsSettings]
-	[[RewardsSettings.RewardsConfigByEpoch]]
-	EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
-   	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
-   	DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
-   	ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
-   	ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
+    [[RewardsSettings.RewardsConfigByEpoch]]
+    EpochEnable = ` + fmt.Sprintf("%d", epoch0) + `
+    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage1) + `
+    DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
+    ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
+    ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
-	[[RewardsSettings.RewardsConfigByEpoch]]
-	EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
-	LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
+    [[RewardsSettings.RewardsConfigByEpoch]]
+    EpochEnable = ` + fmt.Sprintf("%d", epoch1) + `
+    LeaderPercentage = ` + fmt.Sprintf("%.6f", leaderPercentage2) + `
     DeveloperPercentage = ` + fmt.Sprintf("%.6f", developerPercentage) + `
     ProtocolSustainabilityPercentage = ` + fmt.Sprintf("%.6f", protocolSustainabilityPercentage) + ` #fraction of value 0.1 - 10%
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-	GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `"}] 
+    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `"}] 
     MinGasPrice = "` + minGasPrice + `"
+	MaxGasPriceSetGuardian = "` + maxGasPriceSetGuardian + `"
 `
 	cfg := EconomicsConfig{}
 
@@ -319,18 +350,30 @@ func TestTomlPreferencesParser(t *testing.T) {
 			RedundancyLevel:            redundancyLevel,
 			PreferredConnections:       []string{prefPubKey0, prefPubKey1},
 		},
+		BlockProcessingCutoff: BlockProcessingCutoffConfig{
+			Enabled:       true,
+			Mode:          "pause",
+			CutoffTrigger: "round",
+			Value:         55,
+		},
 	}
 
 	testString := `
 [Preferences]
-	NodeDisplayName = "` + nodeDisplayName + `"
-	DestinationShardAsObserver = "` + destinationShardAsObs + `"
-	Identity = "` + identity + `"
-	RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
-	PreferredConnections = [
-		"` + prefPubKey0 + `",
-		"` + prefPubKey1 + `"
-	]
+    NodeDisplayName = "` + nodeDisplayName + `"
+    DestinationShardAsObserver = "` + destinationShardAsObs + `"
+    Identity = "` + identity + `"
+    RedundancyLevel = ` + fmt.Sprintf("%d", redundancyLevel) + `
+    PreferredConnections = [
+        "` + prefPubKey0 + `",
+        "` + prefPubKey1 + `"
+    ]
+
+[BlockProcessingCutoff]
+    Enabled = true
+    Mode = "pause"
+    CutoffTrigger = "round"
+    Value = 55
 `
 	cfg := Preferences{}
 
@@ -408,16 +451,16 @@ func TestAPIRoutesToml(t *testing.T) {
 [APIPackages]
 
 [APIPackages.` + package0 + `]
-	Routes = [
+    Routes = [
         # test comment
         { Name = "` + route0 + `", Open = true },
 
         # test comment
         { Name = "` + route1 + `", Open = true },
-	]
+    ]
 
 [APIPackages.` + package1 + `]
-	Routes = [
+    Routes = [
          # test comment
         { Name = "` + route2 + `", Open = false }
     ]
@@ -443,6 +486,14 @@ func TestP2pConfig(t *testing.T) {
     Port = "` + port + `"
     ThresholdMinConnectedPeers = 0
 
+    [Node.Transports]
+        QUICAddress = "/ip4/0.0.0.0/udp/%d/quic-v1"
+        WebSocketAddress = "/ip4/0.0.0.0/tcp/%d/ws" 
+        WebTransportAddress = "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport"
+        [Node.Transports.TCP]
+            ListenAddress = "/ip4/0.0.0.0/tcp/%d"
+            PreventPortReuse = true
+
 [KadDhtPeerDiscovery]
     Enabled = false
     Type = ""
@@ -464,13 +515,20 @@ func TestP2pConfig(t *testing.T) {
     MaxIntraShardObservers = 0
     MaxCrossShardObservers = 0
     MaxSeeders = 0
-    Type = "` + shardingType + `"
-    [AdditionalConnections]
-        MaxFullHistoryObservers = 0`
+    Type = "` + shardingType + `"`
 
 	expectedCfg := p2pConfig.P2PConfig{
 		Node: p2pConfig.NodeConfig{
 			Port: port,
+			Transports: p2pConfig.P2PTransportConfig{
+				TCP: p2pConfig.P2PTCPTransport{
+					ListenAddress:    "/ip4/0.0.0.0/tcp/%d",
+					PreventPortReuse: true,
+				},
+				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic-v1",
+				WebSocketAddress:    "/ip4/0.0.0.0/tcp/%d/ws",
+				WebTransportAddress: "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport",
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			ProtocolID:      protocolID,
@@ -547,6 +605,7 @@ func TestEnableEpochConfig(t *testing.T) {
     # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
     StakingV2EnableEpoch = 18
 
+    # DoubleKeyProtectionEnableEpoch represents the epoch when the double key protection will be enabled
     DoubleKeyProtectionEnableEpoch = 19
 
     # ESDTEnableEpoch represents the epoch when ESDT is enabled
@@ -606,10 +665,10 @@ func TestEnableEpochConfig(t *testing.T) {
     # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
     SCRSizeInvariantCheckEnableEpoch = 37
 
-    # BackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key value is enabled
+    # BackwardCompSaveKeyValueEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
     BackwardCompSaveKeyValueEnableEpoch = 38
 
-    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation on multiple shards is enabled
+    # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation is enabled on multiple shards
     ESDTNFTCreateOnMultiShardEnableEpoch = 39
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
@@ -624,50 +683,153 @@ func TestEnableEpochConfig(t *testing.T) {
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
     OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 43
 
+    # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
+    CorrectFirstQueuedEpoch = 44
+
+    # DeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when the delegators data is deleted for delegators that have to claim rewards after they withdraw all funds
+    DeleteDelegatorAfterClaimRewardsEnableEpoch = 45
+
     # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
-    FixOOGReturnCodeEnableEpoch = 44
+    FixOOGReturnCodeEnableEpoch = 46
 
     # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
-    RemoveNonUpdatedStorageEnableEpoch = 45
+    RemoveNonUpdatedStorageEnableEpoch = 47
 
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
-    OptimizeNFTStoreEnableEpoch = 46
+    OptimizeNFTStoreEnableEpoch = 48
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
-    CreateNFTThroughExecByCallerEnableEpoch = 47
+    CreateNFTThroughExecByCallerEnableEpoch = 49
+
+    # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 50
+
+    # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
+    FrontRunningProtectionEnableEpoch = 51
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 48
+    IsPayableBySCEnableEpoch = 52
 
-	# CleanUpInformativeSCRsEnableEpoch represents the epoch when the scrs which contain only information are cleaned from miniblocks and logs are created from it
-	CleanUpInformativeSCRsEnableEpoch = 49
+    # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
+    CleanUpInformativeSCRsEnableEpoch = 53
 
-    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Arwen
-    StorageAPICostOptimizationEnableEpoch = 50
+    # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
+    StorageAPICostOptimizationEnableEpoch = 54
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-	TransformToMultiShardCreateEnableEpoch = 51
+    TransformToMultiShardCreateEnableEpoch = 55
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 52
+    ESDTRegisterAndSetAllRolesEnableEpoch = 56
 
-	# FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-	FailExecutionOnEveryAPIErrorEnableEpoch = 53
+    # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
+    ScheduledMiniBlocksEnableEpoch = 57
 
-	# ManagedCryptoAPIsEnableEpoch represents the epoch when the new managed crypto APIs are enabled
-	ManagedCryptoAPIsEnableEpoch = 54
+    # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
+    CorrectJailedNotUnstakedEmptyQueueEpoch = 58
 
-	# ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-	ESDTMetadataContinuousCleanupEnableEpoch = 55
+    # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
+    # disabled in the blockchain hook component
+    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 59
+
+    # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 60
+
+    # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 61
+
+    # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 62
+
+    # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
+    DisableExecByCallerEnableEpoch = 63
+
+    # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
+    RefactorContextEnableEpoch = 64
+
+    # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
+    FailExecutionOnEveryAPIErrorEnableEpoch = 65
+
+    # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
+    ManagedCryptoAPIsEnableEpoch = 66
+
+    # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
+    CheckFunctionArgumentEnableEpoch = 67
+
+    # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
+    CheckExecuteOnReadOnlyEnableEpoch = 68
+
+    # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
+    ESDTMetadataContinuousCleanupEnableEpoch = 69
+
+    # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
+    MiniBlockPartialExecutionEnableEpoch = 70
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 56
+    FixAsyncCallBackArgsListEnableEpoch = 71
 
-	# FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-	FixOldTokenLiquidityEnableEpoch = 57
+    # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
+    FixOldTokenLiquidityEnableEpoch = 72
 
-	# SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 58
+    # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
+    RuntimeMemStoreLimitEnableEpoch = 73
+
+    # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
+    SetSenderInEeiOutputTransferEnableEpoch = 74
+
+    # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
+    RefactorPeersMiniBlocksEnableEpoch = 75
+
+    # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
+    MaxBlockchainHookCountersEnableEpoch = 76
+
+    # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 77
+
+    # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
+    AlwaysSaveTokenMetaDataEnableEpoch = 78
+
+    # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
+    RuntimeCodeSizeFixEnableEpoch = 79
+
+    # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
+    RelayedNonceFixEnableEpoch = 80
+
+    # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
+    SetGuardianEnableEpoch = 81
+
+    # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
+    AutoBalanceDataTriesEnableEpoch = 82
+
+    # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 83
+
+    # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
+    MultiClaimOnDelegationEnableEpoch = 84
+
+    # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
+    ChangeUsernameEnableEpoch = 85
+
+    # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
+    ConsistentTokensValuesLengthCheckEnableEpoch = 86
+
+    # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 87
+
+    # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
+    DeterministicSortOnValidatorsInfoEnableEpoch = 66
+
+    # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 64
+
+	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	ScToScLogEventEnableEpoch = 88
+
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 89
+
+    # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 90
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -675,11 +837,11 @@ func TestEnableEpochConfig(t *testing.T) {
         { EpochEnable = 45, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
-	BLSMultiSignerEnableEpoch = [
-		{EnableEpoch = 0, Type = "no-KOSK"},
-		{EnableEpoch = 3, Type = "KOSK"}
-	]
-
+    BLSMultiSignerEnableEpoch = [
+        {EnableEpoch = 0, Type = "no-KOSK"},
+        {EnableEpoch = 3, Type = "KOSK"}
+    ]
+	
 [GasSchedule]
     GasScheduleByEpochs = [
         { StartEpoch = 46, FileName = "gasScheduleV1.toml" },
@@ -689,18 +851,96 @@ func TestEnableEpochConfig(t *testing.T) {
 
 	expectedCfg := EpochConfig{
 		EnableEpochs: EnableEpochs{
-			SCDeployEnableEpoch:                    1,
-			BuiltInFunctionsEnableEpoch:            2,
-			RelayedTransactionsEnableEpoch:         3,
-			PenalizedTooMuchGasEnableEpoch:         4,
-			SwitchJailWaitingEnableEpoch:           5,
-			SwitchHysteresisForMinNodesEnableEpoch: 7,
-			BelowSignedThresholdEnableEpoch:        6,
-			TransactionSignedWithTxHashEnableEpoch: 8,
-			MetaProtectionEnableEpoch:              9,
-			AheadOfTimeGasUsageEnableEpoch:         10,
-			GasPriceModifierEnableEpoch:            11,
-			RepairCallbackEnableEpoch:              12,
+			SCDeployEnableEpoch:                               1,
+			BuiltInFunctionsEnableEpoch:                       2,
+			RelayedTransactionsEnableEpoch:                    3,
+			PenalizedTooMuchGasEnableEpoch:                    4,
+			SwitchJailWaitingEnableEpoch:                      5,
+			BelowSignedThresholdEnableEpoch:                   6,
+			SwitchHysteresisForMinNodesEnableEpoch:            7,
+			TransactionSignedWithTxHashEnableEpoch:            8,
+			MetaProtectionEnableEpoch:                         9,
+			AheadOfTimeGasUsageEnableEpoch:                    10,
+			GasPriceModifierEnableEpoch:                       11,
+			RepairCallbackEnableEpoch:                         12,
+			BlockGasAndFeesReCheckEnableEpoch:                 13,
+			BalanceWaitingListsEnableEpoch:                    14,
+			ReturnDataToLastTransferEnableEpoch:               15,
+			SenderInOutTransferEnableEpoch:                    16,
+			StakeEnableEpoch:                                  17,
+			StakingV2EnableEpoch:                              18,
+			DoubleKeyProtectionEnableEpoch:                    19,
+			ESDTEnableEpoch:                                   20,
+			GovernanceEnableEpoch:                             21,
+			DelegationManagerEnableEpoch:                      22,
+			DelegationSmartContractEnableEpoch:                23,
+			CorrectLastUnjailedEnableEpoch:                    24,
+			RelayedTransactionsV2EnableEpoch:                  25,
+			UnbondTokensV2EnableEpoch:                         26,
+			SaveJailedAlwaysEnableEpoch:                       27,
+			ReDelegateBelowMinCheckEnableEpoch:                28,
+			ValidatorToDelegationEnableEpoch:                  29,
+			WaitingListFixEnableEpoch:                         30,
+			IncrementSCRNonceInMultiTransferEnableEpoch:       31,
+			ESDTMultiTransferEnableEpoch:                      32,
+			GlobalMintBurnDisableEpoch:                        33,
+			ESDTTransferRoleEnableEpoch:                       34,
+			BuiltInFunctionOnMetaEnableEpoch:                  35,
+			ComputeRewardCheckpointEnableEpoch:                36,
+			SCRSizeInvariantCheckEnableEpoch:                  37,
+			BackwardCompSaveKeyValueEnableEpoch:               38,
+			ESDTNFTCreateOnMultiShardEnableEpoch:              39,
+			MetaESDTSetEnableEpoch:                            40,
+			AddTokensToDelegationEnableEpoch:                  41,
+			MultiESDTTransferFixOnCallBackOnEnableEpoch:       42,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       43,
+			CorrectFirstQueuedEpoch:                           44,
+			DeleteDelegatorAfterClaimRewardsEnableEpoch:       45,
+			FixOOGReturnCodeEnableEpoch:                       46,
+			RemoveNonUpdatedStorageEnableEpoch:                47,
+			OptimizeNFTStoreEnableEpoch:                       48,
+			CreateNFTThroughExecByCallerEnableEpoch:           49,
+			StopDecreasingValidatorRatingWhenStuckEnableEpoch: 50,
+			FrontRunningProtectionEnableEpoch:                 51,
+			IsPayableBySCEnableEpoch:                          52,
+			CleanUpInformativeSCRsEnableEpoch:                 53,
+			StorageAPICostOptimizationEnableEpoch:             54,
+			TransformToMultiShardCreateEnableEpoch:            55,
+			ESDTRegisterAndSetAllRolesEnableEpoch:             56,
+			ScheduledMiniBlocksEnableEpoch:                    57,
+			CorrectJailedNotUnstakedEmptyQueueEpoch:           58,
+			DoNotReturnOldBlockInBlockchainHookEnableEpoch:    59,
+			AddFailedRelayedTxToInvalidMBsDisableEpoch:        60,
+			SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
+			CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
+			DisableExecByCallerEnableEpoch:                    63,
+			RefactorContextEnableEpoch:                        64,
+			FailExecutionOnEveryAPIErrorEnableEpoch:           65,
+			ManagedCryptoAPIsEnableEpoch:                      66,
+			CheckFunctionArgumentEnableEpoch:                  67,
+			CheckExecuteOnReadOnlyEnableEpoch:                 68,
+			ESDTMetadataContinuousCleanupEnableEpoch:          69,
+			MiniBlockPartialExecutionEnableEpoch:              70,
+			FixAsyncCallBackArgsListEnableEpoch:               71,
+			FixOldTokenLiquidityEnableEpoch:                   72,
+			RuntimeMemStoreLimitEnableEpoch:                   73,
+			SetSenderInEeiOutputTransferEnableEpoch:           74,
+			RefactorPeersMiniBlocksEnableEpoch:                75,
+			MaxBlockchainHookCountersEnableEpoch:              76,
+			WipeSingleNFTLiquidityDecreaseEnableEpoch:         77,
+			AlwaysSaveTokenMetaDataEnableEpoch:                78,
+			RuntimeCodeSizeFixEnableEpoch:                     79,
+			RelayedNonceFixEnableEpoch:                        80,
+			SetGuardianEnableEpoch:                            81,
+			AutoBalanceDataTriesEnableEpoch:                   82,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:             83,
+			MultiClaimOnDelegationEnableEpoch:                 84,
+			ChangeUsernameEnableEpoch:                         85,
+			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
+			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
+			ScToScLogEventEnableEpoch:                         88,
+			NFTStopCreateEnableEpoch:                          89,
+			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:  90,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -713,52 +953,8 @@ func TestEnableEpochConfig(t *testing.T) {
 					NodesToShufflePerShard: 80,
 				},
 			},
-			BlockGasAndFeesReCheckEnableEpoch:           13,
-			StakingV2EnableEpoch:                        18,
-			StakeEnableEpoch:                            17,
-			DoubleKeyProtectionEnableEpoch:              19,
-			ESDTEnableEpoch:                             20,
-			GovernanceEnableEpoch:                       21,
-			DelegationManagerEnableEpoch:                22,
-			DelegationSmartContractEnableEpoch:          23,
-			CorrectLastUnjailedEnableEpoch:              24,
-			BalanceWaitingListsEnableEpoch:              14,
-			ReturnDataToLastTransferEnableEpoch:         15,
-			SenderInOutTransferEnableEpoch:              16,
-			RelayedTransactionsV2EnableEpoch:            25,
-			UnbondTokensV2EnableEpoch:                   26,
-			SaveJailedAlwaysEnableEpoch:                 27,
-			ValidatorToDelegationEnableEpoch:            29,
-			ReDelegateBelowMinCheckEnableEpoch:          28,
-			WaitingListFixEnableEpoch:                   30,
-			IncrementSCRNonceInMultiTransferEnableEpoch: 31,
-			ESDTMultiTransferEnableEpoch:                32,
-			GlobalMintBurnDisableEpoch:                  33,
-			ESDTTransferRoleEnableEpoch:                 34,
-			BuiltInFunctionOnMetaEnableEpoch:            35,
-			ComputeRewardCheckpointEnableEpoch:          36,
-			SCRSizeInvariantCheckEnableEpoch:            37,
-			BackwardCompSaveKeyValueEnableEpoch:         38,
-			ESDTNFTCreateOnMultiShardEnableEpoch:        39,
-			MetaESDTSetEnableEpoch:                      40,
-			AddTokensToDelegationEnableEpoch:            41,
-			MultiESDTTransferFixOnCallBackOnEnableEpoch: 42,
-			OptimizeGasUsedInCrossMiniBlocksEnableEpoch: 43,
-			FixOOGReturnCodeEnableEpoch:                 44,
-			RemoveNonUpdatedStorageEnableEpoch:          45,
-			OptimizeNFTStoreEnableEpoch:                 46,
-			CreateNFTThroughExecByCallerEnableEpoch:     47,
-			IsPayableBySCEnableEpoch:                    48,
-			CleanUpInformativeSCRsEnableEpoch:           49,
-			StorageAPICostOptimizationEnableEpoch:       50,
-			TransformToMultiShardCreateEnableEpoch:      51,
-			ESDTRegisterAndSetAllRolesEnableEpoch:       52,
-			FailExecutionOnEveryAPIErrorEnableEpoch:     53,
-			ManagedCryptoAPIsEnableEpoch:                54,
-			ESDTMetadataContinuousCleanupEnableEpoch:    55,
-			FixAsyncCallBackArgsListEnableEpoch:         56,
-			FixOldTokenLiquidityEnableEpoch:             57,
-			SetSenderInEeiOutputTransferEnableEpoch:     58,
+			DeterministicSortOnValidatorsInfoEnableEpoch:    66,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

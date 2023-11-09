@@ -7,23 +7,23 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/goroutines"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	numLeavesToAdd := 200
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, 5)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 
 	for i := 0; i < numLeavesToAdd; i++ {
 		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
@@ -36,25 +36,37 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ := tr.RootHash()
 	leavesChannel1 := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel1,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ := gc.Snapshot()
 	diff := gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 1) // can be 0 on a fast running host
-	err := common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err := leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	leavesChannel1 = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel1,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 2)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("god"), []byte("puppy"))
@@ -63,13 +75,19 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel1 = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel1, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel1,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.Equal(t, 3, len(diff), fmt.Sprintf("%v", diff))
-	err = common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("eggod"), []byte("cat"))
@@ -78,14 +96,20 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	_ = tr.GetAllLeavesOnChannel(leavesChannel2, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	_ = tr.GetAllLeavesOnChannel(
+		leavesChannel2,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	time.Sleep(time.Second) // allow the go routine to start
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 4)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel2.ErrChan)
+	err = leavesChannel2.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	for range leavesChannel1.LeavesChan {
@@ -94,7 +118,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 3)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel1.ErrChan)
+	err = leavesChannel1.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	for range leavesChannel2.LeavesChan {
@@ -103,7 +127,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	idx, _ = gc.Snapshot()
 	diff = gc.DiffGoRoutines(idxInitial, idx)
 	assert.True(t, len(diff) <= 2)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel2.ErrChan)
+	err = leavesChannel2.ErrChan.ReadFromChanNonBlocking()
 	assert.Nil(t, err)
 
 	err = tr.Close()
@@ -115,15 +139,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 }
 
 func TestTrieStorageManager_Close(t *testing.T) {
-	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            &testscommon.MarshalizerMock{},
-		Hasher:                 &hashingMocks.HasherMock{},
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, 32),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	args := storage.GetStorageManagerArgs()
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()

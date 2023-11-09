@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/node"
 	"github.com/gorilla/websocket"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var formatter = logger.PlainFormatter{}

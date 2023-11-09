@@ -4,20 +4,20 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/vm"
-	"github.com/ElrondNetwork/elrond-go/vm/mock"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArguments() ArgsNewSystemVM {
 	gasMap := make(map[string]map[string]uint64)
-	gasMap[common.ElrondAPICost] = make(map[string]uint64)
-	gasMap[common.ElrondAPICost][common.AsyncCallStepField] = 1000
-	gasMap[common.ElrondAPICost][common.AsyncCallbackGasLockField] = 3000
+	gasMap[common.BaseOpsAPICost] = make(map[string]uint64)
+	gasMap[common.BaseOpsAPICost][common.AsyncCallStepField] = 1000
+	gasMap[common.BaseOpsAPICost][common.AsyncCallbackGasLockField] = 3000
 	args := ArgsNewSystemVM{
 		SystemEI:        &mock.SystemEIStub{},
 		SystemContracts: &mock.SystemSCContainerStub{},
@@ -82,7 +82,7 @@ func TestNewSystemVM_NoApiCost(t *testing.T) {
 	assert.Nil(t, sVM)
 	assert.Equal(t, vm.ErrNilGasSchedule, err)
 
-	gasMap[common.ElrondAPICost] = make(map[string]uint64)
+	gasMap[common.BaseOpsAPICost] = make(map[string]uint64)
 	args.GasSchedule = testscommon.NewGasScheduleNotifierMock(gasMap)
 	sVM, err = NewSystemVM(args)
 

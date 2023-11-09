@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,4 +33,6 @@ func TestNetStatistics_MethodsShouldNotPanic(t *testing.T) {
 	assert.Equal(t, notAvailable, message)
 
 	stats.EpochConfirmed(0, 0)
+
+	assert.Nil(t, stats.Close())
 }

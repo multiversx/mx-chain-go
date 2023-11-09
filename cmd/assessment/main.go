@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks"
-	"github.com/ElrondNetwork/elrond-go/cmd/assessment/benchmarks/factory"
-	"github.com/ElrondNetwork/elrond-go/cmd/assessment/hostParameters"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/cmd/assessment/benchmarks"
+	"github.com/multiversx/mx-chain-go/cmd/assessment/benchmarks/factory"
+	"github.com/multiversx/mx-chain-go/cmd/assessment/hostParameters"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/urfave/cli"
 )
 
@@ -53,19 +52,19 @@ func main() {
 
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
-	app.Name = "Elrond Node Assessment Tool"
+	app.Name = "MultiversX Node Assessment Tool"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
 	app.Version = fmt.Sprintf("assessment-%s/%s-%s/%s", runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
-	app.Usage = "This tool is used to measure the host's performance on some certain tasks used by an elrond node. It " +
+	app.Usage = "This tool is used to measure the host's performance on some certain tasks used by a MultiversX node. It " +
 		"produces anonymized host parameters along with a list of benchmarks results. More details can be found in the README.md file."
 	app.Flags = []cli.Flag{
 		outputFile,
 	}
 	app.Authors = []cli.Author{
 		{
-			Name:  "The Elrond Team",
-			Email: "contact@elrond.com",
+			Name:  "The MultiversX Team",
+			Email: "contact@multiversx.com",
 		},
 	}
 
@@ -142,5 +141,5 @@ func saveToFile(hi *hostParameters.HostInfo, results *benchmarks.TestResults, ou
 		return err
 	}
 
-	return ioutil.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
+	return os.WriteFile(outputFileName, buff.Bytes(), core.FileModeReadWrite)
 }

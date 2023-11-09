@@ -8,18 +8,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/epochStart/metachain"
-	"github.com/ElrondNetwork/elrond-go/epochStart/shardchain"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("storage/latestData")
@@ -53,6 +54,13 @@ type latestDataProvider struct {
 
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
+	if check.IfNil(args.DirectoryReader) {
+		return nil, storage.ErrNilDirectoryReader
+	}
+	if check.IfNil(args.BootstrapDataProvider) {
+		return nil, storage.ErrNilBootstrapDataProvider
+	}
+
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
 		parentDir:             args.ParentDir,
@@ -124,7 +132,12 @@ func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterFactory := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
+	dbConfigHandler := factory.NewDBConfigHandler(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return storage.LatestDataFromStorage{}, err
+	}
+
 	pathWithoutShard := filepath.Join(
 		parentDir,
 		fmt.Sprintf("%s_%d", ldp.defaultEpochString, lastEpoch),

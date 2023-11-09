@@ -7,20 +7,23 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
+
+var expectedErr = fmt.Errorf("expected error")
 
 func createMockDeployArg() ArgDeployProcessor {
 	return ArgDeployProcessor{
 		Executor:       &mock.TxExecutionProcessorStub{},
-		PubkeyConv:     mock.NewPubkeyConverterMock(32),
+		PubkeyConv:     testscommon.NewPubkeyConverterMock(32),
 		BlockchainHook: &testscommon.BlockChainHookStub{},
 		QueryService:   &mock.QueryServiceStub{},
 	}
@@ -87,7 +90,6 @@ func TestDeployProcessor_DeployGetCodeFailsShouldErr(t *testing.T) {
 
 	arg := createMockDeployArg()
 	dp, _ := NewDeployProcessor(arg)
-	expectedErr := fmt.Errorf("expected error")
 	dp.getScCodeAsHex = func(filename string) (string, error) {
 		return "", expectedErr
 	}
@@ -101,7 +103,6 @@ func TestDeployProcessor_DeployGetCodeFailsShouldErr(t *testing.T) {
 func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expected error")
 	arg := createMockDeployArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		GetNonceCalled: func(senderBytes []byte) (uint64, error) {
@@ -122,7 +123,6 @@ func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
 func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expected error")
 	arg := createMockDeployArg()
 	arg.BlockchainHook = &testscommon.BlockChainHookStub{
 		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
@@ -138,6 +138,166 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 
 	assert.Nil(t, scAddresses)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestDeployProcessor_DeployMissingVersionShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accountExists := false
+	testSender := []byte("sender")
+	executeCalled := false
+	testCode := "code"
+	vmType := "0500"
+	version := ""
+	arg := createMockDeployArg()
+	arg.Executor = &mock.TxExecutionProcessorStub{
+		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
+			executeCalled = true
+			return nil
+		},
+		AccountExistsCalled: func(address []byte) bool {
+			result := accountExists
+			accountExists = true
+
+			return result
+		},
+	}
+	var scResulting []byte
+	arg.BlockchainHook = &testscommon.BlockChainHookStub{
+		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+			buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
+			scResulting = []byte(buff)
+
+			return []byte(buff), nil
+		},
+	}
+	dp, _ := NewDeployProcessor(arg)
+	dp.getScCodeAsHex = func(filename string) (string, error) {
+		return testCode, nil
+	}
+
+	sc := &data.InitialSmartContract{
+		VmType:  vmType,
+		Version: version,
+	}
+	sc.SetOwnerBytes(testSender)
+
+	scAddresses, err := dp.Deploy(sc)
+
+	assert.Nil(t, err)
+	assert.True(t, executeCalled)
+	assert.Equal(t, 1, len(scAddresses))
+	assert.Equal(t, scResulting, scAddresses[0])
+}
+
+func TestDeployProcessor_DeployExecuteQueryFailureShouldError(t *testing.T) {
+	t.Parallel()
+
+	accountExists := false
+	testSender := []byte("sender")
+	executeCalled := false
+	testCode := "code"
+	vmType := "0500"
+	version := "1.0.0"
+	arg := createMockDeployArg()
+	arg.Executor = &mock.TxExecutionProcessorStub{
+		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
+			executeCalled = true
+			return nil
+		},
+		AccountExistsCalled: func(address []byte) bool {
+			result := accountExists
+			accountExists = true
+
+			return result
+		},
+	}
+	var scResulting []byte
+	arg.BlockchainHook = &testscommon.BlockChainHookStub{
+		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+			buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
+			scResulting = []byte(buff)
+
+			return []byte(buff), nil
+		},
+	}
+	arg.QueryService = &mock.QueryServiceStub{
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return nil, nil, expectedErr
+		},
+	}
+	dp, _ := NewDeployProcessor(arg)
+	dp.getScCodeAsHex = func(filename string) (string, error) {
+		return testCode, nil
+	}
+
+	sc := &data.InitialSmartContract{
+		VmType:  vmType,
+		Version: version,
+	}
+	sc.SetOwnerBytes(testSender)
+
+	scAddresses, err := dp.Deploy(sc)
+	assert.Equal(t, expectedErr, err)
+	assert.True(t, executeCalled)
+	assert.Equal(t, 1, len(scAddresses))
+	assert.Equal(t, scResulting, scAddresses[0])
+}
+
+func TestDeployProcessor_DeployExecuteQueryReturnsMultipleReturnDataShouldError(t *testing.T) {
+	t.Parallel()
+
+	accountExists := false
+	testSender := []byte("sender")
+	executeCalled := false
+	testCode := "code"
+	vmType := "0500"
+	version := "1.0.0"
+	arg := createMockDeployArg()
+	arg.Executor = &mock.TxExecutionProcessorStub{
+		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
+			executeCalled = true
+			return nil
+		},
+		AccountExistsCalled: func(address []byte) bool {
+			result := accountExists
+			accountExists = true
+
+			return result
+		},
+	}
+	var scResulting []byte
+	arg.BlockchainHook = &testscommon.BlockChainHookStub{
+		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
+			buff := fmt.Sprintf("%s_%d_%s", string(creatorAddress), creatorNonce, hex.EncodeToString(vmType))
+			scResulting = []byte(buff)
+
+			return []byte(buff), nil
+		},
+	}
+	arg.QueryService = &mock.QueryServiceStub{
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+			return &vmcommon.VMOutput{
+				ReturnData: [][]byte{[]byte("return data 1"), []byte("return data 2")},
+			}, nil, nil
+		},
+	}
+	dp, _ := NewDeployProcessor(arg)
+	dp.getScCodeAsHex = func(filename string) (string, error) {
+		return testCode, nil
+	}
+
+	sc := &data.InitialSmartContract{
+		VmType:  vmType,
+		Version: version,
+	}
+	sc.SetOwnerBytes(testSender)
+
+	scAddresses, err := dp.Deploy(sc)
+	assert.Equal(t, genesis.ErrGetVersionFromSC, err)
+	assert.True(t, executeCalled)
+	assert.Equal(t, 1, len(scAddresses))
+	assert.Equal(t, scResulting, scAddresses[0])
 }
 
 func TestDeployProcessor_DeployShouldWork(t *testing.T) {
@@ -198,10 +358,10 @@ func TestDeployProcessor_DeployShouldWork(t *testing.T) {
 		},
 	}
 	arg.QueryService = &mock.QueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			return &vmcommon.VMOutput{
 				ReturnData: [][]byte{[]byte(version)},
-			}, nil
+			}, nil, nil
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)

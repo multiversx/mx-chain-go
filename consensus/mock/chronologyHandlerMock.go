@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 // ChronologyHandlerMock -

@@ -3,18 +3,19 @@ package preprocess
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.DataMarshalizer = (*rewardTxPreprocessor)(nil)
@@ -45,6 +46,7 @@ func NewRewardTxPreprocessor(
 	blockSizeComputation BlockSizeComputationHandler,
 	balanceComputation BalanceComputationHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*rewardTxPreprocessor, error) {
 
 	if check.IfNil(hasher) {
@@ -86,6 +88,9 @@ func NewRewardTxPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -100,6 +105,7 @@ func NewRewardTxPreprocessor(
 		accounts:                   accounts,
 		pubkeyConverter:            pubkeyConverter,
 		processedMiniBlocksTracker: processedMiniBlocksTracker,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -265,9 +271,13 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
+			err = rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
+			if err != nil {
+				return err
+			}
 
-			err := rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
+			rtp.txExecutionOrderHandler.Add(txHash)
+			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
 				return err
 			}
@@ -390,7 +400,7 @@ func (rtp *rewardTxPreprocessor) computeMissingRewardTxsHashesForMiniBlock(miniB
 			miniBlock.ReceiverShardID,
 			txHash,
 			rtp.rewardTxPool,
-			false,
+			process.SearchMethodJustPeek,
 		)
 
 		if check.IfNil(tx) {
@@ -491,9 +501,14 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 			break
 		}
 
-		rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[txIndex].GetRcvAddr())
+		err = rtp.saveAccountBalanceForAddress(miniBlockRewardTxs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+
+		rtp.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])
 		if err != nil {
 			rtp.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])

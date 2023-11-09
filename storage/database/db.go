@@ -1,9 +1,10 @@
 package database
 
 import (
-	"github.com/ElrondNetwork/elrond-go-storage/leveldb"
-	"github.com/ElrondNetwork/elrond-go-storage/memorydb"
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-storage-go/leveldb"
+	"github.com/multiversx/mx-chain-storage-go/memorydb"
+	"github.com/multiversx/mx-chain-storage-go/sharded"
 )
 
 // MemDB represents the memory database storage. It holds a map of key value pairs
@@ -30,4 +31,14 @@ func NewLevelDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFil
 // It creates the files in the location given as parameter
 func NewSerialDB(path string, batchDelaySeconds int, maxBatchSize int, maxOpenFiles int) (s *leveldb.SerialDB, err error) {
 	return leveldb.NewSerialDB(path, batchDelaySeconds, maxBatchSize, maxOpenFiles)
+}
+
+// NewShardIDProvider is a constructor for shard id provider
+func NewShardIDProvider(numShards int32) (storage.ShardIDProvider, error) {
+	return sharded.NewShardIDProvider(numShards)
+}
+
+// NewShardedPersister is a constructor for sharded persister based on provided db type
+func NewShardedPersister(path string, persisterCreator storage.PersisterCreator, idPersister storage.ShardIDProvider) (s storage.Persister, err error) {
+	return sharded.NewShardedPersister(path, persisterCreator, idPersister)
 }

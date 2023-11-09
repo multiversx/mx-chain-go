@@ -8,14 +8,11 @@ var ErrInvalidSignature = errors.New("invalid signature was provided")
 // ErrNilElement is raised when searching for a specific element but found nil
 var ErrNilElement = errors.New("element is nil")
 
-// ErrIndexNotSelected is raised when a not selected index is used for multi-signing
-var ErrIndexNotSelected = errors.New("index is not selected")
-
 // ErrNilBitmap is raised when a nil bitmap is used
 var ErrNilBitmap = errors.New("bitmap is nil")
 
-// ErrNoPrivateKeySet is raised when no private key was set
-var ErrNoPrivateKeySet = errors.New("no private key was set")
+// ErrNilKeysHandler is raised when a nil keys handler was provided
+var ErrNilKeysHandler = errors.New("nil keys handler")
 
 // ErrNoPublicKeySet is raised when no public key was set for a multisignature
 var ErrNoPublicKeySet = errors.New("no public key was set")
@@ -28,6 +25,9 @@ var ErrNilPublicKeys = errors.New("public keys are nil")
 
 // ErrNilMultiSignerContainer is raised when a nil multi signer container has been provided
 var ErrNilMultiSignerContainer = errors.New("multi signer container is nil")
+
+// ErrNilSingleSigner signals that a nil single signer was provided
+var ErrNilSingleSigner = errors.New("nil single signer")
 
 // ErrIndexOutOfBounds is raised when an out of bound index is used
 var ErrIndexOutOfBounds = errors.New("index is out of bounds")

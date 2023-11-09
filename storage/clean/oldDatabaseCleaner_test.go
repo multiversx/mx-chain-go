@@ -4,14 +4,14 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/storage/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,9 +68,9 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 			odc, err := NewOldDatabaseCleaner(args)
 			require.Equal(t1, tt.expectedErr, err)
 			if err == nil {
-				require.False(t1, check.IfNil(odc))
+				assert.NotNil(t1, odc)
 			} else {
-				require.True(t1, check.IfNil(odc))
+				assert.Nil(t1, odc)
 			}
 		})
 	}
@@ -100,7 +100,6 @@ func TestOldDatabaseCleaner_EpochChangeShouldErrIfOldestEpochComputationFails(t 
 	odc, _ := NewOldDatabaseCleaner(args)
 	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
-	require.False(t, check.IfNil(odc))
 
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
@@ -132,7 +131,6 @@ func TestOldDatabaseCleaner_EpochChangeDirectoryReadFailsShouldNotRemove(t *test
 	odc, _ := NewOldDatabaseCleaner(args)
 	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
-	require.False(t, check.IfNil(odc))
 
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
@@ -164,7 +162,6 @@ func TestOldDatabaseCleaner_EpochChangeNoEpochDirectory(t *testing.T) {
 	odc, _ := NewOldDatabaseCleaner(args)
 	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
-	require.False(t, check.IfNil(odc))
 
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
 	require.False(t, fileRemoverWasCalled)
@@ -199,7 +196,6 @@ func TestOldDatabaseCleaner_EpochChangeShouldNotRemoveIfNewOldestEpochIsOlder(t 
 	odc, _ := NewOldDatabaseCleaner(args)
 	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
-	require.False(t, check.IfNil(odc))
 
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
 	require.Empty(t, removedFiles)
@@ -243,7 +239,6 @@ func TestOldDatabaseCleaner_EpochChange(t *testing.T) {
 	odc, _ := NewOldDatabaseCleaner(args)
 	odc.pathRemover = fileRemover
 	odc.directoryReader = directoryReader
-	require.False(t, check.IfNil(odc))
 
 	handlerFunc.EpochStartAction(&block.Header{Epoch: 5})
 	require.Empty(t, removedFiles)
@@ -282,4 +277,15 @@ func createMockArgs() ArgsOldDatabaseCleaner {
 		},
 		OldDataCleanerProvider: &testscommon.OldDataCleanerProviderStub{},
 	}
+}
+
+func TestOldDatabaseCleaner_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var odc *oldDatabaseCleaner
+	require.True(t, odc.IsInterfaceNil())
+
+	args := createMockArgs()
+	odc, _ = NewOldDatabaseCleaner(args)
+	require.False(t, odc.IsInterfaceNil())
 }

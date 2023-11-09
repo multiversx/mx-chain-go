@@ -4,19 +4,23 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/esdt"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go-core/data/vm"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug"
-	"github.com/ElrondNetwork/elrond-go/heartbeat/data"
-	"github.com/ElrondNetwork/elrond-go/node/external"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	txSimData "github.com/ElrondNetwork/elrond-go/process/txsimulator/data"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -30,12 +34,21 @@ type initialNodeFacade struct {
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool) *initialNodeFacade {
+func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
+	if check.IfNil(statusMetricsHandler) {
+		return nil, facade.ErrNilStatusMetrics
+	}
+
+	initialStatusMetrics, err := NewInitialStatusMetricsProvider(statusMetricsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return &initialNodeFacade{
 		apiInterface:         apiInterface,
-		statusMetricsHandler: NewDisabledStatusMetricsHandler(),
+		statusMetricsHandler: initialStatusMetrics,
 		pprofEnabled:         pprofEnabled,
-	}
+	}, nil
 }
 
 // GetProof -
@@ -114,20 +127,7 @@ func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.Account
 }
 
 // CreateTransaction return nil and error
-func (inf *initialNodeFacade) CreateTransaction(
-	_ uint64,
-	_ string,
-	_ string,
-	_ []byte,
-	_ string,
-	_ []byte,
-	_ uint64,
-	_ uint64,
-	_ []byte,
-	_ string,
-	_ string,
-	_ uint32,
-	_ uint32) (*transaction.Transaction, []byte, error) {
+func (inf *initialNodeFacade) CreateTransaction(_ *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
 	return nil, nil, errNodeStarting
 }
 
@@ -142,7 +142,7 @@ func (inf *initialNodeFacade) ValidateTransactionForSimulation(_ *transaction.Tr
 }
 
 // ValidatorStatisticsApi returns nil and error
-func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
 	return nil, errNodeStarting
 }
 
@@ -152,7 +152,7 @@ func (inf *initialNodeFacade) SendBulkTransactions(_ []*transaction.Transaction)
 }
 
 // SimulateTransactionExecution returns nil and error
-func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResults, error) {
+func (inf *initialNodeFacade) SimulateTransactionExecution(_ *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
 	return nil, errNodeStarting
 }
 
@@ -169,6 +169,11 @@ func (inf *initialNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 // GetAccount returns nil and error
 func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
+}
+
+// GetAccounts returns error
+func (inf *initialNodeFacade) GetAccounts(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetCode returns nil and error
@@ -197,8 +202,8 @@ func (inf *initialNodeFacade) GetTotalStakedValue() (*api.StakeValues, error) {
 }
 
 // ExecuteSCQuery returns nil and error
-func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, error) {
-	return nil, errNodeStarting
+func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
+	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // PprofEnabled returns false
@@ -236,6 +241,11 @@ func (inf *initialNodeFacade) GetPeerInfo(_ string) ([]core.QueryP2PPeerInfo, er
 	return nil, errNodeStarting
 }
 
+// GetConnectedPeersRatingsOnMainNetwork returns empty string and error
+func (inf *initialNodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return "", errNodeStarting
+}
+
 // GetEpochStartDataAPI returns nil and error
 func (inf *initialNodeFacade) GetEpochStartDataAPI(_ uint32) (*common.EpochStartDataAPI, error) {
 	return nil, errNodeStarting
@@ -261,6 +271,11 @@ func (inf *initialNodeFacade) GetBlockByRound(_ uint64, _ api.BlockQueryOptions)
 	return nil, errNodeStarting
 }
 
+// GetAlteredAccountsForBlock returns nil and error
+func (inf *initialNodeFacade) GetAlteredAccountsForBlock(_ api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
+	return nil, errNodeStarting
+}
+
 // GetInternalMetaBlockByHash return nil and error
 func (inf *initialNodeFacade) GetInternalMetaBlockByHash(_ common.ApiOutputFormat, _ string) (interface{}, error) {
 	return nil, errNodeStarting
@@ -278,6 +293,11 @@ func (inf *initialNodeFacade) GetInternalMetaBlockByRound(_ common.ApiOutputForm
 
 // GetInternalStartOfEpochMetaBlock returns nil and error
 func (inf *initialNodeFacade) GetInternalStartOfEpochMetaBlock(_ common.ApiOutputFormat, _ uint32) (interface{}, error) {
+	return nil, errNodeStarting
+}
+
+// GetInternalStartOfEpochValidatorsInfo returns nil and error
+func (inf *initialNodeFacade) GetInternalStartOfEpochValidatorsInfo(_ uint32) ([]*state.ShardValidatorInfo, error) {
 	return nil, errNodeStarting
 }
 
@@ -309,6 +329,11 @@ func (inf *initialNodeFacade) Close() error {
 // GetKeyValuePairs nil map
 func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
+}
+
+// GetGuardianData returns error
+func (inf *initialNodeFacade) GetGuardianData(_ string, _ api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
+	return api.GuardianData{}, api.BlockInfo{}, errNodeStarting
 }
 
 // GetDirectStakedList returns empty slice
@@ -373,6 +398,31 @@ func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common
 
 // GetGasConfigs return a nil map and error
 func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
+	return nil, errNodeStarting
+}
+
+// IsDataTrieMigrated returns false and error
+func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOptions) (bool, error) {
+	return false, errNodeStarting
+}
+
+// GetManagedKeysCount returns 0
+func (inf *initialNodeFacade) GetManagedKeysCount() int {
+	return 0
+}
+
+// GetManagedKeys returns nil
+func (inf *initialNodeFacade) GetManagedKeys() []string {
+	return nil
+}
+
+// GetEligibleManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nil, errNodeStarting
+}
+
+// GetWaitingManagedKeys returns nil and error
+func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
 }
 

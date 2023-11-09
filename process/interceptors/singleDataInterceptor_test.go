@@ -6,13 +6,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -164,7 +164,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *test
 	arg := createMockArgSingleDataInterceptor()
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	err := sdi.ProcessReceivedMessage(nil, fromConnectedPeerId)
+	err := sdi.ProcessReceivedMessage(nil, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, process.ErrNilMessage, err)
 }
@@ -194,11 +194,11 @@ func TestSingleDataInterceptor_ProcessReceivedMessageFactoryCreationErrorShouldE
 	}
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 		PeerField: originatorPid,
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	assert.Equal(t, errExpected, err)
 	assert.True(t, originatorBlackListed)
@@ -247,10 +247,10 @@ func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr
 	arg.Throttler = throttler
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -291,10 +291,10 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 	}
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -358,11 +358,11 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 	}
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 		PeerField: originator,
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	assert.Equal(t, expectedErr, err)
 	assert.True(t, isFromConnectedPeerBlackListed)
 	assert.True(t, isOriginatorBlackListed)
@@ -404,10 +404,10 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	arg.WhiteListRequest = whiteListHandler
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
-	msg := &mock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		DataField: []byte("data to be processed"),
 	}
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 
@@ -421,7 +421,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 		return false
 	}
 
-	err = sdi.ProcessReceivedMessage(msg, fromConnectedPeerId)
+	err = sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 
 	time.Sleep(time.Second)
 

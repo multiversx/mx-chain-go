@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/consensus"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 var _ consensus.SubroundHandler = (*Subround)(nil)
@@ -202,6 +202,23 @@ func (sr *Subround) AppStatusHandler() core.AppStatusHandler {
 // ConsensusChannel method returns the consensus channel
 func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
+}
+
+// GetAssociatedPid returns the associated PeerID to the provided public key bytes
+func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
+	return sr.keysHandler.GetAssociatedPid(pkBytes)
+}
+
+// ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
+// machine failed
+func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
+	isMainMachine := !sr.NodeRedundancyHandler().IsRedundancyNode()
+	if isMainMachine {
+		return true
+	}
+	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
+
+	return isMainMachineInactive
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

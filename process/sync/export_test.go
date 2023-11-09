@@ -3,10 +3,10 @@ package sync
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // RequestHeaderWithNonce -
@@ -173,6 +173,11 @@ func (boot *MetaBootstrap) GetNotarizedInfo(
 		blockWithFinalNotarized: blockWithFinalNotarized,
 		startNonce:              startNonce,
 	}
+}
+
+// SyncAccountsDBs -
+func (boot *MetaBootstrap) SyncAccountsDBs(key []byte, id string) error {
+	return boot.syncAccountsDBs(key, id)
 }
 
 // ProcessReceivedHeader -

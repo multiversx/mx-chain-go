@@ -1,20 +1,60 @@
 package headersCache_test
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever/dataPool/headersCache"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewHeadersCacher(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid MaxHeadersPerShard should error", testNewHeadersCacher(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard: 0,
+		}))
+	t.Run("invalid NumElementsToRemoveOnEviction should error", testNewHeadersCacher(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1,
+			NumElementsToRemoveOnEviction: 0,
+		}))
+	t.Run("invalid config should error", testNewHeadersCacher(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1,
+			NumElementsToRemoveOnEviction: 3,
+		}))
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		headersCacher, err := headersCache.NewHeadersPool(config.HeadersPoolConfig{
+			MaxHeadersPerShard:            2,
+			NumElementsToRemoveOnEviction: 1,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, headersCacher)
+	})
+}
+
+func testNewHeadersCacher(cfg config.HeadersPoolConfig) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		headersCacher, err := headersCache.NewHeadersPool(cfg)
+		require.True(t, errors.Is(err, headersCache.ErrInvalidHeadersCacheParameter))
+		require.Nil(t, headersCacher)
+	}
+}
 
 func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	t.Parallel()
@@ -28,11 +68,16 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	nonce := uint64(1)
 	shardId := uint32(0)
 
+	headers, _, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.Nil(t, headers)
+
 	headerHash1 := []byte("hash1")
 	headerHash2 := []byte("hash2")
 	testHdr1 := &block.Header{Nonce: nonce, ShardID: shardId}
 	testHdr2 := &block.Header{Nonce: nonce, ShardID: shardId, Round: 100}
 
+	headersCacher.AddHeader([]byte("nil header hash"), nil) // coverage
 	headersCacher.AddHeader(headerHash1, testHdr1)
 	headersCacher.AddHeader(headerHash2, testHdr2)
 
@@ -45,7 +90,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	require.Equal(t, testHdr2, header)
 
 	expectedHeaders := []data.HeaderHandler{testHdr1, testHdr2}
-	headers, _, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	headers, _, err = headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
 	require.Nil(t, err)
 	require.Equal(t, expectedHeaders, headers)
 }
@@ -70,6 +115,8 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 	headersCacher.AddHeader(headerHash1, testHdr1)
 	headersCacher.AddHeader(headerHash2, testHdr2)
 
+	headersCacher.RemoveHeaderByHash([]byte(""))
+	headersCacher.RemoveHeaderByHash([]byte("missing hash"))
 	headersCacher.RemoveHeaderByHash(headerHash1)
 	header, err := headersCacher.GetHeaderByHash(headerHash1)
 	require.Nil(t, header)
@@ -101,6 +148,8 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T)
 	headersCacher.AddHeader(headerHash1, testHdr1)
 	headersCacher.AddHeader(headerHash2, testHdr2)
 
+	headersCacher.RemoveHeaderByNonceAndShardId(nonce, 100)
+	headersCacher.RemoveHeaderByNonceAndShardId(100, shardId)
 	headersCacher.RemoveHeaderByNonceAndShardId(nonce, shardId)
 	header, err := headersCacher.GetHeaderByHash(headerHash1)
 	require.Nil(t, header)
@@ -577,6 +626,7 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 		wasCalled = true
 		wg.Done()
 	}
+	headersCacher.RegisterHandler(nil)
 	headersCacher.RegisterHandler(handler)
 	header, hash := createASliceOfHeaders(1, 0)
 	headersCacher.AddHeader(hash[0], &header[0])
@@ -601,6 +651,25 @@ func TestHeadersPool_Clear(t *testing.T) {
 
 	require.Equal(t, 0, headersCacher.Len())
 	require.Equal(t, 0, headersCacher.GetNumHeaders(0))
+}
+
+func TestHeadersPool_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard: 0,
+		},
+	)
+	require.True(t, headersCacher.IsInterfaceNil())
+
+	headersCacher, _ = headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 10,
+		},
+	)
+	require.False(t, headersCacher.IsInterfaceNil())
 }
 
 func createASliceOfHeaders(numHeaders int, shardId uint32) ([]block.Header, [][]byte) {

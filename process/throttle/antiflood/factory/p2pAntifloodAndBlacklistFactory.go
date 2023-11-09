@@ -5,20 +5,21 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	logger "github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/disabled"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/floodPreventers"
-	"github.com/ElrondNetwork/elrond-go/statusHandler/p2pQuota"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	storageFactory "github.com/ElrondNetwork/elrond-go/storage/factory"
-	"github.com/ElrondNetwork/elrond-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	antifloodDebug "github.com/multiversx/mx-chain-go/debug/antiflood"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/floodPreventers"
+	"github.com/multiversx/mx-chain-go/statusHandler/p2pQuota"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("p2p/antiflood/factory")
@@ -128,6 +129,18 @@ func initP2PAntiFloodComponents(
 	)
 	if err != nil {
 		return nil, err
+	}
+
+	if mainConfig.Debug.Antiflood.Enabled {
+		debugger, errDebugger := antifloodDebug.NewAntifloodDebugger(mainConfig.Debug.Antiflood)
+		if errDebugger != nil {
+			return nil, errDebugger
+		}
+
+		err = p2pAntiflood.SetDebugger(debugger)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, topicMaxMessages)

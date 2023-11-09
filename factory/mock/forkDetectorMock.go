@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ForkDetectorMock is a mock implementation for the ForkDetector interface
@@ -23,37 +23,56 @@ type ForkDetectorMock struct {
 
 // RestoreToGenesis -
 func (fdm *ForkDetectorMock) RestoreToGenesis() {
-	fdm.RestoreToGenesisCalled()
+	if fdm.RestoreToGenesisCalled != nil {
+		fdm.RestoreToGenesisCalled()
+	}
 }
 
 // AddHeader is a mock implementation for AddHeader
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if fdm.AddHeaderCalled != nil {
+		return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	}
+	return nil
 }
 
 // RemoveHeader is a mock implementation for RemoveHeader
 func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
-	fdm.RemoveHeaderCalled(nonce, hash)
+	if fdm.RemoveHeaderCalled != nil {
+		fdm.RemoveHeaderCalled(nonce, hash)
+	}
 }
 
 // CheckFork is a mock implementation for CheckFork
 func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
-	return fdm.CheckForkCalled()
+	if fdm.CheckForkCalled != nil {
+		return fdm.CheckForkCalled()
+	}
+	return &process.ForkInfo{}
 }
 
 // GetHighestFinalBlockNonce is a mock implementation for GetHighestFinalBlockNonce
 func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
-	return fdm.GetHighestFinalBlockNonceCalled()
+	if fdm.GetHighestFinalBlockNonceCalled != nil {
+		return fdm.GetHighestFinalBlockNonceCalled()
+	}
+	return 0
 }
 
 // GetHighestFinalBlockHash -
 func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
-	return fdm.GetHighestFinalBlockHashCalled()
+	if fdm.GetHighestFinalBlockHashCalled != nil {
+		return fdm.GetHighestFinalBlockHashCalled()
+	}
+	return nil
 }
 
 // ProbableHighestNonce is a mock implementation for GetProbableHighestNonce
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return fdm.ProbableHighestNonceCalled()
+	if fdm.ProbableHighestNonceCalled != nil {
+		return fdm.ProbableHighestNonceCalled()
+	}
+	return 0
 }
 
 // SetRollBackNonce -
@@ -65,12 +84,17 @@ func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
 
 // ResetFork -
 func (fdm *ForkDetectorMock) ResetFork() {
-	fdm.ResetForkCalled()
+	if fdm.ResetForkCalled != nil {
+		fdm.ResetForkCalled()
+	}
 }
 
 // GetNotarizedHeaderHash -
 func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
-	return fdm.GetNotarizedHeaderHashCalled(nonce)
+	if fdm.GetNotarizedHeaderHashCalled != nil {
+		return fdm.GetNotarizedHeaderHashCalled(nonce)
+	}
+	return nil
 }
 
 // ResetProbableHighestNonce -

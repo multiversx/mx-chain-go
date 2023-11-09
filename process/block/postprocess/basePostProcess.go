@@ -3,16 +3,16 @@ package postprocess
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.DataMarshalizer = (*basePostProcessor)(nil)
@@ -23,7 +23,8 @@ type txShardInfo struct {
 }
 
 type txInfo struct {
-	tx data.TransactionHandler
+	tx    data.TransactionHandler
+	index uint32
 	*txShardInfo
 }
 
@@ -41,6 +42,7 @@ type basePostProcessor struct {
 	mapProcessedResult      map[string][][]byte
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
+	index                   uint32
 }
 
 // SaveCurrentIntermediateTxToStorage saves all current intermediate results to the provided storage unit
@@ -77,6 +79,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
 	bpp.mapProcessedResult = make(map[string][][]byte)
+	bpp.index = 0
 	bpp.mutInterResultsForBlock.Unlock()
 }
 
@@ -274,7 +277,8 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	rcvShardID uint32,
 ) {
 	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
-	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo}
+	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo, index: bpp.index}
+	bpp.index++
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 
 	for key := range bpp.mapProcessedResult {

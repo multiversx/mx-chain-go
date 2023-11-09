@@ -32,13 +32,34 @@
         { Name = "/peerinfo", Open = true },
 
         # /node/epoch-start/:epoch will return the epoch start data for a given epoch
-        { Name = "/epoch-start/:epoch", Open = true }
+        { Name = "/epoch-start/:epoch", Open = true },
+
+        # /node/bootstrapstatus will return all metrics available during bootstrap
+        { Name = "/bootstrapstatus", Open = true },
+
+        # /node/connected-peers-ratings will return the peers ratings
+        { Name = "/connected-peers-ratings", Open = true },
+
+        # /node/managed-keys will return the keys managed by the node
+        { Name = "/managed-keys", Open = true },
+
+        # /node/managed-keys/count will return the number of keys managed by the node
+        { Name = "/managed-keys/count", Open = true },
+
+        # /node/managed-keys/eligible will return the eligible keys managed by the node on the current epoch
+        { Name = "/managed-keys/eligible", Open = true },
+
+        # /node/managed-keys/waiting will return the waiting keys managed by the node on the current epoch
+        { Name = "/managed-keys/waiting", Open = true }
     ]
 
 [APIPackages.address]
     Routes = [
         # /address/:address will return data about a given account
         { Name = "/:address", Open = true },
+
+        # /address/bulk will return the state of the accounts provided in the bulk
+        { Name = "/bulk", Open = true },
 
         # /address/:address/balance will return the balance of a given account
         { Name = "/:address/balance", Open = true },
@@ -54,6 +75,9 @@
 
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
+
+        # /:address/guardian-data will return the guardian data for the given account
+        { Name = "/:address/guardian-data", Open = true},
 
         # /address/:address/esdt will return the list of esdt tokens for a given account
         { Name = "/:address/esdt", Open = true },
@@ -71,7 +95,10 @@
         { Name = "/:address/esdts-with-role/:role", Open = true },
 
         # /address/:address/registered-nfts will return the token identifiers of the tokens registered by the address
-        { Name = "/:address/registered-nfts", Open = true }
+        { Name = "/:address/registered-nfts", Open = true },
+
+        # /address/:address/is-data-trie-migrated will return the status of the data trie migration for the given address
+        { Name = "/:address/is-data-trie-migrated", Open = true }
     ]
 
 [APIPackages.hardfork]
@@ -197,6 +224,12 @@
 
         # /block/by-round/:round will return the block in JSON format based on round
         { Name = "/by-round/:round", Open = true },
+
+        # /altered-accounts/by-nonce/:nonce will return the altered accounts of a block with the provided nonce
+        { Name = "/altered-accounts/by-nonce/:nonce", Open = true },
+
+        # /altered-accounts/by-hash/:hash will return the altered accounts of a block with the provided hash
+        { Name = "/altered-accounts/by-hash/:hash", Open = true }
     ]
 
 [APIPackages.internal]
@@ -247,7 +280,11 @@
         { Name = "/raw/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
 
         # /internal/json/miniblock/by-hash/:hash will return the miniblock in JSON format based on hash for a specified epoch
-        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true }
+        { Name = "/json/miniblock/by-hash/:hash/epoch/:epoch", Open = true },
+
+        # /internal/raw/startofepoch/validators/by-epoch/:epoch will return the start of epoch validators info in json format based on epoch
+        { Name = "/json/startofepoch/validators/by-epoch/:epoch", Open = true }
+
     ]
 
 [APIPackages.proof]

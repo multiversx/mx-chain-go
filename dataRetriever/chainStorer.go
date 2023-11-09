@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go/storage"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ StorageService = (*ChainStorer)(nil)

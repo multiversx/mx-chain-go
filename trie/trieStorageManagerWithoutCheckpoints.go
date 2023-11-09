@@ -1,8 +1,8 @@
 package trie
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // trieStorageManagerWithoutCheckpoints manages the storage operations of the trie, but does not create checkpoints
@@ -30,7 +30,7 @@ func (tsm *trieStorageManagerWithoutCheckpoints) SetCheckpoint(
 	stats common.SnapshotStatisticsHandler,
 ) {
 	if iteratorChannels != nil {
-		safelyCloseChan(iteratorChannels.LeavesChan)
+		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
 	}
 	stats.SnapshotFinished()
 

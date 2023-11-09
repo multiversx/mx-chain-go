@@ -4,16 +4,15 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/factory"
-	nodeDisabled "github.com/ElrondNetwork/elrond-go/node/disabled"
-	"github.com/ElrondNetwork/elrond-go/node/nodeDebugFactory"
-	procFactory "github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/process/throttle/antiflood/blackList"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-vm-common/builtInFunctions"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
+	"github.com/multiversx/mx-chain-go/p2p"
+	procFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // prepareOpenTopics will set to the anti flood handler the topics for which
@@ -25,12 +24,19 @@ func prepareOpenTopics(
 	selfID := shardCoordinator.SelfId()
 	selfShardHeartbeatV2Topic := common.HeartbeatV2Topic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	if selfID == core.MetachainShardId {
-		antiflood.SetTopicsForAll(common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic)
+		antiflood.SetTopicsForAll(
+			common.PeerAuthenticationTopic,
+			selfShardHeartbeatV2Topic,
+			common.ConnectionTopic)
 		return
 	}
 
 	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
-	antiflood.SetTopicsForAll(common.PeerAuthenticationTopic, selfShardHeartbeatV2Topic, common.ConnectionTopic, selfShardTxTopic)
+	antiflood.SetTopicsForAll(
+		common.PeerAuthenticationTopic,
+		selfShardHeartbeatV2Topic,
+		common.ConnectionTopic,
+		selfShardTxTopic)
 }
 
 // CreateNode is the node factory
@@ -52,16 +58,7 @@ func CreateNode(
 ) (*Node, error) {
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
-	peerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
-		networkComponents.PeerBlackListHandler(),
-		networkComponents.PubKeyCacher(),
-		processComponents.PeerShardMapper(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(peerDenialEvaluator)
+	peerDenialEvaluator, err := createAndAttachPeerDenialEvaluators(networkComponents, processComponents)
 	if err != nil {
 		return nil, err
 	}
@@ -69,17 +66,6 @@ func CreateNode(
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
 	consensusGroupSize, err := consensusComponents.ConsensusGroupSize()
-	if err != nil {
-		return nil, err
-	}
-
-	esdtNftStorage, err := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		Accounts:              stateComponents.AccountsAdapterAPI(),
-		GlobalSettingsHandler: nodeDisabled.NewDisabledGlobalSettingHandler(),
-		Marshalizer:           coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:      processComponents.ShardCoordinator(),
-	})
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +96,7 @@ func CreateNode(
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
-		WithESDTNFTStorageHandler(esdtNftStorage),
+		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
 	)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
@@ -126,7 +112,8 @@ func CreateNode(
 	err = nodeDebugFactory.CreateInterceptedDebugHandler(
 		nd,
 		processComponents.InterceptorsContainer(),
-		processComponents.ResolversFinder(),
+		processComponents.ResolversContainer(),
+		processComponents.RequestersFinder(),
 		config.Debug.InterceptorResolver,
 	)
 	if err != nil {
@@ -134,4 +121,39 @@ func CreateNode(
 	}
 
 	return nd, nil
+}
+
+func createAndAttachPeerDenialEvaluators(
+	networkComponents factory.NetworkComponentsHandler,
+	processComponents factory.ProcessComponentsHandler,
+) (p2p.PeerDenialEvaluator, error) {
+	mainPeerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		networkComponents.PeerBlackListHandler(),
+		networkComponents.PubKeyCacher(),
+		processComponents.PeerShardMapper(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = networkComponents.NetworkMessenger().SetPeerDenialEvaluator(mainPeerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	fullArchivePeerDenialEvaluator, err := blackList.NewPeerDenialEvaluator(
+		networkComponents.PeerBlackListHandler(),
+		networkComponents.PubKeyCacher(),
+		processComponents.FullArchivePeerShardMapper(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = networkComponents.FullArchiveNetworkMessenger().SetPeerDenialEvaluator(fullArchivePeerDenialEvaluator)
+	if err != nil {
+		return nil, err
+	}
+
+	return mainPeerDenialEvaluator, nil
 }

@@ -1,9 +1,9 @@
 package smartContract
 
 import (
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	"github.com/ElrondNetwork/elrond-vm-common/parsers"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 type argumentParser struct {

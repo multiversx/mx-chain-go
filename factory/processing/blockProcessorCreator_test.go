@@ -4,36 +4,32 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	dataComp "github.com/ElrondNetwork/elrond-go/factory/data"
-	"github.com/ElrondNetwork/elrond-go/factory/mock"
-	processComp "github.com/ElrondNetwork/elrond-go/factory/processing"
-	"github.com/ElrondNetwork/elrond-go/process/txsimulator"
-	"github.com/ElrondNetwork/elrond-go/state"
-	factoryState "github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/disabled"
-	"github.com/ElrondNetwork/elrond-go/storage/txcache"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	componentsMock "github.com/ElrondNetwork/elrond-go/testscommon/components"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	stateMock "github.com/ElrondNetwork/elrond-go/testscommon/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	storageManager "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	trieFactory "github.com/ElrondNetwork/elrond-go/trie/factory"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	"github.com/multiversx/mx-chain-go/factory/mock"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
@@ -43,7 +39,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -52,25 +48,20 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&testscommon.ReceiptsRepositoryStub{},
+		&testscommon.BlockProcessingCutoffStub{},
+		&testscommon.MissingTrieNodesNotifierStub{},
 	)
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	coreComponents := componentsMock.GetCoreComponents()
 	shardC := mock.NewMultiShardsCoordinatorMock(1)
@@ -91,27 +82,35 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
 
-	networkComponents := componentsMock.GetNetworkComponents()
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
-	storageManagerArgs, options := storageManager.GetStorageManagerArgsAndOptions()
+	storageManagerArgs := storageManager.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
 	storageManagerArgs.Hasher = coreComponents.Hasher()
-	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
 	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
-	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[trieFactory.UserAccountTrie] = storageManagerUser
-	trieStorageManagers[trieFactory.PeerAccountTrie] = storageManagerPeer
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	accounts, err := createAccountAdapter(
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:              coreComponents.Hasher(),
+		Marshaller:          coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
+
+	adb, err := createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		factoryState.NewAccountCreator(),
-		trieStorageManagers[trieFactory.UserAccountTrie],
+		accCreator,
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		coreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
 
@@ -128,15 +127,15 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 					return nil
 				},
 				LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-					return state.NewEmptyPeerAccount(), nil
+					return accounts.NewPeerAccount(address)
 				},
 			}
 		},
-		AccountsAdapterAPICalled: func() state.AccountsAdapter {
-			return accounts
-		},
 		AccountsAdapterCalled: func() state.AccountsAdapter {
-			return accounts
+			return adb
+		},
+		AccountsAdapterAPICalled: func() state.AccountsAdapter {
+			return adb
 		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &trieMock.TriesHolderStub{
@@ -166,7 +165,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
+	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&mock.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -175,18 +174,16 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
-		&txsimulator.ArgsTxSimulator{
-			VMOutputCacher: txcache.NewDisabledCache(),
-		},
 		&sync.RWMutex{},
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&testscommon.ReceiptsRepositoryStub{},
+		&testscommon.BlockProcessingCutoffStub{},
+		&testscommon.MissingTrieNodesNotifierStub{},
 	)
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
-	require.NotNil(t, vmFactoryForSimulate)
 }
 
 func createAccountAdapter(
@@ -194,8 +191,9 @@ func createAccountAdapter(
 	hasher hashing.Hasher,
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
+	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, 5)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, 5)
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +207,7 @@ func createAccountAdapter(
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

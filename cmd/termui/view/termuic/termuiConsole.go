@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-logger"
-	"github.com/ElrondNetwork/elrond-go/cmd/termui/view"
-	"github.com/ElrondNetwork/elrond-go/cmd/termui/view/termuic/termuiRenders"
 	ui "github.com/gizak/termui/v3"
+	"github.com/multiversx/mx-chain-go/cmd/termui/view"
+	"github.com/multiversx/mx-chain-go/cmd/termui/view/termuic/termuiRenders"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 // numOfTicksBeforeRedrawing represents the number of ticks which have to pass until a fake resize will be made

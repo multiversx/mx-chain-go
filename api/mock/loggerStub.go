@@ -1,6 +1,6 @@
 package mock
 
-import logger "github.com/ElrondNetwork/elrond-go-logger"
+import logger "github.com/multiversx/mx-chain-logger-go"
 
 // LoggerStub -
 type LoggerStub struct {

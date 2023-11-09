@@ -1,22 +1,23 @@
 package block
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	nodeFactory "github.com/ElrondNetwork/elrond-go/cmd/node/factory"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/dblookupext"
-	"github.com/ElrondNetwork/elrond-go/outport"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type coreComponentsHolder interface {
@@ -25,6 +26,8 @@ type coreComponentsHolder interface {
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	EpochNotifier() process.EpochNotifier
 	EnableEpochsHandler() common.EnableEpochsHandler
+	RoundNotifier() process.RoundNotifier
+	EnableRoundsHandler() process.EnableRoundsHandler
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
@@ -65,6 +68,7 @@ type ArgBaseProcessor struct {
 	StatusCoreComponents statusCoreComponentsHolder
 
 	Config                         config.Config
+	PrefsConfig                    config.Preferences
 	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
 	ForkDetector                   process.ForkDetector
 	NodesCoordinator               nodesCoordinator.NodesCoordinator
@@ -79,14 +83,16 @@ type ArgBaseProcessor struct {
 	BlockSizeThrottler             process.BlockSizeThrottler
 	Version                        string
 	HistoryRepository              dblookupext.HistoryRepository
-	EnableRoundsHandler            process.EnableRoundsHandler
 	VMContainersFactory            process.VirtualMachinesContainerFactory
 	VmContainer                    process.VirtualMachinesContainer
 	GasHandler                     gasConsumedProvider
+	OutportDataProvider            outport.DataProviderOutport
 	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
 	ScheduledMiniBlocksEnableEpoch uint32
 	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
 	ReceiptsRepository             receiptsRepository
+	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
+	ManagedPeersHolder             common.ManagedPeersHolder
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

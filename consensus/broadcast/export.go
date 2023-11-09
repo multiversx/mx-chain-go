@@ -3,22 +3,17 @@ package broadcast
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // HeaderDataForValidator -
 type HeaderDataForValidator struct {
 	Round        uint64
 	PrevRandSeed []byte
-}
-
-// SignMessage will sign and return the given message
-func (cm *commonMessenger) SignMessage(message *consensus.Message) ([]byte, error) {
-	return cm.peerSignatureHandler.GetPeerSignature(cm.privateKey, message.OriginatorPid)
 }
 
 // ExtractMetaMiniBlocksAndTransactions -
@@ -175,16 +170,21 @@ func (dbb *delayedBlockBroadcaster) InterceptedHeaderData(topic string, hash []b
 func NewCommonMessenger(
 	marshalizer marshal.Marshalizer,
 	messenger consensus.P2PMessenger,
-	privateKey crypto.PrivateKey,
 	shardCoordinator sharding.Coordinator,
 	peerSigHandler crypto.PeerSignatureHandler,
+	keysHandler consensus.KeysHandler,
 ) (*commonMessenger, error) {
 
 	return &commonMessenger{
 		marshalizer:          marshalizer,
 		messenger:            messenger,
-		privateKey:           privateKey,
 		shardCoordinator:     shardCoordinator,
 		peerSignatureHandler: peerSigHandler,
+		keysHandler:          keysHandler,
 	}, nil
+}
+
+// Broadcast -
+func (cm *commonMessenger) Broadcast(topic string, data []byte, pkBytes []byte) {
+	cm.broadcast(topic, data, pkBytes)
 }

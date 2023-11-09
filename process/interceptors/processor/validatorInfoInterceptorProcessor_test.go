@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart/mock"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/peer"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ func createMockValidatorInfo() state.ValidatorInfo {
 
 func createMockInterceptedValidatorInfo() process.InterceptedData {
 	args := peer.ArgInterceptedValidatorInfo{
-		Marshalizer: testscommon.MarshalizerMock{},
+		Marshalizer: marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 	}
 	args.DataBuff, _ = args.Marshalizer.Marshal(createMockValidatorInfo())
@@ -102,7 +103,7 @@ func TestValidatorInfoInterceptorProcessor_Save(t *testing.T) {
 		providedData := createMockInterceptedValidatorInfo()
 		wasHasOrAddCalled := false
 		args := createMockArgValidatorInfoInterceptorProcessor()
-		providedBuff, _ := testscommon.MarshalizerMock{}.Marshal(createMockValidatorInfo())
+		providedBuff, _ := marshallerMock.MarshalizerMock{}.Marshal(createMockValidatorInfo())
 		hasher := hashingMocks.HasherMock{}
 		providedHash := hasher.Compute(string(providedBuff))
 

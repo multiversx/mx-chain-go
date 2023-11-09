@@ -3,21 +3,21 @@ package factory
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	disabledFactory "github.com/ElrondNetwork/elrond-go/factory/disabled"
-	disabledGenesis "github.com/ElrondNetwork/elrond-go/genesis/process/disabled"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory/interceptorscontainer"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage/cache"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	disabledFactory "github.com/multiversx/mx-chain-go/factory/disabled"
+	disabledGenesis "github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 const timeSpanForBadHeaders = time.Minute
@@ -29,7 +29,8 @@ type ArgsEpochStartInterceptorContainer struct {
 	CryptoComponents        process.CryptoComponentsHolder
 	Config                  config.Config
 	ShardCoordinator        sharding.Coordinator
-	Messenger               process.TopicHandler
+	MainMessenger           process.TopicHandler
+	FullArchiveMessenger    process.TopicHandler
 	DataPool                dataRetriever.PoolsHolder
 	WhiteListHandler        update.WhiteListHandler
 	WhiteListerVerifiedTxs  update.WhiteListHandler
@@ -40,25 +41,25 @@ type ArgsEpochStartInterceptorContainer struct {
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	RequestHandler          process.RequestHandler
 	SignaturesHandler       process.SignaturesHandler
+	NodeOperationMode       common.NodeOperation
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
-func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, error) {
+func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	if check.IfNil(args.CoreComponents) {
-		return nil, epochStart.ErrNilCoreComponentsHolder
+		return nil, nil, epochStart.ErrNilCoreComponentsHolder
 	}
 	if check.IfNil(args.CryptoComponents) {
-		return nil, epochStart.ErrNilCryptoComponentsHolder
+		return nil, nil, epochStart.ErrNilCryptoComponentsHolder
 	}
-
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
-		return nil, epochStart.ErrNilPubkeyConverter
+		return nil, nil, epochStart.ErrNilPubkeyConverter
 	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
 	err := cryptoComponents.SetMultiSignerContainer(disabled.NewMultiSignerContainer())
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	nodesCoordinator := disabled.NewNodesCoordinator()
@@ -73,6 +74,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	epochStartTrigger := disabled.NewEpochStartTrigger()
 	// TODO: move the peerShardMapper creation before boostrapComponents
 	peerShardMapper := disabled.NewPeerShardMapper()
+	fullArchivePeerShardMapper := disabled.NewPeerShardMapper()
 	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -81,7 +83,8 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		Accounts:                     accountsAdapter,
 		ShardCoordinator:             args.ShardCoordinator,
 		NodesCoordinator:             nodesCoordinator,
-		Messenger:                    args.Messenger,
+		MainMessenger:                args.MainMessenger,
+		FullArchiveMessenger:         args.FullArchiveMessenger,
 		Store:                        storer,
 		DataPool:                     args.DataPool,
 		MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
@@ -101,24 +104,33 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		PeerSignatureHandler:         cryptoComponents.PeerSignatureHandler(),
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
-		PeerShardMapper:              peerShardMapper,
+		MainPeerShardMapper:          peerShardMapper,
+		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
+		NodeOperationMode:            args.NodeOperationMode,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	container, err := interceptorsContainerFactory.Create()
+	mainContainer, fullArchiveContainer, err := interceptorsContainerFactory.Create()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(container)
+	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(mainContainer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return container, nil
+	if args.NodeOperationMode == common.FullArchiveMode {
+		err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return mainContainer, fullArchiveContainer, nil
 }

@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/resolvers"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests/resolvers"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 func TestRequestResolveLargeSCRByHashRequestingShardResolvingOtherShard(t *testing.T) {
@@ -20,8 +20,8 @@ func TestRequestResolveLargeSCRByHashRequestingShardResolvingOtherShard(t *testi
 	shardIdRequester := uint32(0)
 	nResolver, nRequester := resolvers.CreateResolverRequester(shardIdResolver, shardIdRequester)
 	defer func() {
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 	scr, hash := resolvers.CreateLargeSmartContractResults()
 
@@ -39,9 +39,9 @@ func TestRequestResolveLargeSCRByHashRequestingShardResolvingOtherShard(t *testi
 	)
 
 	// request by hash should work
-	resolver, err := nRequester.ResolverFinder.CrossShardResolver(factory.UnsignedTransactionTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.UnsignedTransactionTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
-	err = resolver.RequestDataFromHash(hash, 0)
+	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)
 
 	rm.WaitWithTimeout()

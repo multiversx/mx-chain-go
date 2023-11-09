@@ -5,9 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/state"
-	trieMock "github.com/ElrondNetwork/elrond-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
 

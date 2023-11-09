@@ -6,14 +6,14 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/trie/keyBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 // AccountsWrapper extends the AccountsAdapter interface
@@ -90,17 +90,12 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 		return nil, nil, err
 	}
 
-	rootHash, err := validatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	// TODO investigate if a call to GetAllLeavesKeysOnChannel (without values) might increase performance
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = validatorAccount.DataTrie().GetAllLeavesOnChannel(chLeaves, ctx, rootHash, keyBuilder.NewKeyBuilder())
+	err = validatorAccount.GetAllLeaves(chLeaves, ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -123,7 +118,7 @@ func (svp *stakedValuesProcessor) computeBaseStakedAndTopUp(ctx context.Context)
 		totalTopUp = totalTopUp.Add(totalTopUp, info.topUpValue)
 	}
 
-	err = common.GetErrorFromChanNonBlocking(chLeaves.ErrChan)
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, nil, err
 	}

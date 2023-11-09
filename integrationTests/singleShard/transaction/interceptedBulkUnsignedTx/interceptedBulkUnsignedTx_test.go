@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/partitioning"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/factory"
-	"github.com/ElrondNetwork/elrond-go/sharding"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -91,7 +91,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		noOfUnsignedTx,
 		integrationTests.TestMarshalizer,
 		n.ShardCoordinator,
-		n.Messenger,
+		n.MainMessenger,
 	)
 
 	assert.Nil(t, err)
@@ -159,13 +159,11 @@ func generateAndSendBulkSmartContractResults(
 	}
 
 	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			_ = messenger.BroadcastOnChannelBlocking(
-				identifier,
-				identifier,
-				bufferToSend,
-			)
-		}(buff)
+		messenger.BroadcastOnChannel(
+			identifier,
+			identifier,
+			buff,
+		)
 	}
 
 	return nil

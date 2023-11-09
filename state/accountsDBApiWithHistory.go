@@ -5,10 +5,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/common/holders"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsDBApiWithHistory struct {
@@ -112,7 +112,7 @@ func (accountsDB *accountsDBApiWithHistory) CancelPrune(_ []byte, _ TriePruningI
 }
 
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte) {
+func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte, _ uint32) {
 }
 
 // SetStateCheckpoint is a not permitted operation in this implementation and thus, does nothing
@@ -125,7 +125,7 @@ func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will return an error
-func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 	return ErrOperationNotPermitted
 }
 

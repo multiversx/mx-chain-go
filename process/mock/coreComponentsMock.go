@@ -1,18 +1,18 @@
 package mock
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/endProcess"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 )
 
 // CoreComponentsMock -
@@ -31,6 +31,8 @@ type CoreComponentsMock struct {
 	TxVersionCheckField         process.TxVersionCheckerHandler
 	EpochNotifierField          process.EpochNotifier
 	EnableEpochsHandlerField    common.EnableEpochsHandler
+	RoundNotifierField          process.RoundNotifier
+	EnableRoundsHandlerField    process.EnableRoundsHandler
 	RoundField                  consensus.RoundHandler
 	StatusField                 core.AppStatusHandler
 	ChanStopNode                chan endProcess.ArgEndProcess
@@ -132,6 +134,16 @@ func (ccm *CoreComponentsMock) EpochNotifier() process.EpochNotifier {
 // EnableEpochsHandler -
 func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccm.EnableEpochsHandlerField
+}
+
+// RoundNotifier -
+func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
+	return ccm.RoundNotifierField
+}
+
+// EnableEpochsHandler -
+func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+	return ccm.EnableRoundsHandlerField
 }
 
 // RoundHandler -

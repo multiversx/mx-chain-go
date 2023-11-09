@@ -3,9 +3,9 @@ package mock
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/factory"
 )
 
 // DataComponentsStub -
@@ -42,10 +42,11 @@ func (dcs *DataComponentsStub) Blockchain() data.ChainHandler {
 }
 
 // SetBlockchain -
-func (dcs *DataComponentsStub) SetBlockchain(chain data.ChainHandler) {
+func (dcs *DataComponentsStub) SetBlockchain(chain data.ChainHandler) error {
 	dcs.mutDcm.Lock()
 	dcs.BlockChain = chain
 	dcs.mutDcm.Unlock()
+	return nil
 }
 
 // StorageService -

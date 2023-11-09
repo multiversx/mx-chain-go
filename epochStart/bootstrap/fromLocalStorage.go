@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/epochStart/bootstrap/disabled"
-	"github.com/ElrondNetwork/elrond-go/process/block/bootstrapStorage"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
-	"github.com/ElrondNetwork/elrond-go/storage"
-	"github.com/ElrondNetwork/elrond-go/trie/factory"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 func (e *epochStartBootstrap) initializeFromLocalStorage() {
@@ -137,9 +137,13 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	}
 
 	defer func() {
-		errClose := e.interceptorContainer.Close()
+		errClose := e.mainInterceptorContainer.Close()
 		if errClose != nil {
-			log.Warn("prepareEpochFromStorage interceptorContainer.Close()", "error", errClose)
+			log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+		}
+		errClose = e.fullArchiveInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
 		}
 	}()
 
@@ -160,7 +164,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	err = e.messenger.CreateTopic(common.ConsensusTopic+e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId()), true)
+	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
+	err = e.mainMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}

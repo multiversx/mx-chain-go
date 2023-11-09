@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/scheduled"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ process.TransactionFeeHandler = (*feeHandler)(nil)

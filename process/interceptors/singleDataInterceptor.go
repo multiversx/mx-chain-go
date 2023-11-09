@@ -1,12 +1,12 @@
 package interceptors
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/debug/resolver"
-	"github.com/ElrondNetwork/elrond-go/p2p"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/debug/handler"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
@@ -63,7 +63,7 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 			currentPeerId:        arg.CurrentPeerId,
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
-			debugHandler:         resolver.NewDisabledInterceptorResolver(),
+			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
@@ -74,7 +74,7 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
 	err := sdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
 		return err

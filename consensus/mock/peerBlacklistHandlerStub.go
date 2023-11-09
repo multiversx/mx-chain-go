@@ -3,7 +3,7 @@ package mock
 import (
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // PeerBlacklistHandlerStub -
@@ -11,6 +11,7 @@ type PeerBlacklistHandlerStub struct {
 	BlacklistPeerCalled          func(peer core.PeerID, duration time.Duration)
 	IsPeerBlacklistedCalled      func(peer core.PeerID) bool
 	StartSweepingTimeCacheCalled func()
+	CloseCalled                  func() error
 }
 
 // IsPeerBlacklisted -
@@ -34,6 +35,15 @@ func (stub *PeerBlacklistHandlerStub) StartSweepingTimeCache() {
 	if stub.StartSweepingTimeCacheCalled != nil {
 		stub.StartSweepingTimeCacheCalled()
 	}
+}
+
+// Close -
+func (stub *PeerBlacklistHandlerStub) Close() error {
+	if stub.CloseCalled != nil {
+		return stub.CloseCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

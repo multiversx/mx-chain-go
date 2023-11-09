@@ -8,19 +8,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	coreData "github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/indexer"
-	scrData "github.com/ElrondNetwork/elrond-go-core/data/smartContractResult"
-	transactionData "github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/genesis/data"
-	"github.com/ElrondNetwork/elrond-go/genesis/mock"
-	"github.com/ElrondNetwork/elrond-go/genesis/parsing"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	scrData "github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,10 +40,13 @@ func createMockInitialAccount() *data.InitialAccount {
 	}
 }
 
-func createMockHexPubkeyConverter() *mock.PubkeyConverterStub {
-	return &mock.PubkeyConverterStub{
+func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
+	return &testscommon.PubkeyConverterStub{
 		DecodeCalled: func(humanReadable string) ([]byte, error) {
 			return hex.DecodeString(humanReadable)
+		},
+		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+			return hex.EncodeToString(pkBytes)
 		},
 	}
 }
@@ -511,10 +516,12 @@ func TestAccountsParser_getShardIDs(t *testing.T) {
 }
 
 func TestAccountsParser_createMintTransaction(t *testing.T) {
-	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	expectedAddr, _ := pkConv.Decode("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")
+	ap := parsing.NewTestAccountsParser(pkConv)
 	balance := int64(1)
 	ibs := []*data.InitialAccount{
-		createSimpleInitialAccount("0001", balance),
+		createSimpleInitialAccount("erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx", balance),
 	}
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
@@ -529,7 +536,7 @@ func TestAccountsParser_createMintTransaction(t *testing.T) {
 	assert.Equal(t, uint64(0), tx.GetNonce())
 	assert.Equal(t, ia[0].AddressBytes(), tx.GetRcvAddr())
 	assert.Equal(t, ia[0].GetSupply(), tx.GetValue())
-	assert.Equal(t, []byte("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"), tx.GetSndAddr())
+	assert.Equal(t, expectedAddr, tx.GetSndAddr())
 	assert.Equal(t, []byte(common.GenesisTxSignatureString), tx.GetSignature())
 	assert.Equal(t, uint64(0), tx.GetGasLimit())
 	assert.Equal(t, uint64(0), tx.GetGasPrice())
@@ -592,17 +599,17 @@ func TestAccountsParser_setScrsTxsPool(t *testing.T) {
 		indexingDataMap[i] = indexingData
 	}
 
-	txsPoolPerShard := make(map[uint32]*indexer.Pool)
+	txsPoolPerShard := make(map[uint32]*outport.TransactionPool)
 	for i := uint32(0); i < sharder.NumOfShards; i++ {
-		txsPoolPerShard[i] = &indexer.Pool{
-			Scrs: map[string]coreData.TransactionHandler{},
+		txsPoolPerShard[i] = &outport.TransactionPool{
+			SmartContractResults: map[string]*outport.SCRInfo{},
 		}
 	}
 
 	ap.SetScrsTxsPool(sharder, indexingDataMap, txsPoolPerShard)
 	assert.Equal(t, 1, len(txsPoolPerShard))
-	assert.Equal(t, uint64(0), txsPoolPerShard[0].Scrs["hash"].GetGasLimit())
-	assert.Equal(t, uint64(1), txsPoolPerShard[0].Scrs["hash"].GetNonce())
+	assert.Equal(t, uint64(0), txsPoolPerShard[0].SmartContractResults[hex.EncodeToString([]byte("hash"))].SmartContractResult.GetGasLimit())
+	assert.Equal(t, uint64(1), txsPoolPerShard[0].SmartContractResults[hex.EncodeToString([]byte("hash"))].SmartContractResult.GetNonce())
 }
 
 func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
@@ -641,24 +648,24 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 9, len(miniBlocks))
+	assert.Equal(t, 2, len(miniBlocks))
 
 	assert.Equal(t, 3, len(txsPoolPerShard))
-	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
-	assert.Equal(t, 1, len(txsPoolPerShard[1].Txs))
-	assert.Equal(t, len(ibs), len(txsPoolPerShard[core.MetachainShardId].Txs))
-	assert.Equal(t, 0, len(txsPoolPerShard[0].Scrs))
-	assert.Equal(t, 0, len(txsPoolPerShard[1].Scrs))
-	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].Scrs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Transactions))
+	assert.Equal(t, 1, len(txsPoolPerShard[1].Transactions))
+	assert.Equal(t, len(ibs), len(txsPoolPerShard[core.MetachainShardId].Transactions))
+	assert.Equal(t, 0, len(txsPoolPerShard[0].SmartContractResults))
+	assert.Equal(t, 0, len(txsPoolPerShard[1].SmartContractResults))
+	assert.Equal(t, 0, len(txsPoolPerShard[core.MetachainShardId].SmartContractResults))
 
-	for _, tx := range txsPoolPerShard[1].Txs {
-		assert.Equal(t, ibs[0].GetSupply(), tx.GetValue())
-		assert.Equal(t, ibs[0].AddressBytes(), tx.GetRcvAddr())
+	for _, tx := range txsPoolPerShard[1].Transactions {
+		assert.Equal(t, ibs[0].GetSupply(), tx.Transaction.GetValue())
+		assert.Equal(t, ibs[0].AddressBytes(), tx.Transaction.GetRcvAddr())
 	}
 
-	for _, tx := range txsPoolPerShard[0].Txs {
-		assert.Equal(t, ibs[1].GetSupply(), tx.GetValue())
-		assert.Equal(t, ibs[1].AddressBytes(), tx.GetRcvAddr())
+	for _, tx := range txsPoolPerShard[0].Transactions {
+		assert.Equal(t, ibs[1].GetSupply(), tx.Transaction.GetValue())
+		assert.Equal(t, ibs[1].AddressBytes(), tx.Transaction.GetRcvAddr())
 	}
 
 }
@@ -691,8 +698,8 @@ func TestAccountsParser_GenerateInitialTransactionsZeroGasLimitShouldWork(t *tes
 	require.Nil(t, err)
 
 	for i := uint32(0); i < sharder.NumberOfShards(); i++ {
-		for _, tx := range txsPoolPerShard[i].Txs {
-			assert.Equal(t, uint64(0), tx.GetGasLimit())
+		for _, tx := range txsPoolPerShard[i].Transactions {
+			assert.Equal(t, uint64(0), tx.Transaction.GetGasLimit())
 		}
 	}
 }
@@ -722,7 +729,6 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 		Signature: []byte(common.GenesisTxSignatureString),
 	}
 	hashHex := "cef3536e36ae01d3c84c97b0e6fae577f34c12c0cfdb51a04a2668afd5f5efe7"
-	txHash, err := hex.DecodeString(hashHex)
 	require.Nil(t, err)
 
 	indexingDataMap := make(map[uint32]*genesis.IndexingData)
@@ -734,12 +740,21 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 	miniBlocks, txsPoolPerShard, err := ap.GenerateInitialTransactions(sharder, indexingDataMap)
 	require.Nil(t, err)
 
-	assert.Equal(t, 4, len(miniBlocks))
+	assert.Equal(t, 1, len(miniBlocks))
 	assert.Equal(t, 2, len(txsPoolPerShard))
-	assert.Equal(t, 1, len(txsPoolPerShard[0].Txs))
+	assert.Equal(t, 1, len(txsPoolPerShard[0].Transactions))
 
-	for hashString, v := range txsPoolPerShard[0].Txs {
-		assert.Equal(t, txHash, []byte(hashString))
-		assert.Equal(t, tx, v)
+	for hashString, v := range txsPoolPerShard[0].Transactions {
+		assert.Equal(t, hashHex, hashString)
+		assert.Equal(t, tx, v.Transaction)
 	}
+}
+
+func TestAccountsParser_GenesisMintingAddress(t *testing.T) {
+	t.Parallel()
+
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	ap := parsing.NewTestAccountsParser(pkConv)
+	addr := ap.GenesisMintingAddress()
+	assert.Equal(t, "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3", addr)
 }

@@ -3,20 +3,21 @@ package process
 import (
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/typeConverters"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	"github.com/ElrondNetwork/elrond-go-crypto"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/genesis"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/update"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 type coreComponentsHandler interface {
@@ -25,6 +26,7 @@ type coreComponentsHandler interface {
 	Hasher() hashing.Hasher
 	AddressPubKeyConverter() core.PubkeyConverter
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
+	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
 	EnableEpochsHandler() common.EnableEpochsHandler
 	IsInterfaceNil() bool
@@ -34,34 +36,36 @@ type dataComponentsHandler interface {
 	StorageService() dataRetriever.StorageService
 	Blockchain() data.ChainHandler
 	Datapool() dataRetriever.PoolsHolder
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	Clone() interface{}
 	IsInterfaceNil() bool
 }
 
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
-	GenesisTime          uint64
-	StartEpochNum        uint32
-	Data                 dataComponentsHandler
-	Core                 coreComponentsHandler
-	Accounts             state.AccountsAdapter
-	ValidatorAccounts    state.AccountsAdapter
-	InitialNodesSetup    genesis.InitialNodesHandler
-	Economics            process.EconomicsDataHandler
-	ShardCoordinator     sharding.Coordinator
-	AccountsParser       genesis.AccountsParser
-	SmartContractParser  genesis.InitialSmartContractParser
-	GasSchedule          core.GasScheduleNotifier
-	TxLogsProcessor      process.TransactionLogProcessor
-	VirtualMachineConfig config.VirtualMachineConfig
-	HardForkConfig       config.HardforkConfig
-	TrieStorageManagers  map[string]common.StorageManager
-	SystemSCConfig       config.SystemSmartContractsConfig
-	EpochConfig          *config.EpochConfig
-	ImportStartHandler   update.ImportStartHandler
-	WorkingDir           string
-	BlockSignKeyGen      crypto.KeyGenerator
+	GenesisTime             uint64
+	StartEpochNum           uint32
+	Data                    dataComponentsHandler
+	Core                    coreComponentsHandler
+	Accounts                state.AccountsAdapter
+	ValidatorAccounts       state.AccountsAdapter
+	InitialNodesSetup       genesis.InitialNodesHandler
+	Economics               process.EconomicsDataHandler
+	ShardCoordinator        sharding.Coordinator
+	AccountsParser          genesis.AccountsParser
+	SmartContractParser     genesis.InitialSmartContractParser
+	GasSchedule             core.GasScheduleNotifier
+	TxLogsProcessor         process.TransactionLogProcessor
+	VirtualMachineConfig    config.VirtualMachineConfig
+	HardForkConfig          config.HardforkConfig
+	TrieStorageManagers     map[string]common.StorageManager
+	SystemSCConfig          config.SystemSmartContractsConfig
+	RoundConfig             *config.RoundConfig
+	EpochConfig             *config.EpochConfig
+	WorkingDir              string
+	BlockSignKeyGen         crypto.KeyGenerator
+	HistoryRepository       dblookupext.HistoryRepository
+	TxExecutionOrderHandler common.TxExecutionOrderHandler
 
 	GenesisNodePrice *big.Int
 	GenesisString    string

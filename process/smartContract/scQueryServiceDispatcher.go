@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type scQueryServiceDispatcher struct {
@@ -38,7 +39,7 @@ func NewScQueryServiceDispatcher(list []process.SCQueryService) (*scQueryService
 }
 
 // ExecuteQuery will call this method on one of the element from provided list
-func (sqsd *scQueryServiceDispatcher) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (sqsd *scQueryServiceDispatcher) ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	index := sqsd.getNewIndex()
 
 	sqsd.mutList.RLock()

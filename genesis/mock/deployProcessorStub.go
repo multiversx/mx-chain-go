@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/genesis"
+import "github.com/multiversx/mx-chain-go/genesis"
 
 // DeployProcessorStub -
 type DeployProcessorStub struct {

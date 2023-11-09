@@ -5,8 +5,8 @@ import (
 	"math"
 	"sort"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 )
 
 const maxUint64 = 0xFFFFFFFFFFFFFFFF

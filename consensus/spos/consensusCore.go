@@ -1,17 +1,16 @@
 package spos
 
 import (
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/hashing"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	crypto "github.com/ElrondNetwork/elrond-go-crypto"
-	cryptoCommon "github.com/ElrondNetwork/elrond-go/common/crypto"
-	"github.com/ElrondNetwork/elrond-go/consensus"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/ntp"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
@@ -24,9 +23,6 @@ type ConsensusCore struct {
 	chronologyHandler             consensus.ChronologyHandler
 	hasher                        hashing.Hasher
 	marshalizer                   marshal.Marshalizer
-	blsPrivateKey                 crypto.PrivateKey
-	blsSingleSigner               crypto.SingleSigner
-	keyGenerator                  crypto.KeyGenerator
 	multiSignerContainer          cryptoCommon.MultiSignerContainer
 	roundHandler                  consensus.RoundHandler
 	shardCoordinator              sharding.Coordinator
@@ -41,7 +37,7 @@ type ConsensusCore struct {
 	scheduledProcessor            consensus.ScheduledProcessor
 	messageSigningHandler         consensus.P2PSigningHandler
 	peerBlacklistHandler          consensus.PeerBlacklistHandler
-	signatureHandler              consensus.SignatureHandler
+	signingHandler                consensus.SigningHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -53,9 +49,6 @@ type ConsensusCoreArgs struct {
 	ChronologyHandler             consensus.ChronologyHandler
 	Hasher                        hashing.Hasher
 	Marshalizer                   marshal.Marshalizer
-	BlsPrivateKey                 crypto.PrivateKey
-	BlsSingleSigner               crypto.SingleSigner
-	KeyGenerator                  crypto.KeyGenerator
 	MultiSignerContainer          cryptoCommon.MultiSignerContainer
 	RoundHandler                  consensus.RoundHandler
 	ShardCoordinator              sharding.Coordinator
@@ -70,7 +63,7 @@ type ConsensusCoreArgs struct {
 	ScheduledProcessor            consensus.ScheduledProcessor
 	MessageSigningHandler         consensus.P2PSigningHandler
 	PeerBlacklistHandler          consensus.PeerBlacklistHandler
-	SignatureHandler              consensus.SignatureHandler
+	SigningHandler                consensus.SigningHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -85,9 +78,6 @@ func NewConsensusCore(
 		chronologyHandler:             args.ChronologyHandler,
 		hasher:                        args.Hasher,
 		marshalizer:                   args.Marshalizer,
-		blsPrivateKey:                 args.BlsPrivateKey,
-		blsSingleSigner:               args.BlsSingleSigner,
-		keyGenerator:                  args.KeyGenerator,
 		multiSignerContainer:          args.MultiSignerContainer,
 		roundHandler:                  args.RoundHandler,
 		shardCoordinator:              args.ShardCoordinator,
@@ -102,7 +92,7 @@ func NewConsensusCore(
 		scheduledProcessor:            args.ScheduledProcessor,
 		messageSigningHandler:         args.MessageSigningHandler,
 		peerBlacklistHandler:          args.PeerBlacklistHandler,
-		signatureHandler:              args.SignatureHandler,
+		signingHandler:                args.SigningHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -183,21 +173,6 @@ func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.Registration
 	return cc.epochStartRegistrationHandler
 }
 
-// PrivateKey returns the BLS private key stored in the ConsensusCore
-func (cc *ConsensusCore) PrivateKey() crypto.PrivateKey {
-	return cc.blsPrivateKey
-}
-
-// SingleSigner returns the bls single signer stored in the ConsensusCore
-func (cc *ConsensusCore) SingleSigner() crypto.SingleSigner {
-	return cc.blsSingleSigner
-}
-
-// KeyGenerator returns the bls key generator stored in the ConsensusCore
-func (cc *ConsensusCore) KeyGenerator() crypto.KeyGenerator {
-	return cc.keyGenerator
-}
-
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
 func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return cc.peerHonestyHandler
@@ -233,9 +208,9 @@ func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
 	return cc.peerBlacklistHandler
 }
 
-// SignatureHandler will return the signature handler component
-func (cc *ConsensusCore) SignatureHandler() consensus.SignatureHandler {
-	return cc.signatureHandler
+// SigningHandler will return the signing handler component
+func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
+	return cc.signingHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

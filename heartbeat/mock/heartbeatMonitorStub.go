@@ -1,6 +1,6 @@
 package mock
 
-import "github.com/ElrondNetwork/elrond-go/heartbeat/data"
+import "github.com/multiversx/mx-chain-go/heartbeat/data"
 
 // HeartbeatMonitorStub -
 type HeartbeatMonitorStub struct {

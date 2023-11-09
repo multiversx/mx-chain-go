@@ -3,16 +3,17 @@ package external
 import (
 	"context"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/api"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/process"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
-	ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool
@@ -28,11 +29,13 @@ type StatusMetricsHandler interface {
 	EnableEpochsMetrics() (map[string]interface{}, error)
 	NetworkMetrics() (map[string]interface{}, error)
 	RatingsMetrics() (map[string]interface{}, error)
+	BootstrapMetrics() (map[string]interface{}, error)
 	IsInterfaceNil() bool
 }
 
-// TransactionCostHandler defines the actions which should be handler by a transaction cost estimator
-type TransactionCostHandler interface {
+// TransactionEvaluator defines the actions which should be handler by a transaction evaluator
+type TransactionEvaluator interface {
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool
 }
@@ -61,7 +64,7 @@ type APITransactionHandler interface {
 	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
-	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	PopulateComputedFields(tx *transaction.ApiTransactionResult)
 	UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error)

@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package esdtNFTSCs
 
@@ -9,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go/integrationTests"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/esdt/nft"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt/nft"
 	"github.com/stretchr/testify/require"
 )
 

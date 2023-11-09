@@ -4,12 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/process/transactionLog"
-	storageStubs "github.com/ElrondNetwork/elrond-go/testscommon/storage"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/transactionLog"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -129,6 +129,8 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	buffExpected := []byte("marshaled log")
 	buffActual := []byte("currently wrong value")
+	expectedLogData := [][]byte{[]byte("data1"), []byte("data2")}
+
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
 			PutCalled: func(key, data []byte) error {
@@ -138,6 +140,9 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 		},
 		Marshalizer: &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
+				log, _ := obj.(*transaction.Log)
+				require.Equal(t, expectedLogData[0], log.Events[0].Data)
+				require.Equal(t, expectedLogData, log.Events[0].AdditionalData)
 				return buffExpected, nil
 			},
 		},
@@ -145,7 +150,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 	})
 
 	logs := []*vmcommon.LogEntry{
-		{Address: []byte("first log")},
+		{Address: []byte("first log"), Data: expectedLogData},
 	}
 	_ = txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
 

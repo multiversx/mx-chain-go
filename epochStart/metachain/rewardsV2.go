@@ -4,16 +4,16 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go-core/data/rewardTx"
-	"github.com/ElrondNetwork/elrond-go/common/validatorInfo"
-	"github.com/ElrondNetwork/elrond-go/epochStart"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	"github.com/ElrondNetwork/elrond-go/state"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common/validatorInfo"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ process.RewardsCreator = (*rewardsCreatorV2)(nil)
@@ -372,11 +372,12 @@ func (rc *rewardsCreatorV2) computeTopUpRewardsPerNode(
 	return big.NewInt(0).Sub(topUpRewards, accumulatedTopUpRewards)
 }
 
-//      (2*k/pi)*atan(x/p), where:
-//     k is the rewards per day limit for top-up stake k = c * economics.TotalToDistribute, c - constant, e.g c = 0.25
-//     x is the cumulative top-up stake value for eligible nodes
-//     p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
-//     pi is the mathematical constant pi = 3.1415...
+//	(2*k/pi)*atan(x/p), where:
+//
+// k is the rewards per day limit for top-up stake k = c * economics.TotalToDistribute, c - constant, e.g c = 0.25
+// x is the cumulative top-up stake value for eligible nodes
+// p is the cumulative eligible stake where rewards per day reach 1/2 of k (includes topUp for the eligible nodes)
+// pi is the mathematical constant pi = 3.1415...
 func (rc *rewardsCreatorV2) computeTopUpRewards(totalToDistribute *big.Int, totalTopUpEligible *big.Int) *big.Int {
 	if totalToDistribute.Cmp(zero) <= 0 || totalTopUpEligible.Cmp(zero) <= 0 {
 		return big.NewInt(0)

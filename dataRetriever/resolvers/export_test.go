@@ -1,8 +1,8 @@
 package resolvers
 
 import (
-	"github.com/ElrondNetwork/elrond-go/dataRetriever"
-	"github.com/ElrondNetwork/elrond-go/p2p"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // EpochHandler -
@@ -11,6 +11,6 @@ func (hdrRes *HeaderResolver) EpochHandler() dataRetriever.EpochHandler {
 }
 
 // ResolveMultipleHashes -
-func (tnRes *TrieNodeResolver) ResolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P) error {
-	return tnRes.resolveMultipleHashes(hashesBuff, message)
+func (tnRes *TrieNodeResolver) ResolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P, source p2p.MessageHandler) error {
+	return tnRes.resolveMultipleHashes(hashesBuff, message, source)
 }

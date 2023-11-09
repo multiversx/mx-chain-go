@@ -23,7 +23,7 @@ message ValidatorInfo {
     uint32  ValidatorFailure                = 12 [(gogoproto.jsontag) = "validatorFailure"];
     uint32  ValidatorIgnoredSignatures      = 13 [(gogoproto.jsontag) = "validatorIgnoredSignatures"];
     uint32  NumSelectedInSuccessBlocks      = 14 [(gogoproto.jsontag) = "numSelectedInSuccessBlocks"];
-    bytes   AccumulatedFees                 = 15 [(gogoproto.jsontag) = "accumulatedFees,omitempty", (gogoproto.casttypewith) = "math/big.Int;github.com/ElrondNetwork/elrond-go-core/data.BigIntCaster"];
+    bytes   AccumulatedFees                 = 15 [(gogoproto.jsontag) = "accumulatedFees,omitempty", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     uint32  TotalLeaderSuccess              = 16 [(gogoproto.jsontag) = "totalLeaderSuccess"];
     uint32  TotalLeaderFailure              = 17 [(gogoproto.jsontag) = "totalLeaderFailure"];
     uint32  TotalValidatorSuccess           = 18 [(gogoproto.jsontag) = "totalValidatorSuccess"];

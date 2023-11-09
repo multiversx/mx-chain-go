@@ -3,8 +3,8 @@ package integrationTests
 import (
 	"bytes"
 
-	"github.com/ElrondNetwork/elrond-go/sharding"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
+	"github.com/multiversx/mx-chain-go/sharding"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TestBuiltinFunction wraps a builtin function defined ad-hoc, for testing

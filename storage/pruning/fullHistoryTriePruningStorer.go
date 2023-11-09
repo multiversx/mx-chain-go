@@ -1,7 +1,7 @@
 package pruning
 
 import (
-	storageCore "github.com/ElrondNetwork/elrond-go-core/storage"
+	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 )
 
 type fullHistoryTriePruningStorer struct {
@@ -54,4 +54,9 @@ func (fhtps *fullHistoryTriePruningStorer) PutInEpoch(key []byte, data []byte, e
 // Close will call the same function from the underlying FullHistoryPruningStorer
 func (fhtps *fullHistoryTriePruningStorer) Close() error {
 	return fhtps.storerWithEpochOperations.Close()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fhtps *fullHistoryTriePruningStorer) IsInterfaceNil() bool {
+	return fhtps == nil
 }

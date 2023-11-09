@@ -3,16 +3,19 @@ package storagePruningManager
 import (
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/state"
-	"github.com/ElrondNetwork/elrond-go/state/factory"
-	"github.com/ElrondNetwork/elrond-go/state/storagePruningManager/evictionWaitingList"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
-	"github.com/ElrondNetwork/elrond-go/testscommon/hashingMocks"
-	"github.com/ElrondNetwork/elrond-go/testscommon/statusHandler"
-	"github.com/ElrondNetwork/elrond-go/trie"
-	"github.com/ElrondNetwork/elrond-go/trie/hashesHolder"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,31 +25,35 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		SnapshotsBufferLen:    10,
 		SnapshotsGoroutineNum: 1,
 	}
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	args := trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            marshaller,
-		Hasher:                 hasher,
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-	}
+	args := storage.GetStorageManagerArgs()
+	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, 5)
-	ewl, _ := evictionWaitingList.NewEvictionWaitingList(100, testscommon.NewMemDbMock(), marshaller)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:              hasher,
+		Marshaller:          marshaller,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                hasher,
 		Marshaller:            marshaller,
-		AccountFactory:        factory.NewAccountCreator(),
+		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		ProcessingMode:        common.Normal,
 		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
 		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
+		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

@@ -1,40 +1,106 @@
 //go:build !race
-// +build !race
 
-// TODO remove build condition above to allow -race -short, after Arwen fix
+// TODO remove build condition above to allow -race -short, after Wasm VM fix
 
 package txsFee
 
 import (
 	"encoding/hex"
 	"math/big"
+	"sync"
 	"testing"
+	"time"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/data/block"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/mock"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm"
-	"github.com/ElrondNetwork/elrond-go/integrationTests/vm/txsFee/utils"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/testscommon/txDataBuilder"
-	"github.com/ElrondNetwork/elrond-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/ElrondNetwork/elrond-vm-common"
-	arwenConfig "github.com/ElrondNetwork/wasm-vm-v1_4/config"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var log = logger.GetOrCreate("integrationTests/vm/txFee")
+
+func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
+	unreachableEpoch := uint32(999999)
+	db := integrationtests.CreateStorer(tb.TempDir())
+	gasScheduleDir := "../../../cmd/node/config/gasSchedules"
+
+	cfg := config.GasScheduleByEpochs{
+		StartEpoch: 0,
+		FileName:   "gasScheduleV6.toml",
+	}
+
+	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
+		GasScheduleConfig: config.GasScheduleConfig{
+			GasScheduleByEpochs: []config.GasScheduleByEpochs{cfg},
+		},
+		ConfigDir:          gasScheduleDir,
+		EpochNotifier:      forking.NewGenericEpochNotifier(),
+		WasmVMChangeLocker: &sync.RWMutex{},
+	}
+	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
+	require.Nil(tb, err)
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
+		config.EnableEpochs{
+			GovernanceEnableEpoch:                           unreachableEpoch,
+			WaitingListFixEnableEpoch:                       unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:            unreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
+		},
+		mock.NewMultiShardsCoordinatorMock(2),
+		db,
+		gasScheduleNotifier,
+		integrationTests.GetDefaultRoundsConfig(),
+	)
+	require.Nil(tb, err)
+
+	senderBalance := big.NewInt(1000000000000000000)
+	scAddress, _ := utils.DoColdDeploy(
+		tb,
+		testContext,
+		"../wasm/testdata/distributeRewards/code.wasm",
+		senderBalance,
+		"0100",
+	)
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../wasm/testdata/distributeRewards/data.hex")
+	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
+
+	db.ClearCache()
+
+	return testContext, scAddress
+}
+
 func TestScCallShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -43,7 +109,7 @@ func TestScCallShouldWork(t *testing.T) {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
-		require.Equal(t, uint64(387), calculatedGasLimit)
+		require.Equal(t, uint64(418), calculatedGasLimit)
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
@@ -51,28 +117,20 @@ func TestScCallShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(387), indexerTx.GasUsed)
-		require.Equal(t, "3870", indexerTx.Fee)
 	}
 
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(61300)
+	expectedBalance := big.NewInt(58200)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(49670), accumulatedFees)
+	require.Equal(t, big.NewInt(53700), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4138), developerFees)
+	require.Equal(t, big.NewInt(4479), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -84,7 +142,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	scAddrBytes, _ := hex.DecodeString(scAddress)
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -103,14 +160,6 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, big.NewInt(10000), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
@@ -118,12 +167,11 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -144,15 +192,7 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(20970), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "10000", indexerTx.Fee)
+	require.Equal(t, big.NewInt(21900), accumulatedFees)
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -160,11 +200,10 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(9)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -184,10 +223,10 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10970), accumulatedFees)
+	require.Equal(t, big.NewInt(11900), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(368), developerFees)
+	require.Equal(t, big.NewInt(399), developerFees)
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
@@ -195,12 +234,11 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(20)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -221,30 +259,23 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(11170), accumulatedFees)
-
-	intermediateTxs := testContext.GetIntermediateTransactions(t)
-	testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, false, testContext.TxsLogsProcessor)
-	testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-	indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-	require.Equal(t, tx.GasLimit, indexerTx.GasUsed)
-	require.Equal(t, "200", indexerTx.Fee)
+	require.Equal(t, big.NewInt(12100), accumulatedFees)
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../arwen/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(1000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -258,17 +289,10 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(387), indexerTx.GasUsed)
 	}
 
-	newGasSchedule := arwenConfig.MakeGasMapForTests()
-	newGasSchedule["WASMOpcodeCost"] = arwenConfig.FillGasMap_WASMOpcodeValues(2)
+	newGasSchedule := wasmConfig.MakeGasMapForTests()
+	newGasSchedule["WASMOpcodeCost"] = wasmConfig.FillGasMapWASMOpcodeValues(2)
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {
@@ -280,13 +304,6 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(400), indexerTx.GasUsed)
 	}
 }
 
@@ -297,7 +314,6 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	owner := []byte("12345678901234567890123456789011")
 	senderBalance := big.NewInt(1000000000)
-	gasPrice := uint64(10)
 	gasLimit := uint64(2000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, owner, 0, senderBalance)
@@ -307,12 +323,11 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance = big.NewInt(10000000)
-	gasPrice = uint64(10)
 	gasLimit = uint64(30000)
 
-	esdtBalance := big.NewInt(100000000)
+	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, localEsdtBalance)
 
 	txData := txDataBuilder.NewBuilder()
 	valueToSendToSc := int64(1000)
@@ -327,20 +342,13 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(25092), indexerTx.GasUsed)
 	}
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
-	testGasSchedule := arwenConfig.MakeGasMapForTests()
+	testGasSchedule := wasmConfig.MakeGasMapForTests()
 	newGasSchedule := defaults.FillGasMapInternal(testGasSchedule, 1)
 	newGasSchedule["BuiltInCost"][core.BuiltInFunctionESDTTransfer] = 2
-	newGasSchedule["ElrondAPICost"]["TransferValue"] = 2
+	newGasSchedule[common.BaseOpsAPICost]["TransferValue"] = 2
 	mockGasSchedule.ChangeGasSchedule(newGasSchedule)
 
 	for idx := uint64(0); idx < numIterations; idx++ {
@@ -352,12 +360,242 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 		_, errCommit := testContext.Accounts.Commit()
 		require.Nil(t, errCommit)
-
-		intermediateTxs := testContext.GetIntermediateTransactions(t)
-		testIndexer := vm.CreateTestIndexer(t, testContext.ShardCoordinator, testContext.EconomicsData, true, testContext.TxsLogsProcessor)
-		testIndexer.SaveTransaction(tx, block.TxBlock, intermediateTxs)
-
-		indexerTx := testIndexer.GetIndexerPreparedTransaction(t)
-		require.Equal(t, uint64(25095), indexerTx.GasUsed)
 	}
+}
+
+func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
+	unreachableEpoch := uint32(999999)
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		GovernanceEnableEpoch:                             unreachableEpoch,
+		WaitingListFixEnableEpoch:                         unreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
+		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
+		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
+		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
+		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
+		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
+		IsPayableBySCEnableEpoch:                          unreachableEpoch,
+		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
+		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
+		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
+		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
+		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
+		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
+		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
+		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
+		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
+		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
+		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
+		RefactorContextEnableEpoch:                        unreachableEpoch,
+		CheckFunctionArgumentEnableEpoch:                  unreachableEpoch,
+		CheckExecuteOnReadOnlyEnableEpoch:                 unreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
+		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch:               unreachableEpoch,
+		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
+		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+		RuntimeMemStoreLimitEnableEpoch:                   unreachableEpoch,
+		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
+	})
+	require.Nil(tb, err)
+
+	senderBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(100000)
+	params := []string{"01"}
+	scAddress, _ := utils.DoDeployWithCustomParams(
+		tb,
+		testContext,
+		"../wasm/testdata/buyNFTCall/code.wasm",
+		senderBalance,
+		gasLimit,
+		params,
+	)
+	utils.OverwriteAccountStorageWithHexFileContent(tb, testContext, scAddress, "../wasm/testdata/buyNFTCall/data.hex")
+	utils.CleanAccumulatedIntermediateTransactions(tb, testContext)
+
+	return testContext, scAddress
+}
+
+func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
+	testContext, scAddress := prepareTestContextForEpoch460(t)
+	defer testContext.Close()
+
+	sndAddr1 := []byte("12345678901234567890123456789112")
+	sndAddr2 := []byte("12345678901234567890123456789113")
+	senderBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(1000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr2, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+	t.Run("transaction that fails", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880560,
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674406338403435353035353465346235333264333433363632333133383336406533")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		require.Equal(t, vmcommon.UserError, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+		assert.Equal(t, 2, len(logs))
+
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
+	})
+	t.Run("transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880566, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr2, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.UserError, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+		assert.Equal(t, 3, len(logs))
+
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
+	})
+}
+
+func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
+	testContext, scAddress := prepareTestContextForEpoch460(t)
+	defer testContext.Close()
+
+	sndAddr1 := []byte("12345678901234567890123456789112")
+	sndAddr2 := []byte("12345678901234567890123456789113")
+	senderBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(1000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr2, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+	t.Run("first transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880566, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.UserError, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, string(sndAddr1), string(topics[0]))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
+	})
+	t.Run("second transaction that succeed", func(t *testing.T) {
+		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+		blockChainHook.SetCurrentHeader(&block.Header{
+			TimeStamp: 1635880572, // next timestamp
+		})
+
+		txData, errDecode := hex.DecodeString("6275794e6674403434403435353035353465346235333264333433363632333133383336403531")
+		require.Nil(t, errDecode)
+		tx := vm.CreateTransaction(0, big.NewInt(250000000000000000), sndAddr2, scAddress, gasPrice, gasLimit, txData)
+
+		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+		require.Nil(t, errProcess)
+		assert.Equal(t, vmcommon.UserError, returnCode)
+
+		_, errCommit := testContext.Accounts.Commit()
+		require.Nil(t, errCommit)
+
+		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
+
+		logEvents := logs[1].GetLogEvents()
+		assert.Equal(t, 2, len(logEvents))
+
+		topics := logEvents[0].GetTopics()
+		assert.Equal(t, 2, len(topics))
+		assert.Equal(t, string(sndAddr1), string(topics[0]))
+		assert.Equal(t, vmhost.ErrInvalidTokenIndex.Error(), string(topics[1]))
+	})
+}
+
+func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
+	testContext, scAddress := prepareTestContextForEpoch836(t)
+	defer testContext.Close()
+
+	pkConv, err := pubkeyConverter.NewBech32PubkeyConverter(32, integrationTests.AddressHrp)
+	require.NoError(t, err)
+	sndAddr1, err := pkConv.Decode("erd1rkhyj0ne054upekymjafwas44v2trdykd22vcg27ap8x2hpg5u7q0296ne")
+	require.Nil(t, err)
+
+	senderBalance := big.NewInt(1000000000000000000)
+	gasLimit := uint64(600000000)
+
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr1, 0, senderBalance)
+
+	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
+
+	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
+	blockChainHook.SetCurrentHeader(&block.Header{
+		TimeStamp: 1668430842,
+	})
+
+	txData, errDecode := hex.DecodeString("646973747269627574655f7374616b696e675f72657761726473")
+	require.Nil(t, errDecode)
+	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr1, scAddress, gasPrice, gasLimit, txData)
+
+	startTime := time.Now()
+	returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+	endTime := time.Now()
+	assert.Nil(t, errProcess)
+	assert.Equal(t, vmcommon.Ok, returnCode)
+
+	_, errCommit := testContext.Accounts.Commit()
+	require.Nil(t, errCommit)
+
+	intermediateTxs := testContext.GetIntermediateTransactions(t)
+	assert.Equal(t, 1, len(intermediateTxs))
+	log.Info(integrationtests.TransactionHandlerToString(pkConv, intermediateTxs...))
+	log.Info("transaction took", "time", endTime.Sub(startTime))
+
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
+	assert.Equal(t, "", string(scr.ReturnMessage))
+	assert.Equal(t, sndAddr1, intermediateTxs[0].(*smartContractResult.SmartContractResult).RcvAddr)
 }

@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/groups"
-	"github.com/ElrondNetwork/elrond-go/api/mock"
-	"github.com/ElrondNetwork/elrond-go/api/shared"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-go/api/mock"
+	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -377,6 +377,94 @@ func TestVerifyProof(t *testing.T) {
 	isValid, ok := responseMap["ok"].(bool)
 	assert.True(t, ok)
 	assert.True(t, isValid)
+}
+
+func TestProofGroup_UpdateFacade(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil facade should error", func(t *testing.T) {
+		t.Parallel()
+
+		proofGroup, err := groups.NewProofGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = proofGroup.UpdateFacade(nil)
+		require.Equal(t, apiErrors.ErrNilFacadeHandler, err)
+	})
+	t.Run("cast failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		proofGroup, err := groups.NewProofGroup(&mock.FacadeStub{})
+		require.NoError(t, err)
+
+		err = proofGroup.UpdateFacade("this is not a facade handler")
+		require.True(t, errors.Is(err, apiErrors.ErrFacadeWrongTypeAssertion))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash := "rootHash"
+		address := "address"
+		validProof := []string{hex.EncodeToString([]byte("valid")), hex.EncodeToString([]byte("proof"))}
+		verifyProofParams := groups.VerifyProofRequest{
+			RootHash: rootHash,
+			Address:  address,
+			Proof:    validProof,
+		}
+		verifyProofBytes, _ := json.Marshal(verifyProofParams)
+
+		facade := &mock.FacadeStub{
+			VerifyProofCalled: func(rH string, addr string, proof [][]byte) (bool, error) {
+				return true, nil
+			},
+		}
+
+		proofGroup, err := groups.NewProofGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(proofGroup, "proof", getProofRoutesConfig())
+
+		req, _ := http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, shared.ReturnCodeSuccess, response.Code)
+		responseMap, ok := response.Data.(map[string]interface{})
+		assert.True(t, ok)
+		isValid, ok := responseMap["ok"].(bool)
+		assert.True(t, ok)
+		assert.True(t, isValid)
+
+		verifyProfErr := fmt.Errorf("VerifyProof err")
+		newFacade := &mock.FacadeStub{
+			VerifyProofCalled: func(rootHash string, address string, proof [][]byte) (bool, error) {
+				return false, verifyProfErr
+			},
+		}
+
+		err = proofGroup.UpdateFacade(newFacade)
+		require.NoError(t, err)
+
+		req, _ = http.NewRequest("POST", "/proof/verify", bytes.NewBuffer(verifyProofBytes))
+		resp = httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		loadResponse(resp.Body, &response)
+		assert.Equal(t, shared.ReturnCodeInternalError, response.Code)
+		assert.True(t, strings.Contains(response.Error, apiErrors.ErrVerifyProof.Error()))
+	})
+}
+
+func TestProofGroup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	proofGroup, _ := groups.NewProofGroup(nil)
+	require.True(t, proofGroup.IsInterfaceNil())
+
+	proofGroup, _ = groups.NewProofGroup(&mock.FacadeStub{})
+	require.False(t, proofGroup.IsInterfaceNil())
 }
 
 func getProofRoutesConfig() config.ApiRoutesConfig {

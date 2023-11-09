@@ -5,14 +5,14 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/marshal"
-	apiErrors "github.com/ElrondNetwork/elrond-go/api/errors"
-	"github.com/ElrondNetwork/elrond-go/api/logs"
-	"github.com/ElrondNetwork/elrond-go/config"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/websocket"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
+	"github.com/multiversx/mx-chain-go/api/logs"
+	"github.com/multiversx/mx-chain-go/config"
 	"gopkg.in/go-playground/validator.v8"
 )
 
@@ -35,12 +35,8 @@ func skValidator(
 }
 
 func checkArgs(args ArgsNewWebServer) error {
-	errHandler := func(details string) error {
-		return fmt.Errorf("%w: %s", apiErrors.ErrCannotCreateGinWebServer, details)
-	}
-
 	if check.IfNil(args.Facade) {
-		return errHandler("nil facade")
+		return fmt.Errorf("%w: %s", apiErrors.ErrCannotCreateGinWebServer, apiErrors.ErrNilFacadeHandler.Error())
 	}
 
 	return nil

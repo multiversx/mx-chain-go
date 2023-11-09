@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"strconv"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 func parseBoolUrlParam(c *gin.Context, name string) (bool, error) {

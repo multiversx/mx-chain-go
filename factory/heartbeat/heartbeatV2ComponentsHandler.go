@@ -3,9 +3,9 @@ package heartbeat
 import (
 	"sync"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/errors"
-	"github.com/ElrondNetwork/elrond-go/factory"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 )
 
 type managedHeartbeatV2Components struct {
@@ -64,6 +64,10 @@ func (mhc *managedHeartbeatV2Components) String() string {
 func (mhc *managedHeartbeatV2Components) Monitor() factory.HeartbeatV2Monitor {
 	mhc.mutHeartbeatV2Components.Lock()
 	defer mhc.mutHeartbeatV2Components.Unlock()
+
+	if mhc.heartbeatV2Components == nil {
+		return nil
+	}
 
 	return mhc.monitor
 }

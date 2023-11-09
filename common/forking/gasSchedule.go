@@ -6,32 +6,32 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/ElrondNetwork/elrond-go-core/core"
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go/common"
-	"github.com/ElrondNetwork/elrond-go/config"
-	"github.com/ElrondNetwork/elrond-go/process"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // GasScheduleMap (alias) is the map for gas schedule
 type GasScheduleMap = map[string]map[string]uint64
 
 type gasScheduleNotifier struct {
-	mutNotifier       sync.RWMutex
-	configDir         string
-	gasScheduleConfig config.GasScheduleConfig
-	currentEpoch      uint32
-	lastGasSchedule   GasScheduleMap
-	handlers          []core.GasScheduleSubscribeHandler
-	arwenChangeLocker common.Locker
+	mutNotifier        sync.RWMutex
+	configDir          string
+	gasScheduleConfig  config.GasScheduleConfig
+	currentEpoch       uint32
+	lastGasSchedule    GasScheduleMap
+	handlers           []core.GasScheduleSubscribeHandler
+	wasmVMChangeLocker common.Locker
 }
 
 // ArgsNewGasScheduleNotifier defines the gas schedule notifier arguments
 type ArgsNewGasScheduleNotifier struct {
-	GasScheduleConfig config.GasScheduleConfig
-	ConfigDir         string
-	EpochNotifier     process.EpochNotifier
-	ArwenChangeLocker common.Locker
+	GasScheduleConfig  config.GasScheduleConfig
+	ConfigDir          string
+	EpochNotifier      process.EpochNotifier
+	WasmVMChangeLocker common.Locker
 }
 
 // NewGasScheduleNotifier creates a new instance of a gasScheduleNotifier component
@@ -42,15 +42,15 @@ func NewGasScheduleNotifier(args ArgsNewGasScheduleNotifier) (*gasScheduleNotifi
 	if check.IfNil(args.EpochNotifier) {
 		return nil, core.ErrNilEpochStartNotifier
 	}
-	if check.IfNilReflect(args.ArwenChangeLocker) {
-		return nil, common.ErrNilArwenChangeLocker
+	if check.IfNilReflect(args.WasmVMChangeLocker) {
+		return nil, common.ErrNilWasmChangeLocker
 	}
 
 	g := &gasScheduleNotifier{
-		gasScheduleConfig: args.GasScheduleConfig,
-		handlers:          make([]core.GasScheduleSubscribeHandler, 0),
-		configDir:         args.ConfigDir,
-		arwenChangeLocker: args.ArwenChangeLocker,
+		gasScheduleConfig:  args.GasScheduleConfig,
+		handlers:           make([]core.GasScheduleSubscribeHandler, 0),
+		configDir:          args.ConfigDir,
+		wasmVMChangeLocker: args.WasmVMChangeLocker,
 	}
 	log.Debug("gasSchedule: enable epoch for gas schedule directories paths epoch", "epoch", g.gasScheduleConfig.GasScheduleByEpochs)
 
@@ -119,13 +119,13 @@ func (g *gasScheduleNotifier) EpochConfirmed(epoch uint32, _ uint64) {
 		return
 	}
 
-	g.arwenChangeLocker.Lock()
+	g.wasmVMChangeLocker.Lock()
 	for _, handler := range g.handlers {
 		if !check.IfNil(handler) {
 			handler.GasScheduleChange(newGasSchedule)
 		}
 	}
-	g.arwenChangeLocker.Unlock()
+	g.wasmVMChangeLocker.Unlock()
 }
 
 func (g *gasScheduleNotifier) changeLatestGasSchedule(epoch uint32, oldEpoch uint32) map[string]map[string]uint64 {

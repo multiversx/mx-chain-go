@@ -5,13 +5,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ElrondNetwork/elrond-go-core/core/check"
-	"github.com/ElrondNetwork/elrond-go-core/data"
-	"github.com/ElrondNetwork/elrond-go-core/data/transaction"
-	"github.com/ElrondNetwork/elrond-go/process"
-	"github.com/ElrondNetwork/elrond-go/process/interceptors/processor"
-	"github.com/ElrondNetwork/elrond-go/process/mock"
-	"github.com/ElrondNetwork/elrond-go/testscommon"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -80,7 +80,7 @@ func TestTxInterceptorProcessor_ValidateReturnsFalseShouldErr(t *testing.T) {
 	expectedErr := errors.New("tx validation error")
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
-		CheckTxValidityCalled: func(txValidatorHandler process.TxValidatorHandler) error {
+		CheckTxValidityCalled: func(interceptedTx process.InterceptedTransactionHandler) error {
 			return expectedErr
 		},
 	}
@@ -101,7 +101,7 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 
 	arg := createMockTxArgument()
 	arg.TxValidator = &mock.TxValidatorStub{
-		CheckTxValidityCalled: func(txValidatorHandler process.TxValidatorHandler) error {
+		CheckTxValidityCalled: func(interceptedTx process.InterceptedTransactionHandler) error {
 			return nil
 		},
 	}
