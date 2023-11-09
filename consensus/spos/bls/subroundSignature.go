@@ -10,12 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type subroundSignature struct {
 	*spos.Subround
 
-	extraSignersHolder   *subRoundSignatureExtraSignersHolder
+	extraSignersHolder   SubRoundSignatureExtraSignersHolder
 	getMessageToSignFunc func() []byte
 }
 
@@ -23,6 +24,7 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
+	extraSignersHolder SubRoundSignatureExtraSignersHolder,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -30,10 +32,13 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(extraSignersHolder) {
+		return nil, errors.ErrNilSignatureRoundExtraSignersHolder
+	}
 
 	srSignature := subroundSignature{
 		Subround:           baseSubround,
-		extraSignersHolder: newSubRoundSignatureExtraSignersHolder(),
+		extraSignersHolder: extraSignersHolder,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -92,7 +97,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
-		extraSigShares, err := sr.extraSignersHolder.createExtraSignatureShares(sr.Header, uint16(selfIndex), selfPubKey)
+		extraSigShares, err := sr.extraSignersHolder.CreateExtraSignatureShares(sr.Header, uint16(selfIndex), selfPubKey)
 		if err != nil {
 			log.Debug("doSignatureJob.extraSignersHolder.createExtraSignatureShares", "error", err.Error())
 			return false
@@ -138,7 +143,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(
 		sr.getProcessedHeaderHash(),
 	)
 
-	err := sr.extraSignersHolder.addExtraSigSharesToConsensusMessage(extraSigShares, cnsMsg)
+	err := sr.extraSignersHolder.AddExtraSigSharesToConsensusMessage(extraSigShares, cnsMsg)
 	if err != nil {
 		log.Debug("createAndSendSignatureMessage.extraSignersHolder.addExtraSigSharesToConsensusMessage",
 			"error", err.Error(), "pk", pkBytes)
@@ -242,7 +247,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	err = sr.extraSignersHolder.storeExtraSignatureShare(uint16(index), cnsDta)
+	err = sr.extraSignersHolder.StoreExtraSignatureShare(uint16(index), cnsDta)
 	if err != nil {
 		log.Debug("receivedSignature.extraSignersHolder.storeExtraSignatureShare",
 			"node", pkForLogs,
@@ -419,7 +424,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		extraSigShare, err := sr.extraSignersHolder.createExtraSignatureShares(sr.Header, uint16(selfIndex), pkBytes)
+		extraSigShare, err := sr.extraSignersHolder.CreateExtraSignatureShares(sr.Header, uint16(selfIndex), pkBytes)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.extraSignersHolder.createExtraSignatureShares", "error", err.Error())
 			return false
@@ -446,10 +451,6 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	}
 
 	return true
-}
-
-func (sr *subroundSignature) RegisterExtraSubRoundSigner(extraSigner SubRoundSignatureExtraSignatureHandler) error {
-	return sr.extraSignersHolder.registerExtraSingingHandler(extraSigner)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

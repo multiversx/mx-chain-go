@@ -12,18 +12,17 @@ import (
 
 type subRoundSignatureExtraSignersHolder struct {
 	mutExtraSigners sync.RWMutex
-	extraSigners    map[string]SubRoundSignatureExtraSignatureHandler
+	extraSigners    map[string]consensus.SubRoundSignatureExtraSignatureHandler
 }
 
-// TODO: Make this a standalone component which shall be injected
-func newSubRoundSignatureExtraSignersHolder() *subRoundSignatureExtraSignersHolder {
+func NewSubRoundSignatureExtraSignersHolder() *subRoundSignatureExtraSignersHolder {
 	return &subRoundSignatureExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
-		extraSigners:    make(map[string]SubRoundSignatureExtraSignatureHandler),
+		extraSigners:    make(map[string]consensus.SubRoundSignatureExtraSignatureHandler),
 	}
 }
 
-func (holder *subRoundSignatureExtraSignersHolder) createExtraSignatureShares(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) (map[string][]byte, error) {
+func (holder *subRoundSignatureExtraSignersHolder) CreateExtraSignatureShares(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) (map[string][]byte, error) {
 	ret := make(map[string][]byte)
 
 	holder.mutExtraSigners.RLock()
@@ -43,7 +42,7 @@ func (holder *subRoundSignatureExtraSignersHolder) createExtraSignatureShares(he
 	return ret, nil
 }
 
-func (holder *subRoundSignatureExtraSignersHolder) addExtraSigSharesToConsensusMessage(extraSigShares map[string][]byte, cnsMsg *consensus.Message) error {
+func (holder *subRoundSignatureExtraSignersHolder) AddExtraSigSharesToConsensusMessage(extraSigShares map[string][]byte, cnsMsg *consensus.Message) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
 
@@ -60,7 +59,7 @@ func (holder *subRoundSignatureExtraSignersHolder) addExtraSigSharesToConsensusM
 	return nil
 }
 
-func (holder *subRoundSignatureExtraSignersHolder) storeExtraSignatureShare(index uint16, cnsMsg *consensus.Message) error {
+func (holder *subRoundSignatureExtraSignersHolder) StoreExtraSignatureShare(index uint16, cnsMsg *consensus.Message) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
 
@@ -76,7 +75,7 @@ func (holder *subRoundSignatureExtraSignersHolder) storeExtraSignatureShare(inde
 	return nil
 }
 
-func (holder *subRoundSignatureExtraSignersHolder) registerExtraSingingHandler(extraSigner SubRoundSignatureExtraSignatureHandler) error {
+func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}
@@ -85,8 +84,16 @@ func (holder *subRoundSignatureExtraSignersHolder) registerExtraSingingHandler(e
 	log.Debug("holder.subRoundStartExtraSignersHolder.registerExtraSingingHandler", "identifier", id)
 
 	holder.mutExtraSigners.Lock()
-	holder.extraSigners[id] = extraSigner
-	holder.mutExtraSigners.Unlock()
+	defer holder.mutExtraSigners.Unlock()
 
+	if _, exists := holder.extraSigners[id]; exists {
+		return errors.ErrExtraSignerIdAlreadyExists
+	}
+
+	holder.extraSigners[id] = extraSigner
 	return nil
+}
+
+func (holder *subRoundSignatureExtraSignersHolder) IsInterfaceNil() bool {
+	return holder == nil
 }

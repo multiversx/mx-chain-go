@@ -115,12 +115,12 @@ func (fct *factory) GenerateBlockSubroundV2() error {
 
 // GenerateSignatureSubroundV1 generates the instance of subround Signature V1 and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubroundV1() error {
-	return fct.generateSignatureSubroundV1()
+	return fct.generateSignatureSubroundV1(&subRounds.SubRoundSignatureExtraSignersHolderMock{})
 }
 
 // GenerateSignatureSubroundV2 generates the instance of subround Signature V2 and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubroundV2() error {
-	return fct.generateSignatureSubroundV2()
+	return fct.generateSignatureSubroundV2(&subRounds.SubRoundSignatureExtraSignersHolderMock{})
 }
 
 // GenerateEndRoundSubroundV1 generates the instance of subround EndRound V1 and added it to the chronology subrounds list

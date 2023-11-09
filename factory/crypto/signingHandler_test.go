@@ -701,3 +701,42 @@ func TestSigningHandler_VerifySingleSignature(t *testing.T) {
 		assert.True(t, verifyCalled)
 	})
 }
+
+func TestSigningHandler_ShallowClone(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsSigningHandler()
+	args.PubKeys = []string{"pk1"}
+
+	verifySigCalled := false
+	expectedSigShare := []byte("sigShare1")
+	expectedMsg := []byte("msg")
+
+	args.MultiSignerContainer = &cryptoMocks.MultiSignerContainerMock{
+		MultiSigner: &cryptoMocks.MultisignerMock{
+			VerifySignatureShareCalled: func(publicKey []byte, message []byte, sig []byte) error {
+				require.Equal(t, []byte("pk1"), publicKey)
+				require.Equal(t, expectedSigShare, sig)
+				require.Equal(t, expectedMsg, message)
+
+				verifySigCalled = true
+				return nil
+			},
+		},
+	}
+
+	signer, _ := cryptoFactory.NewSigningHandler(args)
+	clone := signer.ShallowClone()
+	require.False(t, clone.IsInterfaceNil())
+
+	err := clone.StoreSignatureShare(0, expectedSigShare)
+	require.Nil(t, err)
+
+	sigShare, err := clone.SignatureShare(0)
+	require.Nil(t, err)
+	require.Equal(t, expectedSigShare, sigShare)
+
+	err = clone.VerifySignatureShare(0, expectedSigShare, expectedMsg, 0)
+	require.Nil(t, err)
+	require.True(t, verifySigCalled)
+}
