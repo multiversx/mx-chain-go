@@ -1,14 +1,16 @@
 package components
 
 import (
-	"sync/atomic"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 type interceptor struct {
-	numMessages uint64
+	mut   sync.Mutex
+	total int
+	delta int
 }
 
 // NewInterceptor -
@@ -18,14 +20,23 @@ func NewInterceptor() *interceptor {
 
 // ProcessReceivedMessage -
 func (i *interceptor) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error {
-	atomic.AddUint64(&i.numMessages, 1)
+	i.mut.Lock()
+	i.total++
+	i.delta++
+	i.mut.Unlock()
 
 	return nil
 }
 
 // GetNumMessages -
-func (i *interceptor) GetNumMessages() uint64 {
-	return atomic.LoadUint64(&i.numMessages)
+func (i *interceptor) GetNumMessages() (int, int) {
+	i.mut.Lock()
+	valTotal := i.total
+	valDelta := i.delta
+	i.delta = 0
+	i.mut.Unlock()
+
+	return valTotal, valDelta
 }
 
 // IsInterfaceNil -

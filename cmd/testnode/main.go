@@ -30,6 +30,11 @@ import (
 	"github.com/urfave/cli"
 )
 
+type interceptor interface {
+	ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error
+	GetNumMessages() (int, int)
+}
+
 const (
 	defaultLogsPath     = "logs"
 	logFilePrefix       = "multiversx-seed"
@@ -223,7 +228,8 @@ func startNode(ctx *cli.Context) error {
 }
 
 func mainLoop(messenger p2p.Messenger, stop chan os.Signal) error {
-	durationDisplay := time.Second * 5
+	displaySeconds := 5
+	durationDisplay := time.Second * time.Duration(displaySeconds)
 	timerDisplay := time.NewTimer(durationDisplay)
 	defer timerDisplay.Stop()
 
@@ -245,9 +251,7 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal) error {
 
 	message := []byte("ping")
 
-	log.Info("Statistics",
-		"num connections", len(messenger.ConnectedAddresses()),
-		"num received messages", instance.GetNumMessages())
+	display(messenger, instance, displaySeconds)
 	for {
 		select {
 		case <-stop:
@@ -257,13 +261,20 @@ func mainLoop(messenger p2p.Messenger, stop chan os.Signal) error {
 			messenger.Broadcast(testTopic, message)
 			timerSend.Reset(durationSend)
 		case <-timerDisplay.C:
-			log.Info("Statistics",
-				"num connections", len(messenger.ConnectedAddresses()),
-				"num received messages", instance.GetNumMessages())
+			display(messenger, instance, displaySeconds)
 
 			timerDisplay.Reset(durationDisplay)
 		}
 	}
+}
+
+func display(messenger p2p.Messenger, instance interceptor, displaySeconds int) {
+	total, delta := instance.GetNumMessages()
+	log.Info("Statistics",
+		"num connections", len(messenger.ConnectedAddresses()),
+		"total", total,
+		"delta", delta,
+		"sending peers", delta/displaySeconds)
 }
 
 func loadMainConfig(filepath string) (*config.Config, error) {
