@@ -31,6 +31,7 @@ func NewChainSimulator(
 	genesisTimestamp int64,
 	roundDurationInMillis uint64,
 	roundsPerEpoch core.OptionalUint64,
+	enableHttpServer bool,
 ) (*simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
@@ -42,7 +43,7 @@ func NewChainSimulator(
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 	}
 
-	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis, roundsPerEpoch)
+	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis, roundsPerEpoch, enableHttpServer)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +58,7 @@ func (s *simulator) createChainHandlers(
 	genesisTimestamp int64,
 	roundDurationInMillis uint64,
 	roundsPerEpoch core.OptionalUint64,
+	enableHttpServer bool,
 ) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:               numOfShards,
@@ -76,7 +78,7 @@ func (s *simulator) createChainHandlers(
 	}
 
 	for idx := range outputConfigs.ValidatorsPrivateKeys {
-		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename)
+		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename, enableHttpServer)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -106,8 +108,10 @@ func (s *simulator) createTestNode(
 	configs *config.Configs,
 	skIndex int,
 	gasScheduleFilename string,
+	enableHttpServer bool,
 ) (process.NodeHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
+		Configs:                  *configs,
 		Config:                   *configs.GeneralConfig,
 		EpochConfig:              *configs.EpochConfig,
 		EconomicsConfig:          *configs.EconomicsConfig,
@@ -122,6 +126,7 @@ func (s *simulator) createTestNode(
 		NumShards:                s.numOfShards,
 		GasScheduleFilename:      gasScheduleFilename,
 		SkIndex:                  skIndex,
+		EnableHTTPServer:         enableHttpServer,
 	}
 
 	return components.NewTestOnlyProcessingNode(args)
@@ -159,6 +164,16 @@ func (s *simulator) allNodesCreateBlocks() error {
 // GetNodeHandler returns the node handler from the provided shardID
 func (s *simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
 	return s.nodes[shardID]
+}
+
+// GetRestAPIInterfaces will return a map with the rest api interfaces for every node
+func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
+	resMap := make(map[uint32]string)
+	for shardID, node := range s.nodes {
+		resMap[shardID] = node.GetFacadeHandler().RestApiInterface()
+	}
+
+	return resMap
 }
 
 // Close will stop and close the simulator

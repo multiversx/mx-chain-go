@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
@@ -22,6 +23,8 @@ import (
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
+	Configs config.Configs
+	// TODO remove the rest of configs because configs contains all of them
 	Config                   config.Config
 	EpochConfig              config.EpochConfig
 	EconomicsConfig          config.EconomicsConfig
@@ -35,6 +38,7 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
+	EnableHTTPServer    bool
 	GasScheduleFilename string
 	NumShards           uint32
 	SkIndex             int
@@ -42,15 +46,15 @@ type ArgsTestOnlyProcessingNode struct {
 
 type testOnlyProcessingNode struct {
 	closeHandler              *closeHandler
-	CoreComponentsHolder      factory.CoreComponentsHolder
-	StatusCoreComponents      factory.StatusCoreComponentsHolder
-	StateComponentsHolder     factory.StateComponentsHolder
-	StatusComponentsHolder    factory.StatusComponentsHolder
-	CryptoComponentsHolder    factory.CryptoComponentsHolder
-	NetworkComponentsHolder   factory.NetworkComponentsHolder
-	BootstrapComponentsHolder factory.BootstrapComponentsHolder
-	ProcessComponentsHolder   factory.ProcessComponentsHolder
-	DataComponentsHolder      factory.DataComponentsHolder
+	CoreComponentsHolder      factory.CoreComponentsHandler
+	StatusCoreComponents      factory.StatusCoreComponentsHandler
+	StateComponentsHolder     factory.StateComponentsHandler
+	StatusComponentsHolder    factory.StatusComponentsHandler
+	CryptoComponentsHolder    factory.CryptoComponentsHandler
+	NetworkComponentsHolder   factory.NetworkComponentsHandler
+	BootstrapComponentsHolder factory.BootstrapComponentsHandler
+	ProcessComponentsHolder   factory.ProcessComponentsHandler
+	DataComponentsHolder      factory.DataComponentsHandler
 
 	NodesCoordinator            nodesCoordinator.NodesCoordinator
 	ChainHandler                chainData.ChainHandler
@@ -59,8 +63,10 @@ type testOnlyProcessingNode struct {
 	StoreService                dataRetriever.StorageService
 	BuiltinFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	DataPool                    dataRetriever.PoolsHolder
+	broadcastMessenger          consensus.BroadcastMessenger
 
-	broadcastMessenger consensus.BroadcastMessenger
+	httpServer    shared.UpgradeableHttpServerHandler
+	facadeHandler shared.FacadeHandler
 }
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
@@ -92,7 +98,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.StatusCoreComponents, err = CreateStatusCoreComponentsHolder(args.Config, instance.CoreComponentsHolder)
+	instance.StatusCoreComponents, err = CreateStatusCoreComponentsHolder(args.Configs, instance.CoreComponentsHolder)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +204,17 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.collectClosableComponents()
+	err = instance.createFacade(args.Configs, args.EnableHTTPServer)
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createHttpServer(args.Configs)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.collectClosableComponents(args.EnableHTTPServer)
 
 	return instance, nil
 }
@@ -326,7 +342,11 @@ func (node *testOnlyProcessingNode) GetStateComponents() factory.StateComponents
 	return node.StateComponentsHolder
 }
 
-func (node *testOnlyProcessingNode) collectClosableComponents() {
+func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
+	return node.facadeHandler
+}
+
+func (node *testOnlyProcessingNode) collectClosableComponents(enableHTTPServer bool) {
 	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
 	node.closeHandler.AddComponent(node.DataComponentsHolder)
 	node.closeHandler.AddComponent(node.StateComponentsHolder)
@@ -335,6 +355,10 @@ func (node *testOnlyProcessingNode) collectClosableComponents() {
 	node.closeHandler.AddComponent(node.NetworkComponentsHolder)
 	node.closeHandler.AddComponent(node.StatusCoreComponents)
 	node.closeHandler.AddComponent(node.CoreComponentsHolder)
+	node.closeHandler.AddComponent(node.facadeHandler)
+	if enableHTTPServer {
+		node.closeHandler.AddComponent(node.httpServer)
+	}
 }
 
 // Close will call the Close methods on all inner components

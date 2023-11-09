@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
@@ -20,7 +21,7 @@ type statusComponentsHolder struct {
 }
 
 // CreateStatusComponentsHolder will create a new instance of status components holder
-func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHolder, error) {
+func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHandler, error) {
 	var err error
 	instance := &statusComponentsHolder{
 		closeHandler: NewCloseHandler(),
@@ -69,4 +70,30 @@ func (s *statusComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *statusComponentsHolder) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// Create will do nothing
+func (s *statusComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (s *statusComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (s *statusComponentsHolder) String() string {
+	return ""
+}
+
+// SetForkDetector will do nothing
+func (s *statusComponentsHolder) SetForkDetector(_ process.ForkDetector) error {
+	return nil
+}
+
+// StartPolling will do nothing
+func (s *statusComponentsHolder) StartPolling() error {
+	// todo check if this method
+	return nil
 }

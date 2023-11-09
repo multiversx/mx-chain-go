@@ -25,7 +25,7 @@ type dataComponentsHolder struct {
 }
 
 // CreateDataComponentsHolder will create the data components holder
-func CreateDataComponentsHolder(args ArgsDataComponentsHolder) (factory.DataComponentsHolder, error) {
+func CreateDataComponentsHolder(args ArgsDataComponentsHolder) (factory.DataComponentsHandler, error) {
 	miniBlockStorer, err := args.StorageService.GetStorer(dataRetriever.MiniBlockUnit)
 	if err != nil {
 		return nil, err
@@ -105,4 +105,19 @@ func (d *dataComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (d *dataComponentsHolder) IsInterfaceNil() bool {
 	return d == nil
+}
+
+// Create will do nothing
+func (d *dataComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (d *dataComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (d *dataComponentsHolder) String() string {
+	return ""
 }

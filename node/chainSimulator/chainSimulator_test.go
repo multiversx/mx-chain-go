@@ -18,7 +18,7 @@ const (
 func TestNewChainSimulator(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, core.OptionalUint64{})
+	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, core.OptionalUint64{}, false)
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
@@ -31,7 +31,7 @@ func TestNewChainSimulator(t *testing.T) {
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, core.OptionalUint64{})
+	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, core.OptionalUint64{}, false)
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
@@ -51,7 +51,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		HasValue: true,
 		Value:    20,
 	}
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, roundsPerEpoch)
+	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, roundsPerEpoch, false)
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
@@ -71,6 +71,8 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 
 	assert.True(t, accountAfterRewards.GetBalance().Cmp(initialAccount.GetBalance()) > 0,
 		fmt.Sprintf("initial balance %s, balance after rewards %s", initialAccount.GetBalance().String(), accountAfterRewards.GetBalance().String()))
+
+	fmt.Println(chainSimulator.GetRestAPIInterfaces())
 
 	err = chainSimulator.Close()
 	assert.Nil(t, err)

@@ -46,7 +46,7 @@ type cryptoComponentsHolder struct {
 }
 
 // CreateCryptoComponentsHolder will create a new instance of cryptoComponentsHolder
-func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHolder, error) {
+func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHandler, error) {
 	instance := &cryptoComponentsHolder{}
 
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{
@@ -236,4 +236,24 @@ func (c *cryptoComponentsHolder) Clone() interface{} {
 
 func (c *cryptoComponentsHolder) IsInterfaceNil() bool {
 	return c == nil
+}
+
+// Create will do nothing
+func (c *cryptoComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (c *cryptoComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (c *cryptoComponentsHolder) String() string {
+	return ""
+}
+
+// Close will do nothing
+func (c *cryptoComponentsHolder) Close() error {
+	return nil
 }
