@@ -2,12 +2,14 @@ package transaction_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -38,7 +40,7 @@ func createMockNewMetaTxArgs() txproc.ArgsNewMetaTxProcessor {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
 		EconomicsFee:        createFreeTxFeeHandler(),
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
@@ -115,6 +117,28 @@ func TestNewMetaTxProcessor_NilTxFeeHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewMetaTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewMetaTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNewMetaTxArgs()
+	args.EnableEpochsHandler = nil
+	txProc, err := txproc.NewMetaTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewMetaTxProcessor_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockNewMetaTxArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	txProc, err := txproc.NewMetaTxProcessor(args)
+
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	assert.Nil(t, txProc)
 }
 
@@ -357,14 +381,12 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotI
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	argsTxTypeHandler := coordinator.ArgNewTxTypeHandler{
-		PubkeyConverter:    createMockPubKeyConverter(),
-		ShardCoordinator:   shardCoordinator,
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
-		},
+		PubkeyConverter:     createMockPubKeyConverter(),
+		ShardCoordinator:    shardCoordinator,
+		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTMetadataContinuousCleanupFlag),
 	}
 	computeType, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
@@ -421,10 +443,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsBuiltInFunctionOnMetaFlagEnabledField: false,
-		IsESDTFlagEnabledField:                  true,
-	}
+	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTFlag)
 	args.EnableEpochsHandler = enableEpochsHandlerStub
 	txProc, _ := txproc.NewMetaTxProcessor(args)
 
@@ -439,7 +458,7 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		return 0, nil
 	}
 
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
+	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionOnMetaFlag)
 
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)

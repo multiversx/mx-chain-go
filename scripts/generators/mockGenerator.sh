@@ -1,21 +1,21 @@
 #!/bin/bash
-# This script generates a stub from a given interface
+# This script generates a mock from a given interface
 # Mandatory parameters needed:
 #   interface name from an interface.go file
 #   path to the directory of interface.go file, from the directory this script is called
-#   path to the destination directory the stub will be created, from the directory this script is called
+#   path to the destination directory the mock will be created, from the directory this script is called
 #
-# Usage example: bash stubGenerator.sh EnableEpochsHandler ../../common ../../common
+# Usage example: bash mockGenerator.sh EnableEpochsHandler ../../common ../../common
 
 extractPackageName() {
-  if [ "$stubDir" == "." ]; then
-    stubDir=$(pwd)
+  if [ "$mockDir" == "." ]; then
+    mockDir=$(pwd)
   fi
 
-  packageName=${stubDir##*"/"}
+  packageName=${mockDir##*"/"}
   # handle case when / is provided at the end of the path
-  if [ ${#stubName} == 0 ]; then
-    withoutLastSlash=${stubDir%"/"}
+  if [ ${#mockName} == 0 ]; then
+    withoutLastSlash=${mockDir%"/"}
     packageName=${withoutLastSlash##*"/"}
   fi
 }
@@ -28,9 +28,9 @@ readInterfaceFile() {
   do
     if [[ "$line" == *"type $interfaceName interface"* ]]; then
       { echo -e "package $packageName\n";
-        echo -e "// $stubName -";
-        echo "type $stubName struct {";
-        } >> "$stubPath"
+        echo -e "// $mockName -";
+        echo "type $mockName struct {";
+        } >> "$mockPath"
       isInterfaceMethod=true
       interfaceFound=true
       continue
@@ -68,8 +68,8 @@ removeCommentsFromMethodLine() {
   fi
 }
 
-createStubStructure() {
-  # navigate through all methods lines and create stub members with Called suffix and write them to the dest file
+createMockStructure() {
+  # navigate through all methods lines and create mock members with Called suffix and write them to the dest file
   for method in "${methodsArr[@]}"
   do
     [[ $method == *"IsInterfaceNil"* ]] && continue
@@ -84,10 +84,10 @@ createStubStructure() {
     replacementStr=$methodName"Called func("
     pattern="$methodName("
     structMember=${method//"$pattern"/"$replacementStr"}
-    echo "$structMember" >> "$stubPath"
+    echo "$structMember" >> "$mockPath"
   done
-  # now stub struct is complete, close it
-  echo -e "}\n" >> "$stubPath"
+  # now mock struct is complete, close it
+  echo -e "}\n" >> "$mockPath"
 }
 
 extractReturnTypes() {
@@ -103,7 +103,7 @@ extractReturnTypes() {
 
 extractBasicParametersAndTypes() {
   # extract parameters from method line into:
-  #   paramNames, which will be an array of strings used to call stub method
+  #   paramNames, which will be an array of strings used to call mock method
   #   paramTypes, which will be an array of strings exactly how the params types are. Eg. bool, error, uint32, etc.
   IFS=','
   read -ra ADDR <<< "$1"
@@ -208,10 +208,10 @@ computeUpdatedParameters() {
 }
 
 writeWithNoReturn() {
-  { echo "stub.$stubField($stringParamNames)";
+  { echo "mock.$mockField($stringParamNames)";
     echo "}";
     echo -e "}\n";
-    } >> "$stubPath"
+    } >> "$mockPath"
 }
 
 extractDefaultReturn() {
@@ -239,18 +239,18 @@ extractDefaultReturn() {
 }
 
 writeWithReturn() {
-  { echo "return stub.$stubField($stringParamNames)";
+  { echo "return mock.$mockField($stringParamNames)";
   echo "}";
-  } >> "$stubPath"
+  } >> "$mockPath"
 
-  # compute default values to return when stub member is not provided, separated by comma
+  # compute default values to return when mock member is not provided, separated by comma
   toReturn=""
   extractDefaultReturn
 
   # write the final return statement to file with default params and close the method
   { echo "return $toReturn";
     echo -e "}\n";
-    } >> "$stubPath"
+    } >> "$mockPath"
 }
 
 getStringParamNames() {
@@ -268,19 +268,19 @@ getStringParamNames() {
 createMethodBody() {
   # if method is IsInterfaceNil, write special return and return
   if [[ $methodName == *"IsInterfaceNil"* ]]; then
-    { echo "return stub == nil";
+    { echo "return mock == nil";
       echo -e "}\n";
-      } >> "$stubPath"
+      } >> "$mockPath"
     return
   fi
 
-  # add the check to stub member to not be nil
-  echo "if stub.$stubField != nil {" >> "$stubPath"
+  # add the check to mock member to not be nil
+  echo "if mock.$mockField != nil {" >> "$mockPath"
 
   stringParamNames=""
   getStringParamNames
 
-  # add return statement calling stub member
+  # add return statement calling mock member
   # if there is no return type, add it without return
   # otherwise, return it with the provided params
   if [[ ${#returnTypesArr} == 0 ]]; then
@@ -290,11 +290,11 @@ createMethodBody() {
   fi
 }
 
-createStubMethods() {
+createMockMethods() {
   # navigate through all methods lines and:
   #   extract method name
   #   extract return types, used to handle the return
-  #   extract parameters, used to call the stub member
+  #   extract parameters, used to call the mock member
   for method in "${methodsArr[@]}"
     do
       methodName=${method%%"("*}
@@ -343,59 +343,59 @@ createStubMethods() {
       declare -a returnTypesArr=()
       extractReturnTypes
 
-      # compute the stub member which will be called and write to the file:
+      # compute the mock member which will be called and write to the file:
       #   the comment
       #   the method signature
       # But first we compute the updated parameters, to avoid situation when param name is missing
       updatedParameters=""
       computeUpdatedParameters
 
-      stubField=$methodName"Called"
+      mockField=$methodName"Called"
       { echo "// $methodName -";
-        echo "func (stub *$stubName) $methodName $updatedParameters $rawReturnTypesWithBraces {";
-        } >> "$stubPath"
+        echo "func (mock *$mockName) $methodName $updatedParameters $rawReturnTypesWithBraces {";
+        } >> "$mockPath"
 
       createMethodBody
   done
 }
 
-generateStub() {
+generateMock() {
   interfaceName=$1
   filePath=$2"/interface.go"
-  stubDir=$3
+  mockDir=$3
 
   [ ! -d "$2" ] && echo "Source directory for interface DOES NOT exists." && exit
   [ ! -f "$filePath" ] && echo "Source interface.go file DOES NOT exists." && exit
-  [ ! -d "$stubDir" ] && echo "Destination directory DOES NOT exists." && exit
+  [ ! -d "$mockDir" ] && echo "Destination directory DOES NOT exists." && exit
 
   extractPackageName
 
-  stubName=$interfaceName"Stub"
+  mockName=$interfaceName"Mock"
 
   # make first char of the file name lowercase
-  firstChar=${stubName::1}
+  firstChar=${mockName::1}
   firstChar=${firstChar,,}
 
-  lenOfStubName=${#stubName}
-  stubFileName=$firstChar${stubName:1:$lenOfStubName}
+  lenOfMockName=${#mockName}
+  mockFileName=$firstChar${mockName:1:$lenOfMockName}
 
-  stubPath="$stubDir/$stubFileName.go"
-  rm -rf "$stubPath"
+  mockPath="$mockDir/$mockFileName.go"
+  rm -rf "$mockPath"
 
   isInterfaceMethod=false
   declare -a methodsArr
 
   readInterfaceFile
-  createStubStructure
-  createStubMethods
+  createMockStructure
+  createMockMethods
 
   # go fmt file
-  go fmt "$stubPath"
+  go fmt "$mockPath"
 }
 
 if [ $# -eq 3 ]; then
-  generateStub "$@"
+  generateMock "$@"
 else
   echo "Please use the following format..."
-  echo "bash stubGenerator.sh interface_name path_to_interface.go_dir path_to_stub_destionation_dir"
+  echo "bash mockGenerator.sh interface_name path_to_interface.go_dir path_to_mock_destionation_dir"
 fi

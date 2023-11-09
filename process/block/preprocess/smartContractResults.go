@@ -97,6 +97,14 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.OptimizeGasUsedInCrossMiniBlocksFlag,
+		common.ScheduledMiniBlocksFlag,
+		common.FrontRunningProtectionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(txExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
@@ -319,7 +327,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+			if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
@@ -613,7 +621,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			break
 		}
 
-		if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+		if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 				break
