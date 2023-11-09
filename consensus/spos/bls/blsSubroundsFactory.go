@@ -108,6 +108,7 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
 	// TODO: Wee need to have a components holder here which shall be injected
+	// Task: MX-14746
 	extraSignerHandler := fct.consensusCore.SigningHandler().ShallowClone()
 	startRoundExtraSignersHolder := NewSubRoundStartExtraSignersHolder()
 	extraSignerStartRound, err := NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
