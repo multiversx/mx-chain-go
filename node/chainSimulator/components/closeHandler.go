@@ -11,7 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
-var errClose = errors.New("error while closing inner components")
+// ErrClose signals that a close error occurred
+var ErrClose = errors.New("error while closing inner components")
 
 type errorlessCloser interface {
 	Close()
@@ -68,14 +69,14 @@ func (handler *closeHandler) Close() error {
 		}
 	}
 
-	return AggregateErrors(errorStrings)
+	return AggregateErrors(errorStrings, ErrClose)
 }
 
 // AggregateErrors can aggregate all provided error strings into a single error variable
-func AggregateErrors(errorStrings []string) error {
+func AggregateErrors(errorStrings []string, baseError error) error {
 	if len(errorStrings) == 0 {
 		return nil
 	}
 
-	return fmt.Errorf("%w %s", errClose, strings.Join(errorStrings, ", "))
+	return fmt.Errorf("%w %s", baseError, strings.Join(errorStrings, ", "))
 }

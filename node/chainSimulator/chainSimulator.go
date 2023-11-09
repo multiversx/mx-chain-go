@@ -190,7 +190,7 @@ func (s *simulator) Close() error {
 		return nil
 	}
 
-	return components.AggregateErrors(errorStrings)
+	return components.AggregateErrors(errorStrings, components.ErrClose)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
