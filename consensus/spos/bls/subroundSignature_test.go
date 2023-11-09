@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -266,6 +267,15 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 
 	assert.True(t, check.IfNil(srSignature))
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
+}
+
+func TestSubroundSignature_NewSubroundSignatureNilExtraSignersHolderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	sr, _ := defaultSubround(initConsensusState(), make(chan bool, 1), mock.InitConsensusCore())
+	srSignature, err := bls.NewSubroundSignature(sr, extend, nil)
+	require.True(t, check.IfNil(srSignature))
+	require.Equal(t, errorsMx.ErrNilSignatureRoundExtraSignersHolder, err)
 }
 
 func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {

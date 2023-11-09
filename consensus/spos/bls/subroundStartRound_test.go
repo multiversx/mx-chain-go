@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -232,6 +233,22 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
+}
+
+func TestSubroundStartRound_NewSubroundStartRoundNilExtraSignersHolderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	sr, _ := defaultSubround(initConsensusState(), make(chan bool, 1), mock.InitConsensusCore())
+	srStartRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		nil,
+	)
+	require.Nil(t, srStartRound)
+	require.Equal(t, errorsMx.ErrNilStartRoundExtraSignersHolder, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
