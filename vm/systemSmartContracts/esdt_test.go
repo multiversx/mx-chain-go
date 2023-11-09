@@ -4497,12 +4497,12 @@ func TestEsdt_UpdateTokenType(t *testing.T) {
 
 	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
 	vmInput.CallerAddr = owner
-	enableEpochsHandler.IsNFTStopCreateEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.NFTStopCreateFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot add NFT create role as NFT creation was stopped"))
 
-	enableEpochsHandler.IsNFTStopCreateEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.NFTStopCreateFlag)
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
@@ -4570,7 +4570,7 @@ func TestEsdt_UpdateTokenID(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("updateTokenID", nil)
 
-	enableEpochsHandler.DynamicESDTEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
 	output := e.Execute(vmInput)
@@ -4579,7 +4579,7 @@ func TestEsdt_UpdateTokenID(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.DynamicESDTEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.Equal(t, eei.returnMessage, "invalid number of arguments, wanted 1")
@@ -4611,7 +4611,7 @@ func TestEsdt_RegisterDynamic(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("registerDynamic", nil)
 
-	enableEpochsHandler.DynamicESDTEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
 	output := e.Execute(vmInput)
@@ -4620,7 +4620,7 @@ func TestEsdt_RegisterDynamic(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.DynamicESDTEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4673,7 +4673,7 @@ func TestEsdt_RegisterAndSetAllRolesDynamic(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRolesDynamic", nil)
 
-	enableEpochsHandler.DynamicESDTEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
 	output := e.Execute(vmInput)
@@ -4682,7 +4682,7 @@ func TestEsdt_RegisterAndSetAllRolesDynamic(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.DynamicESDTEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4735,7 +4735,7 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("changeToDynamic", nil)
 
-	enableEpochsHandler.DynamicESDTEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
 	output := e.Execute(vmInput)
@@ -4744,7 +4744,7 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.DynamicESDTEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")

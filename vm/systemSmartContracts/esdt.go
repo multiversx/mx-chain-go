@@ -378,7 +378,7 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 
 	tokenType := []byte(core.NonFungibleESDT)
-	if e.enableEpochsHandler.DynamicESDTEnabled() {
+	if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 		tokenType = []byte(nonFungibleV2)
 	}
 
@@ -575,7 +575,7 @@ func (e *esdt) getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 	switch tokenType {
 	case core.NonFungibleESDT, nonFungibleV2, dynamicNFT:
 		nftRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
-		if e.enableEpochsHandler.DynamicESDTEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 			nftRoles = append(nftRoles, [][]byte{[]byte(ESDTRoleNFTRecreate), []byte(ESDTRoleModifyCreator), []byte(ESDTRoleModifyRoyalties), []byte(ESDTRoleSetNewURI)}...)
 		}
 
@@ -598,7 +598,7 @@ func (e *esdt) getTokenType(compressed []byte) (bool, []byte, error) {
 	// TODO: might extract the compressed constants to core, alongside metaESDT
 	switch string(compressed) {
 	case "NFT":
-		if e.enableEpochsHandler.DynamicESDTEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 			return false, []byte(nonFungibleV2), nil
 		}
 		return false, []byte(core.NonFungibleESDT), nil
@@ -1624,22 +1624,22 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 		}
 		return vm.ErrInvalidArgument
 	case ESDTRoleSetNewURI:
-		if e.enableEpochsHandler.DynamicESDTEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
 	case ESDTRoleModifyCreator:
-		if e.enableEpochsHandler.DynamicESDTEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
 	case ESDTRoleModifyRoyalties:
-		if e.enableEpochsHandler.DynamicESDTEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
 	case ESDTRoleNFTRecreate:
-		if e.enableEpochsHandler.DynamicESDTEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
@@ -2224,7 +2224,7 @@ func (e *esdt) stopNFTCreateForever(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (e *esdt) updateTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.DynamicESDTEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}
@@ -2254,7 +2254,7 @@ func (e *esdt) updateTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ESDTDataV2, vmcommon.ReturnCode) {
-	if !e.enableEpochsHandler.DynamicESDTEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return nil, nil, vmcommon.FunctionNotFound
 	}
@@ -2376,7 +2376,7 @@ func (e *esdt) checkRolesAreCompatibleToChangeToDynamic(token *ESDTDataV2) error
 }
 
 func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.DynamicESDTEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}
@@ -2422,7 +2422,7 @@ func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.Return
 }
 
 func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) {
-	if !e.enableEpochsHandler.DynamicESDTEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
 		return
 	}
 

@@ -994,5 +994,6 @@ const (
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
 	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
+	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicESDTFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
