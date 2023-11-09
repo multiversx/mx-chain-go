@@ -17,6 +17,7 @@ type ArgsDataComponentsHolder struct {
 }
 
 type dataComponentsHolder struct {
+	closeHandler      *closeHandler
 	chain             data.ChainHandler
 	storageService    dataRetriever.StorageService
 	dataPool          dataRetriever.PoolsHolder
@@ -42,11 +43,14 @@ func CreateDataComponentsHolder(args ArgsDataComponentsHolder) (factory.DataComp
 	}
 
 	instance := &dataComponentsHolder{
+		closeHandler:      NewCloseHandler(),
 		chain:             args.Chain,
 		storageService:    args.StorageService,
 		dataPool:          args.DataPool,
 		miniBlockProvider: miniBlocksProvider,
 	}
+
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -86,6 +90,16 @@ func (d *dataComponentsHolder) Clone() interface{} {
 		dataPool:          d.dataPool,
 		miniBlockProvider: d.miniBlockProvider,
 	}
+}
+
+func (d *dataComponentsHolder) collectClosableComponents() {
+	d.closeHandler.AddComponent(d.storageService)
+	d.closeHandler.AddComponent(d.dataPool)
+}
+
+// Close will call the Close methods on all inner components
+func (d *dataComponentsHolder) Close() error {
+	return d.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

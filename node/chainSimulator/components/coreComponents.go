@@ -39,6 +39,7 @@ import (
 )
 
 type coreComponentsHolder struct {
+	closeHandler                  *closeHandler
 	internalMarshaller            marshal.Marshalizer
 	txMarshaller                  marshal.Marshalizer
 	vmMarshaller                  marshal.Marshalizer
@@ -91,7 +92,9 @@ type ArgsCoreComponentsHolder struct {
 // CreateCoreComponentsHolder will create a new instance of factory.CoreComponentsHolder
 func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComponentsHolder, error) {
 	var err error
-	instance := &coreComponentsHolder{}
+	instance := &coreComponentsHolder{
+		closeHandler: NewCloseHandler(),
+	}
 
 	instance.internalMarshaller, err = marshalFactory.NewMarshalizer(args.Config.Marshalizer.Type)
 	if err != nil {
@@ -224,6 +227,8 @@ func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComp
 		return nil, err
 	}
 	instance.hardforkTriggerPubKey = pubKeyBytes
+
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -412,6 +417,16 @@ func (c *coreComponentsHolder) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler will return the enable epoch handler
 func (c *coreComponentsHolder) EnableEpochsHandler() common.EnableEpochsHandler {
 	return c.enableEpochsHandler
+}
+
+func (c *coreComponentsHolder) collectClosableComponents() {
+	c.closeHandler.AddComponent(c.alarmScheduler)
+	c.closeHandler.AddComponent(c.syncTimer)
+}
+
+// Close will call the Close methods on all inner components
+func (c *coreComponentsHolder) Close() error {
+	return c.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -41,6 +41,7 @@ type ArgsTestOnlyProcessingNode struct {
 }
 
 type testOnlyProcessingNode struct {
+	closeHandler              *closeHandler
 	CoreComponentsHolder      factory.CoreComponentsHolder
 	StatusCoreComponents      factory.StatusCoreComponentsHolder
 	StateComponentsHolder     factory.StateComponentsHolder
@@ -67,6 +68,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	instance := &testOnlyProcessingNode{
 		ArgumentsParser: smartContract.NewArgumentParser(),
 		StoreService:    CreateStore(args.NumShards),
+		closeHandler:    NewCloseHandler(),
 	}
 
 	var err error
@@ -196,6 +198,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	instance.collectClosableComponents()
+
 	return instance, nil
 }
 
@@ -268,8 +272,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 }
 
 func (node *testOnlyProcessingNode) createBroadcastMessanger() error {
-	var err error
-	node.broadcastMessenger, err = sposFactory.GetBroadcastMessenger(
+	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		node.CoreComponentsHolder.InternalMarshalizer(),
 		node.CoreComponentsHolder.Hasher(),
 		node.NetworkComponentsHolder.NetworkMessenger(),
@@ -280,6 +283,11 @@ func (node *testOnlyProcessingNode) createBroadcastMessanger() error {
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
 	)
+	if err != nil {
+		return err
+	}
+
+	node.broadcastMessenger, err = NewInstantBroadcastMessenger(broadcastMessenger, node.BootstrapComponentsHolder.ShardCoordinator())
 	return err
 }
 
@@ -311,6 +319,27 @@ func (node *testOnlyProcessingNode) GetCryptoComponents() factory.CryptoComponen
 // GetCoreComponents will return the core components
 func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHolder {
 	return node.CoreComponentsHolder
+}
+
+// GetStateComponents will return the state components
+func (node *testOnlyProcessingNode) GetStateComponents() factory.StateComponentsHolder {
+	return node.StateComponentsHolder
+}
+
+func (node *testOnlyProcessingNode) collectClosableComponents() {
+	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
+	node.closeHandler.AddComponent(node.DataComponentsHolder)
+	node.closeHandler.AddComponent(node.StateComponentsHolder)
+	node.closeHandler.AddComponent(node.StatusComponentsHolder)
+	node.closeHandler.AddComponent(node.BootstrapComponentsHolder)
+	node.closeHandler.AddComponent(node.NetworkComponentsHolder)
+	node.closeHandler.AddComponent(node.StatusCoreComponents)
+	node.closeHandler.AddComponent(node.CoreComponentsHolder)
+}
+
+// Close will call the Close methods on all inner components
+func (node *testOnlyProcessingNode) Close() error {
+	return node.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -12,6 +12,7 @@ import (
 )
 
 type networkComponentsHolder struct {
+	closeHandler                           *closeHandler
 	networkMessenger                       p2p.Messenger
 	inputAntiFloodHandler                  factory.P2PAntifloodHandler
 	outputAntiFloodHandler                 factory.P2PAntifloodHandler
@@ -32,7 +33,8 @@ func CreateNetworkComponentsHolder(network SyncedBroadcastNetworkHandler) (*netw
 		return nil, err
 	}
 
-	return &networkComponentsHolder{
+	instance := &networkComponentsHolder{
+		closeHandler:                           NewCloseHandler(),
 		networkMessenger:                       messenger,
 		inputAntiFloodHandler:                  disabled.NewAntiFlooder(),
 		outputAntiFloodHandler:                 disabled.NewAntiFlooder(),
@@ -44,7 +46,11 @@ func CreateNetworkComponentsHolder(network SyncedBroadcastNetworkHandler) (*netw
 		peersRatingMonitor:                     disabled.NewPeersRatingMonitor(),
 		fullArchiveNetworkMessenger:            disabledP2P.NewNetworkMessenger(),
 		fullArchivePreferredPeersHolderHandler: disabledFactory.NewPreferredPeersHolder(),
-	}, nil
+	}
+
+	instance.collectClosableComponents()
+
+	return instance, nil
 }
 
 // NetworkMessenger returns the network messenger
@@ -100,6 +106,19 @@ func (holder *networkComponentsHolder) FullArchiveNetworkMessenger() p2p.Messeng
 // FullArchivePreferredPeersHolderHandler returns the full archive preferred peers holder
 func (holder *networkComponentsHolder) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
 	return holder.fullArchivePreferredPeersHolderHandler
+}
+
+func (holder *networkComponentsHolder) collectClosableComponents() {
+	holder.closeHandler.AddComponent(holder.networkMessenger)
+	holder.closeHandler.AddComponent(holder.inputAntiFloodHandler)
+	holder.closeHandler.AddComponent(holder.outputAntiFloodHandler)
+	holder.closeHandler.AddComponent(holder.peerHonestyHandler)
+	holder.closeHandler.AddComponent(holder.fullArchiveNetworkMessenger)
+}
+
+// Close will call the Close methods on all inner components
+func (holder *networkComponentsHolder) Close() error {
+	return holder.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

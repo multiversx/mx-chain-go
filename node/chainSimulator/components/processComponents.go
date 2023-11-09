@@ -52,6 +52,7 @@ type ArgsProcessComponentsHolder struct {
 }
 
 type processComponentsHolder struct {
+	closeHandler                     *closeHandler
 	receiptsRepository               factory.ReceiptsRepository
 	nodesCoordinator                 nodesCoordinator.NodesCoordinator
 	shardCoordinator                 sharding.Coordinator
@@ -218,6 +219,7 @@ func CreateProcessComponentsHolder(args ArgsProcessComponentsHolder) (factory.Pr
 	}
 
 	instance := &processComponentsHolder{
+		closeHandler:                     NewCloseHandler(),
 		receiptsRepository:               managedProcessComponents.ReceiptsRepository(),
 		nodesCoordinator:                 managedProcessComponents.NodesCoordinator(),
 		shardCoordinator:                 managedProcessComponents.ShardCoordinator(),
@@ -259,6 +261,8 @@ func CreateProcessComponentsHolder(args ArgsProcessComponentsHolder) (factory.Pr
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 	}
+
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -461,6 +465,21 @@ func (p *processComponentsHolder) AccountsParser() genesis.AccountsParser {
 // ReceiptsRepository returns the receipts repository
 func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepository {
 	return p.receiptsRepository
+}
+
+func (p *processComponentsHolder) collectClosableComponents() {
+	p.closeHandler.AddComponent(p.interceptorsContainer)
+	p.closeHandler.AddComponent(p.fullArchiveInterceptorsContainer)
+	p.closeHandler.AddComponent(p.resolversContainer)
+	p.closeHandler.AddComponent(p.epochStartTrigger)
+	p.closeHandler.AddComponent(p.blockProcessor)
+	p.closeHandler.AddComponent(p.validatorsProvider)
+	p.closeHandler.AddComponent(p.txsSenderHandler)
+}
+
+// Close will call the Close methods on all inner components
+func (p *processComponentsHolder) Close() error {
+	return p.closeHandler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
