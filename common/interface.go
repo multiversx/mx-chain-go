@@ -39,6 +39,7 @@ type BufferedErrChan interface {
 type Trie interface {
 	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
+	UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error
 	Delete(key []byte) error
 	RootHash() ([]byte, error)
 	Commit() error

@@ -160,6 +160,146 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	})
 }
 
+func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
+	t.Parallel()
+
+	t.Run("failed to decode code data", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("accRootHash")
+
+		codeHash := []byte("accCodeHash")
+		codeData := 12
+
+		args := getDefaultUserAccountsSyncerArgs()
+
+		numCalls := 0
+		args.Cacher = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				if numCalls == 3 {
+					return codeData, true
+				}
+
+				numCalls++
+
+				return nil, false
+			},
+		}
+
+		requestWasCalled := false
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
+				requestWasCalled = true
+			},
+		}
+
+		s, err := syncer.NewUserAccountsSyncer(args)
+		require.Nil(t, err)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(key)
+		account.SetCodeHash(codeHash)
+
+		accountBytes, err := args.Marshalizer.Marshal(account)
+		require.Nil(t, err)
+
+		tr := emptyTrie()
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.UpdateWithVersion([]byte("ddog"), accountBytes, core.WithoutCodeLeaf)
+		_ = tr.Commit()
+
+		leavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+		require.Nil(t, err)
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		err = s.SyncAccountDataTries(leavesChannels, ctx)
+		require.Nil(t, err)
+
+		err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+		require.Nil(t, err)
+		require.True(t, requestWasCalled)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("accRootHash")
+
+		codeHash := []byte("accCodeHash")
+		codeData := []byte("accCodeData")
+
+		args := getDefaultUserAccountsSyncerArgs()
+
+		numCalls := 0
+		args.Cacher = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				if numCalls == 1 {
+					return codeData, true
+				}
+
+				numCalls++
+
+				return nil, false
+			},
+		}
+
+		requestWasCalled := false
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
+				requestWasCalled = true
+			},
+		}
+
+		s, err := syncer.NewUserAccountsSyncer(args)
+		require.Nil(t, err)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(key)
+		account.SetCodeHash(codeHash)
+
+		accountBytes, err := args.Marshalizer.Marshal(account)
+		require.Nil(t, err)
+
+		tr := emptyTrie()
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.UpdateWithVersion([]byte("ddog"), accountBytes, core.WithoutCodeLeaf)
+		_ = tr.Commit()
+
+		leavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		err = tr.GetAllLeavesOnChannel(leavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+		require.Nil(t, err)
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		err = s.SyncAccountDataTries(leavesChannels, ctx)
+		require.Nil(t, err)
+
+		require.True(t, requestWasCalled)
+	})
+}
+
 func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint) {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}

@@ -432,7 +432,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		codeDataHash := args.Hasher.Compute(string(codeData))
 
 		putCalled := false
-		getCalled := false
 		ts := &trieMock.TrieStub{
 			GetCalled: func(_ []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
@@ -442,10 +441,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 			},
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &storageManager.StorageManagerStub{
-					GetCalled: func(b []byte) ([]byte, error) {
-						getCalled = true
-						return codeData, nil
-					},
 					PutCalled: func(key, value []byte) error {
 						putCalled = true
 						require.Equal(t, key, codeDataHash)
@@ -468,7 +463,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		err = adb.SaveAccount(account)
 		require.Nil(t, err)
 		require.True(t, putCalled)
-		require.True(t, getCalled)
 	})
 }
 
@@ -1857,7 +1851,7 @@ func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T
 	assert.NotNil(t, val)
 }
 
-func TestAccountsDB_RemoveCodeLeaf(t *testing.T) {
+func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("flag not activated, should return nil", func(t *testing.T) {
@@ -1875,15 +1869,52 @@ func TestAccountsDB_RemoveCodeLeaf(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		err = adb.RemoveCodeLeaf(codeHash)
+		err = adb.MigrateCodeLeaf(codeHash)
 		require.Nil(t, err)
 	})
 
-	t.Run("not found in trie, should return nil", func(t *testing.T) {
+	t.Run("nil code hash should return nil", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockAccountsDBArgs()
 
+		rootHash := []byte("rootHash")
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RemoveCodeLeafFlag
+			},
+		}
+		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+		maxTrieLevelInMemory := uint(5)
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(rootHash)
+
+		accountBytes, err := args.Marshaller.Marshal(account)
+		require.Nil(t, err)
+
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+
+		args.Trie = tr
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.MigrateCodeLeaf(account.Address)
+		require.Nil(t, err)
+	})
+
+	t.Run("should remove code entry from trie if no multiple referencies", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		rootHash := []byte("rootHash")
 		codeHash := []byte("codeHash")
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1891,62 +1922,96 @@ func TestAccountsDB_RemoveCodeLeaf(t *testing.T) {
 				return flag == common.RemoveCodeLeafFlag
 			},
 		}
-		args.Trie = &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
-			},
-		}
+		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+		maxTrieLevelInMemory := uint(5)
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 
-		adb, err := state.NewAccountsDB(args)
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(rootHash)
+		account.SetCodeHash(codeHash)
+
+		accountBytes, err := args.Marshaller.Marshal(account)
 		require.Nil(t, err)
 
-		err = adb.RemoveCodeLeaf(codeHash)
-		require.Nil(t, err)
-	})
-
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockAccountsDBArgs()
-
-		codeHash := []byte("codeHash")
-		codeData := []byte("codeData")
 		codeEntry := &state.CodeEntry{
-			Code: codeData,
+			Code:          []byte("codeData"),
+			NumReferences: 1,
 		}
-		codeEntryMarshalled, _ := args.Marshaller.Marshal(codeEntry)
+		codeEntryBytes, err := args.Marshaller.Marshal(codeEntry)
+		require.Nil(t, err)
 
-		wasCalled := false
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Update(codeHash, codeEntryBytes)
+		_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+
+		args.Trie = tr
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.MigrateCodeLeaf(account.Address)
+		require.Nil(t, err)
+
+		val, _, err := tr.Get(codeHash)
+		require.Nil(t, err)
+		require.Nil(t, val)
+	})
+
+	t.Run("should update code entry with multiple referencies", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		rootHash := []byte("rootHash")
+		codeHash := []byte("codeHash")
+
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.RemoveCodeLeafFlag
 			},
 		}
-		args.Trie = &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return codeEntryMarshalled, 0, nil
-			},
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					PutCalled: func(key, value []byte) error {
-						require.Equal(t, key, codeHash)
-						require.Equal(t, value, codeData)
-						return nil
-					},
-				}
-			},
-			DeleteCalled: func(key []byte) error {
-				wasCalled = true
-				return nil
-			},
+		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+		maxTrieLevelInMemory := uint(5)
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(rootHash)
+		account.SetCodeHash(codeHash)
+
+		accountBytes, err := args.Marshaller.Marshal(account)
+		require.Nil(t, err)
+
+		codeEntry := &state.CodeEntry{
+			Code:          []byte("codeData"),
+			NumReferences: 2,
 		}
+		codeEntryBytes, err := args.Marshaller.Marshal(codeEntry)
+		require.Nil(t, err)
+
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Update(codeHash, codeEntryBytes)
+		_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+
+		args.Trie = tr
 
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		err = adb.RemoveCodeLeaf(codeHash)
+		err = adb.MigrateCodeLeaf(account.Address)
 		require.Nil(t, err)
-		require.True(t, wasCalled)
+
+		val, _, err := tr.Get(codeHash)
+		require.Nil(t, err)
+
+		newCodeEntry := &state.CodeEntry{}
+		err = args.Marshaller.Unmarshal(newCodeEntry, val)
+		require.Nil(t, err)
+
+		require.Equal(t, uint32(1), newCodeEntry.NumReferences)
 	})
 }
 
@@ -2539,7 +2604,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 		args.Trie = &trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
-					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
+					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"), core.NotSpecified)
 					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
 
 					close(leavesChannels.LeavesChan)
@@ -2568,7 +2633,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 		args.Trie = &trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
-					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
+					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"), core.NotSpecified)
 
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()

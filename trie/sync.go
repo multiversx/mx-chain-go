@@ -380,7 +380,7 @@ func writeLeafNodeToChan(element node, ch chan core.KeyValueHolder) {
 		return
 	}
 
-	trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value)
+	trieLeaf := keyValStorage.NewKeyValStorage(leafNodeElement.Key, leafNodeElement.Value, core.TrieNodeVersion(leafNodeElement.Version))
 	ch <- trieLeaf
 }
 

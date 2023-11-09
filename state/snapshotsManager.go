@@ -349,6 +349,14 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 			continue
 		}
 
+		if len(userAccount.GetCodeHash()) != 0 && leaf.Version() == core.WithoutCodeLeaf {
+			err = sm.syncAccountCode(userAccount.GetCodeHash(), trieStorageManager)
+			if err != nil {
+				iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+				return
+			}
+		}
+
 		if len(userAccount.GetRootHash()) == 0 {
 			continue
 		}
@@ -367,6 +375,35 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 
 		trieStorageManager.SetCheckpoint(userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
 	}
+}
+
+type snapshotPruningStorer interface {
+	Put(key, val []byte) error
+	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
+}
+
+func (sm *snapshotsManager) syncAccountCode(
+	codeHash []byte,
+	tsm common.StorageManager,
+) error {
+	storer, ok := tsm.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("invalid storer, type is %T", tsm)
+	}
+
+	// get from all storers
+	code, _, err := storer.GetFromOldEpochsWithoutAddingToCache(codeHash)
+	if err != nil {
+		return err
+	}
+
+	// put to active storer
+	err = storer.Put(codeHash, code)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errChan common.BufferedErrChan, stats *snapshotStatistics, syncer AccountsDBSyncer) {

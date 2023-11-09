@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
@@ -362,6 +363,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
 	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		// do not update old code entry since num referencies is not used anymore
 		return nil, nil
 	}
 
@@ -400,6 +402,10 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
 	if len(newCode) == 0 {
 		return nil
+	}
+
+	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+		return adb.mainTrie.GetStorageManager().Put(newCodeHash, newCode)
 	}
 
 	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
@@ -647,34 +653,71 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	return nil
 }
 
-// RemoveCodeLeaf will remove code leaf node from main trie and put it to trie storage
-func (adb *AccountsDB) RemoveCodeLeaf(codeHash []byte) error {
+// MigrateCodeLeaf will remove code leaf node from main trie and put it to trie storage
+func (adb *AccountsDB) MigrateCodeLeaf(address []byte) error {
 	if !adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
 		log.Warn("remove code leaf operation not enabled")
 		return nil
 	}
 
-	val, _, err := adb.mainTrie.Get(codeHash)
+	acc, err := adb.getAccount(address, adb.mainTrie)
 	if err != nil {
 		return err
 	}
-	if val == nil {
+
+	baseAcc, ok := acc.(baseAccountHandler)
+	if !ok {
+		return errors.ErrWrongTypeAssertion
+	}
+
+	codeHash := baseAcc.GetCodeHash()
+	codeData, _, err := adb.mainTrie.Get(baseAcc.GetCodeHash())
+	if err != nil {
+		return err
+	}
+	if codeData == nil {
 		return nil
 	}
 
 	// check if node is code leaf
-	var codeEntry CodeEntry
-	err = adb.marshaller.Unmarshal(&codeEntry, val)
+	var oldCodeEntry CodeEntry
+	err = adb.marshaller.Unmarshal(&oldCodeEntry, codeData)
 	if err != nil {
 		return err
 	}
 
-	err = adb.mainTrie.GetStorageManager().Put(codeHash, codeEntry.GetCode())
+	err = adb.mainTrie.GetStorageManager().Put(codeHash, oldCodeEntry.GetCode())
 	if err != nil {
 		return err
 	}
 
-	err = adb.mainTrie.Delete(codeHash)
+	// update account with new version
+	buff, err := adb.marshaller.Marshal(acc)
+	if err != nil {
+		return err
+	}
+
+	err = adb.mainTrie.UpdateWithVersion(acc.AddressBytes(), buff, core.WithoutCodeLeaf)
+	if err != nil {
+		return err
+	}
+
+	if oldCodeEntry.NumReferences <= 1 {
+		err = adb.mainTrie.Delete(codeHash)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	oldCodeEntry.NumReferences--
+	codeEntry, err := adb.marshaller.Marshal(oldCodeEntry)
+	if err != nil {
+		return err
+	}
+
+	err = adb.mainTrie.Update(codeHash, codeEntry)
 	if err != nil {
 		return err
 	}
