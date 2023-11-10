@@ -3,7 +3,6 @@ package components
 import (
 	"errors"
 	"fmt"
-	"net"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/api/gin"
@@ -17,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, enableHTTPServer bool) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -92,10 +91,8 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, enableH
 		return errors.New("error creating node: " + err.Error())
 	}
 
-	restApiInterface := facade.DefaultRestPortOff
-	if enableHTTPServer {
-		restApiInterface = fmt.Sprintf("localhost:%d", getFreePort())
-	}
+	shardID := node.GetShardCoordinator().SelfId()
+	restApiInterface := apiInterface.RestApiInterface(shardID)
 
 	argNodeFacade := facade.ArgNodeFacade{
 		Node:                   nd,
@@ -144,21 +141,6 @@ func (node *testOnlyProcessingNode) createHttpServer(configs config.Configs) err
 	node.httpServer = httpServerWrapper
 
 	return nil
-}
-
-func getFreePort() int {
-	// Listen on port 0 to get a free port
-	l, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		panic(err)
-	}
-	defer func() {
-		_ = l.Close()
-	}()
-
-	// Get the port number that was assigned
-	addr := l.Addr().(*net.TCPAddr)
-	return addr.Port
 }
 
 func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error {

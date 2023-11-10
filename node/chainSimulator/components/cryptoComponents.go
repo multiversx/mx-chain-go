@@ -45,8 +45,8 @@ type cryptoComponentsHolder struct {
 	publicKeyString         string
 }
 
-// CreateCryptoComponentsHolder will create a new instance of cryptoComponentsHolder
-func CreateCryptoComponentsHolder(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHandler, error) {
+// CreateCryptoComponents will create a new instance of cryptoComponentsHolder
+func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHandler, error) {
 	instance := &cryptoComponentsHolder{}
 
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{

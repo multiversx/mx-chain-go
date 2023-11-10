@@ -18,8 +18,8 @@ type statusCoreComponentsHolder struct {
 	persistentStatusHandler    factory.PersistentStatusHandler
 }
 
-// CreateStatusCoreComponentsHolder will create a new instance of factory.StatusCoreComponentsHolder
-func CreateStatusCoreComponentsHolder(configs config.Configs, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHandler, error) {
+// CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHolder
+func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHandler, error) {
 	var err error
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCore.StatusCoreComponentsFactoryArgs{

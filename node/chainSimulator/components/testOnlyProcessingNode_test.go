@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -50,35 +51,50 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	err = core.LoadTomlFile(&epochConfig, pathToConfigFolder+"enableEpochs.toml")
 	assert.Nil(t, err)
 
+	ratingConfig := config.RatingsConfig{}
+	err = core.LoadTomlFile(&ratingConfig, pathToConfigFolder+"ratings.toml")
+	assert.Nil(t, err)
+
+	apiConfig := config.ApiRoutesConfig{}
+	err = core.LoadTomlFile(&apiConfig, pathToConfigFolder+"api.toml")
+	assert.Nil(t, err)
+
 	return ArgsTestOnlyProcessingNode{
-		Config:      mainConfig,
-		EpochConfig: epochConfig,
-		RoundsConfig: config.RoundConfig{
-			RoundActivations: map[string]config.ActivationRoundByName{
-				"DisableAsyncCallV1": {
-					Round: "18446744073709551614",
+		Configs: config.Configs{
+			GeneralConfig: &mainConfig,
+			EpochConfig:   &epochConfig,
+			RoundConfig: &config.RoundConfig{
+				RoundActivations: map[string]config.ActivationRoundByName{
+					"DisableAsyncCallV1": {
+						Round: "18446744073709551614",
+					},
 				},
 			},
+			EconomicsConfig:   &economicsConfig,
+			PreferencesConfig: &prefsConfig,
+			ImportDbConfig:    &config.ImportDbConfig{},
+			FlagsConfig: &config.ContextFlagsConfig{
+				WorkingDir: workingDir,
+				Version:    "1",
+			},
+			ConfigurationPathsHolder: &config.ConfigurationPathsHolder{
+				GasScheduleDirectoryName: pathToConfigFolder + "gasSchedules",
+				Genesis:                  pathToConfigFolder + "genesis.json",
+				SmartContracts:           pathTestData + "genesisSmartContracts.json",
+				Nodes:                    nodesSetupConfig,
+				ValidatorKey:             validatorPemFile,
+			},
+			SystemSCConfig:  &systemSCConfig,
+			RatingsConfig:   &ratingConfig,
+			ApiRoutesConfig: &apiConfig,
 		},
-		EconomicsConfig:        economicsConfig,
-		GasScheduleFilename:    gasScheduleName,
-		NumShards:              3,
-		PreferencesConfig:      prefsConfig,
+
+		GasScheduleFilename: gasScheduleName,
+		NumShards:           3,
+
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
-		ImportDBConfig:         config.ImportDbConfig{},
-		ContextFlagsConfig: config.ContextFlagsConfig{
-			WorkingDir: workingDir,
-			Version:    "1",
-		},
-		ConfigurationPathsHolder: config.ConfigurationPathsHolder{
-			GasScheduleDirectoryName: pathToConfigFolder + "gasSchedules",
-			Genesis:                  pathToConfigFolder + "genesis.json",
-			SmartContracts:           pathTestData + "genesisSmartContracts.json",
-			Nodes:                    nodesSetupConfig,
-			ValidatorKey:             validatorPemFile,
-		},
-		SystemSCConfig:      systemSCConfig,
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
+		ChanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
+		APIInterface:           api.NewNoApiInterface(),
 	}
 }
 

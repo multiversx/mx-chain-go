@@ -89,8 +89,8 @@ type ArgsCoreComponentsHolder struct {
 	WorkingDir          string
 }
 
-// CreateCoreComponentsHolder will create a new instance of factory.CoreComponentsHolder
-func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComponentsHandler, error) {
+// CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
+func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponentsHandler, error) {
 	var err error
 	instance := &coreComponentsHolder{
 		closeHandler: NewCloseHandler(),

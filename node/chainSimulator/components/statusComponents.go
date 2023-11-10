@@ -20,8 +20,8 @@ type statusComponentsHolder struct {
 	managedPeerMonitor     common.ManagedPeersMonitor
 }
 
-// CreateStatusComponentsHolder will create a new instance of status components holder
-func CreateStatusComponentsHolder(shardID uint32) (factory.StatusComponentsHandler, error) {
+// CreateStatusComponents will create a new instance of status components holder
+func CreateStatusComponents(shardID uint32) (factory.StatusComponentsHandler, error) {
 	var err error
 	instance := &statusComponentsHolder{
 		closeHandler: NewCloseHandler(),

@@ -24,8 +24,8 @@ type dataComponentsHolder struct {
 	miniBlockProvider factory.MiniBlockProvider
 }
 
-// CreateDataComponentsHolder will create the data components holder
-func CreateDataComponentsHolder(args ArgsDataComponentsHolder) (factory.DataComponentsHandler, error) {
+// CreateDataComponents will create the data components holder
+func CreateDataComponents(args ArgsDataComponentsHolder) (factory.DataComponentsHandler, error) {
 	miniBlockStorer, err := args.StorageService.GetStorer(dataRetriever.MiniBlockUnit)
 	if err != nil {
 		return nil, err

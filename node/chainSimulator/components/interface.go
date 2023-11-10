@@ -11,3 +11,7 @@ type SyncedBroadcastNetworkHandler interface {
 	GetConnectedPeersOnTopic(topic string) []core.PeerID
 	IsInterfaceNil() bool
 }
+
+type APIConfigurator interface {
+	RestApiInterface(shardID uint32) string
+}

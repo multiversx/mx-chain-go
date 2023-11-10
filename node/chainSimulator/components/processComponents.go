@@ -95,8 +95,8 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 }
 
-// CreateProcessComponentsHolder will create the process components holder
-func CreateProcessComponentsHolder(args ArgsProcessComponentsHolder) (factory.ProcessComponentsHandler, error) {
+// CreateProcessComponents will create the process components holder
+func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessComponentsHandler, error) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
 	if err != nil {
 		return nil, err

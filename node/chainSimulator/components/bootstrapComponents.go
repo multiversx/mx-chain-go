@@ -37,8 +37,8 @@ type bootstrapComponentsHolder struct {
 	guardedAccountHandler   process.GuardedAccountHandler
 }
 
-// CreateBootstrapComponentHolder will create a new instance of bootstrap components holder
-func CreateBootstrapComponentHolder(args ArgsBootstrapComponentsHolder) (factory.BootstrapComponentsHandler, error) {
+// CreateBootstrapComponents will create a new instance of bootstrap components holder
+func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (factory.BootstrapComponentsHandler, error) {
 	instance := &bootstrapComponentsHolder{
 		closeHandler: NewCloseHandler(),
 	}

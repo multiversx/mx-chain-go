@@ -26,8 +26,8 @@ type networkComponentsHolder struct {
 	fullArchivePreferredPeersHolderHandler factory.PreferredPeersHolderHandler
 }
 
-// CreateNetworkComponentsHolder creates a new networkComponentsHolder instance
-func CreateNetworkComponentsHolder(network SyncedBroadcastNetworkHandler) (factory.NetworkComponentsHandler, error) {
+// CreateNetworkComponents creates a new networkComponentsHolder instance
+func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (factory.NetworkComponentsHandler, error) {
 	messenger, err := NewSyncedMessenger(network)
 	if err != nil {
 		return nil, err
