@@ -40,8 +40,8 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) SignAndSetLeaderSign
 	return nil
 }
 
-// SeAggregatedSignatureInHeader -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) SeAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
+// SetAggregatedSignatureInHeader -
+func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
 	if mock.SeAggregatedSignatureInHeaderCalled != nil {
 		return mock.SeAggregatedSignatureInHeaderCalled(header, aggregatedSig)
 	}

@@ -67,7 +67,7 @@ type SubRoundEndExtraSignatureAggregatorHandler interface {
 	AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error)
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *Message) error
 	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
-	SeAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error
+	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error
 	HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *Message) error
 	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
 	Identifier() string

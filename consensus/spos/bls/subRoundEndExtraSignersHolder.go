@@ -89,9 +89,9 @@ func (holder *subRoundEndExtraSignersHolder) SetAggregatedSignatureInHeader(head
 			return fmt.Errorf("aggregated sig not found for signer id=%s", id)
 		}
 
-		err := extraSigner.SeAggregatedSignatureInHeader(header, aggregatedSig)
+		err := extraSigner.SetAggregatedSignatureInHeader(header, aggregatedSig)
 		if err != nil {
-			log.Debug("holder.extraSigner.SeAggregatedSignatureInHeader",
+			log.Debug("holder.extraSigner.SetAggregatedSignatureInHeader",
 				"error", err.Error(),
 				"id", id,
 			)
