@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -30,7 +31,7 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 	getMessageToVerifySigFunc     func() []byte
 
-	extraSignersHolder *subRoundEndExtraSignersHolder
+	extraSignersHolder SubRoundEndExtraSignersHolder
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -39,12 +40,16 @@ func NewSubroundEndRound(
 	extend func(subroundId int),
 	processingThresholdPercentage int,
 	displayStatistics func(),
+	extraSignersHolder SubRoundEndExtraSignersHolder,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
 	)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(extraSignersHolder) {
+		return nil, errors.ErrNilEndRoundExtraSignersHolder
 	}
 
 	srEndRound := subroundEndRound{
@@ -53,7 +58,7 @@ func NewSubroundEndRound(
 		displayStatistics,
 		sync.Mutex{},
 		nil,
-		newSubRoundEndExtraSignersHolder(),
+		extraSignersHolder,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -150,7 +155,7 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return false
 	}
 
-	err = sr.extraSignersHolder.haveConsensusHeaderWithFullInfo(header, cnsDta)
+	err = sr.extraSignersHolder.HaveConsensusHeaderWithFullInfo(header, cnsDta)
 	if err != nil {
 		log.Debug("isBlockHeaderFinalInfoValid.extraSignersHolder.haveConsensusHeaderWithFullInfo", "error", err.Error())
 		return false
@@ -336,7 +341,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	err = sr.extraSignersHolder.seAggregatedSignatureInHeader(sr.Header, aggSigsRes.extraAggregatedSigs)
+	err = sr.extraSignersHolder.SetAggregatedSignatureInHeader(sr.Header, aggSigsRes.extraAggregatedSigs)
 	if err != nil {
 		return false
 	}
@@ -354,7 +359,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	err = sr.extraSignersHolder.signAndSetLeaderSignature(sr.Header, leaderPubKey)
+	err = sr.extraSignersHolder.SignAndSetLeaderSignature(sr.Header, leaderPubKey)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraSignatureAggregator.SignAndSetLeaderSignature", "error", err.Error())
 		return false
@@ -433,7 +438,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	}
 
 	// placeholder for AggregateSignatures
-	extraSigs, err := sr.extraSignersHolder.aggregateSignatures(bitmap, sr.Header.GetEpoch())
+	extraSigs, err := sr.extraSignersHolder.AggregateSignatures(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateSignatures", "error", err.Error())
 
@@ -454,7 +459,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
-	err = sr.extraSignersHolder.verifyAggregatedSignatures(bitmap, sr.Header)
+	err = sr.extraSignersHolder.VerifyAggregatedSignatures(bitmap, sr.Header)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraSignersHolder.verifyAggregatedSignatures", "error", err.Error())
 		// TODO: MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
@@ -633,7 +638,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	)
 
 	// placeholder for AddAggregatedSignature
-	err := sr.extraSignersHolder.addLeaderAndAggregatedSignatures(sr.Header, cnsMsg)
+	err := sr.extraSignersHolder.AddLeaderAndAggregatedSignatures(sr.Header, cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.extraSignatureAggregator.AddLeaderAndAggregatedSignatures", "error", err.Error())
 		return
@@ -798,7 +803,7 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 		return false, nil
 	}
 
-	err = sr.extraSignersHolder.haveConsensusHeaderWithFullInfo(header, cnsDta)
+	err = sr.extraSignersHolder.HaveConsensusHeaderWithFullInfo(header, cnsDta)
 	if err != nil {
 		return false, nil
 	}
@@ -1020,10 +1025,6 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	}
 
 	return minIdx
-}
-
-func (sr *subroundEndRound) RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error {
-	return sr.extraSignersHolder.registerExtraEndRoundSigAggregatorHandler(extraSignatureAggregator)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

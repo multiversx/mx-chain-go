@@ -8,22 +8,22 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
-type sovereignSubRoundOutGoingTxDataEnd struct {
+type sovereignSubRoundEndOutGoingTxData struct {
 	signingHandler consensus.SigningHandler
 }
 
-func NewSovereignSubRoundOutGoingTxDataEnd(
+func NewSovereignSubRoundEndOutGoingTxData(
 	signingHandler consensus.SigningHandler,
-) (*sovereignSubRoundOutGoingTxDataEnd, error) {
-	return &sovereignSubRoundOutGoingTxDataEnd{
+) (*sovereignSubRoundEndOutGoingTxData, error) {
+	return &sovereignSubRoundEndOutGoingTxData{
 		signingHandler: signingHandler,
 	}, nil
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
+func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -31,7 +31,7 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) VerifyAggregatedSignatures(bitmap 
 	return sr.signingHandler.Verify(outGoingMb.GetOutGoingOperationsHash(), bitmap, header.GetEpoch())
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
+func (sr *sovereignSubRoundEndOutGoingTxData) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
 	sig, err := sr.signingHandler.AggregateSigs(bitmap, epoch)
 	if err != nil {
 		return nil, err
@@ -45,10 +45,10 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) AggregateSignatures(bitmap []byte,
 	return sig, nil
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) SeAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
+func (sr *sovereignSubRoundEndOutGoingTxData) SeAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -60,10 +60,10 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) SeAggregatedSignatureInHeader(head
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
+func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SeAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -84,10 +84,10 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) SignAndSetLeaderSignature(header d
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+func (sr *sovereignSubRoundEndOutGoingTxData) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -103,10 +103,10 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) HaveConsensusHeaderWithFullInfo(he
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataEnd.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -117,10 +117,10 @@ func (sr *sovereignSubRoundOutGoingTxDataEnd) AddLeaderAndAggregatedSignatures(h
 	return nil
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) Identifier() string {
-	return "sovereignSubRoundOutGoingTxDataEnd"
+func (sr *sovereignSubRoundEndOutGoingTxData) Identifier() string {
+	return "sovereignSubRoundEndOutGoingTxData"
 }
 
-func (sr *sovereignSubRoundOutGoingTxDataEnd) IsInterfaceNil() bool {
+func (sr *sovereignSubRoundEndOutGoingTxData) IsInterfaceNil() bool {
 	return sr == nil
 }

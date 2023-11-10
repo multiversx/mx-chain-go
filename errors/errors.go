@@ -671,5 +671,8 @@ var ErrNilStartRoundExtraSignersHolder = errors.New("nil start round extra signe
 // ErrNilSignatureRoundExtraSignersHolder signals that a nil signature round extra signers holder has been provided
 var ErrNilSignatureRoundExtraSignersHolder = errors.New("nil signature round extra signers holder has been provided")
 
+// ErrNilEndRoundExtraSignersHolder signals that a nil end round extra signers holder has been provided
+var ErrNilEndRoundExtraSignersHolder = errors.New("nil end round extra signers holder has been provided")
+
 // ErrExtraSignerIdAlreadyExists signals that an extra signer with the same id has been already registered
 var ErrExtraSignerIdAlreadyExists = errors.New("an extra signer with the same id has been already registered")

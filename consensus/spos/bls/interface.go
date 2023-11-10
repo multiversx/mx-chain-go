@@ -21,6 +21,17 @@ type SubRoundSignatureExtraSignersHolder interface {
 	IsInterfaceNil() bool
 }
 
+type SubRoundEndExtraSignersHolder interface {
+	AggregateSignatures(bitmap []byte, epoch uint32) (map[string][]byte, error)
+	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error
+	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
+	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSigs map[string][]byte) error
+	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
+	HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error
+	RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error
+	IsInterfaceNil() bool
+}
+
 type SubRoundEndExtraSignatureAggregatorHandler interface {
 	AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error)
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error
