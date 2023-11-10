@@ -5,10 +5,12 @@ import (
 	"os"
 	"os/signal"
 	"sort"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/display"
@@ -16,17 +18,14 @@ import (
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
-	secp256k1SinglerSig "github.com/multiversx/mx-chain-crypto-go/signing/secp256k1/singlesig"
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/cmd/seednode/api"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/facade"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
-	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
-	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	components "github.com/multiversx/mx-chain-go/p2pSimplified"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
@@ -98,6 +97,13 @@ VERSION:
 
 	p2pConfigurationFile = "./config/p2p.toml"
 )
+
+type p2pMessenger interface {
+	Bootstrap()
+	Addresses() []string
+	ConnectedAddresses() []string
+	Peers() []peer.ID
+}
 
 var log = logger.GetOrCreate("main")
 
@@ -199,15 +205,12 @@ func startNode(ctx *cli.Context) error {
 	}
 
 	p2pKeyPemFileName := ctx.GlobalString(p2pKeyPemFile.Name)
-	messenger, err := createNode(*p2pCfg, internalMarshalizer, p2pKeyPemFileName)
+	messenger, err := createNode(*p2pCfg, p2pKeyPemFileName)
 	if err != nil {
 		return err
 	}
 
-	err = messenger.Bootstrap()
-	if err != nil {
-		return err
-	}
+	messenger.Bootstrap()
 
 	log.Info("application is now running...")
 	mainLoop(messenger, sigs)
@@ -221,7 +224,7 @@ func startNode(ctx *cli.Context) error {
 	return nil
 }
 
-func mainLoop(messenger p2p.Messenger, stop chan os.Signal) {
+func mainLoop(messenger p2pMessenger, stop chan os.Signal) {
 	displayMessengerInfo(messenger)
 	for {
 		select {
@@ -246,10 +249,8 @@ func loadMainConfig(filepath string) (*config.Config, error) {
 
 func createNode(
 	p2pConfig p2pConfig.P2PConfig,
-	marshalizer marshal.Marshalizer,
 	p2pKeyFileName string,
-) (p2p.Messenger, error) {
-	p2pSingleSigner := &secp256k1SinglerSig.Secp256k1Signer{}
+) (p2pMessenger, error) {
 	p2pKeyGen := signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 	p2pKey, _, err := cryptoFactory.CreateP2pKeyPair(p2pKeyFileName, p2pKeyGen, log)
@@ -257,23 +258,25 @@ func createNode(
 		return nil, err
 	}
 
-	arg := p2pFactory.ArgsNetworkMessenger{
-		Marshalizer:           marshalizer,
-		P2pConfig:             p2pConfig,
-		SyncTimer:             &p2pFactory.LocalSyncTimer{},
-		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
-		NodeOperationMode:     p2p.NormalOperation,
-		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
-		ConnectionWatcherType: "disabled",
-		P2pPrivateKey:         p2pKey,
-		P2pSingleSigner:       p2pSingleSigner,
-		P2pKeyGenerator:       p2pKeyGen,
+	p2pKeyBytes, _ := p2pKey.ToByteArray()
+
+	singlePortValue, _ := strconv.Atoi(p2pConfig.Node.Port)
+	arg := components.ArgsNetMessenger{
+		InitialPeerList: p2pConfig.KadDhtPeerDiscovery.InitialPeerList,
+		PrivateKeyBytes: p2pKeyBytes,
+		ProtocolID:      p2pConfig.KadDhtPeerDiscovery.ProtocolID,
+		Port:            singlePortValue,
 	}
 
-	return p2pFactory.NewNetworkMessenger(arg)
+	netMessenger, err := components.NewNetMessenger(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	return netMessenger, err
 }
 
-func displayMessengerInfo(messenger p2p.Messenger) {
+func displayMessengerInfo(messenger p2pMessenger) {
 	headerSeedAddresses := []string{"Seednode addresses:"}
 	addresses := make([]*display.LineData, 0)
 

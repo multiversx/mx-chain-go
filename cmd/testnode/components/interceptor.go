@@ -3,8 +3,7 @@ package components
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/p2p"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 type interceptor struct {
@@ -18,8 +17,8 @@ func NewInterceptor() *interceptor {
 	return &interceptor{}
 }
 
-// ProcessReceivedMessage -
-func (i *interceptor) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID) error {
+// ProcessMessage -
+func (i *interceptor) ProcessMessage(_ *pubsub.Message) error {
 	i.mut.Lock()
 	i.total++
 	i.delta++
@@ -37,9 +36,4 @@ func (i *interceptor) GetNumMessages() (int, int) {
 	i.mut.Unlock()
 
 	return valTotal, valDelta
-}
-
-// IsInterfaceNil -
-func (i *interceptor) IsInterfaceNil() bool {
-	return i == nil
 }
