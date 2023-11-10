@@ -18,10 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -98,16 +95,13 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                     common.Trie
-	Hasher                   hashing.Hasher
-	Marshaller               marshal.Marshalizer
-	AccountFactory           AccountFactory
-	StoragePruningManager    StoragePruningManager
-	ProcessingMode           common.NodeProcessingMode
-	ShouldSerializeSnapshots bool
-	ProcessStatusHandler     common.ProcessStatusHandler
-	AppStatusHandler         core.AppStatusHandler
-	AddressConverter         core.PubkeyConverter
+	Trie                  common.Trie
+	Hasher                hashing.Hasher
+	Marshaller            marshal.Marshalizer
+	AccountFactory        AccountFactory
+	StoragePruningManager StoragePruningManager
+	AddressConverter      core.PubkeyConverter
+	SnapshotsManager      SnapshotsManager
 }
 
 // NewAccountsDB creates a new account manager
@@ -117,37 +111,10 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	argStateMetrics := stateMetrics.ArgsStateMetrics{
-		SnapshotInProgressKey:   common.MetricAccountsSnapshotInProgress,
-		LastSnapshotDurationKey: common.MetricLastAccountsSnapshotDurationSec,
-		SnapshotMessage:         stateMetrics.UserTrieSnapshotMsg,
-	}
-	sm, err := stateMetrics.NewStateMetrics(argStateMetrics, args.AppStatusHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	argsSnapshotsManager := ArgsNewSnapshotsManager{
-		ShouldSerializeSnapshots: args.ShouldSerializeSnapshots,
-		ProcessingMode:           args.ProcessingMode,
-		Marshaller:               args.Marshaller,
-		AddressConverter:         args.AddressConverter,
-		ProcessStatusHandler:     args.ProcessStatusHandler,
-		StateMetrics:             sm,
-		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
-		AccountFactory:           args.AccountFactory,
-		StateStatsHandler:        args.Trie.GetStorageManager().GetStateStatsHandler(),
-		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
-	}
-	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
-	if err != nil {
-		return nil, err
-	}
-
-	return createAccountsDb(args, snapshotManager), nil
+	return createAccountsDb(args), nil
 }
 
-func createAccountsDb(args ArgsAccountsDB, snapshotManager SnapshotsManager) *AccountsDB {
+func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -162,7 +129,7 @@ func createAccountsDb(args ArgsAccountsDB, snapshotManager SnapshotsManager) *Ac
 			identifier: "load code",
 		},
 		addressConverter: args.AddressConverter,
-		snapshotsManger:  snapshotManager,
+		snapshotsManger:  args.SnapshotsManager,
 	}
 }
 
@@ -184,6 +151,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.AddressConverter) {
 		return ErrNilAddressConverter
+	}
+	if check.IfNil(args.SnapshotsManager) {
+		return ErrNilSnapshotsManager
 	}
 
 	return nil
