@@ -12,13 +12,13 @@ import (
 
 type subRoundEndExtraSignersHolder struct {
 	mutExtraSigners sync.RWMutex
-	extraSigners    map[string]SubRoundEndExtraSignatureAggregatorHandler
+	extraSigners    map[string]consensus.SubRoundEndExtraSignatureAggregatorHandler
 }
 
 func NewSubRoundEndExtraSignersHolder() *subRoundEndExtraSignersHolder {
 	return &subRoundEndExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
-		extraSigners:    make(map[string]SubRoundEndExtraSignatureAggregatorHandler),
+		extraSigners:    make(map[string]consensus.SubRoundEndExtraSignatureAggregatorHandler),
 	}
 }
 
@@ -138,7 +138,7 @@ func (holder *subRoundEndExtraSignersHolder) HaveConsensusHeaderWithFullInfo(hea
 	return nil
 }
 
-func (holder *subRoundEndExtraSignersHolder) RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error {
+func (holder *subRoundEndExtraSignersHolder) RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator consensus.SubRoundEndExtraSignatureAggregatorHandler) error {
 	if check.IfNil(extraSignatureAggregator) {
 		return errors.ErrNilExtraSubRoundSigner
 	}

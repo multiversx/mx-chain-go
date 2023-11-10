@@ -125,12 +125,12 @@ func (fct *factory) GenerateSignatureSubroundV2() error {
 
 // GenerateEndRoundSubroundV1 generates the instance of subround EndRound V1 and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubroundV1() error {
-	return fct.generateEndRoundSubroundV1()
+	return fct.generateEndRoundSubroundV1(&subRounds.SubRoundEndExtraSignersHolderMock{})
 }
 
 // GenerateEndRoundSubroundV2 generates the instance of subround EndRound V2 and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubroundV2() error {
-	return fct.generateEndRoundSubroundV2()
+	return fct.generateEndRoundSubroundV2(&subRounds.SubRoundEndExtraSignersHolderMock{})
 }
 
 // AppStatusHandler gets the app status handler object

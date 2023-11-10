@@ -28,17 +28,6 @@ type SubRoundEndExtraSignersHolder interface {
 	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSigs map[string][]byte) error
 	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
 	HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error
-	RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator SubRoundEndExtraSignatureAggregatorHandler) error
-	IsInterfaceNil() bool
-}
-
-type SubRoundEndExtraSignatureAggregatorHandler interface {
-	AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error)
-	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error
-	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
-	SeAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error
-	HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error
-	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
-	Identifier() string
+	RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator consensus.SubRoundEndExtraSignatureAggregatorHandler) error
 	IsInterfaceNil() bool
 }
