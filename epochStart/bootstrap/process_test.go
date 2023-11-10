@@ -1,10 +1,12 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,7 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data"
+	dataBatch "github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -23,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -2307,4 +2312,92 @@ func TestEpochStartBootstrap_Close(t *testing.T) {
 
 	err := epochStartProvider.Close()
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestSyncSetGuardianTransaction(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
+	transactions := testscommon.NewShardedDataCacheNotifierMock()
+	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
+		},
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return transactions
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		TrieNodesCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		PeerAuthenticationsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		HeartbeatsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+	}
+	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return true
+		},
+	}
+	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
+	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
+
+	err := epochStartProvider.createSyncers()
+	assert.Nil(t, err)
+
+	topicName := "transactions_0"
+	interceptor, err := epochStartProvider.interceptorContainer.Get(topicName)
+	assert.Nil(t, err)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(0),
+		GasPrice:  args.EconomicsData.MinGasPrice(),
+		GasLimit:  args.EconomicsData.MinGasLimit() * 2,
+		Data:      []byte("SetGuardian@aa@bb"),
+		ChainID:   []byte(coreComp.ChainID()),
+		Signature: bytes.Repeat([]byte("2"), 32),
+		Version:   1,
+	}
+	txBytes, _ := coreComp.IntMarsh.Marshal(tx)
+
+	batch := &dataBatch.Batch{
+		Data: [][]byte{txBytes},
+	}
+	batchBytes, _ := coreComp.IntMarsh.Marshal(batch)
+
+	msg := &processMock.P2PMessageMock{
+		FromField:      nil,
+		DataField:      batchBytes,
+		SeqNoField:     nil,
+		TopicField:     "topicName",
+		SignatureField: nil,
+		KeyField:       nil,
+		PeerField:      "",
+		PayloadField:   nil,
+		TimestampField: 0,
+	}
+
+	err = interceptor.ProcessReceivedMessage(msg, "pid")
+	assert.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	txHash := coreComp.Hash.Compute(string(txBytes))
+	_, found := transactions.SearchFirstData(txHash)
+	assert.True(t, found)
 }
