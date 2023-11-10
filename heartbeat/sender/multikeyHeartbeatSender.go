@@ -111,8 +111,9 @@ func (sender *multikeyHeartbeatSender) Execute() {
 }
 
 func (sender *multikeyHeartbeatSender) execute() error {
-	_, pk := sender.getCurrentPrivateAndPublicKeys()
-	pkBytes, err := pk.ToByteArray()
+	// always use the provided public key in case of multikey operation. This will add clarity whenever the node needs to
+	// be found in the explorer
+	pkBytes, err := sender.publicKey.ToByteArray()
 	if err != nil {
 		return err
 	}
@@ -130,6 +131,7 @@ func (sender *multikeyHeartbeatSender) execute() error {
 		return err
 	}
 
+	log.Debug("sending heartbeat message", "key", pkBytes)
 	sender.mainMessenger.Broadcast(sender.topic, buff)
 	sender.fullArchiveMessenger.Broadcast(sender.topic, buff)
 
@@ -185,6 +187,7 @@ func (sender *multikeyHeartbeatSender) sendMessageForKey(pkBytes []byte) error {
 		return err
 	}
 
+	log.Debug("sending heartbeat message", "managed key", pkBytes)
 	sender.mainMessenger.BroadcastUsingPrivateKey(sender.topic, buff, pid, p2pSk)
 
 	return nil

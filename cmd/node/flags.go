@@ -218,8 +218,10 @@ var (
 
 	// validatorKeyPemFile defines a flag for the path to the validator key used in block signing
 	validatorKeyPemFile = cli.StringFlag{
-		Name:  "validator-key-pem-file",
-		Usage: "The `filepath` for the PEM file which contains the secret keys for the validator key.",
+		Name: "validator-key-pem-file",
+		Usage: "The `filepath` for the PEM file which contains the secret keys to be used by this node. If the file " +
+			"does not exists or can not be loaded, the node will autogenerate and use a random key. The key may or may not " +
+			"be registered to be a consensus validator.",
 		Value: "./config/validatorKey.pem",
 	}
 	// allValidatorKeysPemFile defines a flag for the path to the file that hold all validator keys used in block signing
@@ -373,10 +375,11 @@ var (
 	}
 
 	// noKey defines a flag that, if set, will generate every time when node starts a new signing key
+	// TODO: remove this in the next releases
 	noKey = cli.BoolFlag{
 		Name: "no-key",
-		Usage: "Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem" +
-			" file is present, setting this flag to true will overwrite the BLS key used by the node)",
+		Usage: "DEPRECATED option, it will be removed in the next releases. To start a node without a key, " +
+			"simply omit to provide a validatorKey.pem file",
 	}
 
 	// p2pKeyPemFile defines the flag for the path to the key pem file used for p2p signing
@@ -492,9 +495,13 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
-	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
+
+	if ctx.GlobalBool(noKey.Name) {
+		log.Warn("the provided -no-key option is deprecated and will soon be removed. To start a node without " +
+			"a key, simply omit to provide the validatorKey.pem file to the node binary")
+	}
 
 	return flagsConfig
 }

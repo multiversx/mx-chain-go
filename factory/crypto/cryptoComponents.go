@@ -34,8 +34,7 @@ import (
 )
 
 const (
-	disabledSigChecking        = "disabled"
-	mainMachineRedundancyLevel = 0
+	disabledSigChecking = "disabled"
 )
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
@@ -51,7 +50,6 @@ type CryptoComponentsFactoryArgs struct {
 	ActivateBLSPubKeyMessageVerification bool
 	IsInImportMode                       bool
 	ImportModeNoSigCheck                 bool
-	NoKeyProvided                        bool
 	P2pKeyPemFileName                    string
 }
 
@@ -68,7 +66,6 @@ type cryptoComponentsFactory struct {
 	keyLoader                            factory.KeyLoaderHandler
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
-	noKeyProvided                        bool
 	p2pKeyPemFileName                    string
 }
 
@@ -134,7 +131,6 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		isInImportMode:                       args.IsInImportMode,
 		importModeNoSigCheck:                 args.ImportModeNoSigCheck,
 		enableEpochs:                         args.EnableEpochs,
-		noKeyProvided:                        args.NoKeyProvided,
 		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
 		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
 	}
@@ -205,16 +201,14 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	// TODO: refactor the logic for isMainMachine
 	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
-	isMainMachine := redundancyLevel == mainMachineRedundancyLevel
+	maxRoundsOfInactivity := redundancyLevel * ccf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:                     blockSignKeyGen,
-		P2PKeyGenerator:                  p2pKeyGenerator,
-		IsMainMachine:                    isMainMachine,
-		MaxRoundsWithoutReceivedMessages: redundancyLevel,
-		PrefsConfig:                      ccf.prefsConfig,
-		P2PKeyConverter:                  p2pFactory.NewP2PKeyConverter(),
+		KeyGenerator:          blockSignKeyGen,
+		P2PKeyGenerator:       p2pKeyGenerator,
+		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		PrefsConfig:           ccf.prefsConfig,
+		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
 	managedPeersHolder, err := keysManagement.NewManagedPeersHolder(argsManagedPeersHolder)
 	if err != nil {
@@ -327,21 +321,30 @@ func (ccf *cryptoComponentsFactory) createCryptoParams(
 		return nil, err
 	}
 
+	handledKeysInfo := "running in single-key mode"
+	if len(handledPrivateKeys) > 0 {
+		handledKeysInfo = fmt.Sprintf("running in multi-key mode, managing %d keys", len(handledPrivateKeys))
+	}
+
 	if ccf.isInImportMode {
 		if len(handledPrivateKeys) > 0 {
 			return nil, fmt.Errorf("invalid node configuration: import-db mode and allValidatorsKeys.pem file provided")
 		}
 
-		return ccf.generateCryptoParams(keygen, "in import mode", handledPrivateKeys)
+		return ccf.generateCryptoParams(keygen, "in import-db mode", make([][]byte, 0))
 	}
-	if ccf.noKeyProvided {
-		return ccf.generateCryptoParams(keygen, "with no-key flag enabled", make([][]byte, 0))
-	}
-	if len(handledPrivateKeys) > 0 {
-		return ccf.generateCryptoParams(keygen, "running with a provided allValidatorsKeys.pem", handledPrivateKeys)
+	cp, err := ccf.readCryptoParams(keygen)
+	if err == nil {
+		cp.handledPrivateKeys = handledPrivateKeys
+
+		log.Info(fmt.Sprintf("the node loaded the validatorKey.pem file and is %s", handledKeysInfo))
+
+		return cp, nil
 	}
 
-	return ccf.readCryptoParams(keygen)
+	log.Debug("failure while reading the BLS key, will autogenerate one", "error", err)
+
+	return ccf.generateCryptoParams(keygen, handledKeysInfo, handledPrivateKeys)
 }
 
 func (ccf *cryptoComponentsFactory) readCryptoParams(keygen crypto.KeyGenerator) (*cryptoParams, error) {
@@ -381,7 +384,7 @@ func (ccf *cryptoComponentsFactory) generateCryptoParams(
 	reason string,
 	handledPrivateKeys [][]byte,
 ) (*cryptoParams, error) {
-	log.Warn(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", reason))
+	log.Info(fmt.Sprintf("the node is %s! Will generate a fresh new BLS key", reason))
 	cp := &cryptoParams{}
 	cp.privateKey, cp.publicKey = keygen.GeneratePair()
 

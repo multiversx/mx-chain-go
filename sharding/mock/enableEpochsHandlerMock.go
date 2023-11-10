@@ -9,6 +9,11 @@ type EnableEpochsHandlerMock struct {
 	IsFixOldTokenLiquidityFlagEnabledField    bool
 }
 
+// IsChangeOwnerAddressCrossShardThroughSCEnabled -
+func (mock *EnableEpochsHandlerMock) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
+	return false
+}
+
 // BlockGasAndFeesReCheckEnableEpoch returns 0
 func (mock *EnableEpochsHandlerMock) BlockGasAndFeesReCheckEnableEpoch() uint32 {
 	return 0
@@ -625,6 +630,11 @@ func (mock *EnableEpochsHandlerMock) IsDeterministicSortOnValidatorsInfoFixEnabl
 
 // IsDynamicGasCostForDataTrieStorageLoadEnabled -
 func (mock *EnableEpochsHandlerMock) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
+	return false
+}
+
+// NFTStopCreateEnabled -
+func (mock *EnableEpochsHandlerMock) NFTStopCreateEnabled() bool {
 	return false
 }
 

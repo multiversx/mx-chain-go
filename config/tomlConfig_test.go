@@ -142,6 +142,9 @@ func TestTomlParser(t *testing.T) {
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
 		},
+		Redundancy: RedundancyConfig{
+			MaxRoundsOfInactivityAccepted: 3,
+		},
 	}
 	testString := `
 [MiniBlocksStorage]
@@ -236,6 +239,11 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 
@@ -817,6 +825,12 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
 	ScToScLogEventEnableEpoch = 88
 
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 89
+
+    # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 90
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -837,37 +851,35 @@ func TestEnableEpochConfig(t *testing.T) {
 
 	expectedCfg := EpochConfig{
 		EnableEpochs: EnableEpochs{
-			SCDeployEnableEpoch:                    1,
-			BuiltInFunctionsEnableEpoch:            2,
-			RelayedTransactionsEnableEpoch:         3,
-			PenalizedTooMuchGasEnableEpoch:         4,
-			SwitchJailWaitingEnableEpoch:           5,
-			BelowSignedThresholdEnableEpoch:        6,
-			SwitchHysteresisForMinNodesEnableEpoch: 7,
-			TransactionSignedWithTxHashEnableEpoch: 8,
-			MetaProtectionEnableEpoch:              9,
-			AheadOfTimeGasUsageEnableEpoch:         10,
-			GasPriceModifierEnableEpoch:            11,
-			RepairCallbackEnableEpoch:              12,
-			BlockGasAndFeesReCheckEnableEpoch:      13,
-			BalanceWaitingListsEnableEpoch:         14,
-			ReturnDataToLastTransferEnableEpoch:    15,
-			SenderInOutTransferEnableEpoch:         16,
-			StakeEnableEpoch:                       17,
-			StakingV2EnableEpoch:                   18,
-
-			DoubleKeyProtectionEnableEpoch:     19,
-			ESDTEnableEpoch:                    20,
-			GovernanceEnableEpoch:              21,
-			DelegationManagerEnableEpoch:       22,
-			DelegationSmartContractEnableEpoch: 23,
-			CorrectLastUnjailedEnableEpoch:     24,
-
-			RelayedTransactionsV2EnableEpoch:   25,
-			UnbondTokensV2EnableEpoch:          26,
-			SaveJailedAlwaysEnableEpoch:        27,
-			ReDelegateBelowMinCheckEnableEpoch: 28, ValidatorToDelegationEnableEpoch: 29,
-
+			SCDeployEnableEpoch:                               1,
+			BuiltInFunctionsEnableEpoch:                       2,
+			RelayedTransactionsEnableEpoch:                    3,
+			PenalizedTooMuchGasEnableEpoch:                    4,
+			SwitchJailWaitingEnableEpoch:                      5,
+			BelowSignedThresholdEnableEpoch:                   6,
+			SwitchHysteresisForMinNodesEnableEpoch:            7,
+			TransactionSignedWithTxHashEnableEpoch:            8,
+			MetaProtectionEnableEpoch:                         9,
+			AheadOfTimeGasUsageEnableEpoch:                    10,
+			GasPriceModifierEnableEpoch:                       11,
+			RepairCallbackEnableEpoch:                         12,
+			BlockGasAndFeesReCheckEnableEpoch:                 13,
+			BalanceWaitingListsEnableEpoch:                    14,
+			ReturnDataToLastTransferEnableEpoch:               15,
+			SenderInOutTransferEnableEpoch:                    16,
+			StakeEnableEpoch:                                  17,
+			StakingV2EnableEpoch:                              18,
+			DoubleKeyProtectionEnableEpoch:                    19,
+			ESDTEnableEpoch:                                   20,
+			GovernanceEnableEpoch:                             21,
+			DelegationManagerEnableEpoch:                      22,
+			DelegationSmartContractEnableEpoch:                23,
+			CorrectLastUnjailedEnableEpoch:                    24,
+			RelayedTransactionsV2EnableEpoch:                  25,
+			UnbondTokensV2EnableEpoch:                         26,
+			SaveJailedAlwaysEnableEpoch:                       27,
+			ReDelegateBelowMinCheckEnableEpoch:                28,
+			ValidatorToDelegationEnableEpoch:                  29,
 			WaitingListFixEnableEpoch:                         30,
 			IncrementSCRNonceInMultiTransferEnableEpoch:       31,
 			ESDTMultiTransferEnableEpoch:                      32,
@@ -895,12 +907,12 @@ func TestEnableEpochConfig(t *testing.T) {
 			StorageAPICostOptimizationEnableEpoch:             54,
 			TransformToMultiShardCreateEnableEpoch:            55,
 			ESDTRegisterAndSetAllRolesEnableEpoch:             56,
-			ScheduledMiniBlocksEnableEpoch:                 57,
-			CorrectJailedNotUnstakedEmptyQueueEpoch:         58,
-			DoNotReturnOldBlockInBlockchainHookEnableEpoch:            59,
-			AddFailedRelayedTxToInvalidMBsDisableEpoch:       60,
-			SCRSizeInvariantOnBuiltInResultEnableEpoch:              61,
-			CheckCorrectTokenIDForTransferRoleEnableEpoch:                   62,
+			ScheduledMiniBlocksEnableEpoch:                    57,
+			CorrectJailedNotUnstakedEmptyQueueEpoch:           58,
+			DoNotReturnOldBlockInBlockchainHookEnableEpoch:    59,
+			AddFailedRelayedTxToInvalidMBsDisableEpoch:        60,
+			SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
+			CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
 			DisableExecByCallerEnableEpoch:                    63,
 			RefactorContextEnableEpoch:                        64,
 			FailExecutionOnEveryAPIErrorEnableEpoch:           65,
@@ -910,7 +922,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTMetadataContinuousCleanupEnableEpoch:          69,
 			MiniBlockPartialExecutionEnableEpoch:              70,
 			FixAsyncCallBackArgsListEnableEpoch:               71,
-			FixOldTokenLiquidityEnableEpoch:                   72,RuntimeMemStoreLimitEnableEpoch:                 73,
+			FixOldTokenLiquidityEnableEpoch:                   72,
+			RuntimeMemStoreLimitEnableEpoch:                   73,
 			SetSenderInEeiOutputTransferEnableEpoch:           74,
 			RefactorPeersMiniBlocksEnableEpoch:                75,
 			MaxBlockchainHookCountersEnableEpoch:              76,
@@ -926,6 +939,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 			ScToScLogEventEnableEpoch:                         88,
+			NFTStopCreateEnableEpoch:                          89,
+			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:  90,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -938,7 +953,7 @@ func TestEnableEpochConfig(t *testing.T) {
 					NodesToShufflePerShard: 80,
 				},
 			},
-			DeterministicSortOnValidatorsInfoEnableEpoch: 66,
+			DeterministicSortOnValidatorsInfoEnableEpoch:    66,
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 64,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
