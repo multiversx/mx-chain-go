@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -28,11 +29,8 @@ import (
 )
 
 const (
-	leavesChannelSize             = 100
-	missingNodesChannelSize       = 100
-	lastSnapshot                  = "lastSnapshot"
-	waitTimeForSnapshotEpochCheck = time.Millisecond * 100
-	snapshotWaitTimeout           = time.Minute
+	leavesChannelSize       = 100
+	missingNodesChannelSize = 100
 )
 
 type loadingMeasurements struct {
@@ -138,6 +136,8 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		StateMetrics:             sm,
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		AccountFactory:           args.AccountFactory,
+		StateStatsHandler:        args.Trie.GetStorageManager().GetStateStatsHandler(),
+		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
 	}
 	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
 	if err != nil {
@@ -824,6 +824,16 @@ func (adb *AccountsDB) CommitInEpoch(currentEpoch uint32, epochToCommit uint32) 
 	return adb.commit()
 }
 
+func (adb *AccountsDB) printTrieStorageStatistics() {
+	stats := adb.mainTrie.GetStorageManager().GetStateStatsHandler().ProcessingStats()
+	if stats != nil {
+		log.Debug("trie storage statistics",
+			"stats", stats,
+		)
+	}
+
+}
+
 // Commit will persist all data inside the trie
 func (adb *AccountsDB) Commit() ([]byte, error) {
 	adb.mutOp.Lock()
@@ -872,14 +882,10 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	adb.lastRootHash = newRoot
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
-	shouldCreateCheckpoint := adb.mainTrie.GetStorageManager().AddDirtyCheckpointHashes(newRoot, newHashes.Clone())
-
-	if shouldCreateCheckpoint {
-		log.Debug("checkpoint hashes holder is full - force state checkpoint")
-		adb.snapshotsManger.SetStateCheckpoint(newRoot, adb.mainTrie.GetStorageManager())
-	}
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
+
+	adb.printTrieStorageStatistics()
 
 	return newRoot, nil
 }
@@ -1126,11 +1132,6 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 			return contained
 		}
 	}
-}
-
-// SetStateCheckpoint sets a checkpoint for the state trie
-func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
-	adb.snapshotsManger.SetStateCheckpoint(rootHash, adb.getMainTrie().GetStorageManager())
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

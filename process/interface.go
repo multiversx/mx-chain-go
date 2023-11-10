@@ -1206,6 +1206,7 @@ type CryptoComponentsHolder interface {
 // StatusCoreComponentsHolder holds the status core components
 type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 

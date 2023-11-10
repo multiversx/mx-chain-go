@@ -551,10 +551,6 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 	if err != nil {
 		return nil, err
 	}
-	checkpointsStorer, err := storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return nil, err
-	}
 
 	trieFactoryArgs := trieFactory.TrieFactoryArgs{
 		Marshalizer:              args.coreComponents.InternalMarshalizer(),
@@ -569,14 +565,13 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 
 	trieCreatorArgs := trieFactory.TrieCreateArgs{
 		MainStorer:          trieStorer,
-		CheckpointsStorer:   checkpointsStorer,
 		PruningEnabled:      args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:  args.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:   args.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		SnapshotsEnabled:    args.generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:        args.coreComponents.ProcessStatusHandler(),
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
 	}
 	_, merkleTrie, err := trFactory.Create(trieCreatorArgs)
 	if err != nil {

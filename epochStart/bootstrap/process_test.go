@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -111,28 +113,26 @@ func createMockEpochStartBootstrapArgs(
 		},
 		FullArchiveMessenger: &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
-			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
-			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
-			BlockHeaderStorage:                 generalCfg.BlockHeaderStorage,
-			TxStorage:                          generalCfg.TxStorage,
-			UnsignedTransactionStorage:         generalCfg.UnsignedTransactionStorage,
-			RewardTxStorage:                    generalCfg.RewardTxStorage,
-			ShardHdrNonceHashStorage:           generalCfg.ShardHdrNonceHashStorage,
-			MetaHdrNonceHashStorage:            generalCfg.MetaHdrNonceHashStorage,
-			StatusMetricsStorage:               generalCfg.StatusMetricsStorage,
-			ReceiptsStorage:                    generalCfg.ReceiptsStorage,
-			SmartContractsStorage:              generalCfg.SmartContractsStorage,
-			SmartContractsStorageForSCQuery:    generalCfg.SmartContractsStorageForSCQuery,
-			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
-			BootstrapStorage:                   generalCfg.BootstrapStorage,
-			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
-			EpochStartStaticStorage:            generalCfg.EpochStartStaticStorage,
-			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
-			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
-			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
-			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
-			HeartbeatV2:                        generalCfg.HeartbeatV2,
-			Hardfork:                           generalCfg.Hardfork,
+			MiniBlocksStorage:               generalCfg.MiniBlocksStorage,
+			PeerBlockBodyStorage:            generalCfg.PeerBlockBodyStorage,
+			BlockHeaderStorage:              generalCfg.BlockHeaderStorage,
+			TxStorage:                       generalCfg.TxStorage,
+			UnsignedTransactionStorage:      generalCfg.UnsignedTransactionStorage,
+			RewardTxStorage:                 generalCfg.RewardTxStorage,
+			ShardHdrNonceHashStorage:        generalCfg.ShardHdrNonceHashStorage,
+			MetaHdrNonceHashStorage:         generalCfg.MetaHdrNonceHashStorage,
+			StatusMetricsStorage:            generalCfg.StatusMetricsStorage,
+			ReceiptsStorage:                 generalCfg.ReceiptsStorage,
+			SmartContractsStorage:           generalCfg.SmartContractsStorage,
+			SmartContractsStorageForSCQuery: generalCfg.SmartContractsStorageForSCQuery,
+			TrieEpochRootHashStorage:        generalCfg.TrieEpochRootHashStorage,
+			BootstrapStorage:                generalCfg.BootstrapStorage,
+			MetaBlockStorage:                generalCfg.MetaBlockStorage,
+			AccountsTrieStorage:             generalCfg.AccountsTrieStorage,
+			PeerAccountsTrieStorage:         generalCfg.PeerAccountsTrieStorage,
+			HeartbeatV2:                     generalCfg.HeartbeatV2,
+			Hardfork:                        generalCfg.Hardfork,
+			EpochStartStaticStorage:         generalCfg.EpochStartStaticStorage,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -145,8 +145,8 @@ func createMockEpochStartBootstrapArgs(
 				},
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     5,
 				AccountsStatePruningEnabled: true,
+				SnapshotsEnabled:            true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
 				MaxPeerTrieLevelInMemory:    5,
@@ -232,6 +232,7 @@ func createMockEpochStartBootstrapArgs(
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
 	}
 }
 
@@ -611,6 +612,17 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilManagedPeersHolder))
+	})
+	t.Run("nil state statistics handler", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.StateStatsHandler = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, statistics.ErrNilStateStatsHandler))
 	})
 }
 
@@ -1030,6 +1042,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -1049,6 +1062,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(triesContainer.GetAll()))
@@ -1075,6 +1089,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
