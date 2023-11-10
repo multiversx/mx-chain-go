@@ -395,6 +395,8 @@ github.com/multiversx/mx-chain-core-go v1.2.18-0.20231108135758-39b55d11d54a h1:
 github.com/multiversx/mx-chain-core-go v1.2.18-0.20231108135758-39b55d11d54a/go.mod h1:BILOGHUOIG5dNNX8cgkzCNfDaVtoYrJRYcPnpxRMH84=
 github.com/multiversx/mx-chain-core-go v1.2.18-0.20231108171002-5fa7b56106e3 h1:ZKsWmwVPvEFophWUsHXGbduue2cQNlr91U4na5Tz61E=
 github.com/multiversx/mx-chain-core-go v1.2.18-0.20231108171002-5fa7b56106e3/go.mod h1:BILOGHUOIG5dNNX8cgkzCNfDaVtoYrJRYcPnpxRMH84=
+github.com/multiversx/mx-chain-core-go v1.2.18-0.20231110070000-9e19668167cf h1:PxqjwSz/TKWsVv2/cad5N2OS7zXJTqJ4R797s11woIY=
+github.com/multiversx/mx-chain-core-go v1.2.18-0.20231110070000-9e19668167cf/go.mod h1:BILOGHUOIG5dNNX8cgkzCNfDaVtoYrJRYcPnpxRMH84=
 github.com/multiversx/mx-chain-crypto-go v1.2.8 h1:wOgVlUaO5X4L8iEbFjcQcL8SZvv6WZ7LqH73BiRPhxU=
 github.com/multiversx/mx-chain-crypto-go v1.2.8/go.mod h1:fkaWKp1rbQN9wPKya5jeoRyC+c/SyN/NfggreyeBw+8=
 github.com/multiversx/mx-chain-es-indexer-go v1.4.12 h1:KpKcflrXEFXRjWOSIjytNgvSsxl9J/YvyhvoDQR9Pto=

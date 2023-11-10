@@ -391,13 +391,11 @@ func (sm *snapshotsManager) syncAccountCode(
 		return fmt.Errorf("invalid storer, type is %T", tsm)
 	}
 
-	// get from all storers
 	code, _, err := storer.GetFromOldEpochsWithoutAddingToCache(codeHash)
 	if err != nil {
 		return err
 	}
 
-	// put to active storer
 	err = storer.Put(codeHash, code)
 	if err != nil {
 		return err

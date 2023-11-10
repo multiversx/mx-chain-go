@@ -691,7 +691,6 @@ func (adb *AccountsDB) MigrateCodeLeaf(address []byte) error {
 		return err
 	}
 
-	// update account with new version
 	buff, err := adb.marshaller.Marshal(acc)
 	if err != nil {
 		return err
