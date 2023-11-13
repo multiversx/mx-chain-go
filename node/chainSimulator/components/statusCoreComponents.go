@@ -44,6 +44,9 @@ func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.C
 		return nil, err
 	}
 
+	// stop resource monitor
+	_ = managedStatusCoreComponents.ResourceMonitor().Close()
+
 	instance := &statusCoreComponentsHolder{
 		closeHandler:               NewCloseHandler(),
 		resourceMonitor:            managedStatusCoreComponents.ResourceMonitor(),
