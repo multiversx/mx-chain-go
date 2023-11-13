@@ -413,6 +413,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 
 	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, message.Peer())
 	if err != nil {
+		wrk.processInvalidEquivalentMessage(msgType, cnsMsg.BlockHeaderHash)
 		return err
 	}
 
@@ -747,6 +748,19 @@ func (wrk *Worker) processEquivalentMessage(msgType consensus.MessageType, block
 	}
 
 	return nil
+}
+
+func (wrk *Worker) processInvalidEquivalentMessage(msgType consensus.MessageType, blockHeaderHash []byte) {
+	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
+		return
+	}
+
+	hdrHash := string(blockHeaderHash)
+
+	wrk.mutEquivalentMessages.Lock()
+	defer wrk.mutEquivalentMessages.Unlock()
+
+	delete(wrk.equivalentMessages, hdrHash)
 }
 
 // getEquivalentMessages returns a copy of the equivalent messages
