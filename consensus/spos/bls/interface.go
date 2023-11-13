@@ -8,7 +8,7 @@ import (
 // SubRoundStartExtraSignersHolder manages extra signers during start subround in a consensus process
 type SubRoundStartExtraSignersHolder interface {
 	Reset(pubKeys []string) error
-	RegisterExtraSingingHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error
+	RegisterExtraSigningHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -17,7 +17,7 @@ type SubRoundSignatureExtraSignersHolder interface {
 	CreateExtraSignatureShares(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) (map[string][]byte, error)
 	AddExtraSigSharesToConsensusMessage(extraSigShares map[string][]byte, cnsMsg *consensus.Message) error
 	StoreExtraSignatureShare(index uint16, cnsMsg *consensus.Message) error
-	RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error
+	RegisterExtraSigningHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -26,8 +26,8 @@ type SubRoundEndExtraSignersHolder interface {
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error
 	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
 	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSigs map[string][]byte) error
-	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
+	VerifyAggregatedSignatures(header data.HeaderHandler, bitmap []byte) error
 	HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error
-	RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator consensus.SubRoundEndExtraSignatureAggregatorHandler) error
+	RegisterExtraSigningHandler(extraSigner consensus.SubRoundEndExtraSignatureHandler) error
 	IsInterfaceNil() bool
 }

@@ -38,7 +38,7 @@ func (holder *subRoundStartExtraSignersHolder) Reset(pubKeys []string) error {
 	return nil
 }
 
-func (holder *subRoundStartExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
+func (holder *subRoundStartExtraSignersHolder) RegisterExtraSigningHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}

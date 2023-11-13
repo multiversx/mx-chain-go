@@ -37,8 +37,8 @@ func (mock *SubRoundSignatureExtraSignersHolderMock) StoreExtraSignatureShare(in
 	return nil
 }
 
-// RegisterExtraSingingHandler -
-func (mock *SubRoundSignatureExtraSignersHolderMock) RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
+// RegisterExtraSigningHandler -
+func (mock *SubRoundSignatureExtraSignersHolderMock) RegisterExtraSigningHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
 	if mock.RegisterExtraSingingHandlerCalled != nil {
 		return mock.RegisterExtraSingingHandlerCalled(extraSigner)
 	}

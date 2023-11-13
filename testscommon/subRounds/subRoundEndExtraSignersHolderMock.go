@@ -13,7 +13,7 @@ type SubRoundEndExtraSignersHolderMock struct {
 	SetAggregatedSignatureInHeaderCalled            func(header data.HeaderHandler, aggregatedSigs map[string][]byte) error
 	VerifyAggregatedSignaturesCalled                func(bitmap []byte, header data.HeaderHandler) error
 	HaveConsensusHeaderWithFullInfoCalled           func(header data.HeaderHandler, cnsMsg *consensus.Message) error
-	RegisterExtraEndRoundSigAggregatorHandlerCalled func(extraSignatureAggregator consensus.SubRoundEndExtraSignatureAggregatorHandler) error
+	RegisterExtraEndRoundSigAggregatorHandlerCalled func(extraSigner consensus.SubRoundEndExtraSignatureHandler) error
 }
 
 // AggregateSignatures -
@@ -49,7 +49,7 @@ func (mock *SubRoundEndExtraSignersHolderMock) SetAggregatedSignatureInHeader(he
 }
 
 // VerifyAggregatedSignatures -
-func (mock *SubRoundEndExtraSignersHolderMock) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
+func (mock *SubRoundEndExtraSignersHolderMock) VerifyAggregatedSignatures(header data.HeaderHandler, bitmap []byte) error {
 	if mock.VerifyAggregatedSignaturesCalled != nil {
 		return mock.VerifyAggregatedSignaturesCalled(bitmap, header)
 	}
@@ -64,10 +64,10 @@ func (mock *SubRoundEndExtraSignersHolderMock) HaveConsensusHeaderWithFullInfo(h
 	return nil
 }
 
-// RegisterExtraEndRoundSigAggregatorHandler -
-func (mock *SubRoundEndExtraSignersHolderMock) RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator consensus.SubRoundEndExtraSignatureAggregatorHandler) error {
+// RegisterExtraSigningHandler -
+func (mock *SubRoundEndExtraSignersHolderMock) RegisterExtraSigningHandler(extraSigner consensus.SubRoundEndExtraSignatureHandler) error {
 	if mock.RegisterExtraEndRoundSigAggregatorHandlerCalled != nil {
-		return mock.RegisterExtraEndRoundSigAggregatorHandlerCalled(extraSignatureAggregator)
+		return mock.RegisterExtraEndRoundSigAggregatorHandlerCalled(extraSigner)
 	}
 	return nil
 }

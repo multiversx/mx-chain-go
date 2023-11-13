@@ -5,19 +5,19 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
-// SubRoundEndExtraSignatureAggregatorHandlerMock -
-type SubRoundEndExtraSignatureAggregatorHandlerMock struct {
+// SubRoundEndExtraSignatureMock -
+type SubRoundEndExtraSignatureMock struct {
 	AggregateSignaturesCalled              func(bitmap []byte, epoch uint32) ([]byte, error)
 	AddLeaderAndAggregatedSignaturesCalled func(header data.HeaderHandler, cnsMsg *consensus.Message) error
 	SignAndSetLeaderSignatureCalled        func(header data.HeaderHandler, leaderPubKey []byte) error
-	SeAggregatedSignatureInHeaderCalled    func(header data.HeaderHandler, aggregatedSig []byte) error
+	SetAggregatedSignatureInHeaderCalled   func(header data.HeaderHandler, aggregatedSig []byte) error
 	HaveConsensusHeaderWithFullInfoCalled  func(header data.HeaderHandler, cnsMsg *consensus.Message) error
 	VerifyAggregatedSignaturesCalled       func(bitmap []byte, header data.HeaderHandler) error
 	IdentifierCalled                       func() string
 }
 
 // AggregateSignatures -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
+func (mock *SubRoundEndExtraSignatureMock) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
 	if mock.AggregateSignaturesCalled != nil {
 		return mock.AggregateSignaturesCalled(bitmap, epoch)
 	}
@@ -25,7 +25,7 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) AggregateSignatures(
 }
 
 // AddLeaderAndAggregatedSignatures -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+func (mock *SubRoundEndExtraSignatureMock) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	if mock.AddLeaderAndAggregatedSignaturesCalled != nil {
 		return mock.AddLeaderAndAggregatedSignaturesCalled(header, cnsMsg)
 	}
@@ -33,7 +33,7 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) AddLeaderAndAggregat
 }
 
 // SignAndSetLeaderSignature -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
+func (mock *SubRoundEndExtraSignatureMock) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
 	if mock.SignAndSetLeaderSignatureCalled != nil {
 		return mock.SignAndSetLeaderSignatureCalled(header, leaderPubKey)
 	}
@@ -41,15 +41,15 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) SignAndSetLeaderSign
 }
 
 // SetAggregatedSignatureInHeader -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
-	if mock.SeAggregatedSignatureInHeaderCalled != nil {
-		return mock.SeAggregatedSignatureInHeaderCalled(header, aggregatedSig)
+func (mock *SubRoundEndExtraSignatureMock) SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
+	if mock.SetAggregatedSignatureInHeaderCalled != nil {
+		return mock.SetAggregatedSignatureInHeaderCalled(header, aggregatedSig)
 	}
 	return nil
 }
 
 // HaveConsensusHeaderWithFullInfo -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+func (mock *SubRoundEndExtraSignatureMock) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	if mock.HaveConsensusHeaderWithFullInfoCalled != nil {
 		return mock.HaveConsensusHeaderWithFullInfoCalled(header, cnsMsg)
 	}
@@ -57,7 +57,7 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) HaveConsensusHeaderW
 }
 
 // VerifyAggregatedSignatures -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
+func (mock *SubRoundEndExtraSignatureMock) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
 	if mock.VerifyAggregatedSignaturesCalled != nil {
 		return mock.VerifyAggregatedSignaturesCalled(bitmap, header)
 	}
@@ -65,7 +65,7 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) VerifyAggregatedSign
 }
 
 // Identifier -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) Identifier() string {
+func (mock *SubRoundEndExtraSignatureMock) Identifier() string {
 	if mock.IdentifierCalled != nil {
 		return mock.IdentifierCalled()
 	}
@@ -73,6 +73,6 @@ func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) Identifier() string 
 }
 
 // IsInterfaceNil -
-func (mock *SubRoundEndExtraSignatureAggregatorHandlerMock) IsInterfaceNil() bool {
+func (mock *SubRoundEndExtraSignatureMock) IsInterfaceNil() bool {
 	return mock == nil
 }

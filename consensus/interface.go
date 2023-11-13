@@ -63,7 +63,7 @@ type SubRoundSignatureExtraSignatureHandler interface {
 	IsInterfaceNil() bool
 }
 
-type SubRoundEndExtraSignatureAggregatorHandler interface {
+type SubRoundEndExtraSignatureHandler interface {
 	AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error)
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *Message) error
 	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error

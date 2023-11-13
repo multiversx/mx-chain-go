@@ -75,7 +75,7 @@ func (holder *subRoundSignatureExtraSignersHolder) StoreExtraSignatureShare(inde
 	return nil
 }
 
-func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
+func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSigningHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}

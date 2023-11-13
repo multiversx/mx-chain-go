@@ -459,7 +459,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
-	err = sr.extraSignersHolder.VerifyAggregatedSignatures(bitmap, sr.Header)
+	err = sr.extraSignersHolder.VerifyAggregatedSignatures(sr.Header, bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraSignersHolder.verifyAggregatedSignatures", "error", err.Error())
 		// TODO: MariusC. Here we should add behavior to handle invalid sigs on outgoing operations

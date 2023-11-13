@@ -16,8 +16,8 @@ func (mock *SubRoundStartExtraSignersHolderMock) Reset(pubKeys []string) error {
 	return nil
 }
 
-// RegisterExtraSingingHandler -
-func (mock *SubRoundStartExtraSignersHolderMock) RegisterExtraSingingHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
+// RegisterExtraSigningHandler -
+func (mock *SubRoundStartExtraSignersHolderMock) RegisterExtraSigningHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
 	if mock.RegisterExtraSingingHandlerCalled != nil {
 		return mock.RegisterExtraSingingHandlerCalled(extraSigner)
 	}

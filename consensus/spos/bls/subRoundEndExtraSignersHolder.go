@@ -12,13 +12,13 @@ import (
 
 type subRoundEndExtraSignersHolder struct {
 	mutExtraSigners sync.RWMutex
-	extraSigners    map[string]consensus.SubRoundEndExtraSignatureAggregatorHandler
+	extraSigners    map[string]consensus.SubRoundEndExtraSignatureHandler
 }
 
 func NewSubRoundEndExtraSignersHolder() *subRoundEndExtraSignersHolder {
 	return &subRoundEndExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
-		extraSigners:    make(map[string]consensus.SubRoundEndExtraSignatureAggregatorHandler),
+		extraSigners:    make(map[string]consensus.SubRoundEndExtraSignatureHandler),
 	}
 }
 
@@ -102,7 +102,7 @@ func (holder *subRoundEndExtraSignersHolder) SetAggregatedSignatureInHeader(head
 	return nil
 }
 
-func (holder *subRoundEndExtraSignersHolder) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
+func (holder *subRoundEndExtraSignersHolder) VerifyAggregatedSignatures(header data.HeaderHandler, bitmap []byte) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
 
@@ -138,18 +138,22 @@ func (holder *subRoundEndExtraSignersHolder) HaveConsensusHeaderWithFullInfo(hea
 	return nil
 }
 
-func (holder *subRoundEndExtraSignersHolder) RegisterExtraEndRoundSigAggregatorHandler(extraSignatureAggregator consensus.SubRoundEndExtraSignatureAggregatorHandler) error {
-	if check.IfNil(extraSignatureAggregator) {
+func (holder *subRoundEndExtraSignersHolder) RegisterExtraSigningHandler(extraSigner consensus.SubRoundEndExtraSignatureHandler) error {
+	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}
 
-	id := extraSignatureAggregator.Identifier()
-	log.Debug("holder.RegisterExtraEndRoundSigAggregatorHandler", "identifier", id)
+	id := extraSigner.Identifier()
+	log.Debug("holder.subRoundEndExtraSignersHolder.RegisterExtraSigningHandler", "identifier", id)
 
 	holder.mutExtraSigners.Lock()
-	holder.extraSigners[id] = extraSignatureAggregator
-	holder.mutExtraSigners.Unlock()
+	defer holder.mutExtraSigners.Unlock()
 
+	if _, exists := holder.extraSigners[id]; exists {
+		return errors.ErrExtraSignerIdAlreadyExists
+	}
+
+	holder.extraSigners[id] = extraSigner
 	return nil
 }
 

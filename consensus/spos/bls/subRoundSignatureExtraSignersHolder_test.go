@@ -45,11 +45,11 @@ func TestSubRoundSignatureExtraSignersHolder_CreateExtraSignatureShares(t *testi
 	holder := NewSubRoundSignatureExtraSignersHolder()
 	require.False(t, holder.IsInterfaceNil())
 
-	err := holder.RegisterExtraSingingHandler(extraSigner1)
+	err := holder.RegisterExtraSigningHandler(extraSigner1)
 	require.Nil(t, err)
-	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Nil(t, err)
-	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Equal(t, errors.ErrExtraSignerIdAlreadyExists, err)
 
 	res, err := holder.CreateExtraSignatureShares(expectedHdr, expectedSelfIndex, expectedSelfPubKey)
@@ -95,9 +95,9 @@ func TestSubRoundSignatureExtraSignersHolder_AddExtraSigSharesToConsensusMessage
 	}
 
 	holder := NewSubRoundSignatureExtraSignersHolder()
-	err := holder.RegisterExtraSingingHandler(extraSigner1)
+	err := holder.RegisterExtraSigningHandler(extraSigner1)
 	require.Nil(t, err)
-	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Nil(t, err)
 
 	err = holder.AddExtraSigSharesToConsensusMessage(expectedSigShares, expectedCnsMsg)
@@ -140,9 +140,9 @@ func TestSubRoundSignatureExtraSignersHolder_StoreExtraSignatureShare(t *testing
 	}
 
 	holder := NewSubRoundSignatureExtraSignersHolder()
-	err := holder.RegisterExtraSingingHandler(extraSigner1)
+	err := holder.RegisterExtraSigningHandler(extraSigner1)
 	require.Nil(t, err)
-	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Nil(t, err)
 
 	err = holder.StoreExtraSignatureShare(expectedSelfIndex, expectedCnsMsg)
