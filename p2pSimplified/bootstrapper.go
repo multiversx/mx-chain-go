@@ -63,6 +63,7 @@ func (b *bootstrapper) tryStart(ctx context.Context) {
 		return
 	}
 
+	b.connectToInitialPeerList()
 	for {
 		select {
 		case <-ctx.Done():
