@@ -189,7 +189,6 @@ var MinTxGasLimit = uint64(1000)
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
 const MaxGasLimitPerBlock = uint64(3000000)
 
-const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
 
 // OpGasValueForMockVm represents the gas value that it consumed by each operation called on the mock VM
@@ -1304,7 +1303,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                 tpn.EconomicsData,
 			BlockBlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:            tpn.HeaderSigVerifier,
@@ -1372,7 +1371,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                 tpn.EconomicsData,
 			BlockBlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:            tpn.HeaderSigVerifier,

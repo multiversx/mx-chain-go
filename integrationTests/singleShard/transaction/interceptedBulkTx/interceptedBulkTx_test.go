@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	//set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)
-	noOfTx := 8000
+	noOfTx := common.MaxTxNonceDeltaAllowed
 
 	time.Sleep(stepDelay)
 
@@ -154,5 +155,5 @@ func TestNode_SendTransactionFromAnUnmintedAccountShouldReturnErrorAtApiLevel(t 
 	tx.Signature, _ = node.OwnAccount.SingleSigner.Sign(node.OwnAccount.SkTxSign, txBuff)
 
 	err := node.Node.ValidateTransaction(tx)
-	assert.True(t, errors.Is(err, process.ErrAccountNotFound))
+	assert.True(t, errors.Is(err, process.ErrInsufficientFunds))
 }

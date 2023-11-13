@@ -10,6 +10,10 @@ void bigIntSetInt64(bigInt destination, long long value);
 long long bigIntGetInt64(bigInt reference);
 void bigIntFinishUnsigned(bigInt reference);
 
+void init()
+{
+}
+
 long long calculate(long long cycles)
 {
    long long rs = 0, i = 0;
