@@ -483,10 +483,12 @@ func TestStatusMetrics_BootstrapMetrics(t *testing.T) {
 
 	sm.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(5001))
 	sm.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(10000))
+	sm.SetUInt64Value(common.MetricShardId, uint64(2))
 
 	expectedMetrics := map[string]interface{}{
 		common.MetricTrieSyncNumReceivedBytes:  uint64(5001),
 		common.MetricTrieSyncNumProcessedNodes: uint64(10000),
+		common.MetricShardId:                   uint64(2),
 	}
 
 	bootstrapMetrics, err := sm.BootstrapMetrics()
