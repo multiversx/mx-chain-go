@@ -90,7 +90,7 @@ func (b *bootstrapper) connectToInitialPeerList() {
 
 		err = b.connectToHost(pi)
 		if err != nil {
-			log.Debug("can not connect to seeder", "address", address, "error", err.Error())
+			log.Warn("can not connect to seeder", "address", address, "error", err.Error())
 		} else {
 			log.Debug("(re)connected to seeder", "address", address)
 		}
