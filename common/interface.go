@@ -396,6 +396,7 @@ type EnableEpochsHandler interface {
 	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 	NFTStopCreateEnabled() bool
+	IsChangeOwnerAddressCrossShardThroughSCEnabled() bool
 
 	IsInterfaceNil() bool
 }

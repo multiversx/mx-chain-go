@@ -55,7 +55,7 @@ func testRelayedAsyncCallShouldWork(t *testing.T, enableEpochs config.EnableEpoc
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
 	deployGasLimit := uint64(50000)
 
-	pathToContract := "testdata/first/first.wasm"
+	pathToContract := "testdata/first/output/first.wasm"
 	firstScAddress := utils.DoDeploySecond(t, testContext, pathToContract, ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(50))
 
 	gasLimit := uint64(5000000)

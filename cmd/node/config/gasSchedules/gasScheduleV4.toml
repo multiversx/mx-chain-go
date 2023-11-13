@@ -18,7 +18,7 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
-    TrieLoadPerNode          = 20000
+    TrieLoadPerNode          = 100000
     TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
