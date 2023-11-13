@@ -9,5 +9,6 @@ const (
 	// GenesisAddressWithBalance holds the initial address that has balance
 	GenesisAddressWithBalance = "erd1rhrm20mmf2pugzxc3twlu3fa264hxeefnglsy4ads4dpccs9s3jsg6qdrz"
 
-	//GenesisAddressWithBalanceSK = "ad1136a125fd3f1cfb154159442e4bc6a3b5c3095943029958ac464da7ce13eb"
+	// GenesisAddressWithBalanceSK holds the secret key of the initial address
+	GenesisAddressWithBalanceSK = "ad1136a125fd3f1cfb154159442e4bc6a3b5c3095943029958ac464da7ce13eb"
 )
