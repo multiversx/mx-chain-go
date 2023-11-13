@@ -634,6 +634,24 @@ func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *test
 	)
 	buffEquiv, _ := wrk.Marshalizer().Marshal(cnsMsgEquiv)
 
+	invalidCnsMsg := consensus.NewConsensusMessage(
+		[]byte("other block header hash"),
+		nil,
+		nil,
+		nil,
+		pubKey,
+		bytes.Repeat([]byte("a"), SignatureSize),
+		int(bls.MtBlockHeaderFinalInfo),
+		0,
+		[]byte("invalid chain id"),
+		[]byte("01"),
+		signature,
+		signature,
+		currentPid,
+		nil,
+	)
+	buffInvalidCnsMsg, _ := wrk.Marshalizer().Marshal(invalidCnsMsg)
+
 	err := wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
@@ -661,6 +679,22 @@ func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *test
 	)
 	assert.Equal(t, spos.ErrEquivalentMessageAlreadyReceived, err)
 
+	equivalentMessages = wrk.GetEquivalentMessages()
+	assert.Equal(t, 1, len(equivalentMessages))
+	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
+
+	err = wrk.ProcessReceivedMessage(
+		&p2pmocks.P2PMessageMock{
+			DataField:      buffInvalidCnsMsg,
+			PeerField:      currentPid,
+			SignatureField: []byte("signatureEquiv"),
+		},
+		equivMsgFrom,
+		&p2pmocks.MessengerStub{},
+	)
+	assert.Error(t, err)
+
+	// same state as before, invalid message should have been dropped
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
