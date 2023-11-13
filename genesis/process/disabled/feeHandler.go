@@ -3,10 +3,14 @@ package disabled
 import (
 	"math"
 	"math/big"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("test")
 
 // FeeHandler represents a disabled fee handler implementation
 type FeeHandler struct {
@@ -49,6 +53,8 @@ func (fh *FeeHandler) ExtraGasLimitGuardedTx() uint64 {
 
 // MaxGasPriceSetGuardian returns 0
 func (fh *FeeHandler) MaxGasPriceSetGuardian() uint64 {
+	log.Warn("FeeHandler.MaxGasPriceSetGuardian", "stack", string(debug.Stack()))
+
 	return math.MaxUint64
 }
 
