@@ -14,6 +14,7 @@ type sovereignSubRoundEndOutGoingTxData struct {
 	signingHandler consensus.SigningHandler
 }
 
+// NewSovereignSubRoundEndOutGoingTxData creates a new signer for sovereign outgoing tx data in end sub round
 func NewSovereignSubRoundEndOutGoingTxData(
 	signingHandler consensus.SigningHandler,
 ) (*sovereignSubRoundEndOutGoingTxData, error) {
@@ -26,6 +27,7 @@ func NewSovereignSubRoundEndOutGoingTxData(
 	}, nil
 }
 
+// VerifyAggregatedSignatures verifies outgoing tx aggregated signatures from provided header
 func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -40,6 +42,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap 
 	return sr.signingHandler.Verify(outGoingMb.GetOutGoingOperationsHash(), bitmap, header.GetEpoch())
 }
 
+// AggregateSignatures aggregates signatures for outgoing tx data
 func (sr *sovereignSubRoundEndOutGoingTxData) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
 	sig, err := sr.signingHandler.AggregateSigs(bitmap, epoch)
 	if err != nil {
@@ -54,6 +57,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AggregateSignatures(bitmap []byte,
 	return sig, nil
 }
 
+// SetAggregatedSignatureInHeader sets aggregated signature for outgoing tx in header
 func (sr *sovereignSubRoundEndOutGoingTxData) SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -73,6 +77,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SetAggregatedSignatureInHeader(hea
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
+// SignAndSetLeaderSignature signs and sets leader signature for outgoing tx in header
 func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -101,6 +106,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header d
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
+// HaveConsensusHeaderWithFullInfo sets aggregated and leader signature in header with provided data from consensus message
 func (sr *sovereignSubRoundEndOutGoingTxData) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -124,6 +130,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) HaveConsensusHeaderWithFullInfo(he
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
+// AddLeaderAndAggregatedSignatures adds aggregated and leader signature in consensus message with provided data from header
 func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -141,10 +148,12 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(h
 	return nil
 }
 
+// Identifier returns the unique id of the signer
 func (sr *sovereignSubRoundEndOutGoingTxData) Identifier() string {
 	return "sovereignSubRoundEndOutGoingTxData"
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (sr *sovereignSubRoundEndOutGoingTxData) IsInterfaceNil() bool {
 	return sr == nil
 }

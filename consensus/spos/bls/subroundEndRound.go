@@ -437,12 +437,11 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
-	// placeholder for AggregateSignatures
 	extraSigs, err := sr.extraSignersHolder.AggregateSignatures(bitmap, sr.Header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateSignatures", "error", err.Error())
-
-		// TODO :MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
+		// TODO: [nice to have] we could add behavior to handle invalid sigs on outgoing operations and decrease rating
+		// Task: MX-14756
 		return nil, err
 	}
 
@@ -462,7 +461,8 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	err = sr.extraSignersHolder.VerifyAggregatedSignatures(sr.Header, bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.extraSignersHolder.verifyAggregatedSignatures", "error", err.Error())
-		// TODO: MariusC. Here we should add behavior to handle invalid sigs on outgoing operations
+		// TODO: [nice to have] we could add behavior to handle invalid sigs on outgoing operations and decrease rating
+		// Task: MX-14756
 		return nil, err
 	}
 
@@ -637,7 +637,6 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		sr.getProcessedHeaderHash(),
 	)
 
-	// placeholder for AddAggregatedSignature
 	err := sr.extraSignersHolder.AddLeaderAndAggregatedSignatures(sr.Header, cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.extraSignatureAggregator.AddLeaderAndAggregatedSignatures", "error", err.Error())

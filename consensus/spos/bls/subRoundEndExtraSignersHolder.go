@@ -15,6 +15,7 @@ type subRoundEndExtraSignersHolder struct {
 	extraSigners    map[string]consensus.SubRoundEndExtraSignatureHandler
 }
 
+// NewSubRoundEndExtraSignersHolder creates a holder fo extra signers in end subround
 func NewSubRoundEndExtraSignersHolder() *subRoundEndExtraSignersHolder {
 	return &subRoundEndExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
@@ -22,6 +23,7 @@ func NewSubRoundEndExtraSignersHolder() *subRoundEndExtraSignersHolder {
 	}
 }
 
+// AggregateSignatures calls AggregateSignatures for all registered signers
 func (holder *subRoundEndExtraSignersHolder) AggregateSignatures(bitmap []byte, epoch uint32) (map[string][]byte, error) {
 	aggregatedSigs := make(map[string][]byte)
 
@@ -43,6 +45,7 @@ func (holder *subRoundEndExtraSignersHolder) AggregateSignatures(bitmap []byte, 
 	return aggregatedSigs, nil
 }
 
+// AddLeaderAndAggregatedSignatures calls AddLeaderAndAggregatedSignatures for all registered signers
 func (holder *subRoundEndExtraSignersHolder) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -61,6 +64,7 @@ func (holder *subRoundEndExtraSignersHolder) AddLeaderAndAggregatedSignatures(he
 	return nil
 }
 
+// SignAndSetLeaderSignature calls SignAndSetLeaderSignature for all registered signers
 func (holder *subRoundEndExtraSignersHolder) SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -79,6 +83,7 @@ func (holder *subRoundEndExtraSignersHolder) SignAndSetLeaderSignature(header da
 	return nil
 }
 
+// SetAggregatedSignatureInHeader calls SetAggregatedSignatureInHeader for all registered signers
 func (holder *subRoundEndExtraSignersHolder) SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSigs map[string][]byte) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -102,6 +107,7 @@ func (holder *subRoundEndExtraSignersHolder) SetAggregatedSignatureInHeader(head
 	return nil
 }
 
+// VerifyAggregatedSignatures calls VerifyAggregatedSignatures for all registered signers
 func (holder *subRoundEndExtraSignersHolder) VerifyAggregatedSignatures(header data.HeaderHandler, bitmap []byte) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -120,6 +126,7 @@ func (holder *subRoundEndExtraSignersHolder) VerifyAggregatedSignatures(header d
 	return nil
 }
 
+// HaveConsensusHeaderWithFullInfo calls HaveConsensusHeaderWithFullInfo for all registered signers
 func (holder *subRoundEndExtraSignersHolder) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -138,6 +145,7 @@ func (holder *subRoundEndExtraSignersHolder) HaveConsensusHeaderWithFullInfo(hea
 	return nil
 }
 
+// RegisterExtraSigningHandler calls RegisterExtraSigningHandler for all registered signers
 func (holder *subRoundEndExtraSignersHolder) RegisterExtraSigningHandler(extraSigner consensus.SubRoundEndExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
@@ -157,6 +165,7 @@ func (holder *subRoundEndExtraSignersHolder) RegisterExtraSigningHandler(extraSi
 	return nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (holder *subRoundEndExtraSignersHolder) IsInterfaceNil() bool {
 	return holder == nil
 }

@@ -63,6 +63,7 @@ type SubRoundSignatureExtraSignatureHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SubRoundEndExtraSignatureHandler defines an extra signer during end subround in a consensus process
 type SubRoundEndExtraSignatureHandler interface {
 	AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error)
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *Message) error
