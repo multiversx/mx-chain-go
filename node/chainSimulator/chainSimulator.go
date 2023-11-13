@@ -31,7 +31,7 @@ func NewChainSimulator(
 	genesisTimestamp int64,
 	roundDurationInMillis uint64,
 	roundsPerEpoch core.OptionalUint64,
-	apiInterface components.APIConfigurator, // interface
+	apiInterface components.APIConfigurator,
 ) (*simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 

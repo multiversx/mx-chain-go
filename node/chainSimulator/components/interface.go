@@ -12,6 +12,7 @@ type SyncedBroadcastNetworkHandler interface {
 	IsInterfaceNil() bool
 }
 
+// APIConfigurator defines what an api configurator should be able to do
 type APIConfigurator interface {
 	RestApiInterface(shardID uint32) string
 }
