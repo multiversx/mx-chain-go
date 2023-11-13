@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
+	rcmgr "github.com/libp2p/go-libp2p/p2p/host/resource-manager"
 	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -70,6 +71,11 @@ func NewNetMessenger(args ArgsNetMessenger) (*netMessenger, error) {
 
 	transport := libp2p.Transport(tcp.NewTCPTransport)
 
+	resourceManager, err := rcmgr.NewResourceManager(rcmgr.NewFixedLimiter(rcmgr.InfiniteLimits))
+	if err != nil {
+		return nil, err
+	}
+
 	// always get a free port
 	address := fmt.Sprintf("/ip4/%s/tcp/%d", tcpInterface, args.Port)
 	options := []libp2p.Option{
@@ -80,6 +86,7 @@ func NewNetMessenger(args ArgsNetMessenger) (*netMessenger, error) {
 		// we need to disable relay option in order to save the node's bandwidth as much as possible
 		libp2p.DisableRelay(),
 		libp2p.NATPortMap(),
+		libp2p.ResourceManager(resourceManager),
 	}
 	options = append(options, transport)
 
