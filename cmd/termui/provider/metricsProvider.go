@@ -2,19 +2,25 @@ package provider
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("termui/provider")
 
 const (
+	AccountsSnapshotNumNodesMetric = "AccountsSnapshotNumNodesMetric"
+
 	statusMetricsUrlSuffix          = "/node/status"
 	bootstrapStatusMetricsUrlSuffix = "/node/bootstrapstatus"
+
+	trieStatisticsMetricsUrlSuffix = "/network/trie-statistics/"
 )
 
 type statusMetricsResponseData struct {
@@ -27,17 +33,37 @@ type responseFromApi struct {
 	Code  string                    `json:"code"`
 }
 
+type trirStatisticsResponseData struct {
+	AccountSnapshotsNumNodes uint64 `json:"accounts-snapshot-num-nodes"`
+}
+
+type responseFromGatewayApi struct {
+	Data  trirStatisticsResponseData `json:"data"`
+	Error string                     `json:"error"`
+	Code  string                     `json:"code"`
+}
+
 // StatusMetricsProvider is the struct that will handle initializing the presenter and fetching updated metrics from the node
 type StatusMetricsProvider struct {
-	presenter     PresenterHandler
-	nodeAddress   string
-	fetchInterval int
+	presenter      PresenterHandler
+	nodeAddress    string
+	gatewayAddress string
+	fetchInterval  int
+	shardID        string
 }
 
 // NewStatusMetricsProvider will return a new instance of a StatusMetricsProvider
-func NewStatusMetricsProvider(presenter PresenterHandler, nodeAddress string, fetchInterval int) (*StatusMetricsProvider, error) {
+func NewStatusMetricsProvider(
+	presenter PresenterHandler,
+	nodeAddress string,
+	gatewayAddress string,
+	fetchInterval int,
+) (*StatusMetricsProvider, error) {
 	if len(nodeAddress) == 0 {
-		return nil, ErrInvalidAddressLength
+		return nil, fmt.Errorf("%w for node address", ErrInvalidAddressLength)
+	}
+	if len(gatewayAddress) == 0 {
+		return nil, fmt.Errorf("%w for gateway address", ErrInvalidAddressLength)
 	}
 	if fetchInterval < 1 {
 		return nil, ErrInvalidFetchInterval
@@ -47,9 +73,10 @@ func NewStatusMetricsProvider(presenter PresenterHandler, nodeAddress string, fe
 	}
 
 	return &StatusMetricsProvider{
-		presenter:     presenter,
-		nodeAddress:   formatUrlAddress(nodeAddress),
-		fetchInterval: fetchInterval,
+		presenter:      presenter,
+		nodeAddress:    formatUrlAddress(nodeAddress),
+		gatewayAddress: gatewayAddress,
+		fetchInterval:  fetchInterval,
 	}, nil
 }
 
@@ -64,8 +91,67 @@ func (smp *StatusMetricsProvider) StartUpdatingData() {
 }
 
 func (smp *StatusMetricsProvider) updateMetrics() {
+	log.Debug("will update metrics")
+
 	smp.fetchAndApplyMetrics(statusMetricsUrlSuffix)
-	smp.fetchAndApplyMetrics(bootstrapStatusMetricsUrlSuffix)
+	smp.fetchAndApplyBootstrapMetrics(bootstrapStatusMetricsUrlSuffix)
+
+	if smp.shardID != "" {
+		log.Debug("will set shard ID")
+		metricsURLSuffix := trieStatisticsMetricsUrlSuffix + smp.shardID
+		smp.fetchAndApplyGatewayStatusMetrics(metricsURLSuffix)
+	}
+}
+
+func (smp *StatusMetricsProvider) fetchAndApplyGatewayStatusMetrics(metricsPath string) {
+	statusMetricsUrl := smp.gatewayAddress + metricsPath
+	numTrieNodes, err := smp.loadMetricsFromGatewayApi(statusMetricsUrl)
+	if err != nil {
+		log.Debug("fetch from Gateway API",
+			"path", statusMetricsUrl,
+			"error", err.Error())
+	}
+
+	err = smp.setPresenterValue(AccountsSnapshotNumNodesMetric, float64(numTrieNodes))
+	if err != nil {
+		log.Debug("termui metric set",
+			"error", err.Error())
+	}
+}
+
+func (smp *StatusMetricsProvider) fetchAndApplyBootstrapMetrics(metricsPath string) {
+	metricsMap, err := smp.loadMetricsFromApi(metricsPath)
+	if err != nil {
+		log.Debug("fetch from API",
+			"path", metricsPath,
+			"error", err.Error())
+		return
+	}
+
+	smp.applyMetricsToPresenter(metricsMap)
+
+	log.Debug("try to set shard id from node bootstrap metrics")
+	smp.setShardID(metricsMap)
+}
+
+func (smp *StatusMetricsProvider) setShardID(metricsMap map[string]interface{}) {
+	if smp.shardID != "" {
+		return
+	}
+
+	shardIDVal, ok := metricsMap[common.MetricShardId]
+	if !ok {
+		log.Debug("unable to fetch shard id metric from map")
+		return
+	}
+
+	shardID, ok := shardIDVal.(float64)
+	if !ok {
+		log.Debug("wrong type assertion shard id")
+		return
+	}
+
+	smp.shardID = fmt.Sprint(shardID)
 }
 
 func (smp *StatusMetricsProvider) fetchAndApplyMetrics(metricsPath string) {
@@ -74,9 +160,10 @@ func (smp *StatusMetricsProvider) fetchAndApplyMetrics(metricsPath string) {
 		log.Debug("fetch from API",
 			"path", metricsPath,
 			"error", err.Error())
-	} else {
-		smp.applyMetricsToPresenter(metricsMap)
+		return
 	}
+
+	smp.applyMetricsToPresenter(metricsMap)
 }
 
 func (smp *StatusMetricsProvider) loadMetricsFromApi(metricsPath string) (map[string]interface{}, error) {
@@ -107,6 +194,39 @@ func (smp *StatusMetricsProvider) loadMetricsFromApi(metricsPath string) (map[st
 	}
 
 	return metricsResponse.Data.Response, nil
+}
+
+func (smp *StatusMetricsProvider) loadMetricsFromGatewayApi(statusMetricsUrl string) (uint64, error) {
+	client := http.Client{}
+
+	log.Debug("statusMetricsUrl", "url", statusMetricsUrl)
+
+	resp, err := client.Get(statusMetricsUrl)
+	if err != nil {
+		return 0, err
+	}
+
+	responseBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			log.Error("close response body", "error", err.Error())
+		}
+	}()
+
+	var metricsResponse responseFromGatewayApi
+	err = json.Unmarshal(responseBytes, &metricsResponse)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Debug("loadMetricsFromGatewayApi: ", "numNodes", metricsResponse.Data.AccountSnapshotsNumNodes)
+
+	return metricsResponse.Data.AccountSnapshotsNumNodes, nil
 }
 
 func (smp *StatusMetricsProvider) applyMetricsToPresenter(metricsMap map[string]interface{}) {

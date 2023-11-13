@@ -194,7 +194,16 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	case isNodeSyncingTrie:
 		syncingStr = statusSyncing
 		bytesReceived := wr.presenter.GetTrieSyncNumBytesReceived()
-		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
+		syncPercentage := wr.presenter.GetTrieSyncProcessedPercentage()
+
+		syncPercentageOut := ""
+		if syncPercentage == 0 {
+			syncPercentageOut = statusNotApplicable
+		} else {
+			syncPercentageOut = fmt.Sprint(syncPercentage) + "%"
+		}
+
+		statusMessage = fmt.Sprintf("Trie sync: %d nodes, progress %s, %s state size", nodesProcessed, syncPercentageOut, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 
