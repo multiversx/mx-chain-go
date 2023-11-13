@@ -267,50 +267,62 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
+// DoEndRoundJobByParticipant calls the unexported method doEndRoundJobByParticipant
 func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
-func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
-	return sr.doEndRoundJobByLeader()
+// DoEndRoundJobByPropagator calls the unexported method doEndRoundJobByPropagator
+func (sr *subroundEndRound) DoEndRoundJobByPropagator() bool {
+	return sr.doEndRoundJobByPropagator()
 }
 
+// HaveConsensusHeaderWithFullInfo calls the unexported method haveConsensusHeaderWithFullInfo
 func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
 	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
 }
 
+// CreateAndBroadcastHeaderFinalInfo calls the unexported method createAndBroadcastHeaderFinalInfo
 func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
 	sr.createAndBroadcastHeaderFinalInfo()
 }
 
+// ReceivedBlockHeaderFinalInfo calls the unexported method receivedBlockHeaderFinalInfo
 func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
 }
 
+// IsBlockHeaderFinalInfoValid calls the unexported method isBlockHeaderFinalInfoValid
 func (sr *subroundEndRound) IsBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
 	return sr.isBlockHeaderFinalInfoValid(cnsDta)
 }
 
+// IsConsensusHeaderReceived calls the unexported method isConsensusHeaderReceived
 func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
 	return sr.isConsensusHeaderReceived()
 }
 
+// IsOutOfTime calls the unexported method isOutOfTime
 func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
 }
 
+// VerifyNodesOnAggSigFail calls the unexported method verifyNodesOnAggSigFail
 func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
 	return sr.verifyNodesOnAggSigFail()
 }
 
+// ComputeAggSigOnValidNodes calls the unexported method computeAggSigOnValidNodes
 func (sr *subroundEndRound) ComputeAggSigOnValidNodes() ([]byte, []byte, error) {
 	return sr.computeAggSigOnValidNodes()
 }
 
+// ReceivedInvalidSignersInfo calls the unexported method receivedInvalidSignersInfo
 func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message) bool {
 	return sr.receivedInvalidSignersInfo(context.Background(), cnsDta)
 }
 
+// VerifyInvalidSigners calls the unexported method verifyInvalidSigners
 func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
 	return sr.verifyInvalidSigners(invalidSigners)
 }

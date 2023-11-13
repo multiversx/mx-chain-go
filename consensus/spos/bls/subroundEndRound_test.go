@@ -1109,7 +1109,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 	})
 }
 
-func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
+func TestSubroundEndRound_DoEndRoundJobByPropagatorVerificationFail(t *testing.T) {
 	t.Parallel()
 
 	t.Run("not enough valid signature shares", func(t *testing.T) {
@@ -1152,7 +1152,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		sr.Header = &block.Header{}
 
-		r := sr.DoEndRoundJobByLeader()
+		r := sr.DoEndRoundJobByPropagator()
 		require.False(t, r)
 
 		assert.False(t, verifyFirstCall)
@@ -1200,7 +1200,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		sr.Header = &block.Header{}
 
-		r := sr.DoEndRoundJobByLeader()
+		r := sr.DoEndRoundJobByPropagator()
 		require.True(t, r)
 
 		assert.False(t, verifyFirstCall)
