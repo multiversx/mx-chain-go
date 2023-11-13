@@ -2,11 +2,11 @@ package components
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/multiformats/go-multiaddr"
@@ -27,7 +27,7 @@ type bootstrapper struct {
 func newBootstrapper(h host.Host, initialPeerList []string, protocolID protocol.ID) (*bootstrapper, error) {
 	instance := &bootstrapper{
 		h:               h,
-		chStart:         make(chan struct{}),
+		chStart:         make(chan struct{}, 1),
 		initialPeerList: initialPeerList,
 	}
 
@@ -51,12 +51,12 @@ func newBootstrapper(h host.Host, initialPeerList []string, protocolID protocol.
 }
 
 func (b *bootstrapper) tryStart(ctx context.Context) {
-	defer func() {
-		err := b.kadDHT.Bootstrap(ctx)
-		if err != nil {
-			log.Error(b.h.ID().String() + ": for kadDHT Bootstrap call: " + err.Error())
-		}
-	}()
+	<-b.chStart
+
+	err := b.kadDHT.Bootstrap(ctx)
+	if err != nil {
+		log.Error(b.h.ID().String() + ": for kadDHT Bootstrap call: " + err.Error())
+	}
 
 	if len(b.initialPeerList) == 0 {
 		log.Debug(b.h.ID().String() + ": no initial peer list provided")
@@ -66,50 +66,55 @@ func (b *bootstrapper) tryStart(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info(b.h.ID().String() + ": bootstrapper try start ended early")
+			log.Debug(b.h.ID().String() + ": stopping bootstrapper")
 			return
-		case <-b.chStart:
-			err := b.connectToInitialPeerList()
-			if err == nil {
-				log.Info(b.h.ID().String() + ": CONNECTED to the network")
-				return
-			}
-
-			time.Sleep(retryReconnectionToInitialPeerListInterval)
+		case <-time.After(retryReconnectionToInitialPeerListInterval):
+			b.connectToInitialPeerList()
 		}
 	}
 }
 
 // connectToInitialPeerList will return the error if there sunt
-func (b *bootstrapper) connectToInitialPeerList() error {
+func (b *bootstrapper) connectToInitialPeerList() {
 	for _, address := range b.initialPeerList {
-		err := b.connectToHost(address)
+		pi, err := b.getAdrInfoFromP2pAddr(address)
 		if err != nil {
-			log.Debug(b.h.ID().String() + ": while attempting initial connection to " + address + ": " + err.Error())
+			log.Warn("bootstrapper.connectToInitialPeerList - getAdrInfoFromP2pAddr", "error", err)
 			continue
 		}
 
-		return nil
-	}
+		if b.h.Network().Connectedness(pi.ID) == network.Connected {
+			continue
+		}
 
-	return fmt.Errorf("unable to connect to initial peers")
+		err = b.connectToHost(pi)
+		if err != nil {
+			log.Debug("can not connect to seeder", "address", address, "error", err.Error())
+		} else {
+			log.Debug("(re)connected to seeder", "address", address)
+		}
+	}
 }
 
-func (b *bootstrapper) connectToHost(address string) error {
+func (b *bootstrapper) connectToHost(pi peer.AddrInfo) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeToConnect)
 	defer cancel()
 
+	return b.h.Connect(ctx, pi)
+}
+
+func (b *bootstrapper) getAdrInfoFromP2pAddr(address string) (peer.AddrInfo, error) {
 	multiAddr, err := multiaddr.NewMultiaddr(address)
 	if err != nil {
-		return err
+		return peer.AddrInfo{}, err
 	}
 
 	pi, err := peer.AddrInfoFromP2pAddr(multiAddr)
 	if err != nil {
-		return err
+		return peer.AddrInfo{}, err
 	}
 
-	return b.h.Connect(ctx, *pi)
+	return *pi, nil
 }
 
 func (b *bootstrapper) bootstrap() {
