@@ -43,7 +43,7 @@ func testRelayedESDTTransferShouldWork(relayedFixActivationEpoch uint32) func(t 
 		innerTx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), gasPrice, gasLimit)
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -97,7 +97,7 @@ func testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(relayedFixActivatio
 		innerTx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100000001), gasPrice, gasLimit)
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)

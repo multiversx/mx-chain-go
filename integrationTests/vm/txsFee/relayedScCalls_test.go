@@ -45,7 +45,7 @@ func testRelayedScCallShouldWork(relayedFixActivationEpoch uint32) func(t *testi
 		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -96,7 +96,7 @@ func testRelayedScCallContractNotFoundShouldConsumeGas(relayedFixActivationEpoch
 		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddrBytes, gasPrice, gasLimit, []byte("increment"))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -144,7 +144,7 @@ func testRelayedScCallInvalidMethodShouldConsumeGas(relayedFixActivationEpoch ui
 		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("invalidMethod"))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -192,7 +192,7 @@ func testRelayedScCallInsufficientGasLimitShouldConsumeGas(relayedFixActivationE
 		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -238,7 +238,7 @@ func testRelayedScCallOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint32)
 		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -317,7 +317,7 @@ func testRelayedDeployInvalidContractShouldIncrementNonceOnSender(
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(100), senderAddr, emptyAddress, gasPrice, gasLimit, nil)
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, userTx.Value, relayerAddr, senderAddr, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)

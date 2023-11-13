@@ -1001,7 +1001,7 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		1,
+		minGasLimit,
 		make([]byte, 0))
 
 	userTx.Version = txWithOptionVersion
@@ -1125,7 +1125,7 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		1,
+		minGasLimit,
 		make([]byte, 0))
 
 	userTx.Version = txWithOptionVersion

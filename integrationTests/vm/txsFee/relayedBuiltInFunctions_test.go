@@ -48,7 +48,7 @@ func testRelayedBuildInFunctionChangeOwnerCallShouldWork(relayedFixActivationEpo
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -103,7 +103,7 @@ func testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(relayed
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 		rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
 		retCode, err := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -149,7 +149,7 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -213,7 +213,7 @@ func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
@@ -251,13 +251,13 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 	newOwner := []byte("12345678901234567890123456789112")
 
 	txData := []byte(core.BuiltInFunctionChangeOwnerAddress + "@" + hex.EncodeToString(newOwner))
-	gasLimit := uint64(len(txData) + 1)
+	gasLimit := uint64(len(txData)) + minGasLimit
 	innerTx := vm.CreateTransaction(1, big.NewInt(0), owner, scAddress, gasPrice, gasLimit, txData)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(innerTx)
-	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, innerTx.Value, relayerAddr, owner, gasPrice, rTxGasLimit, rtxData)
 
 	retCode, _ := testContext.TxProcessor.ProcessTransaction(rtx)
