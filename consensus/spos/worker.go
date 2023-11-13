@@ -398,8 +398,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 
-	err = wrk.processEquivalentMessage(msgType, cnsMsg.BlockHeaderHash)
+	wrk.mutEquivalentMessages.Lock()
+	err = wrk.processEquivalentMessageUnprotected(msgType, cnsMsg.BlockHeaderHash)
 	if err != nil {
+		wrk.mutEquivalentMessages.Unlock()
 		return err
 	}
 
@@ -413,9 +415,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 
 	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, message.Peer())
 	if err != nil {
-		wrk.processInvalidEquivalentMessage(msgType, cnsMsg.BlockHeaderHash)
+		wrk.processInvalidEquivalentMessageUnprotected(msgType, cnsMsg.BlockHeaderHash)
+		wrk.mutEquivalentMessages.Unlock()
 		return err
 	}
+	wrk.mutEquivalentMessages.Unlock()
 
 	wrk.networkShardingCollector.UpdatePeerIDInfo(message.Peer(), cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
 
@@ -729,16 +733,13 @@ func (wrk *Worker) ResetConsensusMessages() {
 	wrk.consensusMessageValidator.resetConsensusMessages()
 }
 
-func (wrk *Worker) processEquivalentMessage(msgType consensus.MessageType, blockHeaderHash []byte) error {
+func (wrk *Worker) processEquivalentMessageUnprotected(msgType consensus.MessageType, blockHeaderHash []byte) error {
 	// early exit if the message is not with final info
 	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
 		return nil
 	}
 
 	hdrHash := string(blockHeaderHash)
-
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
 
 	// if an equivalent message was seen before, return error to stop further broadcasts
 	numMessages := wrk.equivalentMessages[hdrHash]
@@ -750,15 +751,12 @@ func (wrk *Worker) processEquivalentMessage(msgType consensus.MessageType, block
 	return nil
 }
 
-func (wrk *Worker) processInvalidEquivalentMessage(msgType consensus.MessageType, blockHeaderHash []byte) {
+func (wrk *Worker) processInvalidEquivalentMessageUnprotected(msgType consensus.MessageType, blockHeaderHash []byte) {
 	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
 		return
 	}
 
 	hdrHash := string(blockHeaderHash)
-
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
 
 	delete(wrk.equivalentMessages, hdrHash)
 }
