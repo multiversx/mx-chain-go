@@ -414,6 +414,7 @@ func (sm *statusMetrics) BootstrapMetrics() (map[string]interface{}, error) {
 	sm.mutUint64Operations.RLock()
 	bootstrapMetrics[common.MetricTrieSyncNumReceivedBytes] = sm.uint64Metrics[common.MetricTrieSyncNumReceivedBytes]
 	bootstrapMetrics[common.MetricTrieSyncNumProcessedNodes] = sm.uint64Metrics[common.MetricTrieSyncNumProcessedNodes]
+	bootstrapMetrics[common.MetricShardId] = sm.uint64Metrics[common.MetricShardId]
 	sm.mutUint64Operations.RUnlock()
 
 	return bootstrapMetrics, nil
