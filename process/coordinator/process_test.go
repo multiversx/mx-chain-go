@@ -1838,9 +1838,9 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 	mutex := sync.Mutex{}
 
 	requestHandler := &testscommon.RequestHandlerStub{
-		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
 			mutex.Lock()
-			nrCalled++
+			nrCalled += len(miniblocksHashes)
 			mutex.Unlock()
 		},
 	}
@@ -1886,14 +1886,14 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
 
-	tc.RequestMiniBlocks(nil)
+	tc.RequestMiniBlocksAndTransactions(nil)
 	time.Sleep(time.Second)
 	mutex.Lock()
 	assert.Equal(t, 0, nrCalled)
 	mutex.Unlock()
 
 	header := createTestMetablock()
-	tc.RequestMiniBlocks(header)
+	tc.RequestMiniBlocksAndTransactions(header)
 
 	crossMbs := header.GetMiniBlockHeadersWithDst(shardCoordinator.SelfId())
 	time.Sleep(time.Second)
@@ -4428,4 +4428,84 @@ func TestTransactionCoordinator_getIndexesOfLastTxProcessed(t *testing.T) {
 		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
 	})
+}
+
+func TestTransactionCoordinator_requestMissingMiniBlocksAndTransactionsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTransactionCoordinatorArguments()
+	args.MiniBlockPool = &testscommon.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			if bytes.Equal(key, []byte("hash0")) || bytes.Equal(key, []byte("hash1")) || bytes.Equal(key, []byte("hash2")) {
+				if bytes.Equal(key, []byte("hash0")) {
+					return nil, true
+				}
+
+				if bytes.Equal(key, []byte("hash1")) {
+					return &block.MiniBlock{
+						Type: block.PeerBlock,
+						TxHashes: [][]byte{
+							[]byte("hash 1"),
+							[]byte("hash 2"),
+						},
+					}, true
+				}
+
+				if bytes.Equal(key, []byte("hash2")) {
+					return &block.MiniBlock{
+						Type: block.TxBlock,
+						TxHashes: [][]byte{
+							[]byte("hash 3"),
+							[]byte("hash 4"),
+						},
+					}, true
+				}
+			}
+			return nil, false
+		},
+	}
+
+	tc, _ := NewTransactionCoordinator(args)
+
+	numTxsRequested := 0
+	tc.txPreProcessors[block.TxBlock] = &mock.PreProcessorMock{
+		RequestTransactionsForMiniBlockCalled: func(miniBlock *block.MiniBlock) int {
+			numTxsRequested += len(miniBlock.TxHashes)
+			return len(miniBlock.TxHashes)
+		},
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(3)
+	mapRequestedMiniBlocksPerShard := make(map[uint32]int)
+	mutMap := sync.RWMutex{}
+	tc.onRequestMiniBlocks = func(shardId uint32, mbHashes [][]byte) {
+		mutMap.Lock()
+		mapRequestedMiniBlocksPerShard[shardId] += len(mbHashes)
+		mutMap.Unlock()
+		wg.Done()
+	}
+
+	mbsInfo := []*data.MiniBlockInfo{
+		{SenderShardID: 0},
+		{SenderShardID: 1},
+		{SenderShardID: 2},
+		{SenderShardID: 0, Hash: []byte("hash0")},
+		{SenderShardID: 1, Hash: []byte("hash1")},
+		{SenderShardID: 2, Hash: []byte("hash2")},
+		{SenderShardID: 0},
+		{SenderShardID: 1},
+		{SenderShardID: 0},
+	}
+
+	tc.requestMissingMiniBlocksAndTransactions(mbsInfo)
+
+	wg.Wait()
+
+	mutMap.RLock()
+	assert.Equal(t, 3, mapRequestedMiniBlocksPerShard[0])
+	assert.Equal(t, 2, mapRequestedMiniBlocksPerShard[1])
+	assert.Equal(t, 1, mapRequestedMiniBlocksPerShard[2])
+	assert.Equal(t, 2, numTxsRequested)
+	mutMap.RUnlock()
 }

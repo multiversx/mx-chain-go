@@ -1689,7 +1689,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	// waiting for late broadcast of mini blocks and transactions to be done and received
 	time.Sleep(waitTime)
 
-	bp.txCoordinator.RequestMiniBlocks(headerHandler)
+	bp.txCoordinator.RequestMiniBlocksAndTransactions(headerHandler)
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {

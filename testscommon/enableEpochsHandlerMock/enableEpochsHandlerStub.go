@@ -132,6 +132,7 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 	IsNFTStopCreateEnabledField                                  bool
+	IsChangeOwnerAddressCrossShardThroughSCEnabledField          bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1131,6 +1132,14 @@ func (stub *EnableEpochsHandlerStub) NFTStopCreateEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsNFTStopCreateEnabledField
+}
+
+// IsChangeOwnerAddressCrossShardThroughSCEnabled -
+func (stub *EnableEpochsHandlerStub) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsChangeOwnerAddressCrossShardThroughSCEnabledField
 }
 
 // IsInterfaceNil -
