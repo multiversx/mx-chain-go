@@ -374,29 +374,29 @@ func (mh *miniblocksHandler) updateMiniblockMetadataOnBlock(
 ) error {
 	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while getting the epoch for miniblock %x", err, miniblockHash)
 	}
 
 	updated, err := mh.updateMiniblockMetadataOnBlockInEpoch(epoch, miniblockHash, headerHash, updateHandler)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while searching in epoch %d", err, epoch)
 	}
 	if updated {
-		// found the block hash, no need to search in the next epoch
 		return nil
 	}
 
-	updated, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch+1, miniblockHash, headerHash, updateHandler)
+	// will search in the previous epoch
+	updated, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch-1, miniblockHash, headerHash, updateHandler)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while searching in epoch %d", err, epoch-1)
 	}
-	if !updated {
-		// programming error: not found in epoch+1, the blockhash should have been written in either epoch `epoch`
-		// or epoch `epoch+1`
-		return storage.ErrKeyNotFound
+	if updated {
+		return nil
 	}
 
-	return nil
+	// programming error: not found in epoch-1, the blockhash should have been written in either epoch `epoch`
+	// or epoch `epoch-1`
+	return fmt.Errorf("%w while searching in epochs %d and %d", storage.ErrKeyNotFound, epoch, epoch-1)
 }
 
 func (mh *miniblocksHandler) updateMiniblockMetadataOnBlockInEpoch(
