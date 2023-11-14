@@ -110,6 +110,7 @@ section, add the following lines:
 ```
 sudo docker compose -f docker-compose.base.yml -f docker-compose-linux.yml up --force-recreate
 ```
+**Note:** this command is not compatible with compose v1, thus an update to v2 would be needed. More details about the migration [here](https://docs.docker.com/compose/migrate/).
 6. The preconfigured dashboards should be now available on Grafana at http://localhost:3000/dashboards
 
 ## Progress

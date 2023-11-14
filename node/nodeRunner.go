@@ -769,12 +769,14 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 	if check.IfNil(managedStatusCoreComponents) {
 		return nil, ErrNilStatusHandler
 	}
-	initialFacade, err := initial.NewInitialNodeFacade(
-		nr.configs.FlagsConfig.RestApiInterface,
-		nr.configs.FlagsConfig.EnablePprof,
-		nr.configs.FlagsConfig.P2PPrometheusMetricsEnabled,
-		managedStatusCoreComponents.StatusMetrics(),
-	)
+
+	argsInitialNodeFacade := initial.ArgInitialNodeFacade{
+		ApiInterface:                nr.configs.FlagsConfig.RestApiInterface,
+		PprofEnabled:                nr.configs.FlagsConfig.EnablePprof,
+		P2PPrometheusMetricsEnabled: nr.configs.FlagsConfig.P2PPrometheusMetricsEnabled,
+		StatusMetricsHandler:        managedStatusCoreComponents.StatusMetrics(),
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(argsInitialNodeFacade)
 	if err != nil {
 		return nil, err
 	}

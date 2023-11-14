@@ -26,6 +26,14 @@ import (
 var errNodeStarting = errors.New("node is starting")
 var emptyString = ""
 
+// ArgInitialNodeFacade is the DTO used to create a new instance of initialNodeFacade
+type ArgInitialNodeFacade struct {
+	ApiInterface                string
+	PprofEnabled                bool
+	P2PPrometheusMetricsEnabled bool
+	StatusMetricsHandler        external.StatusMetricsHandler
+}
+
 // initialNodeFacade represents a facade with no functionality
 type initialNodeFacade struct {
 	apiInterface                string
@@ -35,21 +43,21 @@ type initialNodeFacade struct {
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, p2pPrometheusMetricsEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
-	if check.IfNil(statusMetricsHandler) {
+func NewInitialNodeFacade(args ArgInitialNodeFacade) (*initialNodeFacade, error) {
+	if check.IfNil(args.StatusMetricsHandler) {
 		return nil, facade.ErrNilStatusMetrics
 	}
 
-	initialStatusMetrics, err := NewInitialStatusMetricsProvider(statusMetricsHandler)
+	initialStatusMetrics, err := NewInitialStatusMetricsProvider(args.StatusMetricsHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	return &initialNodeFacade{
-		apiInterface:                apiInterface,
+		apiInterface:                args.ApiInterface,
 		statusMetricsHandler:        initialStatusMetrics,
-		pprofEnabled:                pprofEnabled,
-		p2pPrometheusMetricsEnabled: p2pPrometheusMetricsEnabled,
+		pprofEnabled:                args.PprofEnabled,
+		p2pPrometheusMetricsEnabled: args.P2PPrometheusMetricsEnabled,
 	}, nil
 }
 

@@ -22,7 +22,12 @@ func TestCommon_checkArgs(t *testing.T) {
 	err := checkArgs(args)
 	require.True(t, errors.Is(err, apiErrors.ErrCannotCreateGinWebServer))
 
-	args.Facade, err = initial.NewInitialNodeFacade("api interface", false, false, &testscommon.StatusMetricsStub{})
+	args.Facade, err = initial.NewInitialNodeFacade(initial.ArgInitialNodeFacade{
+		ApiInterface:                "api interface",
+		PprofEnabled:                false,
+		P2PPrometheusMetricsEnabled: false,
+		StatusMetricsHandler:        &testscommon.StatusMetricsStub{},
+	})
 	require.NoError(t, err)
 	err = checkArgs(args)
 	require.NoError(t, err)
