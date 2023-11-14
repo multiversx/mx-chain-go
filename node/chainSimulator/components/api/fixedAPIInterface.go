@@ -17,5 +17,5 @@ func NewFixedPortAPIConfigurator(restAPIInterface string, mapShardPort map[uint3
 
 // RestApiInterface will return the api interface for the provided shard
 func (f *fixedPortAPIConfigurator) RestApiInterface(shardID uint32) string {
-	return fmt.Sprintf("%s:%d", f.restAPIInterface, f.restAPIInterface[shardID])
+	return fmt.Sprintf("%s:%d", f.restAPIInterface, f.mapShardPort[shardID])
 }

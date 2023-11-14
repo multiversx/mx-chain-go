@@ -94,6 +94,5 @@ func (s *statusComponentsHolder) SetForkDetector(_ process.ForkDetector) error {
 
 // StartPolling will do nothing
 func (s *statusComponentsHolder) StartPolling() error {
-	// todo check if this method
 	return nil
 }

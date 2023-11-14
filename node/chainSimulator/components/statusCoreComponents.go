@@ -18,7 +18,7 @@ type statusCoreComponentsHolder struct {
 	persistentStatusHandler    factory.PersistentStatusHandler
 }
 
-// CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHolder
+// CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHandler
 func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHandler, error) {
 	var err error
 
