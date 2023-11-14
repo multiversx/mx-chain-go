@@ -15,6 +15,7 @@ type subRoundSignatureExtraSignersHolder struct {
 	extraSigners    map[string]consensus.SubRoundSignatureExtraSignatureHandler
 }
 
+// NewSubRoundSignatureExtraSignersHolder creates a holder for extra signers in signature subround
 func NewSubRoundSignatureExtraSignersHolder() *subRoundSignatureExtraSignersHolder {
 	return &subRoundSignatureExtraSignersHolder{
 		mutExtraSigners: sync.RWMutex{},
@@ -22,6 +23,7 @@ func NewSubRoundSignatureExtraSignersHolder() *subRoundSignatureExtraSignersHold
 	}
 }
 
+// CreateExtraSignatureShares calls CreateSignatureShare for all registered signers
 func (holder *subRoundSignatureExtraSignersHolder) CreateExtraSignatureShares(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) (map[string][]byte, error) {
 	ret := make(map[string][]byte)
 
@@ -42,6 +44,7 @@ func (holder *subRoundSignatureExtraSignersHolder) CreateExtraSignatureShares(he
 	return ret, nil
 }
 
+// AddExtraSigSharesToConsensusMessage calls AddExtraSigSharesToConsensusMessage for all registered signers
 func (holder *subRoundSignatureExtraSignersHolder) AddExtraSigSharesToConsensusMessage(extraSigShares map[string][]byte, cnsMsg *consensus.Message) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -59,6 +62,7 @@ func (holder *subRoundSignatureExtraSignersHolder) AddExtraSigSharesToConsensusM
 	return nil
 }
 
+// StoreExtraSignatureShare calls StoreExtraSignatureShare for all registered signers
 func (holder *subRoundSignatureExtraSignersHolder) StoreExtraSignatureShare(index uint16, cnsMsg *consensus.Message) error {
 	holder.mutExtraSigners.RLock()
 	defer holder.mutExtraSigners.RUnlock()
@@ -75,6 +79,7 @@ func (holder *subRoundSignatureExtraSignersHolder) StoreExtraSignatureShare(inde
 	return nil
 }
 
+// RegisterExtraSingingHandler will register a new extra signer
 func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
@@ -94,6 +99,7 @@ func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSingingHandler(e
 	return nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (holder *subRoundSignatureExtraSignersHolder) IsInterfaceNil() bool {
 	return holder == nil
 }
