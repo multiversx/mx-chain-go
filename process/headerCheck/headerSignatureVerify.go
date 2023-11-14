@@ -1,7 +1,6 @@
 package headerCheck
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -11,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -176,17 +174,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	err = multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
-	if err != nil {
-		return err
-	}
-
-	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-	}
-
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, sovHeader.GetOutGoingMiniBlockHeaderHandler().GetOutGoingOperationsHash(), sovHeader.GetOutGoingMiniBlockHeaderHandler().GetAggregatedSignatureOutGoingOperations())
+	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
@@ -309,23 +297,7 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 		return err
 	}
 
-	err = hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
-	if err != nil {
-		return err
-	}
-
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-
-	leaderMsgToSign := append(
-		outGoingMb.GetOutGoingOperationsHash(),
-		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
-
-	return hsv.singleSigVerifier.Verify(leaderPubKey, leaderMsgToSign, header.(data.SovereignChainHeaderHandler).GetOutGoingMiniBlockHeaderHandler().GetLeaderSignatureOutGoingOperations())
+	return hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
@@ -363,16 +335,6 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 		return nil, err
 	}
 
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
-	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
-
 	return headerCopy, nil
 }
 
@@ -382,15 +344,6 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandl
 	if err != nil {
 		return nil, err
 	}
-
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 
 	return headerCopy, nil
 }
