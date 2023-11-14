@@ -1,7 +1,6 @@
 package headerCheck
 
 import (
-	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -11,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -41,6 +39,8 @@ type HeaderSigVerifier struct {
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
+
+	extraSigVerifier *sovereignHeaderSigVerifier
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -58,6 +58,9 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		singleSigVerifier:       arguments.SingleSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
+		extraSigVerifier: &sovereignHeaderSigVerifier{
+			singleSigVerifier: arguments.SingleSigVerifier,
+		},
 	}, nil
 }
 
@@ -181,12 +184,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-	}
-
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, sovHeader.GetOutGoingMiniBlockHeaderHandler().GetOutGoingOperationsHash(), sovHeader.GetOutGoingMiniBlockHeaderHandler().GetAggregatedSignatureOutGoingOperations())
+	return hsv.extraSigVerifier.VerifySignature(header, multiSigVerifier, pubKeysSigners)
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
@@ -314,18 +312,7 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 		return err
 	}
 
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
-	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-
-	leaderMsgToSign := append(
-		outGoingMb.GetOutGoingOperationsHash(),
-		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
-
-	return hsv.singleSigVerifier.Verify(leaderPubKey, leaderMsgToSign, header.(data.SovereignChainHeaderHandler).GetOutGoingMiniBlockHeaderHandler().GetLeaderSignatureOutGoingOperations())
+	return hsv.extraSigVerifier.VerifyLeaderSignature(headerCopy, leaderPubKey, header)
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
@@ -363,15 +350,10 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 		return nil, err
 	}
 
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+	err = hsv.extraSigVerifier.RemoveAllSignatures(headerCopy)
+	if err != nil {
+		return nil, err
 	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
-	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 
 	return headerCopy, nil
 }
@@ -383,14 +365,10 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandl
 		return nil, err
 	}
 
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return nil, fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+	err = hsv.extraSigVerifier.RemoveLeaderSig(headerCopy)
+	if err != nil {
+		return nil, err
 	}
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 
 	return headerCopy, nil
 }
