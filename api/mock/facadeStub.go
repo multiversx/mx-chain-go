@@ -93,6 +93,7 @@ type FacadeStub struct {
 	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	P2PPrometheusMetricsEnabledCalled           func() bool
 }
 
 // GetTokenSupply -
@@ -608,6 +609,14 @@ func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
 		return f.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
+}
+
+// P2PPrometheusMetricsEnabled -
+func (f *FacadeStub) P2PPrometheusMetricsEnabled() bool {
+	if f.P2PPrometheusMetricsEnabledCalled != nil {
+		return f.P2PPrometheusMetricsEnabledCalled()
+	}
+	return false
 }
 
 // Close -

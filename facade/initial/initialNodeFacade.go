@@ -28,13 +28,14 @@ var emptyString = ""
 
 // initialNodeFacade represents a facade with no functionality
 type initialNodeFacade struct {
-	apiInterface         string
-	statusMetricsHandler external.StatusMetricsHandler
-	pprofEnabled         bool
+	apiInterface                string
+	statusMetricsHandler        external.StatusMetricsHandler
+	pprofEnabled                bool
+	p2pPrometheusMetricsEnabled bool
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
+func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, p2pPrometheusMetricsEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
 	if check.IfNil(statusMetricsHandler) {
 		return nil, facade.ErrNilStatusMetrics
 	}
@@ -45,9 +46,10 @@ func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsH
 	}
 
 	return &initialNodeFacade{
-		apiInterface:         apiInterface,
-		statusMetricsHandler: initialStatusMetrics,
-		pprofEnabled:         pprofEnabled,
+		apiInterface:                apiInterface,
+		statusMetricsHandler:        initialStatusMetrics,
+		pprofEnabled:                pprofEnabled,
+		p2pPrometheusMetricsEnabled: p2pPrometheusMetricsEnabled,
 	}, nil
 }
 
@@ -76,7 +78,7 @@ func (inf *initialNodeFacade) SetSyncer(_ ntp.SyncTimer) {
 }
 
 // RestAPIServerDebugMode returns false
-//TODO: remove in the future
+// TODO: remove in the future
 func (inf *initialNodeFacade) RestAPIServerDebugMode() bool {
 	return false
 }
@@ -424,6 +426,11 @@ func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
 // GetWaitingManagedKeys returns nil and error
 func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
+}
+
+// P2PPrometheusMetricsEnabled returns either the p2p prometheus metrics are enabled or not
+func (inf *initialNodeFacade) P2PPrometheusMetricsEnabled() bool {
+	return inf.p2pPrometheusMetricsEnabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

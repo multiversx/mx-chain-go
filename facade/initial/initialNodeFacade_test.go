@@ -17,14 +17,14 @@ func TestInitialNodeFacade(t *testing.T) {
 	t.Run("nil status metrics should error", func(t *testing.T) {
 		t.Parallel()
 
-		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, nil)
+		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, false, nil)
 		assert.Equal(t, facade.ErrNilStatusMetrics, err)
 		assert.Nil(t, inf)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, &testscommon.StatusMetricsStub{})
+		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, false, &testscommon.StatusMetricsStub{})
 		assert.Nil(t, err)
 		assert.NotNil(t, inf)
 	})
@@ -40,7 +40,7 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	}()
 
 	apiInterface := "127.0.0.1:7799"
-	inf, err := NewInitialNodeFacade(apiInterface, true, &testscommon.StatusMetricsStub{})
+	inf, err := NewInitialNodeFacade(apiInterface, true, false, &testscommon.StatusMetricsStub{})
 	assert.Nil(t, err)
 
 	inf.SetSyncer(nil)
@@ -325,6 +325,6 @@ func TestInitialNodeFacade_IsInterfaceNil(t *testing.T) {
 	var inf *initialNodeFacade
 	assert.True(t, inf.IsInterfaceNil())
 
-	inf, _ = NewInitialNodeFacade("127.0.0.1:7799", true, &testscommon.StatusMetricsStub{})
+	inf, _ = NewInitialNodeFacade("127.0.0.1:7799", true, false, &testscommon.StatusMetricsStub{})
 	assert.False(t, inf.IsInterfaceNil())
 }
