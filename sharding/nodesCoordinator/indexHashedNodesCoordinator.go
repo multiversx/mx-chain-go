@@ -375,7 +375,7 @@ func (ihnc *indexHashedNodesCoordinator) baseComputeConsensusGroup(
 	}
 
 	consensusSize := ihnc.ConsensusGroupSize(shardID)
-	randomness = []byte("dsa") //[]byte(fmt.Sprintf("%d-%s", round, randomness))
+	randomness = []byte(fmt.Sprintf("%d-%s", round, randomness))
 
 	log.Debug("computeValidatorsGroup",
 		"randomness", randomness,
