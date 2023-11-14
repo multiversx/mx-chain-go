@@ -184,7 +184,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	return hsv.extraSigVerifier.VerifySignature(header, multiSigVerifier, pubKeysSigners)
+	return hsv.extraSigVerifier.VerifyAggregatedSignature(header, multiSigVerifier, pubKeysSigners)
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
@@ -312,7 +312,7 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 		return err
 	}
 
-	return hsv.extraSigVerifier.VerifyLeaderSignature(headerCopy, leaderPubKey, header)
+	return hsv.extraSigVerifier.VerifyLeaderSignature(header, leaderPubKey)
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
@@ -365,7 +365,7 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandl
 		return nil, err
 	}
 
-	err = hsv.extraSigVerifier.RemoveLeaderSig(headerCopy)
+	err = hsv.extraSigVerifier.RemoveLeaderSignature(headerCopy)
 	if err != nil {
 		return nil, err
 	}

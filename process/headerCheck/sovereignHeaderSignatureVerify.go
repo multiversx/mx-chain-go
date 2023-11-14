@@ -7,45 +7,58 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type sovereignHeaderSigVerifier struct {
 	singleSigVerifier crypto.SingleSigner
 }
 
-func (hsv *sovereignHeaderSigVerifier) VerifySignature(
+func NewSovereignHeaderSigVerifier(singleSigVerifier crypto.SingleSigner) (*sovereignHeaderSigVerifier, error) {
+	if check.IfNil(singleSigVerifier) {
+		return nil, process.ErrNilSingleSigner
+	}
+
+	return &sovereignHeaderSigVerifier{
+		singleSigVerifier: singleSigVerifier,
+	}, nil
+}
+
+func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 	header data.HeaderHandler,
 	multiSigVerifier crypto.MultiSigner,
 	pubKeysSigners [][]byte,
 ) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyAggregatedSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	if check.IfNil(outGoingMBHeader) {
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	if check.IfNil(outGoingMb) {
 		return nil
 	}
 
 	return multiSigVerifier.VerifyAggregatedSig(
 		pubKeysSigners,
-		outGoingMBHeader.GetOutGoingOperationsHash(),
-		outGoingMBHeader.GetAggregatedSignatureOutGoingOperations(),
+		outGoingMb.GetOutGoingOperationsHash(),
+		outGoingMb.GetAggregatedSignatureOutGoingOperations(),
 	)
 }
 
 func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
-	headerWithoutSignatures data.HeaderHandler,
+	header data.HeaderHandler,
 	leaderPubKey crypto.PublicKey,
-	headerWithSignatures data.HeaderHandler,
 ) error {
-	sovHeader, castOk := headerWithoutSignatures.(data.SovereignChainHeaderHandler)
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	if check.IfNil(outGoingMb) {
+		return nil
+	}
 
 	leaderMsgToSign := append(
 		outGoingMb.GetOutGoingOperationsHash(),
@@ -54,32 +67,57 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 	return hsv.singleSigVerifier.Verify(
 		leaderPubKey,
 		leaderMsgToSign,
-		headerWithSignatures.(data.SovereignChainHeaderHandler).GetOutGoingMiniBlockHeaderHandler().GetLeaderSignatureOutGoingOperations())
+		outGoingMb.GetLeaderSignatureOutGoingOperations())
 }
 
-func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSig(header data.HeaderHandler) error {
+func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderHandler) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	if check.IfNil(outGoingMb) {
+		return nil
+	}
 
-	return nil
+	err := outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
+	if err != nil {
+		return err
+	}
+
+	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
-func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(headerCopy data.HeaderHandler) error {
-	sovHeader, castOk := headerCopy.(data.SovereignChainHeaderHandler)
+func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHandler) error {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundOutGoingTxDataSignature.CreateSignatureShare", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveAllSignatures", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
-	outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	if check.IfNil(outGoingMb) {
+		return nil
+	}
 
-	return nil
+	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
+	if err != nil {
+		return err
+	}
+
+	err = outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
+	if err != nil {
+		return err
+	}
+
+	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+}
+
+func (hsv *sovereignHeaderSigVerifier) Identifier() string {
+	return "sovereignHeaderSigVerifier"
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (hsv *sovereignHeaderSigVerifier) IsInterfaceNil() bool {
+	return hsv == nil
 }
