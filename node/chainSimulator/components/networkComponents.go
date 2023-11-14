@@ -26,8 +26,8 @@ type networkComponentsHolder struct {
 	fullArchivePreferredPeersHolderHandler factory.PreferredPeersHolderHandler
 }
 
-// CreateNetworkComponentsHolder creates a new networkComponentsHolder instance
-func CreateNetworkComponentsHolder(network SyncedBroadcastNetworkHandler) (*networkComponentsHolder, error) {
+// CreateNetworkComponents creates a new networkComponentsHolder instance
+func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (factory.NetworkComponentsHandler, error) {
 	messenger, err := NewSyncedMessenger(network)
 	if err != nil {
 		return nil, err
@@ -124,4 +124,19 @@ func (holder *networkComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (holder *networkComponentsHolder) IsInterfaceNil() bool {
 	return holder == nil
+}
+
+// Create will do nothing
+func (holder *networkComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (holder *networkComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (holder *networkComponentsHolder) String() string {
+	return ""
 }

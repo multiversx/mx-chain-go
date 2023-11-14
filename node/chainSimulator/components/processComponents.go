@@ -95,8 +95,8 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 }
 
-// CreateProcessComponentsHolder will create the process components holder
-func CreateProcessComponentsHolder(args ArgsProcessComponentsHolder) (factory.ProcessComponentsHolder, error) {
+// CreateProcessComponents will create the process components holder
+func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessComponentsHandler, error) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
@@ -485,4 +485,19 @@ func (p *processComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (p *processComponentsHolder) IsInterfaceNil() bool {
 	return p == nil
+}
+
+// Create will do nothing
+func (p *processComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (p *processComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (p *processComponentsHolder) String() string {
+	return ""
 }

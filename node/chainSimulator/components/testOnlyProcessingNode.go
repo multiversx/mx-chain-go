@@ -4,12 +4,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
+	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
@@ -22,15 +24,8 @@ import (
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Config                   config.Config
-	EpochConfig              config.EpochConfig
-	EconomicsConfig          config.EconomicsConfig
-	RoundsConfig             config.RoundConfig
-	PreferencesConfig        config.Preferences
-	ImportDBConfig           config.ImportDbConfig
-	ContextFlagsConfig       config.ContextFlagsConfig
-	SystemSCConfig           config.SystemSmartContractsConfig
-	ConfigurationPathsHolder config.ConfigurationPathsHolder
+	Configs      config.Configs
+	APIInterface APIConfigurator
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
@@ -42,15 +37,15 @@ type ArgsTestOnlyProcessingNode struct {
 
 type testOnlyProcessingNode struct {
 	closeHandler              *closeHandler
-	CoreComponentsHolder      factory.CoreComponentsHolder
-	StatusCoreComponents      factory.StatusCoreComponentsHolder
-	StateComponentsHolder     factory.StateComponentsHolder
-	StatusComponentsHolder    factory.StatusComponentsHolder
-	CryptoComponentsHolder    factory.CryptoComponentsHolder
-	NetworkComponentsHolder   factory.NetworkComponentsHolder
-	BootstrapComponentsHolder factory.BootstrapComponentsHolder
-	ProcessComponentsHolder   factory.ProcessComponentsHolder
-	DataComponentsHolder      factory.DataComponentsHolder
+	CoreComponentsHolder      factory.CoreComponentsHandler
+	StatusCoreComponents      factory.StatusCoreComponentsHandler
+	StateComponentsHolder     factory.StateComponentsHandler
+	StatusComponentsHolder    factory.StatusComponentsHandler
+	CryptoComponentsHolder    factory.CryptoComponentsHandler
+	NetworkComponentsHolder   factory.NetworkComponentsHandler
+	BootstrapComponentsHolder factory.BootstrapComponentsHandler
+	ProcessComponentsHolder   factory.ProcessComponentsHandler
+	DataComponentsHolder      factory.DataComponentsHandler
 
 	NodesCoordinator            nodesCoordinator.NodesCoordinator
 	ChainHandler                chainData.ChainHandler
@@ -59,8 +54,10 @@ type testOnlyProcessingNode struct {
 	StoreService                dataRetriever.StorageService
 	BuiltinFunctionsCostHandler economics.BuiltInFunctionsCostHandler
 	DataPool                    dataRetriever.PoolsHolder
+	broadcastMessenger          consensus.BroadcastMessenger
 
-	broadcastMessenger consensus.BroadcastMessenger
+	httpServer    shared.UpgradeableHttpServerHandler
+	facadeHandler shared.FacadeHandler
 }
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
@@ -77,60 +74,60 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.CoreComponentsHolder, err = CreateCoreComponentsHolder(ArgsCoreComponentsHolder{
-		Config:              args.Config,
-		EnableEpochsConfig:  args.EpochConfig.EnableEpochs,
-		RoundsConfig:        args.RoundsConfig,
-		EconomicsConfig:     args.EconomicsConfig,
+	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
+		Config:              *args.Configs.GeneralConfig,
+		EnableEpochsConfig:  args.Configs.EpochConfig.EnableEpochs,
+		RoundsConfig:        *args.Configs.RoundConfig,
+		EconomicsConfig:     *args.Configs.EconomicsConfig,
 		ChanStopNodeProcess: args.ChanStopNodeProcess,
 		NumShards:           args.NumShards,
-		WorkingDir:          args.ContextFlagsConfig.WorkingDir,
+		WorkingDir:          args.Configs.FlagsConfig.WorkingDir,
 		GasScheduleFilename: args.GasScheduleFilename,
-		NodesSetupPath:      args.ConfigurationPathsHolder.Nodes,
+		NodesSetupPath:      args.Configs.ConfigurationPathsHolder.Nodes,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	instance.StatusCoreComponents, err = CreateStatusCoreComponentsHolder(args.Config, instance.CoreComponentsHolder)
+	instance.StatusCoreComponents, err = CreateStatusCoreComponents(args.Configs, instance.CoreComponentsHolder)
 	if err != nil {
 		return nil, err
 	}
 
-	instance.CryptoComponentsHolder, err = CreateCryptoComponentsHolder(ArgsCryptoComponentsHolder{
-		Config:                  args.Config,
-		EnableEpochsConfig:      args.EpochConfig.EnableEpochs,
-		Preferences:             args.PreferencesConfig,
+	instance.CryptoComponentsHolder, err = CreateCryptoComponents(ArgsCryptoComponentsHolder{
+		Config:                  *args.Configs.GeneralConfig,
+		EnableEpochsConfig:      args.Configs.EpochConfig.EnableEpochs,
+		Preferences:             *args.Configs.PreferencesConfig,
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
-		ValidatorKeyPemFileName: args.ConfigurationPathsHolder.ValidatorKey,
+		ValidatorKeyPemFileName: args.Configs.ConfigurationPathsHolder.ValidatorKey,
 		SkIndex:                 args.SkIndex,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	instance.NetworkComponentsHolder, err = CreateNetworkComponentsHolder(args.SyncedBroadcastNetwork)
+	instance.NetworkComponentsHolder, err = CreateNetworkComponents(args.SyncedBroadcastNetwork)
 	if err != nil {
 		return nil, err
 	}
 
-	instance.BootstrapComponentsHolder, err = CreateBootstrapComponentHolder(ArgsBootstrapComponentsHolder{
+	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
 		CryptoComponents:     instance.CryptoComponentsHolder,
 		NetworkComponents:    instance.NetworkComponentsHolder,
 		StatusCoreComponents: instance.StatusCoreComponents,
-		WorkingDir:           args.ContextFlagsConfig.WorkingDir,
-		FlagsConfig:          args.ContextFlagsConfig,
-		ImportDBConfig:       args.ImportDBConfig,
-		PrefsConfig:          args.PreferencesConfig,
-		Config:               args.Config,
+		WorkingDir:           args.Configs.FlagsConfig.WorkingDir,
+		FlagsConfig:          *args.Configs.FlagsConfig,
+		ImportDBConfig:       *args.Configs.ImportDbConfig,
+		PrefsConfig:          *args.Configs.PreferencesConfig,
+		Config:               *args.Configs.GeneralConfig,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	selfShardID := instance.GetShardCoordinator().SelfId()
-	instance.StatusComponentsHolder, err = CreateStatusComponentsHolder(selfShardID)
+	instance.StatusComponentsHolder, err = CreateStatusComponents(selfShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +138,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
-		Config:         args.Config,
+		Config:         *args.Configs.GeneralConfig,
 		CoreComponents: instance.CoreComponentsHolder,
 		StatusCore:     instance.StatusCoreComponents,
 		StoreService:   instance.StoreService,
@@ -155,12 +152,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
-	err = instance.createNodesCoordinator(args.PreferencesConfig.Preferences, args.Config)
+	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	instance.DataComponentsHolder, err = CreateDataComponentsHolder(ArgsDataComponentsHolder{
+	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
 		Chain:              instance.ChainHandler,
 		StorageService:     instance.StoreService,
 		DataPool:           instance.DataPool,
@@ -170,7 +167,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.ProcessComponentsHolder, err = CreateProcessComponentsHolder(ArgsProcessComponentsHolder{
+	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
 		CoreComponents:           instance.CoreComponentsHolder,
 		CryptoComponents:         instance.CryptoComponentsHolder,
 		NetworkComponents:        instance.NetworkComponentsHolder,
@@ -178,14 +175,14 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		StateComponents:          instance.StateComponentsHolder,
 		StatusComponents:         instance.StatusComponentsHolder,
 		StatusCoreComponents:     instance.StatusCoreComponents,
-		FlagsConfig:              args.ContextFlagsConfig,
-		ImportDBConfig:           args.ImportDBConfig,
-		PrefsConfig:              args.PreferencesConfig,
-		Config:                   args.Config,
-		EconomicsConfig:          args.EconomicsConfig,
-		SystemSCConfig:           args.SystemSCConfig,
-		EpochConfig:              args.EpochConfig,
-		ConfigurationPathsHolder: args.ConfigurationPathsHolder,
+		FlagsConfig:              *args.Configs.FlagsConfig,
+		ImportDBConfig:           *args.Configs.ImportDbConfig,
+		PrefsConfig:              *args.Configs.PreferencesConfig,
+		Config:                   *args.Configs.GeneralConfig,
+		EconomicsConfig:          *args.Configs.EconomicsConfig,
+		SystemSCConfig:           *args.Configs.SystemSCConfig,
+		EpochConfig:              *args.Configs.EpochConfig,
+		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,
 	})
@@ -198,7 +195,17 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.collectClosableComponents()
+	err = instance.createFacade(args.Configs, args.APIInterface)
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createHttpServer(args.Configs)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.collectClosableComponents(args.APIInterface)
 
 	return instance, nil
 }
@@ -218,7 +225,7 @@ func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNo
 	var err error
 
 	argsDataPool := dataRetrieverFactory.ArgsDataPool{
-		Config:           &args.Config,
+		Config:           args.Configs.GeneralConfig,
 		EconomicsData:    node.CoreComponentsHolder.EconomicsData(),
 		ShardCoordinator: node.BootstrapComponentsHolder.ShardCoordinator(),
 		Marshalizer:      node.CoreComponentsHolder.InternalMarshalizer(),
@@ -326,7 +333,12 @@ func (node *testOnlyProcessingNode) GetStateComponents() factory.StateComponents
 	return node.StateComponentsHolder
 }
 
-func (node *testOnlyProcessingNode) collectClosableComponents() {
+// GetFacadeHandler will return the facade handler
+func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
+	return node.facadeHandler
+}
+
+func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
 	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
 	node.closeHandler.AddComponent(node.DataComponentsHolder)
 	node.closeHandler.AddComponent(node.StateComponentsHolder)
@@ -335,6 +347,13 @@ func (node *testOnlyProcessingNode) collectClosableComponents() {
 	node.closeHandler.AddComponent(node.NetworkComponentsHolder)
 	node.closeHandler.AddComponent(node.StatusCoreComponents)
 	node.closeHandler.AddComponent(node.CoreComponentsHolder)
+	node.closeHandler.AddComponent(node.facadeHandler)
+
+	// TODO remove this after http server fix
+	shardID := node.GetShardCoordinator().SelfId()
+	if facade.DefaultRestPortOff != apiInterface.RestApiInterface(shardID) {
+		node.closeHandler.AddComponent(node.httpServer)
+	}
 }
 
 // Close will call the Close methods on all inner components

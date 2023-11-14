@@ -89,8 +89,8 @@ type ArgsCoreComponentsHolder struct {
 	WorkingDir          string
 }
 
-// CreateCoreComponentsHolder will create a new instance of factory.CoreComponentsHolder
-func CreateCoreComponentsHolder(args ArgsCoreComponentsHolder) (factory.CoreComponentsHolder, error) {
+// CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
+func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponentsHandler, error) {
 	var err error
 	instance := &coreComponentsHolder{
 		closeHandler: NewCloseHandler(),
@@ -432,4 +432,19 @@ func (c *coreComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (c *coreComponentsHolder) IsInterfaceNil() bool {
 	return c == nil
+}
+
+// Create will do nothing
+func (c *coreComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (c *coreComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (c *coreComponentsHolder) String() string {
+	return ""
 }

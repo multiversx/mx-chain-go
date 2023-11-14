@@ -2,6 +2,7 @@ package process
 
 import (
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -16,6 +17,7 @@ type NodeHandler interface {
 	GetCryptoComponents() factory.CryptoComponentsHolder
 	GetCoreComponents() factory.CoreComponentsHolder
 	GetStateComponents() factory.StateComponentsHolder
+	GetFacadeHandler() shared.FacadeHandler
 	Close() error
 	IsInterfaceNil() bool
 }

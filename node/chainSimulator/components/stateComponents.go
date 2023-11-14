@@ -31,7 +31,7 @@ type stateComponentsHolder struct {
 }
 
 // CreateStateComponents will create the state components holder
-func CreateStateComponents(args ArgsStateComponents) (factory.StateComponentsHolder, error) {
+func CreateStateComponents(args ArgsStateComponents) (factory.StateComponentsHandler, error) {
 	stateComponentsFactory, err := factoryState.NewStateComponentsFactory(factoryState.StateComponentsFactoryArgs{
 		Config:                   args.Config,
 		Core:                     args.CoreComponents,
@@ -115,4 +115,19 @@ func (s *stateComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *stateComponentsHolder) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// Create will do nothing
+func (s *stateComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (s *stateComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (s *stateComponentsHolder) String() string {
+	return ""
 }

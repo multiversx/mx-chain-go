@@ -2,15 +2,10 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/cmd/termui/presenter"
-	"github.com/multiversx/mx-chain-go/common/statistics"
-	"github.com/multiversx/mx-chain-go/common/statistics/machine"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/node/external"
-	"github.com/multiversx/mx-chain-go/statusHandler"
-	"github.com/multiversx/mx-chain-go/statusHandler/persister"
-	statisticsTrie "github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 type statusCoreComponentsHolder struct {
@@ -23,24 +18,43 @@ type statusCoreComponentsHolder struct {
 	persistentStatusHandler    factory.PersistentStatusHandler
 }
 
-// CreateStatusCoreComponentsHolder will create a new instance of factory.StatusCoreComponentsHolder
-func CreateStatusCoreComponentsHolder(cfg config.Config, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHolder, error) {
+// CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHandler
+func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHandler, error) {
 	var err error
-	instance := &statusCoreComponentsHolder{
-		closeHandler:               NewCloseHandler(),
-		networkStatisticsProvider:  machine.NewNetStatistics(),
-		trieSyncStatisticsProvider: statisticsTrie.NewTrieSyncStatistics(),
-		statusHandler:              presenter.NewPresenterStatusHandler(),
-		statusMetrics:              statusHandler.NewStatusMetrics(),
+
+	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCore.StatusCoreComponentsFactoryArgs{
+		Config:          *configs.GeneralConfig,
+		EpochConfig:     *configs.EpochConfig,
+		RoundConfig:     *configs.RoundConfig,
+		RatingsConfig:   *configs.RatingsConfig,
+		EconomicsConfig: *configs.EconomicsConfig,
+		CoreComp:        coreComponents,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	instance.resourceMonitor, err = statistics.NewResourceMonitor(cfg, instance.networkStatisticsProvider)
+	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 	if err != nil {
 		return nil, err
 	}
-	instance.persistentStatusHandler, err = persister.NewPersistentStatusHandler(coreComponents.InternalMarshalizer(), coreComponents.Uint64ByteSliceConverter())
+
+	err = managedStatusCoreComponents.Create()
 	if err != nil {
 		return nil, err
+	}
+
+	// stop resource monitor
+	_ = managedStatusCoreComponents.ResourceMonitor().Close()
+
+	instance := &statusCoreComponentsHolder{
+		closeHandler:               NewCloseHandler(),
+		resourceMonitor:            managedStatusCoreComponents.ResourceMonitor(),
+		networkStatisticsProvider:  managedStatusCoreComponents.NetworkStatistics(),
+		trieSyncStatisticsProvider: managedStatusCoreComponents.TrieSyncStatistics(),
+		statusHandler:              managedStatusCoreComponents.AppStatusHandler(),
+		statusMetrics:              managedStatusCoreComponents.StatusMetrics(),
+		persistentStatusHandler:    managedStatusCoreComponents.PersistentStatusHandler(),
 	}
 
 	instance.collectClosableComponents()
@@ -93,4 +107,19 @@ func (s *statusCoreComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *statusCoreComponentsHolder) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// Create will do nothing
+func (s *statusCoreComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (s *statusCoreComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (s *statusCoreComponentsHolder) String() string {
+	return ""
 }

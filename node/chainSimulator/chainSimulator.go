@@ -31,6 +31,7 @@ func NewChainSimulator(
 	genesisTimestamp int64,
 	roundDurationInMillis uint64,
 	roundsPerEpoch core.OptionalUint64,
+	apiInterface components.APIConfigurator,
 ) (*simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
@@ -42,7 +43,7 @@ func NewChainSimulator(
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 	}
 
-	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis, roundsPerEpoch)
+	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis, roundsPerEpoch, apiInterface)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +58,7 @@ func (s *simulator) createChainHandlers(
 	genesisTimestamp int64,
 	roundDurationInMillis uint64,
 	roundsPerEpoch core.OptionalUint64,
+	apiInterface components.APIConfigurator,
 ) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:               numOfShards,
@@ -76,7 +78,7 @@ func (s *simulator) createChainHandlers(
 	}
 
 	for idx := range outputConfigs.ValidatorsPrivateKeys {
-		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename)
+		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename, apiInterface)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -106,22 +108,16 @@ func (s *simulator) createTestNode(
 	configs *config.Configs,
 	skIndex int,
 	gasScheduleFilename string,
+	apiInterface components.APIConfigurator,
 ) (process.NodeHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
-		Config:                   *configs.GeneralConfig,
-		EpochConfig:              *configs.EpochConfig,
-		EconomicsConfig:          *configs.EconomicsConfig,
-		RoundsConfig:             *configs.RoundConfig,
-		PreferencesConfig:        *configs.PreferencesConfig,
-		ImportDBConfig:           *configs.ImportDbConfig,
-		ContextFlagsConfig:       *configs.FlagsConfig,
-		SystemSCConfig:           *configs.SystemSCConfig,
-		ConfigurationPathsHolder: *configs.ConfigurationPathsHolder,
-		ChanStopNodeProcess:      s.chanStopNodeProcess,
-		SyncedBroadcastNetwork:   s.syncedBroadcastNetwork,
-		NumShards:                s.numOfShards,
-		GasScheduleFilename:      gasScheduleFilename,
-		SkIndex:                  skIndex,
+		Configs:                *configs,
+		ChanStopNodeProcess:    s.chanStopNodeProcess,
+		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
+		NumShards:              s.numOfShards,
+		GasScheduleFilename:    gasScheduleFilename,
+		SkIndex:                skIndex,
+		APIInterface:           apiInterface,
 	}
 
 	return components.NewTestOnlyProcessingNode(args)
@@ -159,6 +155,16 @@ func (s *simulator) allNodesCreateBlocks() error {
 // GetNodeHandler returns the node handler from the provided shardID
 func (s *simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
 	return s.nodes[shardID]
+}
+
+// GetRestAPIInterfaces will return a map with the rest api interfaces for every node
+func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
+	resMap := make(map[uint32]string)
+	for shardID, node := range s.nodes {
+		resMap[shardID] = node.GetFacadeHandler().RestApiInterface()
+	}
+
+	return resMap
 }
 
 // Close will stop and close the simulator

@@ -37,8 +37,8 @@ type bootstrapComponentsHolder struct {
 	guardedAccountHandler   process.GuardedAccountHandler
 }
 
-// CreateBootstrapComponentHolder will create a new instance of bootstrap components holder
-func CreateBootstrapComponentHolder(args ArgsBootstrapComponentsHolder) (factory.BootstrapComponentsHolder, error) {
+// CreateBootstrapComponents will create a new instance of bootstrap components holder
+func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (factory.BootstrapComponentsHandler, error) {
 	instance := &bootstrapComponentsHolder{
 		closeHandler: NewCloseHandler(),
 	}
@@ -136,4 +136,19 @@ func (b *bootstrapComponentsHolder) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (b *bootstrapComponentsHolder) IsInterfaceNil() bool {
 	return b == nil
+}
+
+// Create will do nothing
+func (b *bootstrapComponentsHolder) Create() error {
+	return nil
+}
+
+// CheckSubcomponents will do nothing
+func (b *bootstrapComponentsHolder) CheckSubcomponents() error {
+	return nil
+}
+
+// String will do nothing
+func (b *bootstrapComponentsHolder) String() string {
+	return ""
 }
