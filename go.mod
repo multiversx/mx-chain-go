@@ -13,7 +13,7 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.8
+	github.com/multiversx/mx-chain-communication-go v1.0.9-0.20231115091649-90797a86f941
 	github.com/multiversx/mx-chain-core-go v1.2.18
 	github.com/multiversx/mx-chain-crypto-go v1.2.9
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.13
@@ -25,12 +25,14 @@ require (
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.61
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.62
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.90
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.10.0
+	golang.org/x/sys v0.10.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -136,7 +138,6 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.7 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
-	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
@@ -178,7 +179,6 @@ require (
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
