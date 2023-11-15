@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/testdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +58,8 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	facade, err := NewChainSimulatorFacade(chainSimulator)
 	require.Nil(t, err)
 
-	initialAccount, err := facade.GetExistingAccountFromBech32AddressString(testdata.GenesisAddressWithStake)
+	genesisAddressWithStake := chainSimulator.initialWalletKeys.InitialWalletWithStake.Address
+	initialAccount, err := facade.GetExistingAccountFromBech32AddressString(genesisAddressWithStake)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second)
@@ -67,7 +67,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	err = chainSimulator.GenerateBlocks(80)
 	require.Nil(t, err)
 
-	accountAfterRewards, err := facade.GetExistingAccountFromBech32AddressString(testdata.GenesisAddressWithStake)
+	accountAfterRewards, err := facade.GetExistingAccountFromBech32AddressString(genesisAddressWithStake)
 	require.Nil(t, err)
 
 	assert.True(t, accountAfterRewards.GetBalance().Cmp(initialAccount.GetBalance()) > 0,

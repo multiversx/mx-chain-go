@@ -13,13 +13,11 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 	}
 
 	outputConfig, err := CreateChainSimulatorConfigs(ArgsChainSimulatorConfigs{
-		NumOfShards:               3,
-		OriginalConfigsPath:       "../../../cmd/node/config",
-		GenesisAddressWithStake:   "erd10z6sdhwfy8jtuf87j5gnq7lt7fd2wfmhkg8zfzf79lrapzq265yqlnmtm7",
-		GenesisAddressWithBalance: "erd1rhrm20mmf2pugzxc3twlu3fa264hxeefnglsy4ads4dpccs9s3jsg6qdrz",
-		RoundDurationInMillis:     6000,
-		GenesisTimeStamp:          0,
-		TempDir:                   t.TempDir(),
+		NumOfShards:           3,
+		OriginalConfigsPath:   "../../../cmd/node/config",
+		RoundDurationInMillis: 6000,
+		GenesisTimeStamp:      0,
+		TempDir:               t.TempDir(),
 	})
 	require.Nil(t, err)
 

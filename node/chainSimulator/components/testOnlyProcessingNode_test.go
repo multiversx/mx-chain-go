@@ -4,92 +4,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	pathTestData           = "../testdata/"
-	pathToConfigFolder     = "../../../cmd/node/config/"
-	pathForMainConfig      = "../../../cmd/node/config/config.toml"
-	pathForEconomicsConfig = "../../../cmd/node/config/economics.toml"
-	pathForGasSchedules    = "../../../cmd/node/config/gasSchedules"
-	nodesSetupConfig       = "../../../cmd/node/config/nodesSetup.json"
-	pathForPrefsConfig     = "../../../cmd/node/config/prefs.toml"
-	validatorPemFile       = "../../../cmd/node/config/testKeys/validatorKey.pem"
-	pathSystemSCConfig     = "../../../cmd/node/config/systemSmartContractsConfig.toml"
-)
-
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
-	mainConfig := config.Config{}
-	err := core.LoadTomlFile(&mainConfig, pathForMainConfig)
-	assert.Nil(t, err)
-
-	economicsConfig := config.EconomicsConfig{}
-	err = core.LoadTomlFile(&economicsConfig, pathForEconomicsConfig)
-	assert.Nil(t, err)
-
-	gasScheduleName, err := configs.GetLatestGasScheduleFilename(pathForGasSchedules)
-	assert.Nil(t, err)
-
-	prefsConfig := config.Preferences{}
-	err = core.LoadTomlFile(&prefsConfig, pathForPrefsConfig)
-	assert.Nil(t, err)
-
-	systemSCConfig := config.SystemSmartContractsConfig{}
-	err = core.LoadTomlFile(&systemSCConfig, pathSystemSCConfig)
-	assert.Nil(t, err)
-
-	workingDir := t.TempDir()
-
-	epochConfig := config.EpochConfig{}
-	err = core.LoadTomlFile(&epochConfig, pathToConfigFolder+"enableEpochs.toml")
-	assert.Nil(t, err)
-
-	ratingConfig := config.RatingsConfig{}
-	err = core.LoadTomlFile(&ratingConfig, pathToConfigFolder+"ratings.toml")
-	assert.Nil(t, err)
-
-	apiConfig := config.ApiRoutesConfig{}
-	err = core.LoadTomlFile(&apiConfig, pathToConfigFolder+"api.toml")
-	assert.Nil(t, err)
+	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
+		NumOfShards:           3,
+		OriginalConfigsPath:   "../../../cmd/node/config/",
+		GenesisTimeStamp:      0,
+		RoundDurationInMillis: 6000,
+		TempDir:               t.TempDir(),
+	})
+	require.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
-		Configs: config.Configs{
-			GeneralConfig: &mainConfig,
-			EpochConfig:   &epochConfig,
-			RoundConfig: &config.RoundConfig{
-				RoundActivations: map[string]config.ActivationRoundByName{
-					"DisableAsyncCallV1": {
-						Round: "18446744073709551614",
-					},
-				},
-			},
-			EconomicsConfig:   &economicsConfig,
-			PreferencesConfig: &prefsConfig,
-			ImportDbConfig:    &config.ImportDbConfig{},
-			FlagsConfig: &config.ContextFlagsConfig{
-				WorkingDir: workingDir,
-				Version:    "1",
-			},
-			ConfigurationPathsHolder: &config.ConfigurationPathsHolder{
-				GasScheduleDirectoryName: pathToConfigFolder + "gasSchedules",
-				Genesis:                  pathToConfigFolder + "genesis.json",
-				SmartContracts:           pathTestData + "genesisSmartContracts.json",
-				Nodes:                    nodesSetupConfig,
-				ValidatorKey:             validatorPemFile,
-			},
-			SystemSCConfig:  &systemSCConfig,
-			RatingsConfig:   &ratingConfig,
-			ApiRoutesConfig: &apiConfig,
-		},
-
-		GasScheduleFilename: gasScheduleName,
+		Configs:             *outputConfigs.Configs,
+		GasScheduleFilename: outputConfigs.GasScheduleFilename,
 		NumShards:           3,
 
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),

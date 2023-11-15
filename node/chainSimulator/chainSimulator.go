@@ -8,8 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/testdata"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -19,6 +19,7 @@ type simulator struct {
 	chanStopNodeProcess    chan endProcess.ArgEndProcess
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	handlers               []ChainHandler
+	initialWalletKeys      *dtos.InitialWalletKeys
 	nodes                  map[uint32]process.NodeHandler
 	numOfShards            uint32
 }
@@ -61,13 +62,11 @@ func (s *simulator) createChainHandlers(
 	apiInterface components.APIConfigurator,
 ) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:               numOfShards,
-		OriginalConfigsPath:       originalConfigPath,
-		GenesisAddressWithStake:   testdata.GenesisAddressWithStake,
-		GenesisAddressWithBalance: testdata.GenesisAddressWithBalance,
-		GenesisTimeStamp:          genesisTimestamp,
-		RoundDurationInMillis:     roundDurationInMillis,
-		TempDir:                   tempDir,
+		NumOfShards:           numOfShards,
+		OriginalConfigsPath:   originalConfigPath,
+		GenesisTimeStamp:      genesisTimestamp,
+		RoundDurationInMillis: roundDurationInMillis,
+		TempDir:               tempDir,
 	})
 	if err != nil {
 		return err
@@ -92,6 +91,8 @@ func (s *simulator) createChainHandlers(
 		s.nodes[shardID] = node
 		s.handlers = append(s.handlers, chainHandler)
 	}
+
+	s.initialWalletKeys = outputConfigs.InitialWallets
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", numOfShards+1,
@@ -165,6 +166,11 @@ func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
 	}
 
 	return resMap
+}
+
+// GetInitialWalletKeys will return the initial wallet keys
+func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
+	return s.initialWalletKeys
 }
 
 // Close will stop and close the simulator
