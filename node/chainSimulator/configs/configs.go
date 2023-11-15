@@ -33,6 +33,8 @@ var initialSupply = big.NewInt(0).Mul(oneEgld, big.NewInt(20000000)) // 20 milli
 const (
 	// ChainID contains the chain id
 	ChainID = "chain"
+
+	shardIDWalletWithStake = 0
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
@@ -125,7 +127,7 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 		ShardWallets: make(map[uint32]*dtos.WalletKey),
 	}
 
-	initialAddressWithStake, err := generateWalletKeyForShard(0, args.NumOfShards, addressConverter)
+	initialAddressWithStake, err := generateWalletKeyForShard(shardIDWalletWithStake, args.NumOfShards, addressConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -158,19 +160,17 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 			return nil, errG
 		}
 
-		balanceForAddress := big.NewInt(0).Set(walletBalance)
-		if shardID == args.NumOfShards-1 {
-			balanceForAddress.Add(balanceForAddress, remainder)
-		}
-
 		addresses = append(addresses, data.InitialAccount{
 			Address: walletKey.Address,
-			Balance: balanceForAddress,
-			Supply:  balanceForAddress,
+			Balance: big.NewInt(0).Set(walletBalance),
+			Supply:  big.NewInt(0).Set(walletBalance),
 		})
 
 		initialWalletKeys.ShardWallets[shardID] = walletKey
 	}
+
+	addresses[1].Balance.Add(walletBalance, remainder)
+	addresses[1].Supply.Add(walletBalance, remainder)
 
 	addressesBytes, errM := json.Marshal(addresses)
 	if errM != nil {
