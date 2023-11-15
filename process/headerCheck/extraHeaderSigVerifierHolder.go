@@ -7,18 +7,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type extraHeaderSigVerifierHolder struct {
 	mutExtraVerifiers sync.RWMutex
-	extraVerifiers    map[string]ExtraHeaderSigVerifierHandler
+	extraVerifiers    map[string]process.ExtraHeaderSigVerifierHandler
 }
 
 // NewExtraHeaderSigVerifierHolder creates a holder for extra header sig verifiers
 func NewExtraHeaderSigVerifierHolder() *extraHeaderSigVerifierHolder {
 	return &extraHeaderSigVerifierHolder{
 		mutExtraVerifiers: sync.RWMutex{},
-		extraVerifiers:    make(map[string]ExtraHeaderSigVerifierHandler),
+		extraVerifiers:    make(map[string]process.ExtraHeaderSigVerifierHandler),
 	}
 }
 
@@ -99,7 +100,7 @@ func (holder *extraHeaderSigVerifierHolder) RemoveAllSignatures(header data.Head
 }
 
 // RegisterExtraHeaderSigVerifier will register a new extra header sig verifier
-func (holder *extraHeaderSigVerifierHolder) RegisterExtraHeaderSigVerifier(extraVerifier ExtraHeaderSigVerifierHandler) error {
+func (holder *extraHeaderSigVerifierHolder) RegisterExtraHeaderSigVerifier(extraVerifier process.ExtraHeaderSigVerifierHandler) error {
 	if check.IfNil(extraVerifier) {
 		return errors.ErrNilExtraSubRoundSigner
 	}

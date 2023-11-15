@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +30,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 		SingleSigVerifier:       &mock.SignerMock{},
 		KeyGen:                  &mock.SingleSignKeyGenMock{},
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+		ExtraSigVerifierHolder:  &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 	}
 }
 

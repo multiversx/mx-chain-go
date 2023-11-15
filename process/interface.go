@@ -1355,3 +1355,12 @@ type IncomingHeaderSubscriber interface {
 	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
 	IsInterfaceNil() bool
 }
+
+type ExtraHeaderSigVerifierHandler interface {
+	VerifyAggregatedSignature(header data.HeaderHandler, multiSigVerifier crypto.MultiSigner, pubKeysSigners [][]byte) error
+	VerifyLeaderSignature(header data.HeaderHandler, leaderPubKey crypto.PublicKey) error
+	RemoveLeaderSignature(header data.HeaderHandler) error
+	RemoveAllSignatures(header data.HeaderHandler) error
+	Identifier() string
+	IsInterfaceNil() bool
+}

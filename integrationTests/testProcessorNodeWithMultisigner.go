@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -449,6 +450,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			SingleSigVerifier:       signer,
 			KeyGen:                  keyGen,
 			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+			ExtraSigVerifierHolder:  &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -578,6 +580,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				SingleSigVerifier:       singleSigner,
 				KeyGen:                  keyGenForBlocks,
 				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+				ExtraSigVerifierHolder:  &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
