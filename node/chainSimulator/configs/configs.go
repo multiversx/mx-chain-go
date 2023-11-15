@@ -344,7 +344,7 @@ func generateWalletKeyForShard(shardID, numOfShards uint32, converter core.Pubke
 
 		return &dtos.WalletKey{
 			Address:       address,
-			PrivateKeyHex: hex.EncodeToString(privateKeyBytes[:32]),
+			PrivateKeyHex: hex.EncodeToString(privateKeyBytes),
 		}, nil
 	}
 }
