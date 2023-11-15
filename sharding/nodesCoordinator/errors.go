@@ -108,3 +108,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilValidatorInfoCacher signals that a nil value for the validator info cacher has been provided
 var ErrNilValidatorInfoCacher = errors.New("validator info cacher is nil")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")

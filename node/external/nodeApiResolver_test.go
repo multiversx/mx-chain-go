@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -43,6 +44,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 		ManagedPeersMonitor:      &testscommon.ManagedPeersMonitorStub{},
+		NodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
 	}
 }
 
@@ -121,6 +123,17 @@ func TestNewNodeApiResolver_NilGasSchedules(t *testing.T) {
 
 	assert.Nil(t, nar)
 	assert.Equal(t, external.ErrNilGasScheduler, err)
+}
+
+func TestNewNodeApiResolver_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgs()
+	arg.NodesCoordinator = nil
+	nar, err := external.NewNodeApiResolver(arg)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilNodesCoordinator, err)
 }
 
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
@@ -824,6 +837,27 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expectedKeys, keys)
 	})
+}
+
+func TestNodeApiResolver_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
+	t.Parallel()
+
+	providedKeyStr := "abcdef"
+	providedPublicKey, _ := hex.DecodeString(providedKeyStr)
+	expectedEpochsLeft := uint32(5)
+	args := createMockArgs()
+	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+			require.True(t, bytes.Equal(providedPublicKey, publicKey))
+			return expectedEpochsLeft, nil
+		},
+	}
+	nar, err := external.NewNodeApiResolver(args)
+	require.NoError(t, err)
+
+	epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+	require.NoError(t, err)
+	require.Equal(t, expectedEpochsLeft, epochsLeft)
 }
 
 func TestNodeApiResolver_IsInterfaceNil(t *testing.T) {

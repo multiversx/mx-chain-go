@@ -115,5 +115,6 @@ type Facade interface {
 	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
+	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	IsInterfaceNil() bool
 }

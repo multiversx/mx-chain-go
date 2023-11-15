@@ -36,7 +36,8 @@ import (
 const DefaultRestInterface = "localhost:8080"
 
 // DefaultRestPortOff is the default value that should be passed if it is desired
-//  to start the node without a REST endpoint available
+//
+//	to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
@@ -163,7 +164,8 @@ func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
 // The API will start on the DefaultRestInterface value unless a correct value is passed or
-//  the value is explicitly set to off, in which case it will not start at all
+//
+//	the value is explicitly set to off, in which case it will not start at all
 func (nf *nodeFacade) RestApiInterface() string {
 	if nf.config.RestApiInterface == "" {
 		return DefaultRestInterface
@@ -603,6 +605,11 @@ func (nf *nodeFacade) GetEligibleManagedKeys() ([]string, error) {
 // GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
 func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nf.apiResolver.GetWaitingManagedKeys()
+}
+
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (nf *nodeFacade) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	return nf.apiResolver.GetWaitingEpochsLeftForPublicKey(publicKey)
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
