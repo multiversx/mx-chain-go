@@ -97,7 +97,7 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 		return process.ErrNilFallbackHeaderValidator
 	}
 	if check.IfNil(arguments.ExtraSigVerifierHolder) {
-		return errors.ErrNilExtraSigVerifierHolder
+		return errors.ErrNilExtraHeaderSigVerifierHolder
 	}
 
 	return nil

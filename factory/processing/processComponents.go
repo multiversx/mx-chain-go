@@ -2115,7 +2115,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
 	if check.IfNil(args.ExtraHeaderSigVerifierHolder) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraSigVerifierHolder)
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
 
 	return nil
