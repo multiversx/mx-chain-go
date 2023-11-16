@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -492,10 +493,22 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	case common.ChainRunTypeRegular:
 		return shardProcessor, nil
 	case common.ChainRunTypeSovereign:
-		return block.NewSovereignChainBlockProcessor(
-			shardProcessor,
-			validatorStatisticsProcessor,
+		// TODO: Radu Chis: move this in the factory of the sovereign block processor once the refactor is completed
+
+		outgoingOpFormatter, errOpFormatter := sovereign.CreateOutgoingOperationsFormatter(
+			pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
+			pcf.coreData.AddressPubKeyConverter(),
+			pcf.coreData.RoundHandler(),
 		)
+		if errOpFormatter != nil {
+			return nil, err
+		}
+
+		return block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               shardProcessor,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			OutgoingOperationsFormatter:  outgoingOpFormatter,
+		})
 	default:
 		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
 	}

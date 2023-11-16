@@ -219,6 +219,16 @@ func GetGeneralConfig() config.Config {
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
 		},
+		SovereignConfig: config.SovereignConfig{
+			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+			},
+		},
 	}
 }
 

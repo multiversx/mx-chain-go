@@ -115,6 +115,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -2435,7 +2436,11 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		bp, errNewShardProc := block.NewShardProcessor(arguments)
 		if tpn.ChainRunType == common.ChainRunTypeSovereign {
-			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(bp, tpn.ValidatorStatisticsProcessor)
+			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
+				ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
+				ShardProcessor:               bp,
+				OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+			})
 		} else {
 			tpn.BlockProcessor = bp
 			err = errNewShardProc

@@ -13,6 +13,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,7 +51,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when shard processor is nil", func(t *testing.T) {
 		t.Parallel()
 
-		scbp, err := blproc.NewSovereignChainBlockProcessor(nil, &mock.ValidatorStatisticsProcessorStub{})
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               nil,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+		})
 
 		assert.Nil(t, scbp)
 		assert.ErrorIs(t, err, process.ErrNilBlockProcessor)
@@ -61,7 +66,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, nil)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: nil,
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+		})
 
 		assert.Nil(t, scbp)
 		assert.ErrorIs(t, err, process.ErrNilValidatorStatistics)
@@ -72,7 +81,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+		})
 
 		assert.Nil(t, scbp)
 		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
@@ -87,7 +100,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
 		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+		})
 
 		assert.Nil(t, scbp)
 		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
@@ -112,7 +129,11 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
 		arguments.RequestHandler, _ = requestHandlers.NewSovereignResolverRequestHandler(rrh)
 		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(sp, &mock.ValidatorStatisticsProcessorStub{})
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+		})
 
 		assert.NotNil(t, scbp)
 		assert.Nil(t, err)
