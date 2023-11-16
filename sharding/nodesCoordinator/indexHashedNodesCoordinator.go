@@ -28,6 +28,7 @@ var _ PublicKeysSelector = (*indexHashedNodesCoordinator)(nil)
 const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
+	minEpochsToWait         = uint32(1)
 )
 
 // TODO: move this to config parameters
@@ -1267,7 +1268,11 @@ func (ihnc *indexHashedNodesCoordinator) GetWaitingEpochsLeftForPublicKey(public
 		for idx, val := range shardWaiting {
 			if bytes.Equal(val.PubKey(), publicKey) {
 				minHysteresisNodes := ihnc.getMinHysteresisNodes(shardId)
-				return uint32(idx)/minHysteresisNodes + 1, nil
+				if minHysteresisNodes == 0 {
+					return minEpochsToWait, nil
+				}
+
+				return uint32(idx)/minHysteresisNodes + minEpochsToWait, nil
 			}
 		}
 	}

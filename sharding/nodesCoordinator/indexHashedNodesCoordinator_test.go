@@ -2469,116 +2469,198 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
 	t.Parallel()
 
-	shardZeroId := uint32(0)
-	expectedValidatorsPubKeys := map[uint32][][]byte{
-		shardZeroId:           {[]byte("pk0_shard0"), []byte("pk1_shard0"), []byte("pk2_shard0")},
-		core.MetachainShardId: {[]byte("pk0_meta"), []byte("pk1_meta"), []byte("pk2_meta"), []byte("pk3_meta"), []byte("pk4_meta")},
-	}
+	t.Run("min hysteresis nodes returns 0 should work", func(t *testing.T) {
+		t.Parallel()
 
-	listMeta := []Validator{
-		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
-		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
-		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
-		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][3], 1, defaultSelectionChances),
-		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][4], 1, defaultSelectionChances),
-	}
-	listShard0 := []Validator{
-		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
-		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
-		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
-	}
+		shardZeroId := uint32(0)
+		expectedValidatorsPubKeys := map[uint32][][]byte{
+			shardZeroId:           {[]byte("pk0_shard0")},
+			core.MetachainShardId: {[]byte("pk0_meta")},
+		}
 
-	waitingMap := make(map[uint32][]Validator)
-	waitingMap[core.MetachainShardId] = listMeta
-	waitingMap[shardZeroId] = listShard0
+		listMeta := []Validator{
+			newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		}
+		listShard0 := []Validator{
+			newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		}
 
-	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           10,
-		NodesMeta:            10,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
-		ShuffleBetweenShards: shuffleBetweenShards,
-		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
-	}
-	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
-	require.Nil(t, err)
+		waitingMap := make(map[uint32][]Validator)
+		waitingMap[core.MetachainShardId] = listMeta
+		waitingMap[shardZeroId] = listShard0
 
-	epochStartSubscriber := &mock.EpochStartNotifierStub{}
-	bootStorer := genericMocks.NewStorerMock()
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		bootStorer := genericMocks.NewStorerMock()
 
-	eligibleMap := make(map[uint32][]Validator)
-	eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
-	eligibleMap[shardZeroId] = []Validator{&validator{}}
+		eligibleMap := make(map[uint32][]Validator)
+		eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
+		eligibleMap[shardZeroId] = []Validator{&validator{}}
 
-	arguments := ArgNodesCoordinator{
-		ShardConsensusGroupSize: 1,
-		MetaConsensusGroupSize:  1,
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &hashingMocks.HasherMock{},
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartSubscriber,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardZeroId,
-		NbShards:                2,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           []byte("key"),
-		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-		ChanStopNode:            make(chan endProcess.ArgEndProcess),
-		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &mock.NodesSetupMock{
-			MinShardHysteresisNodesCalled: func() uint32 {
-				return uint32(10 * hysteresis)
+		shufflerArgs := &NodesShufflerArgs{
+			NodesShard:           10,
+			NodesMeta:            10,
+			Hysteresis:           hysteresis,
+			Adaptivity:           adaptivity,
+			ShuffleBetweenShards: shuffleBetweenShards,
+			MaxNodesEnableConfig: nil,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		}
+		nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+		require.Nil(t, err)
+
+		arguments := ArgNodesCoordinator{
+			ShardConsensusGroupSize: 1,
+			MetaConsensusGroupSize:  1,
+			Marshalizer:             &mock.MarshalizerMock{},
+			Hasher:                  &hashingMocks.HasherMock{},
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartSubscriber,
+			BootStorer:              bootStorer,
+			ShardIDAsObserver:       shardZeroId,
+			NbShards:                2,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
+			SelfPublicKey:           []byte("key"),
+			ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            make(chan endProcess.ArgEndProcess),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler: &mock.NodesSetupMock{
+				MinShardHysteresisNodesCalled: func() uint32 {
+					return 0
+				},
+				MinMetaHysteresisNodesCalled: func() uint32 {
+					return 0
+				},
 			},
-			MinMetaHysteresisNodesCalled: func() uint32 {
-				return uint32(10 * hysteresis)
+		}
+
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+		epochsLeft, err := ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_shard0"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), epochsLeft)
+
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_meta"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), epochsLeft)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardZeroId := uint32(0)
+		expectedValidatorsPubKeys := map[uint32][][]byte{
+			shardZeroId:           {[]byte("pk0_shard0"), []byte("pk1_shard0"), []byte("pk2_shard0")},
+			core.MetachainShardId: {[]byte("pk0_meta"), []byte("pk1_meta"), []byte("pk2_meta"), []byte("pk3_meta"), []byte("pk4_meta")},
+		}
+
+		listMeta := []Validator{
+			newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+			newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+			newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+			newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][3], 1, defaultSelectionChances),
+			newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][4], 1, defaultSelectionChances),
+		}
+		listShard0 := []Validator{
+			newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+			newValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+			newValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+		}
+
+		waitingMap := make(map[uint32][]Validator)
+		waitingMap[core.MetachainShardId] = listMeta
+		waitingMap[shardZeroId] = listShard0
+
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		bootStorer := genericMocks.NewStorerMock()
+
+		eligibleMap := make(map[uint32][]Validator)
+		eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
+		eligibleMap[shardZeroId] = []Validator{&validator{}}
+
+		shufflerArgs := &NodesShufflerArgs{
+			NodesShard:           10,
+			NodesMeta:            10,
+			Hysteresis:           hysteresis,
+			Adaptivity:           adaptivity,
+			ShuffleBetweenShards: shuffleBetweenShards,
+			MaxNodesEnableConfig: nil,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		}
+		nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+		require.Nil(t, err)
+
+		arguments := ArgNodesCoordinator{
+			ShardConsensusGroupSize: 1,
+			MetaConsensusGroupSize:  1,
+			Marshalizer:             &mock.MarshalizerMock{},
+			Hasher:                  &hashingMocks.HasherMock{},
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartSubscriber,
+			BootStorer:              bootStorer,
+			ShardIDAsObserver:       shardZeroId,
+			NbShards:                2,
+			EligibleNodes:           eligibleMap,
+			WaitingNodes:            waitingMap,
+			SelfPublicKey:           []byte("key"),
+			ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
+			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:            make(chan endProcess.ArgEndProcess),
+			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+			EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
+			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler: &mock.NodesSetupMock{
+				MinShardHysteresisNodesCalled: func() uint32 {
+					return 2
+				},
+				MinMetaHysteresisNodesCalled: func() uint32 {
+					return 2
+				},
 			},
-		},
-	}
+		}
 
-	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
-	epochsLeft, err := ihnc.GetWaitingEpochsLeftForPublicKey(nil)
-	require.Equal(t, ErrNilPubKey, err)
-	require.Zero(t, epochsLeft)
+		epochsLeft, err := ihnc.GetWaitingEpochsLeftForPublicKey(nil)
+		require.Equal(t, ErrNilPubKey, err)
+		require.Zero(t, epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("missing_pk"))
-	require.Equal(t, ErrValidatorNotFound, err)
-	require.Zero(t, epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("missing_pk"))
+		require.Equal(t, ErrValidatorNotFound, err)
+		require.Zero(t, epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_shard0"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(1), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_shard0"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk1_shard0"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(1), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk1_shard0"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk2_shard0"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(2), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk2_shard0"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(2), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_meta"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(1), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_meta"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk1_meta"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(1), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk1_meta"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(1), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk2_meta"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(2), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk2_meta"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(2), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk3_meta"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(2), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk3_meta"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(2), epochsLeft)
 
-	epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk4_meta"))
-	require.NoError(t, err)
-	require.Equal(t, uint32(3), epochsLeft)
+		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk4_meta"))
+		require.NoError(t, err)
+		require.Equal(t, uint32(3), epochsLeft)
+	})
 }
