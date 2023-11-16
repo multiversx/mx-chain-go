@@ -3,6 +3,7 @@ package components
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/api/gin"
@@ -35,6 +36,12 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		return err
 	}
 
+	allowVMQueriesChan := make(chan struct{})
+	go func() {
+		time.Sleep(time.Second)
+		close(allowVMQueriesChan)
+	}()
+
 	apiResolverArgs := &apiComp.ApiResolverArgs{
 		Configs:              &configs,
 		CoreComponents:       node.CoreComponentsHolder,
@@ -50,7 +57,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 				return common.NsSynchronized
 			},
 		},
-		AllowVMQueriesChan: make(chan struct{}),
+		AllowVMQueriesChan: allowVMQueriesChan,
 		StatusComponents:   node.StatusComponentsHolder,
 		ProcessingMode:     common.GetNodeProcessingMode(configs.ImportDbConfig),
 	}
