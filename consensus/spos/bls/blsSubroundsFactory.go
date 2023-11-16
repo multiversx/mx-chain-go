@@ -116,7 +116,7 @@ func (fct *factory) GenerateSubrounds() error {
 		return err
 	}
 
-	err = startRoundExtraSignersHolder.RegisterExtraSingingHandler(startRoundExtraSigner)
+	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSigner)
 	if err != nil {
 		return err
 	}
@@ -135,13 +135,13 @@ func (fct *factory) GenerateSubrounds() error {
 		return err
 	}
 
-	err = signRoundExtraSignersHolder.RegisterExtraSingingHandler(signRoundExtraSigner)
+	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
 	endRoundExtraSignersHolder := NewSubRoundEndExtraSignersHolder()
-	extraEndRoundSigner, err := NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
+	endRoundExtraSigner, err := NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return err
 	}
-	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(extraEndRoundSigner)
+	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSigner)
 	if err != nil {
 		return err
 	}
