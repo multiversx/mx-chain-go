@@ -111,12 +111,12 @@ func (fct *factory) GenerateSubrounds() error {
 	// Task: MX-14746
 	extraSignerHandler := fct.consensusCore.SigningHandler().ShallowClone()
 	startRoundExtraSignersHolder := NewSubRoundStartExtraSignersHolder()
-	extraSignerStartRound, err := NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
+	startRoundExtraSigner, err := NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return err
 	}
 
-	err = startRoundExtraSignersHolder.RegisterExtraSingingHandler(extraSignerStartRound)
+	err = startRoundExtraSignersHolder.RegisterExtraSingingHandler(startRoundExtraSigner)
 	if err != nil {
 		return err
 	}
@@ -127,12 +127,12 @@ func (fct *factory) GenerateSubrounds() error {
 	}
 
 	signRoundExtraSignersHolder := NewSubRoundSignatureExtraSignersHolder()
-	extraSubRoundSigner, err := NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
+	signRoundExtraSigner, err := NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return err
 	}
 
-	err = signRoundExtraSignersHolder.RegisterExtraSingingHandler(extraSubRoundSigner)
+	err = signRoundExtraSignersHolder.RegisterExtraSingingHandler(signRoundExtraSigner)
 	if err != nil {
 		return err
 	}
