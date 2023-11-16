@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/appStatusPolling"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportCfg "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -31,6 +32,10 @@ type statusComponentsHolder struct {
 
 // CreateStatusComponents will create a new instance of status components holder
 func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int) (factory.StatusComponentsHandler, error) {
+	if check.IfNil(appStatusHandler) {
+		return nil, core.ErrNilAppStatusHandler
+	}
+
 	var err error
 	instance := &statusComponentsHolder{
 		closeHandler:             NewCloseHandler(),
@@ -75,6 +80,10 @@ func (s *statusComponentsHolder) collectClosableComponents() {
 
 // Close will call the Close methods on all inner components
 func (s *statusComponentsHolder) Close() error {
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+
 	return s.closeHandler.Close()
 }
 
@@ -98,8 +107,12 @@ func (s *statusComponentsHolder) String() string {
 	return ""
 }
 
-// SetForkDetector will do nothing
+// SetForkDetector will set the fork detector
 func (s *statusComponentsHolder) SetForkDetector(forkDetector process.ForkDetector) error {
+	if check.IfNil(forkDetector) {
+		return process.ErrNilForkDetector
+	}
+
 	s.forkDetector = forkDetector
 
 	return nil
@@ -119,9 +132,9 @@ func (s *statusComponentsHolder) StartPolling() error {
 		return errors.ErrStatusPollingInit
 	}
 
-	err = registerPollProbableHighestNonce(appStatusPollingHandler, s.forkDetector)
+	err = appStatusPollingHandler.RegisterPollingFunc(s.probableHighestNonceHandler)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w, cannot register handler func for forkdetector's probable higher nonce", err)
 	}
 
 	appStatusPollingHandler.Poll(ctx)
@@ -129,20 +142,7 @@ func (s *statusComponentsHolder) StartPolling() error {
 	return nil
 }
 
-func registerPollProbableHighestNonce(
-	appStatusPollingHandler *appStatusPolling.AppStatusPolling,
-	forkDetector process.ForkDetector,
-) error {
-
-	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
-		probableHigherNonce := forkDetector.ProbableHighestNonce()
-		appStatusHandler.SetUInt64Value(common.MetricProbableHighestNonce, probableHigherNonce)
-	}
-
-	err := appStatusPollingHandler.RegisterPollingFunc(probableHighestNonceHandlerFunc)
-	if err != nil {
-		return fmt.Errorf("%w, cannot register handler func for forkdetector's probable higher nonce", err)
-	}
-
-	return nil
+func (s *statusComponentsHolder) probableHighestNonceHandler(appStatusHandler core.AppStatusHandler) {
+	probableHigherNonce := s.forkDetector.ProbableHighestNonce()
+	appStatusHandler.SetUInt64Value(common.MetricProbableHighestNonce, probableHigherNonce)
 }
