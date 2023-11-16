@@ -3,6 +3,7 @@ package components
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -40,6 +41,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 	go func() {
 		time.Sleep(time.Second)
 		close(allowVMQueriesChan)
+		node.StatusCoreComponents.AppStatusHandler().SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}()
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
