@@ -27,7 +27,7 @@ type node interface {
 	resolveCollapsed(pos byte, db common.TrieStorageInteractor) error
 	hashNode() ([]byte, error)
 	hashChildren() error
-	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
+	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) (common.TrieLeafHolder, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error)
 	delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error)

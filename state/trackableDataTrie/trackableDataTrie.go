@@ -256,33 +256,33 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
 	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
-		valWithMetadata, depth, err := tdt.tr.Get(hashedKey)
+		leafHolder, err := tdt.tr.Get(hashedKey)
 		if err != nil {
 			return core.TrieData{}, 0, err
 		}
-		if len(valWithMetadata) != 0 {
+		if len(leafHolder.Value()) != 0 {
 			trieValue := core.TrieData{
 				Key:     hashedKey,
-				Value:   valWithMetadata,
+				Value:   leafHolder.Value(),
 				Version: core.AutoBalanceEnabled,
 			}
 
-			return trieValue, depth, nil
+			return trieValue, leafHolder.Depth(), nil
 		}
 	}
 
-	valWithMetadata, depth, err := tdt.tr.Get(key)
+	leafHolder, err := tdt.tr.Get(key)
 	if err != nil {
 		return core.TrieData{}, 0, err
 	}
-	if len(valWithMetadata) != 0 {
+	if len(leafHolder.Value()) != 0 {
 		trieValue := core.TrieData{
 			Key:     key,
-			Value:   valWithMetadata,
+			Value:   leafHolder.Value(),
 			Version: core.NotSpecified,
 		}
 
-		return trieValue, depth, nil
+		return trieValue, leafHolder.Depth(), nil
 	}
 
 	newDataVersion := core.GetVersionForNewData(tdt.enableEpochsHandler)
@@ -294,7 +294,7 @@ func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, 
 		Version: newDataVersion,
 	}
 
-	return trieValue, depth, nil
+	return trieValue, leafHolder.Depth(), nil
 }
 
 func (tdt *trackableDataTrie) getValueWithoutMetadata(key []byte, trieData core.TrieData) ([]byte, error) {

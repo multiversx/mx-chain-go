@@ -18,7 +18,7 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
-	Get(key []byte) ([]byte, uint32, error)
+	Get(key []byte) (common.TrieLeafHolder, error)
 	Update(key, value []byte) error
 	GetStorageManager() common.StorageManager
 	IsInterfaceNil() bool
@@ -122,6 +122,8 @@ type baseAccountHandler interface {
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
 	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SetVersion(uint8)
+	GetVersion() uint8
 	IsInterfaceNil() bool
 }
 

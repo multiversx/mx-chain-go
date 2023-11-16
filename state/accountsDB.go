@@ -341,17 +341,17 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return nil
 	}
 
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, oldAcc.GetVersion())
 	if err != nil {
 		return err
 	}
 
-	err = adb.updateNewCodeEntry(newCodeHash, newCode)
+	err = adb.updateNewCodeEntry(newCodeHash, newCode, newAcc.GetVersion())
 	if err != nil {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, oldAcc.GetVersion())
 	if err != nil {
 		return err
 	}
@@ -361,8 +361,9 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
-	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldAccVersion uint8) (*CodeEntry, error) {
+	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+		oldAccVersion == uint8(core.WithoutCodeLeaf) {
 		// do not update old code entry since num referencies is not used anymore
 		return nil, nil
 	}
@@ -399,12 +400,13 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	return unmodifiedOldCodeEntry, nil
 }
 
-func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
+func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte, newAccVersion uint8) error {
 	if len(newCode) == 0 {
 		return nil
 	}
 
-	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+		newAccVersion == uint8(core.WithoutCodeLeaf) {
 		return adb.mainTrie.GetStorageManager().Put(newCodeHash, newCode)
 	}
 
@@ -438,17 +440,17 @@ func getCodeEntry(codeHash []byte, updater Updater, marshalizer marshal.Marshali
 		return &CodeEntry{Code: code}, nil
 	}
 
-	val, _, err := updater.Get(codeHash)
+	leafHolder, err := updater.Get(codeHash)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(val) == 0 {
+	if len(leafHolder.Value()) == 0 {
 		return nil, nil
 	}
 
 	var codeEntry CodeEntry
-	err = marshalizer.Unmarshal(&codeEntry, val)
+	err = marshalizer.Unmarshal(&codeEntry, leafHolder.Value())
 	if err != nil {
 		return nil, err
 	}
@@ -639,12 +641,12 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
 
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, baseAcc.GetVersion())
 	if err != nil {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler)
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, baseAcc.GetVersion())
 	if err != nil {
 		return err
 	}
@@ -654,27 +656,24 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 }
 
 // MigrateCodeLeaf will remove code leaf node from main trie and put it to trie storage
-func (adb *AccountsDB) MigrateCodeLeaf(address []byte) error {
+func (adb *AccountsDB) MigrateCodeLeaf(account vmcommon.AccountHandler) error {
 	if !adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
 		log.Warn("remove code leaf operation not enabled")
 		return nil
 	}
 
-	acc, err := adb.getAccount(address, adb.mainTrie)
-	if err != nil {
-		return err
-	}
-
-	baseAcc, ok := acc.(baseAccountHandler)
+	baseAcc, ok := account.(baseAccountHandler)
 	if !ok {
 		return errors.ErrWrongTypeAssertion
 	}
 
 	codeHash := baseAcc.GetCodeHash()
-	codeData, _, err := adb.mainTrie.Get(baseAcc.GetCodeHash())
+	leafHolder, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return err
 	}
+
+	codeData := leafHolder.Value()
 	if codeData == nil {
 		return nil
 	}
@@ -686,40 +685,43 @@ func (adb *AccountsDB) MigrateCodeLeaf(address []byte) error {
 		return err
 	}
 
-	err = adb.mainTrie.GetStorageManager().Put(codeHash, oldCodeEntry.GetCode())
-	if err != nil {
-		return err
-	}
+	baseAcc.SetVersion(uint8(core.WithoutCodeLeaf))
 
-	buff, err := adb.marshaller.Marshal(acc)
-	if err != nil {
-		return err
-	}
+	// err = adb.mainTrie.GetStorageManager().Put(codeHash, oldCodeEntry.GetCode())
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = adb.mainTrie.UpdateWithVersion(acc.AddressBytes(), buff, core.WithoutCodeLeaf)
-	if err != nil {
-		return err
-	}
+	// do not save account here
+	// buff, err := adb.marshaller.Marshal(acc)
+	// if err != nil {
+	// 	return err
+	// }
 
-	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Delete(codeHash)
-		if err != nil {
-			return err
-		}
+	// err = adb.mainTrie.UpdateWithVersion(acc.AddressBytes(), buff, core.WithoutCodeLeaf)
+	// if err != nil {
+	// 	return err
+	// }
 
-		return nil
-	}
+	// if oldCodeEntry.NumReferences <= 1 {
+	// 	err = adb.mainTrie.Delete(codeHash)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-	oldCodeEntry.NumReferences--
-	codeEntry, err := adb.marshaller.Marshal(oldCodeEntry)
-	if err != nil {
-		return err
-	}
+	// 	return nil
+	// }
 
-	err = adb.mainTrie.Update(codeHash, codeEntry)
-	if err != nil {
-		return err
-	}
+	// oldCodeEntry.NumReferences--
+	// codeEntry, err := adb.marshaller.Marshal(oldCodeEntry)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = adb.mainTrie.Update(codeHash, codeEntry)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
@@ -755,11 +757,11 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 }
 
 func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, error) {
-	val, _, err := mainTrie.Get(address)
+	leafHolder, err := mainTrie.Get(address)
 	if err != nil {
 		return nil, err
 	}
-	if val == nil {
+	if leafHolder.Value() == nil {
 		return nil, nil
 	}
 
@@ -768,10 +770,16 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 		return nil, err
 	}
 
-	err = adb.marshaller.Unmarshal(acnt, val)
+	err = adb.marshaller.Unmarshal(acnt, leafHolder.Value())
 	if err != nil {
 		return nil, err
 	}
+
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if !ok {
+		return nil, errors.ErrWrongTypeAssertion
+	}
+	baseAcc.SetVersion(uint8(leafHolder.Version()))
 
 	return acnt, nil
 }
@@ -841,13 +849,13 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 		return nil
 	}
 
-	val, _, err := adb.mainTrie.Get(accountHandler.GetCodeHash())
+	leafHolder, err := adb.mainTrie.Get(accountHandler.GetCodeHash())
 	if err != nil {
 		return err
 	}
 
 	var codeEntry CodeEntry
-	err = adb.marshaller.Unmarshal(&codeEntry, val)
+	err = adb.marshaller.Unmarshal(&codeEntry, leafHolder.Value())
 	if err != nil {
 		return err
 	}

@@ -259,8 +259,8 @@ func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {
 
 	expectedErr := errors.New("trie get err")
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, expectedErr
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), expectedErr
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -275,8 +275,8 @@ func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
 	t.Parallel()
 
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		UpdateCalled: func(key, value []byte) error {
 			return nil
@@ -297,9 +297,9 @@ func TestAccountsDB_SaveAccountExistingOldAccount(t *testing.T) {
 
 	acc := createUserAcc([]byte("someAddress"))
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
 			serializedAcc, err := (&marshallerMock.MarshalizerMock{}).Marshal(acc)
-			return serializedAcc, 0, err
+			return common.NewTrieLeafHolder(serializedAcc, 0, core.NotSpecified), err
 		},
 		UpdateCalled: func(key, value []byte) error {
 			return nil
@@ -319,8 +319,8 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 
 	updateCalled := 0
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return nil
@@ -331,8 +331,8 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	}
 
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		UpdateCalled: func(key, value []byte) error {
 			updateCalled++
@@ -398,8 +398,8 @@ func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 
 	ts := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		UpdateCalled: func(key, value []byte) error {
 			return nil
@@ -433,8 +433,8 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 
 		putCalled := false
 		ts := &trieMock.TrieStub{
-			GetCalled: func(_ []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateCalled: func(key, value []byte) error {
 				return nil
@@ -474,9 +474,9 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	wasCalled := false
 	marshaller := &marshallerMock.MarshalizerMock{}
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
 			serializedAcc, err := marshaller.Marshal(stateMock.AccountWrapMock{})
-			return serializedAcc, 0, err
+			return common.NewTrieLeafHolder(serializedAcc, 0, core.NotSpecified), err
 		},
 		DeleteCalled: func(key []byte) error {
 			wasCalled = true
@@ -517,8 +517,8 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		UpdateCalled: func(key, value []byte) error {
 			return nil
@@ -550,16 +550,16 @@ func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 	marshaller := &marshallerMock.MarshalizerMock{}
 
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, uint32, error) {
+		GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
 				serializedAcc, err := marshaller.Marshal(acc)
-				return serializedAcc, 0, err
+				return common.NewTrieLeafHolder(serializedAcc, 0, core.NotSpecified), err
 			}
 			if bytes.Equal(key, codeHash) {
 				serializedCodeEntry, err := marshaller.Marshal(state.CodeEntry{Code: code})
-				return serializedCodeEntry, 0, err
+				return common.NewTrieLeafHolder(serializedCodeEntry, 0, core.NotSpecified), err
 			}
-			return nil, 0, nil
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		RecreateCalled: func(root []byte) (d common.Trie, err error) {
 			return dataTrie, nil
@@ -598,8 +598,8 @@ func TestAccountsDB_GetExistingAccountNotFoundShouldRetNil(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -628,16 +628,16 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 	marshaller := &marshallerMock.MarshalizerMock{}
 
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, uint32, error) {
+		GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
 				serializedAcc, err := marshaller.Marshal(acc)
-				return serializedAcc, 0, err
+				return common.NewTrieLeafHolder(serializedAcc, 0, core.NotSpecified), err
 			}
 			if bytes.Equal(key, codeHash) {
 				serializedCodeEntry, err := marshaller.Marshal(state.CodeEntry{Code: code})
-				return serializedCodeEntry, 0, err
+				return common.NewTrieLeafHolder(serializedCodeEntry, 0, core.NotSpecified), err
 			}
-			return nil, 0, nil
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		RecreateCalled: func(root []byte) (d common.Trie, err error) {
 			return dataTrie, nil
@@ -676,9 +676,9 @@ func TestAccountsDB_GetAccountAccountNotFound(t *testing.T) {
 	buff, err := marshaller.Marshal(testAccount)
 	assert.Nil(t, err)
 
-	tr.GetCalled = func(_ []byte) ([]byte, uint32, error) {
+	tr.GetCalled = func(_ []byte) (common.TrieLeafHolder, error) {
 		// whatever the key is, return the same marshalized DbAccount
-		return buff, 0, nil
+		return common.NewTrieLeafHolder(buff, 0, core.NotSpecified), nil
 	}
 
 	args := createMockAccountsDBArgs()
@@ -744,10 +744,10 @@ func TestAccountsDB_LoadCodeOkValsShouldWork(t *testing.T) {
 	marshaller := &marshallerMock.MarshalizerMock{}
 
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
 			// will return adr.Bytes() so its hash will correspond to adr.Hash()
 			serializedCodeEntry, err := marshaller.Marshal(&state.CodeEntry{Code: adr})
-			return serializedCodeEntry, 0, err
+			return common.NewTrieLeafHolder(serializedCodeEntry, 0, core.NotSpecified), err
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -851,12 +851,12 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 	trieVal = append(trieVal, []byte("identifier")...)
 
 	dataTrie := &trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, uint32, error) {
+		GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 			if bytes.Equal(key, keyRequired) {
-				return trieVal, 0, nil
+				return common.NewTrieLeafHolder(trieVal, 0, core.NotSpecified), nil
 			}
 
-			return nil, 0, nil
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 	}
 
@@ -904,13 +904,13 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 		RootCalled: func() (i []byte, e error) {
 			return nil, nil
 		},
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return serializedAccount, 0, nil
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+			return common.NewTrieLeafHolder(serializedAccount, 0, core.NotSpecified), nil
 		},
 		RecreateCalled: func(root []byte) (trie common.Trie, err error) {
 			return &trieMock.TrieStub{
-				GetCalled: func(_ []byte) ([]byte, uint32, error) {
-					return []byte("doge"), 0, nil
+				GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+					return common.NewTrieLeafHolder([]byte("doge"), 0, core.NotSpecified), nil
 				},
 				UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 					return nil
@@ -1582,12 +1582,12 @@ func checkCodeEntry(
 	tr common.Trie,
 	t *testing.T,
 ) {
-	val, _, err := tr.Get(codeHash)
+	tld, err := tr.Get(codeHash)
 	assert.Nil(t, err)
-	assert.NotNil(t, val)
+	assert.NotNil(t, tld.Value())
 
 	var codeEntry state.CodeEntry
-	err = marshaller.Unmarshal(&codeEntry, val)
+	err = marshaller.Unmarshal(&codeEntry, tld.Value())
 	assert.Nil(t, err)
 
 	assert.Equal(t, expectedCode, codeEntry.Code)
@@ -1653,9 +1653,9 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 	err = adb.RevertToSnapshot(1)
 	assert.Nil(t, err)
 
-	val, _, err := tr.Get(expectedCodeHash)
+	tld, err := tr.Get(expectedCodeHash)
 	assert.Nil(t, err)
-	assert.Nil(t, val)
+	assert.Nil(t, tld.Value())
 }
 
 func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeAlreadyExistsAndRevert(t *testing.T) {
@@ -1720,9 +1720,9 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeIsNilAndRevert(t *testing.T)
 	assert.Nil(t, err)
 	assert.Nil(t, userAcc.GetCodeHash())
 
-	val, _, err := tr.Get(oldCodeHash)
+	tld, err := tr.Get(oldCodeHash)
 	assert.Nil(t, err)
-	assert.Nil(t, val)
+	assert.Nil(t, tld.Value())
 
 	err = adb.RevertToSnapshot(journalLen)
 	assert.Nil(t, err)
@@ -1763,9 +1763,9 @@ func TestAccountsDB_saveCode_OldCodeExistsAndNewCodeExistsAndRevert(t *testing.T
 	assert.Nil(t, err)
 	assert.Equal(t, newCodeHash, userAcc.GetCodeHash())
 
-	val, _, err := tr.Get(oldCodeHash)
+	tld, err := tr.Get(oldCodeHash)
 	assert.Nil(t, err)
-	assert.Nil(t, val)
+	assert.Nil(t, tld.Value())
 
 	checkCodeEntry(newCodeHash, newCode, 2, marshaller, tr, t)
 
@@ -1833,22 +1833,22 @@ func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T
 
 	snapshot := adb.JournalLen()
 
-	val, _, err := tr.Get(oldCodeHash)
+	tld, err := tr.Get(oldCodeHash)
 	assert.Nil(t, err)
-	assert.NotNil(t, val)
+	assert.NotNil(t, tld.Value())
 
 	err = adb.RemoveAccount(addr)
 	assert.Nil(t, err)
 
-	val, _, err = tr.Get(oldCodeHash)
+	tld, err = tr.Get(oldCodeHash)
 	assert.Nil(t, err)
-	assert.Nil(t, val)
+	assert.Nil(t, tld.Value())
 
 	_ = adb.RevertToSnapshot(snapshot)
 
-	val, _, err = tr.Get(oldCodeHash)
+	tld, err = tr.Get(oldCodeHash)
 	assert.Nil(t, err)
-	assert.NotNil(t, val)
+	assert.NotNil(t, tld.Value())
 }
 
 func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
@@ -1864,12 +1864,13 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 			},
 		}
 
-		codeHash := []byte("codeHash")
-
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		err = adb.MigrateCodeLeaf(codeHash)
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+
+		err = adb.MigrateCodeLeaf(account)
 		require.Nil(t, err)
 	})
 
@@ -1905,7 +1906,7 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		err = adb.MigrateCodeLeaf(account.Address)
+		err = adb.MigrateCodeLeaf(account)
 		require.Nil(t, err)
 	})
 
@@ -1951,12 +1952,12 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		err = adb.MigrateCodeLeaf(account.Address)
+		err = adb.MigrateCodeLeaf(account)
 		require.Nil(t, err)
 
-		val, _, err := tr.Get(codeHash)
+		tld, err := tr.Get(codeHash)
 		require.Nil(t, err)
-		require.Nil(t, val)
+		require.Nil(t, tld.Value())
 	})
 
 	t.Run("should update code entry with multiple referencies", func(t *testing.T) {
@@ -2001,14 +2002,14 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		err = adb.MigrateCodeLeaf(account.Address)
+		err = adb.MigrateCodeLeaf(account)
 		require.Nil(t, err)
 
-		val, _, err := tr.Get(codeHash)
+		tld, err := tr.Get(codeHash)
 		require.Nil(t, err)
 
 		newCodeEntry := &state.CodeEntry{}
-		err = args.Marshaller.Unmarshal(newCodeEntry, val)
+		err = args.Marshaller.Unmarshal(newCodeEntry, tld.Value())
 		require.Nil(t, err)
 
 		require.Equal(t, uint32(1), newCodeEntry.NumReferences)
@@ -2834,11 +2835,11 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 	serializerAcc, _ := marshaller.Marshal(acc)
 
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(key []byte) ([]byte, uint32, error) {
+		GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 			if bytes.Equal(key, acc.AddressBytes()) {
-				return serializerAcc, 0, nil
+				return common.NewTrieLeafHolder(serializerAcc, 0, core.NotSpecified), nil
 			}
-			return nil, 0, nil
+			return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 		},
 		RecreateCalled: func(root []byte) (d common.Trie, err error) {
 			return dataTrie, nil

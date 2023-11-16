@@ -6,6 +6,42 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+type TrieLeafHolder interface {
+	Value() []byte
+	Depth() uint32
+	Version() core.TrieNodeVersion
+}
+
+type trieLeafHolder struct {
+	value   []byte
+	depth   uint32
+	version core.TrieNodeVersion
+}
+
+// NewTrieLeafHolder creates a new instance of trie leaf storage
+func NewTrieLeafHolder(value []byte, depth uint32, version core.TrieNodeVersion) *trieLeafHolder {
+	return &trieLeafHolder{
+		value:   value,
+		depth:   depth,
+		version: version,
+	}
+}
+
+// Value returns the value of the trie leaf
+func (t *trieLeafHolder) Value() []byte {
+	return t.value
+}
+
+// Depth returns the depth of the trie leaf
+func (t *trieLeafHolder) Depth() uint32 {
+	return t.depth
+}
+
+// Version returns the version of the trie leaf
+func (t *trieLeafHolder) Version() core.TrieNodeVersion {
+	return t.version
+}
+
 // EmptyTrieHash returns the value with empty trie hash
 var EmptyTrieHash = make([]byte, 32)
 

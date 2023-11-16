@@ -24,6 +24,7 @@ type userAccount struct {
 	dataTrieLeafParser common.TrieLeafParser
 	code               []byte
 	hasNewCode         bool
+	version            uint8
 }
 
 var zero = big.NewInt(0)
@@ -198,6 +199,16 @@ func (a *userAccount) SetCode(code []byte) {
 // GetCode returns the code that needs to be run in the VM
 func (a *userAccount) GetCode() []byte {
 	return a.code
+}
+
+// SetVersion sets the account version
+func (a *userAccount) SetVersion(version uint8) {
+	a.version = version
+}
+
+// GetVersion returns th account version
+func (a *userAccount) GetVersion() uint8 {
+	return a.version
 }
 
 // HasNewCode returns true if there was a code change for the account

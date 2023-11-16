@@ -18,6 +18,7 @@ type journalEntryCode struct {
 	trie                Updater
 	marshalizer         marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
+	version             uint8
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
@@ -28,6 +29,7 @@ func NewJournalEntryCode(
 	trie Updater,
 	marshalizer marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
+	accVersion uint8,
 ) (*journalEntryCode, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
@@ -46,6 +48,7 @@ func NewJournalEntryCode(
 		trie:                trie,
 		marshalizer:         marshalizer,
 		enableEpochsHandler: enableEpochsHandler,
+		version:             accVersion,
 	}, nil
 }
 
