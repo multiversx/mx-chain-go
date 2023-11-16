@@ -424,7 +424,9 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
-	count := 0
+	verifyCt := 0
+	verifyExtraCt := 0
+	removeExtraLeaderSigCt := 0
 
 	args.KeyGen = &mock.SingleSignKeyGenMock{
 		PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
@@ -433,7 +435,17 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
 	}
 	args.SingleSigVerifier = &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
-			count++
+			verifyCt++
+			return nil
+		},
+	}
+	args.ExtraHeaderSigVerifierHolder = &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{
+		VerifyLeaderSignatureCalled: func(header data.HeaderHandler, leaderPubKey crypto.PublicKey) error {
+			verifyExtraCt++
+			return nil
+		},
+		RemoveLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			removeExtraLeaderSigCt++
 			return nil
 		},
 	}
@@ -451,7 +463,9 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
 	require.Nil(t, err)
-	require.Equal(t, 1, count)
+	require.Equal(t, 1, verifyCt)
+	require.Equal(t, 1, verifyExtraCt)
+	require.Equal(t, 1, removeExtraLeaderSigCt)
 }
 
 func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
@@ -540,6 +554,8 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 
 	wasCalled := false
 	wasExtraHdrSigVerifierCalled := false
+	wasExtraSigRemoveCalled := false
+
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nc := &shardingMocks.NodesCoordinatorMock{
@@ -561,6 +577,10 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 			wasExtraHdrSigVerifierCalled = true
 			return nil
 		},
+		RemoveAllSignaturesCalled: func(header data.HeaderHandler) error {
+			wasExtraSigRemoveCalled = true
+			return nil
+		},
 	}
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -572,6 +592,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, wasCalled)
 	require.True(t, wasExtraHdrSigVerifierCalled)
+	require.True(t, wasExtraSigRemoveCalled)
 }
 
 func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {
