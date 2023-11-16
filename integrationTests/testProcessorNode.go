@@ -2439,7 +2439,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
 				ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 				ShardProcessor:               bp,
-				OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterStub{},
+				OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 				OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			})
 		} else {
