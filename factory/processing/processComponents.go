@@ -293,14 +293,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:             pcf.coreData.InternalMarshalizer(),
-		Hasher:                  pcf.coreData.Hasher(),
-		NodesCoordinator:        pcf.nodesCoordinator,
-		MultiSigContainer:       pcf.crypto.MultiSignerContainer(),
-		SingleSigVerifier:       pcf.crypto.BlockSigner(),
-		KeyGen:                  pcf.crypto.BlockSignKeyGen(),
-		FallbackHeaderValidator: fallbackHeaderValidator,
-		ExtraSigVerifierHolder:  pcf.extraHeaderSigVerifierHolder,
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		NodesCoordinator:             pcf.nodesCoordinator,
+		MultiSigContainer:            pcf.crypto.MultiSignerContainer(),
+		SingleSigVerifier:            pcf.crypto.BlockSigner(),
+		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
+		FallbackHeaderValidator:      fallbackHeaderValidator,
+		ExtraHeaderSigVerifierHolder: pcf.extraHeaderSigVerifierHolder,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {

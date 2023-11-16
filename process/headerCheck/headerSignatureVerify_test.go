@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -23,14 +24,14 @@ const defaultChancesSelection = 1
 
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	return &ArgsHeaderSigVerifier{
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &hashingMocks.HasherMock{},
-		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
-		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
-		SingleSigVerifier:       &mock.SignerMock{},
-		KeyGen:                  &mock.SingleSignKeyGenMock{},
-		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
-		ExtraSigVerifierHolder:  &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		Marshalizer:                  &mock.MarshalizerMock{},
+		Hasher:                       &hashingMocks.HasherMock{},
+		NodesCoordinator:             &shardingMocks.NodesCoordinatorMock{},
+		MultiSigContainer:            cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
+		SingleSigVerifier:            &mock.SignerMock{},
+		KeyGen:                       &mock.SingleSignKeyGenMock{},
+		FallbackHeaderValidator:      &testscommon.FallBackHeaderValidatorStub{},
+		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 	}
 }
 
@@ -107,6 +108,17 @@ func TestNewHeaderSigVerifier_NilSingleSigShouldErr(t *testing.T) {
 
 	require.Nil(t, hdrSigVerifier)
 	require.Equal(t, process.ErrNilSingleSigner, err)
+}
+
+func TestNewHeaderSigVerifier_NilExtraSigVerifierHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.ExtraHeaderSigVerifierHolder = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, errorsMx.ErrNilExtraHeaderSigVerifierHolder, err)
 }
 
 func TestNewHeaderSigVerifier_OkValsShouldWork(t *testing.T) {
@@ -527,6 +539,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	t.Parallel()
 
 	wasCalled := false
+	wasExtraHdrSigVerifierCalled := false
 	args := createHeaderSigVerifierArgs()
 	pkAddr := []byte("aaa00000000000000000000000000000")
 	nc := &shardingMocks.NodesCoordinatorMock{
@@ -543,6 +556,13 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 			return nil
 		}})
 
+	args.ExtraHeaderSigVerifierHolder = &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{
+		VerifyAggregatedSignatureCalled: func(header data.HeaderHandler, multiSigVerifier crypto.MultiSigner, pubKeysSigners [][]byte) error {
+			wasExtraHdrSigVerifierCalled = true
+			return nil
+		},
+	}
+
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("1"),
@@ -551,6 +571,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	err := hdrSigVerifier.VerifySignature(header)
 	require.Nil(t, err)
 	require.True(t, wasCalled)
+	require.True(t, wasExtraHdrSigVerifierCalled)
 }
 
 func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {

@@ -22,14 +22,14 @@ var log = logger.GetOrCreate("process/headerCheck")
 
 // ArgsHeaderSigVerifier is used to store all components that are needed to create a new HeaderSigVerifier
 type ArgsHeaderSigVerifier struct {
-	Marshalizer             marshal.Marshalizer
-	Hasher                  hashing.Hasher
-	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigContainer       cryptoCommon.MultiSignerContainer
-	SingleSigVerifier       crypto.SingleSigner
-	KeyGen                  crypto.KeyGenerator
-	FallbackHeaderValidator process.FallbackHeaderValidator
-	ExtraSigVerifierHolder  ExtraHeaderSigVerifierHolder
+	Marshalizer                  marshal.Marshalizer
+	Hasher                       hashing.Hasher
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
+	MultiSigContainer            cryptoCommon.MultiSignerContainer
+	SingleSigVerifier            crypto.SingleSigner
+	KeyGen                       crypto.KeyGenerator
+	FallbackHeaderValidator      process.FallbackHeaderValidator
+	ExtraHeaderSigVerifierHolder ExtraHeaderSigVerifierHolder
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -60,7 +60,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		singleSigVerifier:       arguments.SingleSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
-		extraSigVerifierHolder:  arguments.ExtraSigVerifierHolder,
+		extraSigVerifierHolder:  arguments.ExtraHeaderSigVerifierHolder,
 	}, nil
 }
 
@@ -96,7 +96,7 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if check.IfNil(arguments.FallbackHeaderValidator) {
 		return process.ErrNilFallbackHeaderValidator
 	}
-	if check.IfNil(arguments.ExtraSigVerifierHolder) {
+	if check.IfNil(arguments.ExtraHeaderSigVerifierHolder) {
 		return errors.ErrNilExtraHeaderSigVerifierHolder
 	}
 

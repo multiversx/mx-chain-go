@@ -443,14 +443,14 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		args := headerCheck.ArgsHeaderSigVerifier{
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			NodesCoordinator:        nodesCoordinatorInstance,
-			MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
-			SingleSigVerifier:       signer,
-			KeyGen:                  keyGen,
-			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
-			ExtraSigVerifierHolder:  &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+			Marshalizer:                  TestMarshalizer,
+			Hasher:                       TestHasher,
+			NodesCoordinator:             nodesCoordinatorInstance,
+			MultiSigContainer:            cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+			SingleSigVerifier:            signer,
+			KeyGen:                       keyGen,
+			FallbackHeaderValidator:      &testscommon.FallBackHeaderValidatorStub{},
+			ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -573,14 +573,14 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			)
 
 			args := headerCheck.ArgsHeaderSigVerifier{
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				NodesCoordinator:        nodesCoord,
-				MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
-				SingleSigVerifier:       singleSigner,
-				KeyGen:                  keyGenForBlocks,
-				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
-				ExtraSigVerifierHolder:  &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+				Marshalizer:                  TestMarshalizer,
+				Hasher:                       TestHasher,
+				NodesCoordinator:             nodesCoord,
+				MultiSigContainer:            cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+				SingleSigVerifier:            singleSigner,
+				KeyGen:                       keyGenForBlocks,
+				FallbackHeaderValidator:      &testscommon.FallBackHeaderValidatorStub{},
+				ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
