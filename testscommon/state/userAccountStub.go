@@ -22,6 +22,7 @@ type UserAccountStub struct {
 	Address          []byte
 	CodeMetadata     []byte
 	CodeHash         []byte
+	Version          uint8
 
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
@@ -187,6 +188,16 @@ func (u *UserAccountStub) IsGuarded() bool {
 // SaveDirtyData -
 func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
 	return nil, nil
+}
+
+// SetVersion -
+func (u *UserAccountStub) SetVersion(version uint8) {
+	u.Version = version
+}
+
+// GetVersion -
+func (u *UserAccountStub) GetVersion() uint8 {
+	return u.Version
 }
 
 // IsInterfaceNil -

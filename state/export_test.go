@@ -39,7 +39,7 @@ func GetCode(account baseAccountHandler) []byte {
 
 // GetCodeEntry -
 func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer, enableEpochHandler common.EnableEpochsHandler) (*CodeEntry, error) {
-	return getCodeEntry(codeHash, trie, marshalizer, enableEpochHandler)
+	return getCodeEntry(codeHash, trie, marshalizer)
 }
 
 // RecreateTrieIfNecessary -

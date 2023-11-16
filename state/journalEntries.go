@@ -18,7 +18,8 @@ type journalEntryCode struct {
 	trie                Updater
 	marshalizer         marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
-	version             uint8
+	oldCodeVersion      uint8
+	newCodeVersion      uint8
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
@@ -29,7 +30,8 @@ func NewJournalEntryCode(
 	trie Updater,
 	marshalizer marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
-	accVersion uint8,
+	oldCodeVersion uint8,
+	newCodeVersion uint8,
 ) (*journalEntryCode, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
@@ -48,7 +50,8 @@ func NewJournalEntryCode(
 		trie:                trie,
 		marshalizer:         marshalizer,
 		enableEpochsHandler: enableEpochsHandler,
-		version:             accVersion,
+		oldCodeVersion:      oldCodeVersion,
+		newCodeVersion:      newCodeVersion,
 	}, nil
 }
 
@@ -76,7 +79,12 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer, jea.enableEpochsHandler)
+	if jea.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+		jea.oldCodeVersion == uint8(core.WithoutCodeLeaf) {
+		return jea.trie.GetStorageManager().Put(jea.oldCodeHash, jea.oldCodeEntry.GetCode())
+	}
+
+	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -85,7 +93,13 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
-	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer, jea.enableEpochsHandler)
+	if jea.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+		jea.newCodeVersion == uint8(core.WithoutCodeLeaf) {
+		// do not update old code entry since num referencies is not used anymore
+		return nil
+	}
+
+	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -104,7 +118,7 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 	}
 
 	newCodeEntry.NumReferences--
-	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer, jea.enableEpochsHandler)
+	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
