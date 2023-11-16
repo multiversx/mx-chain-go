@@ -424,14 +424,14 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		extraSigShare, err := sr.extraSignersHolder.CreateExtraSignatureShares(sr.Header, uint16(selfIndex), pkBytes)
+		extraSigShares, err := sr.extraSignersHolder.CreateExtraSignatureShares(sr.Header, uint16(selfIndex), pkBytes)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.extraSignersHolder.createExtraSignatureShares", "error", err.Error())
 			return false
 		}
 
 		if !isMultiKeyLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, extraSigShare, pkBytes)
+			ok := sr.createAndSendSignatureMessage(signatureShare, extraSigShares, pkBytes)
 			if !ok {
 				return false
 			}
