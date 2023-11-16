@@ -84,15 +84,15 @@ sudo cp protoc-gen-gogoslick /usr/bin/
 Done
 
 ## Running p2p Prometheus dashboards
-1. Start the node with `--p2p-prometheus-metrics` flag. This exposes a metrics collection at http://localhost:5001/debug/metrics/prometheus.
+1. Start the node with `--p2p-prometheus-metrics` flag. This exposes a metrics collection at http://localhost:8080/debug/metrics/prometheus (port defined by -rest-api-interface flag, default 8080)
 2. Clone libp2p repository: `git clone https://github.com/libp2p/go-libp2p`
 3. `cd go-libp2p/dasboards/swarm` and under the 
-```json  
+```  
 "templating": {
    "list": [
 ```
 section, add the following lines:
-```json
+```
 {
   "hide": 0,
   "label": "datasource",
@@ -110,7 +110,7 @@ section, add the following lines:
 ```
 sudo docker compose -f docker-compose.base.yml -f docker-compose-linux.yml up --force-recreate
 ```
-**Note:** this command is not compatible with compose v1, thus an update to v2 would be needed. More details about the migration [here](https://docs.docker.com/compose/migrate/).
+**Note:** If you choose to install the new Docker version manually, please make sure that installation is done for all users of the system. Otherwise, the docker command will fail because it needs the super-user privileges.
 6. The preconfigured dashboards should be now available on Grafana at http://localhost:3000/dashboards
 
 ## Progress
