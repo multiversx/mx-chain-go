@@ -2,13 +2,13 @@ package sovereign
 
 import "github.com/multiversx/mx-chain-core-go/data"
 
-// OutgoingOperationsFormatterStub -
-type OutgoingOperationsFormatterStub struct {
+// OutgoingOperationsFormatterMock -
+type OutgoingOperationsFormatterMock struct {
 	CreateOutgoingTxDataCalled func(logs []*data.LogData) [][]byte
 }
 
-// CreateOutgoingTxData -
-func (stub *OutgoingOperationsFormatterStub) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
+// CreateOutgoingTxsData -
+func (stub *OutgoingOperationsFormatterMock) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
 	if stub.CreateOutgoingTxDataCalled != nil {
 		return stub.CreateOutgoingTxDataCalled(logs)
 	}
@@ -17,6 +17,6 @@ func (stub *OutgoingOperationsFormatterStub) CreateOutgoingTxsData(logs []*data.
 }
 
 // IsInterfaceNil -
-func (stub *OutgoingOperationsFormatterStub) IsInterfaceNil() bool {
+func (stub *OutgoingOperationsFormatterMock) IsInterfaceNil() bool {
 	return stub == nil
 }

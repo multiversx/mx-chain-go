@@ -497,7 +497,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 	case common.ChainRunTypeSovereign:
 		// TODO: Radu Chis: move this in the factory of the sovereign block processor once the refactor is completed
 
-		outgoingOpFormatter, errOpFormatter := sovereign.CrateOutgoingOperationsFormatter(
+		outgoingOpFormatter, errOpFormatter := sovereign.CreateOutgoingOperationsFormatter(
 			pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
 			pcf.coreData.AddressPubKeyConverter(),
 			pcf.coreData.RoundHandler(),
