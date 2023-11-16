@@ -129,9 +129,9 @@ func testGasConsumedForDataTrieLoad(
 func getTrieDepthForKeys(t *testing.T, tr common.Trie, keys [][]byte) []uint32 {
 	trieLevels := make([]uint32, len(keys))
 	for i, key := range keys {
-		_, depth, err := tr.Get(integrationTests.TestHasher.Compute(string(key)))
+		tld, err := tr.Get(integrationTests.TestHasher.Compute(string(key)))
 		require.Nil(t, err)
-		trieLevels[i] = depth
+		trieLevels[i] = tld.Depth()
 	}
 
 	return trieLevels
