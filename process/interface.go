@@ -1356,6 +1356,7 @@ type IncomingHeaderSubscriber interface {
 	IsInterfaceNil() bool
 }
 
+// ExtraHeaderSigVerifierHandler defines the required properties of an extra header sig verifier for additional data
 type ExtraHeaderSigVerifierHandler interface {
 	VerifyAggregatedSignature(header data.HeaderHandler, multiSigVerifier crypto.MultiSigner, pubKeysSigners [][]byte) error
 	VerifyLeaderSignature(header data.HeaderHandler, leaderPubKey crypto.PublicKey) error

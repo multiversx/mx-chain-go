@@ -23,7 +23,7 @@ type SubRoundSignatureExtraSignersHolder interface {
 
 // SubRoundEndExtraSignersHolder manages extra signers during end subround in a consensus process
 type SubRoundEndExtraSignersHolder interface {
-	AggregateSignatures(bitmap []byte, epoch uint32) (map[string][]byte, error)
+	AggregateSignatures(bitmap []byte, header data.HeaderHandler) (map[string][]byte, error)
 	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error
 	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
 	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSigs map[string][]byte) error

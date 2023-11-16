@@ -14,6 +14,7 @@ type sovereignHeaderSigVerifier struct {
 	singleSigVerifier crypto.SingleSigner
 }
 
+// NewSovereignHeaderSigVerifier creates a new sovereign header sig verifier for outgoing operations
 func NewSovereignHeaderSigVerifier(singleSigVerifier crypto.SingleSigner) (*sovereignHeaderSigVerifier, error) {
 	if check.IfNil(singleSigVerifier) {
 		return nil, process.ErrNilSingleSigner
@@ -24,6 +25,7 @@ func NewSovereignHeaderSigVerifier(singleSigVerifier crypto.SingleSigner) (*sove
 	}, nil
 }
 
+// VerifyAggregatedSignature verifies aggregated sig for outgoing operations
 func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 	header data.HeaderHandler,
 	multiSigVerifier crypto.MultiSigner,
@@ -46,6 +48,7 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 	)
 }
 
+// VerifyLeaderSignature verifies leader sig for outgoing operations
 func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 	header data.HeaderHandler,
 	leaderPubKey crypto.PublicKey,
@@ -70,6 +73,7 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 		outGoingMb.GetLeaderSignatureOutGoingOperations())
 }
 
+// RemoveLeaderSignature removes leader sig from outgoing operations
 func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderHandler) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -89,6 +93,7 @@ func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderH
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
+// RemoveAllSignatures removes aggregated + leader sig from outgoing operations
 func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHandler) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -113,6 +118,7 @@ func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHan
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
+// Identifier returns the unique id of the header verifier
 func (hsv *sovereignHeaderSigVerifier) Identifier() string {
 	return "sovereignHeaderSigVerifier"
 }

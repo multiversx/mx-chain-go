@@ -43,8 +43,18 @@ func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap 
 }
 
 // AggregateSignatures aggregates signatures for outgoing tx data
-func (sr *sovereignSubRoundEndOutGoingTxData) AggregateSignatures(bitmap []byte, epoch uint32) ([]byte, error) {
-	sig, err := sr.signingHandler.AggregateSigs(bitmap, epoch)
+func (sr *sovereignSubRoundEndOutGoingTxData) AggregateSignatures(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
+	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
+	}
+
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	if check.IfNil(outGoingMb) {
+		return nil, nil
+	}
+
+	sig, err := sr.signingHandler.AggregateSigs(bitmap, header.GetEpoch())
 	if err != nil {
 		return nil, err
 	}

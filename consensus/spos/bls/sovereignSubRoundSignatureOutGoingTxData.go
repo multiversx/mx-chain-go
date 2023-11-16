@@ -50,12 +50,18 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 
 // AddSigShareToConsensusMessage adds the provided sig share for outgoing tx data to the consensus message
 func (sr *sovereignSubRoundSignatureOutGoingTxData) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
-	cnsMsg.SignatureShareOutGoingTxData = sigShare
+	if len(sigShare) != 0 {
+		cnsMsg.SignatureShareOutGoingTxData = sigShare
+	}
 }
 
 // StoreSignatureShare stores the provided sig share for outgoing tx data from the consensus message
 func (sr *sovereignSubRoundSignatureOutGoingTxData) StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error {
-	return sr.signingHandler.StoreSignatureShare(index, cnsMsg.SignatureShareOutGoingTxData)
+	if cnsMsg != nil && cnsMsg.SignatureShareOutGoingTxData != nil {
+		return sr.signingHandler.StoreSignatureShare(index, cnsMsg.SignatureShareOutGoingTxData)
+	}
+
+	return nil
 }
 
 // Identifier returns the unique id of the signer
