@@ -1896,7 +1896,7 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		account.SetRootHash(rootHash)
 
 		codeHash := []byte("codeHash")
-		codeBytes, err := args.Marshaller.Marshal(&state.CodeEntry{
+		codeBytes, _ := args.Marshaller.Marshal(&state.CodeEntry{
 			Code:          []byte("code"),
 			NumReferences: 1,
 		})
