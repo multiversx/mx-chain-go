@@ -361,6 +361,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T
 	account, _ := testContext.Accounts.LoadAccount(sndAddr)
 	userAcc, _ := account.(state.UserAccountHandler)
 	recoveredValue, _, err := userAcc.RetrieveValue(key)
+	assert.Nil(t, err)
 	assert.Equal(t, hexValue, hex.EncodeToString(recoveredValue))
 
 	// try to re-execute the same transaction with enough gas, saving is not actually done
@@ -376,6 +377,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T
 	account, _ = testContext.Accounts.LoadAccount(sndAddr)
 	userAcc, _ = account.(state.UserAccountHandler)
 	recoveredValue, _, err = userAcc.RetrieveValue(key)
+	assert.Nil(t, err)
 	assert.Equal(t, hexValue, hex.EncodeToString(recoveredValue))
 
 	// try to re-execute the same transaction with insufficient gas, should hard error because the fix is not enabled
