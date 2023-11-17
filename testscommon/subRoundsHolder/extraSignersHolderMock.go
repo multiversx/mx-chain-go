@@ -1,7 +1,8 @@
-package subRounds
+package subRoundsHolder
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 )
 
 // ExtraSignersHolderMock -
@@ -16,7 +17,7 @@ func (mock *ExtraSignersHolderMock) GetSubRoundStartExtraSignersHolder() bls.Sub
 	if mock.GetSubRoundStartExtraSignersHolderCalled != nil {
 		return mock.GetSubRoundStartExtraSignersHolderCalled()
 	}
-	return &SubRoundStartExtraSignersHolderMock{}
+	return &subRounds.SubRoundStartExtraSignersHolderMock{}
 }
 
 // GetSubRoundSignatureExtraSignersHolder -
@@ -24,7 +25,7 @@ func (mock *ExtraSignersHolderMock) GetSubRoundSignatureExtraSignersHolder() bls
 	if mock.GetSubRoundSignatureExtraSignersHolderCalled != nil {
 		return mock.GetSubRoundSignatureExtraSignersHolderCalled()
 	}
-	return &SubRoundSignatureExtraSignersHolderMock{}
+	return &subRounds.SubRoundSignatureExtraSignersHolderMock{}
 }
 
 // GetSubRoundEndExtraSignersHolder -
@@ -32,7 +33,7 @@ func (mock *ExtraSignersHolderMock) GetSubRoundEndExtraSignersHolder() bls.SubRo
 	if mock.GetSubRoundEndExtraSignersHolderCalled != nil {
 		return mock.GetSubRoundEndExtraSignersHolderCalled()
 	}
-	return &SubRoundEndExtraSignersHolderMock{}
+	return &subRounds.SubRoundEndExtraSignersHolderMock{}
 }
 
 // IsInterfaceNil -

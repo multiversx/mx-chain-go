@@ -48,7 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -185,7 +185,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		ScheduledProcessor:   scheduledProcessor,
 		ConsensusModel:       consensus.ConsensusModelV1,
 		ChainRunType:         common.ChainRunTypeRegular,
-		ExtraSignersHolder:   &subRounds.ExtraSignersHolderMock{},
+		ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
 	}
 }
 

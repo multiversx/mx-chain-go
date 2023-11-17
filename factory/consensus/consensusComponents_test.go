@@ -38,7 +38,7 @@ import (
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -164,7 +164,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ShouldDisableWatchdog: false,
 		ChainRunType:          common.ChainRunTypeRegular,
 		ConsensusModel:        consensus.ConsensusModelV1,
-		ExtraSignersHolder:    &subRounds.ExtraSignersHolderMock{},
+		ExtraSignersHolder:    &subRoundsHolder.ExtraSignersHolderMock{},
 	}
 }
 

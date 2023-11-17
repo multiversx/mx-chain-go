@@ -115,41 +115,7 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 
-	// TODO: Wee need to have a components holder here which shall be injected
-	// Task: MX-14746
-	extraSignerHandler := fct.consensusCore.SigningHandler().ShallowClone()
-	startRoundExtraSignersHolder := NewSubRoundStartExtraSignersHolder()
-	startRoundExtraSigner, err := NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
-	if err != nil {
-		return err
-	}
-
-	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSigner)
-	if err != nil {
-		return err
-	}
-	err = fct.generateStartRoundSubround(startRoundExtraSignersHolder)
-	if err != nil {
-		return err
-	}
-
-	signRoundExtraSignersHolder := NewSubRoundSignatureExtraSignersHolder()
-	signRoundExtraSigner, err := NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
-	if err != nil {
-		return err
-	}
-	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
-	if err != nil {
-		return err
-	}
-
-	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
-	endRoundExtraSignersHolder := NewSubRoundEndExtraSignersHolder()
-	endRoundExtraSigner, err := NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
-	if err != nil {
-		return err
-	}
-	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSigner)
+	err := fct.generateStartRoundSubround(fct.extraSignersHolder.GetSubRoundStartExtraSignersHolder())
 	if err != nil {
 		return err
 	}
@@ -161,12 +127,12 @@ func (fct *factory) GenerateSubrounds() error {
 			return err
 		}
 
-		err = fct.generateSignatureSubroundV1(signRoundExtraSignersHolder)
+		err = fct.generateSignatureSubroundV1(fct.extraSignersHolder.GetSubRoundSignatureExtraSignersHolder())
 		if err != nil {
 			return err
 		}
 
-		err = fct.generateEndRoundSubroundV1(endRoundExtraSignersHolder)
+		err = fct.generateEndRoundSubroundV1(fct.extraSignersHolder.GetSubRoundEndExtraSignersHolder())
 		if err != nil {
 			return err
 		}
@@ -178,12 +144,12 @@ func (fct *factory) GenerateSubrounds() error {
 			return err
 		}
 
-		err = fct.generateSignatureSubroundV2(signRoundExtraSignersHolder)
+		err = fct.generateSignatureSubroundV2(fct.extraSignersHolder.GetSubRoundSignatureExtraSignersHolder())
 		if err != nil {
 			return err
 		}
 
-		err = fct.generateEndRoundSubroundV2(endRoundExtraSignersHolder)
+		err = fct.generateEndRoundSubroundV2(fct.extraSignersHolder.GetSubRoundEndExtraSignersHolder())
 		if err != nil {
 			return err
 		}
