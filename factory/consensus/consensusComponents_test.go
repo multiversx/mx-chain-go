@@ -409,6 +409,16 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
+	t.Run("nil extraSignersHolder, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.ExtraSignersHolder = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilExtraSignersHolder, err)
+	})
 }
 
 func TestNewConsensusComponentsFactory_IncompatibleArguments(t *testing.T) {

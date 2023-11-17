@@ -11,6 +11,7 @@ type extraSignersHolder struct {
 	endRoundHolder   SubRoundEndExtraSignersHolder
 }
 
+// NewExtraSignersHolder creates a holder for all extra signer holders
 func NewExtraSignersHolder(
 	startRoundHolder SubRoundStartExtraSignersHolder,
 	signRoundHolder SubRoundSignatureExtraSignersHolder,
@@ -33,6 +34,7 @@ func NewExtraSignersHolder(
 	}, nil
 }
 
+// NewEmptyExtraSignersHolder creates an empty holder
 func NewEmptyExtraSignersHolder() *extraSignersHolder {
 	return &extraSignersHolder{
 		startRoundHolder: NewSubRoundStartExtraSignersHolder(),
@@ -41,18 +43,22 @@ func NewEmptyExtraSignersHolder() *extraSignersHolder {
 	}
 }
 
+// GetSubRoundStartExtraSignersHolder returns internal start round extra signers holder
 func (holder *extraSignersHolder) GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder {
 	return holder.startRoundHolder
 }
 
+// GetSubRoundSignatureExtraSignersHolder returns internal sign round extra signers holder
 func (holder *extraSignersHolder) GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder {
 	return holder.signRoundHolder
 }
 
+// GetSubRoundEndExtraSignersHolder returns internal end round extra signers holder
 func (holder *extraSignersHolder) GetSubRoundEndExtraSignersHolder() SubRoundEndExtraSignersHolder {
 	return holder.endRoundHolder
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (holder *extraSignersHolder) IsInterfaceNil() bool {
 	return holder == nil
 }

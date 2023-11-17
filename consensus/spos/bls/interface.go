@@ -33,6 +33,7 @@ type SubRoundEndExtraSignersHolder interface {
 	IsInterfaceNil() bool
 }
 
+// ExtraSignersHolder manges all extra signer holders
 type ExtraSignersHolder interface {
 	GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder
 	GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder
