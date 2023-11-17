@@ -734,10 +734,9 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
-	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
+	if ok {
+		baseAcc.SetVersion(uint8(leafHolder.Version()))
 	}
-	baseAcc.SetVersion(uint8(leafHolder.Version()))
 
 	return acnt, nil
 }

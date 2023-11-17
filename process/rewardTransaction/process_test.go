@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
@@ -226,8 +227,8 @@ func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T)
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 			acc := stateMock.NewAccountWrapMock(address)
 			acc.SetDataTrie(&trie.TrieStub{
-				GetCalled: func(key []byte) ([]byte, uint32, error) {
-					return nil, 0, missingNodeErr
+				GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+					return nil, missingNodeErr
 				},
 			},
 			)
