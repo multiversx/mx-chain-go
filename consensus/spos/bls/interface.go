@@ -32,3 +32,10 @@ type SubRoundEndExtraSignersHolder interface {
 	RegisterExtraSigningHandler(extraSigner consensus.SubRoundEndExtraSignatureHandler) error
 	IsInterfaceNil() bool
 }
+
+type ExtraSignersHolder interface {
+	GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder
+	GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder
+	GetSubRoundEndExtraSignersHolder() SubRoundEndExtraSignersHolder
+	IsInterfaceNil() bool
+}

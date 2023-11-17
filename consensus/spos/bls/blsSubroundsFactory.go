@@ -26,6 +26,7 @@ type factory struct {
 	currentPid         core.PeerID
 	consensusModel     consensus.ConsensusModel
 	enableEpochHandler common.EnableEpochsHandler
+	extraSignersHolder ExtraSignersHolder
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -38,6 +39,7 @@ func NewSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	consensusModel consensus.ConsensusModel,
 	enableEpochHandler common.EnableEpochsHandler,
+	extraSignersHolder ExtraSignersHolder,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -46,6 +48,7 @@ func NewSubroundsFactory(
 		chainID,
 		appStatusHandler,
 		enableEpochHandler,
+		extraSignersHolder,
 	)
 	if err != nil {
 		return nil, err
@@ -60,6 +63,7 @@ func NewSubroundsFactory(
 		currentPid:         currentPid,
 		consensusModel:     consensusModel,
 		enableEpochHandler: enableEpochHandler,
+		extraSignersHolder: extraSignersHolder,
 	}
 
 	return &fct, nil
@@ -72,6 +76,7 @@ func checkNewFactoryParams(
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
 	enableEpochHandler common.EnableEpochsHandler,
+	extraSignersHolder ExtraSignersHolder,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -91,6 +96,9 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(enableEpochHandler) {
 		return spos.ErrNilEnableEpochHandler
+	}
+	if check.IfNil(extraSignersHolder) {
+		return errors.ErrNilExtraSignersHolder
 	}
 
 	return nil
