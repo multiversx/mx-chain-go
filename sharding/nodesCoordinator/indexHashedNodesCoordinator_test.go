@@ -2469,6 +2469,56 @@ func TestIndexHashedNodesCoordinator_GetShardValidatorInfoData(t *testing.T) {
 func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
 	t.Parallel()
 
+	t.Run("missing nodes config for current epoch should error ", func(t *testing.T) {
+		t.Parallel()
+
+		epochStartSubscriber := &mock.EpochStartNotifierStub{}
+		bootStorer := genericMocks.NewStorerMock()
+
+		shufflerArgs := &NodesShufflerArgs{
+			NodesShard:           10,
+			NodesMeta:            10,
+			Hysteresis:           hysteresis,
+			Adaptivity:           adaptivity,
+			ShuffleBetweenShards: shuffleBetweenShards,
+			MaxNodesEnableConfig: nil,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		}
+		nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+		require.Nil(t, err)
+
+		arguments := ArgNodesCoordinator{
+			ShardConsensusGroupSize: 1,
+			MetaConsensusGroupSize:  1,
+			Marshalizer:             &mock.MarshalizerMock{},
+			Hasher:                  &hashingMocks.HasherMock{},
+			Shuffler:                nodeShuffler,
+			EpochStartNotifier:      epochStartSubscriber,
+			BootStorer:              bootStorer,
+			ShardIDAsObserver:       0,
+			NbShards:                2,
+			EligibleNodes: map[uint32][]Validator{
+				core.MetachainShardId: {newValidatorMock([]byte("pk"), 1, 0)},
+			},
+			WaitingNodes:        make(map[uint32][]Validator),
+			SelfPublicKey:       []byte("key"),
+			ConsensusGroupCache: &mock.NodesCoordinatorCacheMock{},
+			ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:        make(chan endProcess.ArgEndProcess),
+			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+			EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
+				CurrentEpoch: 1,
+			},
+			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		}
+
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+		epochsLeft, err := ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk"))
+		require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+		require.Equal(t, uint32(0), epochsLeft)
+	})
 	t.Run("min hysteresis nodes returns 0 should work", func(t *testing.T) {
 		t.Parallel()
 

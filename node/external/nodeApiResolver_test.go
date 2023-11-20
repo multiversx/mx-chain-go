@@ -842,22 +842,44 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 func TestNodeApiResolver_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
 	t.Parallel()
 
-	providedKeyStr := "abcdef"
-	providedPublicKey, _ := hex.DecodeString(providedKeyStr)
-	expectedEpochsLeft := uint32(5)
-	args := createMockArgs()
-	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-		GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
-			require.True(t, bytes.Equal(providedPublicKey, publicKey))
-			return expectedEpochsLeft, nil
-		},
-	}
-	nar, err := external.NewNodeApiResolver(args)
-	require.NoError(t, err)
+	t.Run("invalid public key should error", func(t *testing.T) {
+		t.Parallel()
 
-	epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
-	require.NoError(t, err)
-	require.Equal(t, expectedEpochsLeft, epochsLeft)
+		providedKeyStr := "abcde"
+		args := createMockArgs()
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+				require.Fail(t, "should have not been called")
+				return 0, nil
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+		require.Error(t, err)
+		require.Equal(t, uint32(0), epochsLeft)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeyStr := "abcdef"
+		providedPublicKey, _ := hex.DecodeString(providedKeyStr)
+		expectedEpochsLeft := uint32(5)
+		args := createMockArgs()
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+				require.True(t, bytes.Equal(providedPublicKey, publicKey))
+				return expectedEpochsLeft, nil
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+		require.NoError(t, err)
+		require.Equal(t, expectedEpochsLeft, epochsLeft)
+	})
 }
 
 func TestNodeApiResolver_IsInterfaceNil(t *testing.T) {
