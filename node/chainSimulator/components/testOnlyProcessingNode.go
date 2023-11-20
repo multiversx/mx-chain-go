@@ -127,7 +127,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	selfShardID := instance.GetShardCoordinator().SelfId()
-	instance.StatusComponentsHolder, err = CreateStatusComponents(selfShardID)
+	instance.StatusComponentsHolder, err = CreateStatusComponents(
+		selfShardID,
+		instance.StatusCoreComponents.AppStatusHandler(),
+		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -186,6 +190,16 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.StatusComponentsHolder.SetForkDetector(instance.ProcessComponentsHolder.ForkDetector())
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.StatusComponentsHolder.StartPolling()
 	if err != nil {
 		return nil, err
 	}

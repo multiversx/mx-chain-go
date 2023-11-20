@@ -1,11 +1,18 @@
 package components
 
 import (
+	"context"
+	"fmt"
+	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/appStatusPolling"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportCfg "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -14,17 +21,28 @@ import (
 )
 
 type statusComponentsHolder struct {
-	closeHandler           *closeHandler
-	outportHandler         outport.OutportHandler
-	softwareVersionChecker statistics.SoftwareVersionChecker
-	managedPeerMonitor     common.ManagedPeersMonitor
+	closeHandler             *closeHandler
+	outportHandler           outport.OutportHandler
+	softwareVersionChecker   statistics.SoftwareVersionChecker
+	managedPeerMonitor       common.ManagedPeersMonitor
+	appStatusHandler         core.AppStatusHandler
+	forkDetector             process.ForkDetector
+	statusPollingIntervalSec int
+	cancelFunc               func()
+	mutex                    sync.RWMutex
 }
 
 // CreateStatusComponents will create a new instance of status components holder
-func CreateStatusComponents(shardID uint32) (factory.StatusComponentsHandler, error) {
+func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int) (factory.StatusComponentsHandler, error) {
+	if check.IfNil(appStatusHandler) {
+		return nil, core.ErrNilAppStatusHandler
+	}
+
 	var err error
 	instance := &statusComponentsHolder{
-		closeHandler: NewCloseHandler(),
+		closeHandler:             NewCloseHandler(),
+		appStatusHandler:         appStatusHandler,
+		statusPollingIntervalSec: statusPollingIntervalSec,
 	}
 
 	// TODO add drivers to index data
@@ -64,6 +82,10 @@ func (s *statusComponentsHolder) collectClosableComponents() {
 
 // Close will call the Close methods on all inner components
 func (s *statusComponentsHolder) Close() error {
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+
 	return s.closeHandler.Close()
 }
 
@@ -87,12 +109,51 @@ func (s *statusComponentsHolder) String() string {
 	return ""
 }
 
-// SetForkDetector will do nothing
-func (s *statusComponentsHolder) SetForkDetector(_ process.ForkDetector) error {
+// SetForkDetector will set the fork detector
+func (s *statusComponentsHolder) SetForkDetector(forkDetector process.ForkDetector) error {
+	if check.IfNil(forkDetector) {
+		return process.ErrNilForkDetector
+	}
+
+	s.mutex.Lock()
+	s.forkDetector = forkDetector
+	s.mutex.Unlock()
+
 	return nil
 }
 
-// StartPolling will do nothing
+// StartPolling starts polling for the updated status
 func (s *statusComponentsHolder) StartPolling() error {
+	if check.IfNil(s.forkDetector) {
+		return process.ErrNilForkDetector
+	}
+
+	var ctx context.Context
+	ctx, s.cancelFunc = context.WithCancel(context.Background())
+
+	appStatusPollingHandler, err := appStatusPolling.NewAppStatusPolling(
+		s.appStatusHandler,
+		time.Duration(s.statusPollingIntervalSec)*time.Second,
+		log,
+	)
+	if err != nil {
+		return errors.ErrStatusPollingInit
+	}
+
+	err = appStatusPollingHandler.RegisterPollingFunc(s.probableHighestNonceHandler)
+	if err != nil {
+		return fmt.Errorf("%w, cannot register handler func for forkdetector's probable higher nonce", err)
+	}
+
+	appStatusPollingHandler.Poll(ctx)
+
 	return nil
+}
+
+func (s *statusComponentsHolder) probableHighestNonceHandler(appStatusHandler core.AppStatusHandler) {
+	s.mutex.RLock()
+	probableHigherNonce := s.forkDetector.ProbableHighestNonce()
+	s.mutex.RUnlock()
+
+	appStatusHandler.SetUInt64Value(common.MetricProbableHighestNonce, probableHigherNonce)
 }
