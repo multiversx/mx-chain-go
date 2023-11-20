@@ -2513,7 +2513,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 			GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 		}
 
-		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 
 		epochsLeft, err := ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk"))
 		require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
