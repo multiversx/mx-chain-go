@@ -102,7 +102,7 @@ func TestSovereignSubRoundEndOutGoingTxData_AggregateSignatures(t *testing.T) {
 		},
 	}
 	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(signingHandler)
-	result, err := sovSigHandler.AggregateSignatures(expectedBitMap, expectedEpoch)
+	result, err := sovSigHandler.AggregateAndSetSignatures(expectedBitMap, expectedEpoch)
 	require.Nil(t, err)
 	require.Equal(t, aggregatedSig, result)
 }
@@ -236,20 +236,20 @@ func TestSovereignSubRoundEndOutGoingTxData_HaveConsensusHeaderWithFullInfo(t *t
 	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
-		err := sovSigHandler.HaveConsensusHeaderWithFullInfo(sovHdr.Header, cnsMsg)
+		err := sovSigHandler.SetConsensusDataInHeader(sovHdr.Header, cnsMsg)
 		require.ErrorIs(t, err, errors.ErrWrongTypeAssertion)
 	})
 
 	t.Run("no outgoing mini block header", func(t *testing.T) {
 		sovHdrCopy := *sovHdr
 		sovHdrCopy.OutGoingMiniBlockHeader = nil
-		err := sovSigHandler.HaveConsensusHeaderWithFullInfo(&sovHdrCopy, cnsMsg)
+		err := sovSigHandler.SetConsensusDataInHeader(&sovHdrCopy, cnsMsg)
 		require.Nil(t, err)
 		require.True(t, check.IfNil(sovHdrCopy.OutGoingMiniBlockHeader))
 	})
 
 	t.Run("should create leader sig", func(t *testing.T) {
-		err := sovSigHandler.HaveConsensusHeaderWithFullInfo(sovHdr, cnsMsg)
+		err := sovSigHandler.SetConsensusDataInHeader(sovHdr, cnsMsg)
 		require.Nil(t, err)
 		require.Equal(t, &block.SovereignChainHeader{
 			Header: &block.Header{
