@@ -3,6 +3,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -28,6 +29,7 @@ type statusComponentsHolder struct {
 	forkDetector             process.ForkDetector
 	statusPollingIntervalSec int
 	cancelFunc               func()
+	mutex                    sync.RWMutex
 }
 
 // CreateStatusComponents will create a new instance of status components holder
@@ -113,13 +115,19 @@ func (s *statusComponentsHolder) SetForkDetector(forkDetector process.ForkDetect
 		return process.ErrNilForkDetector
 	}
 
+	s.mutex.Lock()
 	s.forkDetector = forkDetector
+	s.mutex.Unlock()
 
 	return nil
 }
 
 // StartPolling starts polling for the updated status
 func (s *statusComponentsHolder) StartPolling() error {
+	if check.IfNil(s.forkDetector) {
+		return process.ErrNilForkDetector
+	}
+
 	var ctx context.Context
 	ctx, s.cancelFunc = context.WithCancel(context.Background())
 
@@ -143,6 +151,9 @@ func (s *statusComponentsHolder) StartPolling() error {
 }
 
 func (s *statusComponentsHolder) probableHighestNonceHandler(appStatusHandler core.AppStatusHandler) {
+	s.mutex.RLock()
 	probableHigherNonce := s.forkDetector.ProbableHighestNonce()
+	s.mutex.RUnlock()
+
 	appStatusHandler.SetUInt64Value(common.MetricProbableHighestNonce, probableHigherNonce)
 }
