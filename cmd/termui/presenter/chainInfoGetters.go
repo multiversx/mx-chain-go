@@ -186,7 +186,7 @@ func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumProcessedNodes)
 }
 
-// GetTrieSyncNumProcessedNodes will return the number of processed nodes during trie sync
+// GetTrieSyncProcessedPercentage will return the number of processed nodes during trie sync
 func (psh *PresenterStatusHandler) GetTrieSyncProcessedPercentage() uint64 {
 	numEstimatedNodes := psh.getFromCacheAsUint64(provider.AccountsSnapshotNumNodesMetric)
 	if numEstimatedNodes <= 0 {

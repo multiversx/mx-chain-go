@@ -33,12 +33,12 @@ type responseFromApi struct {
 	Code  string                    `json:"code"`
 }
 
-type trirStatisticsResponseData struct {
+type trieStatisticsResponseData struct {
 	AccountSnapshotsNumNodes uint64 `json:"accounts-snapshot-num-nodes"`
 }
 
 type responseFromGatewayApi struct {
-	Data  trirStatisticsResponseData `json:"data"`
+	Data  trieStatisticsResponseData `json:"data"`
 	Error string                     `json:"error"`
 	Code  string                     `json:"code"`
 }
@@ -91,13 +91,10 @@ func (smp *StatusMetricsProvider) StartUpdatingData() {
 }
 
 func (smp *StatusMetricsProvider) updateMetrics() {
-	log.Debug("will update metrics")
-
 	smp.fetchAndApplyMetrics(statusMetricsUrlSuffix)
 	smp.fetchAndApplyBootstrapMetrics(bootstrapStatusMetricsUrlSuffix)
 
 	if smp.shardID != "" {
-		log.Debug("will set shard ID")
 		metricsURLSuffix := trieStatisticsMetricsUrlSuffix + smp.shardID
 		smp.fetchAndApplyGatewayStatusMetrics(metricsURLSuffix)
 	}
@@ -130,7 +127,6 @@ func (smp *StatusMetricsProvider) fetchAndApplyBootstrapMetrics(metricsPath stri
 
 	smp.applyMetricsToPresenter(metricsMap)
 
-	log.Debug("try to set shard id from node bootstrap metrics")
 	smp.setShardID(metricsMap)
 }
 
@@ -199,8 +195,6 @@ func (smp *StatusMetricsProvider) loadMetricsFromApi(metricsPath string) (map[st
 func (smp *StatusMetricsProvider) loadMetricsFromGatewayApi(statusMetricsUrl string) (uint64, error) {
 	client := http.Client{}
 
-	log.Debug("statusMetricsUrl", "url", statusMetricsUrl)
-
 	resp, err := client.Get(statusMetricsUrl)
 	if err != nil {
 		return 0, err
@@ -223,8 +217,6 @@ func (smp *StatusMetricsProvider) loadMetricsFromGatewayApi(statusMetricsUrl str
 	if err != nil {
 		return 0, err
 	}
-
-	log.Debug("loadMetricsFromGatewayApi: ", "numNodes", metricsResponse.Data.AccountSnapshotsNumNodes)
 
 	return metricsResponse.Data.AccountSnapshotsNumNodes, nil
 }
