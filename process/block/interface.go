@@ -31,10 +31,20 @@ type validatorStatsRootHashGetter interface {
 	GetValidatorStatsRootHash() []byte
 }
 
-type extendedShardHeaderHashesGetter interface {
+type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
+	GetOutGoingMiniBlockHeaderHandler() data.OutGoingMiniBlockHeaderHandler
 }
 
 type crossNotarizer interface {
 	getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo
+}
+
+// OutGoingOperationsPool defines the behavior of a timed cache for outgoing operations
+type OutGoingOperationsPool interface {
+	Add(hash []byte, data []byte)
+	Get(hash []byte) []byte
+	Delete(hash []byte)
+	GetUnconfirmedOperations() [][]byte
+	IsInterfaceNil() bool
 }

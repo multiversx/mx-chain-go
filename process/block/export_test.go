@@ -564,3 +564,7 @@ func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 func (schv *sovereignChainHeaderValidator) CalculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
 	return schv.calculateHeaderHashFunc(headerHandler)
 }
+
+func (scbp *sovereignChainBlockProcessor) CreateAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
+	return scbp.createAndSetOutGoingMiniBlock(headerHandler, createdBlockBody)
+}

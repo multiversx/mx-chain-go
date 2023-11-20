@@ -40,12 +40,15 @@ type sovereignChainBlockProcessor struct {
 	extendedShardHeaderRequester extendedShardHeaderRequestHandler
 	chRcvAllExtendedShardHdrs    chan bool
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
+	outGoingOperationsPool       OutGoingOperationsPool
 }
 
+// ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
 type ArgsSovereignChainBlockProcessor struct {
 	ShardProcessor               *shardProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
+	OutGoingOperationsPool       OutGoingOperationsPool
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -59,11 +62,15 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.OutgoingOperationsFormatter) {
 		return nil, errors.ErrNilOutgoingOperationsFormatter
 	}
+	if check.IfNil(args.OutGoingOperationsPool) {
+		return nil, errors.ErrNilOutGoingOperationsPool
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
 		validatorStatisticsProcessor: args.ValidatorStatisticsProcessor,
 		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
+		outGoingOperationsPool:       args.OutGoingOperationsPool,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
@@ -850,17 +857,79 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 		return nil, err
 	}
 
-	// TODO: Marius C.: Implement signing this message
-	_ = scbp.collectOutGoingOperations()
-
 	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
+
+	err = scbp.createAndSetOutGoingMiniBlock(headerHandler, createdBlockBody)
+	if err != nil {
+		return nil, err
+	}
+
 	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
 }
 
-func (scbp *sovereignChainBlockProcessor) collectOutGoingOperations() []byte {
+func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
-	return scbp.outgoingOperationsFormatter.CreateOutgoingTxData(logs)
+	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
+	if len(outGoingOperations) == 0 {
+		return nil
+	}
+
+	outGoingMb, outGoingOperationsHash := scbp.createOutGoingMiniBlockData(outGoingOperations)
+	return scbp.setOutGoingMiniBlock(headerHandler, createdBlockBody, outGoingMb, outGoingOperationsHash)
+}
+
+func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
+	outGoingOpHashes := make([][]byte, len(outGoingOperations))
+	aggregatedOutGoingOperations := make([]byte, 0)
+
+	for idx, outGoingOp := range outGoingOperations {
+		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
+		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
+
+		outGoingOpHashes[idx] = outGoingOpHash
+		scbp.outGoingOperationsPool.Add(outGoingOpHash, outGoingOp)
+	}
+
+	// TODO: We need to have a mocked transaction with this hash to be saved in storage and get rid of following warnings:
+	// 1. basePreProcess.createMarshalledData: tx not found hash = bf7e...
+	// 2. basePreProcess.saveTransactionToStorage  txHash = bf7e... dataUnit = TransactionUnit error = missing transaction
+	// Task for this: MX-14716
+	return &block.MiniBlock{
+		TxHashes:        outGoingOpHashes,
+		ReceiverShardID: core.MainChainShardId,
+		SenderShardID:   scbp.shardCoordinator.SelfId(),
+	}, scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+}
+
+func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
+	headerHandler data.HeaderHandler,
+	createdBlockBody *block.Body,
+	outGoingMb *block.MiniBlock,
+	outGoingOperationsHash []byte,
+) error {
+	outGoingMbHash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingMb)
+	if err != nil {
+		return err
+	}
+
+	sovereignChainHdr, ok := headerHandler.(data.SovereignChainHeaderHandler)
+	if !ok {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.setOutGoingOperation", process.ErrWrongTypeAssertion)
+	}
+
+	outGoingMbHeader := &block.OutGoingMiniBlockHeader{
+		Hash:                   outGoingMbHash,
+		OutGoingOperationsHash: outGoingOperationsHash,
+	}
+
+	err = sovereignChainHdr.SetOutGoingMiniBlockHeaderHandler(outGoingMbHeader)
+	if err != nil {
+		return err
+	}
+
+	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, outGoingMb)
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {

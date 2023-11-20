@@ -27,6 +27,7 @@ type outgoingOperations struct {
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
 // mx-chain-sovereign-notifier-go in the sovereignNotifier.go file. This applies for the factory as well
+// Task: MX-14721
 
 // NewOutgoingOperationsFormatter creates an outgoing operations formatter
 func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler) (*outgoingOperations, error) {
@@ -82,12 +83,12 @@ func checkEmptyAddresses(addresses map[string]string) error {
 	return nil
 }
 
-// CreateOutgoingTxData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
-// logs and creates an outgoing data that needs to be signed by validators to bridge tokens
-func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte {
+// CreateOutgoingTxsData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
+// logs and creates outgoing data that needs to be signed by validators to bridge tokens
+func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
 	outgoingEvents := op.createOutgoingEvents(logs)
 	if len(outgoingEvents) == 0 {
-		return make([]byte, 0)
+		return make([][]byte, 0)
 	}
 
 	txData := []byte(bridgeOpPrefix + "@" + fmt.Sprintf("%d", op.roundHandler.Index()))
@@ -98,7 +99,9 @@ func (op *outgoingOperations) CreateOutgoingTxData(logs []*data.LogData) []byte 
 		txData = append(txData, ev.GetData()...)
 	}
 
-	return txData
+	// TODO: Check gas limit here and split tx data in multiple batches if required
+	// Task: MX-14720
+	return [][]byte{txData}
 }
 
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {

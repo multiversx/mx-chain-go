@@ -30,6 +30,10 @@
     MainChainNotarizationStartRound = 11
 
 [OutgoingSubscribedEvents]
+    # Time to wait in seconds for outgoing operations that need to be bridged from sovereign chain to main chain.
+    # If no confirmation of bridged data is received after this time, next leader should retry sending data.
+    TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 30
+
     SubscribedEvents = [
     { Identifier = "bridgeOps", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
 ]
