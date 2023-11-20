@@ -439,7 +439,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 
 	extraSigs, err := sr.extraSignersHolder.AggregateSignatures(bitmap, sr.Header)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateSignatures", "error", err.Error())
+		log.Debug("doEndRoundJobByLeader.extraAggregatedSig.AggregateAndSetSignatures", "error", err.Error())
 		// TODO: [nice to have] we could add behavior to handle invalid sigs on outgoing operations and decrease rating
 		// Task: MX-14756
 		return nil, err

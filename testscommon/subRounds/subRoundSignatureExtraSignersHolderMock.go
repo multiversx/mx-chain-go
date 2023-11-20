@@ -10,7 +10,7 @@ type SubRoundSignatureExtraSignersHolderMock struct {
 	CreateExtraSignatureSharesCalled          func(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) (map[string][]byte, error)
 	AddExtraSigSharesToConsensusMessageCalled func(extraSigShares map[string][]byte, cnsMsg *consensus.Message) error
 	StoreExtraSignatureShareCalled            func(index uint16, cnsMsg *consensus.Message) error
-	RegisterExtraSingingHandlerCalled         func(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error
+	RegisterExtraSigningHandlerCalled         func(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error
 }
 
 // CreateExtraSignatureShares -
@@ -39,8 +39,8 @@ func (mock *SubRoundSignatureExtraSignersHolderMock) StoreExtraSignatureShare(in
 
 // RegisterExtraSigningHandler -
 func (mock *SubRoundSignatureExtraSignersHolderMock) RegisterExtraSigningHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
-	if mock.RegisterExtraSingingHandlerCalled != nil {
-		return mock.RegisterExtraSingingHandlerCalled(extraSigner)
+	if mock.RegisterExtraSigningHandlerCalled != nil {
+		return mock.RegisterExtraSigningHandlerCalled(extraSigner)
 	}
 	return nil
 }

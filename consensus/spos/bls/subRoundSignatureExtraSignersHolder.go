@@ -86,7 +86,7 @@ func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSigningHandler(e
 	}
 
 	id := extraSigner.Identifier()
-	log.Debug("holder.subRoundStartExtraSignersHolder.registerExtraSingingHandler", "identifier", id)
+	log.Debug("holder.subRoundStartExtraSignersHolder.RegisterExtraSigningHandler", "identifier", id)
 
 	holder.mutExtraSigners.Lock()
 	defer holder.mutExtraSigners.Unlock()

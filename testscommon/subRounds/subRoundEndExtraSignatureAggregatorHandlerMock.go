@@ -16,8 +16,8 @@ type SubRoundEndExtraSignatureMock struct {
 	IdentifierCalled                       func() string
 }
 
-// AggregateSignatures -
-func (mock *SubRoundEndExtraSignatureMock) AggregateSignatures(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
+// AggregateAndSetSignatures -
+func (mock *SubRoundEndExtraSignatureMock) AggregateAndSetSignatures(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
 	if mock.AggregateSignaturesCalled != nil {
 		return mock.AggregateSignaturesCalled(bitmap, header)
 	}
@@ -48,8 +48,8 @@ func (mock *SubRoundEndExtraSignatureMock) SetAggregatedSignatureInHeader(header
 	return nil
 }
 
-// HaveConsensusHeaderWithFullInfo -
-func (mock *SubRoundEndExtraSignatureMock) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+// SetConsensusDataInHeader -
+func (mock *SubRoundEndExtraSignatureMock) SetConsensusDataInHeader(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	if mock.HaveConsensusHeaderWithFullInfoCalled != nil {
 		return mock.HaveConsensusHeaderWithFullInfoCalled(header, cnsMsg)
 	}
