@@ -450,11 +450,6 @@ func (ng *nodeGroup) managedKeysWaiting(c *gin.Context) {
 // waitingEpochsLeft returns the number of epochs left for the public key until it becomes eligible
 func (ng *nodeGroup) waitingEpochsLeft(c *gin.Context) {
 	publicKey := c.Param("key")
-	if len(publicKey) == 0 {
-		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrBadUrlParams)
-		return
-	}
-
 	epochsLeft, err := ng.getFacade().GetWaitingEpochsLeftForPublicKey(publicKey)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetWaitingEpochsLeftForPublicKey, err)
