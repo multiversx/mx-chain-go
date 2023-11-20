@@ -27,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -2384,7 +2383,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	assert.Nil(t, err)
 
 	topicName := "transactions_0"
-	interceptor, err := epochStartProvider.interceptorContainer.Get(topicName)
+	interceptor, err := epochStartProvider.mainInterceptorContainer.Get(topicName)
 	assert.Nil(t, err)
 
 	tx := &transaction.Transaction{
@@ -2404,7 +2403,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	}
 	batchBytes, _ := coreComp.IntMarsh.Marshal(batch)
 
-	msg := &processMock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		FromField:      nil,
 		DataField:      batchBytes,
 		SeqNoField:     nil,
@@ -2416,7 +2415,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 		TimestampField: 0,
 	}
 
-	err = interceptor.ProcessReceivedMessage(msg, "pid")
+	err = interceptor.ProcessReceivedMessage(msg, "pid", nil)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)
