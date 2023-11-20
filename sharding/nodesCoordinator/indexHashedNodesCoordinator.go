@@ -1265,16 +1265,29 @@ func (ihnc *indexHashedNodesCoordinator) GetWaitingEpochsLeftForPublicKey(public
 	defer nodesConfig.mutNodesMaps.RUnlock()
 
 	for shardId, shardWaiting := range nodesConfig.waitingMap {
-		for idx, val := range shardWaiting {
-			if bytes.Equal(val.PubKey(), publicKey) {
-				minHysteresisNodes := ihnc.getMinHysteresisNodes(shardId)
-				if minHysteresisNodes == 0 {
-					return minEpochsToWait, nil
-				}
-
-				return uint32(idx)/minHysteresisNodes + minEpochsToWait, nil
-			}
+		epochsLeft, err := ihnc.searchWaitingEpochsLeftForPublicKeyInShard(publicKey, shardId, shardWaiting)
+		if err != nil {
+			continue
 		}
+
+		return epochsLeft, err
+	}
+
+	return 0, ErrValidatorNotFound
+}
+
+func (ihnc *indexHashedNodesCoordinator) searchWaitingEpochsLeftForPublicKeyInShard(publicKey []byte, shardId uint32, shardWaiting []Validator) (uint32, error) {
+	for idx, val := range shardWaiting {
+		if !bytes.Equal(val.PubKey(), publicKey) {
+			continue
+		}
+
+		minHysteresisNodes := ihnc.getMinHysteresisNodes(shardId)
+		if minHysteresisNodes == 0 {
+			return minEpochsToWait, nil
+		}
+
+		return uint32(idx)/minHysteresisNodes + minEpochsToWait, nil
 	}
 
 	return 0, ErrValidatorNotFound
