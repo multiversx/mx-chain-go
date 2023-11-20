@@ -268,3 +268,8 @@ type SignRate interface {
 	GetNumSuccess() uint32
 	GetNumFailure() uint32
 }
+
+type snapshotPruningStorer interface {
+	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
+	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
+}

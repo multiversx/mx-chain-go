@@ -1875,7 +1875,52 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("nil code data should return nil", func(t *testing.T) {
+	t.Run("account already without code leaf, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		rootHash := []byte("rootHash")
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RemoveCodeLeafFlag
+			},
+		}
+		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+		maxTrieLevelInMemory := uint(5)
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(rootHash)
+
+		account.SetVersion(uint8(core.WithoutCodeLeaf))
+
+		codeHash := []byte("codeHash")
+		codeBytes, _ := args.Marshaller.Marshal(&state.CodeEntry{
+			Code:          []byte("code"),
+			NumReferences: 1,
+		})
+		account.SetCodeHash(codeHash)
+		account.SetVersion(uint8(core.WithoutCodeLeaf))
+
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Update(codeHash, codeBytes)
+
+		args.Trie = tr
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.MigrateCodeLeaf(account)
+		require.Nil(t, err)
+
+		require.Equal(t, uint8(core.WithoutCodeLeaf), account.GetVersion())
+	})
+
+	t.Run("invalid code hash size, should return nil", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockAccountsDBArgs()
@@ -1901,14 +1946,53 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 			NumReferences: 1,
 		})
 		account.SetCodeHash(codeHash)
-
-		accountBytes, err := args.Marshaller.Marshal(account)
-		require.Nil(t, err)
+		account.SetVersion(uint8(core.WithoutCodeLeaf))
 
 		_ = tr.Update([]byte("doe"), []byte("reindeer"))
 		_ = tr.Update([]byte("dog"), []byte("puppy"))
 		_ = tr.Update(codeHash, codeBytes)
-		_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+
+		args.Trie = tr
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.MigrateCodeLeaf(account)
+		require.Nil(t, err)
+
+		require.Equal(t, uint8(core.WithoutCodeLeaf), account.GetVersion())
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockAccountsDBArgs()
+
+		rootHash := []byte("rootHash")
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.RemoveCodeLeafFlag
+			},
+		}
+		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+		maxTrieLevelInMemory := uint(5)
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(rootHash)
+
+		codeBytes, _ := args.Marshaller.Marshal(&state.CodeEntry{
+			Code:          []byte("code"),
+			NumReferences: 1,
+		})
+		codeHash := args.Hasher.Compute(string(codeBytes))
+		account.SetCodeHash(codeHash)
+
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.Update(codeHash, codeBytes)
 
 		args.Trie = tr
 

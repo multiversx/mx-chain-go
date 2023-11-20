@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// TrieLeafHolder defines the behaviour of a component that will hold the retrieved
+// data for a trie leaf node
 type TrieLeafHolder interface {
 	Value() []byte
 	Depth() uint32

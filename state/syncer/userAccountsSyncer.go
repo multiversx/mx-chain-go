@@ -320,12 +320,12 @@ func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup
 					break
 				}
 
-				log.Debug("failed to get code from storage", "codeHash", codeHash, "error", err.Error())
+				log.Trace("failed to get code from storage", "codeHash", codeHash, "error", err.Error())
 			}
 
 			u.requestHandler.RequestTrieNodes(u.shardId, [][]byte{codeHash}, factory.AccountTrieNodesTopic)
 
-			log.Debug("requested trie node", "codeHash", codeHash)
+			log.Trace("requested trie node", "codeHash", codeHash)
 
 			select {
 			case <-time.After(waitTimeBetweenChecks):

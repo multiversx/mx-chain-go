@@ -350,7 +350,7 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 		}
 
 		if len(userAccount.GetCodeHash()) != 0 && leaf.Version() == core.WithoutCodeLeaf {
-			err = sm.syncAccountCode(userAccount.GetCodeHash(), trieStorageManager)
+			err = sm.syncAccountCode(userAccount.GetCodeHash(), epoch, trieStorageManager)
 			if err != nil {
 				iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 				return
@@ -377,13 +377,9 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 	}
 }
 
-type snapshotPruningStorer interface {
-	Put(key, val []byte) error
-	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
-}
-
 func (sm *snapshotsManager) syncAccountCode(
 	codeHash []byte,
+	epoch uint32,
 	tsm common.StorageManager,
 ) error {
 	storer, ok := tsm.(snapshotPruningStorer)
@@ -396,7 +392,7 @@ func (sm *snapshotsManager) syncAccountCode(
 		return err
 	}
 
-	err = storer.Put(codeHash, code)
+	err = storer.PutInEpochWithoutCache(codeHash, code, epoch)
 	if err != nil {
 		return err
 	}

@@ -234,17 +234,21 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		adb.loadCodeMeasurements.addMeasurement(len(code), duration)
 	}()
 
-	code, err := adb.getMainTrie().GetStorageManager().Get(codeHash)
-	if err != nil {
-		codeEntry, err := getCodeEntry(codeHash, adb.mainTrie, adb.marshaller)
-		if err != nil {
-			return nil
-		}
+	return adb.getCode(codeHash)
+}
 
-		return codeEntry.Code
+func (adb *AccountsDB) getCode(codeHash []byte) []byte {
+	code, err := adb.getMainTrie().GetStorageManager().Get(codeHash)
+	if err == nil {
+		return code
 	}
 
-	return code
+	codeEntry, err := getCodeEntry(codeHash, adb.mainTrie, adb.marshaller)
+	if err != nil {
+		return nil
+	}
+
+	return codeEntry.Code
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -318,11 +322,43 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 	return adb.saveCode(baseNewAcc, baseOldAccount)
 }
 
+func (adb *AccountsDB) migrateCode(
+	newAcc baseAccountHandler,
+	oldAccVersion, newAccVersion uint8,
+	newCodeHash, oldCodeHash, newCode []byte,
+) error {
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, oldAccVersion)
+	if err != nil {
+		return err
+	}
+
+	err = adb.mainTrie.GetStorageManager().Put(newCodeHash, newCode)
+	if err != nil {
+		return err
+	}
+
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, oldAccVersion, newAccVersion)
+	if err != nil {
+		return err
+	}
+	adb.journalize(entry)
+
+	newAcc.SetCodeHash(newCodeHash)
+
+	return nil
+}
+
 func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	// TODO when state splitting is implemented, check how the code should be copied in different shards
 
-	if !newAcc.HasNewCode() {
-		return nil
+	oldAccVersion := uint8(0)
+	if !check.IfNil(oldAcc) {
+		oldAccVersion = oldAcc.GetVersion()
+	}
+
+	newAccVersion := uint8(0)
+	if !check.IfNil(newAcc) {
+		newAccVersion = newAcc.GetVersion()
 	}
 
 	var oldCodeHash []byte
@@ -336,14 +372,17 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		newCodeHash = adb.hasher.Compute(string(newCode))
 	}
 
-	if bytes.Equal(oldCodeHash, newCodeHash) {
-		newAcc.SetCodeHash(newCodeHash)
+	if newAcc.GetVersion() == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
+		return adb.migrateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
+	}
+
+	if !newAcc.HasNewCode() {
 		return nil
 	}
 
-	oldAccVersion := uint8(0)
-	if !check.IfNil(oldAcc) {
-		oldAccVersion = oldAcc.GetVersion()
+	if bytes.Equal(oldCodeHash, newCodeHash) {
+		newAcc.SetCodeHash(newCodeHash)
+		return nil
 	}
 
 	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, oldAccVersion)
@@ -351,12 +390,12 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	err = adb.updateNewCodeEntry(newCodeHash, newCode, newAcc.GetVersion())
+	err = adb.updateNewCodeEntry(newCodeHash, newCode, newAccVersion)
 	if err != nil {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, oldAccVersion, newAcc.GetVersion())
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, oldAccVersion, newAccVersion)
 	if err != nil {
 		return err
 	}
@@ -369,7 +408,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldAccVersion uint8) (*CodeEntry, error) {
 	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
 		oldAccVersion == uint8(core.WithoutCodeLeaf) {
-		// do not update old code entry since num referencies is not used anymore
+		// do not update old code entry since num references is not used anymore
 		return nil, nil
 	}
 
@@ -661,7 +700,15 @@ func (adb *AccountsDB) MigrateCodeLeaf(account vmcommon.AccountHandler) error {
 		return errors.ErrWrongTypeAssertion
 	}
 
+	if baseAcc.GetVersion() == uint8(core.WithoutCodeLeaf) {
+		return nil
+	}
+
 	codeHash := baseAcc.GetCodeHash()
+	if len(codeHash) != adb.hasher.Size() {
+		return nil
+	}
+
 	leafHolder, err := adb.mainTrie.Get(codeHash)
 	if err != nil {
 		return err

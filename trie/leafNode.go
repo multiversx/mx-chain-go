@@ -233,7 +233,12 @@ func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error
 		return err
 	}
 
-	trieLeaf := keyValStorage.NewKeyValStorage(leafHash, ln.Value, core.TrieNodeVersion(ln.Version))
+	leafVersion, err := ln.getVersion()
+	if err != nil {
+		return err
+	}
+
+	trieLeaf := keyValStorage.NewKeyValStorage(leafHash, ln.Value, leafVersion)
 	leavesChan <- trieLeaf
 
 	return nil

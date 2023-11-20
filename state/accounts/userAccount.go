@@ -206,7 +206,7 @@ func (a *userAccount) SetVersion(version uint8) {
 	a.version = version
 }
 
-// GetVersion returns th account version
+// GetVersion returns the account version
 func (a *userAccount) GetVersion() uint8 {
 	return a.version
 }
