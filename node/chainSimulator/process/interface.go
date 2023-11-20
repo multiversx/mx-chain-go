@@ -18,6 +18,7 @@ type NodeHandler interface {
 	GetCoreComponents() factory.CoreComponentsHolder
 	GetStateComponents() factory.StateComponentsHolder
 	GetFacadeHandler() shared.FacadeHandler
+	SetState(addressBytes []byte, state map[string][]byte) error
 	Close() error
 	IsInterfaceNil() bool
 }

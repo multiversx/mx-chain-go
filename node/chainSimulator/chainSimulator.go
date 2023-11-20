@@ -1,9 +1,11 @@
 package chainSimulator
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
@@ -171,6 +173,23 @@ func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
 // GetInitialWalletKeys will return the initial wallet keys
 func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 	return s.initialWalletKeys
+}
+
+// SetState will set the provided state for a given address
+func (s *simulator) SetState(address string, state map[string][]byte) error {
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	addressBytes, err := addressConverter.Decode(address)
+	if err != nil {
+		return err
+	}
+
+	shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+	testNode, ok := s.nodes[shardID]
+	if !ok {
+		return fmt.Errorf("cannot find a test node for the computed shard id, computed shard id: %d", shardID)
+	}
+
+	return testNode.SetState(addressBytes, state)
 }
 
 // Close will stop and close the simulator
