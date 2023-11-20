@@ -1232,6 +1232,101 @@ func TestNodeFacade_IsDataTrieMigrated(t *testing.T) {
 	})
 }
 
+func TestNodeFacade_GetManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := 10
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCountCalled: func() int {
+			return expectedResult
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result := nf.GetManagedKeysCount()
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCalled: func() []string {
+			return expectedResult
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result := nf.GetManagedKeys()
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetWaitingManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetWaitingManagedKeysCalled: func() ([]string, error) {
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result, err := nf.GetWaitingManagedKeys()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetEligibleManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetEligibleManagedKeysCalled: func() ([]string, error) {
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result, err := nf.GetEligibleManagedKeys()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
+	t.Parallel()
+
+	providedPubKey := "public key"
+	expectedResult := uint32(10)
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey string) (uint32, error) {
+			assert.Equal(t, providedPubKey, publicKey)
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	epochsLeft, err := nf.GetWaitingEpochsLeftForPublicKey(providedPubKey)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, epochsLeft)
+}
+
 func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 	t.Parallel()
 
