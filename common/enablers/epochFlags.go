@@ -104,6 +104,7 @@ type epochFlagsHolder struct {
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 	nftStopCreateFlag                           *atomic.Flag
 	changeOwnerAddressCrossShardThroughSCFlag   *atomic.Flag
+	fixGasRemainingForSaveKeyValueFlag          *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -207,6 +208,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
 		nftStopCreateFlag:                           &atomic.Flag{},
 		changeOwnerAddressCrossShardThroughSCFlag:   &atomic.Flag{},
+		fixGasRemainingForSaveKeyValueFlag:          &atomic.Flag{},
 	}
 }
 
@@ -751,6 +753,12 @@ func (holder *epochFlagsHolder) IsDynamicGasCostForDataTrieStorageLoadEnabled() 
 // NFTStopCreateEnabled returns true if the fix for nft stop create is enabled
 func (holder *epochFlagsHolder) NFTStopCreateEnabled() bool {
 	return holder.nftStopCreateFlag.IsSet()
+}
+
+// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled returns true if the fix for the gas remaining in the SaveKeyValue
+// builtin function is enabled
+func (holder *epochFlagsHolder) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
+	return holder.fixGasRemainingForSaveKeyValueFlag.IsSet()
 }
 
 // IsChangeOwnerAddressCrossShardThroughSCEnabled return true if the changeOwnerAddressCrossShardThroughSCFlag is enabled
