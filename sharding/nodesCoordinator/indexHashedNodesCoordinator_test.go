@@ -2678,7 +2678,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 		require.Zero(t, epochsLeft)
 
 		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("missing_pk"))
-		require.Equal(t, ErrValidatorNotFound, err)
+		require.Equal(t, ErrKeyNotFoundInWaitingList, err)
 		require.Zero(t, epochsLeft)
 
 		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk0_shard0"))

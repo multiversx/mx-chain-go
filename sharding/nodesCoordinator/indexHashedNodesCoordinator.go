@@ -1273,7 +1273,7 @@ func (ihnc *indexHashedNodesCoordinator) GetWaitingEpochsLeftForPublicKey(public
 		return epochsLeft, err
 	}
 
-	return 0, ErrValidatorNotFound
+	return 0, ErrKeyNotFoundInWaitingList
 }
 
 func (ihnc *indexHashedNodesCoordinator) searchWaitingEpochsLeftForPublicKeyInShard(publicKey []byte, shardId uint32, shardWaiting []Validator) (uint32, error) {
@@ -1290,7 +1290,7 @@ func (ihnc *indexHashedNodesCoordinator) searchWaitingEpochsLeftForPublicKeyInSh
 		return uint32(idx)/minHysteresisNodes + minEpochsToWait, nil
 	}
 
-	return 0, ErrValidatorNotFound
+	return 0, ErrKeyNotFoundInWaitingList
 }
 
 func (ihnc *indexHashedNodesCoordinator) getMinHysteresisNodes(shardId uint32) uint32 {
