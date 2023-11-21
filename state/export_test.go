@@ -102,9 +102,22 @@ func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
 	}
 }
 
-// WaitForStorageEpochChange
+// WaitForStorageEpochChange -
 func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
 	return sm.waitForStorageEpochChange(args)
+}
+
+// SnapshotUserAccountDataTrie -
+func (sm *snapshotsManager) SnapshotUserAccountDataTrie(
+	isSnapshot bool,
+	mainTrieRootHash []byte,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChannel chan []byte,
+	stats common.SnapshotStatisticsHandler,
+	epoch uint32,
+	trieStorageManager common.StorageManager,
+) {
+	sm.snapshotUserAccountDataTrie(isSnapshot, mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 }
 
 // NewNilSnapshotsManager -

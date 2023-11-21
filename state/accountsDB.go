@@ -372,7 +372,8 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		newCodeHash = adb.hasher.Compute(string(newCode))
 	}
 
-	if newAcc.GetVersion() == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
+	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+		newAcc.GetVersion() == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
 		return adb.migrateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
 	}
 
@@ -585,7 +586,13 @@ func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler,
 		return err
 	}
 
-	return mainTrie.Update(accountHandler.AddressBytes(), buff)
+	baseAcc, ok := accountHandler.(baseAccountHandler)
+	accVersion := core.NotSpecified
+	if ok {
+		accVersion = core.TrieNodeVersion(baseAcc.GetVersion())
+	}
+
+	return mainTrie.UpdateWithVersion(accountHandler.AddressBytes(), buff, accVersion)
 }
 
 // RemoveAccount removes the account data from underlying trie.

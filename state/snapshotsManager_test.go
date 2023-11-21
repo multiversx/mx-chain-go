@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -9,14 +10,25 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateTest "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	trieMocks "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
@@ -470,6 +482,105 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		assert.True(t, putInEpochWithoutCacheCalled)
 		assert.True(t, removeFromAllActiveEpochsCalled)
 	})
+
+	t.Run("should handle code data for migrated leafs", func(t *testing.T) {
+		t.Parallel()
+
+		putInEpochWithoutCacheCalled := false
+		removeFromAllActiveEpochsCalled := false
+
+		args := getDefaultSnapshotManagerArgs()
+		args.ChannelsProvider = iteratorChannelsProvider.NewUserStateIteratorChannelsProvider()
+		sm, _ := state.NewSnapshotsManager(args)
+		_ = sm.SetSyncer(&mock.AccountsDBSyncerStub{})
+		tsm := &storageManager.StorageManagerStub{
+			GetLatestStorageEpochCalled: func() (uint32, error) {
+				return 5, nil
+			},
+			ShouldTakeSnapshotCalled: func() bool {
+				return true
+			},
+			TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, channels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, u uint32) {
+				stats.SnapshotFinished()
+				close(channels.LeavesChan)
+			},
+			RemoveFromAllActiveEpochsCalled: func(hash []byte) error {
+				assert.True(t, sm.IsSnapshotInProgress())
+				assert.Equal(t, []byte("lastSnapshot"), hash)
+				removeFromAllActiveEpochsCalled = true
+				return nil
+			},
+			PutInEpochWithoutCacheCalled: func(key []byte, val []byte, e uint32) error {
+				assert.Equal(t, []byte(common.ActiveDBKey), key)
+				assert.Equal(t, []byte(common.ActiveDBVal), val)
+				assert.Equal(t, epoch, e)
+				putInEpochWithoutCacheCalled = true
+				return nil
+			},
+		}
+
+		sm.SnapshotState(rootHash, epoch, tsm)
+		for sm.IsSnapshotInProgress() {
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		assert.True(t, putInEpochWithoutCacheCalled)
+		assert.True(t, removeFromAllActiveEpochsCalled)
+	})
+}
+
+func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultSnapshotManagerArgs()
+
+	codeHash := []byte("codeHash")
+	account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+	require.Nil(t, err)
+	account.SetCodeHash(codeHash)
+
+	accountBytes, err := args.Marshaller.Marshal(account)
+	require.Nil(t, err)
+
+	args.AccountFactory = &stateTest.AccountsFactoryStub{
+		CreateAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
+			return account, nil
+		},
+	}
+
+	sm, err := state.NewSnapshotsManager(args)
+	assert.NoError(t, err)
+
+	stats := &trieMocks.MockStatistics{}
+
+	iteratorChannels := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+
+	epoch := uint32(2)
+
+	missingNodesCh := make(chan []byte, 10)
+
+	storageArgs := storage.GetStorageManagerArgs()
+	tsm, _ := trie.NewTrieStorageManager(storageArgs)
+
+	tr, _ := trie.NewTrie(tsm, args.Marshaller, &testscommon.KeccakMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 1)
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+	_ = tr.Commit()
+
+	rootHash, err := tr.RootHash()
+	require.Nil(t, err)
+
+	err = tr.GetAllLeavesOnChannel(iteratorChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+	require.Nil(t, err)
+
+	sm.SnapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesCh, stats, epoch, tsm)
+
+	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
+	require.Nil(t, err)
 }
 
 func TestSnapshotsManager_WaitForStorageEpochChange(t *testing.T) {

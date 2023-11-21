@@ -249,6 +249,8 @@ type UserAccountHandler interface {
 	GetUserName() []byte
 	IsGuarded() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
+	SetVersion(version uint8)
+	GetVersion() uint8
 	vmcommon.AccountHandler
 }
 
