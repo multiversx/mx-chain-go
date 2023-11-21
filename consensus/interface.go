@@ -63,6 +63,18 @@ type SubRoundSignatureExtraSignatureHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SubRoundEndExtraSignatureHandler defines an extra signer during end subround in a consensus process
+type SubRoundEndExtraSignatureHandler interface {
+	AggregateAndSetSignatures(bitmap []byte, epoch uint32) ([]byte, error)
+	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *Message) error
+	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
+	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error
+	SetConsensusDataInHeader(header data.HeaderHandler, cnsMsg *Message) error
+	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
 	Close() error

@@ -116,11 +116,10 @@ func (fct *factory) GenerateSubrounds() error {
 		return err
 	}
 
-	err = startRoundExtraSignersHolder.RegisterExtraSingingHandler(startRoundExtraSigner)
+	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSigner)
 	if err != nil {
 		return err
 	}
-
 	err = fct.generateStartRoundSubround(startRoundExtraSignersHolder)
 	if err != nil {
 		return err
@@ -131,8 +130,19 @@ func (fct *factory) GenerateSubrounds() error {
 	if err != nil {
 		return err
 	}
+	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
+	if err != nil {
+		return err
+	}
 
-	err = signRoundExtraSignersHolder.RegisterExtraSingingHandler(signRoundExtraSigner)
+	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
+	log.LogIfError(err)
+	endRoundExtraSignersHolder := NewSubRoundEndExtraSignersHolder()
+	endRoundExtraSigner, err := NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return err
+	}
+	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSigner)
 	if err != nil {
 		return err
 	}
@@ -149,7 +159,7 @@ func (fct *factory) GenerateSubrounds() error {
 			return err
 		}
 
-		err = fct.generateEndRoundSubroundV1()
+		err = fct.generateEndRoundSubroundV1(endRoundExtraSignersHolder)
 		if err != nil {
 			return err
 		}
@@ -166,7 +176,7 @@ func (fct *factory) GenerateSubrounds() error {
 			return err
 		}
 
-		err = fct.generateEndRoundSubroundV2()
+		err = fct.generateEndRoundSubroundV2(endRoundExtraSignersHolder)
 		if err != nil {
 			return err
 		}
@@ -352,8 +362,8 @@ func (fct *factory) generateSignatureSubround(extraSignersHolder SubRoundSignatu
 	return subroundSignatureInstance, nil
 }
 
-func (fct *factory) generateEndRoundSubroundV1() error {
-	subroundEndRoundInstance, err := fct.generateEndRoundSubround()
+func (fct *factory) generateEndRoundSubroundV1(extraSignersHolder SubRoundEndExtraSignersHolder) error {
+	subroundEndRoundInstance, err := fct.generateEndRoundSubround(extraSignersHolder)
 	if err != nil {
 		return err
 	}
@@ -366,8 +376,8 @@ func (fct *factory) generateEndRoundSubroundV1() error {
 	return nil
 }
 
-func (fct *factory) generateEndRoundSubroundV2() error {
-	subroundEndRoundInstance, err := fct.generateEndRoundSubround()
+func (fct *factory) generateEndRoundSubroundV2(extraSignersHolder SubRoundEndExtraSignersHolder) error {
+	subroundEndRoundInstance, err := fct.generateEndRoundSubround(extraSignersHolder)
 	if err != nil {
 		return err
 	}
@@ -385,7 +395,7 @@ func (fct *factory) generateEndRoundSubroundV2() error {
 	return nil
 }
 
-func (fct *factory) generateEndRoundSubround() (*subroundEndRound, error) {
+func (fct *factory) generateEndRoundSubround(extraSignersHolder SubRoundEndExtraSignersHolder) (*subroundEndRound, error) {
 	subround, err := spos.NewSubround(
 		SrSignature,
 		SrEndRound,
@@ -411,6 +421,7 @@ func (fct *factory) generateEndRoundSubround() (*subroundEndRound, error) {
 		fct.worker.Extend,
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
+		extraSignersHolder,
 	)
 	if err != nil {
 		return nil, err

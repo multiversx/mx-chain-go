@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,6 +59,7 @@ func initSubroundEndRoundWithContainer(
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	return srEndRound
@@ -75,6 +77,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T)
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -110,6 +113,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -145,6 +149,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -181,6 +186,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -216,6 +222,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -251,6 +258,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -286,6 +294,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -321,6 +330,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
@@ -1580,6 +1590,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		extend,
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
+		&subRounds.SubRoundEndExtraSignersHolderMock{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {

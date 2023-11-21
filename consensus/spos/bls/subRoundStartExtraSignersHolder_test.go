@@ -42,11 +42,11 @@ func TestSubRoundStartExtraSignersHolder_Reset(t *testing.T) {
 	holder := NewSubRoundStartExtraSignersHolder()
 	require.False(t, holder.IsInterfaceNil())
 
-	err := holder.RegisterExtraSingingHandler(extraSigner1)
+	err := holder.RegisterExtraSigningHandler(extraSigner1)
 	require.Nil(t, err)
-	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Nil(t, err)
-	err = holder.RegisterExtraSingingHandler(extraSigner2)
+	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Equal(t, errors.ErrExtraSignerIdAlreadyExists, err)
 
 	err = holder.Reset(expectedPubKeys)

@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSovereignSubRoundEndOutGoingTxData(t *testing.T) {
+func TestNewSovereignSubRoundSignatureOutGoingTxData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil signing handler, should return error", func(t *testing.T) {

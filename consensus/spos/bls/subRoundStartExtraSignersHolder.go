@@ -40,14 +40,14 @@ func (holder *subRoundStartExtraSignersHolder) Reset(pubKeys []string) error {
 	return nil
 }
 
-// RegisterExtraSingingHandler will register a new extra signer
-func (holder *subRoundStartExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
+// RegisterExtraSigningHandler will register a new extra signer
+func (holder *subRoundStartExtraSignersHolder) RegisterExtraSigningHandler(extraSigner consensus.SubRoundStartExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}
 
 	id := extraSigner.Identifier()
-	log.Debug("holder.registerExtraSingingHandler", "identifier", id)
+	log.Debug("holder.RegisterExtraSigningHandler", "identifier", id)
 
 	holder.mutExtraSigners.Lock()
 	defer holder.mutExtraSigners.Unlock()

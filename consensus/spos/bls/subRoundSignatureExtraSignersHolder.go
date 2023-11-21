@@ -79,14 +79,14 @@ func (holder *subRoundSignatureExtraSignersHolder) StoreExtraSignatureShare(inde
 	return nil
 }
 
-// RegisterExtraSingingHandler will register a new extra signer
-func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSingingHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
+// RegisterExtraSigningHandler will register a new extra signer
+func (holder *subRoundSignatureExtraSignersHolder) RegisterExtraSigningHandler(extraSigner consensus.SubRoundSignatureExtraSignatureHandler) error {
 	if check.IfNil(extraSigner) {
 		return errors.ErrNilExtraSubRoundSigner
 	}
 
 	id := extraSigner.Identifier()
-	log.Debug("holder.subRoundStartExtraSignersHolder.registerExtraSingingHandler", "identifier", id)
+	log.Debug("holder.subRoundStartExtraSignersHolder.RegisterExtraSigningHandler", "identifier", id)
 
 	holder.mutExtraSigners.Lock()
 	defer holder.mutExtraSigners.Unlock()
