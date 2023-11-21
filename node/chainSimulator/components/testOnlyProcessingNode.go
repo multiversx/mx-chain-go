@@ -403,7 +403,17 @@ func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[str
 		}
 	}
 
-	return accountsAdapter.SaveAccount(account)
+	err = accountsAdapter.SaveAccount(account)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close will call the Close methods on all inner components
