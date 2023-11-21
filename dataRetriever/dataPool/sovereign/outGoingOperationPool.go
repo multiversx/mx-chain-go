@@ -10,8 +10,13 @@ import (
 
 var log = logger.GetOrCreate("outgoing-operations-pool")
 
+type OutGoingOperationsData struct {
+	Hash []byte
+	Data map[string][]byte
+}
+
 type cacheEntry struct {
-	data     []byte
+	data     *OutGoingOperationsData
 	expireAt time.Time
 }
 
@@ -40,9 +45,9 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 	}
 }
 
-// Add adds the outgoing tx data at the specified hash in the internal cache
-func (op *outGoingOperationsPool) Add(hash []byte, data []byte) {
-	hashStr := string(hash)
+// Add adds the outgoing txs data at the specified hash in the internal cache
+func (op *outGoingOperationsPool) Add(data *OutGoingOperationsData) {
+	hashStr := string(data.Hash)
 
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
@@ -57,8 +62,8 @@ func (op *outGoingOperationsPool) Add(hash []byte, data []byte) {
 	}
 }
 
-// Get returns the outgoing tx data at the specified hash
-func (op *outGoingOperationsPool) Get(hash []byte) []byte {
+// Get returns the outgoing txs data at the specified hash
+func (op *outGoingOperationsPool) Get(hash []byte) *OutGoingOperationsData {
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
 
@@ -77,7 +82,7 @@ func (op *outGoingOperationsPool) Delete(hash []byte) {
 // An unconfirmed operation is a tx data operation which has been stored in cache for longer
 // than the time to wait for unconfirmed outgoing operations.
 // Returned list is sorted based on expiry time.
-func (op *outGoingOperationsPool) GetUnconfirmedOperations() [][]byte {
+func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*OutGoingOperationsData {
 	expiredEntries := make([]cacheEntry, 0)
 
 	op.mutex.Lock()
@@ -92,7 +97,7 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() [][]byte {
 		return expiredEntries[i].expireAt.Before(expiredEntries[j].expireAt)
 	})
 
-	ret := make([][]byte, len(expiredEntries))
+	ret := make([]*OutGoingOperationsData, len(expiredEntries))
 	for i, entry := range expiredEntries {
 		ret[i] = entry.data
 	}

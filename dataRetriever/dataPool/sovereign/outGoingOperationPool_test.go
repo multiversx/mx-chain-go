@@ -83,6 +83,40 @@ func TestOutGoingOperationsPool_GetUnconfirmedOperations(t *testing.T) {
 	require.Equal(t, [][]byte{data1, data2, data3}, pool.GetUnconfirmedOperations())
 }
 
+func TestOutGoingOperationsPool_AddOutGoingOperationsHash(t *testing.T) {
+	expiryTime := time.Millisecond * 100
+	pool := NewOutGoingOperationPool(expiryTime)
+
+	hash1 := []byte("h1")
+	hash2 := []byte("h2")
+	hash3 := []byte("h3")
+
+	data1 := []byte("d1")
+	data2 := []byte("d2")
+	data3 := []byte("d3")
+
+	pool.Add(hash1, data1)
+	pool.Add(hash2, data2)
+	pool.Add(hash3, data3)
+
+	outGoingOperationsHash1 := []byte("h11h22")
+	outGoingOperationsHash2 := []byte("h33")
+
+	pool.AddOutGoingOperationsHash(outGoingOperationsHash1, [][]byte{hash1, hash2})
+	pool.AddOutGoingOperationsHash(outGoingOperationsHash2, [][]byte{hash3})
+
+	outGoingData := pool.GetOutGoingOperations(outGoingOperationsHash1)
+	require.Equal(t, map[string][]byte{
+		"h1": data1,
+		"h2": data2,
+	}, outGoingData)
+
+	outGoingData = pool.GetOutGoingOperations(outGoingOperationsHash2)
+	require.Equal(t, map[string][]byte{
+		"h3": data3,
+	}, outGoingData)
+}
+
 func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 

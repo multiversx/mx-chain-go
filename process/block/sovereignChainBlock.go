@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereign2 "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -871,6 +873,10 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
 	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
+
+	bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1")
+	bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2")
+	outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
 	if len(outGoingOperations) == 0 {
 		return nil
 	}
@@ -882,14 +888,22 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
 	outGoingOpHashes := make([][]byte, len(outGoingOperations))
 	aggregatedOutGoingOperations := make([]byte, 0)
+	outGoingOperationsData := make(map[string][]byte)
 
 	for idx, outGoingOp := range outGoingOperations {
 		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
 		outGoingOpHashes[idx] = outGoingOpHash
-		scbp.outGoingOperationsPool.Add(outGoingOpHash, outGoingOp)
+		outGoingOperationsData[hex.EncodeToString(outGoingOpHash)] = outGoingOp
 	}
+
+	outGoingOperationsHash := scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+
+	scbp.outGoingOperationsPool.Add(&sovereign2.OutGoingOperationsData{
+		Hash: outGoingOperationsHash,
+		Data: outGoingOperationsData,
+	})
 
 	// TODO: We need to have a mocked transaction with this hash to be saved in storage and get rid of following warnings:
 	// 1. basePreProcess.createMarshalledData: tx not found hash = bf7e...
@@ -899,7 +913,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		TxHashes:        outGoingOpHashes,
 		ReceiverShardID: core.MainChainShardId,
 		SenderShardID:   scbp.shardCoordinator.SelfId(),
-	}, scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+	}, outGoingOperationsHash
 }
 
 func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(

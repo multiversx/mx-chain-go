@@ -9,6 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 )
 
+type BridgeOperations struct {
+	Data []*BridgeOutGoingData
+}
+
+type BridgeOutGoingData struct {
+	Hash               []byte
+	OutGoingOperations map[string][]byte
+}
+
 type sovereignSubRoundEnd struct {
 	*subroundEndRoundV2
 	outGoingOperationsPool block.OutGoingOperationsPool
@@ -48,9 +57,24 @@ func (sr *sovereignSubRoundEnd) doSovereignBlockJob(ctx context.Context) bool {
 		return true
 	}
 
+	outGoingOperations := make([]*BridgeOutGoingData, 0)
+
+	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
+	if len(unconfirmedOperations) != 0 {
+		outGoingOperations = append(outGoingOperations, &BridgeOutGoingData{
+			Hash:               unconfirmedOperations[0].Hash,
+			OutGoingOperations: unconfirmedOperations[0].Data,
+		})
+	}
+
 	hash := outGoingMBHeader.GetOutGoingOperationsHash()
 	operations := sr.outGoingOperationsPool.Get(hash)
+	//outGoingOperations = append(outGoingOperations, operations..)
 
+	msg := &BridgeOperations{
+		Data: outGoingOperations,
+	}
+	_ = msg
 	_ = operations
 	return true
 }
