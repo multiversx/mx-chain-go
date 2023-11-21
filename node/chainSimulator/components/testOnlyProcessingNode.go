@@ -3,6 +3,7 @@ package components
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
@@ -390,11 +391,11 @@ func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[str
 	for keyHex, valueHex := range keyValueMap {
 		keyDecoded, errK := hex.DecodeString(keyHex)
 		if errK != nil {
-			return errK
+			return fmt.Errorf("cannot decode key, error: %w", err)
 		}
 		valueDecoded, errV := hex.DecodeString(valueHex)
 		if errV != nil {
-			return errV
+			return fmt.Errorf("cannot decode value, error: %w", err)
 		}
 
 		err = userAccount.SaveKeyValue(keyDecoded, valueDecoded)

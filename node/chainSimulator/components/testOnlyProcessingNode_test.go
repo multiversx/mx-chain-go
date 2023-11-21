@@ -1,6 +1,7 @@
 package components
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -81,4 +82,27 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)
 		assert.Nil(t, err)
 	})
+}
+
+func TestOnlyProcessingNodeSetStateShouldError(t *testing.T) {
+	args := createMockArgsTestOnlyProcessingNode(t)
+	node, err := NewTestOnlyProcessingNode(args)
+	require.Nil(t, err)
+
+	address := "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj"
+	addressBytes, _ := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(address)
+
+	keyValueMap := map[string]string{
+		"nonHex": "01",
+	}
+	err = node.SetState(addressBytes, keyValueMap)
+	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "cannot decode key"))
+
+	keyValueMap = map[string]string{
+		"01": "nonHex",
+	}
+	err = node.SetState(addressBytes, keyValueMap)
+	require.NotNil(t, err)
+	require.True(t, strings.Contains(err.Error(), "cannot decode value"))
 }
