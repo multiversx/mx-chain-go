@@ -11,10 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovereign3 "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	sovereign2 "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -900,9 +900,9 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 
 	outGoingOperationsHash := scbp.hasher.Compute(string(aggregatedOutGoingOperations))
 
-	scbp.outGoingOperationsPool.Add(&sovereign2.OutGoingOperationsData{
-		Hash: outGoingOperationsHash,
-		Data: outGoingOperationsData,
+	scbp.outGoingOperationsPool.Add(&sovereign3.BridgeOutGoingData{
+		Hash:               outGoingOperationsHash,
+		OutGoingOperations: outGoingOperationsData,
 	})
 
 	// TODO: We need to have a mocked transaction with this hash to be saved in storage and get rid of following warnings:

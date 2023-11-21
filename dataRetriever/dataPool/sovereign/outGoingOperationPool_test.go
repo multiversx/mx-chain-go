@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,37 +25,68 @@ func TestOutGoingOperationsPool_Add_Get_Delete(t *testing.T) {
 	hash1 := []byte("h1")
 	hash2 := []byte("h2")
 	hash3 := []byte("h3")
+	hash4 := []byte("h4")
 
 	data1 := []byte("d1")
 	data2 := []byte("d2")
 	data3 := []byte("d3")
+	data4 := []byte("d4")
 
-	pool.Add(hash1, data1)
-	require.Equal(t, data1, pool.Get(hash1))
-	require.Empty(t, pool.Get(hash2))
-	require.Empty(t, pool.Get(hash3))
+	outGoingOperationsHash1 := []byte("h11h22")
+	bridgeData1 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash1,
+		OutGoingOperations: map[string][]byte{
+			string(hash1): data1,
+			string(hash2): data2,
+		},
+	}
+	outGoingOperationsHash2 := []byte("h33")
+	bridgeData2 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash2,
+		OutGoingOperations: map[string][]byte{
+			string(hash3): data3,
+		},
+	}
+	outGoingOperationsHash3 := []byte("44")
+	bridgeData3 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash3,
+		OutGoingOperations: map[string][]byte{
+			string(hash4): data4,
+		},
+	}
 
-	pool.Add(hash1, data2)
-	require.Equal(t, data1, pool.Get(hash1))
+	pool.Add(bridgeData1)
+	require.Equal(t, bridgeData1, pool.Get(outGoingOperationsHash1))
+	require.Empty(t, pool.Get(outGoingOperationsHash2))
+	require.Empty(t, pool.Get(outGoingOperationsHash3))
 
-	pool.Add(hash2, data2)
-	pool.Add(hash3, data3)
+	pool.Add(bridgeData2)
+	require.Equal(t, bridgeData1, pool.Get(outGoingOperationsHash1))
+	require.Equal(t, bridgeData2, pool.Get(outGoingOperationsHash2))
+	require.Empty(t, pool.Get(outGoingOperationsHash3))
 
-	require.Equal(t, data1, pool.Get(hash1))
-	require.Equal(t, data2, pool.Get(hash2))
-	require.Equal(t, data3, pool.Get(hash3))
+	pool.Add(bridgeData1)
+	pool.Add(bridgeData2)
+	require.Equal(t, bridgeData1, pool.Get(outGoingOperationsHash1))
+	require.Equal(t, bridgeData2, pool.Get(outGoingOperationsHash2))
+	require.Empty(t, pool.Get(outGoingOperationsHash3))
 
-	pool.Delete(hash2)
-	require.Equal(t, data1, pool.Get(hash1))
-	require.Empty(t, pool.Get(hash2))
-	require.Equal(t, data3, pool.Get(hash3))
+	pool.Add(bridgeData3)
+	require.Equal(t, bridgeData1, pool.Get(outGoingOperationsHash1))
+	require.Equal(t, bridgeData2, pool.Get(outGoingOperationsHash2))
+	require.Equal(t, bridgeData3, pool.Get(outGoingOperationsHash3))
 
-	pool.Delete(hash1)
-	pool.Delete(hash1)
-	pool.Delete(hash2)
-	require.Empty(t, pool.Get(hash1))
-	require.Empty(t, pool.Get(hash2))
-	require.Equal(t, data3, pool.Get(hash3))
+	pool.Delete(outGoingOperationsHash2)
+	require.Equal(t, bridgeData1, pool.Get(outGoingOperationsHash1))
+	require.Empty(t, pool.Get(outGoingOperationsHash2))
+	require.Equal(t, bridgeData3, pool.Get(outGoingOperationsHash3))
+
+	pool.Delete(outGoingOperationsHash1)
+	pool.Delete(outGoingOperationsHash1)
+	pool.Delete(outGoingOperationsHash2)
+	require.Empty(t, pool.Get(outGoingOperationsHash1))
+	require.Empty(t, pool.Get(outGoingOperationsHash2))
+	require.Equal(t, bridgeData3, pool.Get(outGoingOperationsHash3))
 }
 
 func TestOutGoingOperationsPool_GetUnconfirmedOperations(t *testing.T) {
@@ -71,50 +103,38 @@ func TestOutGoingOperationsPool_GetUnconfirmedOperations(t *testing.T) {
 	data2 := []byte("d2")
 	data3 := []byte("d3")
 
-	pool.Add(hash1, data1)
-	pool.Add(hash2, data2)
+	outGoingOperationsHash1 := []byte("h11h22")
+	bridgeData1 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash1,
+		OutGoingOperations: map[string][]byte{
+			string(hash1): data1,
+		},
+	}
+	outGoingOperationsHash2 := []byte("h33")
+	bridgeData2 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash2,
+		OutGoingOperations: map[string][]byte{
+			string(hash2): data2,
+		},
+	}
+	outGoingOperationsHash3 := []byte("44")
+	bridgeData3 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash3,
+		OutGoingOperations: map[string][]byte{
+			string(hash3): data3,
+		},
+	}
+
+	pool.Add(bridgeData1)
+	pool.Add(bridgeData2)
 	require.Empty(t, pool.GetUnconfirmedOperations())
 
 	time.Sleep(expiryTime)
-	pool.Add(hash3, data3)
-	require.Equal(t, [][]byte{data1, data2}, pool.GetUnconfirmedOperations())
+	pool.Add(bridgeData3)
+	require.Equal(t, []*sovereign.BridgeOutGoingData{bridgeData1, bridgeData2}, pool.GetUnconfirmedOperations())
 
 	time.Sleep(expiryTime)
-	require.Equal(t, [][]byte{data1, data2, data3}, pool.GetUnconfirmedOperations())
-}
-
-func TestOutGoingOperationsPool_AddOutGoingOperationsHash(t *testing.T) {
-	expiryTime := time.Millisecond * 100
-	pool := NewOutGoingOperationPool(expiryTime)
-
-	hash1 := []byte("h1")
-	hash2 := []byte("h2")
-	hash3 := []byte("h3")
-
-	data1 := []byte("d1")
-	data2 := []byte("d2")
-	data3 := []byte("d3")
-
-	pool.Add(hash1, data1)
-	pool.Add(hash2, data2)
-	pool.Add(hash3, data3)
-
-	outGoingOperationsHash1 := []byte("h11h22")
-	outGoingOperationsHash2 := []byte("h33")
-
-	pool.AddOutGoingOperationsHash(outGoingOperationsHash1, [][]byte{hash1, hash2})
-	pool.AddOutGoingOperationsHash(outGoingOperationsHash2, [][]byte{hash3})
-
-	outGoingData := pool.GetOutGoingOperations(outGoingOperationsHash1)
-	require.Equal(t, map[string][]byte{
-		"h1": data1,
-		"h2": data2,
-	}, outGoingData)
-
-	outGoingData = pool.GetOutGoingOperations(outGoingOperationsHash2)
-	require.Equal(t, map[string][]byte{
-		"h3": data3,
-	}, outGoingData)
+	require.Equal(t, []*sovereign.BridgeOutGoingData{bridgeData1, bridgeData2, bridgeData3}, pool.GetUnconfirmedOperations())
 }
 
 func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
@@ -135,7 +155,12 @@ func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 
 			switch id {
 			case 0:
-				pool.Add(hash, data)
+				pool.Add(&sovereign.BridgeOutGoingData{
+					Hash: hash,
+					OutGoingOperations: map[string][]byte{
+						string(hash): data,
+					},
+				})
 			case 1:
 				_ = pool.Get(hash)
 			case 2:

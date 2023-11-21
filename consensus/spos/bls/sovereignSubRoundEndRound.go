@@ -5,22 +5,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/block"
 )
 
-type BridgeOperations struct {
-	Data []*BridgeOutGoingData
-}
-
-type BridgeOutGoingData struct {
-	Hash               []byte
-	OutGoingOperations map[string][]byte
-}
-
 type sovereignSubRoundEnd struct {
 	*subroundEndRoundV2
 	outGoingOperationsPool block.OutGoingOperationsPool
+	bridgeOpHandler        BridgeOperationsHandler
 }
 
 func NewSovereignSubRoundEndRound(subRoundEnd *subroundEndRoundV2, outGoingOperationsPool block.OutGoingOperationsPool) (*sovereignSubRoundEnd, error) {
@@ -57,24 +50,23 @@ func (sr *sovereignSubRoundEnd) doSovereignBlockJob(ctx context.Context) bool {
 		return true
 	}
 
-	outGoingOperations := make([]*BridgeOutGoingData, 0)
+	outGoingOperations := make([]*sovereign.BridgeOutGoingData, 0)
 
 	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
 	if len(unconfirmedOperations) != 0 {
-		outGoingOperations = append(outGoingOperations, &BridgeOutGoingData{
-			Hash:               unconfirmedOperations[0].Hash,
-			OutGoingOperations: unconfirmedOperations[0].Data,
-		})
+		outGoingOperations = append(outGoingOperations, unconfirmedOperations...)
 	}
 
 	hash := outGoingMBHeader.GetOutGoingOperationsHash()
-	operations := sr.outGoingOperationsPool.Get(hash)
-	//outGoingOperations = append(outGoingOperations, operations..)
+	currentOperations := sr.outGoingOperationsPool.Get(hash)
+	outGoingOperations = append(outGoingOperations, currentOperations)
 
-	msg := &BridgeOperations{
+	err := sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
 		Data: outGoingOperations,
+	})
+	if err != nil {
+		return false
 	}
-	_ = msg
-	_ = operations
+
 	return true
 }

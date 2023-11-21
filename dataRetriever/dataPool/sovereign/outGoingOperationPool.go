@@ -5,18 +5,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("outgoing-operations-pool")
 
-type OutGoingOperationsData struct {
-	Hash []byte
-	Data map[string][]byte
-}
-
 type cacheEntry struct {
-	data     *OutGoingOperationsData
+	data     *sovereign.BridgeOutGoingData
 	expireAt time.Time
 }
 
@@ -46,7 +42,7 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 }
 
 // Add adds the outgoing txs data at the specified hash in the internal cache
-func (op *outGoingOperationsPool) Add(data *OutGoingOperationsData) {
+func (op *outGoingOperationsPool) Add(data *sovereign.BridgeOutGoingData) {
 	hashStr := string(data.Hash)
 
 	op.mutex.Lock()
@@ -63,7 +59,7 @@ func (op *outGoingOperationsPool) Add(data *OutGoingOperationsData) {
 }
 
 // Get returns the outgoing txs data at the specified hash
-func (op *outGoingOperationsPool) Get(hash []byte) *OutGoingOperationsData {
+func (op *outGoingOperationsPool) Get(hash []byte) *sovereign.BridgeOutGoingData {
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
 
@@ -82,7 +78,7 @@ func (op *outGoingOperationsPool) Delete(hash []byte) {
 // An unconfirmed operation is a tx data operation which has been stored in cache for longer
 // than the time to wait for unconfirmed outgoing operations.
 // Returned list is sorted based on expiry time.
-func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*OutGoingOperationsData {
+func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*sovereign.BridgeOutGoingData {
 	expiredEntries := make([]cacheEntry, 0)
 
 	op.mutex.Lock()
@@ -97,7 +93,7 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*OutGoingOperatio
 		return expiredEntries[i].expireAt.Before(expiredEntries[j].expireAt)
 	})
 
-	ret := make([]*OutGoingOperationsData, len(expiredEntries))
+	ret := make([]*sovereign.BridgeOutGoingData, len(expiredEntries))
 	for i, entry := range expiredEntries {
 		ret[i] = entry.data
 	}

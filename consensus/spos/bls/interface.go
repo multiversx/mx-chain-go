@@ -1,7 +1,10 @@
 package bls
 
 import (
+	"context"
+
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -38,5 +41,10 @@ type ExtraSignersHolder interface {
 	GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder
 	GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder
 	GetSubRoundEndExtraSignersHolder() SubRoundEndExtraSignersHolder
+	IsInterfaceNil() bool
+}
+
+type BridgeOperationsHandler interface {
+	Send(ctx context.Context, data *sovereign.BridgeOperations) error
 	IsInterfaceNil() bool
 }
