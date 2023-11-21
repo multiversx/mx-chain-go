@@ -133,6 +133,7 @@ type EnableEpochsHandlerStub struct {
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 	IsNFTStopCreateEnabledField                                  bool
 	IsChangeOwnerAddressCrossShardThroughSCEnabledField          bool
+	FixGasRemainingForSaveKeyValueBuiltinFunctionEnabledField    bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1140,6 +1141,14 @@ func (stub *EnableEpochsHandlerStub) IsChangeOwnerAddressCrossShardThroughSCEnab
 	defer stub.RUnlock()
 
 	return stub.IsChangeOwnerAddressCrossShardThroughSCEnabledField
+}
+
+// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
+func (stub *EnableEpochsHandlerStub) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabledField
 }
 
 // IsInterfaceNil -
