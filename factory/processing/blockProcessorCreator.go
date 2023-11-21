@@ -506,7 +506,7 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 			return nil, err
 		}
 
-		timeToWait := time.Second * time.Duration(pcf.config.SovereignConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperation)
+		timeToWait := time.Second * time.Duration(pcf.config.SovereignConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 		return block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               shardProcessor,
 			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
