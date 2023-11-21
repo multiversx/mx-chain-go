@@ -1,6 +1,10 @@
 package components
 
 import (
+	"encoding/hex"
+	"errors"
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -20,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -368,6 +373,48 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 	if facade.DefaultRestPortOff != apiInterface.RestApiInterface(shardID) {
 		node.closeHandler.AddComponent(node.httpServer)
 	}
+}
+
+// SetState will set the provided state for the given address
+func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[string]string) error {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	account, err := accountsAdapter.LoadAccount(address)
+	if err != nil {
+		return err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return errors.New("cannot cast AccountHandler to UserAccountHandler")
+	}
+
+	for keyHex, valueHex := range keyValueMap {
+		keyDecoded, errK := hex.DecodeString(keyHex)
+		if errK != nil {
+			return fmt.Errorf("cannot decode key, error: %w", err)
+		}
+		valueDecoded, errV := hex.DecodeString(valueHex)
+		if errV != nil {
+			return fmt.Errorf("cannot decode value, error: %w", err)
+		}
+
+		err = userAccount.SaveKeyValue(keyDecoded, valueDecoded)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = accountsAdapter.SaveAccount(account)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Close will call the Close methods on all inner components

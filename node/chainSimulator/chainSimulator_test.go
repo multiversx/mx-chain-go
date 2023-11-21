@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -77,4 +78,33 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 
 	err = chainSimulator.Close()
 	assert.Nil(t, err)
+}
+
+func TestChainSimulator_SetState(t *testing.T) {
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, roundsPerEpoch, api.NewNoApiInterface())
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	keyValueMap := map[string]string{
+		"01": "01",
+		"02": "02",
+	}
+
+	address := "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj"
+	err = chainSimulator.SetState(address, keyValueMap)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	nodeHandler := chainSimulator.GetNodeHandler(0)
+	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Equal(t, keyValueMap, keyValuePairs)
 }
