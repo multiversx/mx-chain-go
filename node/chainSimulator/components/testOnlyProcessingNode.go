@@ -1,6 +1,7 @@
 package components
 
 import (
+	"encoding/hex"
 	"errors"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -374,7 +375,7 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 }
 
 // SetState will set the provided state for the given address
-func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[string][]byte) error {
+func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[string]string) error {
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	account, err := accountsAdapter.LoadAccount(address)
 	if err != nil {
@@ -386,8 +387,17 @@ func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[str
 		return errors.New("cannot cast AccountHandler to UserAccountHandler")
 	}
 
-	for key, value := range keyValueMap {
-		err = userAccount.SaveKeyValue([]byte(key), value)
+	for keyHex, valueHex := range keyValueMap {
+		keyDecoded, errK := hex.DecodeString(keyHex)
+		if errK != nil {
+			return errK
+		}
+		valueDecoded, errV := hex.DecodeString(valueHex)
+		if errV != nil {
+			return errV
+		}
+
+		err = userAccount.SaveKeyValue(keyDecoded, valueDecoded)
 		if err != nil {
 			return err
 		}

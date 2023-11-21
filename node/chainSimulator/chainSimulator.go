@@ -176,7 +176,7 @@ func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 }
 
 // SetState will set the provided state for a given address
-func (s *simulator) SetState(address string, state map[string][]byte) error {
+func (s *simulator) SetState(address string, state map[string]string) error {
 	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
 	addressBytes, err := addressConverter.Decode(address)
 	if err != nil {
