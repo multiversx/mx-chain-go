@@ -614,7 +614,7 @@ func (ste *scheduledTxsExecution) getScheduledInfoForHeader(headerHash []byte, e
 
 	defer func() {
 		if err != nil {
-			log.Trace("getScheduledInfoForHeader: given header does not have scheduled txs",
+			log.Debug("getScheduledInfoForHeader: given header does not have scheduled txs",
 				"header hash", headerHash,
 			)
 		}

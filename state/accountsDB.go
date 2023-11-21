@@ -511,7 +511,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 }
 
 func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) error {
-	log.Trace("accountsDB.saveAccountToTrie",
+	log.Debug("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
 
@@ -554,7 +554,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		return err
 	}
 
-	log.Trace("accountsDB.RemoveAccount",
+	log.Debug("accountsDB.RemoveAccount",
 		"address", hex.EncodeToString(address),
 	)
 
@@ -629,7 +629,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddress)
 	}
 
-	log.Trace("accountsDB.LoadAccount",
+	log.Debug("accountsDB.LoadAccount",
 		"address", hex.EncodeToString(address),
 	)
 
@@ -681,7 +681,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddress)
 	}
 
-	log.Trace("accountsDB.GetExistingAccount",
+	log.Debug("accountsDB.GetExistingAccount",
 		"address", hex.EncodeToString(address),
 	)
 
@@ -758,14 +758,14 @@ func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
 // RevertToSnapshot apply Revert method over accounts object and removes entries from the list
 // Calling with 0 will revert everything. If the snapshot value is out of bounds, an err will be returned
 func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
-	log.Trace("accountsDB.RevertToSnapshot started",
+	log.Debug("accountsDB.RevertToSnapshot started",
 		"snapshot", snapshot,
 	)
 
 	adb.mutOp.Lock()
 
 	defer func() {
-		log.Trace("accountsDB.RevertToSnapshot ended")
+		log.Debug("accountsDB.RevertToSnapshot ended")
 		adb.mutOp.Unlock()
 	}()
 
@@ -774,9 +774,11 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	}
 
 	if snapshot == 0 {
-		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
+		log.Debug("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
 		return adb.recreateTrie(holders.NewRootHashHolder(adb.lastRootHash, core.OptionalUint32{}))
 	}
+
+	log.Debug("AccountsDB.RevertToSnapshot", "len", len(adb.entries))
 
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
@@ -803,7 +805,7 @@ func (adb *AccountsDB) JournalLen() int {
 	defer adb.mutOp.Unlock()
 
 	length := len(adb.entries)
-	log.Trace("accountsDB.JournalLen",
+	log.Debug("accountsDB.JournalLen",
 		"length", length,
 	)
 
@@ -836,7 +838,7 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 }
 
 func (adb *AccountsDB) commit() ([]byte, error) {
-	log.Trace("accountsDB.Commit started")
+	log.Debug("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
 	oldHashes := make(common.ModifiedHashes)
@@ -861,7 +863,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	newRoot, err := adb.mainTrie.RootHash()
 	if err != nil {
-		log.Trace("accountsDB.Commit ended", "error", err.Error())
+		log.Debug("accountsDB.Commit ended", "error", err.Error())
 		return nil, err
 	}
 
@@ -879,7 +881,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		adb.snapshotsManger.SetStateCheckpoint(newRoot, adb.mainTrie.GetStorageManager())
 	}
 
-	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
+	log.Debug("accountsDB.Commit ended", "root hash", newRoot)
 
 	return newRoot, nil
 }
@@ -926,7 +928,7 @@ func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashe
 // RootHash returns the main trie's root hash
 func (adb *AccountsDB) RootHash() ([]byte, error) {
 	rootHash, err := adb.getMainTrie().RootHash()
-	log.Trace("accountsDB.RootHash",
+	log.Debug("accountsDB.RootHash",
 		"root hash", rootHash,
 		"err", err,
 	)
@@ -954,9 +956,9 @@ func (adb *AccountsDB) RecreateTrieFromEpoch(options common.RootHashHolder) erro
 }
 
 func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
-	log.Trace("accountsDB.RecreateTrie", "root hash holder", options.String())
+	log.Debug("accountsDB.RecreateTrie", "root hash holder", options.String())
 	defer func() {
-		log.Trace("accountsDB.RecreateTrie ended")
+		log.Debug("accountsDB.RecreateTrie ended")
 	}()
 
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
@@ -1033,7 +1035,7 @@ func getUserAccountFromBytes(accountFactory AccountFactory, marshaller marshal.M
 
 	err = marshaller.Unmarshal(account, accountBytes)
 	if err != nil {
-		log.Trace("this must be a leaf with code", "err", err)
+		log.Debug("this must be a leaf with code", "err", err)
 		return nil, true, nil
 	}
 
@@ -1069,7 +1071,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 	}
 
 	adb.entries = append(adb.entries, entry)
-	log.Trace("accountsDB.Journalize",
+	log.Debug("accountsDB.Journalize",
 		"new length", len(adb.entries),
 		"entry type", fmt.Sprintf("%T", entry),
 	)
@@ -1089,14 +1091,14 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 
 // PruneTrie removes old values from the trie database
 func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
-	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
+	log.Debug("accountsDB.PruneTrie", "root hash", rootHash)
 
 	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.getMainTrie().GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
-	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
+	log.Debug("accountsDB.CancelPrune", "root hash", rootHash)
 
 	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
 }

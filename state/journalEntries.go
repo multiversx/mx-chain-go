@@ -199,7 +199,7 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 			return nil, err
 		}
 
-		log.Trace("revert data trie update",
+		log.Debug("revert data trie update",
 			"key", trieUpdate.Key,
 			"val", trieUpdate.Value,
 			"version", trieUpdate.Version,

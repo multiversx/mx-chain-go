@@ -925,6 +925,6 @@ func stopMeasure(hook string, sw *core.StopWatch) {
 	if duration > executeDurationAlarmThreshold {
 		log.Debug(fmt.Sprintf("%s took > %s", hook, executeDurationAlarmThreshold), "duration", duration)
 	} else {
-		log.Trace(hook, "duration", duration)
+		log.Debug(hook, "duration", duration)
 	}
 }

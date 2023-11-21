@@ -235,7 +235,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 	irp.mutInterResultsForBlock.Lock()
 	defer irp.mutInterResultsForBlock.Unlock()
 
-	log.Trace("intermediateResultsProcessor.AddIntermediateTransactions()", "txs", len(txs))
+	log.Debug("intermediateResultsProcessor.AddIntermediateTransactions()", "txs", len(txs))
 
 	for i := 0; i < len(txs); i++ {
 		addScr, ok := txs[i].(*smartContractResult.SmartContractResult)
@@ -256,7 +256,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 
 		if log.GetLevel() == logger.LogTrace {
 			//spew.Sdump is very useful when debugging errors like `receipts hash mismatch`
-			log.Trace("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value,
+			log.Debug("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value,
 				"dump", spew.Sdump(addScr))
 		}
 

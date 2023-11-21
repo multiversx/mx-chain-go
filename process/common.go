@@ -683,7 +683,7 @@ func DisplayProcessTxDetails(
 	if !check.IfNil(accountHandler) {
 		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
-			log.Trace(message,
+			log.Debug(message,
 				"nonce", account.GetNonce(),
 				"balance", account.GetBalance(),
 			)
@@ -700,7 +700,7 @@ func DisplayProcessTxDetails(
 	receiverAddress, _ := addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
 	senderAddress, _ := addressPubkeyConverter.Encode(txHandler.GetSndAddr())
 
-	log.Trace("executing transaction",
+	log.Debug("executing transaction",
 		"txHash", txHash,
 		"nonce", txHandler.GetNonce(),
 		"value", txHandler.GetValue(),
