@@ -10,11 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type subroundSignature struct {
 	*spos.Subround
 
+	extraSignersHolder   SubRoundSignatureExtraSignersHolder
 	getMessageToSignFunc func() []byte
 }
 
@@ -22,6 +24,7 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
+	extraSignersHolder SubRoundSignatureExtraSignersHolder,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -29,9 +32,13 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(extraSignersHolder) {
+		return nil, errors.ErrNilSignatureRoundExtraSignersHolder
+	}
 
 	srSignature := subroundSignature{
-		Subround: baseSubround,
+		Subround:           baseSubround,
+		extraSignersHolder: extraSignersHolder,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -79,19 +86,25 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 
 		processedHeaderHash := sr.getMessageToSignFunc()
+		selfPubKey := []byte(sr.SelfPubKey())
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			processedHeaderHash,
 			uint16(selfIndex),
 			sr.Header.GetEpoch(),
-			[]byte(sr.SelfPubKey()),
+			selfPubKey,
 		)
 		if err != nil {
 			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
+		extraSigShares, err := sr.extraSignersHolder.CreateExtraSignatureShares(sr.Header, uint16(selfIndex), selfPubKey)
+		if err != nil {
+			log.Debug("doSignatureJob.extraSignersHolder.createExtraSignatureShares", "error", err.Error())
+			return false
+		}
 
 		if !isSelfLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
+			ok := sr.createAndSendSignatureMessage(signatureShare, extraSigShares, []byte(sr.SelfPubKey()))
 			if !ok {
 				return false
 			}
@@ -106,7 +119,11 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	return sr.doSignatureJobForManagedKeys()
 }
 
-func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
+func (sr *subroundSignature) createAndSendSignatureMessage(
+	signatureShare []byte,
+	extraSigShares map[string][]byte,
+	pkBytes []byte,
+) bool {
 	// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
@@ -126,7 +143,14 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		sr.getProcessedHeaderHash(),
 	)
 
-	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.extraSignersHolder.AddExtraSigSharesToConsensusMessage(extraSigShares, cnsMsg)
+	if err != nil {
+		log.Debug("createAndSendSignatureMessage.extraSignersHolder.addExtraSigSharesToConsensusMessage",
+			"error", err.Error(), "pk", pkBytes)
+		return false
+	}
+
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessage",
 			"error", err.Error(), "pk", pkBytes)
@@ -217,6 +241,15 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	err = sr.SigningHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
 	if err != nil {
 		log.Debug("receivedSignature.StoreSignatureShare",
+			"node", pkForLogs,
+			"index", index,
+			"error", err.Error())
+		return false
+	}
+
+	err = sr.extraSignersHolder.StoreExtraSignatureShare(uint16(index), cnsDta)
+	if err != nil {
+		log.Debug("receivedSignature.extraSignersHolder.storeExtraSignatureShare",
 			"node", pkForLogs,
 			"index", index,
 			"error", err.Error())
@@ -391,8 +424,14 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
+		extraSigShares, err := sr.extraSignersHolder.CreateExtraSignatureShares(sr.Header, uint16(selfIndex), pkBytes)
+		if err != nil {
+			log.Debug("doSignatureJobForManagedKeys.extraSignersHolder.createExtraSignatureShares", "error", err.Error())
+			return false
+		}
+
 		if !isMultiKeyLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
+			ok := sr.createAndSendSignatureMessage(signatureShare, extraSigShares, pkBytes)
 			if !ok {
 				return false
 			}

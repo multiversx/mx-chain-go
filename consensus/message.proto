@@ -9,19 +9,20 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 // Message defines the data needed by spos to communicate between nodes over network in all subrounds
 message Message {
-	bytes    HeaderHash          = 1;
-	bytes    SignatureShare      = 2;
-	bytes    Body                = 3;
-	bytes    Header              = 4;
-	bytes    PubKey              = 5;
-	bytes    Signature           = 6;
-	int64    MsgType             = 7;
-	int64    RoundIndex          = 8;
-	bytes    ChainID             = 9;
-	bytes    PubKeysBitmap       = 10;
-	bytes    AggregateSignature  = 11;
-	bytes    LeaderSignature     = 12;
-	bytes    OriginatorPid       = 13;
-	bytes    InvalidSigners      = 14;
-	bytes    ProcessedHeaderHash = 15;
+	bytes HeaderHash          					= 1;
+	bytes SignatureShare      					= 2;
+	bytes Body                					= 3;
+	bytes Header              					= 4;
+	bytes PubKey              					= 5;
+	bytes Signature           					= 6;
+	int64 MsgType             					= 7;
+	int64 RoundIndex          					= 8;
+	bytes ChainID             					= 9;
+	bytes PubKeysBitmap       					= 10;
+	bytes AggregateSignature  					= 11;
+	bytes LeaderSignature     					= 12;
+	bytes OriginatorPid       					= 13;
+	bytes InvalidSigners      					= 14;
+	bytes ProcessedHeaderHash 					= 15;
+	bytes SignatureShareOutGoingTxData  = 16;
 }

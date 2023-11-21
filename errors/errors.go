@@ -661,3 +661,15 @@ var ErrNilOutgoingOperationsFormatter = errors.New("nil outgoing operations form
 
 // ErrNilOutGoingOperationsPool signals that a nil outgoing operations pool has been provided
 var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has been provided")
+
+// ErrNilExtraSubRoundSigner signals that a nil extra subround signer has been provided
+var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been provided")
+
+// ErrNilStartRoundExtraSignersHolder signals that a nil start round extra signers holder has been provided
+var ErrNilStartRoundExtraSignersHolder = errors.New("nil start round extra signers holder has been provided")
+
+// ErrNilSignatureRoundExtraSignersHolder signals that a nil signature round extra signers holder has been provided
+var ErrNilSignatureRoundExtraSignersHolder = errors.New("nil signature round extra signers holder has been provided")
+
+// ErrExtraSignerIdAlreadyExists signals that an extra signer with the same id has been already registered
+var ErrExtraSignerIdAlreadyExists = errors.New("an extra signer with the same id has been already registered")

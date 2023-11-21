@@ -47,6 +47,22 @@ type SubroundHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SubRoundStartExtraSignatureHandler defines an extra signer during start subround in a consensus process
+type SubRoundStartExtraSignatureHandler interface {
+	Reset(pubKeys []string) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
+// SubRoundSignatureExtraSignatureHandler defines an extra signer during signature subround in a consensus process
+type SubRoundSignatureExtraSignatureHandler interface {
+	CreateSignatureShare(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
+	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *Message)
+	StoreSignatureShare(index uint16, cnsMsg *Message) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
 	Close() error
@@ -177,6 +193,7 @@ type SigningHandler interface {
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	ShallowClone() SigningHandler
 	IsInterfaceNil() bool
 }
 
