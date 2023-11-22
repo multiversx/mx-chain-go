@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
 // SubRoundStartExtraSignersHolder manages extra signers during start subround in a consensus process
@@ -41,6 +42,15 @@ type ExtraSignersHolder interface {
 	GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder
 	GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder
 	GetSubRoundEndExtraSignersHolder() SubRoundEndExtraSignersHolder
+	IsInterfaceNil() bool
+}
+
+type SubRoundEndV2Creator interface {
+	CreateAndAddSubRoundEnd(
+		subroundEndRoundInstance *subroundEndRound,
+		worker spos.WorkerHandler,
+		consensusCore spos.ConsensusCoreHandler,
+	) error
 	IsInterfaceNil() bool
 }
 
