@@ -20,6 +20,7 @@ type UserAccountMock struct {
 	codeHash     []byte
 	rootHash     []byte
 	BalanceField *big.Int
+	version      uint8
 }
 
 // HasNewCode -
@@ -159,4 +160,14 @@ func (uam *UserAccountMock) IsGuarded() bool {
 // GetAllLeaves -
 func (uam *UserAccountMock) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
+}
+
+// SetVersion -
+func (uam *UserAccountMock) SetVersion(version uint8) {
+	uam.version = version
+}
+
+// GetVersion -
+func (uam *UserAccountMock) GetVersion() uint8 {
+	return uam.version
 }

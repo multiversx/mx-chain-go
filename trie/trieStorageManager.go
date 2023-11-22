@@ -281,6 +281,26 @@ func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, ep
 	return storer.PutInEpochWithoutCache(key, val, epoch)
 }
 
+// GetFromOldEpochsWithoutAddingToCache searches in main storer in old epochs for the given
+// key without adding to cache
+func (tsm *trieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+	tsm.storageOperationMutex.Lock()
+	defer tsm.storageOperationMutex.Unlock()
+	log.Trace("get from old epochs without adding to cache", "hash", key)
+
+	if tsm.closed {
+		log.Trace("trieStorageManager getFromOldEpochsWithoutAddingToCache context closing", "key", key)
+		return nil, core.OptionalUint32{}, core.ErrContextClosing
+	}
+
+	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
+	if !ok {
+		return nil, core.OptionalUint32{}, fmt.Errorf("invalid storer type for GetFromOldEpochsWithoutAddingToCache")
+	}
+
+	return storer.GetFromOldEpochsWithoutAddingToCache(key)
+}
+
 // EnterPruningBufferingMode increases the counter that tracks how many operations
 // that block the pruning process are in progress
 func (tsm *trieStorageManager) EnterPruningBufferingMode() {

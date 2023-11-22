@@ -482,51 +482,6 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		assert.True(t, putInEpochWithoutCacheCalled)
 		assert.True(t, removeFromAllActiveEpochsCalled)
 	})
-
-	t.Run("should handle code data for migrated leafs", func(t *testing.T) {
-		t.Parallel()
-
-		putInEpochWithoutCacheCalled := false
-		removeFromAllActiveEpochsCalled := false
-
-		args := getDefaultSnapshotManagerArgs()
-		args.ChannelsProvider = iteratorChannelsProvider.NewUserStateIteratorChannelsProvider()
-		sm, _ := state.NewSnapshotsManager(args)
-		_ = sm.SetSyncer(&mock.AccountsDBSyncerStub{})
-		tsm := &storageManager.StorageManagerStub{
-			GetLatestStorageEpochCalled: func() (uint32, error) {
-				return 5, nil
-			},
-			ShouldTakeSnapshotCalled: func() bool {
-				return true
-			},
-			TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, channels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, u uint32) {
-				stats.SnapshotFinished()
-				close(channels.LeavesChan)
-			},
-			RemoveFromAllActiveEpochsCalled: func(hash []byte) error {
-				assert.True(t, sm.IsSnapshotInProgress())
-				assert.Equal(t, []byte("lastSnapshot"), hash)
-				removeFromAllActiveEpochsCalled = true
-				return nil
-			},
-			PutInEpochWithoutCacheCalled: func(key []byte, val []byte, e uint32) error {
-				assert.Equal(t, []byte(common.ActiveDBKey), key)
-				assert.Equal(t, []byte(common.ActiveDBVal), val)
-				assert.Equal(t, epoch, e)
-				putInEpochWithoutCacheCalled = true
-				return nil
-			},
-		}
-
-		sm.SnapshotState(rootHash, epoch, tsm)
-		for sm.IsSnapshotInProgress() {
-			time.Sleep(10 * time.Millisecond)
-		}
-
-		assert.True(t, putInEpochWithoutCacheCalled)
-		assert.True(t, removeFromAllActiveEpochsCalled)
-	})
 }
 
 func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
@@ -564,6 +519,9 @@ func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
 
 	storageArgs := storage.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(storageArgs)
+
+	err = tsm.Put(codeHash, []byte("codeData"))
+	require.Nil(t, err)
 
 	tr, _ := trie.NewTrie(tsm, args.Marshaller, &testscommon.KeccakMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 1)
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
