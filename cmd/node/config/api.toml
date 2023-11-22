@@ -187,7 +187,7 @@
 
 [APIPackages.transaction]
     Routes = [
-        # /transaction/send will receive a single transaction in JSON format and will propagate it through the network
+        { Name = "/send-block-txs", Open = true },
         # if it's fields are valid. It will return the hash of the transaction
         { Name = "/send", Open = true },
 

@@ -336,14 +336,9 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		return nil, errGetLeader
-	}
-
-	randSeed, err := sr.SigningHandler().CreateSignatureForPublicKey(prevRandSeed, []byte(leader))
-	if err != nil {
-		return nil, err
+	randSeed := make([]byte, 32)
+	if len(hdr.GetRandSeed()) > 0 {
+		randSeed = hdr.GetRandSeed()
 	}
 
 	err = hdr.SetShardID(sr.ShardCoordinator().SelfId())

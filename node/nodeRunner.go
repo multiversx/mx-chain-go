@@ -451,6 +451,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	managedDataComponents.Datapool().Headers().Clear()
+	log.Debug("cleaned headers cache")
+
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
 	managedConsensusComponents, err := nr.CreateManagedConsensusComponents(

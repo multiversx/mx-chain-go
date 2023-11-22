@@ -54,6 +54,7 @@ type NodeStub struct {
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
 	GetTokenSupplyCalled                           func(token string) (*api.ESDTSupply, error)
 	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
+	SendBlockTransactionsHandler                   func([]*api.Block) (uint64, error)
 }
 
 // GetProof -
@@ -148,7 +149,7 @@ func (ns *NodeStub) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*
 	return ns.CreateTransactionHandler(txArgs)
 }
 
-//ValidateTransaction -
+// ValidateTransaction -
 func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
 	return ns.ValidateTransactionHandler(tx)
 }
@@ -161,6 +162,11 @@ func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction
 // SendBulkTransactions -
 func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return ns.SendBulkTransactionsHandler(txs)
+}
+
+// SendBlockTransactions -
+func (ns *NodeStub) SendBlockTransactions(apiBlocks []*api.Block) (uint64, error) {
+	return ns.SendBlockTransactionsHandler(apiBlocks)
 }
 
 // GetAccount -

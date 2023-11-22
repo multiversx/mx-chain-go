@@ -1,6 +1,7 @@
 package headerCheck
 
 import (
+	"bytes"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -17,6 +18,7 @@ import (
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
 
+var emptyRandSeed = make([]byte, 32)
 var log = logger.GetOrCreate("process/headerCheck")
 
 // ArgsHeaderSigVerifier is used to store all components that are needed to create a new HeaderSigVerifier
@@ -30,7 +32,7 @@ type ArgsHeaderSigVerifier struct {
 	FallbackHeaderValidator process.FallbackHeaderValidator
 }
 
-//HeaderSigVerifier is component used to check if a header is valid
+// HeaderSigVerifier is component used to check if a header is valid
 type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
@@ -281,6 +283,9 @@ func (hsv *HeaderSigVerifier) IsInterfaceNil() bool {
 }
 
 func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
+	if bytes.Equal(header.GetRandSeed(), emptyRandSeed) {
+		return nil
+	}
 	prevRandSeed := header.GetPrevRandSeed()
 	randSeed := header.GetRandSeed()
 	return hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)

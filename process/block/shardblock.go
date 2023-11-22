@@ -2,13 +2,16 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
@@ -1413,6 +1416,44 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	err = sp.setHeaderVersionData(shardHeader)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(sp.dataPool.BlockTxs().Keys()) > 0 {
+		btx := sp.dataPool.BlockTxs()
+		keys := btx.Keys()
+
+		sort.Slice(keys, func(i, j int) bool {
+			return hex.EncodeToString(keys[i]) < hex.EncodeToString(keys[j])
+		})
+
+		if len(keys) > 0 {
+			currentKey := keys[0]
+			log.Debug("computeSortedTxs", "key", string(currentKey))
+
+			b, ok := btx.Get(currentKey)
+			if !ok {
+				log.Error("computeSortedTxs - error", "key", string(currentKey))
+			} else {
+				var apiBlock *api.Block
+				apiBlock, ok := b.(*api.Block)
+
+				decodedRandSeed, err := hex.DecodeString(apiBlock.RandSeed)
+				if err != nil {
+					log.Error("computeSortedTxs - error", "key", string(currentKey), "err", err)
+				}
+				decodedPrevRandSeed, err := hex.DecodeString(apiBlock.PrevRandSeed)
+				if err != nil {
+					log.Error("computeSortedTxs - error", "key", string(currentKey), "err", err)
+				}
+
+				log.Debug("blockTxs", "randSeed", decodedRandSeed, "prevRandSeed", decodedPrevRandSeed,
+					"randSeed", []byte(apiBlock.RandSeed), "prevRandSeed", []byte(apiBlock.PrevRandSeed))
+				if ok {
+					_ = header.SetRandSeed(decodedRandSeed)
+					_ = header.SetPrevRandSeed(decodedPrevRandSeed)
+				}
+			}
+		}
 	}
 
 	return header, nil

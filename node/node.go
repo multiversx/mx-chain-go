@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -691,6 +692,27 @@ func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserA
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return n.processComponents.TxsSenderHandler().SendBulkTransactions(txs)
+}
+
+// SendBlockTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
+func (n *Node) SendBlockTransactions(apiBlocks []*api.Block) (uint64, error) {
+	n.addBlocksToDataPool(apiBlocks)
+
+	return uint64(len(apiBlocks)), nil
+}
+
+func (n *Node) addBlocksToDataPool(blocks []*api.Block) {
+	for _, block := range blocks {
+		roundByte := []byte(fmt.Sprintf("%d", block.Round))
+		blockJsonBytes, err := json.Marshal(block)
+		if err != nil {
+			log.Warn("blockTxsMarshalized did not work", "hash", block.Hash)
+		}
+
+		n.dataComponents.Datapool().BlockTxs().Put(roundByte, block, len(blockJsonBytes))
+		log.Info("added blocksToDataPool", "size", n.dataComponents.Datapool().BlockTxs().Len(), "round", block.Round, "hash", block.Hash, "randSeed", block.RandSeed)
+		log.Info("added blocksToDataPool", "block", fmt.Sprintf("%+v", block))
+	}
 }
 
 // ValidateTransaction will validate a transaction

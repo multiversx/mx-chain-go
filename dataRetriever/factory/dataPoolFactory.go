@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/storageUnit"
 )
 
 const (
@@ -89,6 +90,12 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	txBlockBody, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the miniblocks", err)
+	}
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.TxBlockBodyDataPool)
+	blockTxs, err := storageUnit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the blockTxs", err)
 	}
 
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PeerBlockBodyDataPool)
@@ -164,6 +171,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		PeerAuthentications:       peerAuthPool,
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
+		BlockTxs:                  blockTxs,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

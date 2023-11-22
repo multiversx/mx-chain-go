@@ -1,307 +1,306 @@
 [EnableEpochs]
     # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-    SCDeployEnableEpoch = 1
+    SCDeployEnableEpoch = 180
 
     # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-    BuiltInFunctionsEnableEpoch = 1
+    BuiltInFunctionsEnableEpoch = 180
 
     # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
-    RelayedTransactionsEnableEpoch = 1
+    RelayedTransactionsEnableEpoch = 180
 
     # PenalizedTooMuchGasEnableEpoch represents the epoch when the penalization for using too much gas will be enabled
-    PenalizedTooMuchGasEnableEpoch = 0
+    PenalizedTooMuchGasEnableEpoch = 124
 
     # SwitchJailWaitingEnableEpoch represents the epoch when the system smart contract processing at end of epoch is enabled
-    SwitchJailWaitingEnableEpoch = 0
+    SwitchJailWaitingEnableEpoch = 124
 
     # BelowSignedThresholdEnableEpoch represents the epoch when the change for computing rating for validators below signed rating is enabled
-    BelowSignedThresholdEnableEpoch = 0
+    BelowSignedThresholdEnableEpoch = 124
 
     # SwitchHysteresisForMinNodesEnableEpoch represents the epoch when the system smart contract changes its config to consider
     # also (minimum) hysteresis nodes for the minimum number of nodes
-    SwitchHysteresisForMinNodesEnableEpoch = 1
+    SwitchHysteresisForMinNodesEnableEpoch = 124
 
     # TransactionSignedWithTxHashEnableEpoch represents the epoch when the node will also accept transactions that are
     # signed with the hash of transaction
-    TransactionSignedWithTxHashEnableEpoch = 1
+    TransactionSignedWithTxHashEnableEpoch = 239
 
     # MetaProtectionEnableEpoch represents the epoch when the transactions to the metachain are checked to have enough gas
-    MetaProtectionEnableEpoch = 1
+    MetaProtectionEnableEpoch = 180
 
     # AheadOfTimeGasUsageEnableEpoch represents the epoch when the cost of smart contract prepare changes from compiler per byte to ahead of time prepare per byte
-    AheadOfTimeGasUsageEnableEpoch = 1
+    AheadOfTimeGasUsageEnableEpoch = 180
 
     # GasPriceModifierEnableEpoch represents the epoch when the gas price modifier in fee computation is enabled
-    GasPriceModifierEnableEpoch = 1
+    GasPriceModifierEnableEpoch = 180
 
     # RepairCallbackEnableEpoch represents the epoch when the callback repair is activated for scrs
-    RepairCallbackEnableEpoch = 1
+    RepairCallbackEnableEpoch = 239
 
     # BlockGasAndFeesReCheckEnableEpoch represents the epoch when gas and fees used in each created or processed block are re-checked
-    BlockGasAndFeesReCheckEnableEpoch = 1
+    BlockGasAndFeesReCheckEnableEpoch = 239
 
     # BalanceWaitingListsEnableEpoch represents the epoch when the shard waiting lists are balanced at the start of an epoch
-    BalanceWaitingListsEnableEpoch = 1
+    BalanceWaitingListsEnableEpoch = 272
 
     # ReturnDataToLastTransferEnableEpoch represents the epoch when returned data is added to last output transfer for callbacks
-    ReturnDataToLastTransferEnableEpoch = 1
+    ReturnDataToLastTransferEnableEpoch = 272
 
     # SenderInOutTransferEnableEpoch represents the epoch when the feature of having different senders in output transfer is enabled
-    SenderInOutTransferEnableEpoch = 1
+    SenderInOutTransferEnableEpoch = 272
 
     # StakeEnableEpoch represents the epoch when staking is enabled
-    StakeEnableEpoch = 0
+    StakeEnableEpoch = 124
 
     # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
-    StakingV2EnableEpoch = 1
+    StakingV2EnableEpoch = 239
 
     # DoubleKeyProtectionEnableEpoch represents the epoch when the double key protection will be enabled
-    DoubleKeyProtectionEnableEpoch = 1
+    DoubleKeyProtectionEnableEpoch = 180
 
     # ESDTEnableEpoch represents the epoch when ESDT is enabled
-    ESDTEnableEpoch = 1
+    ESDTEnableEpoch = 272
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 5
+    GovernanceEnableEpoch = 1210
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
-    DelegationManagerEnableEpoch = 1
+    DelegationManagerEnableEpoch = 239
 
     # DelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
     # epoch should not be 0
-    DelegationSmartContractEnableEpoch = 1
+    DelegationSmartContractEnableEpoch = 239
 
     # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
-    CorrectLastUnjailedEnableEpoch = 1
+    CorrectLastUnjailedEnableEpoch = 272
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
-    RelayedTransactionsV2EnableEpoch = 1
+    RelayedTransactionsV2EnableEpoch = 432
 
     # UnbondTokensV2EnableEpoch represents the epoch when the new implementation of the unbond tokens function is available
-    UnbondTokensV2EnableEpoch = 1
+    UnbondTokensV2EnableEpoch = 319
 
     # SaveJailedAlwaysEnableEpoch represents the epoch when saving jailed status at end of epoch will happen in all cases
-    SaveJailedAlwaysEnableEpoch = 1
+    SaveJailedAlwaysEnableEpoch = 319
 
     # ReDelegateBelowMinCheckEnableEpoch represents the epoch when the check for the re-delegated value will be enabled
-    ReDelegateBelowMinCheckEnableEpoch = 1
+    ReDelegateBelowMinCheckEnableEpoch = 319
 
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
-    ValidatorToDelegationEnableEpoch = 1
+    ValidatorToDelegationEnableEpoch = 319
 
     # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
     WaitingListFixEnableEpoch = 1000000
 
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
-    IncrementSCRNonceInMultiTransferEnableEpoch = 1
+    IncrementSCRNonceInMultiTransferEnableEpoch = 432
 
     # ESDTMultiTransferEnableEpoch represents the epoch when esdt multitransfer built in function is enabled
-    ESDTMultiTransferEnableEpoch = 1
+    ESDTMultiTransferEnableEpoch = 432
 
     # GlobalMintBurnDisableEpoch represents the epoch when the global mint and burn functions are disabled
-    GlobalMintBurnDisableEpoch = 1
+    GlobalMintBurnDisableEpoch = 432
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
-    ESDTTransferRoleEnableEpoch = 1
+    ESDTTransferRoleEnableEpoch = 432
 
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
     BuiltInFunctionOnMetaEnableEpoch = 1000000
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
-    ComputeRewardCheckpointEnableEpoch = 1
+    ComputeRewardCheckpointEnableEpoch = 427
 
     # SCRSizeInvariantCheckEnableEpoch represents the epoch when the scr size invariant check is enabled
-    SCRSizeInvariantCheckEnableEpoch = 1
+    SCRSizeInvariantCheckEnableEpoch = 427
 
     # BackwardCompSaveKeyValueEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    BackwardCompSaveKeyValueEnableEpoch = 1
+    BackwardCompSaveKeyValueEnableEpoch = 427
 
     # ESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft creation is enabled on multiple shards
-    ESDTNFTCreateOnMultiShardEnableEpoch = 1
+    ESDTNFTCreateOnMultiShardEnableEpoch = 460
 
     # MetaESDTSetEnableEpoch represents the epoch when the backward compatibility for save key value error is enabled
-    MetaESDTSetEnableEpoch = 1
+    MetaESDTSetEnableEpoch = 460
 
     # AddTokensToDelegationEnableEpoch represents the epoch when adding tokens to delegation is enabled for whitelisted address
-    AddTokensToDelegationEnableEpoch = 1
+    AddTokensToDelegationEnableEpoch = 460
 
     # MultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer on callback fix is enabled
-    MultiESDTTransferFixOnCallBackOnEnableEpoch = 1
+    MultiESDTTransferFixOnCallBackOnEnableEpoch = 460
 
     # OptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when gas used in cross shard mini blocks will be optimized
-    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 1
+    OptimizeGasUsedInCrossMiniBlocksEnableEpoch = 460
 
     # CorrectFirstQueuedEpoch represents the epoch when the backward compatibility for setting the first queued node is enabled
-    CorrectFirstQueuedEpoch = 1
+    CorrectFirstQueuedEpoch = 460
 
     # DeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when the delegators data is deleted for delegators that have to claim rewards after they withdraw all funds
-    DeleteDelegatorAfterClaimRewardsEnableEpoch = 1
+    DeleteDelegatorAfterClaimRewardsEnableEpoch = 460
 
     # FixOOGReturnCodeEnableEpoch represents the epoch when the backward compatibility returning out of gas error is enabled
-    FixOOGReturnCodeEnableEpoch = 1
+    FixOOGReturnCodeEnableEpoch = 460
 
     # RemoveNonUpdatedStorageEnableEpoch represents the epoch when the backward compatibility for removing non updated storage is enabled
-    RemoveNonUpdatedStorageEnableEpoch = 1
+    RemoveNonUpdatedStorageEnableEpoch = 460
 
     # OptimizeNFTStoreEnableEpoch represents the epoch when optimizations on NFT metadata store and send are enabled
-    OptimizeNFTStoreEnableEpoch = 1
+    OptimizeNFTStoreEnableEpoch = 613
 
     # CreateNFTThroughExecByCallerEnableEpoch represents the epoch when nft creation through execution on destination by caller is enabled
-    CreateNFTThroughExecByCallerEnableEpoch = 1
+    CreateNFTThroughExecByCallerEnableEpoch = 613
 
     # StopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when we should stop decreasing validator's rating if, for instance, a shard gets stuck
-    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 1
+    StopDecreasingValidatorRatingWhenStuckEnableEpoch = 613
 
     # FrontRunningProtectionEnableEpoch represents the epoch when the first version of protection against front running is enabled
-    FrontRunningProtectionEnableEpoch = 1
+    FrontRunningProtectionEnableEpoch = 613
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 1
+    IsPayableBySCEnableEpoch = 613
 
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
-    CleanUpInformativeSCRsEnableEpoch = 1
+    CleanUpInformativeSCRsEnableEpoch = 613
 
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
-    StorageAPICostOptimizationEnableEpoch = 1
+    StorageAPICostOptimizationEnableEpoch = 613
 
     # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 1
+    TransformToMultiShardCreateEnableEpoch = 613
 
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
-    ESDTRegisterAndSetAllRolesEnableEpoch = 1
+    ESDTRegisterAndSetAllRolesEnableEpoch = 613
 
     # ScheduledMiniBlocksEnableEpoch represents the epoch when scheduled mini blocks would be created if needed
-    ScheduledMiniBlocksEnableEpoch = 1
+    ScheduledMiniBlocksEnableEpoch = 613
 
     # CorrectJailedNotUnstakedEpoch represents the epoch when the jailed validators will also be unstaked if the queue is empty
-    CorrectJailedNotUnstakedEmptyQueueEpoch = 1
+    CorrectJailedNotUnstakedEmptyQueueEpoch = 613
 
     # DoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when the fetch old block operation is
     # disabled in the blockchain hook component
-    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 1
+    DoNotReturnOldBlockInBlockchainHookEnableEpoch = 613
 
     # AddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when adding the failed relayed txs to invalid miniblocks is disabled
-    AddFailedRelayedTxToInvalidMBsDisableEpoch = 1
+    AddFailedRelayedTxToInvalidMBsDisableEpoch = 613
 
     # SCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on built in result is enabled
-    SCRSizeInvariantOnBuiltInResultEnableEpoch = 1
+    SCRSizeInvariantOnBuiltInResultEnableEpoch = 613
 
     # CheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when the correct token ID check is applied for transfer role verification
-    CheckCorrectTokenIDForTransferRoleEnableEpoch = 1
+    CheckCorrectTokenIDForTransferRoleEnableEpoch = 669
 
     # DisableExecByCallerEnableEpoch represents the epoch when the check on value is disabled on exec by caller
-    DisableExecByCallerEnableEpoch = 1
+    DisableExecByCallerEnableEpoch = 676
 
     # RefactorContextEnableEpoch represents the epoch when refactoring/simplifying is enabled in contexts
-    RefactorContextEnableEpoch = 1
+    RefactorContextEnableEpoch = 680
 
     # FailExecutionOnEveryAPIErrorEnableEpoch represent the epoch when new protection in VM is enabled to fail all wrong API calls
-    FailExecutionOnEveryAPIErrorEnableEpoch = 1
+    FailExecutionOnEveryAPIErrorEnableEpoch = 706
 
     # ManagedCryptoAPIsEnableEpoch represents the epoch when new managed crypto APIs are enabled in the wasm VM
-    ManagedCryptoAPIsEnableEpoch = 1
+    ManagedCryptoAPIsEnableEpoch = 706
 
     # CheckFunctionArgumentEnableEpoch represents the epoch when the extra argument check is enabled in vm-common
-    CheckFunctionArgumentEnableEpoch = 1
+    CheckFunctionArgumentEnableEpoch = 708
 
     # CheckExecuteOnReadOnlyEnableEpoch represents the epoch when the extra checks are enabled for execution on read only
-    CheckExecuteOnReadOnlyEnableEpoch = 1
+    CheckExecuteOnReadOnlyEnableEpoch = 707
 
     # ESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata is automatically deleted according to inshard liquidity
-    ESDTMetadataContinuousCleanupEnableEpoch = 1
+    ESDTMetadataContinuousCleanupEnableEpoch = 795
 
     # MiniBlockPartialExecutionEnableEpoch represents the epoch when mini block partial execution will be enabled
-    MiniBlockPartialExecutionEnableEpoch = 1
+    MiniBlockPartialExecutionEnableEpoch = 795
 
     # FixAsyncCallBackArgsListEnableEpoch represents the epoch when the async callback arguments lists fix will be enabled
-    FixAsyncCallBackArgsListEnableEpoch = 1
+    FixAsyncCallBackArgsListEnableEpoch = 795
 
     # FixOldTokenLiquidityEnableEpoch represents the epoch when the fix for old token liquidity is enabled
-    FixOldTokenLiquidityEnableEpoch = 1
+    FixOldTokenLiquidityEnableEpoch = 811
 
     # RuntimeMemStoreLimitEnableEpoch represents the epoch when the condition for Runtime MemStore is enabled
-    RuntimeMemStoreLimitEnableEpoch = 1
+    RuntimeMemStoreLimitEnableEpoch = 938
 
     # SetSenderInEeiOutputTransferEnableEpoch represents the epoch when setting the sender in eei output transfers will be enabled
-    SetSenderInEeiOutputTransferEnableEpoch = 1
+    SetSenderInEeiOutputTransferEnableEpoch = 938
 
     # RefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor of the peers mini blocks will be enabled
-    RefactorPeersMiniBlocksEnableEpoch = 1
+    RefactorPeersMiniBlocksEnableEpoch = 938
 
     # MaxBlockchainHookCountersEnableEpoch represents the epoch when the max blockchainhook counters are enabled
-    MaxBlockchainHookCountersEnableEpoch = 1
+	MaxBlockchainHookCountersEnableEpoch = 938
 
     # WipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when the system account liquidity is decreased for wipeSingleNFT as well
-    WipeSingleNFTLiquidityDecreaseEnableEpoch = 1
+    WipeSingleNFTLiquidityDecreaseEnableEpoch = 938
 
     # AlwaysSaveTokenMetaDataEnableEpoch represents the epoch when the token metadata is always saved
-    AlwaysSaveTokenMetaDataEnableEpoch = 1
+    AlwaysSaveTokenMetaDataEnableEpoch = 938
 
     # RuntimeCodeSizeFixEnableEpoch represents the epoch when the code size fix in the VM is enabled
-    RuntimeCodeSizeFixEnableEpoch = 1
+    RuntimeCodeSizeFixEnableEpoch = 970
 
     # RelayedNonceFixEnableEpoch represents the epoch when the nonce fix for relayed txs is enabled
-    RelayedNonceFixEnableEpoch = 1
+    RelayedNonceFixEnableEpoch = 1043
 
     # SetGuardianEnableEpoch represents the epoch when the guard account feature is enabled in the protocol
-    SetGuardianEnableEpoch = 1
+    SetGuardianEnableEpoch = 1075
 
     # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
-    DeterministicSortOnValidatorsInfoEnableEpoch = 1
+    DeterministicSortOnValidatorsInfoEnableEpoch = 1126
 
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
-    SCProcessorV2EnableEpoch = 3
+    SCProcessorV2EnableEpoch = 1210
 
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
-    AutoBalanceDataTriesEnableEpoch = 3
+    AutoBalanceDataTriesEnableEpoch = 1210
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
-    KeepExecOrderOnCreatedSCRsEnableEpoch = 3
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 1210
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
-    MultiClaimOnDelegationEnableEpoch = 3
+    MultiClaimOnDelegationEnableEpoch = 1210
 
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
-    ChangeUsernameEnableEpoch = 3
+    ChangeUsernameEnableEpoch = 1210
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
-    ConsistentTokensValuesLengthCheckEnableEpoch = 3
+    ConsistentTokensValuesLengthCheckEnableEpoch = 1210
 
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
-    FixDelegationChangeOwnerOnAccountEnableEpoch = 3
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 1210
 
     # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
-    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 1210
 
     # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
-    ScToScLogEventEnableEpoch = 3
+    ScToScLogEventEnableEpoch = 1210
 
     # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
-    NFTStopCreateEnableEpoch = 3
-
-    # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
-    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 3
-
-    # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
-    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 3
+    NFTStopCreateEnableEpoch = 1210
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
-        { EnableEpoch = 1, Type = "KOSK" }
+        { EnableEpoch = 938, Type = "KOSK" }
     ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 0, MaxNumNodes = 2169, NodesToShufflePerShard = 143 },
+        { EpochEnable = 249, MaxNumNodes = 3200, NodesToShufflePerShard = 80 }
     ]
 
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
         { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 180, FileName = "gasScheduleV2.toml" },
+        { StartEpoch = 239, FileName = "gasScheduleV3.toml" },
+        { StartEpoch = 460, FileName = "gasScheduleV4.toml" },
+        { StartEpoch = 582, FileName = "gasScheduleV5.toml" },
+        { StartEpoch = 613, FileName = "gasScheduleV6.toml" },
+        { StartEpoch = 938, FileName = "gasScheduleV7.toml" },
     ]

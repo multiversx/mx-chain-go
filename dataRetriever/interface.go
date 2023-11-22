@@ -240,6 +240,7 @@ type PoolsHolder interface {
 	PeerAuthentications() storage.Cacher
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
+	BlockTxs() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

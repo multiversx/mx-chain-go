@@ -179,3 +179,12 @@ func (holder *PoolsHolderStub) Close() error {
 func (holder *PoolsHolderStub) IsInterfaceNil() bool {
 	return holder == nil
 }
+
+// BlockTxs -
+func (holder *PoolsHolderStub) BlockTxs() storage.Cacher {
+	if holder.MiniBlocksCalled != nil {
+		return holder.MiniBlocksCalled()
+	}
+
+	return testscommon.NewCacherStub()
+}

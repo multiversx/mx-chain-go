@@ -93,6 +93,7 @@ type FacadeStub struct {
 	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	SendBlockTransactionsHandler                func([]*api.Block) (uint64, error)
 }
 
 // GetTokenSupply -
@@ -608,6 +609,11 @@ func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
 		return f.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
+}
+
+// SendBlockTransactions is the mock implementation of a handler's SendBlockTransactions method
+func (f *FacadeStub) SendBlockTransactions(apiBlocks []*api.Block) (uint64, error) {
+	return f.SendBlockTransactionsHandler(apiBlocks)
 }
 
 // Close -

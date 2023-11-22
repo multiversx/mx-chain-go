@@ -9,20 +9,20 @@
 
     # StartInEpochEnabled represents that the fast bootstrap mechanism from the network is enabled if data is not
     # available in local disk
-    StartInEpochEnabled = true
+    StartInEpochEnabled = false
 
     # ChainID represents the chain identifier
     # The currently supported constants are:
     #   "1" for Mainnet
     #   "D" for Devnet
     #   "T" for Testnet
-    ChainID = "undefined"
+    ChainID = "1"
 
     # MinTransactionVersion represents the minimum transaction version accepted
     MinTransactionVersion = 1
 
     # GenesisString represents the encoded string for the genesis block
-    GenesisString = "67656E65736973"
+    GenesisString = "546f207369676e69666963616e746c7920616363656c657261746520616c6c20746563686e6f6c6f676965732c20616e64207261646963616c6c7920696d70726f766520736f63696574792c2068756d616e6974792077696c6c206861766520746f206d69677261746520746f206120706f737420736361726369747920776f726c642e20456c726f6e642069732074686520666972737420636f6d706c65746520736f6c7574696f6e20746861742077696c6c20617474656d707420616e64206163686965766520746869732e0a0a54686520666f756e64696e67207465616d206f6620456c726f6e642069733a0a42656e69616d696e204d696e63750a4c756369616e204d696e63750a4c756369616e20546f6465610a41647269616e20446f62726974610a526f6265727420536173750a5261647520436869730a49756c69616e2050617363616c61750a53656261737469616e204d617269616e0a416e64726569204d6172696e6963610a437269737469616e20436f72636f7665616e750a44616e20566f6963750a44616e69656c20536572620a0a4e6f7461626c6520636f6e7472696275746f72733a0a42656e69616d696e20447261736f7665616e0a46656c69782043726973616e0a436f6e7374616e74696e20546f766973690a43616d696c2042616e63696f69750a416e647265692042616e63696f69750a416e64726569204164616d0a5365766572204d6f6c646f7665616e"
 
     # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
     GenesisMaxNumberOfShards  = 3
@@ -38,14 +38,14 @@
    # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
    # the activation of the configured guardian.
    # Make sure that this is greater than the unbonding period!
-   SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+   SetGuardianEpochsDelay = 20 # 2 times the normal unstaking period
 
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
         { StartEpoch = 0, Version = "*" },
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-        { StartEpoch = 1, Version = "2" },
+        { StartEpoch = 613, Version = "2" },
     ]
     [Versions.Cache]
         Name = "VersionsCache"
@@ -386,8 +386,8 @@
     CheckpointHashesHolderMaxSize = 52428800 #50MB
 
 [HeadersPoolConfig]
-    MaxHeadersPerShard = 1000
-    NumElementsToRemoveOnEviction = 200
+    MaxHeadersPerShard = 10000
+    NumElementsToRemoveOnEviction = 2000
 
 [BadBlocksCache]
     Name = "BadBlocksCache"
@@ -498,8 +498,8 @@
     BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
-    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
-    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
+    MaxRoundsToKeepUnprocessedMiniBlocks = 3000
+    MaxRoundsToKeepUnprocessedTransactions = 3000
 
 [TrieSyncStorage]
     Capacity = 300000
@@ -644,15 +644,15 @@
    Type = "json"
 
 [EpochStartConfig]
-    MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
+    MinRoundsBetweenEpochs = 5
+    RoundsPerEpoch         = 14400
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
-    MinShuffledOutRestartThreshold = 0.05
-    MaxShuffledOutRestartThreshold = 0.25
+    MinShuffledOutRestartThreshold = 0.01
+    MaxShuffledOutRestartThreshold = 0.05
 
-    MinNumConnectedPeersToStart       = 2
-    MinNumOfPeersToConsiderBlockValid = 2
+    MinNumConnectedPeersToStart       = 6
+    MinNumOfPeersToConsiderBlockValid = 6
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -681,7 +681,7 @@
     CheckpointsEnabled = false
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
-    PeerStatePruningEnabled = true
+    PeerStatePruningEnabled = false
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
 
@@ -694,9 +694,10 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.3" },
-            { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 326, Version = "v1.3" },
+            { StartEpoch = 432, Version = "v1.4" },
+            { StartEpoch = 999999, Version = "v1.5" },
         ]
 
     [VirtualMachine.Querying]
@@ -704,9 +705,10 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.3" },
-            { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.2" },
+            { StartEpoch = 326, Version = "v1.3" },
+            { StartEpoch = 432, Version = "v1.4" },
+            { StartEpoch = 999999, Version = "v1.5" },
         ]
 
     [VirtualMachine.GasConfig]
@@ -717,19 +719,19 @@
 
 [BuiltInFunctions]
     AutomaticCrawlerAddresses =[
-        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
-        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
-        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+        "erd13cv2nllvka35dshazqxtcym8vyamnmjay26nzcjswnjyxxpny7yq6twx0v", #shard 0
+        "erd14zpxzaf3s00j6s4ke2ct475dk9285ekejujvtkt4h6azm2rfkfdsyjqkk4", #shard 1
+        "erd1zj06ewmmmm2ntng4d8art4ta8fz0n5xr4f0yn9knuf2k8mm7gzhqqf74cr", #shard 2
     ]
     MaxNumAddressesInTransferRole = 100
     DNSV2Addresses =[
-        "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+        "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", # TODO change this
     ]
 
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true
-    PublicKeyToListenFrom = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
+    PublicKeyToListenFrom = "6a02b93375e78aed4e0e3369ef2182dfc060eea01df640eacc5eca5f759f62c8271fbbf90863e896e2453384118be20179433cb1dfc1bd8df962c80f3da94ea42dffaf70025b6fd6a5b4814bc4b15cf6751c990fe21d392f1bc88c15bd354a8c"
     CloseAfterExportInMinutes = 10000
     AfterHardFork = false
     ImportFolder = "export"
@@ -796,9 +798,9 @@
 
 [Debug]
     [Debug.InterceptorResolver]
-        Enabled = true
+        Enabled = false
         CacheSize = 10000
-        EnablePrint = true
+        EnablePrint	= false
         IntervalAutoPrintInSeconds = 20
         NumRequestsThreshold = 9
         NumResolveFailureThreshold = 3
@@ -812,10 +814,10 @@
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
     [Debug.EpochStart]
-        GoRoutineAnalyserEnabled = true
-        ProcessDataTrieOnCommitEpoch = true
+        GoRoutineAnalyserEnabled = false
+        ProcessDataTrieOnCommitEpoch = false
     [Debug.Process]
-        Enabled = true
+        Enabled = false
         DebuggingLogLevel = "*:DEBUG,p2p:TRACE,debug:DEBUG,process:TRACE,intercept:TRACE"
         GoRoutinesDump = true
         PollingTimeInSeconds = 240 # 4 minutes
@@ -831,7 +833,7 @@
     FolderPath = "health-records"
 
 [SoftwareVersionConfig]
-    StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
+    StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-mainnet-config/releases/latest"
     PollingIntervalInMinutes = 65
 
 [LogsAndEvents]
@@ -849,7 +851,7 @@
         MaxOpenFiles = 10
 
 [DbLookupExtensions]
-    Enabled = false
+	Enabled = true
     DbLookupMaxActivePersisters = 10
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblocksMetadataStorage"
@@ -930,14 +932,14 @@
     NumFullHistoryPeers = 3
 
 [HeartbeatV2]
-    PeerAuthenticationTimeBetweenSendsInSec          = 600   # 10min TODO: change this for mainnet/devnet/testnet
+    PeerAuthenticationTimeBetweenSendsInSec          = 7200  # 2h
     PeerAuthenticationTimeBetweenSendsWhenErrorInSec = 60    # 1min
     PeerAuthenticationTimeThresholdBetweenSends      = 0.1   # 10%   # max random threshold between messages, representing a percent of PeerAuthenticationTimeBetweenSendsInSec
-    HeartbeatTimeBetweenSendsInSec                   = 60    # 1min
-    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 60    # 1min
+    HeartbeatTimeBetweenSendsInSec                   = 300   # 5min
+    HeartbeatTimeBetweenSendsDuringBootstrapInSec    = 300   # 5min
     HeartbeatTimeBetweenSendsWhenErrorInSec          = 60    # 1min
     HeartbeatTimeThresholdBetweenSends               = 0.1   # 10%        # max random threshold between messages, representing a percent of HeartbeatTimeBetweenSendsInSec
-    HeartbeatExpiryTimespanInSec                     = 3600  # 1h         # heartbeat message max age allowed
+    HeartbeatExpiryTimespanInSec                     = 14400 # 4h         # heartbeat message max age allowed
     MinPeersThreshold                                = 0.8   # 80%        # min threshold of peers to consider enough peer auths received
     DelayBetweenPeerAuthenticationRequestsInSec      = 5     # 5sec       # delay between requests
     PeerAuthenticationMaxTimeoutForRequestsInSec     = 7200  # 2h         # max timeout allowed to receive peer auth messages from peers
