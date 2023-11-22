@@ -971,6 +971,11 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		accVersion = stateMock.(state.UserAccountHandler).GetVersion()
 		require.Equal(t, uint8(core.NotSpecified), accVersion)
+
+		// revert will not remove code from storage
+		val, err = trieStorage.Get(codeDataHash)
+		require.Nil(t, err)
+		require.Equal(t, codeData, val)
 	})
 }
 

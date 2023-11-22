@@ -372,7 +372,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		newCodeHash = adb.hasher.Compute(string(newCode))
 	}
 
-	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
 		newAcc.GetVersion() == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
 		return adb.migrateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
 	}
@@ -407,7 +407,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 }
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldAccVersion uint8) (*CodeEntry, error) {
-	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
 		oldAccVersion == uint8(core.WithoutCodeLeaf) {
 		// do not update old code entry since num references is not used anymore
 		return nil, nil
@@ -450,7 +450,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte, ne
 		return nil
 	}
 
-	if adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
 		newAccVersion == uint8(core.WithoutCodeLeaf) {
 		return adb.mainTrie.GetStorageManager().Put(newCodeHash, newCode)
 	}
@@ -695,9 +695,9 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	return nil
 }
 
-// MigrateCodeLeaf will remove code leaf node from main trie and put it to trie storage
+// MigrateCodeLeaf will check account code and update account version
 func (adb *AccountsDB) MigrateCodeLeaf(account vmcommon.AccountHandler) error {
-	if !adb.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) {
+	if !adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) {
 		log.Warn("remove code leaf operation not enabled")
 		return nil
 	}

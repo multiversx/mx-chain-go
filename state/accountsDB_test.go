@@ -461,7 +461,7 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		codeDataHash := args.Hasher.Compute(string(codeData))
@@ -529,7 +529,7 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		newCodeDataHash := args.Hasher.Compute(string(newCodeData))
@@ -596,7 +596,7 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		oldCodeDataHash := args.Hasher.Compute(string(codeData))
@@ -681,7 +681,7 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		codeDataHash := args.Hasher.Compute(string(codeData))
@@ -2124,7 +2124,7 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		args := createMockAccountsDBArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag != common.RemoveCodeLeafFlag
+				return flag != common.MigrateCodeLeafFlag
 			},
 		}
 
@@ -2147,7 +2147,7 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
@@ -2192,7 +2192,7 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
@@ -2235,7 +2235,7 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 		tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())

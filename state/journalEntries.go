@@ -79,7 +79,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	if jea.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+	if jea.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
 		jea.oldCodeVersion == uint8(core.WithoutCodeLeaf) {
 		return jea.trie.GetStorageManager().Put(jea.oldCodeHash, jea.oldCodeEntry.GetCode())
 	}
@@ -93,9 +93,9 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
-	if jea.enableEpochsHandler.IsFlagEnabled(common.RemoveCodeLeafFlag) &&
+	if jea.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
 		jea.newCodeVersion == uint8(core.WithoutCodeLeaf) {
-		// do not update old code entry since num referencies is not used anymore
+		// do not update old code entry since num references is not used anymore
 		return nil
 	}
 

@@ -990,6 +990,6 @@ const (
 	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
 	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
-	RemoveCodeLeafFlag                                 core.EnableEpochFlag = "RemoveCodeLeafFlag"
+	MigrateCodeLeafFlag                                core.EnableEpochFlag = "MigrateCodeLeafFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
