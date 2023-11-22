@@ -50,8 +50,9 @@ func createMockArguments() ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 		},
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: "127.0.0.1:8080",
-			PprofEnabled:     false,
+			RestApiInterface:            "127.0.0.1:8080",
+			PprofEnabled:                false,
+			P2PPrometheusMetricsEnabled: false,
 		},
 		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
 			"node": {
@@ -618,6 +619,16 @@ func TestNodeFacade_PprofEnabled(t *testing.T) {
 	nf, _ := NewNodeFacade(arg)
 
 	require.True(t, nf.PprofEnabled())
+}
+
+func TestNodeFacade_P2PPrometheusMetricsEnabled(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.FacadeConfig.P2PPrometheusMetricsEnabled = true
+	nf, _ := NewNodeFacade(arg)
+
+	require.True(t, nf.P2PPrometheusMetricsEnabled())
 }
 
 func TestNodeFacade_RestAPIServerDebugMode(t *testing.T) {

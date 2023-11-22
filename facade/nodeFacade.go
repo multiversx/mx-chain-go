@@ -739,6 +739,11 @@ func (nf *nodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	return gasConfigs, nil
 }
 
+// P2PPrometheusMetricsEnabled returns if p2p prometheus metrics should be enabled or not on the application
+func (nf *nodeFacade) P2PPrometheusMetricsEnabled() bool {
+	return nf.config.P2PPrometheusMetricsEnabled
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nf *nodeFacade) IsInterfaceNil() bool {
 	return nf == nil

@@ -26,28 +26,38 @@ import (
 var errNodeStarting = errors.New("node is starting")
 var emptyString = ""
 
+// ArgInitialNodeFacade is the DTO used to create a new instance of initialNodeFacade
+type ArgInitialNodeFacade struct {
+	ApiInterface                string
+	PprofEnabled                bool
+	P2PPrometheusMetricsEnabled bool
+	StatusMetricsHandler        external.StatusMetricsHandler
+}
+
 // initialNodeFacade represents a facade with no functionality
 type initialNodeFacade struct {
-	apiInterface         string
-	statusMetricsHandler external.StatusMetricsHandler
-	pprofEnabled         bool
+	apiInterface                string
+	statusMetricsHandler        external.StatusMetricsHandler
+	pprofEnabled                bool
+	p2pPrometheusMetricsEnabled bool
 }
 
 // NewInitialNodeFacade is the initial implementation of the facade interface
-func NewInitialNodeFacade(apiInterface string, pprofEnabled bool, statusMetricsHandler external.StatusMetricsHandler) (*initialNodeFacade, error) {
-	if check.IfNil(statusMetricsHandler) {
+func NewInitialNodeFacade(args ArgInitialNodeFacade) (*initialNodeFacade, error) {
+	if check.IfNil(args.StatusMetricsHandler) {
 		return nil, facade.ErrNilStatusMetrics
 	}
 
-	initialStatusMetrics, err := NewInitialStatusMetricsProvider(statusMetricsHandler)
+	initialStatusMetrics, err := NewInitialStatusMetricsProvider(args.StatusMetricsHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	return &initialNodeFacade{
-		apiInterface:         apiInterface,
-		statusMetricsHandler: initialStatusMetrics,
-		pprofEnabled:         pprofEnabled,
+		apiInterface:                args.ApiInterface,
+		statusMetricsHandler:        initialStatusMetrics,
+		pprofEnabled:                args.PprofEnabled,
+		p2pPrometheusMetricsEnabled: args.P2PPrometheusMetricsEnabled,
 	}, nil
 }
 
@@ -429,6 +439,11 @@ func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 // GetWaitingEpochsLeftForPublicKey returns 0 and error
 func (inf *initialNodeFacade) GetWaitingEpochsLeftForPublicKey(_ string) (uint32, error) {
 	return 0, errNodeStarting
+}
+
+// P2PPrometheusMetricsEnabled returns either the p2p prometheus metrics are enabled or not
+func (inf *initialNodeFacade) P2PPrometheusMetricsEnabled() bool {
+	return inf.p2pPrometheusMetricsEnabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

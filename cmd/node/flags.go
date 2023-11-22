@@ -407,6 +407,13 @@ var (
 		Name:  "repopulate-tokens-supplies",
 		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
 	}
+
+	// p2pPrometheusMetrics defines a flag for p2p prometheus metrics
+	// If enabled, it will open a new route, /debug/metrics/prometheus, where p2p prometheus metrics will be available
+	p2pPrometheusMetrics = cli.BoolFlag{
+		Name:  "p2p-prometheus-metrics",
+		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -469,6 +476,7 @@ func getFlags() []cli.Flag {
 		logsDirectory,
 		operationMode,
 		repopulateTokensSupplies,
+		p2pPrometheusMetrics,
 	}
 }
 
@@ -497,6 +505,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
+	flagsConfig.P2PPrometheusMetricsEnabled = ctx.GlobalBool(p2pPrometheusMetrics.Name)
 
 	if ctx.GlobalBool(noKey.Name) {
 		log.Warn("the provided -no-key option is deprecated and will soon be removed. To start a node without " +
