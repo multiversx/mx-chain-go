@@ -19,7 +19,16 @@ const (
 func TestNewChainSimulator(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, core.OptionalUint64{}, api.NewNoApiInterface())
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
@@ -32,7 +41,16 @@ func TestNewChainSimulator(t *testing.T) {
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, core.OptionalUint64{}, api.NewNoApiInterface())
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
@@ -52,7 +70,16 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		HasValue: true,
 		Value:    20,
 	}
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, roundsPerEpoch, api.NewNoApiInterface())
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
@@ -87,7 +114,16 @@ func TestChainSimulator_SetState(t *testing.T) {
 		HasValue: true,
 		Value:    20,
 	}
-	chainSimulator, err := NewChainSimulator(t.TempDir(), 3, defaultPathToInitialConfig, startTime, roundDurationInMillis, roundsPerEpoch, api.NewNoApiInterface())
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 

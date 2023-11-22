@@ -35,9 +35,10 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
-	GasScheduleFilename string
-	NumShards           uint32
-	SkIndex             int
+	GasScheduleFilename    string
+	NumShards              uint32
+	SkIndex                int
+	BypassTxSignatureCheck bool
 }
 
 type testOnlyProcessingNode struct {
@@ -106,6 +107,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CoreComponentsHolder:    instance.CoreComponentsHolder,
 		ValidatorKeyPemFileName: args.Configs.ConfigurationPathsHolder.ValidatorKey,
 		SkIndex:                 args.SkIndex,
+		BypassTxSignatureCheck:  args.BypassTxSignatureCheck,
 	})
 	if err != nil {
 		return nil, err

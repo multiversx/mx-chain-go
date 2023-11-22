@@ -17,6 +17,18 @@ import (
 
 var log = logger.GetOrCreate("chainSimulator")
 
+// ArgsChainSimulator holds the arguments needed to create a new instance of simulator
+type ArgsChainSimulator struct {
+	BypassTxSignatureCheck bool
+	TempDir                string
+	PathToInitialConfig    string
+	NumOfShards            uint32
+	GenesisTimestamp       int64
+	RoundDurationInMillis  uint64
+	RoundsPerEpoch         core.OptionalUint64
+	ApiInterface           components.APIConfigurator
+}
+
 type simulator struct {
 	chanStopNodeProcess    chan endProcess.ArgEndProcess
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
@@ -27,26 +39,18 @@ type simulator struct {
 }
 
 // NewChainSimulator will create a new instance of simulator
-func NewChainSimulator(
-	tempDir string,
-	numOfShards uint32,
-	pathToInitialConfig string,
-	genesisTimestamp int64,
-	roundDurationInMillis uint64,
-	roundsPerEpoch core.OptionalUint64,
-	apiInterface components.APIConfigurator,
-) (*simulator, error) {
+func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
 	instance := &simulator{
 		syncedBroadcastNetwork: syncedBroadcastNetwork,
 		nodes:                  make(map[uint32]process.NodeHandler),
-		handlers:               make([]ChainHandler, 0, numOfShards+1),
-		numOfShards:            numOfShards,
+		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
+		numOfShards:            args.NumOfShards,
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 	}
 
-	err := instance.createChainHandlers(tempDir, numOfShards, pathToInitialConfig, genesisTimestamp, roundDurationInMillis, roundsPerEpoch, apiInterface)
+	err := instance.createChainHandlers(args)
 	if err != nil {
 		return nil, err
 	}
@@ -54,32 +58,24 @@ func NewChainSimulator(
 	return instance, nil
 }
 
-func (s *simulator) createChainHandlers(
-	tempDir string,
-	numOfShards uint32,
-	originalConfigPath string,
-	genesisTimestamp int64,
-	roundDurationInMillis uint64,
-	roundsPerEpoch core.OptionalUint64,
-	apiInterface components.APIConfigurator,
-) error {
+func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:           numOfShards,
-		OriginalConfigsPath:   originalConfigPath,
-		GenesisTimeStamp:      genesisTimestamp,
-		RoundDurationInMillis: roundDurationInMillis,
-		TempDir:               tempDir,
+		NumOfShards:           args.NumOfShards,
+		OriginalConfigsPath:   args.PathToInitialConfig,
+		GenesisTimeStamp:      args.GenesisTimestamp,
+		RoundDurationInMillis: args.RoundDurationInMillis,
+		TempDir:               args.TempDir,
 	})
 	if err != nil {
 		return err
 	}
 
-	if roundsPerEpoch.HasValue {
-		outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(roundsPerEpoch.Value)
+	if args.RoundsPerEpoch.HasValue {
+		outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 	}
 
 	for idx := range outputConfigs.ValidatorsPrivateKeys {
-		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename, apiInterface)
+		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -97,12 +93,12 @@ func (s *simulator) createChainHandlers(
 	s.initialWalletKeys = outputConfigs.InitialWallets
 
 	log.Info("running the chain simulator with the following parameters",
-		"number of shards (including meta)", numOfShards+1,
+		"number of shards (including meta)", args.NumOfShards+1,
 		"round per epoch", outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
-		"round duration", time.Millisecond*time.Duration(roundDurationInMillis),
-		"genesis timestamp", genesisTimestamp,
-		"original config path", originalConfigPath,
-		"temporary path", tempDir)
+		"round duration", time.Millisecond*time.Duration(args.RoundDurationInMillis),
+		"genesis timestamp", args.GenesisTimestamp,
+		"original config path", args.PathToInitialConfig,
+		"temporary path", args.TempDir)
 
 	return nil
 }
@@ -112,6 +108,7 @@ func (s *simulator) createTestNode(
 	skIndex int,
 	gasScheduleFilename string,
 	apiInterface components.APIConfigurator,
+	bypassTxSignatureCheck bool,
 ) (process.NodeHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
 		Configs:                *configs,
@@ -121,6 +118,7 @@ func (s *simulator) createTestNode(
 		GasScheduleFilename:    gasScheduleFilename,
 		SkIndex:                skIndex,
 		APIInterface:           apiInterface,
+		BypassTxSignatureCheck: bypassTxSignatureCheck,
 	}
 
 	return components.NewTestOnlyProcessingNode(args)
