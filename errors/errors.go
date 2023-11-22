@@ -682,3 +682,6 @@ var ErrNilExtraHeaderSigVerifierHolder = errors.New("nil extra sig verifier hold
 
 // ErrNilExtraSignersHolder signals that a nil extra signers holder has been provided
 var ErrNilExtraSignersHolder = errors.New("nil extra signer holder has been provided")
+
+// ErrNilSubRoundEndV2Creator signals that a nil sub round end v2 creator has been provided
+var ErrNilSubRoundEndV2Creator = errors.New("nil sub round end v2 creator has been provided")

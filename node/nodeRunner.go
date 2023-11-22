@@ -892,6 +892,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ConsensusModel:        consensus.ConsensusModelV1,
 		ChainRunType:          common.ChainRunTypeRegular,
 		ExtraSignersHolder:    bls.NewEmptyExtraSignersHolder(),
+		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

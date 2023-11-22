@@ -29,6 +29,7 @@ func GetSubroundsFactory(
 	consensusModel consensus.ConsensusModel,
 	enableEpochHandler common.EnableEpochsHandler,
 	extraSignersHolder bls.ExtraSignersHolder,
+	subRoundEndV2Creator bls.SubRoundEndV2Creator,
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
@@ -42,6 +43,7 @@ func GetSubroundsFactory(
 			consensusModel,
 			enableEpochHandler,
 			extraSignersHolder,
+			subRoundEndV2Creator,
 		)
 		if err != nil {
 			return nil, err

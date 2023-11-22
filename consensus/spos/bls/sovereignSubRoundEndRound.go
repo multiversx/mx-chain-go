@@ -29,7 +29,7 @@ func NewSovereignSubRoundEndRound(
 
 	sr.Job = sr.doSovereignEndRoundJob
 
-	return &sovereignSubRoundEnd{}, nil
+	return sr, nil
 }
 
 func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool {

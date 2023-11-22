@@ -1,7 +1,9 @@
 package bls
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/block"
 )
 
@@ -10,10 +12,13 @@ type sovereignSubRoundEndV2Creator struct {
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
-func NewSovereignSubRoundV2Creator(
+func NewSovereignSubRoundEndV2Creator(
 	outGoingOperationsPool block.OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
 ) (*sovereignSubRoundEndV2Creator, error) {
+	if check.IfNil(outGoingOperationsPool) {
+		return nil, errors.ErrNilOutGoingOperationsPool
+	}
 
 	return &sovereignSubRoundEndV2Creator{
 		outGoingOperationsPool: outGoingOperationsPool,

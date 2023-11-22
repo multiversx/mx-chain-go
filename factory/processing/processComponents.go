@@ -173,6 +173,7 @@ type ProcessComponentsFactoryArgs struct {
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	OutGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 type processComponentsFactory struct {
@@ -218,6 +219,7 @@ type processComponentsFactory struct {
 	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	outGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -264,6 +266,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
+		outGoingOperationsPool:                args.OutGoingOperationsPool,
 	}, nil
 }
 

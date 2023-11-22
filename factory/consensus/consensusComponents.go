@@ -56,6 +56,7 @@ type ConsensusComponentsFactoryArgs struct {
 	ConsensusModel        consensus.ConsensusModel
 	ChainRunType          common.ChainRunType
 	ExtraSignersHolder    bls.ExtraSignersHolder
+	SubRoundEndV2Creator  bls.SubRoundEndV2Creator
 }
 
 type consensusComponentsFactory struct {
@@ -76,7 +77,8 @@ type consensusComponentsFactory struct {
 	consensusModel        consensus.ConsensusModel
 	chainRunType          common.ChainRunType
 
-	extraSignersHolder bls.ExtraSignersHolder
+	extraSignersHolder   bls.ExtraSignersHolder
+	subRoundEndV2Creator bls.SubRoundEndV2Creator
 }
 
 type consensusComponents struct {
@@ -119,6 +121,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		consensusModel:        args.ConsensusModel,
 		chainRunType:          args.ChainRunType,
 		extraSignersHolder:    args.ExtraSignersHolder,
+		subRoundEndV2Creator:  args.SubRoundEndV2Creator,
 	}, nil
 }
 
@@ -302,6 +305,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.consensusModel,
 		ccf.coreComponents.EnableEpochsHandler(),
 		ccf.extraSignersHolder,
+		ccf.subRoundEndV2Creator,
 	)
 	if err != nil {
 		return nil, err
@@ -813,6 +817,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ExtraSignersHolder) {
 		return errors.ErrNilExtraSignersHolder
+	}
+	if check.IfNil(args.SubRoundEndV2Creator) {
+		return errors.ErrNilSubRoundEndV2Creator
 	}
 
 	return nil

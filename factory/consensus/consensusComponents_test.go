@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -165,6 +166,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ChainRunType:          common.ChainRunTypeRegular,
 		ConsensusModel:        consensus.ConsensusModelV1,
 		ExtraSignersHolder:    &subRoundsHolder.ExtraSignersHolderMock{},
+		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
 	}
 }
 

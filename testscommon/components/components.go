@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -186,6 +187,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		ConsensusModel:       consensus.ConsensusModelV1,
 		ChainRunType:         common.ChainRunTypeRegular,
 		ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
+		SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
 	}
 }
 
