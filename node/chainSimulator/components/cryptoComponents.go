@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/config"
@@ -22,6 +23,7 @@ type ArgsCryptoComponentsHolder struct {
 	CoreComponentsHolder    factory.CoreComponentsHolder
 	ValidatorKeyPemFileName string
 	SkIndex                 int
+	BypassTxSignatureCheck  bool
 }
 
 type cryptoComponentsHolder struct {
@@ -94,7 +96,7 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 	instance.p2pPrivateKey = managedCryptoComponents.P2pPrivateKey()
 	instance.p2pSingleSigner = managedCryptoComponents.P2pSingleSigner()
 	instance.blockSigner = managedCryptoComponents.BlockSigner()
-	instance.txSingleSigner = managedCryptoComponents.TxSingleSigner()
+
 	instance.multiSignerContainer = managedCryptoComponents.MultiSignerContainer()
 	instance.peerSignatureHandler = managedCryptoComponents.PeerSignatureHandler()
 	instance.blockSignKeyGen = managedCryptoComponents.BlockSignKeyGen()
@@ -104,6 +106,12 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 	instance.consensusSigningHandler = managedCryptoComponents.ConsensusSigningHandler()
 	instance.managedPeersHolder = managedCryptoComponents.ManagedPeersHolder()
 	instance.keysHandler = managedCryptoComponents.KeysHandler()
+
+	if args.BypassTxSignatureCheck {
+		instance.txSingleSigner = &singlesig.DisabledSingleSig{}
+	} else {
+		instance.txSingleSigner = managedCryptoComponents.TxSingleSigner()
+	}
 
 	return instance, nil
 }
