@@ -46,6 +46,11 @@ func (mock *EnableEpochsHandlerMock) GetCurrentEpoch() uint32 {
 	return mock.CurrentEpoch
 }
 
+// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
+func (mock *EnableEpochsHandlerMock) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

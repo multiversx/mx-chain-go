@@ -103,6 +103,22 @@ func (stub *EnableEpochsHandlerStub) GetCurrentEpoch() uint32 {
 	return 0
 }
 
+// IsChangeOwnerAddressCrossShardThroughSCEnabled -
+func (stub *EnableEpochsHandlerStub) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsChangeOwnerAddressCrossShardThroughSCEnabledField
+}
+
+// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
+func (stub *EnableEpochsHandlerStub) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabledField
+}
+
 // IsInterfaceNil -
 func (stub *EnableEpochsHandlerStub) IsInterfaceNil() bool {
 	return stub == nil

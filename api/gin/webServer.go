@@ -288,8 +288,11 @@ func (ws *webServer) Close() error {
 		ws.cancelFunc()
 	}
 
+	var err error
 	ws.Lock()
-	err := ws.httpServer.Close()
+	if !check.IfNil(ws.httpServer) {
+		err = ws.httpServer.Close()
+	}
 	ws.Unlock()
 
 	if err != nil {
