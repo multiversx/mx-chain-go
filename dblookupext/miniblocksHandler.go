@@ -29,6 +29,10 @@ func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHa
 
 	miniblockHeader := mh.findOrGenerateMiniblockHandler(header, miniblockHash, mb)
 	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
+		log.Trace("miniblocksHandler.commitMiniblock - saving miniblock hash in epochIndex",
+			"miniblock hash", miniblockHash,
+			"epoch", header.GetEpoch(),
+			"header hash", headerHash)
 		// first time we see this miniblock, we should store the (miniblock, epoch) tuple
 		err = mh.epochIndex.saveEpochByHash(miniblockHash, header.GetEpoch())
 		if err != nil {
@@ -209,6 +213,11 @@ func (mh *miniblocksHandler) revertMiniblock(header data.HeaderHandler, headerHa
 	miniblockHeader := mh.findOrGenerateMiniblockHandler(header, miniblockHash, mb)
 
 	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
+		log.Trace("miniblocksHandler.revertMiniblock - removing miniblock hash from epochIndex",
+			"miniblock hash", miniblockHash,
+			"epoch", header.GetEpoch(),
+			"header hash", headerHash)
+
 		// we either revert a complete miniblock or the first partial executed miniblock header
 		err := mh.epochIndex.removeEpochByHash(miniblockHash)
 		if err != nil {
@@ -385,18 +394,18 @@ func (mh *miniblocksHandler) updateMiniblockMetadataOnBlock(
 		return nil
 	}
 
-	// will search in the previous epoch
-	updated, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch-1, miniblockHash, headerHash, updateHandler)
+	// will search in the next epoch
+	updated, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch+1, miniblockHash, headerHash, updateHandler)
 	if err != nil {
-		return fmt.Errorf("%w while searching in epoch %d", err, epoch-1)
+		return fmt.Errorf("%w while searching in epoch %d", err, epoch+1)
 	}
 	if updated {
 		return nil
 	}
 
-	// programming error: not found in epoch-1, the blockhash should have been written in either epoch `epoch`
-	// or epoch `epoch-1`
-	return fmt.Errorf("%w while searching in epochs %d and %d", storage.ErrKeyNotFound, epoch, epoch-1)
+	// programming error: not found in epoch+1, the blockhash should have been written in either epoch `epoch`
+	// or epoch `epoch+1`
+	return fmt.Errorf("%w while searching in epochs %d and %d", storage.ErrKeyNotFound, epoch, epoch+1)
 }
 
 func (mh *miniblocksHandler) updateMiniblockMetadataOnBlockInEpoch(
