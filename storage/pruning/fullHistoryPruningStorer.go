@@ -1,7 +1,6 @@
 package pruning
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math"
 
@@ -155,8 +154,8 @@ func (fhps *FullHistoryPruningStorer) getFromOldEpoch(key []byte, epoch uint32) 
 		"key", key,
 		"error", err.Error())
 
-	return nil, fmt.Errorf("key %s not found in %s",
-		hex.EncodeToString(key), fhps.identifier)
+	return nil, fmt.Errorf("%w for key %x in %s",
+		storage.ErrKeyNotFound, key, fhps.identifier)
 }
 
 func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.Persister, error) {

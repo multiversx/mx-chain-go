@@ -27,12 +27,12 @@ func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHa
 		return err
 	}
 
-	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
-	if err != nil {
-		return err
-	}
-
+	miniblockHeader := mh.findOrGenerateMiniblockHandler(header, miniblockHash, mb)
 	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
+		log.Trace("miniblocksHandler.commitMiniblock - saving miniblock hash in epochIndex",
+			"miniblock hash", miniblockHash,
+			"epoch", header.GetEpoch(),
+			"header hash", headerHash)
 		// first time we see this miniblock, we should store the (miniblock, epoch) tuple
 		err = mh.epochIndex.saveEpochByHash(miniblockHash, header.GetEpoch())
 		if err != nil {
@@ -48,14 +48,21 @@ func (mh *miniblocksHandler) commitMiniblock(header data.HeaderHandler, headerHa
 	return mh.commitMiniblockMetadata(header, headerHash, miniblockHeader, miniblockHash, mb)
 }
 
-func (mh *miniblocksHandler) findMiniblockHandler(header data.HeaderHandler, miniblockHash []byte) (data.MiniBlockHeaderHandler, error) {
+func (mh *miniblocksHandler) findOrGenerateMiniblockHandler(header data.HeaderHandler, miniblockHash []byte, mb *block.MiniBlock) data.MiniBlockHeaderHandler {
 	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
 		if bytes.Equal(mbHeader.GetHash(), miniblockHash) {
-			return mbHeader, nil
+			return mbHeader
 		}
 	}
 
-	return nil, errMiniblockHeaderNotFound
+	// miniblock header was not found, it should be an internal generated miniblock. Will create a default miniblock header
+	return &block.MiniBlockHeader{
+		Hash:            miniblockHash,
+		SenderShardID:   mb.SenderShardID,
+		ReceiverShardID: mb.ReceiverShardID,
+		TxCount:         uint32(len(mb.TxHashes)),
+		Type:            mb.Type,
+	}
 }
 
 // commitExecutedTransactions will save only the transactions between the start and end index of the provided miniblockHeader
@@ -203,20 +210,22 @@ func (mh *miniblocksHandler) blockReverted(header data.HeaderHandler, blockBody 
 }
 
 func (mh *miniblocksHandler) revertMiniblock(header data.HeaderHandler, headerHash []byte, mb *block.MiniBlock, miniblockHash []byte) error {
-	miniblockHeader, err := mh.findMiniblockHandler(header, miniblockHash)
-	if err != nil {
-		return err
-	}
+	miniblockHeader := mh.findOrGenerateMiniblockHandler(header, miniblockHash, mb)
 
 	if miniblockHeader.GetIndexOfFirstTxProcessed() == 0 {
+		log.Trace("miniblocksHandler.revertMiniblock - removing miniblock hash from epochIndex",
+			"miniblock hash", miniblockHash,
+			"epoch", header.GetEpoch(),
+			"header hash", headerHash)
+
 		// we either revert a complete miniblock or the first partial executed miniblock header
-		err = mh.epochIndex.removeEpochByHash(miniblockHash)
+		err := mh.epochIndex.removeEpochByHash(miniblockHash)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = mh.removeExecutedTransactions(miniblockHeader, mb)
+	err := mh.removeExecutedTransactions(miniblockHeader, mb)
 	if err != nil {
 		return err
 	}
@@ -374,29 +383,29 @@ func (mh *miniblocksHandler) updateMiniblockMetadataOnBlock(
 ) error {
 	epoch, err := mh.epochIndex.getEpochByHash(miniblockHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while getting the epoch for miniblock %x", err, miniblockHash)
 	}
 
 	updated, err := mh.updateMiniblockMetadataOnBlockInEpoch(epoch, miniblockHash, headerHash, updateHandler)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while searching in epoch %d", err, epoch)
 	}
 	if updated {
-		// found the block hash, no need to search in the next epoch
 		return nil
 	}
 
+	// will search in the next epoch
 	updated, err = mh.updateMiniblockMetadataOnBlockInEpoch(epoch+1, miniblockHash, headerHash, updateHandler)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w while searching in epoch %d", err, epoch+1)
 	}
-	if !updated {
-		// programming error: not found in epoch+1, the blockhash should have been written in either epoch `epoch`
-		// or epoch `epoch+1`
-		return storage.ErrKeyNotFound
+	if updated {
+		return nil
 	}
 
-	return nil
+	// programming error: not found in epoch+1, the blockhash should have been written in either epoch `epoch`
+	// or epoch `epoch+1`
+	return fmt.Errorf("%w while searching in epochs %d and %d", storage.ErrKeyNotFound, epoch, epoch+1)
 }
 
 func (mh *miniblocksHandler) updateMiniblockMetadataOnBlockInEpoch(
