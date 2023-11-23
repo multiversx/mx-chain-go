@@ -19,6 +19,9 @@ func NewSovereignSubRoundEndV2Creator(
 	if check.IfNil(outGoingOperationsPool) {
 		return nil, errors.ErrNilOutGoingOperationsPool
 	}
+	if check.IfNil(bridgeOpHandler) {
+		return nil, errors.ErrNilBridgeOpHandler
+	}
 
 	return &sovereignSubRoundEndV2Creator{
 		outGoingOperationsPool: outGoingOperationsPool,
@@ -31,12 +34,13 @@ func (c *sovereignSubRoundEndV2Creator) CreateAndAddSubRoundEnd(
 	worker spos.WorkerHandler,
 	consensusCore spos.ConsensusCoreHandler,
 ) error {
-	subroundSignatureV2Instance, err := NewSubroundEndRoundV2(subroundEndRoundInstance)
+	subroundEndV2Instance, err := NewSubroundEndRoundV2(subroundEndRoundInstance)
 	if err != nil {
 		return err
 	}
+
 	sovEndRound, err := NewSovereignSubRoundEndRound(
-		subroundSignatureV2Instance,
+		subroundEndV2Instance,
 		c.outGoingOperationsPool,
 		c.bridgeOpHandler,
 	)

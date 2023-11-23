@@ -45,6 +45,7 @@ type ExtraSignersHolder interface {
 	IsInterfaceNil() bool
 }
 
+// SubRoundEndV2Creator should create an end subround v2 and add it to the consensus core chronology
 type SubRoundEndV2Creator interface {
 	CreateAndAddSubRoundEnd(
 		subroundEndRoundInstance *subroundEndRound,
@@ -54,6 +55,7 @@ type SubRoundEndV2Creator interface {
 	IsInterfaceNil() bool
 }
 
+// BridgeOperationsHandler handles sending outgoing txs from sovereign -> main chain
 type BridgeOperationsHandler interface {
 	Send(ctx context.Context, data *sovereign.BridgeOperations) error
 	IsInterfaceNil() bool

@@ -510,6 +510,54 @@ func TestFactory_NewFactoryNilEnableEpochHandlerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
 }
 
+func TestFactory_NewFactoryNilExtraSignersHolderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+		bls.NewSubRoundEndV2Creator(),
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, errors.ErrNilExtraSignersHolder, err)
+}
+
+func TestFactory_NewFactoryNilSubRoundEndV2CreatorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		nil,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, errors.ErrNilSubRoundEndV2Creator, err)
+}
+
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
 	t.Parallel()
 

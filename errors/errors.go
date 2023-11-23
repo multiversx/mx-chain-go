@@ -685,3 +685,6 @@ var ErrNilExtraSignersHolder = errors.New("nil extra signer holder has been prov
 
 // ErrNilSubRoundEndV2Creator signals that a nil sub round end v2 creator has been provided
 var ErrNilSubRoundEndV2Creator = errors.New("nil sub round end v2 creator has been provided")
+
+// ErrNilBridgeOpHandler signals that a nil bridge operation handler has been provided
+var ErrNilBridgeOpHandler = errors.New("nil bridge operation handler has been provided")
