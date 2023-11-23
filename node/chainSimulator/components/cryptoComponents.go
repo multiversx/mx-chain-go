@@ -5,13 +5,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
-	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -108,7 +108,7 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 	instance.keysHandler = managedCryptoComponents.KeysHandler()
 
 	if args.BypassTxSignatureCheck {
-		instance.txSingleSigner = &cryptoMocks.SingleSignerStub{}
+		instance.txSingleSigner = &singlesig.DisabledSingleSig{}
 	} else {
 		instance.txSingleSigner = managedCryptoComponents.TxSingleSigner()
 	}
