@@ -847,7 +847,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		enableEpochsHandlerMock := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.RemoveCodeLeafFlag
+				return flag == common.MigrateCodeLeafFlag
 			},
 		}
 
