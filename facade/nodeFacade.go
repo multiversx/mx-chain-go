@@ -605,6 +605,11 @@ func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nf.apiResolver.GetWaitingManagedKeys()
 }
 
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (nf *nodeFacade) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	return nf.apiResolver.GetWaitingEpochsLeftForPublicKey(publicKey)
+}
+
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
 	outputAccounts := make(map[string]*vm.OutputAccountApi)
 	for key, acc := range input.OutputAccounts {

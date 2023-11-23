@@ -95,6 +95,13 @@ type managedWaitingKeysResponse struct {
 	generalResponse
 }
 
+type waitingEpochsLeftResponse struct {
+	Data struct {
+		EpochsLeft uint32 `json:"epochsLeft"`
+	} `json:"data"`
+	generalResponse
+}
+
 func init() {
 	gin.SetMode(gin.TestMode)
 }
@@ -276,6 +283,30 @@ func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
 func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
 	t.Parallel()
 
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
+				return "", expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/connected-peers-ratings", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -851,6 +882,61 @@ func TestNodeGroup_ManagedKeysWaiting(t *testing.T) {
 	})
 }
 
+func TestNodeGroup_WaitingEpochsLeft(t *testing.T) {
+	t.Parallel()
+
+	t.Run("facade error should error", func(t *testing.T) {
+		t.Parallel()
+
+		facade := mock.FacadeStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey string) (uint32, error) {
+				return 0, expectedErr
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/waiting-epochs-left/key", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &shared.GenericAPIResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedEpochsLeft := uint32(10)
+		facade := mock.FacadeStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey string) (uint32, error) {
+				return providedEpochsLeft, nil
+			},
+		}
+
+		nodeGroup, err := groups.NewNodeGroup(&facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(nodeGroup, "node", getNodeRoutesConfig())
+
+		req, _ := http.NewRequest("GET", "/node/waiting-epochs-left/key", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		response := &waitingEpochsLeftResponse{}
+		loadResponse(resp.Body, response)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", response.Error)
+		assert.Equal(t, providedEpochsLeft, response.Data.EpochsLeft)
+	})
+}
+
 func TestNodeGroup_UpdateFacade(t *testing.T) {
 	t.Parallel()
 
@@ -962,6 +1048,7 @@ func getNodeRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/managed-keys", Open: true},
 					{Name: "/managed-keys/eligible", Open: true},
 					{Name: "/managed-keys/waiting", Open: true},
+					{Name: "/waiting-epochs-left/:key", Open: true},
 				},
 			},
 		},

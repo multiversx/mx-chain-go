@@ -10,6 +10,7 @@ type EnableEpochsHandlerMock struct {
 	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
+	CurrentEpoch                              uint32
 }
 
 // GetActivationEpoch -
@@ -42,7 +43,7 @@ func (mock *EnableEpochsHandlerMock) IsFlagEnabledInEpoch(_ core.EnableEpochFlag
 
 // GetCurrentEpoch -
 func (mock *EnableEpochsHandlerMock) GetCurrentEpoch() uint32 {
-	return 0
+	return mock.CurrentEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

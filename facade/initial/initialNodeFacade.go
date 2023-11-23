@@ -436,6 +436,11 @@ func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
 }
 
+// GetWaitingEpochsLeftForPublicKey returns 0 and error
+func (inf *initialNodeFacade) GetWaitingEpochsLeftForPublicKey(_ string) (uint32, error) {
+	return 0, errNodeStarting
+}
+
 // P2PPrometheusMetricsEnabled returns either the p2p prometheus metrics are enabled or not
 func (inf *initialNodeFacade) P2PPrometheusMetricsEnabled() bool {
 	return inf.p2pPrometheusMetricsEnabled
