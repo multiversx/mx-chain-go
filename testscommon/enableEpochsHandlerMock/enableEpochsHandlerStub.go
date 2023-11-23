@@ -20,7 +20,7 @@ type EnableEpochsHandlerStub struct {
 // NewEnableEpochsHandlerStubWithNoFlagsDefined -
 func NewEnableEpochsHandlerStubWithNoFlagsDefined() *EnableEpochsHandlerStub {
 	return &EnableEpochsHandlerStub{
-		activeFlags: 		 make(map[core.EnableEpochFlag]struct{}),
+		activeFlags: make(map[core.EnableEpochFlag]struct{}),
 		IsFlagDefinedCalled: func(flag core.EnableEpochFlag) bool {
 			return false
 		},
@@ -101,22 +101,6 @@ func (stub *EnableEpochsHandlerStub) GetCurrentEpoch() uint32 {
 		return stub.GetCurrentEpochCalled()
 	}
 	return 0
-}
-
-// IsChangeOwnerAddressCrossShardThroughSCEnabled -
-func (stub *EnableEpochsHandlerStub) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsChangeOwnerAddressCrossShardThroughSCEnabledField
-}
-
-// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
-func (stub *EnableEpochsHandlerStub) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabledField
 }
 
 // IsInterfaceNil -
