@@ -7,15 +7,16 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 )
 
-type sovereignSubRoundEndV2Creator struct {
+type sovereignSubRoundEndCreator struct {
 	outGoingOperationsPool block.OutGoingOperationsPool
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
-func NewSovereignSubRoundEndV2Creator(
+// NewSovereignSubRoundEndCreator creates a new sovereign subround end factory
+func NewSovereignSubRoundEndCreator(
 	outGoingOperationsPool block.OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
-) (*sovereignSubRoundEndV2Creator, error) {
+) (*sovereignSubRoundEndCreator, error) {
 	if check.IfNil(outGoingOperationsPool) {
 		return nil, errors.ErrNilOutGoingOperationsPool
 	}
@@ -23,13 +24,14 @@ func NewSovereignSubRoundEndV2Creator(
 		return nil, errors.ErrNilBridgeOpHandler
 	}
 
-	return &sovereignSubRoundEndV2Creator{
+	return &sovereignSubRoundEndCreator{
 		outGoingOperationsPool: outGoingOperationsPool,
 		bridgeOpHandler:        bridgeOpHandler,
 	}, nil
 }
 
-func (c *sovereignSubRoundEndV2Creator) CreateAndAddSubRoundEnd(
+// CreateAndAddSubRoundEnd creates a new sovereign subround end and adds it the consensus
+func (c *sovereignSubRoundEndCreator) CreateAndAddSubRoundEnd(
 	subroundEndRoundInstance *subroundEndRound,
 	worker spos.WorkerHandler,
 	consensusCore spos.ConsensusCoreHandler,
@@ -56,6 +58,7 @@ func (c *sovereignSubRoundEndV2Creator) CreateAndAddSubRoundEnd(
 	return nil
 }
 
-func (c *sovereignSubRoundEndV2Creator) IsInterfaceNil() bool {
+// IsInterfaceNil checks if the underlying pointer is nil
+func (c *sovereignSubRoundEndCreator) IsInterfaceNil() bool {
 	return c == nil
 }

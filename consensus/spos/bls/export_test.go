@@ -383,3 +383,7 @@ func (sr *subroundEndRound) GetProcessedHeaderHash() []byte {
 func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
 	return sr.getMessageToVerifySig()
 }
+
+func (sr *sovereignSubRoundEnd) DoSovereignEndRoundJob(ctx context.Context) bool {
+	return sr.doSovereignEndRoundJob(ctx)
+}

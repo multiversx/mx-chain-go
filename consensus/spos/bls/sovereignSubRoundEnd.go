@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/block"
 )
@@ -16,11 +17,22 @@ type sovereignSubRoundEnd struct {
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
+// NewSovereignSubRoundEndRound creates a new sovereign end subround
 func NewSovereignSubRoundEndRound(
 	subRoundEnd *subroundEndRoundV2,
 	outGoingOperationsPool block.OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
 ) (*sovereignSubRoundEnd, error) {
+	if check.IfNil(subRoundEnd) {
+		return nil, spos.ErrNilSubround
+	}
+	if check.IfNil(outGoingOperationsPool) {
+		return nil, errors.ErrNilOutGoingOperationsPool
+	}
+	if check.IfNil(bridgeOpHandler) {
+		return nil, errors.ErrNilBridgeOpHandler
+	}
+
 	sr := &sovereignSubRoundEnd{
 		subroundEndRoundV2:     subRoundEnd,
 		outGoingOperationsPool: outGoingOperationsPool,
@@ -44,7 +56,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 
 	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		log.Error("%w in sovereignSubRoundEndOutGoingTxData.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+		log.Error("%w in sovereignSubRoundEnd.doSovereignEndRoundJob", errors.ErrWrongTypeAssertion)
 		return false
 	}
 
@@ -76,4 +88,9 @@ func (sr *sovereignSubRoundEnd) getOutGoingOperations(outGoingMBHeader data.OutG
 	hash := outGoingMBHeader.GetOutGoingOperationsHash()
 	currentOperations := sr.outGoingOperationsPool.Get(hash)
 	return append(outGoingOperations, currentOperations)
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (sr *sovereignSubRoundEnd) IsInterfaceNil() bool {
+	return sr == nil
 }

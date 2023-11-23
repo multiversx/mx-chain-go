@@ -12,7 +12,7 @@ func NewSubRoundEndV2Creator() *subRoundEndV2Creator {
 	return &subRoundEndV2Creator{}
 }
 
-// CreateAndAddSubRoundEnd creates a new subround v2 and adds it the consensus
+// CreateAndAddSubRoundEnd creates a new subround end v2 and adds it the consensus
 func (c *subRoundEndV2Creator) CreateAndAddSubRoundEnd(
 	subroundEndRoundInstance *subroundEndRound,
 	worker spos.WorkerHandler,

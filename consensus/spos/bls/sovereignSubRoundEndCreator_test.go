@@ -19,22 +19,22 @@ func TestNewSovereignSubRoundEndV2Creator(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil outgoing operations pool, should return error", func(t *testing.T) {
-		creator, err := bls.NewSovereignSubRoundEndV2Creator(nil, &sovereign.BridgeOperationsHandlerMock{})
+		creator, err := bls.NewSovereignSubRoundEndCreator(nil, &sovereign.BridgeOperationsHandlerMock{})
 		require.Nil(t, creator)
 		require.Equal(t, errors.ErrNilOutGoingOperationsPool, err)
 	})
 	t.Run("nil bridge op handler, should return error", func(t *testing.T) {
-		creator, err := bls.NewSovereignSubRoundEndV2Creator(&sovereign.OutGoingOperationsPoolMock{}, nil)
+		creator, err := bls.NewSovereignSubRoundEndCreator(&sovereign.OutGoingOperationsPoolMock{}, nil)
 		require.Nil(t, creator)
 		require.Equal(t, errors.ErrNilBridgeOpHandler, err)
 	})
 	t.Run("should work", func(t *testing.T) {
-		creator, err := bls.NewSovereignSubRoundEndV2Creator(&sovereign.OutGoingOperationsPoolMock{}, &sovereign.BridgeOperationsHandlerMock{})
+		creator, err := bls.NewSovereignSubRoundEndCreator(&sovereign.OutGoingOperationsPoolMock{}, &sovereign.BridgeOperationsHandlerMock{})
 		require.Nil(t, err)
 		require.NotNil(t, creator)
 		require.False(t, creator.IsInterfaceNil())
 		require.Implements(t, new(bls.SubRoundEndV2Creator), creator)
-		require.Equal(t, "*bls.sovereignSubRoundEndV2Creator", fmt.Sprintf("%T", creator))
+		require.Equal(t, "*bls.sovereignSubRoundEndCreator", fmt.Sprintf("%T", creator))
 	})
 
 }
@@ -65,7 +65,7 @@ func TestSovereignSubRoundEndV2Creator_CreateAndAddSubRoundEnd(t *testing.T) {
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
 
-	creator, _ := bls.NewSovereignSubRoundEndV2Creator(&sovereign.OutGoingOperationsPoolMock{}, &sovereign.BridgeOperationsHandlerMock{})
+	creator, _ := bls.NewSovereignSubRoundEndCreator(&sovereign.OutGoingOperationsPoolMock{}, &sovereign.BridgeOperationsHandlerMock{})
 	err := creator.CreateAndAddSubRoundEnd(sr, workerHandler, consensusCore)
 	require.Nil(t, err)
 	require.Equal(t, 2, addReceivedMessageCallCt)

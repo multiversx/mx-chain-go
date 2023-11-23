@@ -8,7 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovereign2 "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
@@ -223,14 +223,14 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 
 	poolAddCt := 0
 	outGoingOperationsPool := &sovereign.OutGoingOperationsPoolMock{
-		AddCalled: func(data *sovereign2.BridgeOutGoingData) {
+		AddCalled: func(data *sovereignCore.BridgeOutGoingData) {
 			defer func() {
 				poolAddCt++
 			}()
 
 			switch poolAddCt {
 			case 0:
-				require.Equal(t, &sovereign2.BridgeOutGoingData{
+				require.Equal(t, &sovereignCore.BridgeOutGoingData{
 					Hash: bridgeOpsHash,
 					OutGoingOperations: map[string][]byte{
 						hex.EncodeToString(bridgeOp1Hash): bridgeOp1,
