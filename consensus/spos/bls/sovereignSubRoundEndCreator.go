@@ -30,7 +30,7 @@ func NewSovereignSubRoundEndCreator(
 	}, nil
 }
 
-// CreateAndAddSubRoundEnd creates a new sovereign subround end and adds it the consensus
+// CreateAndAddSubRoundEnd creates a new sovereign subround end and adds it to the consensus
 func (c *sovereignSubRoundEndCreator) CreateAndAddSubRoundEnd(
 	subroundEndRoundInstance *subroundEndRound,
 	worker spos.WorkerHandler,

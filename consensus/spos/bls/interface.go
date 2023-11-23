@@ -55,7 +55,7 @@ type SubRoundEndV2Creator interface {
 	IsInterfaceNil() bool
 }
 
-// BridgeOperationsHandler handles sending outgoing txs from sovereign -> main chain
+// BridgeOperationsHandler handles sending outgoing txs from sovereign to main chain
 type BridgeOperationsHandler interface {
 	Send(ctx context.Context, data *sovereign.BridgeOperations) error
 	IsInterfaceNil() bool
