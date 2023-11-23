@@ -2,22 +2,22 @@
     GenesisNodePrice = "2500000000000000000000" #2.5K eGLD
     MinStakeValue = "100000000000000000000" #100 eGLD
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
-    UnBondPeriod = 144000
-    UnBondPeriodInEpochs = 10
+    UnBondPeriod = 250
+    UnBondPeriodInEpochs = 1
     MinStepValue = "100000000000000000000"
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 2169
+    MaxNumberOfNodesForStake = 36
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
-    ActivateBLSPubKeyMessageVerification = true
+    ActivateBLSPubKeyMessageVerification = false
 
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
-    OwnerAddress = "erd1ze6pgefwc7mdx0rhje3h50kkgt26ut3gx8ytezndkz8fjcf96gsqsd7ugw"
+    OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
 
 [GovernanceSystemSCConfig]
-    OwnerAddress = "erd1qqqqqqqqqqqqqpgq0gq09608js3gje72v0yzc56k6glc852gl94sgtahk2"
+    OwnerAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
     [GovernanceSystemSCConfig.V1]
         NumNodes           = 500
         ProposalCost       = "5000000000000000000" #5 eGLD
@@ -33,8 +33,8 @@
 
 [DelegationManagerSystemSCConfig]
     MinCreationDeposit = "1250000000000000000000" #1.25K eGLD
-    MinStakeAmount = "1000000000000000000" #1 eGLD
-    ConfigChangeAddress = "erd1qqqqqqqqqqqqqpgq0gq09608js3gje72v0yzc56k6glc852gl94sgtahk2"
+    MinStakeAmount = "10000000000000000000" #10 eGLD
+    ConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
 
 [DelegationSystemSCConfig]
     MinServiceFee  = 0

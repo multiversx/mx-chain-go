@@ -702,16 +702,59 @@ func (n *Node) SendBlockTransactions(apiBlocks []*api.Block) (uint64, error) {
 }
 
 func (n *Node) addBlocksToDataPool(blocks []*api.Block) {
-	for _, block := range blocks {
-		roundByte := []byte(fmt.Sprintf("%d", block.Round))
-		blockJsonBytes, err := json.Marshal(block)
+	for _, b := range blocks {
+		roundByte := []byte(fmt.Sprintf("%d", b.Round))
+		blockJsonBytes, err := json.Marshal(b)
 		if err != nil {
-			log.Warn("blockTxsMarshalized did not work", "hash", block.Hash)
+			log.Warn("addBlocksToDataPool blockTxsMarshalized did not work", "hash", b.Hash)
 		}
 
-		n.dataComponents.Datapool().BlockTxs().Put(roundByte, block, len(blockJsonBytes))
-		log.Info("added blocksToDataPool", "size", n.dataComponents.Datapool().BlockTxs().Len(), "round", block.Round, "hash", block.Hash, "randSeed", block.RandSeed)
-		log.Info("added blocksToDataPool", "block", fmt.Sprintf("%+v", block))
+		n.dataComponents.Datapool().BlockTxs().Put(roundByte, b, len(blockJsonBytes))
+		txList := make([]*transaction.Transaction, 0)
+		for _, mb := range b.MiniBlocks {
+			for _, tx := range mb.Transactions {
+				value, ok := big.NewInt(0).SetString(tx.Value, 10)
+				if !ok {
+					log.Warn("SetString", "hash", tx.Hash, "txValue", tx.Value)
+				}
+
+				receiver, _ := n.decodeAddressToPubKey(tx.Receiver)
+				sender, _ := n.decodeAddressToPubKey(tx.Sender)
+				chainID := []byte(tx.ChainID)
+				signature := []byte(tx.Signature)
+				guardian := []byte(tx.GuardianAddr)
+				guardianSignature := []byte(tx.GuardianSignature)
+
+				newTx := &transaction.Transaction{
+					Nonce:             tx.Nonce,
+					Value:             value,
+					RcvAddr:           receiver,
+					RcvUserName:       tx.ReceiverUsername,
+					SndAddr:           sender,
+					SndUserName:       tx.SenderUsername,
+					GasPrice:          tx.GasPrice,
+					GasLimit:          tx.GasLimit,
+					Data:              tx.Data,
+					ChainID:           chainID,
+					Version:           tx.Version,
+					Signature:         signature,
+					Options:           tx.Options,
+					GuardianAddr:      guardian,
+					GuardianSignature: guardianSignature,
+				}
+
+				txList = append(txList, newTx)
+			}
+		}
+
+		nrTxs, err := n.SendBulkTransactions(txList)
+		if err != nil {
+			log.Warn("SendBulkTransactions did not work", "hash", b.Hash)
+		}
+
+		log.Info("added blocksToDataPool", "size", n.dataComponents.Datapool().BlockTxs().Len(), "round", b.Round, "hash", b.Hash, "randSeed", b.RandSeed)
+		log.Info("added blocksToDataPool", "b", fmt.Sprintf("%+v", b))
+		log.Info("added blocksToDataPool", "nrTxs", nrTxs)
 	}
 }
 

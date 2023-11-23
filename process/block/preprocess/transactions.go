@@ -1458,7 +1458,7 @@ func (txs *transactions) computeSortedTxs(
 	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-	log.Debug("computeSortedTxs.GetSortedTransactions", "randomness", hex.EncodeToString(randomness))
+	log.Debug("computeSortedTxs.GetSortedTransactions", "randomness", hex.EncodeToString(randomness), "txs", len(txShardPool.Keys()))
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
 	newRandomness := randomness
