@@ -56,14 +56,10 @@ type StatusMetricsProvider struct {
 func NewStatusMetricsProvider(
 	presenter PresenterHandler,
 	nodeAddress string,
-	gatewayAddress string,
 	fetchInterval int,
 ) (*StatusMetricsProvider, error) {
 	if len(nodeAddress) == 0 {
 		return nil, fmt.Errorf("%w for node address", ErrInvalidAddressLength)
-	}
-	if len(gatewayAddress) == 0 {
-		return nil, fmt.Errorf("%w for gateway address", ErrInvalidAddressLength)
 	}
 	if fetchInterval < 1 {
 		return nil, ErrInvalidFetchInterval
@@ -73,10 +69,9 @@ func NewStatusMetricsProvider(
 	}
 
 	return &StatusMetricsProvider{
-		presenter:      presenter,
-		nodeAddress:    formatUrlAddress(nodeAddress),
-		gatewayAddress: gatewayAddress,
-		fetchInterval:  fetchInterval,
+		presenter:     presenter,
+		nodeAddress:   formatUrlAddress(nodeAddress),
+		fetchInterval: fetchInterval,
 	}, nil
 }
 
@@ -94,24 +89,24 @@ func (smp *StatusMetricsProvider) updateMetrics() {
 	smp.fetchAndApplyMetrics(statusMetricsUrlSuffix)
 	smp.fetchAndApplyBootstrapMetrics(bootstrapStatusMetricsUrlSuffix)
 
-	if smp.shardID != "" {
+	if smp.shardID != "" && smp.gatewayAddress != "" {
 		metricsURLSuffix := trieStatisticsMetricsUrlSuffix + smp.shardID
-		smp.fetchAndApplyGatewayStatusMetrics(metricsURLSuffix)
+		statusMetricsURL := smp.gatewayAddress + metricsURLSuffix
+		smp.fetchAndApplyGatewayStatusMetrics(statusMetricsURL)
 	}
 }
 
-func (smp *StatusMetricsProvider) fetchAndApplyGatewayStatusMetrics(metricsPath string) {
-	statusMetricsUrl := smp.gatewayAddress + metricsPath
-	numTrieNodes, err := smp.loadMetricsFromGatewayApi(statusMetricsUrl)
+func (smp *StatusMetricsProvider) fetchAndApplyGatewayStatusMetrics(statusMetricsURL string) {
+	numTrieNodes, err := smp.loadMetricsFromGatewayApi(statusMetricsURL)
 	if err != nil {
-		log.Debug("fetch from Gateway API",
-			"path", statusMetricsUrl,
+		log.Info("fetch from Gateway API",
+			"path", statusMetricsURL,
 			"error", err.Error())
 	}
 
 	err = smp.setPresenterValue(AccountsSnapshotNumNodesMetric, float64(numTrieNodes))
 	if err != nil {
-		log.Debug("termui metric set",
+		log.Info("termui metric set",
 			"error", err.Error())
 	}
 }
@@ -128,6 +123,27 @@ func (smp *StatusMetricsProvider) fetchAndApplyBootstrapMetrics(metricsPath stri
 	smp.applyMetricsToPresenter(metricsMap)
 
 	smp.setShardID(metricsMap)
+	smp.setGatewayAddress(metricsMap)
+}
+
+func (smp *StatusMetricsProvider) setGatewayAddress(metricsMap map[string]interface{}) {
+	if smp.gatewayAddress != "" {
+		return
+	}
+
+	gatewayAddressVal, ok := metricsMap[common.MetricLastSnapshotTrieNodesEndpoint]
+	if !ok {
+		log.Debug("unable to fetch gateway address endpoint metric from map")
+		return
+	}
+
+	gatewayAddress, ok := gatewayAddressVal.(string)
+	if !ok {
+		log.Debug("wrong type assertion gateway address")
+		return
+	}
+
+	smp.gatewayAddress = gatewayAddress
 }
 
 func (smp *StatusMetricsProvider) setShardID(metricsMap map[string]interface{}) {

@@ -108,6 +108,11 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// LastSnapshotTrieNodesConfig will hold the configuration for last snapshot trie nodes endpoint configuration
+type LastSnapshotTrieNodesConfig struct {
+	URL string
+}
+
 // HeartbeatV2Config will hold the configuration for heartbeat v2
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
@@ -208,13 +213,14 @@ type Config struct {
 	Debug    DebugConfig
 	Health   HealthServiceConfig
 
-	SoftwareVersionConfig SoftwareVersionConfig
-	DbLookupExtensions    DbLookupExtensionsConfig
-	Versions              VersionsConfig
-	Logs                  LogsConfig
-	TrieSync              TrieSyncConfig
-	Requesters            RequesterConfig
-	VMOutputCacher        CacheConfig
+	SoftwareVersionConfig       SoftwareVersionConfig
+	LastSnapshotTrieNodesConfig LastSnapshotTrieNodesConfig
+	DbLookupExtensions          DbLookupExtensionsConfig
+	Versions                    VersionsConfig
+	Logs                        LogsConfig
+	TrieSync                    TrieSyncConfig
+	Requesters                  RequesterConfig
+	VMOutputCacher              CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig

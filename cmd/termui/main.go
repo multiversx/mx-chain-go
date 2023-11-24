@@ -47,15 +47,6 @@ VERSION:
 		Value:       "127.0.0.1:8080",
 		Destination: &argsConfig.address,
 	}
-
-	// gatewayAddress defines a flag for setting the address and port for gateway interactions
-	gatewayAddress = cli.StringFlag{
-		Name:        "gateway-address",
-		Usage:       "Address and port number on which the application will try to connect to gateway",
-		Value:       "https://testnet-gateway.multiversx.com",
-		Destination: &argsConfig.gatewayAddress,
-	}
-
 	// logLevel defines the logger level
 	logLevel = cli.StringFlag{
 		Name: "log-level",
@@ -115,13 +106,12 @@ func main() {
 
 func startTermuiViewer(ctx *cli.Context) error {
 	nodeAddress := argsConfig.address
-	gatewayAddress := argsConfig.gatewayAddress
 	fetchIntervalFlagValue := argsConfig.interval
 
 	chanNodeIsStarting := make(chan struct{})
 
 	presenterStatusHandler := presenter.NewPresenterStatusHandler()
-	statusMetricsProvider, err := provider.NewStatusMetricsProvider(presenterStatusHandler, nodeAddress, gatewayAddress, fetchIntervalFlagValue)
+	statusMetricsProvider, err := provider.NewStatusMetricsProvider(presenterStatusHandler, nodeAddress, fetchIntervalFlagValue)
 	if err != nil {
 		return err
 	}
@@ -174,7 +164,6 @@ func initCliFlags() {
 	cliApp.Usage = "Terminal UI application used to display metrics from the node"
 	cliApp.Flags = []cli.Flag{
 		address,
-		gatewayAddress,
 		logLevel,
 		logWithCorrelation,
 		logWithLoggerName,

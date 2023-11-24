@@ -338,6 +338,9 @@ const MetricTopUpFactor = "erd_top_up_factor"
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
 const MetricMinTransactionVersion = "erd_min_transaction_version"
 
+// MetricLastSnapshotTrieNodesEndpoint is the metric that specifies the last snapshot trie nodes url endpoint
+const MetricLastSnapshotTrieNodesEndpoint = "erd_last_snapshot_trie_nodes_endpoint"
+
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
 

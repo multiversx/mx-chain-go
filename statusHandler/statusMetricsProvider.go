@@ -417,6 +417,10 @@ func (sm *statusMetrics) BootstrapMetrics() (map[string]interface{}, error) {
 	bootstrapMetrics[common.MetricShardId] = sm.uint64Metrics[common.MetricShardId]
 	sm.mutUint64Operations.RUnlock()
 
+	sm.mutStringOperations.RLock()
+	bootstrapMetrics[common.MetricLastSnapshotTrieNodesEndpoint] = sm.stringMetrics[common.MetricLastSnapshotTrieNodesEndpoint]
+	sm.mutStringOperations.RUnlock()
+
 	return bootstrapMetrics, nil
 }
 
