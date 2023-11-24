@@ -830,17 +830,13 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t *testing.T) {
 	t.Parallel()
 
-	t.Run("account with migrated code leaf activation, should code data to storage directly", func(t *testing.T) {
+	t.Run("account with migrated code leaf activation, should save code data to storage directly", func(t *testing.T) {
 		t.Parallel()
-
-		// adr1 puts data inside trie. adr2 puts the same data
-		// revert should work
 
 		key := []byte("ABC")
 		val := []byte("123")
 		newVal := []byte("124")
-		adr1 := integrationTests.CreateRandomAddress()
-		adr2 := integrationTests.CreateRandomAddress()
+		adr := integrationTests.CreateRandomAddress()
 
 		// Step 1. create accounts objects
 		trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
@@ -854,71 +850,40 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, trieStorage, enableEpochsHandlerMock)
 		rootHash, err := adb.RootHash()
 		require.Nil(t, err)
-		hrEmpty := base64.StdEncoding.EncodeToString(rootHash)
-		fmt.Printf("State root - empty: %v\n", hrEmpty)
 
-		// Step 2. create 2 new accounts
-		state1, err := adb.LoadAccount(adr1)
-		require.Nil(t, err)
-
-		_ = state1.(state.UserAccountHandler).SaveKeyValue(key, val)
-
-		err = adb.SaveAccount(state1)
-		require.Nil(t, err)
-		snapshotCreated1 := adb.JournalLen()
-		rootHash, err = adb.RootHash()
-		require.Nil(t, err)
-		hrCreated1 := base64.StdEncoding.EncodeToString(rootHash)
-		rootHash, err = state1.(state.UserAccountHandler).DataTrie().RootHash()
-		require.Nil(t, err)
-		hrRoot1 := base64.StdEncoding.EncodeToString(rootHash)
-
-		fmt.Printf("State root - created 1-st account: %v\n", hrCreated1)
-		fmt.Printf("data root - 1-st account: %v\n", hrRoot1)
-
-		stateMock, err := adb.LoadAccount(adr2)
+		// Step 2. create new account
+		stateMock, err := adb.LoadAccount(adr)
 		require.Nil(t, err)
 		_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
 
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
-		snapshotCreated2 := adb.JournalLen()
 		rootHash, err = adb.RootHash()
 		require.Nil(t, err)
-		hrCreated2 := base64.StdEncoding.EncodeToString(rootHash)
+		hrCreated := base64.StdEncoding.EncodeToString(rootHash)
 		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 		require.Nil(t, err)
-		hrRoot2 := base64.StdEncoding.EncodeToString(rootHash)
-
-		fmt.Printf("State root - created 2-nd account: %v\n", hrCreated2)
-		fmt.Printf("data root - 2-nd account: %v\n", hrRoot2)
-
-		// Test 2.1. test that hashes and snapshots ID are different
-		require.NotEqual(t, snapshotCreated2, snapshotCreated1)
-		require.NotEqual(t, hrCreated1, hrCreated2)
-
-		// Test 2.2 test that the datatrie roots are different
-		require.NotEqual(t, hrRoot1, hrRoot2)
+		hrRoot := base64.StdEncoding.EncodeToString(rootHash)
 
 		// Step 3. Commit
 		rootCommit, _ := adb.Commit()
 		hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
 		fmt.Printf("State root - committed: %v\n", hrCommit)
 
-		// Step 4. 2-nd account changes its data
+		// Step 4. account changes its data
 		snapshotMod := adb.JournalLen()
 
-		stateMock, err = adb.LoadAccount(adr2)
+		stateMock, err = adb.LoadAccount(adr)
 		require.Nil(t, err)
 		_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, newVal)
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
 		rootHash, err = adb.RootHash()
 		require.Nil(t, err)
-		hrCreated2p1 := base64.StdEncoding.EncodeToString(rootHash)
+		hrCreatedp1 := base64.StdEncoding.EncodeToString(rootHash)
 		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 		require.Nil(t, err)
-		hrRoot2p1 := base64.StdEncoding.EncodeToString(rootHash)
+		hrRootp1 := base64.StdEncoding.EncodeToString(rootHash)
 
 		// migrate code leaf
 		codeData := []byte("codeData")
@@ -943,33 +908,111 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		require.Nil(t, err)
 		require.Equal(t, codeData, val)
 
-		fmt.Printf("State root - modified 2-nd account: %v\n", hrCreated2p1)
-		fmt.Printf("data root - 2-nd account: %v\n", hrRoot2p1)
+		fmt.Printf("State root - modified account: %v\n", hrCreatedp1)
+		fmt.Printf("data root - account: %v\n", hrRootp1)
 
 		// Test 4.1 test that hashes are different
-		require.NotEqual(t, hrCreated2p1, hrCreated2)
+		require.NotEqual(t, hrCreatedp1, hrCreated)
 
 		// Test 4.2 test whether the datatrie roots match/mismatch
-		require.NotEqual(t, hrRoot2, hrRoot2p1)
+		require.NotEqual(t, hrRoot, hrRootp1)
 
 		// Step 5. Revert 2-nd account modification
 		err = adb.RevertToSnapshot(snapshotMod)
 		require.Nil(t, err)
 		rootHash, err = adb.RootHash()
 		require.Nil(t, err)
-		hrCreated2Rev := base64.StdEncoding.EncodeToString(rootHash)
+		hrCreatedRev := base64.StdEncoding.EncodeToString(rootHash)
 
-		stateMock, err = adb.LoadAccount(adr2)
+		stateMock, err = adb.LoadAccount(adr)
 		require.Nil(t, err)
 		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
 		require.Nil(t, err)
-		hrRoot2Rev := base64.StdEncoding.EncodeToString(rootHash)
-		fmt.Printf("State root - reverted 2-nd account: %v\n", hrCreated2Rev)
-		fmt.Printf("data root - 2-nd account: %v\n", hrRoot2Rev)
-		require.Equal(t, hrCommit, hrCreated2Rev)
-		require.Equal(t, hrRoot2, hrRoot2Rev)
+		hrRootRev := base64.StdEncoding.EncodeToString(rootHash)
+		fmt.Printf("State root - reverted account: %v\n", hrCreatedRev)
+		fmt.Printf("data root - account: %v\n", hrRootRev)
+		require.Equal(t, hrCommit, hrCreatedRev)
+		require.Equal(t, hrRoot, hrRootRev)
 
 		accVersion = stateMock.(state.UserAccountHandler).GetVersion()
+		require.Equal(t, uint8(core.NotSpecified), accVersion)
+
+		// revert will not remove code from storage
+		val, err = trieStorage.Get(codeDataHash)
+		require.Nil(t, err)
+		require.Equal(t, codeData, val)
+	})
+
+	t.Run("2 accounts with same code, migrate one account and reverted it", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("ABC")
+		val := []byte("123")
+		adr1 := integrationTests.CreateRandomAddress()
+		adr2 := integrationTests.CreateRandomAddress()
+
+		// Step 1. create accounts objects
+		trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
+
+		enableEpochsHandlerMock := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.MigrateCodeLeafFlag
+			},
+		}
+
+		adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, trieStorage, enableEpochsHandlerMock)
+
+		codeData := []byte("codeData")
+		codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
+
+		stateMock1, err := adb.LoadAccount(adr1)
+		require.Nil(t, err)
+		_ = stateMock1.(state.UserAccountHandler).SaveKeyValue(key, val)
+		stateMock1.(state.UserAccountHandler).SetCodeHash(codeDataHash)
+		stateMock1.(state.UserAccountHandler).SetCode(codeData)
+
+		err = adb.SaveAccount(stateMock1)
+		require.Nil(t, err)
+
+		stateMock2, err := adb.LoadAccount(adr2)
+		require.Nil(t, err)
+		_ = stateMock2.(state.UserAccountHandler).SaveKeyValue(key, val)
+		stateMock2.(state.UserAccountHandler).SetCodeHash(codeDataHash)
+		stateMock2.(state.UserAccountHandler).SetCode(codeData)
+
+		err = adb.SaveAccount(stateMock2)
+		require.Nil(t, err)
+
+		// Step 3. Commit
+		rootCommit, _ := adb.Commit()
+		hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
+		fmt.Printf("State root - committed: %v\n", hrCommit)
+
+		// Step 4. account changes its data
+		snapshotMod := adb.JournalLen()
+
+		err = adb.MigrateCodeLeaf(stateMock1)
+		require.Nil(t, err)
+
+		err = adb.SaveAccount(stateMock1)
+		require.Nil(t, err)
+
+		accVersion := stateMock1.(state.UserAccountHandler).GetVersion()
+		require.Equal(t, uint8(core.WithoutCodeLeaf), accVersion)
+
+		// check code data saved to storage
+		val, err = trieStorage.Get(codeDataHash)
+		require.Nil(t, err)
+		require.Equal(t, codeData, val)
+
+		// Step 5. Revert 2-nd account modification
+		err = adb.RevertToSnapshot(snapshotMod)
+		require.Nil(t, err)
+
+		stateMock1, err = adb.LoadAccount(adr1)
+		require.Nil(t, err)
+
+		accVersion = stateMock1.(state.UserAccountHandler).GetVersion()
 		require.Equal(t, uint8(core.NotSpecified), accVersion)
 
 		// revert will not remove code from storage

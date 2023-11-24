@@ -350,7 +350,7 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 		}
 
 		if len(userAccount.GetCodeHash()) != 0 && leaf.Version() == core.WithoutCodeLeaf {
-			err = sm.syncAccountCode(userAccount.GetCodeHash(), epoch, trieStorageManager)
+			err = sm.snapshotAccountCode(userAccount.GetCodeHash(), epoch, trieStorageManager)
 			if err != nil {
 				iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 				return
@@ -377,7 +377,7 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 	}
 }
 
-func (sm *snapshotsManager) syncAccountCode(
+func (sm *snapshotsManager) snapshotAccountCode(
 	codeHash []byte,
 	epoch uint32,
 	tsm common.StorageManager,
@@ -387,7 +387,6 @@ func (sm *snapshotsManager) syncAccountCode(
 		return fmt.Errorf("invalid storer, type is %T", tsm)
 	}
 
-	// add separate func for trieStorageManager with this
 	code, _, err := storer.GetFromOldEpochsWithoutAddingToCache(codeHash)
 	if err != nil {
 		return err

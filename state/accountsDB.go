@@ -248,7 +248,11 @@ func (adb *AccountsDB) getCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	return codeEntry.Code
+	if codeEntry != nil {
+		return codeEntry.Code
+	}
+
+	return nil
 }
 
 // ImportAccount saves the account in the trie. It does not modify
@@ -322,70 +326,11 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 	return adb.saveCode(baseNewAcc, baseOldAccount)
 }
 
-func (adb *AccountsDB) migrateCode(
+func (adb *AccountsDB) updateCode(
 	newAcc baseAccountHandler,
 	oldAccVersion, newAccVersion uint8,
 	newCodeHash, oldCodeHash, newCode []byte,
 ) error {
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, oldAccVersion)
-	if err != nil {
-		return err
-	}
-
-	err = adb.mainTrie.GetStorageManager().Put(newCodeHash, newCode)
-	if err != nil {
-		return err
-	}
-
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, oldAccVersion, newAccVersion)
-	if err != nil {
-		return err
-	}
-	adb.journalize(entry)
-
-	newAcc.SetCodeHash(newCodeHash)
-
-	return nil
-}
-
-func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
-	// TODO when state splitting is implemented, check how the code should be copied in different shards
-
-	oldAccVersion := uint8(0)
-	if !check.IfNil(oldAcc) {
-		oldAccVersion = oldAcc.GetVersion()
-	}
-
-	newAccVersion := uint8(0)
-	if !check.IfNil(newAcc) {
-		newAccVersion = newAcc.GetVersion()
-	}
-
-	var oldCodeHash []byte
-	if !check.IfNil(oldAcc) {
-		oldCodeHash = oldAcc.GetCodeHash()
-	}
-
-	newCode := newAcc.GetCode()
-	var newCodeHash []byte
-	if len(newCode) != 0 {
-		newCodeHash = adb.hasher.Compute(string(newCode))
-	}
-
-	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
-		newAcc.GetVersion() == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
-		return adb.migrateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
-	}
-
-	if !newAcc.HasNewCode() {
-		return nil
-	}
-
-	if bytes.Equal(oldCodeHash, newCodeHash) {
-		newAcc.SetCodeHash(newCodeHash)
-		return nil
-	}
-
 	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, oldAccVersion)
 	if err != nil {
 		return err
@@ -403,7 +348,58 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	adb.journalize(entry)
 
 	newAcc.SetCodeHash(newCodeHash)
+
 	return nil
+}
+
+func (adb *AccountsDB) isCodeMigration(newAcc, oldAcc baseAccountHandler) (uint8, uint8, bool) {
+	oldAccVersion := uint8(0)
+	if !check.IfNil(oldAcc) {
+		oldAccVersion = oldAcc.GetVersion()
+	}
+
+	newAccVersion := uint8(0)
+	if !check.IfNil(newAcc) {
+		newAccVersion = newAcc.GetVersion()
+	}
+
+	if newAccVersion == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
+		return oldAccVersion, newAccVersion, true
+	}
+
+	return oldAccVersion, newAccVersion, false
+}
+
+func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
+	// TODO when state splitting is implemented, check how the code should be copied in different shards
+
+	oldAccVersion, newAccVersion, isCodeMigration := adb.isCodeMigration(newAcc, oldAcc)
+
+	var oldCodeHash []byte
+	if !check.IfNil(oldAcc) {
+		oldCodeHash = oldAcc.GetCodeHash()
+	}
+
+	newCode := newAcc.GetCode()
+	var newCodeHash []byte
+	if len(newCode) != 0 {
+		newCodeHash = adb.hasher.Compute(string(newCode))
+	}
+
+	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) && isCodeMigration {
+		return adb.updateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
+	}
+
+	if !newAcc.HasNewCode() {
+		return nil
+	}
+
+	if bytes.Equal(oldCodeHash, newCodeHash) {
+		newAcc.SetCodeHash(newCodeHash)
+		return nil
+	}
+
+	return adb.updateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
 }
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldAccVersion uint8) (*CodeEntry, error) {
