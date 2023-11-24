@@ -293,26 +293,19 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
-	if !sr.isSelfLeader() {
-		err := sr.prepareBroadcastBlockDataForValidator()
-		if err != nil {
-			log.Warn("validator in consensus group preparing for delayed broadcast",
-				"error", err.Error())
+	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() {
+		if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup() {
+			err := sr.prepareBroadcastBlockDataForValidator()
+			if err != nil {
+				log.Warn("validator in consensus group preparing for delayed broadcast",
+					"error", err.Error())
+			}
 		}
+
 		return sr.doEndRoundJobByParticipant(nil)
 	}
 
 	return sr.doEndRoundJobByLeader()
-}
-
-func (sr *subroundEndRound) isSelfLeader() bool {
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() {
-		if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup() {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
