@@ -108,8 +108,8 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
-// LastSnapshotTrieNodesConfig will hold the configuration for last snapshot trie nodes endpoint configuration
-type LastSnapshotTrieNodesConfig struct {
+// GatewayMetricsConfig will hold the configuration for gateway endpoint configuration
+type GatewayMetricsConfig struct {
 	URL string
 }
 
@@ -213,14 +213,14 @@ type Config struct {
 	Debug    DebugConfig
 	Health   HealthServiceConfig
 
-	SoftwareVersionConfig       SoftwareVersionConfig
-	LastSnapshotTrieNodesConfig LastSnapshotTrieNodesConfig
-	DbLookupExtensions          DbLookupExtensionsConfig
-	Versions                    VersionsConfig
-	Logs                        LogsConfig
-	TrieSync                    TrieSyncConfig
-	Requesters                  RequesterConfig
-	VMOutputCacher              CacheConfig
+	SoftwareVersionConfig SoftwareVersionConfig
+	GatewayMetricsConfig  GatewayMetricsConfig
+	DbLookupExtensions    DbLookupExtensionsConfig
+	Versions              VersionsConfig
+	Logs                  LogsConfig
+	TrieSync              TrieSyncConfig
+	Requesters            RequesterConfig
+	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig

@@ -131,7 +131,7 @@ func (smp *StatusMetricsProvider) setGatewayAddress(metricsMap map[string]interf
 		return
 	}
 
-	gatewayAddressVal, ok := metricsMap[common.MetricLastSnapshotTrieNodesEndpoint]
+	gatewayAddressVal, ok := metricsMap[common.MetricGatewayMetricsEndpoint]
 	if !ok {
 		log.Debug("unable to fetch gateway address endpoint metric from map")
 		return

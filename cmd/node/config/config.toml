@@ -805,7 +805,7 @@
     StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
 
-[LastSnapshotTrieNodesConfig]
+[GatewayMetricsConfig]
     URL = "https://testnet-gateway.multiversx.com"
 
 [LogsAndEvents]

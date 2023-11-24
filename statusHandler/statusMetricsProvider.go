@@ -418,7 +418,7 @@ func (sm *statusMetrics) BootstrapMetrics() (map[string]interface{}, error) {
 	sm.mutUint64Operations.RUnlock()
 
 	sm.mutStringOperations.RLock()
-	bootstrapMetrics[common.MetricLastSnapshotTrieNodesEndpoint] = sm.stringMetrics[common.MetricLastSnapshotTrieNodesEndpoint]
+	bootstrapMetrics[common.MetricGatewayMetricsEndpoint] = sm.stringMetrics[common.MetricGatewayMetricsEndpoint]
 	sm.mutStringOperations.RUnlock()
 
 	return bootstrapMetrics, nil
