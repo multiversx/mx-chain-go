@@ -101,23 +101,23 @@ func (smp *StatusMetricsProvider) updateMetrics() {
 }
 
 func (smp *StatusMetricsProvider) fetchAndApplyGatewayStatusMetrics(statusMetricsURL string) {
-	noErrors := true
+	foundErrors := false
 	numTrieNodes, err := smp.loadMetricsFromGatewayApi(statusMetricsURL)
 	if err != nil {
 		log.Info("fetch from Gateway API",
 			"path", statusMetricsURL,
 			"error", err.Error())
-		noErrors = false
+		foundErrors = true
 	}
 
 	err = smp.setPresenterValue(AccountsSnapshotNumNodesMetric, float64(numTrieNodes))
 	if err != nil {
 		log.Info("termui metric set",
 			"error", err.Error())
-		noErrors = false
+		foundErrors = true
 	}
 
-	if noErrors {
+	if !foundErrors {
 		smp.numTrieNodesSet = true
 	}
 }
