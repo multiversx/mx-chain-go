@@ -806,7 +806,8 @@
     PollingIntervalInMinutes = 65
 
 [GatewayMetricsConfig]
-    URL = "https://testnet-gateway.multiversx.com"
+    # TODO: set this to gateway URL based on testnet/devnet/mainnet env
+    URL = ""
 
 [LogsAndEvents]
     SaveInStorageEnabled = false

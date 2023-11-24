@@ -181,9 +181,9 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 func (wr *WidgetsRender) getTrieSyncProgress() string {
 	syncPercentageOut := statusNotApplicable
 
-	syncPercentage, ok := wr.presenter.GetTrieSyncProcessedPercentage()
-	if ok {
-		syncPercentageOut = "~" + fmt.Sprint(syncPercentage) + "%"
+	syncPercentage := wr.presenter.GetTrieSyncProcessedPercentage()
+	if syncPercentage.HasValue {
+		syncPercentageOut = "~" + fmt.Sprint(syncPercentage.Value) + "%"
 	}
 
 	return syncPercentageOut

@@ -45,11 +45,12 @@ type responseFromGatewayApi struct {
 
 // StatusMetricsProvider is the struct that will handle initializing the presenter and fetching updated metrics from the node
 type StatusMetricsProvider struct {
-	presenter      PresenterHandler
-	nodeAddress    string
-	gatewayAddress string
-	fetchInterval  int
-	shardID        string
+	presenter       PresenterHandler
+	nodeAddress     string
+	gatewayAddress  string
+	fetchInterval   int
+	shardID         string
+	numTrieNodesSet bool
 }
 
 // NewStatusMetricsProvider will return a new instance of a StatusMetricsProvider
@@ -92,22 +93,32 @@ func (smp *StatusMetricsProvider) updateMetrics() {
 	if smp.shardID != "" && smp.gatewayAddress != "" {
 		metricsURLSuffix := trieStatisticsMetricsUrlSuffix + smp.shardID
 		statusMetricsURL := smp.gatewayAddress + metricsURLSuffix
-		smp.fetchAndApplyGatewayStatusMetrics(statusMetricsURL)
+
+		if !smp.numTrieNodesSet {
+			smp.fetchAndApplyGatewayStatusMetrics(statusMetricsURL)
+		}
 	}
 }
 
 func (smp *StatusMetricsProvider) fetchAndApplyGatewayStatusMetrics(statusMetricsURL string) {
+	noErrors := true
 	numTrieNodes, err := smp.loadMetricsFromGatewayApi(statusMetricsURL)
 	if err != nil {
 		log.Info("fetch from Gateway API",
 			"path", statusMetricsURL,
 			"error", err.Error())
+		noErrors = false
 	}
 
 	err = smp.setPresenterValue(AccountsSnapshotNumNodesMetric, float64(numTrieNodes))
 	if err != nil {
 		log.Info("termui metric set",
 			"error", err.Error())
+		noErrors = false
+	}
+
+	if noErrors {
+		smp.numTrieNodesSet = true
 	}
 }
 

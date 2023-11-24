@@ -187,20 +187,29 @@ func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
 }
 
 // GetTrieSyncProcessedPercentage will return the number of processed nodes during trie sync
-func (psh *PresenterStatusHandler) GetTrieSyncProcessedPercentage() (uint64, bool) {
+func (psh *PresenterStatusHandler) GetTrieSyncProcessedPercentage() core.OptionalUint64 {
 	numEstimatedNodes := psh.getFromCacheAsUint64(provider.AccountsSnapshotNumNodesMetric)
 	if numEstimatedNodes <= 0 {
-		return 0, false
+		return core.OptionalUint64{
+			Value:    0,
+			HasValue: false,
+		}
 	}
 
 	numProcessedNodes := psh.GetTrieSyncNumProcessedNodes()
 
 	percentage := (numProcessedNodes * 100) / numEstimatedNodes
 	if percentage > 100 {
-		return 100, true
+		return core.OptionalUint64{
+			Value:    100,
+			HasValue: true,
+		}
 	}
 
-	return percentage, true
+	return core.OptionalUint64{
+		Value:    percentage,
+		HasValue: true,
+	}
 }
 
 // GetTrieSyncNumBytesReceived will return the number of bytes synced during trie sync
