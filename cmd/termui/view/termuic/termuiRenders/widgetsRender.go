@@ -178,6 +178,17 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	wr.instanceInfo.Rows = rows
 }
 
+func (wr *WidgetsRender) getTrieSyncProgress() string {
+	syncPercentageOut := statusNotApplicable
+
+	syncPercentage, ok := wr.presenter.GetTrieSyncProcessedPercentage()
+	if ok {
+		syncPercentageOut = "~" + fmt.Sprint(syncPercentage) + "%"
+	}
+
+	return syncPercentageOut
+}
+
 func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	// 10 rows and one column
 	numRows := 10
@@ -194,14 +205,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	case isNodeSyncingTrie:
 		syncingStr = statusSyncing
 		bytesReceived := wr.presenter.GetTrieSyncNumBytesReceived()
-		syncPercentage := wr.presenter.GetTrieSyncProcessedPercentage()
-
-		syncPercentageOut := ""
-		if syncPercentage == 0 {
-			syncPercentageOut = statusNotApplicable
-		} else {
-			syncPercentageOut = fmt.Sprint(syncPercentage) + "%"
-		}
+		syncPercentageOut := wr.getTrieSyncProgress()
 
 		statusMessage = fmt.Sprintf("Trie sync: %d nodes, progress %s, %s state size", nodesProcessed, syncPercentageOut, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:

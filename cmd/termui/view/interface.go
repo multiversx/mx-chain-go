@@ -61,7 +61,7 @@ type Presenter interface {
 
 	GetTrieSyncNumProcessedNodes() uint64
 	GetTrieSyncNumBytesReceived() uint64
-	GetTrieSyncProcessedPercentage() uint64
+	GetTrieSyncProcessedPercentage() (uint64, bool)
 
 	InvalidateCache()
 	IsInterfaceNil() bool

@@ -20,7 +20,6 @@ type config struct {
 	useWss             bool
 	interval           int
 	address            string
-	gatewayAddress     string
 	logLevel           string
 }
 
