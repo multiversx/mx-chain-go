@@ -721,9 +721,9 @@ func (n *Node) addBlocksToDataPool(blocks []*api.Block) {
 				receiver, _ := n.decodeAddressToPubKey(tx.Receiver)
 				sender, _ := n.decodeAddressToPubKey(tx.Sender)
 				chainID := []byte(tx.ChainID)
-				signature := []byte(tx.Signature)
-				guardian := []byte(tx.GuardianAddr)
-				guardianSignature := []byte(tx.GuardianSignature)
+				signature, _ := hex.DecodeString(tx.Signature)
+				guardian, _ := n.decodeAddressToPubKey(tx.GuardianAddr)
+				guardianSignature, _ := hex.DecodeString(tx.GuardianSignature)
 
 				newTx := &transaction.Transaction{
 					Nonce:             tx.Nonce,

@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/ntp"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -280,7 +282,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	err = fct.GenerateSubrounds()
 	if err != nil {
 		return nil, err
@@ -336,10 +337,38 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		wd = &watchdog.DisabledWatchdog{}
 	}
 
+	i, err := strconv.ParseInt("1699876986", 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	currentTimeMilis := time.Now().UnixMilli()
+	currentTimeUnix := time.Now().Unix()
+
+	toWait := 6 - currentTimeUnix%6
+	log.Debug("toWait", "toWait", toWait)
+
+	time.Sleep(time.Duration(toWait)*time.Second + time.Duration(1000-currentTimeMilis%1000)*time.Millisecond)
+
+	log.Info("AfterSleep", "time", time.Now())
+	tm := time.Unix(i, 0)
+	increaseChan := make(chan bool)
+	syncTimer := ntp.NewShadowForkSyncTimer(tm, increaseChan)
+
+	go func() {
+		for {
+			//sleepSeconds := int64(1 + rand.Intn(2))
+			sleepSeconds := int64(2)
+			log.Debug("sleeping for", "seconds", sleepSeconds)
+			time.Sleep(time.Duration(sleepSeconds) * time.Second)
+			increaseChan <- true
+		}
+	}()
+
 	chronologyArg := chronology.ArgChronology{
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
 		RoundHandler:     ccf.processComponents.RoundHandler(),
-		SyncTimer:        ccf.coreComponents.SyncTimer(),
+		SyncTimer:        syncTimer,
 		Watchdog:         wd,
 		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
 	}

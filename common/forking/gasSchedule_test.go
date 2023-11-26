@@ -1,6 +1,11 @@
 package forking
 
 import (
+	"bufio"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -225,6 +230,38 @@ func testGasScheduleNotifierDeadlock(t *testing.T) {
 	case <-time.After(time.Second):
 		require.Fail(t, "deadlock detected in EpochConfirmed function")
 	}
+}
+
+func TestGasScheduleNotifier_EpochConfirmedShouldNotCauseDeadlock2(t *testing.T) {
+	t.Parallel()
+
+	file, _ := os.Open("gasScheduleV7.toml")
+	defer file.Close()
+
+	outLines := make([]string, 0)
+
+	scanner := bufio.NewScanner(file)
+	// optionally, resize scanner's capacity for lines over 64K, see next example
+	for scanner.Scan() {
+		line := scanner.Text()
+		splitLine := strings.Split(line, "=")
+		if len(splitLine) != 2 {
+			outLines = append(outLines, line)
+			continue
+		}
+
+		number, err := strconv.ParseUint(strings.TrimSpace(splitLine[1]), 10, 64)
+		if err != nil {
+			fmt.Println(err, "\n\n\n\n\n\nline======================\n\n\n\n\n\n\n", line, "number", number)
+		}
+		newNumber := " " + strconv.FormatUint((number+1)/2, 10)
+		newLine := strings.Replace(line, splitLine[1], newNumber, 1)
+		outLines = append(outLines, newLine)
+		fmt.Println(newLine)
+	}
+
+	_ = os.WriteFile("gasScheduleV8.toml", []byte(strings.Join(outLines, "\n")), 0644)
+
 }
 
 func TestGasScheduleNotifier_IsInterfaceNil(t *testing.T) {
