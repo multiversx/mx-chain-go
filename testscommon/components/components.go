@@ -249,6 +249,9 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled:                          false,

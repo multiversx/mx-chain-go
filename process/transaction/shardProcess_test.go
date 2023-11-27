@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -268,6 +269,17 @@ func TestNewTxProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	assert.Nil(t, txProc)
 }
 

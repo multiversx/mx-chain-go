@@ -210,49 +210,6 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 	return nil
 }
 
-func (en *extensionNode) commitCheckpoint(
-	originDb common.TrieStorageInteractor,
-	targetDb common.BaseStorer,
-	checkpointHashes CheckpointHashesHolder,
-	leavesChan chan core.KeyValueHolder,
-	ctx context.Context,
-	stats common.TrieStatisticsHandler,
-	idleProvider IdleNodeProvider,
-	depthLevel int,
-) error {
-	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return core.ErrContextClosing
-	}
-
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit checkpoint error %w", err)
-	}
-
-	err = resolveIfCollapsed(en, 0, originDb)
-	if err != nil {
-		return err
-	}
-
-	hash, err := computeAndSetNodeHash(en)
-	if err != nil {
-		return err
-	}
-
-	shouldCommit := checkpointHashes.ShouldCommit(hash)
-	if !shouldCommit {
-		return nil
-	}
-
-	err = en.child.commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
-	if err != nil {
-		return err
-	}
-
-	checkpointHashes.Remove(hash)
-	return en.saveToStorage(targetDb, stats, depthLevel)
-}
-
 func (en *extensionNode) commitSnapshot(
 	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
