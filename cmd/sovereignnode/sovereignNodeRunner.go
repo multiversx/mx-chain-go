@@ -908,7 +908,6 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 		return nil, err
 	}
 
-	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
 	endRoundExtraSignersHolder := bls.NewSubRoundEndExtraSignersHolder()
 	endRoundExtraSigner, err := bls.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
 	if err != nil {
