@@ -161,7 +161,7 @@ func (s *simulator) allNodesCreateBlocks() error {
 
 // GetNodeHandler returns the node handler from the provided shardID
 func (s *simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
-	s.mutex.RUnlock()
+	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
 	return s.nodes[shardID]
