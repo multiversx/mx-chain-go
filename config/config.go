@@ -291,8 +291,9 @@ type GeneralSettingsConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
-	RestApiInterface string
-	PprofEnabled     bool
+	RestApiInterface            string
+	PprofEnabled                bool
+	P2PPrometheusMetricsEnabled bool
 }
 
 // StateTriesConfig will hold information about state tries

@@ -20,7 +20,7 @@ type EnableEpochsHandlerStub struct {
 // NewEnableEpochsHandlerStubWithNoFlagsDefined -
 func NewEnableEpochsHandlerStubWithNoFlagsDefined() *EnableEpochsHandlerStub {
 	return &EnableEpochsHandlerStub{
-		activeFlags: 		 make(map[core.EnableEpochFlag]struct{}),
+		activeFlags: make(map[core.EnableEpochFlag]struct{}),
 		IsFlagDefinedCalled: func(flag core.EnableEpochFlag) bool {
 			return false
 		},

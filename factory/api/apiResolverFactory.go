@@ -271,6 +271,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
 		GasScheduleNotifier:      args.GasScheduleNotifier,
 		ManagedPeersMonitor:      args.StatusComponents.ManagedPeersMonitor(),
+		NodesCoordinator:         args.ProcessComponents.NodesCoordinator(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
