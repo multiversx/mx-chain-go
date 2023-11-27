@@ -145,7 +145,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
 			return process.ErrNotEnoughGasInUserTx
 		}
-		if txProc.enableEpochsHandler.IsFixRelayedMoveBalanceFlagEnabled() {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) {
 			txFee = txProc.economicsFee.ComputeTxFee(tx)
 		} else {
 			txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)

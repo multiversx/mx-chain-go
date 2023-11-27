@@ -284,7 +284,7 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		}
 	}
 
-	tx, txHash, err := tg.createTransaction(&gtx, innerTx)
+	tx, txHash, err := tg.createTransaction(&ftx, innerTx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -362,7 +362,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 
 	var start time.Time
 	txsHashes := make(map[int]string)
-	for idx, receivedTx := range ftx {
+	for idx, receivedTx := range ftxs {
 		var innerTx *transaction.Transaction
 		if receivedTx.InnerTransaction != nil {
 			innerTx, _, err = tg.createTransaction(receivedTx.InnerTransaction, nil)
@@ -716,7 +716,7 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 	)
 }
 
-func (tg *transactionGroup) createTransaction(receivedTx *transaction.Transaction, innerTx *transaction.Transaction) (*transaction.Transaction, []byte, error) {
+func (tg *transactionGroup) createTransaction(receivedTx *transaction.FrontendTransaction, innerTx *transaction.Transaction) (*transaction.Transaction, []byte, error) {
 	txArgs := &external.ArgsCreateTransaction{
 		Nonce:            receivedTx.Nonce,
 		Value:            receivedTx.Value,
