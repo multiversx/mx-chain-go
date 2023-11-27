@@ -359,6 +359,11 @@ func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
 	return node.facadeHandler
 }
 
+// GetStatusCoreComponents will return the status core components
+func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
+	return node.StatusCoreComponents
+}
+
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
 	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
 	node.closeHandler.AddComponent(node.DataComponentsHolder)

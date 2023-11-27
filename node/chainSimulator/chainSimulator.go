@@ -2,6 +2,7 @@ package chainSimulator
 
 import (
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -36,6 +37,7 @@ type simulator struct {
 	initialWalletKeys      *dtos.InitialWalletKeys
 	nodes                  map[uint32]process.NodeHandler
 	numOfShards            uint32
+	mutex                  sync.RWMutex
 }
 
 // NewChainSimulator will create a new instance of simulator
@@ -48,6 +50,7 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
 		numOfShards:            args.NumOfShards,
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
+		mutex:                  sync.RWMutex{},
 	}
 
 	err := instance.createChainHandlers(args)
@@ -126,6 +129,9 @@ func (s *simulator) createTestNode(
 
 // GenerateBlocks will generate the provided number of blocks
 func (s *simulator) GenerateBlocks(numOfBlocks int) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	for idx := 0; idx < numOfBlocks; idx++ {
 		s.incrementRoundOnAllValidators()
 		err := s.allNodesCreateBlocks()
@@ -155,6 +161,9 @@ func (s *simulator) allNodesCreateBlocks() error {
 
 // GetNodeHandler returns the node handler from the provided shardID
 func (s *simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
+	s.mutex.RUnlock()
+	defer s.mutex.RUnlock()
+
 	return s.nodes[shardID]
 }
 
@@ -175,6 +184,9 @@ func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 
 // SetState will set the provided state for a given address
 func (s *simulator) SetState(address string, state map[string]string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
 	addressBytes, err := addressConverter.Decode(address)
 	if err != nil {

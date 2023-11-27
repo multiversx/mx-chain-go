@@ -2,6 +2,7 @@ package process
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 )
 
@@ -25,6 +26,8 @@ func (creator *blocksCreator) IncrementRound() {
 	roundHandler := creator.nodeHandler.GetCoreComponents().RoundHandler()
 	manual := roundHandler.(manualRoundHandler)
 	manual.IncrementIndex()
+
+	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricCurrentRound, uint64(roundHandler.Index()))
 }
 
 // CreateNewBlock creates and process a new block
