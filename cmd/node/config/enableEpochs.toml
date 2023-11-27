@@ -281,6 +281,9 @@
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
     RelayedTransactionsV3EnableEpoch = 3
 
+    # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
+    FixRelayedMoveBalanceEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

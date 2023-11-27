@@ -962,7 +962,7 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		1+guardianSigVerificationGas,
 		make([]byte, 0))
 
 	userTx.GuardianAddr = bob
@@ -970,7 +970,7 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 	userTx.Version = txWithOptionVersion
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit := 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + guardianSigVerificationGas + minGasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)
@@ -1001,13 +1001,13 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		minGasLimit,
 		make([]byte, 0))
 
 	userTx.Version = txWithOptionVersion
 
 	rtxData = integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit = 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit = minGasLimit + minGasLimit + uint64(len(rtxData))
 	rtx = vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)
@@ -1076,14 +1076,14 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	testContext.CleanIntermediateTransactions(t)
 
 	// step 3 - charlie sends a relayed transaction v1 on the behalf of alice
-	// 3.1 cosigned transaction should work
+	// 3.1 cosigned transaction should not work
 	userTx := vm.CreateTransaction(
 		getNonce(testContext, alice),
 		transferValue,
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		1+guardianSigVerificationGas,
 		make([]byte, 0))
 
 	userTx.GuardianAddr = bob
@@ -1091,7 +1091,7 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	userTx.Version = txWithOptionVersion
 
 	rtxData := integrationTests.PrepareRelayedTxDataV2(userTx)
-	rTxGasLimit := 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + guardianSigVerificationGas + minGasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)
@@ -1110,7 +1110,8 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	assert.Equal(t, aliceCurrentBalance, getBalance(testContext, alice))
 	bobExpectedBalance := big.NewInt(0).Set(initialMint)
 	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
-	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(rTxGasLimit*gasPrice)))
+	charlieConsumed := minGasLimit + guardianSigVerificationGas + minGasLimit + uint64(len(rtxData))
+	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(charlieConsumed*gasPrice)))
 	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
 	assert.Equal(t, initialMint, getBalance(testContext, david))
 
@@ -1124,13 +1125,13 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		minGasLimit,
 		make([]byte, 0))
 
 	userTx.Version = txWithOptionVersion
 
 	rtxData = integrationTests.PrepareRelayedTxDataV2(userTx)
-	rTxGasLimit = 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit = minGasLimit + minGasLimit + uint64(len(rtxData))
 	rtx = vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)

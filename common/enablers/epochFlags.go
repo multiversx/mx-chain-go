@@ -103,6 +103,7 @@ type epochFlagsHolder struct {
 	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 	relayedTransactionsV3Flag                   *atomic.Flag
+	fixRelayedMoveBalanceFlag                   *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -205,6 +206,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
 		relayedTransactionsV3Flag:                   &atomic.Flag{},
+		fixRelayedMoveBalanceFlag:                   &atomic.Flag{},
 	}
 }
 
@@ -744,6 +746,11 @@ func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool 
 // IsRelayedTransactionsV3FlagEnabled returns true if relayedTransactionsV3Flag is enabled
 func (holder *epochFlagsHolder) IsRelayedTransactionsV3FlagEnabled() bool {
 	return holder.relayedTransactionsV3Flag.IsSet()
+}
+
+// IsFixRelayedMoveBalanceFlagEnabled returns true if fixRelayedMoveBalanceFlag is enabled
+func (holder *epochFlagsHolder) IsFixRelayedMoveBalanceFlagEnabled() bool {
+	return holder.fixRelayedMoveBalanceFlag.IsSet()
 }
 
 // IsDynamicGasCostForDataTrieStorageLoadEnabled returns true if dynamicGasCostForDataTrieStorageLoadFlag is enabled

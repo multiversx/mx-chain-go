@@ -106,6 +106,7 @@ type EnableEpochs struct {
 	FixDelegationChangeOwnerOnAccountEnableEpoch      uint32
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch   uint32
 	RelayedTransactionsV3EnableEpoch                  uint32
+	FixRelayedMoveBalanceEnableEpoch                  uint32
 	BLSMultiSignerEnableEpoch                         []MultiSignerConfig
 }
 

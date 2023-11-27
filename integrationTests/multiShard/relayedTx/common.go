@@ -59,7 +59,7 @@ func CreateAndSendRelayedAndUserTx(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-) *transaction.Transaction {
+) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData, nil)
@@ -70,7 +70,7 @@ func CreateAndSendRelayedAndUserTx(
 		fmt.Println(err.Error())
 	}
 
-	return relayedTx
+	return relayedTx, userTx
 }
 
 // CreateAndSendRelayedAndUserTxV2 will create and send a relayed user transaction for relayed v2
@@ -82,7 +82,7 @@ func CreateAndSendRelayedAndUserTxV2(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-) *transaction.Transaction {
+) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, 0, txData, nil)
@@ -93,7 +93,7 @@ func CreateAndSendRelayedAndUserTxV2(
 		fmt.Println(err.Error())
 	}
 
-	return relayedTx
+	return relayedTx, userTx
 }
 
 // CreateAndSendRelayedAndUserTxV3 will create and send a relayed user transaction for relayed v3
@@ -105,7 +105,7 @@ func CreateAndSendRelayedAndUserTxV3(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-) *transaction.Transaction {
+) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData, relayer.Address)
@@ -116,7 +116,7 @@ func CreateAndSendRelayedAndUserTxV3(
 		fmt.Println(err.Error())
 	}
 
-	return relayedTx
+	return relayedTx, userTx
 }
 
 func createUserTx(
@@ -142,6 +142,7 @@ func createUserTx(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
 	player.Nonce++
+	player.Balance.Sub(player.Balance, value)
 	return tx
 }
 
@@ -169,9 +170,10 @@ func createRelayedTx(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
-	txFee := economicsFee.ComputeTxFee(tx)
-	relayer.Balance.Sub(relayer.Balance, txFee)
+
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
+
+	subFeesFromRelayer(tx, userTx, economicsFee, relayer)
 
 	return tx
 }
@@ -198,9 +200,10 @@ func createRelayedTxV2(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
-	txFee := economicsFee.ComputeTxFee(tx)
-	relayer.Balance.Sub(relayer.Balance, txFee)
+
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
+
+	subFeesFromRelayer(tx, userTx, economicsFee, relayer)
 
 	return tx
 }
@@ -227,9 +230,10 @@ func createRelayedTxV3(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
-	txFee := economicsFee.ComputeTxFee(tx)
-	relayer.Balance.Sub(relayer.Balance, txFee)
+
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
+
+	subFeesFromRelayer(tx, userTx, economicsFee, relayer)
 
 	return tx
 }
@@ -285,4 +289,16 @@ func GetUserAccount(
 		}
 	}
 	return nil
+}
+
+func subFeesFromRelayer(tx, userTx *transaction.Transaction, economicsFee process.FeeHandler, relayer *integrationTests.TestWalletAccount) {
+	relayerFee := economicsFee.ComputeMoveBalanceFee(tx)
+	relayer.Balance.Sub(relayer.Balance, relayerFee)
+
+	userTxCopy := *userTx
+	if userTxCopy.GasLimit == 0 { // relayed v2
+		userTxCopy.GasLimit = tx.GasLimit - economicsFee.ComputeGasLimit(tx)
+	}
+	userFee := economicsFee.ComputeTxFee(&userTxCopy)
+	relayer.Balance.Sub(relayer.Balance, userFee)
 }

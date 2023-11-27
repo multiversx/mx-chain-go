@@ -88,7 +88,8 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		ArgsParser:       &mock.ArgumentParserMock{},
 		ScrForwarder:     &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsPenalizedTooMuchGasFlagEnabledField: true,
+			IsPenalizedTooMuchGasFlagEnabledField:   true,
+			IsFixRelayedMoveBalanceFlagEnabledField: true,
 		},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -1439,6 +1440,9 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return processingFee
 		},
+		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return moveBalanceFee
+		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -1456,8 +1460,8 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 
 	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, true)
 	assert.Nil(t, err)
-	assert.True(t, cost.Cmp(processingFee) == 0)
-	assert.True(t, totalCost.Cmp(processingFee) == 0)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
 }
 
 func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
@@ -1468,6 +1472,9 @@ func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	gasPerByte := uint64(1)
 	args := createArgsForTxProcessor()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsPenalizedTooMuchGasFlagEnabledField: true,
+	}
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
@@ -2853,11 +2860,11 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 
 	args := createArgsForTxProcessor()
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
-			return big.NewInt(1)
-		},
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(150)
+		},
+		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(1)
 		},
 	}
 	args.TxFeeHandler = &mock.FeeAccumulatorStub{
@@ -2880,7 +2887,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 
 	err := execTx.ProcessMoveBalanceCostRelayedUserTx(userTx, &smartContractResult.SmartContractResult{}, acntSrc, originalTxHash)
 	assert.Nil(t, err)
-	assert.Equal(t, acntSrc.GetBalance(), big.NewInt(99))
+	assert.Equal(t, big.NewInt(99), acntSrc.GetBalance())
 }
 
 func TestTxProcessor_IsCrossTxFromMeShouldWork(t *testing.T) {

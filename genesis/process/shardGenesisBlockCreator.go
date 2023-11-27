@@ -150,6 +150,7 @@ func createGenesisConfig() config.EnableEpochs {
 		SetGuardianEnableEpoch:                            unreachableEpoch,
 		ScToScLogEventEnableEpoch:                         unreachableEpoch,
 		RelayedTransactionsV3EnableEpoch:                  unreachableEpoch,
+		FixRelayedMoveBalanceEnableEpoch:                  unreachableEpoch,
 	}
 }
 
