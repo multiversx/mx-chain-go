@@ -72,22 +72,24 @@ func TestSubRoundSignatureExtraSignersHolder_AddExtraSigSharesToConsensusMessage
 	wasAdded1 := false
 	wasAdded2 := false
 	extraSigner1 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
-		AddSigShareToConsensusMessageCalled: func(sigShare []byte, cnsMsg *consensus.Message) {
+		AddSigShareToConsensusMessageCalled: func(sigShare []byte, cnsMsg *consensus.Message) error {
 			require.Equal(t, []byte("sigShare1"), sigShare)
 			require.Equal(t, expectedCnsMsg, cnsMsg)
 
 			wasAdded1 = true
+			return nil
 		},
 		IdentifierCalled: func() string {
 			return "id1"
 		},
 	}
 	extraSigner2 := &subRounds.SubRoundSignatureExtraSignatureHandlerMock{
-		AddSigShareToConsensusMessageCalled: func(sigShare []byte, cnsMsg *consensus.Message) {
+		AddSigShareToConsensusMessageCalled: func(sigShare []byte, cnsMsg *consensus.Message) error {
 			require.Equal(t, []byte("sigShare2"), sigShare)
 			require.Equal(t, expectedCnsMsg, cnsMsg)
 
 			wasAdded2 = true
+			return nil
 		},
 		IdentifierCalled: func() string {
 			return "id2"
