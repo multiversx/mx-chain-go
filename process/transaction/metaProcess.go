@@ -101,7 +101,7 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	return txProc, nil
 }
 
-// ProcessTransaction modifies the account states in re`spect with the transaction data
+// ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
 	if check.IfNil(tx) {
 		return 0, process.ErrNilTransaction
