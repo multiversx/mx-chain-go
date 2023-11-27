@@ -56,7 +56,10 @@ func (holder *subRoundSignatureExtraSignersHolder) AddExtraSigSharesToConsensusM
 			return fmt.Errorf("extra signed not found for id=%s when trying to add extra sig share to consensus msg", id)
 		}
 
-		extraSigner.AddSigShareToConsensusMessage(extraSigShare, cnsMsg)
+		err := extraSigner.AddSigShareToConsensusMessage(extraSigShare, cnsMsg)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

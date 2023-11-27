@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -21,13 +22,14 @@ var log = logger.GetOrCreate("process/headerCheck")
 
 // ArgsHeaderSigVerifier is used to store all components that are needed to create a new HeaderSigVerifier
 type ArgsHeaderSigVerifier struct {
-	Marshalizer             marshal.Marshalizer
-	Hasher                  hashing.Hasher
-	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigContainer       cryptoCommon.MultiSignerContainer
-	SingleSigVerifier       crypto.SingleSigner
-	KeyGen                  crypto.KeyGenerator
-	FallbackHeaderValidator process.FallbackHeaderValidator
+	Marshalizer                  marshal.Marshalizer
+	Hasher                       hashing.Hasher
+	NodesCoordinator             nodesCoordinator.NodesCoordinator
+	MultiSigContainer            cryptoCommon.MultiSignerContainer
+	SingleSigVerifier            crypto.SingleSigner
+	KeyGen                       crypto.KeyGenerator
+	FallbackHeaderValidator      process.FallbackHeaderValidator
+	ExtraHeaderSigVerifierHolder ExtraHeaderSigVerifierHolder
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -39,6 +41,8 @@ type HeaderSigVerifier struct {
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
+
+	extraSigVerifierHolder ExtraHeaderSigVerifierHolder
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -56,6 +60,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		singleSigVerifier:       arguments.SingleSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
+		extraSigVerifierHolder:  arguments.ExtraHeaderSigVerifierHolder,
 	}, nil
 }
 
@@ -90,6 +95,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.FallbackHeaderValidator) {
 		return process.ErrNilFallbackHeaderValidator
+	}
+	if check.IfNil(arguments.ExtraHeaderSigVerifierHolder) {
+		return errors.ErrNilExtraHeaderSigVerifierHolder
 	}
 
 	return nil
@@ -174,7 +182,12 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
+	err = multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, header.GetSignature())
+	if err != nil {
+		return err
+	}
+
+	return hsv.extraSigVerifierHolder.VerifyAggregatedSignature(header, multiSigVerifier, pubKeysSigners)
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
@@ -297,7 +310,12 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 		return err
 	}
 
-	return hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+	err = hsv.singleSigVerifier.Verify(leaderPubKey, headerBytes, header.GetLeaderSignature())
+	if err != nil {
+		return err
+	}
+
+	return hsv.extraSigVerifierHolder.VerifyLeaderSignature(header, leaderPubKey)
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
@@ -335,12 +353,22 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 		return nil, err
 	}
 
+	err = hsv.extraSigVerifierHolder.RemoveAllSignatures(headerCopy)
+	if err != nil {
+		return nil, err
+	}
+
 	return headerCopy, nil
 }
 
 func (hsv *HeaderSigVerifier) copyHeaderWithoutLeaderSig(header data.HeaderHandler) (data.HeaderHandler, error) {
 	headerCopy := header.ShallowClone()
 	err := headerCopy.SetLeaderSignature(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = hsv.extraSigVerifierHolder.RemoveLeaderSignature(headerCopy)
 	if err != nil {
 		return nil, err
 	}

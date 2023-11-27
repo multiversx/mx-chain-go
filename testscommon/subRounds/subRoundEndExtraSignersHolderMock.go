@@ -7,7 +7,7 @@ import (
 
 // SubRoundEndExtraSignersHolderMock -
 type SubRoundEndExtraSignersHolderMock struct {
-	AggregateSignaturesCalled                       func(bitmap []byte, epoch uint32) (map[string][]byte, error)
+	AggregateSignaturesCalled                       func(bitmap []byte, header data.HeaderHandler) (map[string][]byte, error)
 	AddLeaderAndAggregatedSignaturesCalled          func(header data.HeaderHandler, cnsMsg *consensus.Message) error
 	SignAndSetLeaderSignatureCalled                 func(header data.HeaderHandler, leaderPubKey []byte) error
 	SetAggregatedSignatureInHeaderCalled            func(header data.HeaderHandler, aggregatedSigs map[string][]byte) error
@@ -17,9 +17,9 @@ type SubRoundEndExtraSignersHolderMock struct {
 }
 
 // AggregateSignatures -
-func (mock *SubRoundEndExtraSignersHolderMock) AggregateSignatures(bitmap []byte, epoch uint32) (map[string][]byte, error) {
+func (mock *SubRoundEndExtraSignersHolderMock) AggregateSignatures(bitmap []byte, header data.HeaderHandler) (map[string][]byte, error) {
 	if mock.AggregateSignaturesCalled != nil {
-		return mock.AggregateSignaturesCalled(bitmap, epoch)
+		return mock.AggregateSignaturesCalled(bitmap, header)
 	}
 	return nil, nil
 }

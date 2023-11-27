@@ -676,3 +676,9 @@ var ErrNilEndRoundExtraSignersHolder = errors.New("nil end round extra signers h
 
 // ErrExtraSignerIdAlreadyExists signals that an extra signer with the same id has been already registered
 var ErrExtraSignerIdAlreadyExists = errors.New("an extra signer with the same id has been already registered")
+
+// ErrNilExtraHeaderSigVerifierHolder signals that a nil extra sig verifier holder has been provided
+var ErrNilExtraHeaderSigVerifierHolder = errors.New("nil extra sig verifier holder has been provided")
+
+// ErrNilConsensusMessage signals that a nil consensus message has been provided
+var ErrNilConsensusMessage = errors.New("nil consensus message has been provided")

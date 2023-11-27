@@ -90,7 +90,12 @@ func TestSovereignSubRoundSignatureOutGoingTxData_AddSigShareToConsensusMessage(
 	}
 
 	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
-	sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), cnsMsg)
+
+	err := sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), nil)
+	require.Equal(t, errors.ErrNilConsensusMessage, err)
+
+	err = sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), cnsMsg)
+	require.Nil(t, err)
 	require.Equal(t, &consensus.Message{
 		SignatureShare:               []byte("sigShare"),
 		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
@@ -118,7 +123,11 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 	}
 
 	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(signHandler)
-	err := sovSigHandler.StoreSignatureShare(expectedIdx, cnsMsg)
+
+	err := sovSigHandler.StoreSignatureShare(expectedIdx, nil)
+	require.Equal(t, errors.ErrNilConsensusMessage, err)
+
+	err = sovSigHandler.StoreSignatureShare(expectedIdx, cnsMsg)
 	require.Nil(t, err)
 	require.True(t, wasSigStored)
 }

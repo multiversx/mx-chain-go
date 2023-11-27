@@ -24,12 +24,12 @@ func NewSubRoundEndExtraSignersHolder() *subRoundEndExtraSignersHolder {
 }
 
 // AggregateSignatures calls AggregateSignatures for all registered signers
-func (holder *subRoundEndExtraSignersHolder) AggregateSignatures(bitmap []byte, epoch uint32) (map[string][]byte, error) {
+func (holder *subRoundEndExtraSignersHolder) AggregateSignatures(bitmap []byte, header data.HeaderHandler) (map[string][]byte, error) {
 	aggregatedSigs := make(map[string][]byte)
 
 	holder.mutExtraSigners.RLock()
 	for id, extraSigner := range holder.extraSigners {
-		aggregatedSig, err := extraSigner.AggregateAndSetSignatures(bitmap, epoch)
+		aggregatedSig, err := extraSigner.AggregateAndSetSignatures(bitmap, header)
 		if err != nil {
 			log.Debug("holder.extraSigner.AddLeaderAndAggregatedSignatures",
 				"error", err.Error(),

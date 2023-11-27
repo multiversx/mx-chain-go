@@ -85,6 +85,15 @@ func TestSovereignSubRoundEndOutGoingTxData_AggregateSignatures(t *testing.T) {
 	expectedBitMap := []byte{0x3}
 	aggregatedSig := []byte("aggregatedSig")
 
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Epoch: expectedEpoch,
+		},
+		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
+			OutGoingOperationsHash: []byte("hash"),
+		},
+	}
+
 	signingHandler := &cnsTest.SigningHandlerStub{
 		AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 			require.Equal(t, expectedBitMap, bitmap)
@@ -102,7 +111,7 @@ func TestSovereignSubRoundEndOutGoingTxData_AggregateSignatures(t *testing.T) {
 		},
 	}
 	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(signingHandler)
-	result, err := sovSigHandler.AggregateAndSetSignatures(expectedBitMap, expectedEpoch)
+	result, err := sovSigHandler.AggregateAndSetSignatures(expectedBitMap, sovHdr)
 	require.Nil(t, err)
 	require.Equal(t, aggregatedSig, result)
 }

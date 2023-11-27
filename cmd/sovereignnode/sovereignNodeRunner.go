@@ -64,6 +64,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -1198,6 +1199,17 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
+	if err != nil {
+		return nil, err
+	}
+
+	err = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
+	if err != nil {
+		return nil, err
+	}
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
@@ -1233,6 +1245,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

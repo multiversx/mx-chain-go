@@ -49,12 +49,28 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 }
 
 // AddSigShareToConsensusMessage adds the provided sig share for outgoing tx data to the consensus message
-func (sr *sovereignSubRoundSignatureOutGoingTxData) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
-	cnsMsg.SignatureShareOutGoingTxData = sigShare
+func (sr *sovereignSubRoundSignatureOutGoingTxData) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) error {
+	if cnsMsg == nil {
+		return errors.ErrNilConsensusMessage
+	}
+
+	if len(sigShare) != 0 {
+		cnsMsg.SignatureShareOutGoingTxData = sigShare
+	}
+
+	return nil
 }
 
 // StoreSignatureShare stores the provided sig share for outgoing tx data from the consensus message
 func (sr *sovereignSubRoundSignatureOutGoingTxData) StoreSignatureShare(index uint16, cnsMsg *consensus.Message) error {
+	if cnsMsg == nil {
+		return errors.ErrNilConsensusMessage
+	}
+
+	if len(cnsMsg.SignatureShareOutGoingTxData) == 0 {
+		return nil
+	}
+
 	return sr.signingHandler.StoreSignatureShare(index, cnsMsg.SignatureShareOutGoingTxData)
 }
 

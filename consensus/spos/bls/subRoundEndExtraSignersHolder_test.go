@@ -15,12 +15,21 @@ func TestSubRoundEndExtraSignersHolder_AggregateSignatures(t *testing.T) {
 	t.Parallel()
 
 	expectedEpoch := uint32(4)
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Epoch: expectedEpoch,
+		},
+		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
+			OutGoingOperationsHash: []byte("hash"),
+		},
+	}
+
 	expectedBitmap := []byte("bitmap")
 	expectedAggregatedSig1 := []byte("aggregatedSig1")
 	expectedAggregatedSig2 := []byte("aggregatedSig2")
 	extraSigner1 := &subRounds.SubRoundEndExtraSignatureMock{
-		AggregateSignaturesCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
-			require.Equal(t, expectedEpoch, epoch)
+		AggregateSignaturesCalled: func(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
+			require.Equal(t, sovHdr, header)
 			require.Equal(t, expectedBitmap, bitmap)
 
 			return expectedAggregatedSig1, nil
@@ -30,8 +39,8 @@ func TestSubRoundEndExtraSignersHolder_AggregateSignatures(t *testing.T) {
 		},
 	}
 	extraSigner2 := &subRounds.SubRoundEndExtraSignatureMock{
-		AggregateSignaturesCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
-			require.Equal(t, expectedEpoch, epoch)
+		AggregateSignaturesCalled: func(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
+			require.Equal(t, sovHdr, header)
 			require.Equal(t, expectedBitmap, bitmap)
 
 			return expectedAggregatedSig2, nil
@@ -51,7 +60,7 @@ func TestSubRoundEndExtraSignersHolder_AggregateSignatures(t *testing.T) {
 	err = holder.RegisterExtraSigningHandler(extraSigner2)
 	require.Equal(t, errors.ErrExtraSignerIdAlreadyExists, err)
 
-	res, err := holder.AggregateSignatures(expectedBitmap, expectedEpoch)
+	res, err := holder.AggregateSignatures(expectedBitmap, sovHdr)
 	require.Nil(t, err)
 	require.Equal(t, map[string][]byte{
 		"id1": expectedAggregatedSig1,
