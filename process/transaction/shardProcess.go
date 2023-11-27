@@ -128,6 +128,8 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		common.RelayedTransactionsFlag,
 		common.RelayedTransactionsV2Flag,
 		common.RelayedNonceFixFlag,
+		common.RelayedTransactionsV3Flag,
+		common.FixRelayedMoveBalanceFlag,
 	})
 	if err != nil {
 		return nil, err
