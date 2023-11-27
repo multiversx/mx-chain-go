@@ -7,8 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
+	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,16 +23,30 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	}
 
 	numEpochs := 10000
-	maxFootprintNumBytes := 48_000_000
+	maxFootprintNumBytes := 50_000_000
 
 	journal := &memoryFootprintJournal{}
 	journal.before = getMemStats()
 
-	feeComputer, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
+	economicsConfig := testscommon.GetEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
 		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		Economics:                   &economicsConfig,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.PenalizedTooMuchGasFlag {
+					return epoch >= 124
+				}
+				if flag == common.GasPriceModifierFlag {
+					return epoch >= 180
+				}
+				return false
+			},
+		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	})
+	feeComputer, _ := fee.NewFeeComputer(economicsData)
 	computer := fee.NewTestFeeComputer(feeComputer)
 
 	tx := &transaction.Transaction{
@@ -51,7 +69,6 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	_ = computer.ComputeTransactionFee(&transaction.ApiTransactionResult{Epoch: uint32(0), Tx: tx})
 
 	journal.display()
-	require.Equal(t, numEpochs, computer.LenEconomicsInstances())
 	require.Less(t, journal.footprint(), uint64(maxFootprintNumBytes))
 }
 

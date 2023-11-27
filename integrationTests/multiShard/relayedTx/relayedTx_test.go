@@ -323,7 +323,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 		}()
 
 		for _, node := range nodes {
-			node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+			node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		}
 
 		round := uint64(0)

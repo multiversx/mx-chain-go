@@ -131,3 +131,6 @@ type Logger = p2p.Logger
 
 // ConnectionsHandler defines the behaviour of a component able to handle connections
 type ConnectionsHandler = p2p.ConnectionsHandler
+
+// Debugger represent a p2p debugger able to print p2p statistics (messages received/sent per topic)
+type Debugger = p2p.Debugger

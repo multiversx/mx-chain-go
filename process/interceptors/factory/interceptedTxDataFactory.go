@@ -127,7 +127,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.whiteListerVerifiedTxs,
 		itdf.argsParser,
 		itdf.chainID,
-		itdf.enableEpochsHandler.IsTransactionSignedWithTxHashFlagEnabled(),
+		itdf.enableEpochsHandler.IsFlagEnabled(common.TransactionSignedWithTxHashFlag),
 		itdf.txSignHasher,
 		itdf.txVersionChecker,
 		itdf.enableEpochsHandler,

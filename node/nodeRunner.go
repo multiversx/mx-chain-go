@@ -430,6 +430,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedBootstrapComponents,
 		managedProcessComponents,
+		managedStatusCoreComponents,
 	)
 	if err != nil {
 		return true, err
@@ -558,6 +559,7 @@ func addSyncersToAccountsDB(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) error {
 	selfId := bootstrapComponents.ShardCoordinator().SelfId()
 	if selfId == core.MetachainShardId {
@@ -567,6 +569,7 @@ func addSyncersToAccountsDB(
 			dataComponents,
 			stateComponents,
 			processComponents,
+			statusCoreComponents,
 		)
 		if err != nil {
 			return err
@@ -590,6 +593,7 @@ func addSyncersToAccountsDB(
 		stateComponents,
 		bootstrapComponents,
 		processComponents,
+		statusCoreComponents,
 	)
 	if err != nil {
 		return err
@@ -609,6 +613,7 @@ func getUserAccountSyncer(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
 	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
@@ -626,6 +631,7 @@ func getUserAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
+			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
@@ -642,6 +648,7 @@ func getValidatorAccountSyncer(
 	dataComponents mainFactory.DataComponentsHolder,
 	stateComponents mainFactory.StateComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
 	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
@@ -654,6 +661,7 @@ func getValidatorAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
+			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 	}
@@ -667,6 +675,7 @@ func getBaseAccountSyncerArgs(
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	storageManager common.StorageManager,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
@@ -727,8 +736,9 @@ func (nr *nodeRunner) createApiFacade(
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: flagsConfig.RestApiInterface,
-			PprofEnabled:     flagsConfig.EnablePprof,
+			RestApiInterface:            flagsConfig.RestApiInterface,
+			PprofEnabled:                flagsConfig.EnablePprof,
+			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
 		},
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
@@ -759,7 +769,14 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 	if check.IfNil(managedStatusCoreComponents) {
 		return nil, ErrNilStatusHandler
 	}
-	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
+
+	argsInitialNodeFacade := initial.ArgInitialNodeFacade{
+		ApiInterface:                nr.configs.FlagsConfig.RestApiInterface,
+		PprofEnabled:                nr.configs.FlagsConfig.EnablePprof,
+		P2PPrometheusMetricsEnabled: nr.configs.FlagsConfig.P2PPrometheusMetricsEnabled,
+		StatusMetricsHandler:        managedStatusCoreComponents.StatusMetrics(),
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(argsInitialNodeFacade)
 	if err != nil {
 		return nil, err
 	}
@@ -1511,7 +1528,6 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
-		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 

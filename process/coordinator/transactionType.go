@@ -57,6 +57,12 @@ func NewTxTypeHandler(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ESDTMetadataContinuousCleanupFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	tc := &txTypeHandler{
 		pubkeyConv:          args.PubkeyConverter,
@@ -141,7 +147,7 @@ func isCallOfType(tx data.TransactionHandler, callType vm.CallType) bool {
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
-	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
 	if isTransferAndAsyncCallbackFixFlagSet && isCallOfType(tx, vm.AsynchronousCallBack) {
 		return true
 	}
