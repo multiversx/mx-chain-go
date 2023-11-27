@@ -824,6 +824,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
     NFTStopCreateEnableEpoch = 89
 
+	# CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+	CurrentRandomnessOnSortingEnableEpoch = 90
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -933,6 +936,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 			ScToScLogEventEnableEpoch:                         88,
 			NFTStopCreateEnableEpoch:                          89,
+			CurrentRandomnessOnSortingEnableEpoch:             90,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

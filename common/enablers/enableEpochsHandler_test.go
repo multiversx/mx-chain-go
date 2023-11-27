@@ -108,6 +108,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch:   90,
 		ScToScLogEventEnableEpoch:                         91,
 		NFTStopCreateEnableEpoch:                          92,
+		CurrentRandomnessOnSortingEnableEpoch:             93,
 	}
 }
 
@@ -293,6 +294,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.BalanceWaitingListsFlag))
 	require.True(t, handler.IsFlagEnabled(common.WaitingListFixFlag))
 	require.True(t, handler.IsFlagEnabled(common.NFTStopCreateFlag))
+	require.True(t, handler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -401,6 +403,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.GetActivationEpoch(common.BalanceWaitingListsFlag))
 	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.GetActivationEpoch(common.WaitingListFixFlag))
 	require.Equal(t, cfg.NFTStopCreateEnableEpoch, handler.GetActivationEpoch(common.NFTStopCreateFlag))
+	require.Equal(t, cfg.CurrentRandomnessOnSortingEnableEpoch, handler.GetActivationEpoch(common.CurrentRandomnessOnSortingFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

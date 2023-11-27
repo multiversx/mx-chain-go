@@ -18,6 +18,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -928,11 +929,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	randomness := metaBlock.GetPrevRandSeed()
-	if mp.enableEpochsHandler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag) {
-		randomness = metaBlock.GetRandSeed()
-	}
-
+	randomness := helpers.ComputeRandomnessForTxSorting(metaBlock, mp.enableEpochsHandler)
 	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, err

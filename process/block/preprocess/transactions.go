@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -140,6 +141,7 @@ func NewTransactionPreprocessor(
 		common.OptimizeGasUsedInCrossMiniBlocksFlag,
 		common.ScheduledMiniBlocksFlag,
 		common.FrontRunningProtectionFlag,
+		common.CurrentRandomnessOnSortingFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -332,10 +334,7 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	if txs.isBodyFromMe(body) {
-		randomness := header.GetPrevRandSeed()
-		if txs.enableEpochsHandler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag) {
-			randomness = header.GetRandSeed()
-		}
+		randomness := helpers.ComputeRandomnessForTxSorting(header, txs.enableEpochsHandler)
 		return txs.processTxsFromMe(body, haveTime, randomness)
 	}
 
