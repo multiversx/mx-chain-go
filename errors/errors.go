@@ -679,3 +679,6 @@ var ErrExtraSignerIdAlreadyExists = errors.New("an extra signer with the same id
 
 // ErrNilExtraHeaderSigVerifierHolder signals that a nil extra sig verifier holder has been provided
 var ErrNilExtraHeaderSigVerifierHolder = errors.New("nil extra sig verifier holder has been provided")
+
+// ErrNilConsensusMessage signals that a nil consensus message has been provided
+var ErrNilConsensusMessage = errors.New("nil consensus message has been provided")

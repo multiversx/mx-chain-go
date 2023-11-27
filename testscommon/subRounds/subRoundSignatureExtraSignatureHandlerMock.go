@@ -8,7 +8,7 @@ import (
 // SubRoundSignatureExtraSignatureHandlerMock -
 type SubRoundSignatureExtraSignatureHandlerMock struct {
 	CreateSignatureShareCalled          func(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
-	AddSigShareToConsensusMessageCalled func(sigShare []byte, cnsMsg *consensus.Message)
+	AddSigShareToConsensusMessageCalled func(sigShare []byte, cnsMsg *consensus.Message) error
 	StoreSignatureShareCalled           func(index uint16, cnsMsg *consensus.Message) error
 	IdentifierCalled                    func() string
 }
@@ -22,10 +22,11 @@ func (mock *SubRoundSignatureExtraSignatureHandlerMock) CreateSignatureShare(hea
 }
 
 // AddSigShareToConsensusMessage -
-func (mock *SubRoundSignatureExtraSignatureHandlerMock) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) {
+func (mock *SubRoundSignatureExtraSignatureHandlerMock) AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *consensus.Message) error {
 	if mock.AddSigShareToConsensusMessageCalled != nil {
-		mock.AddSigShareToConsensusMessageCalled(sigShare, cnsMsg)
+		return mock.AddSigShareToConsensusMessageCalled(sigShare, cnsMsg)
 	}
+	return nil
 }
 
 // StoreSignatureShare -

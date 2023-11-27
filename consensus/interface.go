@@ -57,7 +57,7 @@ type SubRoundStartExtraSignatureHandler interface {
 // SubRoundSignatureExtraSignatureHandler defines an extra signer during signature subround in a consensus process
 type SubRoundSignatureExtraSignatureHandler interface {
 	CreateSignatureShare(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
-	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *Message)
+	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *Message) error
 	StoreSignatureShare(index uint16, cnsMsg *Message) error
 	Identifier() string
 	IsInterfaceNil() bool
