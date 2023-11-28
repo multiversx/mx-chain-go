@@ -688,3 +688,6 @@ var ErrNilSubRoundEndV2Creator = errors.New("nil sub round end v2 creator has be
 
 // ErrNilBridgeOpHandler signals that a nil bridge operation handler has been provided
 var ErrNilBridgeOpHandler = errors.New("nil bridge operation handler has been provided")
+
+// ErrOutGoingOperationsNotFound signals that an outgoing operation could not be found
+var ErrOutGoingOperationsNotFound = errors.New("outgoing operation could not be found")

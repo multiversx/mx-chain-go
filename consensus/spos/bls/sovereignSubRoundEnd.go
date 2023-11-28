@@ -2,6 +2,8 @@ package bls
 
 import (
 	"context"
+	"encoding/hex"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -50,13 +52,9 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return false
 	}
 
-	if !(sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()) {
-		return true
-	}
-
 	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		log.Error("%w in sovereignSubRoundEnd.doSovereignEndRoundJob", errors.ErrWrongTypeAssertion)
+		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob", "error", errors.ErrWrongTypeAssertion)
 		return false
 	}
 
@@ -65,8 +63,17 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return true
 	}
 
-	err := sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
-		Data: sr.getOutGoingOperations(outGoingMBHeader),
+	currBridgeData, err := sr.updateBridgeDataWithSignatures(outGoingMBHeader)
+	if err != nil {
+		return false
+	}
+
+	if !(sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()) {
+		return true
+	}
+
+	err = sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
+		Data: sr.getAllOutGoingOperations(currBridgeData),
 	})
 
 	if err != nil {
@@ -76,17 +83,32 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 	return true
 }
 
-func (sr *sovereignSubRoundEnd) getOutGoingOperations(outGoingMBHeader data.OutGoingMiniBlockHeaderHandler) []*sovereign.BridgeOutGoingData {
-	outGoingOperations := make([]*sovereign.BridgeOutGoingData, 0)
+func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
+	outGoingMBHeader data.OutGoingMiniBlockHeaderHandler,
+) (*sovereign.BridgeOutGoingData, error) {
+	hash := outGoingMBHeader.GetOutGoingOperationsHash()
+	currBridgeData := sr.outGoingOperationsPool.Get(hash)
+	if currBridgeData == nil {
+		return nil, fmt.Errorf("%w in sovereignSubRoundEnd.updateBridgeDataWithSignatures for hash: %s",
+			errors.ErrOutGoingOperationsNotFound, hex.EncodeToString(hash))
+	}
 
+	currBridgeData.LeaderSignature = outGoingMBHeader.GetLeaderSignatureOutGoingOperations()
+	currBridgeData.AggregatedSignature = outGoingMBHeader.GetAggregatedSignatureOutGoingOperations()
+
+	sr.outGoingOperationsPool.Delete(hash)
+	sr.outGoingOperationsPool.Add(currBridgeData)
+	return currBridgeData, nil
+}
+
+func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sovereign.BridgeOutGoingData) []*sovereign.BridgeOutGoingData {
+	outGoingOperations := make([]*sovereign.BridgeOutGoingData, 0)
 	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
 	if len(unconfirmedOperations) != 0 {
 		log.Debug("found unconfirmed operations", "num unconfirmed operations", len(unconfirmedOperations))
 		outGoingOperations = append(outGoingOperations, unconfirmedOperations...)
 	}
 
-	hash := outGoingMBHeader.GetOutGoingOperationsHash()
-	currentOperations := sr.outGoingOperationsPool.Get(hash)
 	return append(outGoingOperations, currentOperations)
 }
 
