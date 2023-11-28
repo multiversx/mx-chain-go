@@ -825,7 +825,7 @@ func TestEnableEpochConfig(t *testing.T) {
     NFTStopCreateEnableEpoch = 89
 
 	# CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
-	CurrentRandomnessOnSortingEnableEpoch = 90
+    CurrentRandomnessOnSortingEnableEpoch = 90
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
