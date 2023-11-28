@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -360,12 +359,12 @@ func (bn *branchNode) commitSnapshot(
 
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), db)
+		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
 		if err != nil {
-			if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
-				treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
-				continue
-			}
 			return err
+		}
+		if childIsMissing {
+			continue
 		}
 
 		if bn.children[i] == nil {
