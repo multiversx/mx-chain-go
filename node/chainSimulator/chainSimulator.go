@@ -169,6 +169,9 @@ func (s *simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
 
 // GetRestAPIInterfaces will return a map with the rest api interfaces for every node
 func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	resMap := make(map[uint32]string)
 	for shardID, node := range s.nodes {
 		resMap[shardID] = node.GetFacadeHandler().RestApiInterface()
@@ -204,6 +207,9 @@ func (s *simulator) SetState(address string, state map[string]string) error {
 
 // Close will stop and close the simulator
 func (s *simulator) Close() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	var errorStrings []string
 	for _, n := range s.nodes {
 		err := n.Close()
