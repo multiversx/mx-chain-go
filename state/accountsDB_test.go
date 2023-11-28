@@ -20,11 +20,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -35,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -48,24 +49,36 @@ import (
 const trieDbOperationDelay = time.Second
 
 func createMockAccountsDBArgs() state.ArgsAccountsDB {
+	accCreator := &stateMock.AccountsFactoryStub{
+		CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			return stateMock.NewAccountWrapMock(address), nil
+		},
+	}
+
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           &marshallerMock.MarshalizerMock{},
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
+		AccountFactory:       accCreator,
+		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
+
 	return state.ArgsAccountsDB{
 		Trie: &trieMock.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &storageManager.StorageManagerStub{}
 			},
 		},
-		Hasher:     &hashingMocks.HasherMock{},
-		Marshaller: &marshallerMock.MarshalizerMock{},
-		AccountFactory: &stateMock.AccountsFactoryStub{
-			CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return stateMock.NewAccountWrapMock(address), nil
-			},
-		},
+		Hasher:                &hashingMocks.HasherMock{},
+		Marshaller:            &marshallerMock.MarshalizerMock{},
+		AccountFactory:        accCreator,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      snapshotsManager,
 	}
 }
 
@@ -133,16 +146,26 @@ func getDefaultStateComponents(
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           marshaller,
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
+		AccountFactory:       accCreator,
+		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
+
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      snapshotsManager,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -202,25 +225,25 @@ func TestNewAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilStoragePruningManager, err)
 	})
-	t.Run("nil process status handler should error", func(t *testing.T) {
+	t.Run("nil address converter should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockAccountsDBArgs()
-		args.ProcessStatusHandler = nil
+		args.AddressConverter = nil
 
 		adb, err := state.NewAccountsDB(args)
 		assert.True(t, check.IfNil(adb))
-		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
+		assert.Equal(t, state.ErrNilAddressConverter, err)
 	})
-	t.Run("nil app status handler should error", func(t *testing.T) {
+	t.Run("nil snapshots manager should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockAccountsDBArgs()
-		args.AppStatusHandler = nil
+		args.SnapshotsManager = nil
 
 		adb, err := state.NewAccountsDB(args)
 		assert.True(t, check.IfNil(adb))
-		assert.Equal(t, state.ErrNilAppStatusHandler, err)
+		assert.Equal(t, state.ErrNilSnapshotsManager, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -2121,6 +2144,9 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 			RecreateCalled: func(root []byte) (common.Trie, error) {
 				return &trieMock.TrieStub{}, nil
 			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
 		}
 
 		adb, _ := state.NewAccountsDB(args)
@@ -2148,6 +2174,9 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 			},
 			RecreateCalled: func(root []byte) (common.Trie, error) {
 				return &trieMock.TrieStub{}, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
 			},
 		}
 
@@ -2319,6 +2348,9 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 				assert.Equal(t, rootHash, root)
 				return &trieMock.TrieStub{}, nil
 			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
 		}
 		adb, _ := state.NewAccountsDB(args)
 
@@ -2416,7 +2448,17 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 		}
 
 		args := createMockAccountsDBArgs()
-		args.ProcessingMode = common.ImportDb
+		args.SnapshotsManager, _ = state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+			ProcessingMode:       common.ImportDb,
+			Marshaller:           &marshallerMock.MarshalizerMock{},
+			AddressConverter:     &testscommon.PubkeyConverterMock{},
+			ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+			StateMetrics:         &stateMock.StateMetricsStub{},
+			AccountFactory:       args.AccountFactory,
+			ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+			LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+			StateStatsHandler:    statistics.NewStateStatistics(),
+		})
 		args.Trie = trieStub
 
 		adb, _ := state.NewAccountsDB(args)

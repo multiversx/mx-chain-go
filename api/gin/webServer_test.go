@@ -2,6 +2,7 @@ package gin
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/testscommon/api"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -173,4 +175,31 @@ func TestWebServer_UpdateFacade(t *testing.T) {
 		err := ws.UpdateFacade(&mock.FacadeStub{})
 		require.Nil(t, err)
 	})
+}
+
+func TestWebServer_CloseWithDisabledServerShouldNotPanic(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+		}
+	}()
+
+	args := createMockArgsNewWebServer()
+	args.Facade = &mock.FacadeStub{
+		RestApiInterfaceCalled: func() string {
+			return facade.DefaultRestPortOff
+		},
+	}
+
+	ws, _ := NewGinWebServerHandler(args)
+	require.NotNil(t, ws)
+
+	err := ws.StartHttpServer()
+	require.Nil(t, err)
+
+	err = ws.Close()
+	assert.Nil(t, err)
 }

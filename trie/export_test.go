@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -101,11 +102,12 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	}
 
 	return NewTrieStorageManagerArgs{
-		MainStorer:    testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:   &marshal.GogoProtoMarshalizer{},
-		Hasher:        &testscommon.KeccakMock{},
-		GeneralConfig: generalCfg,
-		IdleProvider:  &testscommon.ProcessStatusHandlerStub{},
-		Identifier:    dataRetriever.UserAccountsUnit.String(),
+		MainStorer:     testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		Hasher:         &testscommon.KeccakMock{},
+		GeneralConfig:  generalCfg,
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     dataRetriever.UserAccountsUnit.String(),
+		StatsCollector: statistics.NewStateStatistics(),
 	}
 }

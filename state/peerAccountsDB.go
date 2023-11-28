@@ -3,9 +3,6 @@ package state
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
-	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 )
 
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
@@ -20,34 +17,8 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		return nil, err
 	}
 
-	argStateMetrics := stateMetrics.ArgsStateMetrics{
-		SnapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
-		LastSnapshotDurationKey: common.MetricLastPeersSnapshotDurationSec,
-		SnapshotMessage:         stateMetrics.PeerTrieSnapshotMsg,
-	}
-	sm, err := stateMetrics.NewStateMetrics(argStateMetrics, args.AppStatusHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	argsSnapshotsManager := ArgsNewSnapshotsManager{
-		ShouldSerializeSnapshots: args.ShouldSerializeSnapshots,
-		ProcessingMode:           args.ProcessingMode,
-		Marshaller:               args.Marshaller,
-		AddressConverter:         args.AddressConverter,
-		ProcessStatusHandler:     args.ProcessStatusHandler,
-		StateMetrics:             sm,
-		ChannelsProvider:         iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider(),
-		AccountFactory:           args.AccountFactory,
-		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
-	}
-	snapshotManager, err := NewSnapshotsManager(argsSnapshotsManager)
-	if err != nil {
-		return nil, err
-	}
-
 	adb := &PeerAccountsDB{
-		AccountsDB: createAccountsDb(args, snapshotManager),
+		AccountsDB: createAccountsDb(args),
 	}
 
 	return adb, nil

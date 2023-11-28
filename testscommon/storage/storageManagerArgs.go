@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
@@ -20,8 +21,9 @@ func GetStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 			SnapshotsBufferLen:    10,
 			SnapshotsGoroutineNum: 2,
 		},
-		IdleProvider: &testscommon.ProcessStatusHandlerStub{},
-		Identifier:   dataRetriever.UserAccountsUnit.String(),
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     dataRetriever.UserAccountsUnit.String(),
+		StatsCollector: disabled.NewStateStatistics(),
 	}
 }
 

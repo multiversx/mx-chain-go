@@ -118,6 +118,7 @@ type StorageManager interface {
 type TrieStorageInteractor interface {
 	BaseStorer
 	GetIdentifier() string
+	GetStateStatsHandler() StateStatisticsHandler
 }
 
 // BaseStorer define the base methods needed for a storer
@@ -214,6 +215,30 @@ type TriesStatisticsCollector interface {
 	Add(trieStats TrieStatisticsHandler, trieType TrieType)
 	Print()
 	GetNumNodes() uint64
+}
+
+// StateStatisticsHandler defines the behaviour of a storage statistics handler
+type StateStatisticsHandler interface {
+	Reset()
+	ResetSnapshot()
+
+	IncrCache()
+	Cache() uint64
+	IncrSnapshotCache()
+	SnapshotCache() uint64
+
+	IncrPersister(epoch uint32)
+	Persister(epoch uint32) uint64
+	IncrSnapshotPersister(epoch uint32)
+	SnapshotPersister(epoch uint32) uint64
+
+	IncrTrie()
+	Trie() uint64
+
+	ProcessingStats() []string
+	SnapshotStats() []string
+
+	IsInterfaceNil() bool
 }
 
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and

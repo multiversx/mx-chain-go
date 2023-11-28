@@ -23,6 +23,7 @@ type ArgsNewSnapshotsManager struct {
 	StateMetrics             StateMetrics
 	AccountFactory           AccountFactory
 	ChannelsProvider         IteratorChannelsProvider
+	StateStatsHandler        StateStatsHandler
 	LastSnapshotMarker       LastSnapshotMarker
 }
 
@@ -40,6 +41,7 @@ type snapshotsManager struct {
 	processStatusHandler common.ProcessStatusHandler
 	channelsProvider     IteratorChannelsProvider
 	accountFactory       AccountFactory
+	stateStatsHandler    StateStatsHandler
 	mutex                sync.RWMutex
 }
 
@@ -63,6 +65,9 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 	if check.IfNil(args.AccountFactory) {
 		return nil, ErrNilAccountFactory
 	}
+	if check.IfNil(args.StateStatsHandler) {
+		return nil, ErrNilStatsHandler
+	}
 	if check.IfNil(args.LastSnapshotMarker) {
 		return nil, ErrNilLastSnapshotMarker
 	}
@@ -80,6 +85,7 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 		channelsProvider:         args.ChannelsProvider,
 		mutex:                    sync.RWMutex{},
 		accountFactory:           args.AccountFactory,
+		stateStatsHandler:        args.StateStatsHandler,
 		lastSnapshotMarker:       args.LastSnapshotMarker,
 	}, nil
 }
@@ -194,6 +200,8 @@ func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieS
 	sm.lastSnapshot.epoch = epoch
 	trieStorageManager.EnterPruningBufferingMode()
 	stats := newSnapshotStatistics(1, 1)
+
+	sm.stateStatsHandler.ResetSnapshot()
 
 	return stats, false
 }
@@ -328,6 +336,7 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	defer func() {
 		sm.isSnapshotInProgress.Reset()
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
+		sm.printStorageStatistics()
 		errChan.Close()
 	}()
 
@@ -345,6 +354,15 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+}
+
+func (sm *snapshotsManager) printStorageStatistics() {
+	stats := sm.stateStatsHandler.SnapshotStats()
+	if stats != nil {
+		log.Debug("snapshot storage statistics",
+			"stats", stats,
+		)
+	}
 }
 
 func (sm *snapshotsManager) finishSnapshotOperation(

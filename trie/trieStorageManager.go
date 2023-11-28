@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
@@ -30,6 +31,7 @@ type trieStorageManager struct {
 	closed                bool
 	idleProvider          IdleNodeProvider
 	identifier            string
+	statsCollector        common.StateStatisticsHandler
 }
 
 type snapshotsQueueEntry struct {
@@ -44,12 +46,13 @@ type snapshotsQueueEntry struct {
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
 type NewTrieStorageManagerArgs struct {
-	MainStorer    common.BaseStorer
-	Marshalizer   marshal.Marshalizer
-	Hasher        hashing.Hasher
-	GeneralConfig config.TrieStorageManagerConfig
-	IdleProvider  IdleNodeProvider
-	Identifier    string
+	MainStorer     common.BaseStorer
+	Marshalizer    marshal.Marshalizer
+	Hasher         hashing.Hasher
+	GeneralConfig  config.TrieStorageManagerConfig
+	IdleProvider   IdleNodeProvider
+	Identifier     string
+	StatsCollector common.StateStatisticsHandler
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -69,6 +72,9 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if len(args.Identifier) == 0 {
 		return nil, ErrInvalidIdentifier
 	}
+	if check.IfNil(args.StatsCollector) {
+		return nil, storage.ErrNilStatsCollector
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -80,6 +86,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		closer:             closing.NewSafeChanCloser(),
 		idleProvider:       args.IdleProvider,
 		identifier:         args.Identifier,
+		statsCollector:     args.StatsCollector,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
@@ -169,6 +176,11 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	}
 
 	return val, nil
+}
+
+// GetStateStatsHandler will return the state statistics component
+func (tsm *trieStorageManager) GetStateStatsHandler() common.StateStatisticsHandler {
+	return tsm.statsCollector
 }
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found

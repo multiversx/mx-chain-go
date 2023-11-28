@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
@@ -73,6 +75,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: true,
 		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
+		StateStatsHandler:             disabledStatistics.NewStateStatistics(),
 	}
 }
 
@@ -111,6 +114,15 @@ func TestNewStorageServiceFactory(t *testing.T) {
 		args.ShardCoordinator = nil
 		storageServiceFactory, err := NewStorageServiceFactory(args)
 		assert.Equal(t, storage.ErrNilShardCoordinator, err)
+		assert.Nil(t, storageServiceFactory)
+	})
+	t.Run("nil state statistics handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StateStatsHandler = nil
+		storageServiceFactory, err := NewStorageServiceFactory(args)
+		assert.Equal(t, statistics.ErrNilStateStatsHandler, err)
 		assert.Nil(t, storageServiceFactory)
 	})
 	t.Run("nil path manager should error", func(t *testing.T) {
