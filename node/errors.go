@@ -138,3 +138,12 @@ var ErrNilStatusHandler = errors.New("nil status handler")
 
 // ErrNilCreateTransactionArgs signals that create transaction args is nil
 var ErrNilCreateTransactionArgs = errors.New("nil args for create transaction")
+
+// ErrNilComponentHandler signals that a nil component handler was provided
+var ErrNilComponentHandler = errors.New("nil component handler")
+
+// ErrDuplicatedComponentHandler signals that a duplicated component handler was provided
+var ErrDuplicatedComponentHandler = errors.New("duplicated component handler")
+
+// ErrInvalidComponentHandler signals that an invalid component handler was provided
+var ErrInvalidComponentHandler = errors.New("invalid component handler")

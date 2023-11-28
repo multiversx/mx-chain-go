@@ -754,33 +754,26 @@ func TestTrieStorageManager_PutInEpochWithoutCache(t *testing.T) {
 func TestTrieStorageManager_Close(t *testing.T) {
 	t.Parallel()
 
-	t.Run("error on main storer close", func(t *testing.T) {
+	t.Run("should not call Close on provided storers", func(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.MainStorer = &storage.StorerStub{
 			CloseCalled: func() error {
-				return expectedErr
+				assert.Fail(t, "should have not called Close on the main storer")
+				return nil
 			},
 		}
-		ts, _ := trie.NewTrieStorageManager(args)
-
-		err := ts.Close()
-		assert.True(t, errorsGo.Is(err, expectedErr))
-	})
-	t.Run("error on checkpoints storer close", func(t *testing.T) {
-		t.Parallel()
-
-		args := trie.GetDefaultTrieStorageManagerParameters()
 		args.CheckpointsStorer = &storage.StorerStub{
 			CloseCalled: func() error {
-				return expectedErr
+				assert.Fail(t, "should have not called Close on the checkpoint storer")
+				return nil
 			},
 		}
 		ts, _ := trie.NewTrieStorageManager(args)
 
 		err := ts.Close()
-		assert.True(t, errorsGo.Is(err, expectedErr))
+		assert.Nil(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

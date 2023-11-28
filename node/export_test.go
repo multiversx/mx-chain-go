@@ -20,8 +20,15 @@ func (n *Node) ComputeProof(rootHash []byte, key []byte) (*common.GetProofRespon
 }
 
 // AddClosableComponents -
-func (n *Node) AddClosableComponents(components ...factory.Closer) {
-	n.closableComponents = append(n.closableComponents, components...)
+func (n *Node) AddClosableComponents(components ...factory.ComponentHandler) error {
+	for _, component := range components {
+		err := n.closableComponents.addManagedComponent(component)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // AddBlockCoordinatesToAccountQueryOptions -

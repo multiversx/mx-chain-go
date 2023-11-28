@@ -97,7 +97,7 @@ type Node struct {
 	stateComponents       mainFactory.StateComponentsHolder
 	statusComponents      mainFactory.StatusComponentsHolder
 
-	closableComponents        []mainFactory.Closer
+	closableComponents        *managedComponentsCloser
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 }
@@ -116,10 +116,9 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		queryHandlers: make(map[string]debug.QueryHandler),
+		queryHandlers:      make(map[string]debug.QueryHandler),
+		closableComponents: newManagedComponentsCloser(),
 	}
-
-	node.closableComponents = make([]mainFactory.Closer, 0)
 
 	err := node.ApplyOptions(opts...)
 	if err != nil {
@@ -1270,28 +1269,7 @@ func (n *Node) Close() error {
 		log.LogIfError(qh.Close())
 	}
 
-	var closeError error = nil
-
-	allComponents := make([]string, 0, len(n.closableComponents))
-	for i := len(n.closableComponents) - 1; i >= 0; i-- {
-		managedComponent := n.closableComponents[i]
-		allComponents = append(allComponents, fmt.Sprintf("%v", managedComponent))
-	}
-
-	log.Debug("closing all managed components", "all components that will be closed, in order", strings.Join(allComponents, ", "))
-	for i := len(n.closableComponents) - 1; i >= 0; i-- {
-		managedComponent := n.closableComponents[i]
-		componentName := n.getClosableComponentName(managedComponent, i)
-		log.Debug("closing", "managedComponent", componentName)
-		err := managedComponent.Close()
-		if err != nil {
-			if closeError == nil {
-				closeError = ErrNodeCloseFailed
-			}
-			closeError = fmt.Errorf("%w, err: %s", closeError, err.Error())
-		}
-		log.Debug("closed", "managedComponent", componentName)
-	}
+	closeError := n.closableComponents.close()
 
 	time.Sleep(time.Second * 5)
 

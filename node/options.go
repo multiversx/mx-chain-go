@@ -25,9 +25,8 @@ func WithBootstrapComponents(bootstrapComponents factory.BootstrapComponentsHand
 			return err
 		}
 		n.bootstrapComponents = bootstrapComponents
-		n.closableComponents = append(n.closableComponents, bootstrapComponents)
 
-		return nil
+		return n.closableComponents.addManagedComponent(bootstrapComponents)
 	}
 }
 
@@ -42,8 +41,8 @@ func WithCoreComponents(coreComponents factory.CoreComponentsHandler) Option {
 			return err
 		}
 		n.coreComponents = coreComponents
-		n.closableComponents = append(n.closableComponents, coreComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(coreComponents)
 	}
 }
 
@@ -58,8 +57,8 @@ func WithStatusCoreComponents(statusCoreComponents factory.StatusCoreComponentsH
 			return err
 		}
 		n.statusCoreComponents = statusCoreComponents
-		n.closableComponents = append(n.closableComponents, statusCoreComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(statusCoreComponents)
 	}
 }
 
@@ -74,8 +73,8 @@ func WithCryptoComponents(cryptoComponents factory.CryptoComponentsHandler) Opti
 			return err
 		}
 		n.cryptoComponents = cryptoComponents
-		n.closableComponents = append(n.closableComponents, cryptoComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(cryptoComponents)
 	}
 }
 
@@ -90,8 +89,8 @@ func WithDataComponents(dataComponents factory.DataComponentsHandler) Option {
 			return err
 		}
 		n.dataComponents = dataComponents
-		n.closableComponents = append(n.closableComponents, dataComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(dataComponents)
 	}
 }
 
@@ -106,8 +105,8 @@ func WithNetworkComponents(networkComponents factory.NetworkComponentsHandler) O
 			return err
 		}
 		n.networkComponents = networkComponents
-		n.closableComponents = append(n.closableComponents, networkComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(networkComponents)
 	}
 }
 
@@ -122,8 +121,8 @@ func WithProcessComponents(processComponents factory.ProcessComponentsHandler) O
 			return err
 		}
 		n.processComponents = processComponents
-		n.closableComponents = append(n.closableComponents, processComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(processComponents)
 	}
 }
 
@@ -138,8 +137,8 @@ func WithStateComponents(stateComponents factory.StateComponentsHandler) Option 
 			return err
 		}
 		n.stateComponents = stateComponents
-		n.closableComponents = append(n.closableComponents, stateComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(stateComponents)
 	}
 }
 
@@ -154,8 +153,8 @@ func WithStatusComponents(statusComponents factory.StatusComponentsHandler) Opti
 			return err
 		}
 		n.statusComponents = statusComponents
-		n.closableComponents = append(n.closableComponents, statusComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(statusComponents)
 	}
 }
 
@@ -170,8 +169,8 @@ func WithHeartbeatV2Components(heartbeatV2Components factory.HeartbeatV2Componen
 			return err
 		}
 		n.heartbeatV2Components = heartbeatV2Components
-		n.closableComponents = append(n.closableComponents, heartbeatV2Components)
-		return nil
+
+		return n.closableComponents.addManagedComponent(heartbeatV2Components)
 	}
 }
 
@@ -186,8 +185,8 @@ func WithConsensusComponents(consensusComponents factory.ConsensusComponentsHand
 			return err
 		}
 		n.consensusComponents = consensusComponents
-		n.closableComponents = append(n.closableComponents, consensusComponents)
-		return nil
+
+		return n.closableComponents.addManagedComponent(consensusComponents)
 	}
 }
 

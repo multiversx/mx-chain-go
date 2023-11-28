@@ -257,7 +257,7 @@ func (pcs *ProcessComponentsStub) CurrentEpochProvider() process.CurrentNetworkE
 
 // String -
 func (pcs *ProcessComponentsStub) String() string {
-	return "ProcessComponentsStub"
+	return "managedProcessComponents"
 }
 
 // ScheduledTxsExecutionHandler -

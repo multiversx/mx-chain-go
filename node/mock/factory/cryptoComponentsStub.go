@@ -191,7 +191,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 
 // String -
 func (ccm *CryptoComponentsMock) String() string {
-	return "CryptoComponentsMock"
+	return "managedCryptoComponents"
 }
 
 // IsInterfaceNil -

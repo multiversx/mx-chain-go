@@ -199,7 +199,7 @@ func (ccs *CryptoComponentsStub) Clone() interface{} {
 
 // String -
 func (ccs *CryptoComponentsStub) String() string {
-	return "CryptoComponentsStub"
+	return "managedCryptoComponents"
 }
 
 // IsInterfaceNil -

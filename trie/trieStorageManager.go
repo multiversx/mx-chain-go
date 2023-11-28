@@ -287,6 +287,11 @@ func (tsm *trieStorageManager) EnterPruningBufferingMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	if tsm.closed {
+		log.Trace("trieStorageManager EnterPruningBufferingMode context closing")
+		return
+	}
+
 	tsm.pruningBlockingOps++
 
 	log.Trace("enter pruning buffering state", "operations in progress that block pruning", tsm.pruningBlockingOps)
@@ -297,6 +302,11 @@ func (tsm *trieStorageManager) EnterPruningBufferingMode() {
 func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if tsm.closed {
+		log.Trace("trieStorageManager ExitPruningBufferingMode context closing")
+		return
+	}
 
 	if tsm.pruningBlockingOps < 1 {
 		log.Error("ExitPruningBufferingMode called too many times")
@@ -312,6 +322,11 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if tsm.closed {
+		log.Trace("trieStorageManager GetLatestStorageEpoch context closing")
+		return 0, core.ErrContextClosing
+	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
@@ -565,6 +580,11 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
+	if tsm.closed {
+		log.Trace("trieStorageManager Remove context closing", "key", hash)
+		return core.ErrContextClosing
+	}
+
 	tsm.checkpointHashesHolder.Remove(hash)
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
@@ -578,6 +598,11 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if tsm.closed {
+		log.Trace("trieStorageManager RemoveFromAllActiveEpochs context closing", "key", hash)
+		return core.ErrContextClosing
+	}
 
 	tsm.checkpointHashesHolder.Remove(hash)
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
@@ -593,6 +618,11 @@ func (tsm *trieStorageManager) RemoveFromCheckpointHashesHolder(hash []byte) {
 	//TODO check if the mutex is really needed here
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
+
+	if tsm.closed {
+		log.Trace("trieStorageManager RemoveFromCheckpointHashesHolder context closing", "key", hash)
+		return
+	}
 
 	log.Trace("trie storage manager: RemoveFromCheckpointHashesHolder", "hash", hash)
 
@@ -618,24 +648,6 @@ func (tsm *trieStorageManager) Close() error {
 	// calling close on the SafeCloser instance should be the last instruction called
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer tsm.closer.Close()
-
-	var err error
-
-	errMainStorerClose := tsm.mainStorer.Close()
-	if errMainStorerClose != nil {
-		log.Error("trieStorageManager.Close mainStorerClose", "error", errMainStorerClose)
-		err = errMainStorerClose
-	}
-
-	errCheckpointsStorerClose := tsm.checkpointsStorer.Close()
-	if errCheckpointsStorerClose != nil {
-		log.Error("trieStorageManager.Close checkpointsStorerClose", "error", errCheckpointsStorerClose)
-		err = errCheckpointsStorerClose
-	}
-
-	if err != nil {
-		return fmt.Errorf("trieStorageManager close failed: %w", err)
-	}
 
 	return nil
 }

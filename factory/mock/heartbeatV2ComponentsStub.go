@@ -24,7 +24,7 @@ func (hbc *HeartbeatV2ComponentsStub) CheckSubcomponents() error {
 
 // String -
 func (hbc *HeartbeatV2ComponentsStub) String() string {
-	return ""
+	return "managedHeartbeatV2Components"
 }
 
 // Monitor -

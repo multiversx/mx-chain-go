@@ -11,9 +11,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/api"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -151,21 +153,25 @@ func TestWaitForSignal(t *testing.T) {
 			return nil
 		},
 	}
-	internalNodeClosableComponent1 := &mock.CloserStub{
+	internalNodeClosableComponent1 := &components.ComponentHandlerStub{
+		Name: factory.CoreComponentsName,
 		CloseCalled: func() error {
-			closedCalled["node closable component 1"] = struct{}{}
+			closedCalled[factory.CoreComponentsName] = struct{}{}
 			return nil
 		},
 	}
-	internalNodeClosableComponent2 := &mock.CloserStub{
+	internalNodeClosableComponent2 := &components.ComponentHandlerStub{
+		Name: factory.StatusComponentsName,
 		CloseCalled: func() error {
-			closedCalled["node closable component 2"] = struct{}{}
+			closedCalled[factory.StatusComponentsName] = struct{}{}
 			return nil
 		},
 	}
 	n, _ := NewNode()
-	n.closableComponents = append(n.closableComponents, internalNodeClosableComponent1)
-	n.closableComponents = append(n.closableComponents, internalNodeClosableComponent2)
+	err := n.AddClosableComponents(internalNodeClosableComponent1)
+	assert.Nil(t, err)
+	err = n.AddClosableComponents(internalNodeClosableComponent2)
+	assert.Nil(t, err)
 
 	// do not run these tests in parallel as they are using the same map
 	t.Run("should return nextOperationShouldStop if SIGINT is received", func(t *testing.T) {
@@ -189,7 +195,7 @@ func TestWaitForSignal(t *testing.T) {
 		)
 
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
-		checkCloseCalledMap(t, closedCalled)
+		assert.Equal(t, createExpectedComponentsCalledMap(), closedCalled)
 	})
 	t.Run("should return nextOperationShouldRestart if shuffled out is received", func(t *testing.T) {
 		closedCalled = make(map[string]struct{})
@@ -215,7 +221,7 @@ func TestWaitForSignal(t *testing.T) {
 		)
 
 		assert.Equal(t, nextOperationShouldRestart, nextOperation)
-		checkCloseCalledMap(t, closedCalled)
+		assert.Equal(t, createExpectedComponentsCalledMap(), closedCalled)
 	})
 	t.Run("wrong configuration should not stop the node", func(t *testing.T) {
 		closedCalled = make(map[string]struct{})
@@ -251,16 +257,18 @@ func TestWaitForSignal(t *testing.T) {
 			// ok, timeout reached, function did not finish
 		}
 
-		checkCloseCalledMap(t, closedCalled)
+		assert.Equal(t, createExpectedComponentsCalledMap(), closedCalled)
 	})
 
-	delayedComponent := &mock.CloserStub{
+	delayedComponent := &components.ComponentHandlerStub{
+		Name: factory.ConsensusComponentsName,
 		CloseCalled: func() error {
 			time.Sleep(time.Minute)
 			return nil
 		},
 	}
-	n.closableComponents = append(n.closableComponents, delayedComponent)
+	err = n.AddClosableComponents(delayedComponent)
+	assert.Nil(t, err)
 
 	t.Run("force closing the node when SIGINT is received", func(t *testing.T) {
 		closedCalled = make(map[string]struct{})
@@ -282,11 +290,15 @@ func TestWaitForSignal(t *testing.T) {
 			1,
 		)
 
+		assert.Equal(t, nextOperationShouldStop, nextOperation)
+
+		expectedMap := createExpectedComponentsCalledMap()
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
 		// as the closable components are called in reversed order
-		exceptions := []string{"node closable component 1", "node closable component 2"}
-		assert.Equal(t, nextOperationShouldStop, nextOperation)
-		checkCloseCalledMap(t, closedCalled, exceptions...)
+		delete(expectedMap, factory.CoreComponentsName)
+		delete(expectedMap, factory.StatusComponentsName)
+
+		assert.Equal(t, expectedMap, closedCalled)
 	})
 	t.Run("force closing the node when shuffle out is received", func(t *testing.T) {
 		closedCalled = make(map[string]struct{})
@@ -311,36 +323,23 @@ func TestWaitForSignal(t *testing.T) {
 			1,
 		)
 
+		expectedMap := createExpectedComponentsCalledMap()
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
 		// as the closable components are called in reversed order
-		exceptions := []string{"node closable component 1", "node closable component 2"}
+		delete(expectedMap, factory.CoreComponentsName)
+		delete(expectedMap, factory.StatusComponentsName)
 		// in this case, even if the node is shuffled out, it should stop as some components were not closed
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
-		checkCloseCalledMap(t, closedCalled, exceptions...)
+		assert.Equal(t, expectedMap, closedCalled)
 	})
 }
 
-func checkCloseCalledMap(tb testing.TB, closedCalled map[string]struct{}, exceptions ...string) {
-	allKeys := []string{"healthService", "facade", "http", "node closable component 1", "node closable component 2"}
-	numKeys := 0
-	for _, key := range allKeys {
-		if contains(key, exceptions) {
-			continue
-		}
-
-		numKeys++
-		assert.Contains(tb, closedCalled, key)
+func createExpectedComponentsCalledMap() map[string]struct{} {
+	return map[string]struct{}{
+		"healthService":              {},
+		"facade":                     {},
+		"http":                       {},
+		factory.CoreComponentsName:   {},
+		factory.StatusComponentsName: {},
 	}
-
-	assert.Equal(tb, numKeys, len(closedCalled))
-}
-
-func contains(needle string, haystack []string) bool {
-	for _, element := range haystack {
-		if needle == element {
-			return true
-		}
-	}
-
-	return false
 }
