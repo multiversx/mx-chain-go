@@ -4,6 +4,7 @@ package trie
 import (
 	"context"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -271,14 +272,22 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 	}
 }
 
-func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
+func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) (bool, error) {
+	if err == nil {
+		return false, nil
+	}
+
+	if !strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
+		return false, err
+	}
+
 	if core.IsClosingError(err) {
-		log.Debug("context closing", "hash", hash)
-		return
+		return false, err
 	}
 
 	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
 	missingNodesChan <- hash
+	return true, nil
 }
 
 func shouldMigrateCurrentNode(

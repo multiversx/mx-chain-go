@@ -1351,7 +1351,7 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	missingNodesChan := make(chan []byte, 10)
 	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Nil(t, err)
+	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -547,10 +546,8 @@ func newSnapshotNode(
 	missingNodesCh chan []byte,
 ) (snapshotNode, error) {
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
+	_, _ = treatCommitSnapshotError(err, rootHash, missingNodesCh)
 	if err != nil {
-		if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
-			treatCommitSnapshotError(err, rootHash, missingNodesCh)
-		}
 		return nil, err
 	}
 
