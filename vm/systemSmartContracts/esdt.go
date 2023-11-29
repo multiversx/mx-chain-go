@@ -1153,6 +1153,7 @@ func (e *esdt) unsetBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll),
+		Address:    args.CallerAddr,
 		Topics:     [][]byte{args.Arguments[0], zero.Bytes(), zero.Bytes(), []byte(vmcommon.ESDTRoleBurnForAll)},
 	}
 	e.eei.AddLogEntry(logEntry)
@@ -1172,6 +1173,7 @@ func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) 
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(vmcommon.BuiltInFunctionESDTSetBurnRoleForAll),
+		Address:    token.OwnerAddress,
 		Topics:     [][]byte{tokenID, zero.Bytes(), zero.Bytes(), []byte(vmcommon.ESDTRoleBurnForAll)},
 	}
 	e.eei.AddLogEntry(logEntry)
