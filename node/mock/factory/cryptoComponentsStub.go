@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -191,7 +192,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 
 // String -
 func (ccm *CryptoComponentsMock) String() string {
-	return "managedCryptoComponents"
+	return factory.CryptoComponentsName
 }
 
 // IsInterfaceNil -

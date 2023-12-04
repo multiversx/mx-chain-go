@@ -34,7 +34,7 @@ func (stub *StatusCoreComponentsStub) CheckSubcomponents() error {
 
 // String -
 func (stub *StatusCoreComponentsStub) String() string {
-	return "managedStatusCoreComponents"
+	return factory.StatusCoreComponentsName
 }
 
 // ResourceMonitor -

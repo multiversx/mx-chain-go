@@ -81,7 +81,7 @@ func (dcm *DataComponentsMock) Clone() interface{} {
 
 // String -
 func (dcm *DataComponentsMock) String() string {
-	return "managedDataComponents"
+	return factory.DataComponentsName
 }
 
 // IsInterfaceNil -

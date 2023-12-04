@@ -81,7 +81,7 @@ func (scm *StateComponentsMock) TrieStorageManagers() map[string]common.StorageM
 
 // String -
 func (scm *StateComponentsMock) String() string {
-	return "managedStateComponents"
+	return factory.StateComponentsName
 }
 
 // MissingTrieNodesNotifier -

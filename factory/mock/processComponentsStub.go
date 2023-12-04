@@ -245,7 +245,7 @@ func (pcm *ProcessComponentsMock) AccountsParser() genesis.AccountsParser {
 
 // String -
 func (pcm *ProcessComponentsMock) String() string {
-	return "managedProcessComponents"
+	return factory.ProcessComponentsName
 }
 
 // ScheduledTxsExecutionHandler -

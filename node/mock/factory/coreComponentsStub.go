@@ -245,7 +245,7 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 
 // String -
 func (ccm *CoreComponentsMock) String() string {
-	return "managedCoreComponents"
+	return factory.CoreComponentsName
 }
 
 // HardforkTriggerPubKey -

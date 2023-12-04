@@ -87,7 +87,7 @@ func (bcs *BootstrapComponentsStub) GuardedAccountHandler() process.GuardedAccou
 
 // String -
 func (bcs *BootstrapComponentsStub) String() string {
-	return "managedBootstrapComponents"
+	return factory.BootstrapComponentsName
 }
 
 // IsInterfaceNil -
