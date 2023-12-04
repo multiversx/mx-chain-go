@@ -1,7 +1,6 @@
 package notifier
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,14 +21,6 @@ const (
 	revertEventsEndpoint    = "/events/revert"
 	finalizedEventsEndpoint = "/events/finalized"
 )
-
-// RevertBlock holds revert event data
-type RevertBlock struct {
-	Hash  string `json:"hash"`
-	Nonce uint64 `json:"nonce"`
-	Round uint64 `json:"round"`
-	Epoch uint32 `json:"epoch"`
-}
 
 type eventNotifier struct {
 	httpClient     httpClientHandler
@@ -87,19 +78,7 @@ func (en *eventNotifier) SaveBlock(args *outport.OutportBlock) error {
 
 // RevertIndexedBlock converts revert data in order to be pushed to subscribers
 func (en *eventNotifier) RevertIndexedBlock(blockData *outport.BlockData) error {
-	headerHandler, err := en.getHeaderFromBytes(core.HeaderType(blockData.HeaderType), blockData.HeaderBytes)
-	if err != nil {
-		return err
-	}
-
-	revertBlock := RevertBlock{
-		Hash:  hex.EncodeToString(blockData.HeaderHash),
-		Nonce: headerHandler.GetNonce(),
-		Round: headerHandler.GetRound(),
-		Epoch: headerHandler.GetEpoch(),
-	}
-
-	err = en.httpClient.Post(revertEventsEndpoint, revertBlock)
+	err := en.httpClient.Post(revertEventsEndpoint, blockData)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.RevertIndexedBlock while posting event data", err)
 	}

@@ -129,21 +129,6 @@ func TestRevertIndexedBlock(t *testing.T) {
 
 	args := createMockEventNotifierArgs()
 
-	wasCalled := false
-	args.HttpClient = &mock.HTTPClientStub{
-		PostCalled: func(route string, payload interface{}) error {
-			wasCalled = true
-			return nil
-		},
-	}
-	args.BlockContainer = &outportStub.BlockContainerStub{
-		GetCalled: func(headerType core.HeaderType) (block.EmptyBlockCreator, error) {
-			return block.NewEmptyHeaderCreator(), nil
-		},
-	}
-
-	en, _ := notifier.NewEventNotifier(args)
-
 	header := &block.Header{
 		Nonce: 1,
 		Round: 2,
@@ -151,12 +136,23 @@ func TestRevertIndexedBlock(t *testing.T) {
 	}
 	headerBytes, _ := args.Marshaller.Marshal(header)
 
-	err := en.RevertIndexedBlock(&outport.BlockData{
+	blockData := &outport.BlockData{
 		HeaderBytes: headerBytes,
 		Body:        &block.Body{},
 		HeaderType:  string(core.ShardHeaderV1),
-	},
-	)
+	}
+
+	wasCalled := false
+	args.HttpClient = &mock.HTTPClientStub{
+		PostCalled: func(route string, payload interface{}) error {
+			require.Equal(t, blockData, payload)
+			wasCalled = true
+			return nil
+		},
+	}
+	en, _ := notifier.NewEventNotifier(args)
+
+	err := en.RevertIndexedBlock(blockData)
 	require.Nil(t, err)
 	require.True(t, wasCalled)
 }
