@@ -1869,6 +1869,36 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	require.Equal(t, badCodeError, err)
 }
 
+func TestScProcessor_CreateVMCallInputBadAsync(t *testing.T) {
+	t.Parallel()
+
+	vm := &mock.VMContainerMock{}
+	argParser := &mock.ArgumentParserMock{}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.VmContainer = vm
+	arguments.ArgsParser = argParser
+	sc, err := NewSmartContractProcessorV2(arguments)
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &smartContractResult.SmartContractResult{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("DST")
+	tx.Data = []byte("data")
+	tx.Value = big.NewInt(45)
+	tx.CallType = vmData.AsynchronousCall
+
+	input, err := sc.createVMCallInput(tx, []byte{}, false)
+	require.Nil(t, input)
+	require.Equal(t, err, process.ErrInvalidAsyncArguments)
+
+	tx.CallType = vmData.AsynchronousCallBack
+	input, err = sc.createVMCallInput(tx, []byte{}, false)
+	require.Nil(t, input)
+	require.Equal(t, err, process.ErrInvalidAsyncArguments)
+}
+
 func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	t.Parallel()
 

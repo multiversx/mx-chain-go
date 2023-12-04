@@ -683,6 +683,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.NFTStopCreateEnableEpoch,
 		},
+		common.FixGasRemainingForSaveKeyValueFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch,
+		},
+		common.IsChangeOwnerAddressCrossShardThroughSCFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch,
+		},
 	}
 }
 
