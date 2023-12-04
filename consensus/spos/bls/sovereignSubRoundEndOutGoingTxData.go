@@ -42,8 +42,8 @@ func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap 
 	return sr.signingHandler.Verify(outGoingMb.GetOutGoingOperationsHash(), bitmap, header.GetEpoch())
 }
 
-// AggregateSignatures aggregates signatures for outgoing tx data
-func (sr *sovereignSubRoundEndOutGoingTxData) AggregateSignatures(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
+// AggregateAndSetSignatures aggregates and sets signatures for outgoing tx data
+func (sr *sovereignSubRoundEndOutGoingTxData) AggregateAndSetSignatures(bitmap []byte, header data.HeaderHandler) ([]byte, error) {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
 		return nil, fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
@@ -116,11 +116,11 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header d
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
-// HaveConsensusHeaderWithFullInfo sets aggregated and leader signature in header with provided data from consensus message
-func (sr *sovereignSubRoundEndOutGoingTxData) HaveConsensusHeaderWithFullInfo(header data.HeaderHandler, cnsMsg *consensus.Message) error {
+// SetConsensusDataInHeader sets aggregated and leader signature in header with provided data from consensus message
+func (sr *sovereignSubRoundEndOutGoingTxData) SetConsensusDataInHeader(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetConsensusDataInHeader", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
@@ -144,7 +144,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) HaveConsensusHeaderWithFullInfo(he
 func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *consensus.Message) error {
 	sovHeader, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.HaveConsensusHeaderWithFullInfo", errors.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetConsensusDataInHeader", errors.ErrWrongTypeAssertion)
 	}
 
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()

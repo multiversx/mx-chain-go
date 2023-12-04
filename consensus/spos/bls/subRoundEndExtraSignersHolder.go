@@ -29,7 +29,7 @@ func (holder *subRoundEndExtraSignersHolder) AggregateSignatures(bitmap []byte, 
 
 	holder.mutExtraSigners.RLock()
 	for id, extraSigner := range holder.extraSigners {
-		aggregatedSig, err := extraSigner.AggregateSignatures(bitmap, header)
+		aggregatedSig, err := extraSigner.AggregateAndSetSignatures(bitmap, header)
 		if err != nil {
 			log.Debug("holder.extraSigner.AddLeaderAndAggregatedSignatures",
 				"error", err.Error(),
@@ -132,9 +132,9 @@ func (holder *subRoundEndExtraSignersHolder) HaveConsensusHeaderWithFullInfo(hea
 	defer holder.mutExtraSigners.RUnlock()
 
 	for id, extraSigner := range holder.extraSigners {
-		err := extraSigner.HaveConsensusHeaderWithFullInfo(header, cnsMsg)
+		err := extraSigner.SetConsensusDataInHeader(header, cnsMsg)
 		if err != nil {
-			log.Debug("holder.extraSigner.HaveConsensusHeaderWithFullInfo",
+			log.Debug("holder.extraSigner.SetConsensusDataInHeader",
 				"error", err.Error(),
 				"id", id,
 			)
