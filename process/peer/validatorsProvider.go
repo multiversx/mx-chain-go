@@ -46,8 +46,7 @@ type ArgValidatorsProvider struct {
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible for keeping account of
-//
-//	the latest information about the validators
+// the latest information about the validators
 func NewValidatorsProvider(
 	args ArgValidatorsProvider,
 ) (*validatorsProvider, error) {
