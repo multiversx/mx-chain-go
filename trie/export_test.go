@@ -55,6 +55,11 @@ func (tsm *trieStorageManager) GetFromCheckpoint(key []byte) ([]byte, error) {
 	return tsm.checkpointsStorer.Get(key)
 }
 
+// PruningBlockingOperations -
+func (tsm *trieStorageManager) PruningBlockingOperations() uint32 {
+	return tsm.pruningBlockingOps
+}
+
 // CreateSmallTestTrieAndStorageManager -
 func CreateSmallTestTrieAndStorageManager() (*patriciaMerkleTrie, *trieStorageManager) {
 	tr, trieStorage := newEmptyTrie()

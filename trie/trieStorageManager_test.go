@@ -256,6 +256,46 @@ func TestTrieStorageManager_IsPruningBlocked(t *testing.T) {
 	assert.False(t, ts.IsPruningBlocked())
 }
 
+func TestTrieStorageManager_EnterPruningBufferingModeDoesNothingIfTsmIsClosed(t *testing.T) {
+	t.Parallel()
+
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	ts.EnterPruningBufferingMode()
+	assert.Equal(t, uint32(0), ts.PruningBlockingOperations())
+}
+func TestTrieStorageManager_ExitPruningBufferingModeDoesNothingIfTsmIsClosed(t *testing.T) {
+	t.Parallel()
+
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	for i := 0; i < 10; i++ {
+		ts.EnterPruningBufferingMode()
+	}
+	assert.Equal(t, uint32(10), ts.PruningBlockingOperations())
+	ts.ExitPruningBufferingMode()
+	assert.Equal(t, uint32(9), ts.PruningBlockingOperations())
+	_ = ts.Close()
+
+	ts.ExitPruningBufferingMode()
+	assert.Equal(t, uint32(9), ts.PruningBlockingOperations())
+}
+
+func TestTrieStorageManager_GetLatestStorageEpochContextClosing(t *testing.T) {
+	t.Parallel()
+
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	ts, _ := trie.NewTrieStorageManager(args)
+	_ = ts.Close()
+
+	val, err := ts.GetLatestStorageEpoch()
+	assert.Equal(t, uint32(0), val)
+	assert.Equal(t, core.ErrContextClosing, err)
+}
+
 func TestTrieStorageManager_Remove(t *testing.T) {
 	t.Parallel()
 
@@ -305,22 +345,53 @@ func TestTrieStorageManager_Remove(t *testing.T) {
 		ok = args.CheckpointHashesHolder.ShouldCommit(providedKey)
 		assert.False(t, ok)
 	})
+	t.Run("context closing should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		ts, _ := trie.NewTrieStorageManager(args)
+		_ = ts.Close()
+
+		err := ts.Remove(providedKey)
+		assert.Equal(t, core.ErrContextClosing, err)
+	})
 }
 
 func TestTrieStorageManager_RemoveFromCheckpointHashesHolder(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := false
-	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
-		RemoveCalled: func(bytes []byte) {
-			wasCalled = true
-		},
-	}
-	ts, _ := trie.NewTrieStorageManager(args)
+	t.Run("context closing does not continue the operation", func(t *testing.T) {
+		t.Parallel()
 
-	ts.RemoveFromCheckpointHashesHolder(providedKey)
-	assert.True(t, wasCalled)
+		removeCalled := false
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
+			RemoveCalled: func(bytes []byte) {
+				removeCalled = true
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+		_ = ts.Close()
+
+		ts.RemoveFromCheckpointHashesHolder(providedKey)
+		assert.False(t, removeCalled)
+
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
+			RemoveCalled: func(bytes []byte) {
+				wasCalled = true
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		ts.RemoveFromCheckpointHashesHolder(providedKey)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
@@ -357,27 +428,42 @@ func TestTrieStorageManager_SetEpochForPutOperation(t *testing.T) {
 func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
 	t.Parallel()
 
-	RemoveFromAllActiveEpochsCalled := false
-	removeFromCheckpointCalled := false
-	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-		MemDbMock: testscommon.NewMemDbMock(),
-		RemoveFromAllActiveEpochsCalled: func(key []byte) error {
-			RemoveFromAllActiveEpochsCalled = true
-			return nil
-		},
-	}
-	args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
-		RemoveCalled: func(bytes []byte) {
-			removeFromCheckpointCalled = true
-		},
-	}
-	ts, _ := trie.NewTrieStorageManager(args)
+	t.Run("context closing", func(t *testing.T) {
+		t.Parallel()
 
-	err := ts.RemoveFromAllActiveEpochs([]byte("key"))
-	assert.Nil(t, err)
-	assert.True(t, RemoveFromAllActiveEpochsCalled)
-	assert.True(t, removeFromCheckpointCalled)
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		ts, _ := trie.NewTrieStorageManager(args)
+		_ = ts.Close()
+
+		err := ts.RemoveFromAllActiveEpochs([]byte("key"))
+		assert.Equal(t, core.ErrContextClosing, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		RemoveFromAllActiveEpochsCalled := false
+		removeFromCheckpointCalled := false
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			MemDbMock: testscommon.NewMemDbMock(),
+			RemoveFromAllActiveEpochsCalled: func(key []byte) error {
+				RemoveFromAllActiveEpochsCalled = true
+				return nil
+			},
+		}
+		args.CheckpointHashesHolder = &trieMock.CheckpointHashesHolderStub{
+			RemoveCalled: func(bytes []byte) {
+				removeFromCheckpointCalled = true
+			},
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		err := ts.RemoveFromAllActiveEpochs([]byte("key"))
+		assert.Nil(t, err)
+		assert.True(t, RemoveFromAllActiveEpochsCalled)
+		assert.True(t, removeFromCheckpointCalled)
+	})
+
 }
 
 func TestTrieStorageManager_PutInEpochClosedDb(t *testing.T) {
