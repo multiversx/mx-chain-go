@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"time"
@@ -11,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovereign3 "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -884,18 +883,21 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
 	outGoingOpHashes := make([][]byte, len(outGoingOperations))
 	aggregatedOutGoingOperations := make([]byte, 0)
-	outGoingOperationsData := make(map[string][]byte)
+	outGoingOperationsData := make([]*sovCore.OutGoingOperation, 0)
 
 	for idx, outGoingOp := range outGoingOperations {
 		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
 		outGoingOpHashes[idx] = outGoingOpHash
-		outGoingOperationsData[hex.EncodeToString(outGoingOpHash)] = outGoingOp
+		outGoingOperationsData = append(outGoingOperationsData, &sovCore.OutGoingOperation{
+			Hash: outGoingOpHash,
+			Data: outGoingOp,
+		})
 	}
 
 	outGoingOperationsHash := scbp.hasher.Compute(string(aggregatedOutGoingOperations))
-	scbp.outGoingOperationsPool.Add(&sovereign3.BridgeOutGoingData{
+	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
 		Hash:               outGoingOperationsHash,
 		OutGoingOperations: outGoingOperationsData,
 	})

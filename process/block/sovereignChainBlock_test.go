@@ -1,7 +1,6 @@
 package block_test
 
 import (
-	"encoding/hex"
 	"testing"
 	"time"
 
@@ -232,9 +231,15 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 			case 0:
 				require.Equal(t, &sovereignCore.BridgeOutGoingData{
 					Hash: bridgeOpsHash,
-					OutGoingOperations: map[string][]byte{
-						hex.EncodeToString(bridgeOp1Hash): bridgeOp1,
-						hex.EncodeToString(bridgeOp2Hash): bridgeOp2,
+					OutGoingOperations: []*sovereignCore.OutGoingOperation{
+						{
+							Hash: bridgeOp1Hash,
+							Data: bridgeOp1,
+						},
+						{
+							Hash: bridgeOp2Hash,
+							Data: bridgeOp2,
+						},
 					},
 				}, data)
 			default:

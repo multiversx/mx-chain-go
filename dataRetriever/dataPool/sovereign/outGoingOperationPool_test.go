@@ -35,23 +35,35 @@ func TestOutGoingOperationsPool_Add_Get_Delete(t *testing.T) {
 	outGoingOperationsHash1 := []byte("h11h22")
 	bridgeData1 := &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash1,
-		OutGoingOperations: map[string][]byte{
-			string(hash1): data1,
-			string(hash2): data2,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash1,
+				Data: data1,
+			},
+			{
+				Hash: hash2,
+				Data: data2,
+			},
 		},
 	}
 	outGoingOperationsHash2 := []byte("h33")
 	bridgeData2 := &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash2,
-		OutGoingOperations: map[string][]byte{
-			string(hash3): data3,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash3,
+				Data: data3,
+			},
 		},
 	}
 	outGoingOperationsHash3 := []byte("44")
 	bridgeData3 := &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash3,
-		OutGoingOperations: map[string][]byte{
-			string(hash4): data4,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash4,
+				Data: data4,
+			},
 		},
 	}
 
@@ -106,22 +118,31 @@ func TestOutGoingOperationsPool_GetUnconfirmedOperations(t *testing.T) {
 	outGoingOperationsHash1 := []byte("h11h22")
 	bridgeData1 := &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash1,
-		OutGoingOperations: map[string][]byte{
-			string(hash1): data1,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash1,
+				Data: data1,
+			},
 		},
 	}
 	outGoingOperationsHash2 := []byte("h33")
 	bridgeData2 := &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash2,
-		OutGoingOperations: map[string][]byte{
-			string(hash2): data2,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash2,
+				Data: data2,
+			},
 		},
 	}
 	outGoingOperationsHash3 := []byte("44")
 	bridgeData3 := &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash3,
-		OutGoingOperations: map[string][]byte{
-			string(hash3): data3,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash3,
+				Data: data3,
+			},
 		},
 	}
 
@@ -157,8 +178,11 @@ func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 			case 0:
 				pool.Add(&sovereign.BridgeOutGoingData{
 					Hash: hash,
-					OutGoingOperations: map[string][]byte{
-						string(hash): data,
+					OutGoingOperations: []*sovereign.OutGoingOperation{
+						{
+							Hash: hash,
+							Data: data,
+						},
 					},
 				})
 			case 1:
