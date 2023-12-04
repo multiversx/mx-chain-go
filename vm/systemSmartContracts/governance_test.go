@@ -673,6 +673,10 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.Ok, retCode)
+	logsEntry := gsc.eei.GetLogs()
+	assert.Equal(t, 1, len(logsEntry))
+	expectedTopics := [][]byte{{1}, proposalIdentifier, []byte("50"), []byte("55")}
+	assert.Equal(t, expectedTopics, logsEntry[0].Topics)
 }
 
 func TestGovernanceContract_VoteWithBadArgsOrCallValue(t *testing.T) {

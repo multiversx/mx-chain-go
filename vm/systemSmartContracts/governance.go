@@ -348,7 +348,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[1], args.Arguments[2]},
+		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[2]},
 	}
 	g.eei.AddLogEntry(logEntry)
 
