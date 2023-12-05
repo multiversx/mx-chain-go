@@ -1444,12 +1444,16 @@ func TestGovernanceContract_ViewUserHistory(t *testing.T) {
 	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
 	returnMessage := ""
+	finishedMessages := make([][]byte, 0)
 	mockEEI := &mock.SystemEIStub{
 		GetStorageFromAddressCalled: func(_ []byte, _ []byte) []byte {
 			return []byte("invalid data")
 		},
 		AddReturnMessageCalled: func(msg string) {
 			returnMessage = msg
+		},
+		FinishCalled: func(value []byte) {
+			finishedMessages = append(finishedMessages, value)
 		},
 	}
 	args.Eei = mockEEI
@@ -1471,13 +1475,17 @@ func TestGovernanceContract_ViewUserHistory(t *testing.T) {
 	mockEEI.GetStorageCalled = func(key []byte) []byte {
 		proposalBytes, _ := args.Marshalizer.Marshal(&OngoingVotedList{
 			Delegated: []uint64{1, 2},
-			Direct:    []uint64{1, 2},
+			Direct:    []uint64{3, 4},
 		})
 		return proposalBytes
 	}
 
+	finishedMessages = make([][]byte, 0)
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	expectedString := `{"Direct":[3,4],"Delegated":[1,2]}`
+	assert.Equal(t, 1, len(finishedMessages))
+	assert.Equal(t, expectedString, string(finishedMessages[0]))
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {

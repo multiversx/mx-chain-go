@@ -3,6 +3,7 @@ package systemSmartContracts
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync"
@@ -763,7 +764,13 @@ func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
-	g.eei.Finish([]byte(userVotes.String()))
+	// marshal using json serializer so it can be easily consumed
+	buff, err := json.Marshal(userVotes)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	g.eei.Finish(buff)
 
 	return vmcommon.Ok
 }
@@ -855,8 +862,7 @@ func (g *governanceContract) addNewVote(vote string, power *big.Int, proposal *G
 }
 
 // computeVotingPower returns the voting power for a value. The value can be either a balance or
-//
-//	the staked value for a validator
+// the staked value for a validator
 func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error) {
 	minValue, err := g.getMinValueToVote()
 	if err != nil {
