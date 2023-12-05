@@ -2,7 +2,6 @@ package bls_test
 
 import (
 	"context"
-	"encoding/hex"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -168,8 +167,11 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 				case 0:
 					return &sovCore.BridgeOutGoingData{
 						Hash: outGoingDataHash,
-						OutGoingOperations: map[string][]byte{
-							hex.EncodeToString(outGoingOpHash): outGoingOpData,
+						OutGoingOperations: []*sovCore.OutGoingOperation{
+							{
+								Hash: outGoingOpHash,
+								Data: outGoingOpData,
+							},
 						},
 					}
 				default:
@@ -184,8 +186,11 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 			AddCalled: func(data *sovCore.BridgeOutGoingData) {
 				require.Equal(t, &sovCore.BridgeOutGoingData{
 					Hash: outGoingDataHash,
-					OutGoingOperations: map[string][]byte{
-						hex.EncodeToString(outGoingOpHash): outGoingOpData,
+					OutGoingOperations: []*sovCore.OutGoingOperation{
+						{
+							Hash: outGoingOpHash,
+							Data: outGoingOpData,
+						},
 					},
 					AggregatedSignature: aggregatedSig,
 					LeaderSignature:     leaderSig,
@@ -202,8 +207,11 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 					Data: []*sovCore.BridgeOutGoingData{
 						{
 							Hash: outGoingDataHash,
-							OutGoingOperations: map[string][]byte{
-								hex.EncodeToString(outGoingOpHash): outGoingOpData,
+							OutGoingOperations: []*sovCore.OutGoingOperation{
+								{
+									Hash: outGoingOpHash,
+									Data: outGoingOpData,
+								},
 							},
 							LeaderSignature:     leaderSig,
 							AggregatedSignature: aggregatedSig,
@@ -243,8 +251,11 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		leaderSig := []byte("leaderSig")
 		currentBridgeOutGoingData := &sovCore.BridgeOutGoingData{
 			Hash: outGoingDataHash,
-			OutGoingOperations: map[string][]byte{
-				hex.EncodeToString(outGoingOpHash): outGoingOpData,
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: outGoingOpHash,
+					Data: outGoingOpData,
+				},
 			},
 			AggregatedSignature: aggregatedSig,
 			LeaderSignature:     leaderSig,
@@ -252,8 +263,11 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 
 		unconfirmedBridgeOutGoingData := &sovCore.BridgeOutGoingData{
 			Hash: []byte("hash2"),
-			OutGoingOperations: map[string][]byte{
-				"hashOp2": []byte("bridgeOp2"),
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: []byte("hashOp2"),
+					Data: []byte("bridgeOp2"),
+				},
 			},
 		}
 
@@ -313,8 +327,11 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 		leaderSig := []byte("leaderSig")
 		bridgeOutGoingData := &sovCore.BridgeOutGoingData{
 			Hash: outGoingDataHash,
-			OutGoingOperations: map[string][]byte{
-				hex.EncodeToString(outGoingOpHash): outGoingOpData,
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: outGoingOpHash,
+					Data: outGoingOpData,
+				},
 			},
 		}
 
@@ -332,8 +349,11 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 				case 0:
 					return &sovCore.BridgeOutGoingData{
 						Hash: outGoingDataHash,
-						OutGoingOperations: map[string][]byte{
-							hex.EncodeToString(outGoingOpHash): outGoingOpData,
+						OutGoingOperations: []*sovCore.OutGoingOperation{
+							{
+								Hash: outGoingOpHash,
+								Data: outGoingOpData,
+							},
 						},
 					}
 				default:
@@ -348,8 +368,11 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 			AddCalled: func(data *sovCore.BridgeOutGoingData) {
 				require.Equal(t, &sovCore.BridgeOutGoingData{
 					Hash: outGoingDataHash,
-					OutGoingOperations: map[string][]byte{
-						hex.EncodeToString(outGoingOpHash): outGoingOpData,
+					OutGoingOperations: []*sovCore.OutGoingOperation{
+						{
+							Hash: outGoingOpHash,
+							Data: outGoingOpData,
+						},
 					},
 					AggregatedSignature: aggregatedSig,
 					LeaderSignature:     leaderSig,
