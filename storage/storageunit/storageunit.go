@@ -43,14 +43,18 @@ func NewCache(config CacheConfig) (storage.Cacher, error) {
 	return storageUnit.NewCache(config)
 }
 
+type PersisterFactoryHandler interface {
+	Create(path string) (storage.Persister, error)
+}
+
 // NewDB creates a new database from database config
-func NewDB(argDB ArgDB) (storage.Persister, error) {
-	return storageUnit.NewDB(argDB)
+func NewDB(persisterFactory PersisterFactoryHandler, path string) (storage.Persister, error) {
+	return storageUnit.NewDB(persisterFactory, path)
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, error) {
-	return storageUnit.NewStorageUnitFromConf(cacheConf, dbConf)
+func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, persisterFactory PersisterFactoryHandler) (*Unit, error) {
+	return storageUnit.NewStorageUnitFromConf(cacheConf, dbConf, persisterFactory)
 }
 
 // NewNilStorer will return a nil storer
