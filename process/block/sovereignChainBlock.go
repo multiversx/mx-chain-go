@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -882,14 +883,24 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
 	outGoingOpHashes := make([][]byte, len(outGoingOperations))
 	aggregatedOutGoingOperations := make([]byte, 0)
+	outGoingOperationsData := make([]*sovCore.OutGoingOperation, 0)
 
 	for idx, outGoingOp := range outGoingOperations {
 		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
 		outGoingOpHashes[idx] = outGoingOpHash
-		scbp.outGoingOperationsPool.Add(outGoingOpHash, outGoingOp)
+		outGoingOperationsData = append(outGoingOperationsData, &sovCore.OutGoingOperation{
+			Hash: outGoingOpHash,
+			Data: outGoingOp,
+		})
 	}
+
+	outGoingOperationsHash := scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
+		Hash:               outGoingOperationsHash,
+		OutGoingOperations: outGoingOperationsData,
+	})
 
 	// TODO: We need to have a mocked transaction with this hash to be saved in storage and get rid of following warnings:
 	// 1. basePreProcess.createMarshalledData: tx not found hash = bf7e...
@@ -899,7 +910,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		TxHashes:        outGoingOpHashes,
 		ReceiverShardID: core.MainChainShardId,
 		SenderShardID:   scbp.shardCoordinator.SelfId(),
-	}, scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+	}, outGoingOperationsHash
 }
 
 func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(

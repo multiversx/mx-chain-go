@@ -2,6 +2,7 @@ package block
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
@@ -42,9 +43,9 @@ type crossNotarizer interface {
 
 // OutGoingOperationsPool defines the behavior of a timed cache for outgoing operations
 type OutGoingOperationsPool interface {
-	Add(hash []byte, data []byte)
-	Get(hash []byte) []byte
+	Add(data *sovereignCore.BridgeOutGoingData)
+	Get(hash []byte) *sovereignCore.BridgeOutGoingData
 	Delete(hash []byte)
-	GetUnconfirmedOperations() [][]byte
+	GetUnconfirmedOperations() []*sovereignCore.BridgeOutGoingData
 	IsInterfaceNil() bool
 }

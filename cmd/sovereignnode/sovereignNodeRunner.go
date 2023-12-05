@@ -38,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignPool "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -63,6 +64,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
@@ -431,6 +433,9 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 	)
 
+	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperation)
+	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
+
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedCoreComponents,
 		managedCryptoComponents,
@@ -443,6 +448,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
+		outGoingOperationsPool,
 	)
 	if err != nil {
 		return true, err
@@ -487,6 +493,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		outGoingOperationsPool,
 	)
 	if err != nil {
 		return true, err
@@ -833,6 +840,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -846,6 +854,16 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	}
 
 	extraSignersHolder, err := createOutGoingTxDataSigners(cryptoComponents.ConsensusSigningHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	outGoingBridgeOpHandler, err := sovereignPool.NewOutGoingBridgeOperationsHandler()
+	if err != nil {
+		return nil, err
+	}
+
+	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(outGoingOperationsPool, outGoingBridgeOpHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -867,6 +885,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		ConsensusModel:        consensus.ConsensusModelV2,
 		ChainRunType:          common.ChainRunTypeSovereign,
 		ExtraSignersHolder:    extraSignersHolder,
+		SubRoundEndV2Creator:  sovSubRoundEndCreator,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1163,6 +1182,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1291,6 +1311,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
+		OutGoingOperationsPool:                outGoingOperationsPool,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

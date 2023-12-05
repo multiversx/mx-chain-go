@@ -20,13 +20,14 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler   core.AppStatusHandler
-	outportHandler     outport.OutportHandler
-	chainID            []byte
-	currentPid         core.PeerID
-	consensusModel     consensus.ConsensusModel
-	enableEpochHandler common.EnableEpochsHandler
-	extraSignersHolder ExtraSignersHolder
+	appStatusHandler     core.AppStatusHandler
+	outportHandler       outport.OutportHandler
+	chainID              []byte
+	currentPid           core.PeerID
+	consensusModel       consensus.ConsensusModel
+	enableEpochHandler   common.EnableEpochsHandler
+	extraSignersHolder   ExtraSignersHolder
+	subRoundEndV2Creator SubRoundEndV2Creator
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -40,6 +41,7 @@ func NewSubroundsFactory(
 	consensusModel consensus.ConsensusModel,
 	enableEpochHandler common.EnableEpochsHandler,
 	extraSignersHolder ExtraSignersHolder,
+	subRoundEndV2Creator SubRoundEndV2Creator,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -49,21 +51,23 @@ func NewSubroundsFactory(
 		appStatusHandler,
 		enableEpochHandler,
 		extraSignersHolder,
+		subRoundEndV2Creator,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	fct := factory{
-		consensusCore:      consensusDataContainer,
-		consensusState:     consensusState,
-		worker:             worker,
-		appStatusHandler:   appStatusHandler,
-		chainID:            chainID,
-		currentPid:         currentPid,
-		consensusModel:     consensusModel,
-		enableEpochHandler: enableEpochHandler,
-		extraSignersHolder: extraSignersHolder,
+		consensusCore:        consensusDataContainer,
+		consensusState:       consensusState,
+		worker:               worker,
+		appStatusHandler:     appStatusHandler,
+		chainID:              chainID,
+		currentPid:           currentPid,
+		consensusModel:       consensusModel,
+		enableEpochHandler:   enableEpochHandler,
+		extraSignersHolder:   extraSignersHolder,
+		subRoundEndV2Creator: subRoundEndV2Creator,
 	}
 
 	return &fct, nil
@@ -77,6 +81,7 @@ func checkNewFactoryParams(
 	appStatusHandler core.AppStatusHandler,
 	enableEpochHandler common.EnableEpochsHandler,
 	extraSignersHolder ExtraSignersHolder,
+	subRoundEndV2Creator SubRoundEndV2Creator,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -99,6 +104,9 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(extraSignersHolder) {
 		return errors.ErrNilExtraSignersHolder
+	}
+	if check.IfNil(subRoundEndV2Creator) {
+		return errors.ErrNilSubRoundEndV2Creator
 	}
 
 	return nil
@@ -355,17 +363,7 @@ func (fct *factory) generateEndRoundSubroundV2(extraSignersHolder SubRoundEndExt
 		return err
 	}
 
-	subroundSignatureV2Instance, errV2 := NewSubroundEndRoundV2(subroundEndRoundInstance)
-	if errV2 != nil {
-		return errV2
-	}
-
-	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundSignatureV2Instance.receivedBlockHeaderFinalInfo)
-	fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundSignatureV2Instance.receivedInvalidSignersInfo)
-	fct.worker.AddReceivedHeaderHandler(subroundSignatureV2Instance.receivedHeader)
-	fct.consensusCore.Chronology().AddSubround(subroundSignatureV2Instance)
-
-	return nil
+	return fct.subRoundEndV2Creator.CreateAndAddSubRoundEnd(subroundEndRoundInstance, fct.worker, fct.consensusCore)
 }
 
 func (fct *factory) generateEndRoundSubround(extraSignersHolder SubRoundEndExtraSignersHolder) (*subroundEndRound, error) {

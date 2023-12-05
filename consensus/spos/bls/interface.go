@@ -1,8 +1,12 @@
 package bls
 
 import (
+	"context"
+
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
 // SubRoundStartExtraSignersHolder manages extra signers during start subround in a consensus process
@@ -38,5 +42,21 @@ type ExtraSignersHolder interface {
 	GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder
 	GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder
 	GetSubRoundEndExtraSignersHolder() SubRoundEndExtraSignersHolder
+	IsInterfaceNil() bool
+}
+
+// SubRoundEndV2Creator should create an end subround v2 and add it to the consensus core chronology
+type SubRoundEndV2Creator interface {
+	CreateAndAddSubRoundEnd(
+		subroundEndRoundInstance *subroundEndRound,
+		worker spos.WorkerHandler,
+		consensusCore spos.ConsensusCoreHandler,
+	) error
+	IsInterfaceNil() bool
+}
+
+// BridgeOperationsHandler handles sending outgoing txs from sovereign to main chain
+type BridgeOperationsHandler interface {
+	Send(ctx context.Context, data *sovereign.BridgeOperations) error
 	IsInterfaceNil() bool
 }

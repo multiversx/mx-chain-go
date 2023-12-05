@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
@@ -221,18 +222,26 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 
 	poolAddCt := 0
 	outGoingOperationsPool := &sovereign.OutGoingOperationsPoolMock{
-		AddCalled: func(hash []byte, data []byte) {
+		AddCalled: func(data *sovereignCore.BridgeOutGoingData) {
 			defer func() {
 				poolAddCt++
 			}()
 
 			switch poolAddCt {
 			case 0:
-				require.Equal(t, bridgeOp1Hash, hash)
-				require.Equal(t, bridgeOp1, data)
-			case 1:
-				require.Equal(t, bridgeOp2Hash, hash)
-				require.Equal(t, bridgeOp2, data)
+				require.Equal(t, &sovereignCore.BridgeOutGoingData{
+					Hash: bridgeOpsHash,
+					OutGoingOperations: []*sovereignCore.OutGoingOperation{
+						{
+							Hash: bridgeOp1Hash,
+							Data: bridgeOp1,
+						},
+						{
+							Hash: bridgeOp2Hash,
+							Data: bridgeOp2,
+						},
+					},
+				}, data)
 			default:
 				require.Fail(t, "should not add in pool any other operation")
 			}
@@ -258,7 +267,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 
 	err := scbp.CreateAndSetOutGoingMiniBlock(sovChainHdr, blockBody)
 	require.Nil(t, err)
-	require.Equal(t, 2, poolAddCt)
+	require.Equal(t, 1, poolAddCt)
 
 	expectedOutGoingMb := &block.MiniBlock{
 		TxHashes:        [][]byte{bridgeOp1Hash, bridgeOp2Hash},
