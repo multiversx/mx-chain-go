@@ -124,6 +124,7 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	return nil
 }
 
+// TODO: refactor this function, split it into multiple ones
 func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	store dataRetriever.StorageService,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
