@@ -682,3 +682,6 @@ var ErrNilExtraHeaderSigVerifierHolder = errors.New("nil extra sig verifier hold
 
 // ErrNilConsensusMessage signals that a nil consensus message has been provided
 var ErrNilConsensusMessage = errors.New("nil consensus message has been provided")
+
+// ErrNilExtraSignersHolder signals that a nil extra signers holder has been provided
+var ErrNilExtraSignersHolder = errors.New("nil extra signer holder has been provided")

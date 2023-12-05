@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -844,6 +845,11 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 
+	extraSignersHolder, err := createOutGoingTxDataSigners(cryptoComponents.ConsensusSigningHandler())
+	if err != nil {
+		return nil, err
+	}
+
 	consensusArgs := consensusComp.ConsensusComponentsFactoryArgs{
 		Config:                *snr.configs.GeneralConfig,
 		BootstrapRoundIndex:   snr.configs.FlagsConfig.BootstrapRoundIndex,
@@ -860,6 +866,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		ShouldDisableWatchdog: snr.configs.FlagsConfig.DisableConsensusWatchdog,
 		ConsensusModel:        consensus.ConsensusModelV2,
 		ChainRunType:          common.ChainRunTypeSovereign,
+		ExtraSignersHolder:    extraSignersHolder,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -877,6 +884,44 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 	return managedConsensusComponents, nil
+}
+
+func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.ExtraSignersHolder, error) {
+	extraSignerHandler := signingHandler.ShallowClone()
+	startRoundExtraSignersHolder := bls.NewSubRoundStartExtraSignersHolder()
+	startRoundExtraSigner, err := bls.NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return nil, err
+	}
+	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	signRoundExtraSignersHolder := bls.NewSubRoundSignatureExtraSignersHolder()
+	signRoundExtraSigner, err := bls.NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return nil, err
+	}
+	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	endRoundExtraSignersHolder := bls.NewSubRoundEndExtraSignersHolder()
+	endRoundExtraSigner, err := bls.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return nil, err
+	}
+	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	return bls.NewExtraSignersHolder(
+		startRoundExtraSignersHolder,
+		signRoundExtraSignersHolder,
+		endRoundExtraSignersHolder)
 }
 
 // CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory

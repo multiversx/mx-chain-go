@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,6 +58,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		currentPid,
 		consensus.ConsensusModelV1,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
 	)
 
 	assert.Nil(t, sf)
@@ -82,6 +84,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		currentPid,
 		consensus.ConsensusModelV1,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
 	)
 
 	assert.Nil(t, sf)
@@ -108,6 +111,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		currentPid,
 		consensus.ConsensusModelV1,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -128,6 +132,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		currentPid,
 		consensus.ConsensusModelV1,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
 	)
 
 	assert.Nil(t, sf)
