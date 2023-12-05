@@ -65,6 +65,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 
 	currBridgeData, err := sr.updateBridgeDataWithSignatures(outGoingMBHeader)
 	if err != nil {
+		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.updateBridgeDataWithSignatures", "error", err)
 		return false
 	}
 
@@ -75,8 +76,8 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 	err = sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
 		Data: sr.getAllOutGoingOperations(currBridgeData),
 	})
-
 	if err != nil {
+		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.bridgeOpHandler.Send", "error", err)
 		return false
 	}
 

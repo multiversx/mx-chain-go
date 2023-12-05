@@ -18,9 +18,9 @@ func (c *subRoundEndV2Creator) CreateAndAddSubRoundEnd(
 	worker spos.WorkerHandler,
 	consensusCore spos.ConsensusCoreHandler,
 ) error {
-	subroundEndV2Instance, errV2 := NewSubroundEndRoundV2(subroundEndRoundInstance)
-	if errV2 != nil {
-		return errV2
+	subroundEndV2Instance, err := NewSubroundEndRoundV2(subroundEndRoundInstance)
+	if err != nil {
+		return err
 	}
 
 	worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndV2Instance.receivedBlockHeaderFinalInfo)
