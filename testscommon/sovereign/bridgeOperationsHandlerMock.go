@@ -12,12 +12,12 @@ type BridgeOperationsHandlerMock struct {
 }
 
 // Send -
-func (mock *BridgeOperationsHandlerMock) Send(ctx context.Context, data *sovereign.BridgeOperations) error {
+func (mock *BridgeOperationsHandlerMock) Send(ctx context.Context, data *sovereign.BridgeOperations) (*sovereign.BridgeOperationsResponse, error) {
 	if mock.SendCalled != nil {
-		return mock.SendCalled(ctx, data)
+		return nil, mock.SendCalled(ctx, data)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // IsInterfaceNil -

@@ -73,7 +73,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return true
 	}
 
-	err = sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
+	_, err = sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
 		Data: sr.getAllOutGoingOperations(currBridgeData),
 	})
 	if err != nil {
