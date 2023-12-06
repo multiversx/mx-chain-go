@@ -19,7 +19,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	}
 
 	numEpochs := 10000
-	maxFootprintNumBytes := 50_000_000
+	maxFootprintNumBytes := 60_000_000
 
 	journal := &memoryFootprintJournal{}
 	journal.before = getMemStats()

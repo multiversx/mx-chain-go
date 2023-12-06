@@ -41,8 +41,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 			t.Skip("cannot run with -race -short; requires Wasm VM fix")
 		}
 
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
@@ -53,8 +51,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		if testing.Short() {
 			t.Skip("cannot run with -race -short; requires Wasm VM fix")
 		}
-
-		t.Parallel()
 
 		args := createMockArgsTestOnlyProcessingNode(t)
 		node, err := NewTestOnlyProcessingNode(args)

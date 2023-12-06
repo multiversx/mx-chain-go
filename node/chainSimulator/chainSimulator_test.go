@@ -150,6 +150,10 @@ func TestChainSimulator_SetState(t *testing.T) {
 }
 
 func TestChainSimulator_SetEntireState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -204,6 +208,8 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 
 	counterValue := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
 	require.Equal(t, 10, int(counterValue))
+
+	time.Sleep(time.Second)
 
 	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(contractAddress, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
