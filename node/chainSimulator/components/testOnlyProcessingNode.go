@@ -1,6 +1,7 @@
 package components
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -442,15 +443,6 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	// set nonce with the provided value
 	userAccount.IncreaseNonce(addressState.Nonce)
 
-	if addressState.Code != "" {
-		decodedCode, _ := hex.DecodeString(addressState.Code)
-		userAccount.SetCode(decodedCode)
-	}
-	if addressState.CodeMetadata != "" {
-		decodedCodeMetadata, _ := hex.DecodeString(addressState.CodeMetadata)
-		userAccount.SetCodeMetadata(decodedCodeMetadata)
-	}
-
 	bigValue, ok := big.NewInt(0).SetString(addressState.Balance, 10)
 	if !ok {
 		return errors.New("cannot convert string balance to *big.Int")
@@ -465,6 +457,17 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
+	err = node.setScDataIfNeeded(address, userAccount, addressState)
+	if err != nil {
+		return err
+	}
+
+	rootHash, err := base64.StdEncoding.DecodeString(addressState.RootHash)
+	if err != nil {
+		return err
+	}
+	userAccount.SetRootHash(rootHash)
+
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
 	if err != nil {
@@ -475,6 +478,44 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (node *testOnlyProcessingNode) setScDataIfNeeded(address []byte, userAccount state.UserAccountHandler, addressState *dtos.AddressState) error {
+	if !core.IsSmartContractAddress(address) {
+		return nil
+	}
+
+	decodedCode, err := hex.DecodeString(addressState.Code)
+	if err != nil {
+		return err
+	}
+	userAccount.SetCode(decodedCode)
+
+	codeHash, err := base64.StdEncoding.DecodeString(addressState.CodeHash)
+	if err != nil {
+		return err
+	}
+	userAccount.SetCodeHash(codeHash)
+
+	decodedCodeMetadata, err := base64.StdEncoding.DecodeString(addressState.CodeMetadata)
+	if err != nil {
+		return err
+	}
+	userAccount.SetCodeMetadata(decodedCodeMetadata)
+
+	ownerAddress, err := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(addressState.Owner)
+	if err != nil {
+		return err
+	}
+	userAccount.SetOwnerAddress(ownerAddress)
+
+	developerRewards, ok := big.NewInt(0).SetString(addressState.DeveloperRewards, 10)
+	if !ok {
+		return errors.New("cannot convert string developer rewards to *big.Int")
+	}
+	userAccount.AddToDeveloperReward(developerRewards)
 
 	return nil
 }
