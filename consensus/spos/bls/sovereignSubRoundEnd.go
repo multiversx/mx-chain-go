@@ -73,13 +73,8 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return true
 	}
 
-	_, err = sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
-		Data: sr.getAllOutGoingOperations(currBridgeData),
-	})
-	if err != nil {
-		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.bridgeOpHandler.Send", "error", err)
-		return false
-	}
+	outGoingOperations := sr.getAllOutGoingOperations(currBridgeData)
+	go sr.sendOutGoingOperations(ctx, outGoingOperations)
 
 	return true
 }
@@ -110,7 +105,19 @@ func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sove
 		outGoingOperations = append(outGoingOperations, unconfirmedOperations...)
 	}
 
+	log.Debug("current outgoing operations", "hash", currentOperations.Hash)
 	return append(outGoingOperations, currentOperations)
+}
+
+func (sr *sovereignSubRoundEnd) sendOutGoingOperations(ctx context.Context, data []*sovereign.BridgeOutGoingData) {
+	resp, err := sr.bridgeOpHandler.Send(ctx, &sovereign.BridgeOperations{
+		Data: data,
+	})
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.bridgeOpHandler.Send", "error", err)
+	}
+
+	log.Debug("sent outgoing operations", "hashes", resp.TxHashes)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
