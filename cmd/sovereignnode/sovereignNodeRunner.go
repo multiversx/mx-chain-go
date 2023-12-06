@@ -875,10 +875,6 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
 	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(outGoingOperationsPool, outGoingBridgeOpHandler)
 	if err != nil {
 		return nil, err
