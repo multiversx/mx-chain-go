@@ -2,7 +2,9 @@ package bls_test
 
 import (
 	"context"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -127,10 +129,12 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		t.Parallel()
 
 		wasDataSent := false
+		spyChan := make(chan struct{})
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
-			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) error {
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
 				wasDataSent = true
-				return nil
+				spyChan <- struct{}{}
+				return &sovCore.BridgeOperationsResponse{}, nil
 			},
 		}
 		sovHdr := &block.SovereignChainHeader{
@@ -142,6 +146,13 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		sovEndRound := createSovSubRoundEndWithSelfLeader(&sovereign.OutGoingOperationsPoolMock{}, bridgeHandler, sovHdr)
 		ctx := context.Background()
 		success := sovEndRound.DoSovereignEndRoundJob(ctx)
+
+		select {
+		case <-spyChan:
+			require.Fail(t, "should not have sent with no outgoing operations")
+		case <-time.After(time.Second):
+		}
+
 		require.True(t, success)
 		require.False(t, wasDataSent)
 	})
@@ -200,8 +211,14 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 
 		wasDataSent := false
 		currCtx := context.Background()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
-			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) error {
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				defer func() {
+					wg.Done()
+				}()
+
 				require.Equal(t, currCtx, ctx)
 				require.Equal(t, &sovCore.BridgeOperations{
 					Data: []*sovCore.BridgeOutGoingData{
@@ -218,9 +235,8 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 						},
 					},
 				}, data)
-
 				wasDataSent = true
-				return nil
+				return &sovCore.BridgeOperationsResponse{}, nil
 			},
 		}
 
@@ -236,6 +252,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		}
 		sovEndRound := createSovSubRoundEndWithSelfLeader(pool, bridgeHandler, sovHdr)
 		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+		wg.Wait()
 		require.True(t, success)
 		require.True(t, wasDataSent)
 		require.Equal(t, 1, getCallCt)
@@ -282,8 +299,14 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 
 		wasDataSent := false
 		currCtx := context.Background()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
-			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) error {
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				defer func() {
+					wg.Done()
+				}()
+
 				require.Equal(t, currCtx, ctx)
 				require.Equal(t, &sovCore.BridgeOperations{
 					Data: []*sovCore.BridgeOutGoingData{
@@ -293,7 +316,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 				}, data)
 
 				wasDataSent = true
-				return nil
+				return &sovCore.BridgeOperationsResponse{}, nil
 			},
 		}
 
@@ -309,6 +332,8 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		}
 		sovEndRound := createSovSubRoundEndWithSelfLeader(pool, bridgeHandler, sovHdr)
 		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		wg.Wait()
 		require.True(t, success)
 		require.True(t, wasDataSent)
 	})
@@ -386,8 +411,9 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 
 		wasDataSent := false
 		currCtx := context.Background()
+		spyChan := make(chan struct{})
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
-			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) error {
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
 				require.Equal(t, currCtx, ctx)
 				require.Equal(t, &sovCore.BridgeOperations{
 					Data: []*sovCore.BridgeOutGoingData{
@@ -395,8 +421,9 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 					},
 				}, data)
 
+				spyChan <- struct{}{}
 				wasDataSent = true
-				return nil
+				return &sovCore.BridgeOperationsResponse{}, nil
 			},
 		}
 
@@ -412,6 +439,13 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 		}
 		sovEndRound := createSovSubRoundEndWithParticipant(pool, bridgeHandler, sovHdr)
 		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		select {
+		case <-spyChan:
+			require.Fail(t, "should not have sent data as participant")
+		case <-time.After(time.Second):
+		}
+
 		require.True(t, success)
 		require.False(t, wasDataSent)
 		require.Equal(t, 1, getCallCt)
