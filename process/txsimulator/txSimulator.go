@@ -107,6 +107,21 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimDa
 	vmOutput, ok := ts.getVMOutputOfTx(tx)
 	if ok {
 		results.VMOutput = vmOutput
+
+		var logs []txSimData.SimulationResultsLogEntry
+		for _, vmOutputLog := range vmOutput.Logs {
+			logs = append(
+				logs,
+				txSimData.SimulationResultsLogEntry{
+					Identifier: vmOutputLog.Identifier,
+					Address:    vmOutputLog.Address,
+					Topics:     vmOutputLog.Topics,
+					Data:       vmOutputLog.Data,
+				},
+			)
+		}
+
+		results.Logs = logs
 	}
 
 	return results, nil
