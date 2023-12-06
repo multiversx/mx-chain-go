@@ -82,7 +82,7 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
-	config2 "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
+	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
@@ -486,7 +486,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
-	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&config2.ClientConfig{
+	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&bridgeCfg.ClientConfig{
 		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
 		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
 	})
