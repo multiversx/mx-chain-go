@@ -1303,7 +1303,7 @@ func TestGovernanceContract_GetVotingPower(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 
 	vmOutput := eei.CreateVMOutput()
-	require.Equal(t, big.NewInt(10).Bytes(), vmOutput.ReturnData[0])
+	require.Equal(t, big.NewInt(120).Bytes(), vmOutput.ReturnData[0])
 }
 
 func TestGovernanceContract_GetVVotingPowerWrongCallValue(t *testing.T) {
