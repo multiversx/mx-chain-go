@@ -3,7 +3,6 @@ package systemSmartContracts
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sync"
@@ -764,15 +763,26 @@ func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
-	// marshal using json serializer so it can be easily consumed
-	buff, err := json.Marshal(userVotes)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+	g.finishWithIntValue(len(userVotes.Delegated)) // first we send the number of delegated nonces and afterward the nonces
+	for _, val := range userVotes.Delegated {
+		g.finishWithIntValue(int(val))
 	}
-	g.eei.Finish(buff)
+
+	g.finishWithIntValue(len(userVotes.Direct)) // then we send the number of direct nonces and afterward the nonces
+	for _, val := range userVotes.Direct {
+		g.finishWithIntValue(int(val))
+	}
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) finishWithIntValue(value int) {
+	if value == 0 {
+		g.eei.Finish([]byte{0})
+		return
+	}
+
+	g.eei.Finish(big.NewInt(int64(value)).Bytes())
 }
 
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

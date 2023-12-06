@@ -1471,11 +1471,16 @@ func TestGovernanceContract_ViewUserHistory(t *testing.T) {
 	callInput.Arguments = [][]byte{callerAddress}
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	expectedMessaged := [][]byte{
+		{0}, // 0 delegated values
+		{0}, // 0 direct values
+	}
+	assert.Equal(t, expectedMessaged, finishedMessages)
 
 	mockEEI.GetStorageCalled = func(key []byte) []byte {
 		proposalBytes, _ := args.Marshalizer.Marshal(&OngoingVotedList{
 			Delegated: []uint64{1, 2},
-			Direct:    []uint64{3, 4},
+			Direct:    []uint64{3, 4, 5},
 		})
 		return proposalBytes
 	}
@@ -1483,9 +1488,16 @@ func TestGovernanceContract_ViewUserHistory(t *testing.T) {
 	finishedMessages = make([][]byte, 0)
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
-	expectedString := `{"Direct":[3,4],"Delegated":[1,2]}`
-	assert.Equal(t, 1, len(finishedMessages))
-	assert.Equal(t, expectedString, string(finishedMessages[0]))
+	expectedMessaged = [][]byte{
+		{2}, // 2 delegated values
+		{1},
+		{2},
+		{3}, // 3 direct values
+		{3},
+		{4},
+		{5},
+	}
+	assert.Equal(t, expectedMessaged, finishedMessages)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {
