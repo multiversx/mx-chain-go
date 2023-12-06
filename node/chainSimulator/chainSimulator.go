@@ -185,8 +185,8 @@ func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 	return s.initialWalletKeys
 }
 
-// SetState will set the provided state for a given address
-func (s *simulator) SetState(address string, state map[string]string) error {
+// SetKeyValueForAddress will set the provided state for a given address
+func (s *simulator) SetKeyValueForAddress(address string, state map[string]string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -202,7 +202,29 @@ func (s *simulator) SetState(address string, state map[string]string) error {
 		return fmt.Errorf("cannot find a test node for the computed shard id, computed shard id: %d", shardID)
 	}
 
-	return testNode.SetState(addressBytes, state)
+	return testNode.SetKeyValueForAddress(addressBytes, state)
+}
+
+// SetStateMultiple will set state for multiple addresses
+func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	for _, state := range stateSlice {
+		addressBytes, err := addressConverter.Decode(state.Address)
+		if err != nil {
+			return err
+		}
+
+		shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+		err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Close will stop and close the simulator

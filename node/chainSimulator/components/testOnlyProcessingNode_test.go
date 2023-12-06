@@ -95,14 +95,14 @@ func TestOnlyProcessingNodeSetStateShouldError(t *testing.T) {
 	keyValueMap := map[string]string{
 		"nonHex": "01",
 	}
-	err = node.SetState(addressBytes, keyValueMap)
+	err = node.SetKeyValueForAddress(addressBytes, keyValueMap)
 	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), "cannot decode key"))
 
 	keyValueMap = map[string]string{
 		"01": "nonHex",
 	}
-	err = node.SetState(addressBytes, keyValueMap)
+	err = node.SetKeyValueForAddress(addressBytes, keyValueMap)
 	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), "cannot decode value"))
 }

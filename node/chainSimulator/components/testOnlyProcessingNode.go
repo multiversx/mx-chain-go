@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
@@ -18,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/economics"
@@ -382,36 +384,20 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 	}
 }
 
-// SetState will set the provided state for the given address
-func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[string]string) error {
-	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
-	account, err := accountsAdapter.LoadAccount(address)
+// SetKeyValueForAddress will set the provided state for the given address
+func (node *testOnlyProcessingNode) SetKeyValueForAddress(address []byte, keyValueMap map[string]string) error {
+	userAccount, err := node.getUserAccount(address)
 	if err != nil {
 		return err
 	}
 
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return errors.New("cannot cast AccountHandler to UserAccountHandler")
+	err = setKeyValueMap(userAccount, keyValueMap)
+	if err != nil {
+		return err
 	}
 
-	for keyHex, valueHex := range keyValueMap {
-		keyDecoded, errK := hex.DecodeString(keyHex)
-		if errK != nil {
-			return fmt.Errorf("cannot decode key, error: %w", err)
-		}
-		valueDecoded, errV := hex.DecodeString(valueHex)
-		if errV != nil {
-			return fmt.Errorf("cannot decode value, error: %w", err)
-		}
-
-		err = userAccount.SaveKeyValue(keyDecoded, valueDecoded)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = accountsAdapter.SaveAccount(account)
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err = accountsAdapter.SaveAccount(userAccount)
 	if err != nil {
 		return err
 	}
@@ -422,6 +408,90 @@ func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[str
 	}
 
 	return nil
+}
+
+func setKeyValueMap(userAccount state.UserAccountHandler, keyValueMap map[string]string) error {
+	for keyHex, valueHex := range keyValueMap {
+		keyDecoded, err := hex.DecodeString(keyHex)
+		if err != nil {
+			return fmt.Errorf("cannot decode key, error: %w", err)
+		}
+		valueDecoded, err := hex.DecodeString(valueHex)
+		if err != nil {
+			return fmt.Errorf("cannot decode value, error: %w", err)
+		}
+
+		err = userAccount.SaveKeyValue(keyDecoded, valueDecoded)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SetStateForAddress will set the state for the give address
+func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressState *dtos.AddressState) error {
+	userAccount, err := node.getUserAccount(address)
+	if err != nil {
+		return err
+	}
+
+	// set nonce to zero
+	userAccount.IncreaseNonce(-userAccount.GetNonce())
+	// set nonce with the provided value
+	userAccount.IncreaseNonce(addressState.Nonce)
+
+	if addressState.Code != "" {
+		decodedCode, _ := hex.DecodeString(addressState.Code)
+		userAccount.SetCode(decodedCode)
+	}
+	if addressState.CodeMetadata != "" {
+		decodedCodeMetadata, _ := hex.DecodeString(addressState.CodeMetadata)
+		userAccount.SetCodeMetadata(decodedCodeMetadata)
+	}
+
+	bigValue, ok := big.NewInt(0).SetString(addressState.Balance, 10)
+	if !ok {
+		return errors.New("cannot convert string balance to *big.Int")
+	}
+	err = userAccount.AddToBalance(bigValue)
+	if err != nil {
+		return err
+	}
+
+	err = setKeyValueMap(userAccount, addressState.Keys)
+	if err != nil {
+		return err
+	}
+
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err = accountsAdapter.SaveAccount(userAccount)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (node *testOnlyProcessingNode) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	account, err := accountsAdapter.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, errors.New("cannot cast AccountHandler to UserAccountHandler")
+	}
+
+	return userAccount, nil
 }
 
 // Close will call the Close methods on all inner components

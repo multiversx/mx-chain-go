@@ -133,7 +133,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 	}
 
 	address := "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj"
-	err = chainSimulator.SetState(address, keyValueMap)
+	err = chainSimulator.SetKeyValueForAddress(address, keyValueMap)
 	require.Nil(t, err)
 
 	err = chainSimulator.GenerateBlocks(1)
