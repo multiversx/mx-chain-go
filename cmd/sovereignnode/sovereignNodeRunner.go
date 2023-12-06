@@ -534,11 +534,11 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating node structure")
 
-	extraOptionReceiver := func(n *node.Node) error {
+	extraOptionNotifierReceiver := func(n *node.Node) error {
 		n.AddClosableComponent(sovereignWsReceiver)
 		return nil
 	}
-	extraOptionBridgeOutGoing := func(n *node.Node) error {
+	extraOptionOutGoingBridgeSender := func(n *node.Node) error {
 		n.AddClosableComponent(outGoingBridgeOpHandler)
 		return nil
 	}
@@ -557,8 +557,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
-		extraOptionReceiver,
-		extraOptionBridgeOutGoing,
+		extraOptionNotifierReceiver,
+		extraOptionOutGoingBridgeSender,
 	)
 	if err != nil {
 		return true, err
