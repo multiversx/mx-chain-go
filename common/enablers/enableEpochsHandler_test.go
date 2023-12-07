@@ -104,6 +104,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 		DeterministicSortOnValidatorsInfoEnableEpoch:      79,
 		ScToScLogEventEnableEpoch:                         88,
+		EquivalentMessagesEnableEpoch:                     89,
 	}
 }
 
@@ -247,6 +248,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsTransferToMetaFlagEnabled())
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
+		assert.True(t, handler.IsEquivalentMessagesFlagEnabled())
 	})
 	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
@@ -366,6 +368,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.IsTransferToMetaFlagEnabled())
 		assert.True(t, handler.IsESDTNFTImprovementV1FlagEnabled())
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
+		assert.True(t, handler.IsEquivalentMessagesFlagEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -480,6 +483,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.IsTransferToMetaFlagEnabled())
 		assert.False(t, handler.IsESDTNFTImprovementV1FlagEnabled())
 		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
+		assert.False(t, handler.IsEquivalentMessagesFlagEnabled())
 	})
 }
 

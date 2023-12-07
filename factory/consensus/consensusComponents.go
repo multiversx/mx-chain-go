@@ -204,6 +204,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:      ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:       cc.peerBlacklistHandler,
 		EquivalentMessagesDebugger: debug.NewEquivalentMessagesDebugger(),
+		EnableEpochsHandler:        ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)

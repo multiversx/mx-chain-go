@@ -835,6 +835,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
 	ScToScLogEventEnableEpoch = 88
 
+	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
+	EquivalentMessagesEnableEpoch = 89
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -911,12 +914,12 @@ func TestEnableEpochConfig(t *testing.T) {
 			StorageAPICostOptimizationEnableEpoch:             54,
 			TransformToMultiShardCreateEnableEpoch:            55,
 			ESDTRegisterAndSetAllRolesEnableEpoch:             56,
-			ScheduledMiniBlocksEnableEpoch:                 57,
-			CorrectJailedNotUnstakedEmptyQueueEpoch:         58,
-			DoNotReturnOldBlockInBlockchainHookEnableEpoch:            59,
-			AddFailedRelayedTxToInvalidMBsDisableEpoch:       60,
-			SCRSizeInvariantOnBuiltInResultEnableEpoch:              61,
-			CheckCorrectTokenIDForTransferRoleEnableEpoch:                   62,
+			ScheduledMiniBlocksEnableEpoch:                    57,
+			CorrectJailedNotUnstakedEmptyQueueEpoch:           58,
+			DoNotReturnOldBlockInBlockchainHookEnableEpoch:    59,
+			AddFailedRelayedTxToInvalidMBsDisableEpoch:        60,
+			SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
+			CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
 			DisableExecByCallerEnableEpoch:                    63,
 			RefactorContextEnableEpoch:                        64,
 			FailExecutionOnEveryAPIErrorEnableEpoch:           65,
@@ -926,7 +929,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTMetadataContinuousCleanupEnableEpoch:          69,
 			MiniBlockPartialExecutionEnableEpoch:              70,
 			FixAsyncCallBackArgsListEnableEpoch:               71,
-			FixOldTokenLiquidityEnableEpoch:                   72,RuntimeMemStoreLimitEnableEpoch:                 73,
+			FixOldTokenLiquidityEnableEpoch:                   72,
+			RuntimeMemStoreLimitEnableEpoch:                   73,
 			SetSenderInEeiOutputTransferEnableEpoch:           74,
 			RefactorPeersMiniBlocksEnableEpoch:                75,
 			MaxBlockchainHookCountersEnableEpoch:              76,
@@ -954,8 +958,9 @@ func TestEnableEpochConfig(t *testing.T) {
 					NodesToShufflePerShard: 80,
 				},
 			},
-			DeterministicSortOnValidatorsInfoEnableEpoch: 66,
+			DeterministicSortOnValidatorsInfoEnableEpoch:    66,
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 64,
+			EquivalentMessagesEnableEpoch:                   65,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

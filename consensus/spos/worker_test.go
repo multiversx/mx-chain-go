@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -116,6 +117,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		NodeRedundancyHandler:      &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
 		EquivalentMessagesDebugger: &mock.EquivalentMessagesDebuggerStub{},
+		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return workerArgs
@@ -368,6 +370,28 @@ func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
+}
+
+func TestWorker_NewWorkerPoolEquivalentMessagesDebuggerNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.EquivalentMessagesDebugger = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilEquivalentMessagesDebugger, err)
+}
+
+func TestWorker_NewWorkerPoolEnableEpochsHandlerNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.EnableEpochsHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {

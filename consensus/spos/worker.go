@@ -51,6 +51,7 @@ type Worker struct {
 	headerSigVerifier       HeaderSigVerifier
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
+	enableEpochsHandler     common.EnableEpochsHandler
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -111,6 +112,7 @@ type WorkerArgs struct {
 	NodeRedundancyHandler      consensus.NodeRedundancyHandler
 	PeerBlacklistHandler       consensus.PeerBlacklistHandler
 	EquivalentMessagesDebugger EquivalentMessagesDebugger
+	EnableEpochsHandler        common.EnableEpochsHandler
 }
 
 // NewWorker creates a new Worker object
@@ -161,6 +163,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		closer:                     closing.NewSafeChanCloser(),
 		equivalentMessages:         make(map[string]uint64),
 		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
+		enableEpochsHandler:        args.EnableEpochsHandler,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -263,6 +266,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.EquivalentMessagesDebugger) {
 		return ErrNilEquivalentMessagesDebugger
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -742,6 +748,10 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 }
 
 func (wrk *Worker) processEquivalentMessageUnprotected(msgType consensus.MessageType, blockHeaderHash []byte) error {
+	if wrk.enableEpochsHandler.IsEquivalentMessagesFlagEnabled() {
+		return nil
+	}
+
 	// early exit if the message is not with final info
 	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
 		return nil
@@ -760,6 +770,10 @@ func (wrk *Worker) processEquivalentMessageUnprotected(msgType consensus.Message
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(msgType consensus.MessageType, blockHeaderHash []byte) {
+	if wrk.enableEpochsHandler.IsEquivalentMessagesFlagEnabled() {
+		return
+	}
+
 	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
 		return
 	}

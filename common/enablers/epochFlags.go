@@ -102,6 +102,7 @@ type epochFlagsHolder struct {
 	autoBalanceDataTriesFlag                    *atomic.Flag
 	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
+	equivalentMessagesFlag                      *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -203,6 +204,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		autoBalanceDataTriesFlag:                    &atomic.Flag{},
 		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
+		equivalentMessagesFlag:                      &atomic.Flag{},
 	}
 }
 
@@ -694,7 +696,7 @@ func (holder *epochFlagsHolder) IsSetGuardianEnabled() bool {
 	return holder.setGuardianFlag.IsSet()
 }
 
-// IsScToScLogEventFlagEnabled returns true if scToScLogEventFlag is enabled
+// IsScToScEventLogEnabled returns true if scToScLogEventFlag is enabled
 func (holder *epochFlagsHolder) IsScToScEventLogEnabled() bool {
 	return holder.scToScLogEventFlag.IsSet()
 }
@@ -742,4 +744,9 @@ func (holder *epochFlagsHolder) FixDelegationChangeOwnerOnAccountEnabled() bool 
 // IsDynamicGasCostForDataTrieStorageLoadEnabled returns true if dynamicGasCostForDataTrieStorageLoadFlag is enabled
 func (holder *epochFlagsHolder) IsDynamicGasCostForDataTrieStorageLoadEnabled() bool {
 	return holder.dynamicGasCostForDataTrieStorageLoadFlag.IsSet()
+}
+
+// IsEquivalentMessagesFlagEnabled returns true if equivalentMessagesFlag is enabled
+func (holder *epochFlagsHolder) IsEquivalentMessagesFlagEnabled() bool {
+	return holder.equivalentMessagesFlag.IsSet()
 }

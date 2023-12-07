@@ -243,3 +243,6 @@ var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already
 
 // ErrNilEquivalentMessagesDebugger signals that a nil equivalent messages debugger has been provided
 var ErrNilEquivalentMessagesDebugger = errors.New("nil equivalent messages debugger")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

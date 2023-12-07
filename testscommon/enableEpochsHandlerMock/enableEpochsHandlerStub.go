@@ -129,6 +129,7 @@ type EnableEpochsHandlerStub struct {
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
+	IsEquivalentMessagesFlagEnabledField                         bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1120,6 +1121,14 @@ func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() 
 	defer stub.RUnlock()
 
 	return stub.FixDelegationChangeOwnerOnAccountEnabledField
+}
+
+// IsEquivalentMessagesFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsEquivalentMessagesFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsEquivalentMessagesFlagEnabledField
 }
 
 // IsInterfaceNil -
