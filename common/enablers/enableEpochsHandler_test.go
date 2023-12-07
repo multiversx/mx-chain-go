@@ -105,6 +105,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DeterministicSortOnValidatorsInfoEnableEpoch:      79,
 		ScToScLogEventEnableEpoch:                         88,
 		EquivalentMessagesEnableEpoch:                     89,
+		ConsensusPropagationChangesEnableEpoch:            90,
 	}
 }
 

@@ -103,6 +103,7 @@ type epochFlagsHolder struct {
 	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 	equivalentMessagesFlag                      *atomic.Flag
+	consensusPropagationChangesFlag             *atomic.Flag
 }
 
 func newEpochFlagsHolder() *epochFlagsHolder {
@@ -205,6 +206,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		fixDelegationChangeOwnerOnAccountFlag:       &atomic.Flag{},
 		dynamicGasCostForDataTrieStorageLoadFlag:    &atomic.Flag{},
 		equivalentMessagesFlag:                      &atomic.Flag{},
+		consensusPropagationChangesFlag:             &atomic.Flag{},
 	}
 }
 
@@ -749,4 +751,9 @@ func (holder *epochFlagsHolder) IsDynamicGasCostForDataTrieStorageLoadEnabled() 
 // IsEquivalentMessagesFlagEnabled returns true if equivalentMessagesFlag is enabled
 func (holder *epochFlagsHolder) IsEquivalentMessagesFlagEnabled() bool {
 	return holder.equivalentMessagesFlag.IsSet()
+}
+
+// IsConsensusPropagationChangesFlagEnabled returns true if consensusPropagationChangesFlag is enabled
+func (holder *epochFlagsHolder) IsConsensusPropagationChangesFlagEnabled() bool {
+	return holder.consensusPropagationChangesFlag.IsSet()
 }

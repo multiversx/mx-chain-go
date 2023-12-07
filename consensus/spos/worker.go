@@ -317,7 +317,7 @@ func (wrk *Worker) initReceivedMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-// AddReceivedMessageCall adds a new handler function for a received messege type
+// AddReceivedMessageCall adds a new handler function for a received message type
 func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = receivedMessageCall

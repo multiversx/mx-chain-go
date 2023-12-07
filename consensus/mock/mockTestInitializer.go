@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
@@ -206,6 +207,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	peerBlacklistHandler := &PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 	signingHandler := &consensusMocks.SigningHandlerStub{}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -231,6 +233,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		messageSigningHandler:   messageSigningHandler,
 		peerBlacklistHandler:    peerBlacklistHandler,
 		signingHandler:          signingHandler,
+		enableEpochsHandler:     enableEpochsHandler,
 	}
 
 	return container

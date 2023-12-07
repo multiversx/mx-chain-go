@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -65,6 +66,8 @@ type ConsensusCoreHandler interface {
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
 	// SigningHandler returns the signing handler component
 	SigningHandler() consensus.SigningHandler
+	// EnableEpochsHandler returns the enable epochs handler component
+	EnableEpochsHandler() common.EnableEpochsHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

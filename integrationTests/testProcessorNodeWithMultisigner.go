@@ -238,6 +238,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch:          UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)

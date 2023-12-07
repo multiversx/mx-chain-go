@@ -130,6 +130,7 @@ type EnableEpochsHandlerStub struct {
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 	IsEquivalentMessagesFlagEnabledField                         bool
+	IsConsensusPropagationChangesFlagEnabledField                bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1129,6 +1130,14 @@ func (stub *EnableEpochsHandlerStub) IsEquivalentMessagesFlagEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsEquivalentMessagesFlagEnabledField
+}
+
+// IsConsensusPropagationChangesFlagEnabled -
+func (stub *EnableEpochsHandlerStub) IsConsensusPropagationChangesFlagEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsConsensusPropagationChangesFlagEnabledField
 }
 
 // IsInterfaceNil -
