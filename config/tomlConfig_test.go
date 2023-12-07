@@ -946,6 +946,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
 			ScToScLogEventEnableEpoch:                         88,
+			EquivalentMessagesEnableEpoch:                     89,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -960,7 +961,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			},
 			DeterministicSortOnValidatorsInfoEnableEpoch:    66,
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 64,
-			EquivalentMessagesEnableEpoch:                   65,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,
