@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -17,6 +19,7 @@ var log = logger.GetOrCreate("headerSubscriber")
 // ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
 type ArgsIncomingHeaderProcessor struct {
 	HeadersPool                     HeadersPool
+	OutGoingOperationsPool          block.OutGoingOperationsPool
 	TxPool                          TransactionPool
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
@@ -45,9 +48,13 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	if check.IfNil(args.Hasher) {
 		return nil, core.ErrNilHasher
 	}
+	if check.IfNil(args.OutGoingOperationsPool) {
+		return nil, errors.ErrNilOutGoingOperationsPool
+	}
 
 	eventsProc := &incomingEventsProcessor{
 		txPool:     args.TxPool,
+		pool:       args.OutGoingOperationsPool,
 		marshaller: args.Marshaller,
 		hasher:     args.Hasher,
 	}

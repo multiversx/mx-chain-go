@@ -42,15 +42,15 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 	for idx, event := range events {
 		topics := event.GetTopics()
 
-		switch event.GetIdentifier() {
-		case []byte(topicIDDeposit):
+		switch string(event.GetIdentifier()) {
+		case topicIDDeposit:
 			scr, err := iep.addSCRInfo(topics, event)
 			if err != nil {
 				return nil, fmt.Errorf("%w, event idx = %d", err, idx)
 			}
 			scrs = append(scrs, scr)
 
-		case []byte(topicIDExecutedBridgeOp):
+		case topicIDExecutedBridgeOp:
 			err := iep.confirmBridgeOperation(topics)
 			if err != nil {
 				return nil, fmt.Errorf("%w, event idx = %d", err, idx)
