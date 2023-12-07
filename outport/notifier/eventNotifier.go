@@ -3,10 +3,7 @@ package notifier
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -66,7 +63,9 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 
 // SaveBlock converts block data in order to be pushed to subscribers
 func (en *eventNotifier) SaveBlock(args *outport.OutportBlock) error {
-	log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.BlockData.HeaderHash)
+	if args.BlockData != nil {
+		log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.BlockData.HeaderHash)
+	}
 
 	err := en.httpClient.Post(pushEventEndpoint, args)
 	if err != nil {
@@ -139,13 +138,4 @@ func (en *eventNotifier) RegisterHandler(_ func() error, _ string) error {
 // SetCurrentSettings will do nothing
 func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
 	return nil
-}
-
-func (en *eventNotifier) getHeaderFromBytes(headerType core.HeaderType, headerBytes []byte) (header data.HeaderHandler, err error) {
-	creator, err := en.blockContainer.Get(headerType)
-	if err != nil {
-		return nil, err
-	}
-
-	return block.GetHeaderFromBytes(en.marshalizer, creator, headerBytes)
 }
