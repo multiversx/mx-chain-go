@@ -24,7 +24,7 @@ type ArgsIncomingHeaderProcessor struct {
 }
 
 type incomingHeaderProcessor struct {
-	scrProc                         *scrProcessor
+	eventsProc                      *incomingEventsProcessor
 	extendedHeaderProc              *extendedHeaderProcessor
 	mainChainNotarizationStartRound uint64
 }
@@ -46,7 +46,7 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, core.ErrNilHasher
 	}
 
-	scrProc := &scrProcessor{
+	eventsProc := &incomingEventsProcessor{
 		txPool:     args.TxPool,
 		marshaller: args.Marshaller,
 		hasher:     args.Hasher,
@@ -61,7 +61,7 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	log.Debug("NewIncomingHeaderProcessor", "starting round to notarize main chain headers", args.MainChainNotarizationStartRound)
 
 	return &incomingHeaderProcessor{
-		scrProc:                         scrProc,
+		eventsProc:                      eventsProc,
 		extendedHeaderProc:              extendedHearProc,
 		mainChainNotarizationStartRound: args.MainChainNotarizationStartRound,
 	}, nil
@@ -69,11 +69,11 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 
 // AddHeader will receive the incoming header, validate it, create incoming mbs and transactions and add them to pool
 func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error {
-	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
-
 	if check.IfNil(header) || check.IfNil(header.GetHeaderHandler()) {
 		return data.ErrNilHeader
 	}
+
+	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
 
 	round := header.GetHeaderHandler().GetRound()
 	if round < ihp.mainChainNotarizationStartRound {
@@ -83,7 +83,7 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return nil
 	}
 
-	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	incomingSCRs, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
@@ -98,13 +98,13 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	ihp.scrProc.addSCRsToPool(incomingSCRs)
+	ihp.eventsProc.addSCRsToPool(incomingSCRs)
 	return nil
 }
 
 // CreateExtendedHeader will create an extended shard header with incoming scrs and mbs from the events of the received header
 func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
-	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	incomingSCRs, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return nil, err
 	}

@@ -96,6 +96,7 @@ func (op *outGoingOperationsPool) ConfirmOperation(hashOfHashes []byte, hash []b
 		delete(op.cache, string(hashOfHashes))
 	}
 
+	log.Debug("outGoingOperationsPool.ConfirmOperation", "hashOfHashes", hashOfHashes, "hash", hash)
 	return nil
 }
 
@@ -112,9 +113,7 @@ func confirmOutGoingBridgeOpHash(cachedEntry *cacheEntry, hash []byte) error {
 }
 
 func removeElement(slice []*sovereign.OutGoingOperation, index int) []*sovereign.OutGoingOperation {
-	// Swap the element to delete with the last element
-	slice[index] = slice[len(slice)-1]
-	// Reduce the slice size by 1 (remove the last element)
+	copy(slice[index:], slice[index+1:])
 	return slice[:len(slice)-1]
 }
 

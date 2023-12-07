@@ -168,10 +168,12 @@ func TestOutGoingOperationsPool_ConfirmOperation(t *testing.T) {
 	hash1 := []byte("h1")
 	hash2 := []byte("h2")
 	hash3 := []byte("h3")
+	hash4 := []byte("h3")
 
 	data1 := []byte("d1")
 	data2 := []byte("d2")
 	data3 := []byte("d3")
+	data4 := []byte("d3")
 
 	outGoingOperationsHash1 := []byte("h11h22")
 	outGoingOperationsHash2 := []byte("h33")
@@ -187,12 +189,6 @@ func TestOutGoingOperationsPool_ConfirmOperation(t *testing.T) {
 				Hash: hash2,
 				Data: data2,
 			},
-		},
-	}
-
-	bridgeData2 := &sovereign.BridgeOutGoingData{
-		Hash: outGoingOperationsHash2,
-		OutGoingOperations: []*sovereign.OutGoingOperation{
 			{
 				Hash: hash3,
 				Data: data3,
@@ -200,28 +196,56 @@ func TestOutGoingOperationsPool_ConfirmOperation(t *testing.T) {
 		},
 	}
 
+	bridgeData2 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash2,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash4,
+				Data: data4,
+			},
+		},
+	}
+
 	pool.Add(bridgeData1)
 	pool.Add(bridgeData2)
 
-	err := pool.ConfirmOperation(outGoingOperationsHash1, hash1)
+	err := pool.ConfirmOperation(outGoingOperationsHash1, hash2)
 	require.Nil(t, err)
 
-	err = pool.ConfirmOperation(outGoingOperationsHash1, hash1)
+	err = pool.ConfirmOperation(outGoingOperationsHash1, hash2)
 	require.ErrorIs(t, err, errHashOfBridgeOpNotFound)
-	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(hash1)))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(hash2)))
 
 	bridgeData := pool.Get(outGoingOperationsHash1)
 	require.Equal(t, &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash1,
 		OutGoingOperations: []*sovereign.OutGoingOperation{
 			{
-				Hash: hash2,
-				Data: data2,
+				Hash: hash1,
+				Data: data1,
+			},
+			{
+				Hash: hash3,
+				Data: data3,
 			},
 		},
 	}, bridgeData)
 
-	err = pool.ConfirmOperation(outGoingOperationsHash1, hash2)
+	err = pool.ConfirmOperation(outGoingOperationsHash1, hash1)
+	require.Nil(t, err)
+
+	bridgeData = pool.Get(outGoingOperationsHash1)
+	require.Equal(t, &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash1,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash3,
+				Data: data3,
+			},
+		},
+	}, bridgeData)
+
+	err = pool.ConfirmOperation(outGoingOperationsHash1, hash3)
 	require.Nil(t, err)
 	require.Nil(t, pool.Get(outGoingOperationsHash1))
 
@@ -233,18 +257,22 @@ func TestOutGoingOperationsPool_ConfirmOperation(t *testing.T) {
 	require.ErrorIs(t, err, errHashOfHashesNotFound)
 	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(outGoingOperationsHash1)))
 
+	err = pool.ConfirmOperation(outGoingOperationsHash1, hash3)
+	require.ErrorIs(t, err, errHashOfHashesNotFound)
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(outGoingOperationsHash1)))
+
 	bridgeData = pool.Get(outGoingOperationsHash2)
 	require.Equal(t, &sovereign.BridgeOutGoingData{
 		Hash: outGoingOperationsHash2,
 		OutGoingOperations: []*sovereign.OutGoingOperation{
 			{
-				Hash: hash3,
-				Data: data3,
+				Hash: hash4,
+				Data: data4,
 			},
 		},
 	}, bridgeData)
 
-	err = pool.ConfirmOperation(outGoingOperationsHash2, hash3)
+	err = pool.ConfirmOperation(outGoingOperationsHash2, hash4)
 	require.Nil(t, err)
 	require.Nil(t, pool.Get(outGoingOperationsHash2))
 
