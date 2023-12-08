@@ -28,11 +28,8 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		AccountFactory:        &mockState.AccountsFactoryStub{},
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
->>>>>>> feat/remove-trie-code-leaf
 	}
 }
 

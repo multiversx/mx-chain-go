@@ -64,11 +64,8 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      snapshotsManager,
->>>>>>> feat/remove-trie-code-leaf
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

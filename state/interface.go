@@ -50,6 +50,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	MigrateCodeLeaf(account vmcommon.AccountHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -269,11 +270,12 @@ type SignRate interface {
 	GetNumFailure() uint32
 }
 
-<<<<<<< HEAD
 type snapshotPruningStorer interface {
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
-=======
+	IsInterfaceNil() bool
+}
+
 // StateStatsHandler defines the behaviour needed to handler state statistics
 type StateStatsHandler interface {
 	ResetSnapshot()
@@ -287,5 +289,4 @@ type LastSnapshotMarker interface {
 	RemoveMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
 	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
 	IsInterfaceNil() bool
->>>>>>> feat/remove-trie-code-leaf
 }

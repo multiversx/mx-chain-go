@@ -237,6 +237,11 @@ func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options comm
 	return nil
 }
 
+// MigrateCodeLeaf returns nil
+func (accountsDB *accountsDBApiWithHistory) MigrateCodeLeaf(_ vmcommon.AccountHandler) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (accountsDB *accountsDBApiWithHistory) IsInterfaceNil() bool {
 	return accountsDB == nil

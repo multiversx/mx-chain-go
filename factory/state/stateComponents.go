@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
@@ -168,19 +169,6 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
-<<<<<<< HEAD
-		Trie:                     merkleTrie,
-		Hasher:                   scf.core.Hasher(),
-		Marshaller:               scf.core.InternalMarshalizer(),
-		AccountFactory:           accountFactory,
-		StoragePruningManager:    storagePruning,
-		ProcessingMode:           scf.processingMode,
-		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
-		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
-		AddressConverter:         scf.core.AddressPubKeyConverter(),
-		EnableEpochsHandler:      scf.core.EnableEpochsHandler(),
-=======
 		Trie:                  merkleTrie,
 		Hasher:                scf.core.Hasher(),
 		Marshaller:            scf.core.InternalMarshalizer(),
@@ -188,7 +176,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		StoragePruningManager: storagePruning,
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      snapshotsManager,
->>>>>>> feat/remove-trie-code-leaf
+		EnableEpochsHandler:   scf.core.EnableEpochsHandler(),
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -202,11 +190,8 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		AccountFactory:        accountFactory,
 		StoragePruningManager: storagePruning,
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
-<<<<<<< HEAD
 		EnableEpochsHandler:   scf.core.EnableEpochsHandler(),
-=======
 		SnapshotsManager:      disabled.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -262,19 +247,6 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 	}
 
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
-<<<<<<< HEAD
-		Trie:                     merkleTrie,
-		Hasher:                   scf.core.Hasher(),
-		Marshaller:               scf.core.InternalMarshalizer(),
-		AccountFactory:           accountFactory,
-		StoragePruningManager:    storagePruning,
-		ProcessingMode:           scf.processingMode,
-		ShouldSerializeSnapshots: scf.shouldSerializeSnapshots,
-		ProcessStatusHandler:     scf.core.ProcessStatusHandler(),
-		AppStatusHandler:         scf.statusCore.AppStatusHandler(),
-		AddressConverter:         scf.core.AddressPubKeyConverter(),
-		EnableEpochsHandler:      scf.core.EnableEpochsHandler(),
-=======
 		Trie:                  merkleTrie,
 		Hasher:                scf.core.Hasher(),
 		Marshaller:            scf.core.InternalMarshalizer(),
@@ -282,7 +254,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		StoragePruningManager: storagePruning,
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      snapshotManager,
->>>>>>> feat/remove-trie-code-leaf
+		EnableEpochsHandler:   scf.core.EnableEpochsHandler(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

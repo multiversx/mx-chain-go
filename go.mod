@@ -13,33 +13,18 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-<<<<<<< HEAD
-	github.com/multiversx/mx-chain-communication-go v1.0.6
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231207131555-bec3579d08d3
-	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.12
-	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231129101244-c44fa1c79b03
-	github.com/multiversx/mx-chain-scenario-go v1.2.1
-	github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231129103407-a506e0debdd4
-	github.com/multiversx/mx-chain-vm-common-go v1.5.9-0.20231207131737-758c1e47240e
-	github.com/multiversx/mx-chain-vm-go v1.5.11
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64-0.20231208102852-8bd012cb402e
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65-0.20231208103134-b41b248566f9
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231208104129-f9752d67bd65
-=======
 	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231129100534-356aa234f4ff
+	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231207131555-bec3579d08d3
 	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.17-0.20231129114609-035c49863110
 	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231129101244-c44fa1c79b03
 	github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296
 	github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231129103407-a506e0debdd4
-	github.com/multiversx/mx-chain-vm-common-go v1.5.9-0.20231129110322-d07a35163513
-	github.com/multiversx/mx-chain-vm-go v1.5.21-0.20231129123522-78375fd2abf4
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64-0.20231129115807-0bb8c764d9e4
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65-0.20231129120711-ccd8bcb98f1f
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231129122620-cf29965fa7ff
->>>>>>> feat/remove-trie-code-leaf
+	github.com/multiversx/mx-chain-vm-common-go v1.5.9-0.20231207131737-758c1e47240e
+	github.com/multiversx/mx-chain-vm-go v1.5.21-0.20231208125949-6db764c7d328
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64-0.20231208102852-8bd012cb402e
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65-0.20231208103134-b41b248566f9
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231208104129-f9752d67bd65
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0

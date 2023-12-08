@@ -78,11 +78,8 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		AccountFactory:        accCreator,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      snapshotsManager,
->>>>>>> feat/remove-trie-code-leaf
 	}
 }
 
@@ -169,11 +166,8 @@ func getDefaultStateComponents(
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      snapshotsManager,
->>>>>>> feat/remove-trie-code-leaf
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

@@ -8,20 +8,17 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
-<<<<<<< HEAD
 	PutCalled                                  func([]byte, []byte) error
 	PutInEpochCalled                           func([]byte, []byte, uint32) error
 	PutInEpochWithoutCacheCalled               func([]byte, []byte, uint32) error
 	GetCalled                                  func([]byte) ([]byte, error)
 	GetFromCurrentEpochCalled                  func([]byte) ([]byte, error)
 	TakeSnapshotCalled                         func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
-	SetCheckpointCalled                        func([]byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler)
 	GetDbThatContainsHashCalled                func([]byte) common.BaseStorer
 	IsPruningEnabledCalled                     func() bool
 	IsPruningBlockedCalled                     func() bool
 	EnterPruningBufferingModeCalled            func()
 	ExitPruningBufferingModeCalled             func()
-	AddDirtyCheckpointHashesCalled             func([]byte, common.ModifiedHashes) bool
 	RemoveFromCurrentEpochCalled               func([]byte) error
 	RemoveCalled                               func([]byte) error
 	IsInterfaceNilCalled                       func() bool
@@ -29,37 +26,12 @@ type StorageManagerStub struct {
 	ShouldTakeSnapshotCalled                   func() bool
 	GetLatestStorageEpochCalled                func() (uint32, error)
 	IsClosedCalled                             func() bool
-	RemoveFromCheckpointHashesHolderCalled     func([]byte)
 	GetBaseTrieStorageManagerCalled            func() common.StorageManager
 	GetIdentifierCalled                        func() string
 	CloseCalled                                func() error
 	RemoveFromAllActiveEpochsCalled            func(hash []byte) error
+	GetStateStatsHandlerCalled                 func() common.StateStatisticsHandler
 	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, core.OptionalUint32, error)
-=======
-	PutCalled                       func([]byte, []byte) error
-	PutInEpochCalled                func([]byte, []byte, uint32) error
-	PutInEpochWithoutCacheCalled    func([]byte, []byte, uint32) error
-	GetCalled                       func([]byte) ([]byte, error)
-	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
-	TakeSnapshotCalled              func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
-	GetDbThatContainsHashCalled     func([]byte) common.BaseStorer
-	IsPruningEnabledCalled          func() bool
-	IsPruningBlockedCalled          func() bool
-	EnterPruningBufferingModeCalled func()
-	ExitPruningBufferingModeCalled  func()
-	RemoveFromCurrentEpochCalled    func([]byte) error
-	RemoveCalled                    func([]byte) error
-	IsInterfaceNilCalled            func() bool
-	SetEpochForPutOperationCalled   func(uint32)
-	ShouldTakeSnapshotCalled        func() bool
-	GetLatestStorageEpochCalled     func() (uint32, error)
-	IsClosedCalled                  func() bool
-	GetBaseTrieStorageManagerCalled func() common.StorageManager
-	GetIdentifierCalled             func() string
-	CloseCalled                     func() error
-	RemoveFromAllActiveEpochsCalled func(hash []byte) error
-	GetStateStatsHandlerCalled      func() common.StateStatisticsHandler
->>>>>>> feat/remove-trie-code-leaf
 }
 
 // Put -

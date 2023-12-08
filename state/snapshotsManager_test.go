@@ -7,22 +7,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
-<<<<<<< HEAD
 	"github.com/multiversx/mx-chain-go/common/errChan"
-=======
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
->>>>>>> feat/remove-trie-code-leaf
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-<<<<<<< HEAD
-	"github.com/multiversx/mx-chain-go/state/parsers"
-=======
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
->>>>>>> feat/remove-trie-code-leaf
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -525,7 +520,6 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		assert.True(t, removeFromAllActiveEpochsCalled)
 	})
 }
-<<<<<<< HEAD
 
 func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
 	t.Parallel()
@@ -706,5 +700,3 @@ func TestSnapshotsManager_WaitForStorageEpochChange(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
-=======
->>>>>>> feat/remove-trie-code-leaf

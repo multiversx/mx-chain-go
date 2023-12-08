@@ -33,11 +33,8 @@ func createAccountAdapter(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      addressConverter,
-<<<<<<< HEAD
 		EnableEpochsHandler:   enableEpochsHandler,
-=======
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 	}
 
 	adb, err := state.NewAccountsDB(args)

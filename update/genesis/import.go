@@ -419,11 +419,8 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				AccountFactory:        accountFactory,
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 				AddressConverter:      si.addressConverter,
-<<<<<<< HEAD
 				EnableEpochsHandler:   si.enableEpochsHandler,
-=======
 				SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -446,11 +443,8 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      si.addressConverter,
-<<<<<<< HEAD
 		EnableEpochsHandler:   si.enableEpochsHandler,
-=======
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

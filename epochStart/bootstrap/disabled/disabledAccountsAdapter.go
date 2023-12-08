@@ -133,6 +133,11 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// MigrateCodeLeaf -
+func (a *accountsAdapter) MigrateCodeLeaf(_ vmcommon.AccountHandler) error {
+	return nil
+}
+
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil

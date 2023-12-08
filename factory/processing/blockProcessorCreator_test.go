@@ -205,11 +205,8 @@ func createAccountAdapter(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

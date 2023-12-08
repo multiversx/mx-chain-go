@@ -993,12 +993,9 @@ const (
 	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
 	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
-<<<<<<< HEAD
-	MigrateCodeLeafFlag                                core.EnableEpochFlag = "MigrateCodeLeafFlag"
-=======
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
->>>>>>> feat/remove-trie-code-leaf
+	MigrateCodeLeafFlag                                core.EnableEpochFlag = "MigrateCodeLeafFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

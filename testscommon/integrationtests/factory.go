@@ -130,11 +130,8 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      snapshotsManager,
->>>>>>> feat/remove-trie-code-leaf
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

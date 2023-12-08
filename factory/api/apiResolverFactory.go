@@ -587,11 +587,8 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		AccountFactory:        accountFactory,
 		StoragePruningManager: storagePruning,
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
-<<<<<<< HEAD
 		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
-=======
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

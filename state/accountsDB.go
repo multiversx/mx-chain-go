@@ -18,11 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-<<<<<<< HEAD
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
-=======
->>>>>>> feat/remove-trie-code-leaf
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -101,19 +97,6 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-<<<<<<< HEAD
-	Trie                     common.Trie
-	Hasher                   hashing.Hasher
-	Marshaller               marshal.Marshalizer
-	AccountFactory           AccountFactory
-	StoragePruningManager    StoragePruningManager
-	ProcessingMode           common.NodeProcessingMode
-	ShouldSerializeSnapshots bool
-	ProcessStatusHandler     common.ProcessStatusHandler
-	AppStatusHandler         core.AppStatusHandler
-	AddressConverter         core.PubkeyConverter
-	EnableEpochsHandler      common.EnableEpochsHandler
-=======
 	Trie                  common.Trie
 	Hasher                hashing.Hasher
 	Marshaller            marshal.Marshalizer
@@ -121,7 +104,7 @@ type ArgsAccountsDB struct {
 	StoragePruningManager StoragePruningManager
 	AddressConverter      core.PubkeyConverter
 	SnapshotsManager      SnapshotsManager
->>>>>>> feat/remove-trie-code-leaf
+	EnableEpochsHandler   common.EnableEpochsHandler
 }
 
 // NewAccountsDB creates a new account manager
@@ -148,14 +131,9 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
-<<<<<<< HEAD
 		addressConverter:    args.AddressConverter,
-		snapshotsManger:     snapshotManager,
+		snapshotsManger:     args.SnapshotsManager,
 		enableEpochsHandler: args.EnableEpochsHandler,
-=======
-		addressConverter: args.AddressConverter,
-		snapshotsManger:  args.SnapshotsManager,
->>>>>>> feat/remove-trie-code-leaf
 	}
 }
 
@@ -178,13 +156,11 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	if check.IfNil(args.AddressConverter) {
 		return ErrNilAddressConverter
 	}
-<<<<<<< HEAD
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
-=======
+	}
 	if check.IfNil(args.SnapshotsManager) {
 		return ErrNilSnapshotsManager
->>>>>>> feat/remove-trie-code-leaf
 	}
 
 	return nil

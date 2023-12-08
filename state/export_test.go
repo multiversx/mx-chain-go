@@ -1,8 +1,11 @@
 package state
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -86,7 +89,6 @@ func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
 	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
 }
 
-<<<<<<< HEAD
 // GetStorageEpochChangeWaitArgs -
 func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
 	return storageEpochChangeWaitArgs{
@@ -115,8 +117,6 @@ func (sm *snapshotsManager) SnapshotUserAccountDataTrie(
 	sm.snapshotUserAccountDataTrie(isSnapshot, mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 }
 
-=======
->>>>>>> feat/remove-trie-code-leaf
 // NewNilSnapshotsManager -
 func NewNilSnapshotsManager() *snapshotsManager {
 	return nil
