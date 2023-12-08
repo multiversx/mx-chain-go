@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -29,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
@@ -827,29 +829,59 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataShouldWork(t *test
 	require.Equal(t, hrRoot2, hrRoot2Rev)
 }
 
+func testMigrateCodeLeaf(
+	t *testing.T,
+	testContext *vm.VMTestContext,
+	rcvAddr []byte,
+) {
+	testContext.CleanIntermediateTransactions(t)
+
+	txData := []byte("MigrateCodeLeaf")
+	scr := &smartContractResult.SmartContractResult{
+		Nonce:    uint64(0),
+		Value:    big.NewInt(0),
+		RcvAddr:  []byte("asdsadas"),
+		SndAddr:  []byte("sndAddr"),
+		Data:     txData,
+		GasLimit: 10000,
+		GasPrice: 100000,
+		CallType: 1,
+	}
+	returnCode, errProcess := testContext.ScProcessor.ProcessSmartContractResult(scr)
+	require.Nil(t, errProcess)
+	require.Equal(t, vmcommon.Ok, returnCode)
+
+	intermediate := testContext.GetIntermediateTransactions(t)
+	require.Equal(t, 1, len(intermediate))
+}
+
 func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("account with migrated code leaf activation, should save code data to storage directly", func(t *testing.T) {
 		t.Parallel()
 
+		enableEpochs := config.EnableEpochs{
+			MigrateCodeLeafEnableEpoch: 0,
+		}
+
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 1)
+		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+		storer := integrationTests.CreateMemUnit()
+		trieStorage, _ := integrationTests.CreateTrieStorageManager(storer)
+
+		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, storer, gasScheduleNotifier)
+		require.Nil(t, err)
+		defer testContext.Close()
+
 		key := []byte("ABC")
 		val := []byte("123")
 		newVal := []byte("124")
 		adr := integrationTests.CreateRandomAddress()
 
-		// Step 1. create accounts objects
-		trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-
-		enableEpochsHandlerMock := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MigrateCodeLeafFlag
-			},
-		}
-
-		adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, trieStorage, enableEpochsHandlerMock)
-		rootHash, err := adb.RootHash()
-		require.Nil(t, err)
+		// adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, trieStorage, enableEpochsHandlerMock)
+		adb := testContext.Accounts
 
 		// Step 2. create new account
 		stateMock, err := adb.LoadAccount(adr)
@@ -858,7 +890,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
-		rootHash, err = adb.RootHash()
+		rootHash, err := adb.RootHash()
 		require.Nil(t, err)
 		hrCreated := base64.StdEncoding.EncodeToString(rootHash)
 		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
@@ -894,8 +926,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
 
-		err = adb.MigrateCodeLeaf(stateMock)
-		require.Nil(t, err)
+		testMigrateCodeLeaf(t, testContext, stateMock.AddressBytes())
 
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
