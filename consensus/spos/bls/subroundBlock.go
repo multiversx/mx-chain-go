@@ -519,6 +519,12 @@ func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) b
 		return false
 	}
 
+	sr.PeerHonestyHandler().ChangeScore(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ValidatorPeerHonestyIncreaseFactor,
+	)
+
 	return true
 }
 
