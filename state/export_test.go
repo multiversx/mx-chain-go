@@ -1,11 +1,8 @@
 package state
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -89,24 +86,8 @@ func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
 	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
 }
 
-// GetStorageEpochChangeWaitArgs -
-func GetStorageEpochChangeWaitArgs() storageEpochChangeWaitArgs {
-	return storageEpochChangeWaitArgs{
-		Epoch:                         1,
-		WaitTimeForSnapshotEpochCheck: time.Millisecond * 100,
-		SnapshotWaitTimeout:           time.Second,
-		TrieStorageManager:            &storageManager.StorageManagerStub{},
-	}
-}
-
-// WaitForStorageEpochChange -
-func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
-	return sm.waitForStorageEpochChange(args)
-}
-
 // SnapshotUserAccountDataTrie -
 func (sm *snapshotsManager) SnapshotUserAccountDataTrie(
-	isSnapshot bool,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChannel chan []byte,
@@ -114,7 +95,7 @@ func (sm *snapshotsManager) SnapshotUserAccountDataTrie(
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 ) {
-	sm.snapshotUserAccountDataTrie(isSnapshot, mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
+	sm.snapshotUserAccountDataTrie(mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 }
 
 // NewNilSnapshotsManager -

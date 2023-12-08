@@ -906,11 +906,8 @@ func createAccountsDB(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
-<<<<<<< HEAD
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-=======
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
->>>>>>> feat/remove-trie-code-leaf
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb
