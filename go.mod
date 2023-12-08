@@ -13,12 +13,12 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-core-go v1.1.37
+	github.com/multiversx/mx-chain-core-go v1.2.16
 	github.com/multiversx/mx-chain-crypto-go v1.2.6
 	github.com/multiversx/mx-chain-es-indexer-go v1.3.20
-	github.com/multiversx/mx-chain-logger-go v1.0.11
+	github.com/multiversx/mx-chain-logger-go v1.0.13
 	github.com/multiversx/mx-chain-p2p-go v1.0.18
-	github.com/multiversx/mx-chain-storage-go v1.0.7
+	github.com/multiversx/mx-chain-storage-go v1.0.14
 	github.com/multiversx/mx-chain-vm-common-go v1.3.42
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.54
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.55
@@ -68,7 +68,6 @@ require (
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20230602150820-91b7bce49751 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v0.6.0 // indirect
@@ -149,7 +148,7 @@ require (
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/smartystreets/assertions v1.13.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
+	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tidwall/gjson v1.14.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
