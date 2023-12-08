@@ -2134,7 +2134,6 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
-	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true

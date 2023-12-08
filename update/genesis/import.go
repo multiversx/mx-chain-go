@@ -14,11 +14,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -418,11 +418,12 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				Marshaller:            si.marshalizer,
 				AccountFactory:        accountFactory,
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-				ProcessingMode:        common.Normal,
-				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-				AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 				AddressConverter:      si.addressConverter,
+<<<<<<< HEAD
 				EnableEpochsHandler:   si.enableEpochsHandler,
+=======
+				SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+>>>>>>> feat/remove-trie-code-leaf
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -444,11 +445,12 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		Marshaller:            si.marshalizer,
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 		AddressConverter:      si.addressConverter,
+<<<<<<< HEAD
 		EnableEpochsHandler:   si.enableEpochsHandler,
+=======
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+>>>>>>> feat/remove-trie-code-leaf
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

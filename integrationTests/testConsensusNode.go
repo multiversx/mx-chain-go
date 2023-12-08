@@ -254,12 +254,11 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	}
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:                     args.KeyGen,
-		P2PKeyGenerator:                  args.P2PKeyGen,
-		IsMainMachine:                    true,
-		MaxRoundsWithoutReceivedMessages: 10,
-		PrefsConfig:                      config.Preferences{},
-		P2PKeyConverter:                  p2pFactory.NewP2PKeyConverter(),
+		KeyGenerator:          args.KeyGen,
+		P2PKeyGenerator:       args.P2PKeyGen,
+		MaxRoundsOfInactivity: 0,
+		PrefsConfig:           config.Preferences{},
+		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 
@@ -367,25 +366,26 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusSize,
-		MetaConsensusGroupSize:  consensusSize,
-		Marshalizer:             TestMarshalizer,
-		Hasher:                  hasher,
-		Shuffler:                &shardingMocks.NodeShufflerMock{},
-		EpochStartNotifier:      epochStartRegistrationHandler,
-		BootStorer:              CreateMemUnit(),
-		NbShards:                maxShards,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           pkBytes,
-		ConsensusGroupCache:     cache,
-		ShuffledOutHandler:      &chainShardingMocks.ShuffledOutHandlerStub{},
-		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:           false,
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
-		ShardIDAsObserver:       tcn.ShardCoordinator.SelfId(),
+		ShardConsensusGroupSize:  consensusSize,
+		MetaConsensusGroupSize:   consensusSize,
+		Marshalizer:              TestMarshalizer,
+		Hasher:                   hasher,
+		Shuffler:                 &shardingMocks.NodeShufflerMock{},
+		EpochStartNotifier:       epochStartRegistrationHandler,
+		BootStorer:               CreateMemUnit(),
+		NbShards:                 maxShards,
+		EligibleNodes:            eligibleMap,
+		WaitingNodes:             waitingMap,
+		SelfPublicKey:            pkBytes,
+		ConsensusGroupCache:      cache,
+		ShuffledOutHandler:       &chainShardingMocks.ShuffledOutHandlerStub{},
+		ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:            false,
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:        tcn.ShardCoordinator.SelfId(),
+		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

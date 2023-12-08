@@ -7,15 +7,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+<<<<<<< HEAD
 	"github.com/multiversx/mx-chain-go/common/errChan"
+=======
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
+>>>>>>> feat/remove-trie-code-leaf
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+<<<<<<< HEAD
 	"github.com/multiversx/mx-chain-go/state/parsers"
+=======
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+>>>>>>> feat/remove-trie-code-leaf
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -41,6 +48,8 @@ func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
 		StateMetrics:             &stateTest.StateMetricsStub{},
 		AccountFactory:           &stateTest.AccountsFactoryStub{},
 		ChannelsProvider:         iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		StateStatsHandler:        disabled.NewStateStatistics(),
+		LastSnapshotMarker:       lastSnapshotMarker.NewLastSnapshotMarker(),
 	}
 }
 
@@ -106,6 +115,26 @@ func TestNewSnapshotsManager(t *testing.T) {
 		sm, err := state.NewSnapshotsManager(args)
 		assert.Nil(t, sm)
 		assert.Equal(t, state.ErrNilAccountFactory, err)
+	})
+	t.Run("nil stats handler", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.StateStatsHandler = nil
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.Nil(t, sm)
+		assert.Equal(t, state.ErrNilStatsHandler, err)
+	})
+	t.Run("nil last snapshot marker", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.LastSnapshotMarker = nil
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.Nil(t, sm)
+		assert.Equal(t, state.ErrNilLastSnapshotMarker, err)
 	})
 	t.Run("ok", func(t *testing.T) {
 		t.Parallel()
@@ -272,7 +301,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 	t.Run("should not start snapshot if another snapshot is in progress, lastSnapshot should be saved", func(t *testing.T) {
 		t.Parallel()
 
-		putInEpochCalled := false
+		putInEpochCalled := atomic.Flag{}
 
 		args := getDefaultSnapshotManagerArgs()
 		args.StateMetrics = &stateTest.StateMetricsStub{
@@ -288,28 +317,33 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				assert.Equal(t, []byte("lastSnapshot"), key)
 				assert.Equal(t, rootHash, val)
 				assert.Equal(t, epoch, e)
-				putInEpochCalled = true
+				putInEpochCalled.SetValue(true)
 				return nil
 			},
 			EnterPruningBufferingModeCalled: func() {
 				assert.Fail(t, "the func should have returned before this is called")
 			},
+			GetLatestStorageEpochCalled: func() (uint32, error) {
+				return epoch, nil
+			},
 		}
 
 		sm.SnapshotState(rootHash, epoch, tsm)
-		assert.True(t, putInEpochCalled)
+		for !putInEpochCalled.IsSet() {
+			time.Sleep(10 * time.Millisecond)
+		}
 	})
 	t.Run("starting snapshot sets some parameters", func(t *testing.T) {
 		t.Parallel()
 
-		putInEpochCalled := false
+		putInEpochCalled := atomic.Flag{}
 		enterPruningBufferingModeCalled := false
-		getSnapshotMessageCalled := false
+		getSnapshotMessageCalled := atomic.Flag{}
 
 		args := getDefaultSnapshotManagerArgs()
 		args.StateMetrics = &stateTest.StateMetricsStub{
 			GetSnapshotMessageCalled: func() string {
-				getSnapshotMessageCalled = true
+				getSnapshotMessageCalled.SetValue(true)
 				return ""
 			},
 		}
@@ -319,17 +353,23 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 				assert.Equal(t, []byte("lastSnapshot"), key)
 				assert.Equal(t, rootHash, val)
 				assert.Equal(t, epoch, e)
-				putInEpochCalled = true
+				putInEpochCalled.SetValue(true)
 				return nil
 			},
 			EnterPruningBufferingModeCalled: func() {
 				enterPruningBufferingModeCalled = true
+				for !putInEpochCalled.IsSet() {
+					time.Sleep(10 * time.Millisecond)
+				}
+			},
+			GetLatestStorageEpochCalled: func() (uint32, error) {
+				return epoch, nil
 			},
 		}
 
 		sm.SnapshotState(rootHash, epoch, tsm)
-		assert.True(t, getSnapshotMessageCalled)
-		assert.True(t, putInEpochCalled)
+		assert.True(t, getSnapshotMessageCalled.IsSet())
+		assert.True(t, putInEpochCalled.IsSet())
 		assert.True(t, enterPruningBufferingModeCalled)
 		assert.True(t, sm.IsSnapshotInProgress())
 
@@ -341,15 +381,17 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("some error")
-		getLatestStorageEpochCalled := false
+		getLatestStorageEpochCalled := atomic.Flag{}
 
 		sm, _ := state.NewSnapshotsManager(getDefaultSnapshotManagerArgs())
 		enterPruningBufferingModeCalled := atomic.Flag{}
 		exitPruningBufferingModeCalled := atomic.Flag{}
 		tsm := &storageManager.StorageManagerStub{
 			GetLatestStorageEpochCalled: func() (uint32, error) {
-				getLatestStorageEpochCalled = true
-				assert.True(t, sm.IsSnapshotInProgress())
+				for !sm.IsSnapshotInProgress() {
+					time.Sleep(10 * time.Millisecond)
+				}
+				getLatestStorageEpochCalled.SetValue(true)
 				return 0, expectedErr
 			},
 			ShouldTakeSnapshotCalled: func() bool {
@@ -369,7 +411,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 			time.Sleep(10 * time.Millisecond)
 		}
 
-		assert.True(t, getLatestStorageEpochCalled)
+		assert.True(t, getLatestStorageEpochCalled.IsSet())
 		assert.True(t, enterPruningBufferingModeCalled.IsSet())
 		assert.True(t, exitPruningBufferingModeCalled.IsSet())
 	})
@@ -483,6 +525,7 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 		assert.True(t, removeFromAllActiveEpochsCalled)
 	})
 }
+<<<<<<< HEAD
 
 func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
 	t.Parallel()
@@ -663,3 +706,5 @@ func TestSnapshotsManager_WaitForStorageEpochChange(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+=======
+>>>>>>> feat/remove-trie-code-leaf

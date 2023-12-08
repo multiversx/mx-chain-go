@@ -99,6 +99,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		common.ESDTRegisterAndSetAllRolesFlag,
 		common.MetaESDTSetFlag,
 		common.ESDTNFTCreateOnMultiShardFlag,
+		common.NFTStopCreateFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -1650,6 +1651,11 @@ func (e *esdt) setRolesForTokenAndAddress(
 
 	if !token.CanAddSpecialRoles {
 		e.eei.AddReturnMessage("cannot add special roles")
+		return nil, vmcommon.UserError
+	}
+
+	if e.enableEpochsHandler.IsFlagEnabled(common.NFTStopCreateFlag) && token.NFTCreateStopped && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleNFTCreate)) {
+		e.eei.AddReturnMessage("cannot add NFT create role as NFT creation was stopped")
 		return nil, vmcommon.UserError
 	}
 

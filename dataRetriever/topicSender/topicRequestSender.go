@@ -2,6 +2,7 @@ package topicsender
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -118,7 +119,24 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	var numSentIntra, numSentCross int
 	var intraPeers, crossPeers []core.PeerID
 	fullHistoryPeers := make([]core.PeerID, 0)
-	if trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
+	requestedNetworks := make([]string, 0)
+	if !trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
+		preferredPeer := trs.getPreferredFullArchivePeer()
+		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
+
+		numSentIntra = trs.sendOnTopic(
+			fullHistoryPeers,
+			preferredPeer,
+			topicToSendRequest,
+			buff,
+			trs.numFullHistoryPeers,
+			core.FullHistoryPeer.String(),
+			trs.fullArchiveMessenger)
+
+		requestedNetworks = append(requestedNetworks, "full archive network")
+	}
+
+	if numSentCross+numSentIntra == 0 {
 		crossPeers = trs.peerListCreator.CrossShardPeerList()
 		preferredPeer := trs.getPreferredPeer(trs.targetShardId)
 		numSentCross = trs.sendOnTopic(
@@ -140,29 +158,21 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numIntraShardPeers,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger)
-	} else {
-		preferredPeer := trs.getPreferredFullArchivePeer()
-		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
 
-		numSentIntra = trs.sendOnTopic(
-			fullHistoryPeers,
-			preferredPeer,
-			topicToSendRequest,
-			buff,
-			trs.numFullHistoryPeers,
-			core.FullHistoryPeer.String(),
-			trs.fullArchiveMessenger)
+		requestedNetworks = append(requestedNetworks, "main network")
 	}
 
 	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
 
 	if numSentCross+numSentIntra == 0 {
-		return fmt.Errorf("%w, topic: %s, crossPeers: %d, intraPeers: %d, fullHistoryPeers: %d",
+		return fmt.Errorf("%w, topic: %s, crossPeers: %d, intraPeers: %d, fullHistoryPeers: %d, requested networks: %s",
 			dataRetriever.ErrSendRequest,
 			trs.topicName,
 			len(crossPeers),
 			len(intraPeers),
-			len(fullHistoryPeers))
+			len(fullHistoryPeers),
+			strings.Join(requestedNetworks, ", "),
+		)
 	}
 
 	return nil
@@ -215,6 +225,11 @@ func (trs *topicRequestSender) sendOnTopic(
 
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger)
 		if err != nil {
+			log.Trace("sendToConnectedPeer failed",
+				"topic", topicToSendRequest,
+				"peer", peer.Pretty(),
+				"peer type", peerType,
+				"error", err.Error())
 			continue
 		}
 		trs.peersRatingHandler.DecreaseRating(peer)

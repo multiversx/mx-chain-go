@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -237,7 +238,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Outport: &outport.OutportStub{},
 		},
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}

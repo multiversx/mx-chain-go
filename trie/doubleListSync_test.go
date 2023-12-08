@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -25,17 +24,6 @@ import (
 var marshalizer = &marshallerMock.MarshalizerMock{}
 var hasherMock = &hashingMocks.HasherMock{}
 
-func createMemUnit() storage.Storer {
-	capacity := uint32(10)
-	shards := uint32(1)
-	sizeInBytes := uint64(0)
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := database.NewlruDB(100000)
-	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
-	return unit
-}
-
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func createTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
 	args := GetDefaultTrieStorageManagerParameters()
@@ -46,7 +34,7 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 }
 
 func createInMemoryTrie() (common.Trie, storage.Storer) {
-	memUnit := createMemUnit()
+	memUnit := testscommon.CreateMemUnit()
 	tsm, _ := createTrieStorageManager(memUnit)
 	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
 

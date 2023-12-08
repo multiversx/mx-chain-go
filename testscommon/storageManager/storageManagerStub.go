@@ -3,10 +3,12 @@ package storageManager
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 )
 
 // StorageManagerStub -
 type StorageManagerStub struct {
+<<<<<<< HEAD
 	PutCalled                                  func([]byte, []byte) error
 	PutInEpochCalled                           func([]byte, []byte, uint32) error
 	PutInEpochWithoutCacheCalled               func([]byte, []byte, uint32) error
@@ -33,6 +35,31 @@ type StorageManagerStub struct {
 	CloseCalled                                func() error
 	RemoveFromAllActiveEpochsCalled            func(hash []byte) error
 	GetFromOldEpochsWithoutAddingToCacheCalled func(key []byte) ([]byte, core.OptionalUint32, error)
+=======
+	PutCalled                       func([]byte, []byte) error
+	PutInEpochCalled                func([]byte, []byte, uint32) error
+	PutInEpochWithoutCacheCalled    func([]byte, []byte, uint32) error
+	GetCalled                       func([]byte) ([]byte, error)
+	GetFromCurrentEpochCalled       func([]byte) ([]byte, error)
+	TakeSnapshotCalled              func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32)
+	GetDbThatContainsHashCalled     func([]byte) common.BaseStorer
+	IsPruningEnabledCalled          func() bool
+	IsPruningBlockedCalled          func() bool
+	EnterPruningBufferingModeCalled func()
+	ExitPruningBufferingModeCalled  func()
+	RemoveFromCurrentEpochCalled    func([]byte) error
+	RemoveCalled                    func([]byte) error
+	IsInterfaceNilCalled            func() bool
+	SetEpochForPutOperationCalled   func(uint32)
+	ShouldTakeSnapshotCalled        func() bool
+	GetLatestStorageEpochCalled     func() (uint32, error)
+	IsClosedCalled                  func() bool
+	GetBaseTrieStorageManagerCalled func() common.StorageManager
+	GetIdentifierCalled             func() string
+	CloseCalled                     func() error
+	RemoveFromAllActiveEpochsCalled func(hash []byte) error
+	GetStateStatsHandlerCalled      func() common.StateStatisticsHandler
+>>>>>>> feat/remove-trie-code-leaf
 }
 
 // Put -
@@ -104,19 +131,6 @@ func (sms *StorageManagerStub) TakeSnapshot(
 	}
 }
 
-// SetCheckpoint -
-func (sms *StorageManagerStub) SetCheckpoint(
-	rootHash []byte,
-	mainTrieRootHash []byte,
-	iteratorChannels *common.TrieIteratorChannels,
-	missingNodesChan chan []byte,
-	stats common.SnapshotStatisticsHandler,
-) {
-	if sms.SetCheckpointCalled != nil {
-		sms.SetCheckpointCalled(rootHash, mainTrieRootHash, iteratorChannels, missingNodesChan, stats)
-	}
-}
-
 // IsPruningEnabled -
 func (sms *StorageManagerStub) IsPruningEnabled() bool {
 	if sms.IsPruningEnabledCalled != nil {
@@ -145,15 +159,6 @@ func (sms *StorageManagerStub) ExitPruningBufferingMode() {
 	if sms.ExitPruningBufferingModeCalled != nil {
 		sms.ExitPruningBufferingModeCalled()
 	}
-}
-
-// AddDirtyCheckpointHashes -
-func (sms *StorageManagerStub) AddDirtyCheckpointHashes(rootHash []byte, hashes common.ModifiedHashes) bool {
-	if sms.AddDirtyCheckpointHashesCalled != nil {
-		return sms.AddDirtyCheckpointHashesCalled(rootHash, hashes)
-	}
-
-	return false
 }
 
 // RemoveFromCurrentEpoch -
@@ -215,13 +220,6 @@ func (sms *StorageManagerStub) IsClosed() bool {
 	return false
 }
 
-// RemoveFromCheckpointHashesHolder -
-func (sms *StorageManagerStub) RemoveFromCheckpointHashesHolder(hash []byte) {
-	if sms.RemoveFromCheckpointHashesHolderCalled != nil {
-		sms.RemoveFromCheckpointHashesHolderCalled(hash)
-	}
-}
-
 // GetBaseTrieStorageManager -
 func (sms *StorageManagerStub) GetBaseTrieStorageManager() common.StorageManager {
 	if sms.GetBaseTrieStorageManagerCalled != nil {
@@ -247,6 +245,15 @@ func (sms *StorageManagerStub) GetIdentifier() string {
 	}
 
 	return ""
+}
+
+// GetStateStatsHandler -
+func (sms *StorageManagerStub) GetStateStatsHandler() common.StateStatisticsHandler {
+	if sms.GetStateStatsHandlerCalled != nil {
+		return sms.GetStateStatsHandlerCalled()
+	}
+
+	return disabled.NewStateStatistics()
 }
 
 // IsInterfaceNil -

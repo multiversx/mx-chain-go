@@ -43,7 +43,6 @@ type AccountsAdapter interface {
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
-	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
 	RecreateAllTries(rootHash []byte) (map[string]common.Trie, error)
@@ -58,7 +57,6 @@ type AccountsAdapter interface {
 // SnapshotsManager defines the methods for the snapshot manager
 type SnapshotsManager interface {
 	SnapshotState(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
-	SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager)
 	StartSnapshotAfterRestartIfNeeded(trieStorageManager common.StorageManager) error
 	IsSnapshotInProgress() bool
 	SetSyncer(syncer AccountsDBSyncer) error
@@ -186,7 +184,7 @@ type DataTrie interface {
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//  with some extra features like signing statistics or rating information
+// with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte
@@ -271,7 +269,23 @@ type SignRate interface {
 	GetNumFailure() uint32
 }
 
+<<<<<<< HEAD
 type snapshotPruningStorer interface {
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
 	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
+=======
+// StateStatsHandler defines the behaviour needed to handler state statistics
+type StateStatsHandler interface {
+	ResetSnapshot()
+	SnapshotStats() []string
+	IsInterfaceNil() bool
+}
+
+// LastSnapshotMarker manages the lastSnapshot marker operations
+type LastSnapshotMarker interface {
+	AddMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
+	RemoveMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
+	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
+	IsInterfaceNil() bool
+>>>>>>> feat/remove-trie-code-leaf
 }

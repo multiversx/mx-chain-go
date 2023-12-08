@@ -95,10 +95,9 @@ type baseProcessor struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler
 
-	appStatusHandler       core.AppStatusHandler
-	stateCheckpointModulus uint
-	blockProcessor         blockProcessor
-	txCounter              *transactionCounter
+	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
+	txCounter        *transactionCounter
 
 	outportHandler      outport.OutportHandler
 	outportDataProvider outport.DataProviderOutport
@@ -1415,14 +1414,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	// TODO generate checkpoint on a trigger
-	if bp.stateCheckpointModulus != 0 {
-		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
-			log.Debug("trie checkpoint", "currRootHash", currRootHash)
-			accounts.SetStateCheckpoint(currRootHash)
-		}
-	}
-
 	if bytes.Equal(prevRootHash, currRootHash) {
 		return
 	}
@@ -1697,7 +1688,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	// waiting for late broadcast of mini blocks and transactions to be done and received
 	time.Sleep(waitTime)
 
-	bp.txCoordinator.RequestMiniBlocks(headerHandler)
+	bp.txCoordinator.RequestMiniBlocksAndTransactions(headerHandler)
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {

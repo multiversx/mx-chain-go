@@ -147,7 +147,7 @@ type InterceptorThrottler interface {
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
-	RequestMiniBlocks(header data.HeaderHandler)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
 	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
@@ -1206,6 +1206,7 @@ type CryptoComponentsHolder interface {
 // StatusCoreComponentsHolder holds the status core components
 type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 

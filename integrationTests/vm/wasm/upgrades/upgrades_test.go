@@ -126,40 +126,6 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 	require.Equal(t, uint64(42), context.QuerySCInt("getUltimateAnswer", [][]byte{}))
 }
 
-func TestUpgrades_UpgradeDelegationContract(t *testing.T) {
-	context := wasm.SetupTestContext(t)
-	defer context.Close()
-
-	delegationWasmPath := "../testdata/delegation/delegation.wasm"
-	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@03E8@00@030D40@030D40"
-	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@03E8@00@030D40@030D40"
-
-	context.ScCodeMetadata.Upgradeable = true
-	context.GasLimit = 21700000
-	err := context.DeploySC(delegationWasmPath, delegationInitParams)
-	require.Nil(t, err)
-
-	err = context.UpgradeSC(delegationWasmPath, delegationUpgradeParams)
-	require.Nil(t, err)
-}
-
-func TestUpgrades_DelegationCannotBeUpgradedByNonOwner(t *testing.T) {
-	context := wasm.SetupTestContext(t)
-	defer context.Close()
-
-	delegationWasmPath := "../testdata/delegation/delegation.wasm"
-	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@03E8@00@030D40@030D40"
-	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@03E8@00@030D40@030D40"
-
-	context.GasLimit = 21700000
-	err := context.DeploySC(delegationWasmPath, delegationInitParams)
-	require.Nil(t, err)
-
-	context.Owner = context.Alice
-	err = context.UpgradeSC(delegationWasmPath, delegationUpgradeParams)
-	require.Equal(t, process.ErrUpgradeNotAllowed, err)
-}
-
 func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
 	context := wasm.SetupTestContext(t)
 	defer context.Close()

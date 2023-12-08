@@ -56,7 +56,7 @@ const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 
 // MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
 // in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 30000
+const MaxTxNonceDeltaAllowed = 100
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 // TODO convert this const into a var and read it from config when this code moves to another binary
@@ -884,6 +884,9 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
 
+// FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
+const FullArchiveMetricSuffix = "_full_archive"
+
 const (
 	SCDeployFlag                                       core.EnableEpochFlag = "SCDeployFlag"
 	BuiltInFunctionsFlag                               core.EnableEpochFlag = "BuiltInFunctionsFlag"
@@ -990,6 +993,12 @@ const (
 	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
 	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
+<<<<<<< HEAD
 	MigrateCodeLeafFlag                                core.EnableEpochFlag = "MigrateCodeLeafFlag"
+=======
+	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
+	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
+	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
+>>>>>>> feat/remove-trie-code-leaf
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
