@@ -38,13 +38,12 @@ func TestNode_GetBlockHeaderByHash(t *testing.T) {
 		},
 	}
 
-	n, errNewNode := node.NewNode(
+	n, _ := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithProcessComponents(processComponents),
 	)
-	require.Nil(t, errNewNode)
 
 	t.Run("with dblookupext", func(t *testing.T) {
 		isDbLookupExtEnabled = true

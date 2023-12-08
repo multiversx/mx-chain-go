@@ -3093,7 +3093,12 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
+	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
+		AppStatusHandlerField: tpn.AppStatusHandler,
+	}
+
 	err = tpn.Node.ApplyOptions(
+		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),
 		node.WithProcessComponents(processComponents),
 	)

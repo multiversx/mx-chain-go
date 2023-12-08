@@ -86,7 +86,7 @@ func (ncm *NetworkComponentsMock) FullArchiveNetworkMessenger() p2p.Messenger {
 
 // String -
 func (ncm *NetworkComponentsMock) String() string {
-	return factory.NetworkComponentsName
+	return "NetworkComponentsMock"
 }
 
 // FullArchivePreferredPeersHolderHandler -

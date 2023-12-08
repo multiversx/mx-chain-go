@@ -49,7 +49,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -3906,26 +3905,20 @@ func TestNode_Close(t *testing.T) {
 	n, err := node.NewNode()
 	require.Nil(t, err)
 
-	closerCalledOrder := make([]*components.ComponentHandlerStub, 0)
-	c1 := &components.ComponentHandlerStub{
-		Name: factory.CoreComponentsName,
-	}
+	closerCalledOrder := make([]*mock.CloserStub, 0)
+	c1 := &mock.CloserStub{}
 	c1.CloseCalled = func() error {
 		closerCalledOrder = append(closerCalledOrder, c1)
 		return nil
 	}
 
-	c2 := &components.ComponentHandlerStub{
-		Name: factory.StatusComponentsName,
-	}
+	c2 := &mock.CloserStub{}
 	c2.CloseCalled = func() error {
 		closerCalledOrder = append(closerCalledOrder, c2)
 		return nil
 	}
 
-	c3 := &components.ComponentHandlerStub{
-		Name: factory.ConsensusComponentsName,
-	}
+	c3 := &mock.CloserStub{}
 	c3.CloseCalled = func() error {
 		closerCalledOrder = append(closerCalledOrder, c3)
 		return nil
@@ -3943,8 +3936,7 @@ func TestNode_Close(t *testing.T) {
 		return nil
 	}
 
-	err = n.AddClosableComponents(c1, c2, c3)
-	assert.Nil(t, err)
+	n.AddClosableComponents(c1, c2, c3)
 	_ = n.AddQueryHandler("q1", q1)
 	_ = n.AddQueryHandler("q2", q2)
 

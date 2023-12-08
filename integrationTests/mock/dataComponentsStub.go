@@ -81,7 +81,7 @@ func (dcs *DataComponentsStub) Clone() interface{} {
 
 // String -
 func (dcs *DataComponentsStub) String() string {
-	return factory.DataComponentsName
+	return "DataComponentsStub"
 }
 
 // IsInterfaceNil -

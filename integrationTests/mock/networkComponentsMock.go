@@ -96,7 +96,7 @@ func (ncs *NetworkComponentsStub) FullArchivePreferredPeersHolderHandler() facto
 
 // String -
 func (ncs *NetworkComponentsStub) String() string {
-	return factory.NetworkComponentsName
+	return "NetworkComponentsStub"
 }
 
 // IsInterfaceNil -

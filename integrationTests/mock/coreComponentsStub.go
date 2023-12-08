@@ -246,7 +246,7 @@ func (ccs *CoreComponentsStub) ProcessStatusHandler() common.ProcessStatusHandle
 
 // String -
 func (ccs *CoreComponentsStub) String() string {
-	return factory.CoreComponentsName
+	return "CoreComponentsStub"
 }
 
 // HardforkTriggerPubKey -
