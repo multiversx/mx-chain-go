@@ -104,7 +104,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return sr.processBlock(ctx, sr.RoundHandler().Index(), []byte(sr.SelfPubKey()), signatureShare)
 	}
 
-	// TODO: remove these lines once the above epoch will be active
+	// TODO[cleanup cns finality]: remove these lines once the above epoch will be active
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
