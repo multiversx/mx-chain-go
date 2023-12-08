@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -430,6 +431,16 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container := mock.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
+		providedLeaderSignature := []byte("leader signature")
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			CreateSignatureForPublicKeyCalled: func(message []byte, publicKeyBytes []byte) ([]byte, error) {
+				return providedLeaderSignature, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig []byte, msg []byte, epoch uint32) error {
+				assert.Fail(t, "should have not been called for leader")
+				return nil
+			},
+		})
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return 1
@@ -737,6 +748,65 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	cnsMsg.Header = hdrStr
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.True(t, r)
+}
+
+func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+	blockProcessorMock := mock.InitBlockProcessorMock(container.Marshalizer())
+
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsConsensusPropagationChangesFlagEnabledField: true,
+	})
+
+	providedLeaderSignature := []byte("leader signature")
+	wasVerifySingleSignatureCalled := false
+	wasStoreSignatureShareCalled := false
+	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+		VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+			assert.Equal(t, providedLeaderSignature, signature)
+			wasVerifySingleSignatureCalled = true
+			return nil
+		},
+		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
+			assert.Equal(t, providedLeaderSignature, sig)
+			wasStoreSignatureShareCalled = true
+			return nil
+
+		},
+	})
+
+	hdr := createDefaultHeader()
+	hdr.Nonce = 2
+	hdrStr, _ := container.Marshalizer().Marshal(hdr)
+	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
+	cnsMsg := consensus.NewConsensusMessage(
+		hdrHash,
+		providedLeaderSignature,
+		nil,
+		hdrStr,
+		[]byte(sr.ConsensusGroup()[0]),
+		[]byte("sig"),
+		int(bls.MtBlockHeader),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+
+	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
+	container.SetBlockProcessor(blockProcessorMock)
+	sr.Data = nil
+	sr.Body = &block.Body{}
+	r := sr.ReceivedBlockHeader(cnsMsg)
+	assert.True(t, r)
+	assert.True(t, wasStoreSignatureShareCalled)
+	assert.True(t, wasVerifySingleSignatureCalled)
 }
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {

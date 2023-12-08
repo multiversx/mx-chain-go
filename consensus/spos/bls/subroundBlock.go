@@ -447,16 +447,8 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
-	if sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
-		err := sr.SigningHandler().VerifySingleSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare)
-		if err != nil {
-			log.Debug("VerifySingleSignature: confirmed that node provided invalid signature",
-				"pubKey", cnsDta.PubKey,
-				"blockHeaderHash", cnsDta.BlockHeaderHash,
-				"error", err.Error(),
-			)
-			return false
-		}
+	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
+		return false
 	}
 
 	sr.Data = cnsDta.BlockHeaderHash
@@ -486,7 +478,15 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 }
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) bool {
+	if !sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+		return true
+	}
+
 	if len(signature) == 0 {
+		return true
+	}
+
+	if sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound() {
 		return true
 	}
 
@@ -507,6 +507,37 @@ func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) b
 			"node", pkForLogs,
 			"index", index,
 			"error", err.Error())
+		return false
+	}
+
+	err = sr.SetJobDone(node, SrSignature, true)
+	if err != nil {
+		log.Debug("saveLeaderSignature.SetJobDone for leader",
+			"node", pkForLogs,
+			"index", index,
+			"error", err.Error())
+		return false
+	}
+
+	return true
+}
+
+func (sr *subroundBlock) verifyLeaderSignature(
+	leaderPK []byte,
+	blockHeaderHash []byte,
+	signature []byte,
+) bool {
+	if !sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+		return true
+	}
+
+	err := sr.SigningHandler().VerifySingleSignature(leaderPK, blockHeaderHash, signature)
+	if err != nil {
+		log.Debug("VerifySingleSignature: node provided invalid signature",
+			"pubKey", leaderPK,
+			"blockHeaderHash", blockHeaderHash,
+			"error", err.Error(),
+		)
 		return false
 	}
 
@@ -593,16 +624,8 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 		return false
 	}
 
-	if sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
-		err := sr.SigningHandler().VerifySingleSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare)
-		if err != nil {
-			log.Debug("VerifySingleSignature: confirmed that node provided invalid signature",
-				"pubKey", cnsDta.PubKey,
-				"blockHeaderHash", cnsDta.BlockHeaderHash,
-				"error", err.Error(),
-			)
-			return false
-		}
+	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
+		return false
 	}
 
 	log.Debug("step 1: block header has been received",
