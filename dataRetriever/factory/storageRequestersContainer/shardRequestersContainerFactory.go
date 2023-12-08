@@ -38,6 +38,7 @@ func NewShardRequestersContainerFactory(
 		workingDir:               args.WorkingDirectory,
 		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		stateStatsHandler:        args.StateStatsHandler,
 	}
 
 	err := base.checkParams()
@@ -161,17 +162,12 @@ func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error
 		return err
 	}
 
-	userAccountsCheckpointStorer, err := srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
 		userAccountsStorer,
-		userAccountsCheckpointStorer,
 		dataRetriever.UserAccountsUnit,
 		srcf.enableEpochsHandler,
+		srcf.stateStatsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)

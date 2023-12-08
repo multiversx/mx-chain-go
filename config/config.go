@@ -154,14 +154,12 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage                StorageConfig
-	PeerAccountsTrieStorage            StorageConfig
-	AccountsTrieCheckpointsStorage     StorageConfig
-	PeerAccountsTrieCheckpointsStorage StorageConfig
-	EvictionWaitingList                EvictionWaitingListConfig
-	StateTriesConfig                   StateTriesConfig
-	TrieStorageManagerConfig           TrieStorageManagerConfig
-	BadBlocksCache                     CacheConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -220,6 +218,7 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
+	Redundancy          RedundancyConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -286,27 +285,26 @@ type GeneralSettingsConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
-	RestApiInterface string
-	PprofEnabled     bool
+	RestApiInterface            string
+	PprofEnabled                bool
+	P2PPrometheusMetricsEnabled bool
 }
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	CheckpointRoundsModulus     uint
-	CheckpointsEnabled          bool
 	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	StateStatisticsEnabled      bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen              uint32
-	SnapshotsBufferLen            uint32
-	SnapshotsGoroutineNum         uint32
-	CheckpointHashesHolderMaxSize uint64
+	PruningBufferLen      uint32
+	SnapshotsBufferLen    uint32
+	SnapshotsGoroutineNum uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -620,4 +618,9 @@ type RequesterConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
+}
+
+// RedundancyConfig represents the config options to be used when setting the redundancy configuration
+type RedundancyConfig struct {
+	MaxRoundsOfInactivityAccepted int
 }

@@ -618,7 +618,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
-	if uint64(currentEpoch) < generalProposal.EndVoteEpoch {
+	if uint64(currentEpoch) <= generalProposal.EndVoteEpoch {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}

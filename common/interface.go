@@ -100,13 +100,11 @@ type StorageManager interface {
 	PutInEpoch(key []byte, val []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error
 	TakeSnapshot(address string, rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler, epoch uint32)
-	SetCheckpoint(rootHash []byte, mainTrieRootHash []byte, iteratorChannels *TrieIteratorChannels, missingNodesChan chan []byte, stats SnapshotStatisticsHandler)
 	GetLatestStorageEpoch() (uint32, error)
 	IsPruningEnabled() bool
 	IsPruningBlocked() bool
 	EnterPruningBufferingMode()
 	ExitPruningBufferingMode()
-	AddDirtyCheckpointHashes([]byte, ModifiedHashes) bool
 	RemoveFromAllActiveEpochs(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
@@ -120,6 +118,7 @@ type StorageManager interface {
 type TrieStorageInteractor interface {
 	BaseStorer
 	GetIdentifier() string
+	GetStateStatsHandler() StateStatisticsHandler
 }
 
 // BaseStorer define the base methods needed for a storer
@@ -218,6 +217,30 @@ type TriesStatisticsCollector interface {
 	GetNumNodes() uint64
 }
 
+// StateStatisticsHandler defines the behaviour of a storage statistics handler
+type StateStatisticsHandler interface {
+	Reset()
+	ResetSnapshot()
+
+	IncrCache()
+	Cache() uint64
+	IncrSnapshotCache()
+	SnapshotCache() uint64
+
+	IncrPersister(epoch uint32)
+	Persister(epoch uint32) uint64
+	IncrSnapshotPersister(epoch uint32)
+	SnapshotPersister(epoch uint32) uint64
+
+	IncrTrie()
+	Trie() uint64
+
+	ProcessingStats() []string
+	SnapshotStats() []string
+
+	IsInterfaceNil() bool
+}
+
 // ProcessStatusHandler defines the behavior of a component able to hold the current status of the node and
 // able to tell if the node is idle or processing/committing a block
 type ProcessStatusHandler interface {
@@ -288,7 +311,7 @@ type ManagedPeersHolder interface {
 	GetMachineID(pkBytes []byte) (string, error)
 	GetNameAndIdentity(pkBytes []byte) (string, string, error)
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
-	ResetRoundsWithoutReceivedMessages(pkBytes []byte)
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
 	IsKeyManagedByCurrentNode(pkBytes []byte) bool
 	IsKeyRegistered(pkBytes []byte) bool

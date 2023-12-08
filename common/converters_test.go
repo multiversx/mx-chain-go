@@ -362,3 +362,16 @@ func testProcessDestinationShardAsObserver(providedShard string, expectedShard u
 		require.Equal(t, expectedShard, shard)
 	}
 }
+
+func TestSuffixedMetric(t *testing.T) {
+	t.Parallel()
+
+	providedMetric := common.MetricP2PPeerInfo
+	providedSuffix := ""
+	expectedMetric := providedMetric
+	require.Equal(t, expectedMetric, common.SuffixedMetric(providedMetric, providedSuffix))
+
+	providedSuffix = common.FullArchiveMetricSuffix
+	expectedMetric = providedMetric + providedSuffix
+	require.Equal(t, expectedMetric, common.SuffixedMetric(providedMetric, providedSuffix))
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
@@ -114,6 +115,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
+	}
+	if check.IfNil(args.StateStatsHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, statistics.ErrNilStateStatsHandler)
 	}
 
 	return nil

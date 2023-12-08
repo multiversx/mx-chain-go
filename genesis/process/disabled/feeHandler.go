@@ -47,9 +47,9 @@ func (fh *FeeHandler) ExtraGasLimitGuardedTx() uint64 {
 	return 0
 }
 
-// MaxGasPriceSetGuardian returns 0
+// MaxGasPriceSetGuardian returns max uint64
 func (fh *FeeHandler) MaxGasPriceSetGuardian() uint64 {
-	return 0
+	return math.MaxUint64
 }
 
 // MaxGasLimitPerBlock returns max uint64
