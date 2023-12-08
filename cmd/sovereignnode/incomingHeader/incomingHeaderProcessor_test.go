@@ -177,7 +177,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		require.Equal(t, errMarshaller, err)
 	})
 
-	t.Run("invalid num topics in event, should return error", func(t *testing.T) {
+	t.Run("invalid num topics in deposit event, should return error", func(t *testing.T) {
 		args := createArgs()
 
 		numSCRsAdded := 0
@@ -228,6 +228,43 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		requireErrorIsInvalidNumTopics(t, err, 1, 1)
 
 		require.Equal(t, 0, numSCRsAdded)
+	})
+
+	t.Run("invalid num topics in confirm bridge op event, should return error", func(t *testing.T) {
+		args := createArgs()
+
+		numConfirmedOperations := 0
+		args.OutGoingOperationsPool = &sovereign2.OutGoingOperationsPoolMock{
+			ConfirmOperationCalled: func(hashOfHashes []byte, hash []byte) error {
+				numConfirmedOperations++
+				return nil
+			},
+		}
+
+		incomingHeader := &sovereign.IncomingHeader{
+			Header: &block.HeaderV2{},
+			IncomingEvents: []*transaction.Event{
+				{
+					Topics:     [][]byte{},
+					Identifier: []byte(topicIDExecutedBridgeOp),
+				},
+			},
+		}
+
+		handler, _ := NewIncomingHeaderProcessor(args)
+
+		err := handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 0)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("hash")}, Identifier: []byte(topicIDDeposit)}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 1)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("hash"), []byte("hash1"), []byte("hash2")}, Identifier: []byte(topicIDDeposit)}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 3)
+
+		require.Equal(t, 0, numConfirmedOperations)
 	})
 
 	t.Run("cannot compute scr hash, should return error", func(t *testing.T) {
@@ -339,6 +376,11 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	}
 	topic2 := append([][]byte{addr2}, transfer3...)
 
+	topic3 := [][]byte{
+		[]byte("hashOfHashes"),
+		[]byte("hashOfBridgeOp"),
+	}
+
 	incomingEvents := []*transaction.Event{
 		{
 			Identifier: []byte(topicIDDeposit),
@@ -349,6 +391,10 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 			Identifier: []byte(topicIDDeposit),
 			Topics:     topic2,
 			Data:       big.NewInt(1).Bytes(),
+		},
+		{
+			Identifier: []byte(topicIDExecutedBridgeOp),
+			Topics:     topic3,
 		},
 	}
 
@@ -392,6 +438,17 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		},
 	}
 
+	wasOutGoingOpConfirmed := false
+	args.OutGoingOperationsPool = &sovereign2.OutGoingOperationsPoolMock{
+		ConfirmOperationCalled: func(hashOfHashes []byte, hash []byte) error {
+			require.Equal(t, topic3[0], hashOfHashes)
+			require.Equal(t, topic3[1], hash)
+
+			wasOutGoingOpConfirmed = true
+			return nil
+		},
+	}
+
 	handler, _ := NewIncomingHeaderProcessor(args)
 	incomingHeader := &sovereign.IncomingHeader{
 		Header:         headerV2,
@@ -401,4 +458,5 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, wasAddedInHeaderPool)
 	require.True(t, wasAddedInTxPool)
+	require.True(t, wasOutGoingOpConfirmed)
 }

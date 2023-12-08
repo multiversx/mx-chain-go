@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	minTopicsInEvent  = 4
-	numTransferTopics = 3
+	minTopicsInEvent          = 4
+	numTransferTopics         = 3
+	numExecutedBridgeOpTopics = 2
 )
 
 const (
@@ -42,28 +43,27 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 	for idx, event := range events {
 		topics := event.GetTopics()
 
+		var scr *scrInfo
+		var err error
 		switch string(event.GetIdentifier()) {
 		case topicIDDeposit:
-			scr, err := iep.addSCRInfo(topics, event)
-			if err != nil {
-				return nil, fmt.Errorf("%w, event idx = %d", err, idx)
-			}
+			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
-
 		case topicIDExecutedBridgeOp:
-			err := iep.confirmBridgeOperation(topics)
-			if err != nil {
-				return nil, fmt.Errorf("%w, event idx = %d", err, idx)
-			}
+			err = iep.confirmBridgeOperation(topics)
 		default:
 			return nil, errInvalidIncomingEventIdentifier
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("%w, event idx = %d", err, idx)
 		}
 	}
 
 	return scrs, nil
 }
 
-func (iep *incomingEventsProcessor) addSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
+func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
 	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
 	if len(topics) < minTopicsInEvent || len(topics[1:])%numTransferTopics != 0 {
 		log.Error("incomingHeaderHandler.createIncomingSCRs",
@@ -123,7 +123,11 @@ func (iep *incomingEventsProcessor) addSCRsToPool(scrs []*scrInfo) {
 }
 
 func (iep *incomingEventsProcessor) confirmBridgeOperation(topics [][]byte) error {
-	hashOfHashes := topics[1]
-	hash := topics[2]
+	if len(topics) != numExecutedBridgeOpTopics {
+		return fmt.Errorf("%w for %s", errInvalidNumTopicsIncomingEvent, topicIDExecutedBridgeOp)
+	}
+
+	hashOfHashes := topics[0]
+	hash := topics[1]
 	return iep.pool.ConfirmOperation(hashOfHashes, hash)
 }
