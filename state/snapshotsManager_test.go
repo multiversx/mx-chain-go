@@ -2,6 +2,7 @@ package state_test
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -236,6 +237,50 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 	rootHash := []byte("rootHash")
 	epoch := uint32(5)
 
+	t.Run("nil snapshots manager should not panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+			}
+		}()
+
+		args := getDefaultSnapshotManagerArgs()
+		sm, _ := state.NewSnapshotsManager(args)
+		sm.SnapshotState(rootHash, epoch, nil)
+	})
+	t.Run("storage manager does not support snapshots should not initiate snapshotting", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		args.StateMetrics = &stateTest.StateMetricsStub{
+			GetSnapshotMessageCalled: func() string {
+				assert.Fail(t, "should have not called GetSnapshotMessage")
+				return ""
+			},
+		}
+		sm, _ := state.NewSnapshotsManager(args)
+		tsm := &storageManager.StorageManagerStub{
+			PutInEpochCalled: func(key []byte, val []byte, e uint32) error {
+				assert.Fail(t, "should have not called put in epoch")
+				return nil
+			},
+			EnterPruningBufferingModeCalled: func() {
+				assert.Fail(t, "should have not called enter pruning buffering mode")
+			},
+			IsSnapshotSupportedCalled: func() bool {
+				return false
+			},
+		}
+
+		sm.SnapshotState(rootHash, epoch, tsm)
+
+		lastRootHash, lastEpoch := sm.GetLastSnapshotInfo()
+		assert.Nil(t, lastRootHash)
+		assert.Zero(t, lastEpoch)
+	})
 	t.Run("should not start snapshot for same rootHash in same epoch, and lastSnapshot should not be rewritten", func(t *testing.T) {
 		t.Parallel()
 

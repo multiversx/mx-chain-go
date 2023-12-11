@@ -902,3 +902,12 @@ func TestTrieStorageManager_GetIdentifier(t *testing.T) {
 	id := ts.GetIdentifier()
 	assert.Equal(t, expectedId, id)
 }
+
+func TestTrieStorageManager_IsSnapshotSupportedShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	assert.True(t, ts.IsSnapshotSupported())
+}
