@@ -49,12 +49,15 @@ func getClosingOrderForManagedComponents() []string {
 		factory.HeartbeatV2ComponentsName, // doesn't quite matter, we close it here, in the first part
 		factory.ProcessComponentsName,     // process components are very high level components
 		factory.StatusComponentsName,      // status components can be safely closed here
-		factory.StateComponentsName,       // close the state components after the processing is done and before the data components
-		factory.DataComponentsName,        // close the data components now because nobody should be still using it at this point
-		factory.BootstrapComponentsName,   // close the first processing components of the node used in the startup phase of the node
-		factory.CryptoComponentsName,      // nobody should still use the crypto components now
-		factory.CoreComponentsName,        // core components can be safely closed now
-		factory.StatusCoreComponentsName,  // status core components were the first to be created, let's close them
+
+		// TODO - just for testing
+		factory.DataComponentsName,  // close the data components now because nobody should be still using it at this point
+		factory.StateComponentsName, // close the state components after the processing is done and before the data components
+
+		factory.BootstrapComponentsName,  // close the first processing components of the node used in the startup phase of the node
+		factory.CryptoComponentsName,     // nobody should still use the crypto components now
+		factory.CoreComponentsName,       // core components can be safely closed now
+		factory.StatusCoreComponentsName, // status core components were the first to be created, let's close them
 	}
 }
 
