@@ -141,7 +141,7 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 }
 
 func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
-	listener, err := net.Listen("tcp", "8085")
+	listener, err := net.Listen("tcp", ":8085")
 	if err != nil {
 		return nil, nil, err
 	}

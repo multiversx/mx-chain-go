@@ -2,6 +2,8 @@ package block
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"time"
@@ -871,7 +873,15 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 
 func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
+
 	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
+
+	randomBytes := make([]byte, 32)
+	_, _ = rand.Read(randomBytes)
+	bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(randomBytes))
+	bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(randomBytes))
+	outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
+
 	if len(outGoingOperations) == 0 {
 		return nil
 	}
