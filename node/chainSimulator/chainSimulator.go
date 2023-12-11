@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -218,6 +219,11 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 		}
 
 		shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
+			// for system account address use the provided shard ID
+			shardID = state.ShardID
+		}
+
 		err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
 		if err != nil {
 			return err
