@@ -1,0 +1,110 @@
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"math/big"
+	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+)
+
+type mockServer struct {
+	mut       sync.RWMutex
+	cachedOps []*sovereign.BridgeOperations
+	*sovereign.UnimplementedBridgeTxSenderServer
+}
+
+// NewSovereignBridgeTxServer creates a new sovereign bridge operations server. This server receives bridge data operations from
+// sovereign nodes and sends transactions to main chain.
+func NewSovereignBridgeTxServer() (*mockServer, error) {
+	return &mockServer{
+		cachedOps: make([]*sovereign.BridgeOperations, 0),
+	}, nil
+}
+
+// Send should handle receiving data bridge operations from sovereign shard and forward transactions to main chain
+func (s *mockServer) Send(_ context.Context, data *sovereign.BridgeOperations) (*sovereign.BridgeOperationsResponse, error) {
+	s.mut.Lock()
+	s.cachedOps = append(s.cachedOps, data)
+	s.mut.Unlock()
+
+	hashes, err := generateRandomHashes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	logTxHashes(hashes)
+
+	return &sovereign.BridgeOperationsResponse{
+		TxHashes: hashes,
+	}, nil
+}
+
+func (s *mockServer) ExtractRandomBridgeTopicsForConfirmation() ([][]byte, error) {
+	percent := int64(70)
+	ret := make([][]byte, 0)
+
+	for _, cachedOp := range s.cachedOps {
+		for _, outGoingData := range cachedOp.Data {
+			for _, outGoingOp := range outGoingData.OutGoingOperations {
+				index, err := rand.Int(rand.Reader, big.NewInt(100))
+				if err != nil {
+					return nil, err
+				}
+				if index.Int64() > percent {
+					hashOfHashes := outGoingData.Hash
+					hashOfOp := outGoingOp.Hash
+					ret = append(ret, [][]byte{hashOfHashes, hashOfOp}...)
+				}
+			}
+		}
+	}
+
+	return ret, nil
+}
+
+// SelectRandomIndexes selects 80% of indexes from the given slice
+func SelectRandomIndexes(n int) ([]int, error) {
+	percent := 80 * n / 100
+	selectedIndexes := make([]int, percent)
+
+	for i := range selectedIndexes {
+		index, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
+		if err != nil {
+			return nil, err
+		}
+		selectedIndexes[i] = int(index.Int64())
+	}
+
+	return selectedIndexes, nil
+}
+
+func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) ([]string, error) {
+	numHashes := len(bridgeOps.Data) + 1 // one register tx  + one tx for each bridge op
+	hashes := make([]string, numHashes)
+
+	size := 32
+	for i := 0; i < numHashes; i++ {
+		randomBytes := make([]byte, size)
+		_, err := rand.Read(randomBytes)
+		if err != nil {
+			return nil, err
+		}
+		hashes[i] = base64.RawURLEncoding.EncodeToString(randomBytes)[:size]
+	}
+
+	return hashes, nil
+}
+
+func logTxHashes(hashes []string) {
+	for _, hash := range hashes {
+		log.Info("sent tx", "hash", hash)
+	}
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (s *mockServer) IsInterfaceNil() bool {
+	return s == nil
+}
