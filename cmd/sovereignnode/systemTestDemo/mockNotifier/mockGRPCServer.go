@@ -3,12 +3,17 @@ package main
 import (
 	"context"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/hex"
 	"math/big"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 )
+
+type ConfirmedBridgeOp struct {
+	HashOfHashes []byte
+	BridgeOpHash []byte
+}
 
 type mockServer struct {
 	mut       sync.RWMutex
@@ -16,12 +21,11 @@ type mockServer struct {
 	*sovereign.UnimplementedBridgeTxSenderServer
 }
 
-// NewSovereignBridgeTxServer creates a new sovereign bridge operations server. This server receives bridge data operations from
-// sovereign nodes and sends transactions to main chain.
-func NewSovereignBridgeTxServer() (*mockServer, error) {
+// NewMockServer -
+func NewMockServer() *mockServer {
 	return &mockServer{
 		cachedOps: make([]*sovereign.BridgeOperations, 0),
-	}, nil
+	}
 }
 
 // Send should handle receiving data bridge operations from sovereign shard and forward transactions to main chain
@@ -42,11 +46,16 @@ func (s *mockServer) Send(_ context.Context, data *sovereign.BridgeOperations) (
 	}, nil
 }
 
-func (s *mockServer) ExtractRandomBridgeTopicsForConfirmation() ([][]byte, error) {
+func (s *mockServer) ExtractRandomBridgeTopicsForConfirmation() ([]*ConfirmedBridgeOp, error) {
 	percent := int64(70)
-	ret := make([][]byte, 0)
+	ret := make([]*ConfirmedBridgeOp, 0)
 
-	for _, cachedOp := range s.cachedOps {
+	s.mut.Lock()
+	cachedOpsCopy := make([]*sovereign.BridgeOperations, len(s.cachedOps))
+	copy(cachedOpsCopy, s.cachedOps)
+	s.mut.Unlock()
+
+	for _, cachedOp := range cachedOpsCopy {
 		for _, outGoingData := range cachedOp.Data {
 			for _, outGoingOp := range outGoingData.OutGoingOperations {
 				index, err := rand.Int(rand.Reader, big.NewInt(100))
@@ -54,31 +63,16 @@ func (s *mockServer) ExtractRandomBridgeTopicsForConfirmation() ([][]byte, error
 					return nil, err
 				}
 				if index.Int64() > percent {
-					hashOfHashes := outGoingData.Hash
-					hashOfOp := outGoingOp.Hash
-					ret = append(ret, [][]byte{hashOfHashes, hashOfOp}...)
+					ret = append(ret, &ConfirmedBridgeOp{
+						HashOfHashes: outGoingData.Hash,
+						BridgeOpHash: outGoingOp.Hash,
+					})
 				}
 			}
 		}
 	}
 
 	return ret, nil
-}
-
-// SelectRandomIndexes selects 80% of indexes from the given slice
-func SelectRandomIndexes(n int) ([]int, error) {
-	percent := 80 * n / 100
-	selectedIndexes := make([]int, percent)
-
-	for i := range selectedIndexes {
-		index, err := rand.Int(rand.Reader, big.NewInt(int64(n)))
-		if err != nil {
-			return nil, err
-		}
-		selectedIndexes[i] = int(index.Int64())
-	}
-
-	return selectedIndexes, nil
 }
 
 func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) ([]string, error) {
@@ -92,7 +86,7 @@ func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) ([]string, erro
 		if err != nil {
 			return nil, err
 		}
-		hashes[i] = base64.RawURLEncoding.EncodeToString(randomBytes)[:size]
+		hashes[i] = hex.EncodeToString(randomBytes)[:size]
 	}
 
 	return hashes, nil
