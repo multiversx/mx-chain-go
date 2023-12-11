@@ -21,7 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	sovereign2 "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +31,7 @@ func createArgs() ArgsIncomingHeaderProcessor {
 		TxPool:                 &testscommon.ShardedDataStub{},
 		Marshaller:             &marshallerMock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
-		OutGoingOperationsPool: &sovereign2.OutGoingOperationsPoolMock{},
+		OutGoingOperationsPool: &sovTests.OutGoingOperationsPoolMock{},
 	}
 }
 
@@ -234,7 +234,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		args := createArgs()
 
 		numConfirmedOperations := 0
-		args.OutGoingOperationsPool = &sovereign2.OutGoingOperationsPoolMock{
+		args.OutGoingOperationsPool = &sovTests.OutGoingOperationsPoolMock{
 			ConfirmOperationCalled: func(hashOfHashes []byte, hash []byte) error {
 				numConfirmedOperations++
 				return nil
@@ -439,7 +439,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	}
 
 	wasOutGoingOpConfirmed := false
-	args.OutGoingOperationsPool = &sovereign2.OutGoingOperationsPoolMock{
+	args.OutGoingOperationsPool = &sovTests.OutGoingOperationsPoolMock{
 		ConfirmOperationCalled: func(hashOfHashes []byte, hash []byte) error {
 			require.Equal(t, topic3[0], hashOfHashes)
 			require.Equal(t, topic3[1], hash)

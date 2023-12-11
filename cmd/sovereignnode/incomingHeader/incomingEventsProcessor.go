@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	minTopicsInEvent          = 4
+	minTopicsInTransferEvent  = 4
 	numTransferTopics         = 3
 	numExecutedBridgeOpTopics = 2
 )
@@ -65,7 +65,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 
 func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
 	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
-	if len(topics) < minTopicsInEvent || len(topics[1:])%numTransferTopics != 0 {
+	if len(topics) < minTopicsInTransferEvent || len(topics[1:])%numTransferTopics != 0 {
 		log.Error("incomingHeaderHandler.createIncomingSCRs",
 			"error", errInvalidNumTopicsIncomingEvent,
 			"num topics", len(topics),

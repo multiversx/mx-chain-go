@@ -78,6 +78,8 @@ func (op *outGoingOperationsPool) Delete(hash []byte) {
 	delete(op.cache, string(hash))
 }
 
+// ConfirmOperation will confirm the bridge op hash by deleting the entry in the internal cache(while keeping the order).
+// If there are no more operations under the parent hash(hashOfHashes), the whole cached entry will be deleted
 func (op *outGoingOperationsPool) ConfirmOperation(hashOfHashes []byte, hash []byte) error {
 	op.mutex.Lock()
 	defer op.mutex.Unlock()

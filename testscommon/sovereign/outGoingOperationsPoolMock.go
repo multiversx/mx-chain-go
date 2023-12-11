@@ -41,6 +41,7 @@ func (mock *OutGoingOperationsPoolMock) GetUnconfirmedOperations() []*sovereign.
 	return nil
 }
 
+// ConfirmOperation -
 func (mock *OutGoingOperationsPoolMock) ConfirmOperation(hashOfHashes []byte, hash []byte) error {
 	if mock.ConfirmOperationCalled != nil {
 		return mock.ConfirmOperationCalled(hashOfHashes, hash)
