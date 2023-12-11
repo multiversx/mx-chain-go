@@ -151,7 +151,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, isLeader bool)
 		return false
 	}
 
-	// TODO: remove the isLeader check. Once the flag will be enabled, all participants will have to wait for signatures.
+	// TODO[cleanup cns finality]: remove the isLeader check. Once the flag will be enabled, all participants will have to wait for signatures.
 	shouldWaitForAllSigsAsync := isLeader || sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled()
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
