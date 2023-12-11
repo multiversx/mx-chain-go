@@ -11,7 +11,7 @@ type AddressState struct {
 	RootHash         string            `json:"rootHash,omitempty"`
 	CodeMetadata     string            `json:"codeMetadata,omitempty"`
 	CodeHash         string            `json:"codeHash,omitempty"`
-	DeveloperRewards string            `json:"developerRewards,omitempty"`
-	Owner            string            `json:"owner,omitempty"`
+	DeveloperRewards string            `json:"developerReward,omitempty"`
+	Owner            string            `json:"ownerAddress,omitempty"`
 	Keys             map[string]string `json:"keys,omitempty"`
 }
