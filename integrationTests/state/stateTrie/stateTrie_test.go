@@ -840,15 +840,15 @@ func testMigrateCodeLeaf(
 ) {
 	testContext.CleanIntermediateTransactions(t)
 
-	txData := []byte("MigrateCodeLeaf")
+	txData := []byte("MigrateCodeLeaf@aa@bb@00")
+	sndAddr := []byte("12345678901234567890123456789112")
 	scr := &smartContractResult.SmartContractResult{
-		Nonce:    uint64(0),
 		Value:    big.NewInt(0),
-		RcvAddr:  []byte("asdsadas"),
-		SndAddr:  []byte("sndAddr"),
+		RcvAddr:  rcvAddr,
+		SndAddr:  sndAddr,
 		Data:     txData,
 		GasLimit: 10000,
-		GasPrice: 100000,
+		GasPrice: 10,
 		CallType: 1,
 	}
 	returnCode, errProcess := testContext.ScProcessor.ProcessSmartContractResult(scr)
@@ -883,11 +883,10 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		val := []byte("123")
 		newVal := []byte("124")
 		adr := integrationTests.CreateRandomAddress()
+		adr[31] = 1 // set address for shard 1
 
-		// adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, trieStorage, enableEpochsHandlerMock)
 		adb := testContext.Accounts
 
-		// Step 2. create new account
 		stateMock, err := adb.LoadAccount(adr)
 		require.Nil(t, err)
 		_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
@@ -901,12 +900,10 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		require.Nil(t, err)
 		hrRoot := base64.StdEncoding.EncodeToString(rootHash)
 
-		// Step 3. Commit
 		rootCommit, _ := adb.Commit()
 		hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
 		fmt.Printf("State root - committed: %v\n", hrCommit)
 
-		// Step 4. account changes its data
 		snapshotMod := adb.JournalLen()
 
 		stateMock, err = adb.LoadAccount(adr)
@@ -921,7 +918,6 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		require.Nil(t, err)
 		hrRootp1 := base64.StdEncoding.EncodeToString(rootHash)
 
-		// migrate code leaf
 		codeData := []byte("codeData")
 		codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
 		stateMock.(state.UserAccountHandler).SetCodeHash(codeDataHash)
@@ -932,7 +928,7 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		testMigrateCodeLeaf(t, testContext, stateMock.AddressBytes())
 
-		err = adb.SaveAccount(stateMock)
+		stateMock, err = adb.LoadAccount(adr)
 		require.Nil(t, err)
 
 		accVersion := stateMock.(state.UserAccountHandler).GetVersion()
@@ -946,13 +942,9 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		fmt.Printf("State root - modified account: %v\n", hrCreatedp1)
 		fmt.Printf("data root - account: %v\n", hrRootp1)
 
-		// Test 4.1 test that hashes are different
 		require.NotEqual(t, hrCreatedp1, hrCreated)
-
-		// Test 4.2 test whether the datatrie roots match/mismatch
 		require.NotEqual(t, hrRoot, hrRootp1)
 
-		// Step 5. Revert 2-nd account modification
 		err = adb.RevertToSnapshot(snapshotMod)
 		require.Nil(t, err)
 		rootHash, err = adb.RootHash()
@@ -984,18 +976,25 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		key := []byte("ABC")
 		val := []byte("123")
 		adr1 := integrationTests.CreateRandomAddress()
+		adr1[31] = 1 // set address for shard 1
+
 		adr2 := integrationTests.CreateRandomAddress()
 
-		// Step 1. create accounts objects
-		trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
-
-		enableEpochsHandlerMock := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MigrateCodeLeafFlag
-			},
+		enableEpochs := config.EnableEpochs{
+			MigrateCodeLeafEnableEpoch: 0,
 		}
 
-		adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, trieStorage, enableEpochsHandlerMock)
+		shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 1)
+		gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+
+		storer := integrationTests.CreateMemUnit()
+		trieStorage, _ := integrationTests.CreateTrieStorageManager(storer)
+
+		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, storer, gasScheduleNotifier)
+		require.Nil(t, err)
+		defer testContext.Close()
+
+		adb := testContext.Accounts
 
 		codeData := []byte("codeData")
 		codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
@@ -1018,18 +1017,18 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		err = adb.SaveAccount(stateMock2)
 		require.Nil(t, err)
 
-		// Step 3. Commit
 		rootCommit, _ := adb.Commit()
 		hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
 		fmt.Printf("State root - committed: %v\n", hrCommit)
 
-		// Step 4. account changes its data
 		snapshotMod := adb.JournalLen()
 
-		err = adb.MigrateCodeLeaf(stateMock1)
+		err = adb.SaveAccount(stateMock1)
 		require.Nil(t, err)
 
-		err = adb.SaveAccount(stateMock1)
+		testMigrateCodeLeaf(t, testContext, stateMock1.AddressBytes())
+
+		stateMock1, err = adb.LoadAccount(adr1)
 		require.Nil(t, err)
 
 		accVersion := stateMock1.(state.UserAccountHandler).GetVersion()
