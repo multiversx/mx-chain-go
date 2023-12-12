@@ -145,7 +145,10 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	txWithResults *transactionWithResults,
 	hasRefund bool,
 ) {
-	if check.IfNilReflect(txWithResults.log) {
+	tx := txWithResults.GetTxHandler()
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+
+	if check.IfNilReflect(txWithResults.log) || (res.Function == "" && res.Operation == "transfer") {
 		return
 	}
 
