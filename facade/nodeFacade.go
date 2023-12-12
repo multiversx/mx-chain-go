@@ -16,6 +16,7 @@ import (
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -27,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -280,7 +280,7 @@ func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transacti
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
-func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
+func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return nf.node.ValidatorStatisticsApi()
 }
 
