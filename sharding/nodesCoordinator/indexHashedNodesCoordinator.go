@@ -28,11 +28,8 @@ var _ PublicKeysSelector = (*indexHashedNodesCoordinator)(nil)
 const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
-<<<<<<< HEAD
 	minStoredEpochs         = uint32(1)
-=======
 	minEpochsToWait         = uint32(1)
->>>>>>> rc/v1.7.0
 )
 
 type validatorWithShardID struct {
@@ -97,13 +94,10 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider              NodeTypeProviderHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
-<<<<<<< HEAD
 	numStoredEpochs               uint32
 	nodesConfigCacher             Cacher
 	epochStartStaticStorer        storage.Storer
-=======
 	genesisNodesSetupHandler      GenesisNodesSetupHandler
->>>>>>> rc/v1.7.0
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -144,7 +138,6 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		shuffledOutHandler:            args.ShuffledOutHandler,
 		startEpoch:                    args.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-<<<<<<< HEAD
 		chanStopNode:                  args.ChanStopNode,
 		nodeTypeProvider:              args.NodeTypeProvider,
 		isFullArchive:                 args.IsFullArchive,
@@ -153,14 +146,7 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		numStoredEpochs:               args.NumStoredEpochs,
 		nodesConfigCacher:             args.NodesConfigCache,
 		epochStartStaticStorer:        args.EpochStartStaticStorer,
-=======
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
-		enableEpochsHandler:           arguments.EnableEpochsHandler,
-		validatorInfoCacher:           arguments.ValidatorInfoCacher,
-		genesisNodesSetupHandler:      arguments.GenesisNodesSetupHandler,
->>>>>>> rc/v1.7.0
+		genesisNodesSetupHandler:      args.GenesisNodesSetupHandler,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -246,7 +232,6 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if check.IfNil(args.ValidatorInfoCacher) {
 		return ErrNilValidatorInfoCacher
 	}
-<<<<<<< HEAD
 	if args.NumStoredEpochs < minStoredEpochs {
 		return ErrInvalidNumberOfStoredEpochs
 	}
@@ -255,10 +240,9 @@ func checkArguments(args ArgNodesCoordinator) error {
 	}
 	if check.IfNil(args.EpochStartStaticStorer) {
 		return ErrNilEpochStartStaticStorer
-=======
-	if check.IfNil(arguments.GenesisNodesSetupHandler) {
+	}
+	if check.IfNil(args.GenesisNodesSetupHandler) {
 		return ErrNilGenesisNodesSetupHandler
->>>>>>> rc/v1.7.0
 	}
 
 	return nil

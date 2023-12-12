@@ -119,31 +119,6 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-<<<<<<< HEAD
-		ShardConsensusGroupSize: int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:  int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:             args.Marshalizer,
-		Hasher:                  args.Hasher,
-		Shuffler:                args.NodeShuffler,
-		EpochStartNotifier:      &disabled.EpochStartNotifier{},
-		BootStorer:              s.memDB,
-		ShardIDAsObserver:       args.ShardIdAsObserver,
-		NbShards:                args.GenesisNodesConfig.NumberOfShards(),
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		LeavingNodes:            nil, // no leaving nodes at genesis
-		SelfPublicKey:           args.PubKey,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),
-		ChanStopNode:            args.ChanNodeStop,
-		NodeTypeProvider:        args.NodeTypeProvider,
-		IsFullArchive:           args.IsFullArchive,
-		EnableEpochsHandler:     args.EnableEpochsHandler,
-		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
-		NumStoredEpochs:         args.NumStoredEpochs,
-		NodesConfigCache:        nodesConfigCache,
-		EpochStartStaticStorer:  args.EpochStartStaticStorer,
-=======
 		ShardConsensusGroupSize:  int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
 		MetaConsensusGroupSize:   int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
 		Marshalizer:              args.Marshalizer,
@@ -155,6 +130,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		NbShards:                 args.GenesisNodesConfig.NumberOfShards(),
 		EligibleNodes:            eligibleValidators,
 		WaitingNodes:             waitingValidators,
+		LeavingNodes:             nil, // no leaving nodes at genesis
 		SelfPublicKey:            args.PubKey,
 		ConsensusGroupCache:      consensusGroupCache,
 		ShuffledOutHandler:       disabled.NewShuffledOutHandler(),
@@ -163,8 +139,10 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		IsFullArchive:            args.IsFullArchive,
 		EnableEpochsHandler:      args.EnableEpochsHandler,
 		ValidatorInfoCacher:      s.dataPool.CurrentEpochValidatorInfo(),
+		NumStoredEpochs:          args.NumStoredEpochs,
+		NodesConfigCache:         nodesConfigCache,
+		EpochStartStaticStorer:   args.EpochStartStaticStorer,
 		GenesisNodesSetupHandler: s.genesisNodesConfig,
->>>>>>> rc/v1.7.0
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {

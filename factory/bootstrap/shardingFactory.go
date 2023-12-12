@@ -215,33 +215,6 @@ func CreateNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-<<<<<<< HEAD
-		ShardConsensusGroupSize: shardConsensusGroupSize,
-		MetaConsensusGroupSize:  metaConsensusGroupSize,
-		Marshalizer:             marshalizer,
-		Hasher:                  hasher,
-		Shuffler:                nodeShuffler,
-		EpochStartNotifier:      epochStartNotifier,
-		BootStorer:              bootStorer,
-		ShardIDAsObserver:       shardIDAsObserver,
-		NbShards:                nbShards,
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		LeavingNodes:            leavingValidators,
-		SelfPublicKey:           pubKeyBytes,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      shuffledOutHandler,
-		Epoch:                   currentEpoch,
-		StartEpoch:              startEpoch,
-		ChanStopNode:            chanNodeStop,
-		NodeTypeProvider:        nodeTypeProvider,
-		IsFullArchive:           prefsConfig.FullArchive,
-		EnableEpochsHandler:     enableEpochsHandler,
-		ValidatorInfoCacher:     validatorInfoCacher,
-		NumStoredEpochs:         numStoredEpochs,
-		NodesConfigCache:        nodesConfigCache,
-		EpochStartStaticStorer:  epochStartStaticStorer,
-=======
 		ShardConsensusGroupSize:  shardConsensusGroupSize,
 		MetaConsensusGroupSize:   metaConsensusGroupSize,
 		Marshalizer:              marshalizer,
@@ -253,6 +226,7 @@ func CreateNodesCoordinator(
 		NbShards:                 nbShards,
 		EligibleNodes:            eligibleValidators,
 		WaitingNodes:             waitingValidators,
+		LeavingNodes:             leavingValidators,
 		SelfPublicKey:            pubKeyBytes,
 		ConsensusGroupCache:      consensusGroupCache,
 		ShuffledOutHandler:       shuffledOutHandler,
@@ -263,8 +237,10 @@ func CreateNodesCoordinator(
 		IsFullArchive:            prefsConfig.FullArchive,
 		EnableEpochsHandler:      enableEpochsHandler,
 		ValidatorInfoCacher:      validatorInfoCacher,
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         nodesConfigCache,
+		EpochStartStaticStorer:   epochStartStaticStorer,
 		GenesisNodesSetupHandler: nodesConfig,
->>>>>>> rc/v1.7.0
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
