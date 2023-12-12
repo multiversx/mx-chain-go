@@ -52,7 +52,7 @@ func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	tx *transaction.ApiTransactionResult,
 	hasRefund bool,
 ) {
-	if tx.Logs == nil {
+	if tx.Logs == nil || (tx.Function == "" && tx.Operation == "transfer") {
 		return
 	}
 
