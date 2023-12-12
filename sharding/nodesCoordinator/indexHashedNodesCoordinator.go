@@ -28,7 +28,11 @@ var _ PublicKeysSelector = (*indexHashedNodesCoordinator)(nil)
 const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
+<<<<<<< HEAD
 	minStoredEpochs         = uint32(1)
+=======
+	minEpochsToWait         = uint32(1)
+>>>>>>> rc/v1.7.0
 )
 
 type validatorWithShardID struct {
@@ -93,9 +97,13 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider              NodeTypeProviderHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
+<<<<<<< HEAD
 	numStoredEpochs               uint32
 	nodesConfigCacher             Cacher
 	epochStartStaticStorer        storage.Storer
+=======
+	genesisNodesSetupHandler      GenesisNodesSetupHandler
+>>>>>>> rc/v1.7.0
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -136,6 +144,7 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		shuffledOutHandler:            args.ShuffledOutHandler,
 		startEpoch:                    args.StartEpoch,
 		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
+<<<<<<< HEAD
 		chanStopNode:                  args.ChanStopNode,
 		nodeTypeProvider:              args.NodeTypeProvider,
 		isFullArchive:                 args.IsFullArchive,
@@ -144,6 +153,14 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		numStoredEpochs:               args.NumStoredEpochs,
 		nodesConfigCacher:             args.NodesConfigCache,
 		epochStartStaticStorer:        args.EpochStartStaticStorer,
+=======
+		chanStopNode:                  arguments.ChanStopNode,
+		nodeTypeProvider:              arguments.NodeTypeProvider,
+		isFullArchive:                 arguments.IsFullArchive,
+		enableEpochsHandler:           arguments.EnableEpochsHandler,
+		validatorInfoCacher:           arguments.ValidatorInfoCacher,
+		genesisNodesSetupHandler:      arguments.GenesisNodesSetupHandler,
+>>>>>>> rc/v1.7.0
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -229,6 +246,7 @@ func checkArguments(args ArgNodesCoordinator) error {
 	if check.IfNil(args.ValidatorInfoCacher) {
 		return ErrNilValidatorInfoCacher
 	}
+<<<<<<< HEAD
 	if args.NumStoredEpochs < minStoredEpochs {
 		return ErrInvalidNumberOfStoredEpochs
 	}
@@ -237,6 +255,10 @@ func checkArguments(args ArgNodesCoordinator) error {
 	}
 	if check.IfNil(args.EpochStartStaticStorer) {
 		return ErrNilEpochStartStaticStorer
+=======
+	if check.IfNil(arguments.GenesisNodesSetupHandler) {
+		return ErrNilGenesisNodesSetupHandler
+>>>>>>> rc/v1.7.0
 	}
 
 	return nil
@@ -1273,4 +1295,60 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.WaitingListFixFlag))
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
+}
+
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (ihnc *indexHashedNodesCoordinator) GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error) {
+	if len(publicKey) == 0 {
+		return 0, ErrNilPubKey
+	}
+
+	currentEpoch := ihnc.enableEpochsHandler.GetCurrentEpoch()
+
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[currentEpoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, currentEpoch)
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	for shardId, shardWaiting := range nodesConfig.waitingMap {
+		epochsLeft, err := ihnc.searchWaitingEpochsLeftForPublicKeyInShard(publicKey, shardId, shardWaiting)
+		if err != nil {
+			continue
+		}
+
+		return epochsLeft, err
+	}
+
+	return 0, ErrKeyNotFoundInWaitingList
+}
+
+func (ihnc *indexHashedNodesCoordinator) searchWaitingEpochsLeftForPublicKeyInShard(publicKey []byte, shardId uint32, shardWaiting []Validator) (uint32, error) {
+	for idx, val := range shardWaiting {
+		if !bytes.Equal(val.PubKey(), publicKey) {
+			continue
+		}
+
+		minHysteresisNodes := ihnc.getMinHysteresisNodes(shardId)
+		if minHysteresisNodes == 0 {
+			return minEpochsToWait, nil
+		}
+
+		return uint32(idx)/minHysteresisNodes + minEpochsToWait, nil
+	}
+
+	return 0, ErrKeyNotFoundInWaitingList
+}
+
+func (ihnc *indexHashedNodesCoordinator) getMinHysteresisNodes(shardId uint32) uint32 {
+	if shardId == common.MetachainShardId {
+		return ihnc.genesisNodesSetupHandler.MinMetaHysteresisNodes()
+	}
+
+	return ihnc.genesisNodesSetupHandler.MinShardHysteresisNodes()
 }
