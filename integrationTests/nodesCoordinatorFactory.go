@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -80,7 +81,8 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 				return 0
 			},
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -139,7 +141,8 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 				return 0
 			},
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

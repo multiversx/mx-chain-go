@@ -31,6 +31,7 @@ const (
 	managedKeysCount          = "/managed-keys/count"
 	eligibleManagedKeys       = "/managed-keys/eligible"
 	waitingManagedKeys        = "/managed-keys/waiting"
+	epochsLeftInWaiting       = "/waiting-epochs-left/:key"
 )
 
 // nodeFacadeHandler defines the methods to be implemented by a facade for node requests
@@ -45,6 +46,7 @@ type nodeFacadeHandler interface {
 	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
+	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	IsInterfaceNil() bool
 }
 
@@ -136,6 +138,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    waitingManagedKeys,
 			Method:  http.MethodGet,
 			Handler: ng.managedKeysWaiting,
+		},
+		{
+			Path:    epochsLeftInWaiting,
+			Method:  http.MethodGet,
+			Handler: ng.waitingEpochsLeft,
 		},
 	}
 	ng.endpoints = endpoints
@@ -438,6 +445,18 @@ func (ng *nodeGroup) managedKeysWaiting(c *gin.Context) {
 			Code:  shared.ReturnCodeSuccess,
 		},
 	)
+}
+
+// waitingEpochsLeft returns the number of epochs left for the public key until it becomes eligible
+func (ng *nodeGroup) waitingEpochsLeft(c *gin.Context) {
+	publicKey := c.Param("key")
+	epochsLeft, err := ng.getFacade().GetWaitingEpochsLeftForPublicKey(publicKey)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetWaitingEpochsLeftForPublicKey, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"epochsLeft": epochsLeft})
 }
 
 func (ng *nodeGroup) getFacade() nodeFacadeHandler {

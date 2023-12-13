@@ -20,6 +20,7 @@ type NodesCoordinatorStub struct {
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
 	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
 	GetOwnPublicKeyCalled                    func() []byte
+	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
 }
 
 // NodesCoordinatorToRegistry -
@@ -185,6 +186,14 @@ func (ncm *NodesCoordinatorStub) GetOwnPublicKey() []byte {
 		return ncm.GetOwnPublicKeyCalled()
 	}
 	return []byte("key")
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (ncm *NodesCoordinatorStub) GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error) {
+	if ncm.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return ncm.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
