@@ -73,7 +73,11 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	defer grpcServerConn.Stop()
+	defer func() {
+		grpcServerConn.Stop()
+		err = host.Close()
+		log.LogIfError(err)
+	}()
 
 	subscribedAddr, err := pubKeyConverter.Decode(subscribedAddress)
 	if err != nil {
@@ -141,7 +145,7 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 }
 
 func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
-	listener, err := net.Listen("tcp", ":8085")
+	listener, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,7 +160,7 @@ func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
 		for {
 			if err = grpcServer.Serve(listener); err != nil {
 				log.LogIfError(err)
-				time.Sleep(2 * time.Second)
+				time.Sleep(time.Second)
 			}
 		}
 	}()

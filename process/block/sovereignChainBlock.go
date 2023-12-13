@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"sort"
@@ -876,10 +875,8 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 
 	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
 
-	randomBytes := make([]byte, 32)
-	_, _ = rand.Read(randomBytes)
-	bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(randomBytes))
-	bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(randomBytes))
+	bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(headerHandler.GetRandSeed()))
+	bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(headerHandler.GetRandSeed()))
 	outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
 
 	if len(outGoingOperations) == 0 {

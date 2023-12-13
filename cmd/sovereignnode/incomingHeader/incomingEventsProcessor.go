@@ -25,9 +25,19 @@ const (
 	topicIDDeposit          = "deposit"
 )
 
+type confirmedBridgeOp struct {
+	hashOfHashes []byte
+	hash         []byte
+}
+
 type scrInfo struct {
 	scr  *smartContractResult.SmartContractResult
 	hash []byte
+}
+
+type eventsResult struct {
+	scrs               []*scrInfo
+	confirmedBridgeOps []*confirmedBridgeOp
 }
 
 type incomingEventsProcessor struct {
@@ -37,20 +47,23 @@ type incomingEventsProcessor struct {
 	pool       block.OutGoingOperationsPool
 }
 
-func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) ([]*scrInfo, error) {
+func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
 	scrs := make([]*scrInfo, 0, len(events))
+	confirmedBridgeOps := make([]*confirmedBridgeOp, 0, len(events))
 
 	for idx, event := range events {
 		topics := event.GetTopics()
 
 		var scr *scrInfo
+		var confirmedOp *confirmedBridgeOp
 		var err error
 		switch string(event.GetIdentifier()) {
 		case topicIDDeposit:
 			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
 		case topicIDExecutedBridgeOp:
-			err = iep.confirmBridgeOperation(topics)
+			confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
+			confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
 		default:
 			return nil, errInvalidIncomingEventIdentifier
 		}
@@ -60,7 +73,10 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		}
 	}
 
-	return scrs, nil
+	return &eventsResult{
+		scrs:               scrs,
+		confirmedBridgeOps: confirmedBridgeOps,
+	}, nil
 }
 
 func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
@@ -122,12 +138,23 @@ func (iep *incomingEventsProcessor) addSCRsToPool(scrs []*scrInfo) {
 	}
 }
 
-func (iep *incomingEventsProcessor) confirmBridgeOperation(topics [][]byte) error {
+func (iep *incomingEventsProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) error {
+	for _, op := range ops {
+		err := iep.pool.ConfirmOperation(op.hashOfHashes, op.hash)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
 	if len(topics) != numExecutedBridgeOpTopics {
-		return fmt.Errorf("%w for %s", errInvalidNumTopicsIncomingEvent, topicIDExecutedBridgeOp)
+		return nil, fmt.Errorf("%w for %s", errInvalidNumTopicsIncomingEvent, topicIDExecutedBridgeOp)
 	}
 
-	hashOfHashes := topics[0]
-	hash := topics[1]
-	return iep.pool.ConfirmOperation(hashOfHashes, hash)
+	return &confirmedBridgeOp{
+		hashOfHashes: topics[0],
+		hash:         topics[1],
+	}, nil
 }

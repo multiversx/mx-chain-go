@@ -90,12 +90,12 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return nil
 	}
 
-	incomingSCRs, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
+	res, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
 
-	extendedHeader, err := createExtendedHeader(header, incomingSCRs)
+	extendedHeader, err := createExtendedHeader(header, res.scrs)
 	if err != nil {
 		return err
 	}
@@ -105,18 +105,23 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	ihp.eventsProc.addSCRsToPool(incomingSCRs)
+	err = ihp.eventsProc.addConfirmedBridgeOpsToPool(res.confirmedBridgeOps)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	ihp.eventsProc.addSCRsToPool(res.scrs)
 	return nil
 }
 
 // CreateExtendedHeader will create an extended shard header with incoming scrs and mbs from the events of the received header
 func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
-	incomingSCRs, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
+	res, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return nil, err
 	}
 
-	return createExtendedHeader(header, incomingSCRs)
+	return createExtendedHeader(header, res.scrs)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

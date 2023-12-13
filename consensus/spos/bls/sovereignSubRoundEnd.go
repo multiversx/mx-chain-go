@@ -115,6 +115,7 @@ func (sr *sovereignSubRoundEnd) sendOutGoingOperations(ctx context.Context, data
 	})
 	if err != nil {
 		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.bridgeOpHandler.Send", "error", err)
+		return
 	}
 
 	log.Debug("sent outgoing operations", "hashes", resp.TxHashes)

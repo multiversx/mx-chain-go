@@ -86,7 +86,8 @@ func (op *outGoingOperationsPool) ConfirmOperation(hashOfHashes []byte, hash []b
 
 	cachedEntry, found := op.cache[string(hashOfHashes)]
 	if !found {
-		return fmt.Errorf("%w, hash: %s", errHashOfHashesNotFound, hex.EncodeToString(hashOfHashes))
+		return fmt.Errorf("%w, hashOfHashes: %s, bridgeOpHash: %s",
+			errHashOfHashesNotFound, hex.EncodeToString(hashOfHashes), hex.EncodeToString(hash))
 	}
 
 	err := confirmOutGoingBridgeOpHash(cachedEntry, hash)
