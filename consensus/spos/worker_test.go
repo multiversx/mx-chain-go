@@ -608,10 +608,13 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 	assert.True(t, wasCalled)
 }
 
-func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *testing.T) {
+func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsEquivalentMessagesFlagEnabledField: true,
+	}
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")
@@ -677,6 +680,27 @@ func TestWorker_ProcessReceivedMessageEquivalentMessageShouldReturnError(t *test
 	buffInvalidCnsMsg, _ := wrk.Marshalizer().Marshal(invalidCnsMsg)
 
 	err := wrk.ProcessReceivedMessage(
+		&p2pmocks.P2PMessageMock{
+			DataField:      buff,
+			PeerField:      currentPid,
+			SignatureField: []byte("signature"),
+		},
+		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+	assert.Equal(t, spos.ErrNilHeader, err)
+
+	wrk.ConsensusState().Header = &block.Header{
+		ChainID:         chainID,
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		RootHash:        []byte("roothash"),
+		SoftwareVersion: []byte("software version"),
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
+	}
+	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
 			PeerField:      currentPid,

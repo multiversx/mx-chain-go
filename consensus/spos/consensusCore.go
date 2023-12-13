@@ -15,8 +15,7 @@ import (
 )
 
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
-//
-//	for the rest of the consensus structures
+// for the rest of the consensus structures
 type ConsensusCore struct {
 	blockChain                    data.ChainHandler
 	blockProcessor                process.BlockProcessor
