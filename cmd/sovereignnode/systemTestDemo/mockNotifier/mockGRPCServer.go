@@ -15,7 +15,9 @@ type ConfirmedBridgeOp struct {
 	BridgeOpHash []byte
 }
 
-const selectBridgeOpChance = int64(40) // 40% chance
+const (
+	selectBridgeOpChance = int64(40) // 40% chance
+)
 
 type mockServer struct {
 	mut       sync.RWMutex
@@ -33,9 +35,21 @@ func NewMockServer() *mockServer {
 // Send will save internally in a cache the received outgoing bridge operations.
 // As a response, it will generate random tx hashes, since no bridge tx will actually be sent.
 func (s *mockServer) Send(_ context.Context, data *sovereign.BridgeOperations) (*sovereign.BridgeOperationsResponse, error) {
+	s.cacheBridgeOperations(data)
+
+	hashes := generateRandomHashes(data)
+	logTxHashes(hashes)
+
+	return &sovereign.BridgeOperationsResponse{
+		TxHashes: hashes,
+	}, nil
+}
+
+func (s *mockServer) cacheBridgeOperations(data *sovereign.BridgeOperations) {
 	s.mut.Lock()
 	for _, bridgeData := range data.Data {
 		bridgeOpHashes := make(map[string]struct{})
+
 		for _, outGoingOp := range bridgeData.OutGoingOperations {
 			bridgeOpHashes[string(outGoingOp.Hash)] = struct{}{}
 		}
@@ -43,17 +57,6 @@ func (s *mockServer) Send(_ context.Context, data *sovereign.BridgeOperations) (
 		s.cachedOps[string(bridgeData.Hash)] = bridgeOpHashes
 	}
 	s.mut.Unlock()
-
-	hashes, err := generateRandomHashes(data)
-	if err != nil {
-		return nil, err
-	}
-
-	logTxHashes(hashes)
-
-	return &sovereign.BridgeOperationsResponse{
-		TxHashes: hashes,
-	}, nil
 }
 
 // ExtractRandomBridgeTopicsForConfirmation will randomly select (40% chance for an event to be selected) some of the
@@ -101,34 +104,30 @@ func selectRandomBridgeOps(hash []byte, outGoingOps map[string]struct{}) ([]*Con
 
 func (s *mockServer) removeBridgeOpsFromCache(bridgeOps []*ConfirmedBridgeOp) {
 	for _, bridgeOp := range bridgeOps {
-		delete(s.cachedOps[string(bridgeOp.HashOfHashes)], string(bridgeOp.BridgeOpHash))
-		if len(s.cachedOps[string(bridgeOp.HashOfHashes)]) == 0 {
-			delete(s.cachedOps, string(bridgeOp.HashOfHashes))
+		hashOfHashes := string(bridgeOp.HashOfHashes)
+		delete(s.cachedOps[hashOfHashes], string(bridgeOp.BridgeOpHash))
+
+		if len(s.cachedOps[hashOfHashes]) == 0 {
+			delete(s.cachedOps, hashOfHashes)
 		}
 	}
 }
 
-func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) ([]string, error) {
+func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) []string {
 	numHashes := len(bridgeOps.Data) + 1 // one register tx  + one tx for each bridge op
 	hashes := make([]string, numHashes)
 
-	size := 32
 	for i := 0; i < numHashes; i++ {
-		randomBytes := make([]byte, size)
-		_, err := rand.Read(randomBytes)
-		if err != nil {
-			return nil, err
-		}
-
+		randomBytes := generateRandomHash()
 		hashes[i] = hex.EncodeToString(randomBytes)
 	}
 
-	return hashes, nil
+	return hashes
 }
 
 func logTxHashes(hashes []string) {
 	for _, hash := range hashes {
-		log.Info("sent tx", "hash", hash)
+		log.Info("generated tx", "hash", hash)
 	}
 }
 

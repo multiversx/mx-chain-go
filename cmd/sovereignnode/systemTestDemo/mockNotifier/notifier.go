@@ -27,6 +27,12 @@ import (
 // 1. Replace github.com/multiversx/mx-chain-communication-go from cmd/sovereignnode/systemTestDemo/go.mod with the one
 // from this branch: sovereign-stress-test-branch.
 // 2. Keep the config in variables.sh with at least 3 validators.
+//
+// If you need to simulate bridge outgoing txs with notifier confirmation, but don't have yet any SC deployed in sovereign
+// shard, you can simply add the following lines in `sovereignChainBlock.go`, func: `createAndSetOutGoingMiniBlock`
+//   + bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(headerHandler.GetRandSeed()))
+//   + bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(headerHandler.GetRandSeed()))
+//   + outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
 
 func main() {
 	app := cli.NewApp()

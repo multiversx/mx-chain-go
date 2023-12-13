@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
 )
 
 const (
@@ -41,10 +39,8 @@ type eventsResult struct {
 }
 
 type incomingEventsProcessor struct {
-	txPool     TransactionPool
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
-	pool       block.OutGoingOperationsPool
 }
 
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
@@ -128,24 +124,6 @@ func createSCRData(topics [][]byte) []byte {
 	}
 
 	return ret
-}
-
-func (iep *incomingEventsProcessor) addSCRsToPool(scrs []*scrInfo) {
-	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
-
-	for _, scrData := range scrs {
-		iep.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
-	}
-}
-
-func (iep *incomingEventsProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) error {
-	for _, op := range ops {
-		err := iep.pool.ConfirmOperation(op.hashOfHashes, op.hash)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
