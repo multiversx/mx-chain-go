@@ -13,20 +13,21 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.8
-	github.com/multiversx/mx-chain-core-go v1.2.17
-	github.com/multiversx/mx-chain-crypto-go v1.2.8
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.13
-	github.com/multiversx/mx-chain-logger-go v1.0.13
-	github.com/multiversx/mx-chain-scenario-go v1.2.1
-	github.com/multiversx/mx-chain-storage-go v1.0.13
-	github.com/multiversx/mx-chain-vm-common-go v1.5.6
-	github.com/multiversx/mx-chain-vm-go v1.5.17
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.62
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.63
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.89
+	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381
+	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231208083458-cdde72601592
+	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.17-0.20231129114609-035c49863110
+	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231129101244-c44fa1c79b03
+	github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296
+	github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231129103407-a506e0debdd4
+	github.com/multiversx/mx-chain-vm-common-go v1.5.9-0.20231129110322-d07a35163513
+	github.com/multiversx/mx-chain-vm-go v1.5.21-0.20231129123522-78375fd2abf4
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64-0.20231129115807-0bb8c764d9e4
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65-0.20231129120711-ccd8bcb98f1f
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231129122620-cf29965fa7ff
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.14.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
@@ -140,7 +141,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
-	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect

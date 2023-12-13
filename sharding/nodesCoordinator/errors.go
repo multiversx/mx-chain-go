@@ -123,3 +123,9 @@ var ErrNilNodesConfigCacher = errors.New("nodes config cacher is nil")
 
 // ErrInvalidEpochStartEpoch signals that the provided epoch is not valid
 var ErrInvalidEpochStartEpoch = errors.New("epoch start epoch does not match")
+
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrKeyNotFoundInWaitingList signals that the provided key has not been found in waiting list
+var ErrKeyNotFoundInWaitingList = errors.New("key not found in waiting list")
