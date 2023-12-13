@@ -406,6 +406,8 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	// TODO: add signature and pubkeysbitmap from currentHeader on the newly created hdr
+
 	return hdr, nil
 }
 
