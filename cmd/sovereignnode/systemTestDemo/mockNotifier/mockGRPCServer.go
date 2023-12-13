@@ -59,6 +59,24 @@ func (s *mockServer) cacheBridgeOperations(data *sovereign.BridgeOperations) {
 	s.mut.Unlock()
 }
 
+func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) []string {
+	numHashes := len(bridgeOps.Data) + 1 // one register tx  + one tx for each bridge op
+	hashes := make([]string, numHashes)
+
+	for i := 0; i < numHashes; i++ {
+		randomBytes := generateRandomHash()
+		hashes[i] = hex.EncodeToString(randomBytes)
+	}
+
+	return hashes
+}
+
+func logTxHashes(hashes []string) {
+	for _, hash := range hashes {
+		log.Info("generated tx", "hash", hash)
+	}
+}
+
 // ExtractRandomBridgeTopicsForConfirmation will randomly select (40% chance for an event to be selected) some of the
 // internal saved bridge operations and remove them from the cache. These events shall be used by the notifier to
 // send confirmedBridgeOperation events
@@ -110,24 +128,6 @@ func (s *mockServer) removeBridgeOpsFromCache(bridgeOps []*ConfirmedBridgeOp) {
 		if len(s.cachedOps[hashOfHashes]) == 0 {
 			delete(s.cachedOps, hashOfHashes)
 		}
-	}
-}
-
-func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) []string {
-	numHashes := len(bridgeOps.Data) + 1 // one register tx  + one tx for each bridge op
-	hashes := make([]string, numHashes)
-
-	for i := 0; i < numHashes; i++ {
-		randomBytes := generateRandomHash()
-		hashes[i] = hex.EncodeToString(randomBytes)
-	}
-
-	return hashes
-}
-
-func logTxHashes(hashes []string) {
-	for _, hash := range hashes {
-		log.Info("generated tx", "hash", hash)
 	}
 }
 

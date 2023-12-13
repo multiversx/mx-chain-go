@@ -2,7 +2,6 @@ package block
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sort"
 	"time"
@@ -874,11 +873,6 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
 
 	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
-
-	bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(headerHandler.GetRandSeed()))
-	bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(headerHandler.GetRandSeed()))
-	outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
-
 	if len(outGoingOperations) == 0 {
 		return nil
 	}
