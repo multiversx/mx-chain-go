@@ -147,7 +147,7 @@ func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHa
 		return nil, nil, nil, err
 	}
 
-	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup())
+	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup(), sccf.config.GatewayMetricsConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}
