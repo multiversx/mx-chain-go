@@ -871,7 +871,6 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 
 func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
-
 	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
 	if len(outGoingOperations) == 0 {
 		return nil
