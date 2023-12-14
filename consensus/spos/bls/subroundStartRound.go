@@ -26,7 +26,8 @@ type subroundStartRound struct {
 	resetConsensusMessages        func()
 	removeAllEquivalentMessages   func()
 
-	outportHandler outport.OutportHandler
+	outportHandler       outport.OutportHandler
+	sentSignatureTracker spos.SentSignaturesTracker
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -36,6 +37,7 @@ func NewSubroundStartRound(
 	processingThresholdPercentage int,
 	executeStoredMessages func(),
 	resetConsensusMessages func(),
+	sentSignatureTracker spos.SentSignaturesTracker,
 	removeAllEquivalentMessages func(),
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
@@ -43,6 +45,21 @@ func NewSubroundStartRound(
 	)
 	if err != nil {
 		return nil, err
+	}
+	if extend == nil {
+		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
+	}
+	if executeStoredMessages == nil {
+		return nil, fmt.Errorf("%w for executeStoredMessages function", spos.ErrNilFunctionHandler)
+	}
+	if resetConsensusMessages == nil {
+		return nil, fmt.Errorf("%w for resetConsensusMessages function", spos.ErrNilFunctionHandler)
+	}
+	if check.IfNil(sentSignatureTracker) {
+		return nil, spos.ErrNilSentSignatureTracker
+	}
+	if removeAllEquivalentMessages == nil {
+		return nil, fmt.Errorf("%w for removeAllEquivalentMessages function", spos.ErrNilFunctionHandler)
 	}
 
 	srStartRound := subroundStartRound{
@@ -52,6 +69,7 @@ func NewSubroundStartRound(
 		resetConsensusMessages:        resetConsensusMessages,
 		removeAllEquivalentMessages:   removeAllEquivalentMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
+		sentSignatureTracker:          sentSignatureTracker,
 		outportMutex:                  sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
@@ -144,9 +162,6 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			sr.ConsensusGroup(),
 			sr.RoundHandler().Index(),
 		)
-		if sr.NodeRedundancyHandler().IsMainMachineActive() {
-			return false
-		}
 	}
 
 	leader, err := sr.GetLeader()
@@ -162,7 +177,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
 		msg = " (my turn in multi-key)"
 	}
-	if leader == sr.SelfPubKey() {
+	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
 		msg = " (my turn)"
 	}
 	if len(msg) != 0 {
@@ -174,6 +189,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	log.Debug("step 0: preparing the round",
 		"leader", core.GetTrimmedPk(hex.EncodeToString([]byte(leader))),
 		"messsage", msg)
+	sr.sentSignatureTracker.StartRound()
 
 	pubKeys := sr.ConsensusGroup()
 	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
@@ -187,7 +203,8 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		}
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if leader != sr.SelfPubKey() && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+		isLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
+		if !isLeader && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
@@ -227,11 +244,11 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
 		if sr.IsKeyManagedByCurrentNode(pkBytes) {
-			sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
+		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
 	}
 
 	if numMultiKeysInConsensusGroup > 0 {

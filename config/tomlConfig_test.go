@@ -148,13 +148,14 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			CheckpointRoundsModulus:     37,
-			CheckpointsEnabled:          true,
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
+		},
+		Redundancy: RedundancyConfig{
+			MaxRoundsOfInactivityAccepted: 3,
 		},
 	}
 	testString := `
@@ -247,13 +248,16 @@ func TestTomlParser(t *testing.T) {
         DoProfileOnShuffleOut = true
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 37
-    CheckpointsEnabled = true
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 
@@ -503,6 +507,10 @@ func TestP2pConfig(t *testing.T) {
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d"
             PreventPortReuse = true
+        [Node.ResourceLimiter]
+            Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
+            ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
+            ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
 
 [KadDhtPeerDiscovery]
     Enabled = false
@@ -538,6 +546,11 @@ func TestP2pConfig(t *testing.T) {
 				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic-v1",
 				WebSocketAddress:    "/ip4/0.0.0.0/tcp/%d/ws",
 				WebTransportAddress: "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport",
+			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type:                   "default autoscale",
+				ManualSystemMemoryInMB: 1,
+				ManualMaximumFD:        2,
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -835,6 +848,15 @@ func TestEnableEpochConfig(t *testing.T) {
 	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
 	ScToScLogEventEnableEpoch = 88
 
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 89
+
+    # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 90
+
+    # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
+    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
+
 	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
 	EquivalentMessagesEnableEpoch = 89
 
@@ -858,95 +880,98 @@ func TestEnableEpochConfig(t *testing.T) {
 
 	expectedCfg := EpochConfig{
 		EnableEpochs: EnableEpochs{
-			SCDeployEnableEpoch:                               1,
-			BuiltInFunctionsEnableEpoch:                       2,
-			RelayedTransactionsEnableEpoch:                    3,
-			PenalizedTooMuchGasEnableEpoch:                    4,
-			SwitchJailWaitingEnableEpoch:                      5,
-			BelowSignedThresholdEnableEpoch:                   6,
-			SwitchHysteresisForMinNodesEnableEpoch:            7,
-			TransactionSignedWithTxHashEnableEpoch:            8,
-			MetaProtectionEnableEpoch:                         9,
-			AheadOfTimeGasUsageEnableEpoch:                    10,
-			GasPriceModifierEnableEpoch:                       11,
-			RepairCallbackEnableEpoch:                         12,
-			BlockGasAndFeesReCheckEnableEpoch:                 13,
-			BalanceWaitingListsEnableEpoch:                    14,
-			ReturnDataToLastTransferEnableEpoch:               15,
-			SenderInOutTransferEnableEpoch:                    16,
-			StakeEnableEpoch:                                  17,
-			StakingV2EnableEpoch:                              18,
-			DoubleKeyProtectionEnableEpoch:                    19,
-			ESDTEnableEpoch:                                   20,
-			GovernanceEnableEpoch:                             21,
-			DelegationManagerEnableEpoch:                      22,
-			DelegationSmartContractEnableEpoch:                23,
-			CorrectLastUnjailedEnableEpoch:                    24,
-			RelayedTransactionsV2EnableEpoch:                  25,
-			UnbondTokensV2EnableEpoch:                         26,
-			SaveJailedAlwaysEnableEpoch:                       27,
-			ReDelegateBelowMinCheckEnableEpoch:                28,
-			ValidatorToDelegationEnableEpoch:                  29,
-			WaitingListFixEnableEpoch:                         30,
-			IncrementSCRNonceInMultiTransferEnableEpoch:       31,
-			ESDTMultiTransferEnableEpoch:                      32,
-			GlobalMintBurnDisableEpoch:                        33,
-			ESDTTransferRoleEnableEpoch:                       34,
-			BuiltInFunctionOnMetaEnableEpoch:                  35,
-			ComputeRewardCheckpointEnableEpoch:                36,
-			SCRSizeInvariantCheckEnableEpoch:                  37,
-			BackwardCompSaveKeyValueEnableEpoch:               38,
-			ESDTNFTCreateOnMultiShardEnableEpoch:              39,
-			MetaESDTSetEnableEpoch:                            40,
-			AddTokensToDelegationEnableEpoch:                  41,
-			MultiESDTTransferFixOnCallBackOnEnableEpoch:       42,
-			OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       43,
-			CorrectFirstQueuedEpoch:                           44,
-			DeleteDelegatorAfterClaimRewardsEnableEpoch:       45,
-			FixOOGReturnCodeEnableEpoch:                       46,
-			RemoveNonUpdatedStorageEnableEpoch:                47,
-			OptimizeNFTStoreEnableEpoch:                       48,
-			CreateNFTThroughExecByCallerEnableEpoch:           49,
-			StopDecreasingValidatorRatingWhenStuckEnableEpoch: 50,
-			FrontRunningProtectionEnableEpoch:                 51,
-			IsPayableBySCEnableEpoch:                          52,
-			CleanUpInformativeSCRsEnableEpoch:                 53,
-			StorageAPICostOptimizationEnableEpoch:             54,
-			TransformToMultiShardCreateEnableEpoch:            55,
-			ESDTRegisterAndSetAllRolesEnableEpoch:             56,
-			ScheduledMiniBlocksEnableEpoch:                    57,
-			CorrectJailedNotUnstakedEmptyQueueEpoch:           58,
-			DoNotReturnOldBlockInBlockchainHookEnableEpoch:    59,
-			AddFailedRelayedTxToInvalidMBsDisableEpoch:        60,
-			SCRSizeInvariantOnBuiltInResultEnableEpoch:        61,
-			CheckCorrectTokenIDForTransferRoleEnableEpoch:     62,
-			DisableExecByCallerEnableEpoch:                    63,
-			RefactorContextEnableEpoch:                        64,
-			FailExecutionOnEveryAPIErrorEnableEpoch:           65,
-			ManagedCryptoAPIsEnableEpoch:                      66,
-			CheckFunctionArgumentEnableEpoch:                  67,
-			CheckExecuteOnReadOnlyEnableEpoch:                 68,
-			ESDTMetadataContinuousCleanupEnableEpoch:          69,
-			MiniBlockPartialExecutionEnableEpoch:              70,
-			FixAsyncCallBackArgsListEnableEpoch:               71,
-			FixOldTokenLiquidityEnableEpoch:                   72,
-			RuntimeMemStoreLimitEnableEpoch:                   73,
-			SetSenderInEeiOutputTransferEnableEpoch:           74,
-			RefactorPeersMiniBlocksEnableEpoch:                75,
-			MaxBlockchainHookCountersEnableEpoch:              76,
-			WipeSingleNFTLiquidityDecreaseEnableEpoch:         77,
-			AlwaysSaveTokenMetaDataEnableEpoch:                78,
-			RuntimeCodeSizeFixEnableEpoch:                     79,
-			RelayedNonceFixEnableEpoch:                        80,
-			SetGuardianEnableEpoch:                            81,
-			AutoBalanceDataTriesEnableEpoch:                   82,
-			KeepExecOrderOnCreatedSCRsEnableEpoch:             83,
-			MultiClaimOnDelegationEnableEpoch:                 84,
-			ChangeUsernameEnableEpoch:                         85,
-			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
-			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
-			ScToScLogEventEnableEpoch:                         88,
-			EquivalentMessagesEnableEpoch:                     89,
+			SCDeployEnableEpoch:                                      1,
+			BuiltInFunctionsEnableEpoch:                              2,
+			RelayedTransactionsEnableEpoch:                           3,
+			PenalizedTooMuchGasEnableEpoch:                           4,
+			SwitchJailWaitingEnableEpoch:                             5,
+			BelowSignedThresholdEnableEpoch:                          6,
+			SwitchHysteresisForMinNodesEnableEpoch:                   7,
+			TransactionSignedWithTxHashEnableEpoch:                   8,
+			MetaProtectionEnableEpoch:                                9,
+			AheadOfTimeGasUsageEnableEpoch:                           10,
+			GasPriceModifierEnableEpoch:                              11,
+			RepairCallbackEnableEpoch:                                12,
+			BlockGasAndFeesReCheckEnableEpoch:                        13,
+			BalanceWaitingListsEnableEpoch:                           14,
+			ReturnDataToLastTransferEnableEpoch:                      15,
+			SenderInOutTransferEnableEpoch:                           16,
+			StakeEnableEpoch:                                         17,
+			StakingV2EnableEpoch:                                     18,
+			DoubleKeyProtectionEnableEpoch:                           19,
+			ESDTEnableEpoch:                                          20,
+			GovernanceEnableEpoch:                                    21,
+			DelegationManagerEnableEpoch:                             22,
+			DelegationSmartContractEnableEpoch:                       23,
+			CorrectLastUnjailedEnableEpoch:                           24,
+			RelayedTransactionsV2EnableEpoch:                         25,
+			UnbondTokensV2EnableEpoch:                                26,
+			SaveJailedAlwaysEnableEpoch:                              27,
+			ReDelegateBelowMinCheckEnableEpoch:                       28,
+			ValidatorToDelegationEnableEpoch:                         29,
+			WaitingListFixEnableEpoch:                                30,
+			IncrementSCRNonceInMultiTransferEnableEpoch:              31,
+			ESDTMultiTransferEnableEpoch:                             32,
+			GlobalMintBurnDisableEpoch:                               33,
+			ESDTTransferRoleEnableEpoch:                              34,
+			BuiltInFunctionOnMetaEnableEpoch:                         35,
+			ComputeRewardCheckpointEnableEpoch:                       36,
+			SCRSizeInvariantCheckEnableEpoch:                         37,
+			BackwardCompSaveKeyValueEnableEpoch:                      38,
+			ESDTNFTCreateOnMultiShardEnableEpoch:                     39,
+			MetaESDTSetEnableEpoch:                                   40,
+			AddTokensToDelegationEnableEpoch:                         41,
+			MultiESDTTransferFixOnCallBackOnEnableEpoch:              42,
+			OptimizeGasUsedInCrossMiniBlocksEnableEpoch:              43,
+			CorrectFirstQueuedEpoch:                                  44,
+			DeleteDelegatorAfterClaimRewardsEnableEpoch:              45,
+			FixOOGReturnCodeEnableEpoch:                              46,
+			RemoveNonUpdatedStorageEnableEpoch:                       47,
+			OptimizeNFTStoreEnableEpoch:                              48,
+			CreateNFTThroughExecByCallerEnableEpoch:                  49,
+			StopDecreasingValidatorRatingWhenStuckEnableEpoch:        50,
+			FrontRunningProtectionEnableEpoch:                        51,
+			IsPayableBySCEnableEpoch:                                 52,
+			CleanUpInformativeSCRsEnableEpoch:                        53,
+			StorageAPICostOptimizationEnableEpoch:                    54,
+			TransformToMultiShardCreateEnableEpoch:                   55,
+			ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
+			ScheduledMiniBlocksEnableEpoch:                           57,
+			CorrectJailedNotUnstakedEmptyQueueEpoch:                  58,
+			DoNotReturnOldBlockInBlockchainHookEnableEpoch:           59,
+			AddFailedRelayedTxToInvalidMBsDisableEpoch:               60,
+			SCRSizeInvariantOnBuiltInResultEnableEpoch:               61,
+			CheckCorrectTokenIDForTransferRoleEnableEpoch:            62,
+			DisableExecByCallerEnableEpoch:                           63,
+			RefactorContextEnableEpoch:                               64,
+			FailExecutionOnEveryAPIErrorEnableEpoch:                  65,
+			ManagedCryptoAPIsEnableEpoch:                             66,
+			CheckFunctionArgumentEnableEpoch:                         67,
+			CheckExecuteOnReadOnlyEnableEpoch:                        68,
+			ESDTMetadataContinuousCleanupEnableEpoch:                 69,
+			MiniBlockPartialExecutionEnableEpoch:                     70,
+			FixAsyncCallBackArgsListEnableEpoch:                      71,
+			FixOldTokenLiquidityEnableEpoch:                          72,
+			RuntimeMemStoreLimitEnableEpoch:                          73,
+			SetSenderInEeiOutputTransferEnableEpoch:                  74,
+			RefactorPeersMiniBlocksEnableEpoch:                       75,
+			MaxBlockchainHookCountersEnableEpoch:                     76,
+			WipeSingleNFTLiquidityDecreaseEnableEpoch:                77,
+			AlwaysSaveTokenMetaDataEnableEpoch:                       78,
+			RuntimeCodeSizeFixEnableEpoch:                            79,
+			RelayedNonceFixEnableEpoch:                               80,
+			SetGuardianEnableEpoch:                                   81,
+			AutoBalanceDataTriesEnableEpoch:                          82,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:                    83,
+			MultiClaimOnDelegationEnableEpoch:                        84,
+			ChangeUsernameEnableEpoch:                                85,
+			ConsistentTokensValuesLengthCheckEnableEpoch:             86,
+			FixDelegationChangeOwnerOnAccountEnableEpoch:             87,
+			ScToScLogEventEnableEpoch:                                88,
+			NFTStopCreateEnableEpoch:                                 89,
+			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
+			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
+			EquivalentMessagesEnableEpoch: 						      92,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

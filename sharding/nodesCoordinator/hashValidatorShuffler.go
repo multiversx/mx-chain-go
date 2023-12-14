@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-go/common"
@@ -49,8 +48,6 @@ type randHashShuffler struct {
 	availableNodesConfigs   []config.MaxNodesChangeConfig
 	mutShufflerParams       sync.RWMutex
 	validatorDistributor    ValidatorsDistributor
-	flagBalanceWaitingLists atomic.Flag
-	flagWaitingListFix      atomic.Flag
 	enableEpochsHandler     common.EnableEpochsHandler
 }
 
@@ -63,6 +60,14 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.BalanceWaitingListsFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	var configs []config.MaxNodesChangeConfig
 
 	log.Debug("hashValidatorShuffler: enable epoch for max nodes change", "epoch", args.MaxNodesEnableConfig)
@@ -150,8 +155,8 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		nbShards:                args.NbShards,
 		distributor:             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
-		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists.IsSet(),
-		flagWaitingListFix:      rhs.flagWaitingListFix.IsSet(),
+		flagBalanceWaitingLists: rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.BalanceWaitingListsFlag, args.Epoch),
+		flagWaitingListFix:      rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.WaitingListFixFlag, args.Epoch),
 	})
 }
 
@@ -753,11 +758,6 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32, chainParameters 
 		"epochEnable", rhs.activeNodesConfig.EpochEnable,
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
-
-	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
-	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-	rhs.flagWaitingListFix.SetValue(epoch >= rhs.enableEpochsHandler.WaitingListFixEnableEpoch())
-	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {

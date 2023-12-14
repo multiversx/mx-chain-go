@@ -173,6 +173,14 @@ type PeerBlackListCacher interface {
 	IsInterfaceNil() bool
 }
 
+// SentSignaturesTracker defines a component able to handle sent signature from self
+type SentSignaturesTracker interface {
+	StartRound()
+	SignatureSent(pkBytes []byte)
+	ReceivedActualSigners(signersPks []string)
+	IsInterfaceNil() bool
+}
+
 // EquivalentMessagesDebugger defines the specific debugger for equivalent messages
 type EquivalentMessagesDebugger interface {
 	DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]uint64)

@@ -141,10 +141,17 @@ func (aap *alteredAccountsProvider) addAdditionalDataInAlteredAccount(alteredAcc
 		IsSender:       markedAccount.isSender,
 		BalanceChanged: markedAccount.balanceChanged,
 		UserName:       string(userAccount.GetUserName()),
+		CodeMetadata:   userAccount.GetCodeMetadata(),
+		RootHash:       userAccount.GetRootHash(),
+	}
+
+	isSC := core.IsSmartContractAddress(userAccount.AddressBytes())
+	if isSC {
+		alteredAcc.AdditionalData.CodeHash = userAccount.GetCodeHash()
 	}
 
 	ownerAddressBytes := userAccount.GetOwnerAddress()
-	if core.IsSmartContractAddress(userAccount.AddressBytes()) && len(ownerAddressBytes) == aap.addressConverter.Len() {
+	if isSC && len(ownerAddressBytes) == aap.addressConverter.Len() {
 		alteredAcc.AdditionalData.CurrentOwner = aap.addressConverter.SilentEncode(ownerAddressBytes, log)
 	}
 	developerRewards := userAccount.GetDeveloperReward()
