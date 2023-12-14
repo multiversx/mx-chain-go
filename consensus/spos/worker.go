@@ -731,7 +731,7 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 		"size", len(p2pMessage.Data()),
 	)
 
-	if !wrk.enableEpochsHandler.IsEquivalentMessagesFlagEnabled() {
+	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	}
 

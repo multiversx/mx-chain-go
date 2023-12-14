@@ -186,7 +186,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			extend,
 			bls.ProcessingThresholdPercent,
 			executeStoredMessages,
-			nil,
+			resetConsensusMessages,
 			&mock.SentSignatureTrackerStub{},
 			nil,
 		)

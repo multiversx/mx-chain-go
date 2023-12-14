@@ -858,7 +858,7 @@ func TestEnableEpochConfig(t *testing.T) {
     FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
 
 	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-	EquivalentMessagesEnableEpoch = 89
+	EquivalentMessagesEnableEpoch = 92
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -971,7 +971,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			NFTStopCreateEnableEpoch:                                 89,
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
-			EquivalentMessagesEnableEpoch: 						      92,
+			EquivalentMessagesEnableEpoch:                            92,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
