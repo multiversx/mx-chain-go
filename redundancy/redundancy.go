@@ -6,29 +6,33 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/redundancy/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("redundancy")
 
-// maxRoundsOfInactivityAccepted defines the maximum rounds of inactivity accepted, after which the main or lower
-// level redundancy machines will be considered inactive
-const maxRoundsOfInactivityAccepted = 5
+type redundancyHandler interface {
+	IncrementRoundsOfInactivity()
+	ResetRoundsOfInactivity()
+	IsMainMachineActive(maxRoundsOfInactivity int) bool
+	RoundsOfInactivity() int
+}
 
 type nodeRedundancy struct {
-	redundancyLevel     int64
-	lastRoundIndexCheck int64
-	roundsOfInactivity  uint64
-	mutNodeRedundancy   sync.RWMutex
-	messenger           P2PMessenger
-	observerPrivateKey  crypto.PrivateKey
+	mutNodeRedundancy     sync.RWMutex
+	lastRoundIndexCheck   int64
+	handler               redundancyHandler
+	maxRoundsOfInactivity int
+	messenger             P2PMessenger
+	observerPrivateKey    crypto.PrivateKey
 }
 
 // ArgNodeRedundancy represents the DTO structure used by the nodeRedundancy's constructor
 type ArgNodeRedundancy struct {
-	RedundancyLevel    int64
-	Messenger          P2PMessenger
-	ObserverPrivateKey crypto.PrivateKey
+	MaxRoundsOfInactivity int
+	Messenger             P2PMessenger
+	ObserverPrivateKey    crypto.PrivateKey
 }
 
 // NewNodeRedundancy creates a node redundancy object which implements NodeRedundancyHandler interface
@@ -39,11 +43,16 @@ func NewNodeRedundancy(arg ArgNodeRedundancy) (*nodeRedundancy, error) {
 	if check.IfNil(arg.ObserverPrivateKey) {
 		return nil, ErrNilObserverPrivateKey
 	}
+	err := common.CheckMaxRoundsOfInactivity(arg.MaxRoundsOfInactivity)
+	if err != nil {
+		return nil, err
+	}
 
 	nr := &nodeRedundancy{
-		redundancyLevel:    arg.RedundancyLevel,
-		messenger:          arg.Messenger,
-		observerPrivateKey: arg.ObserverPrivateKey,
+		handler:               common.NewRedundancyHandler(),
+		maxRoundsOfInactivity: arg.MaxRoundsOfInactivity,
+		messenger:             arg.Messenger,
+		observerPrivateKey:    arg.ObserverPrivateKey,
 	}
 
 	return nr, nil
@@ -51,7 +60,7 @@ func NewNodeRedundancy(arg ArgNodeRedundancy) (*nodeRedundancy, error) {
 
 // IsRedundancyNode returns true if the current instance is used as a redundancy node
 func (nr *nodeRedundancy) IsRedundancyNode() bool {
-	return nr.redundancyLevel != 0
+	return !common.IsMainNode(nr.maxRoundsOfInactivity)
 }
 
 // IsMainMachineActive returns true if the main or lower level redundancy machines are active
@@ -59,7 +68,7 @@ func (nr *nodeRedundancy) IsMainMachineActive() bool {
 	nr.mutNodeRedundancy.RLock()
 	defer nr.mutNodeRedundancy.RUnlock()
 
-	return nr.isMainMachineActive()
+	return nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity)
 }
 
 // AdjustInactivityIfNeeded increments rounds of inactivity for main or lower level redundancy machines if needed
@@ -71,18 +80,19 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 		return
 	}
 
-	if nr.isMainMachineActive() {
-		log.Debug("main or lower level redundancy machines are active", "node redundancy level", nr.redundancyLevel)
+	if nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity) {
+		log.Debug("main or lower level redundancy machines are active for single-key operation",
+			"max rounds of inactivity", nr.maxRoundsOfInactivity,
+			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
 	} else {
-		log.Warn("main or lower level redundancy machines are inactive", "node redundancy level", nr.redundancyLevel)
+		log.Warn("main or lower level redundancy machines are inactive for single-key operation",
+			"max rounds of inactivity", nr.maxRoundsOfInactivity,
+			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
 	}
-
-	log.Debug("rounds of inactivity for main or lower level redundancy machines",
-		"num", nr.roundsOfInactivity)
 
 	for _, pubKey := range consensusPubKeys {
 		if pubKey == selfPubKey {
-			nr.roundsOfInactivity++
+			nr.handler.IncrementRoundsOfInactivity()
 			break
 		}
 	}
@@ -100,16 +110,8 @@ func (nr *nodeRedundancy) ResetInactivityIfNeeded(selfPubKey string, consensusMs
 	}
 
 	nr.mutNodeRedundancy.Lock()
-	nr.roundsOfInactivity = 0
+	nr.handler.ResetRoundsOfInactivity()
 	nr.mutNodeRedundancy.Unlock()
-}
-
-func (nr *nodeRedundancy) isMainMachineActive() bool {
-	if nr.redundancyLevel < 0 {
-		return true
-	}
-
-	return int64(nr.roundsOfInactivity) < maxRoundsOfInactivityAccepted*nr.redundancyLevel
 }
 
 // ObserverPrivateKey returns the stored private key by this instance. This key will be used whenever a new key,

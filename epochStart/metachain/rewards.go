@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -59,7 +60,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	defer rc.mutRewardsData.Unlock()
 
 	rc.clean()
-	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.StakingV2EnableEpoch())
+	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
 	economicsData := metaBlock.GetEpochStartHandler().GetEconomicsHandler()
 	log.Debug("rewardsCreator.CreateRewardsMiniBlocks",
@@ -225,5 +226,5 @@ func (rc *rewardsCreator) IsInterfaceNil() bool {
 }
 
 func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
-	return epoch > rc.enableEpochsHandler.SwitchJailWaitingEnableEpoch()
+	return epoch > rc.enableEpochsHandler.GetActivationEpoch(common.SwitchJailWaitingFlag)
 }

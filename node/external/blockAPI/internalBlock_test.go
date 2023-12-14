@@ -883,7 +883,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					IsRefactorPeersMiniBlocksFlagEnabledField: true,
+					IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+						return flag == common.RefactorPeersMiniBlocksFlag
+					},
 				},
 			}, nil)
 
@@ -914,7 +916,9 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					IsRefactorPeersMiniBlocksFlagEnabledField: true,
+					IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+						return flag == common.RefactorPeersMiniBlocksFlag
+					},
 				},
 			}, nil)
 
@@ -988,7 +992,12 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					RefactorPeersMiniBlocksEnableEpochField: 5,
+					GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+						if flag == common.RefactorPeersMiniBlocksFlag {
+							return 5
+						}
+						return 0
+					},
 				},
 			}, nil)
 
@@ -1073,7 +1082,12 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
 				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-					RefactorPeersMiniBlocksEnableEpochField: 5,
+					IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+						if flag == common.RefactorPeersMiniBlocksFlag {
+							return epoch >= 5
+						}
+						return false
+					},
 				},
 			}, nil)
 

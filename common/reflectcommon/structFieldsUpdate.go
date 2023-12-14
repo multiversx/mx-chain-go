@@ -96,6 +96,13 @@ func trySetTheNewValue(value *reflect.Value, newValue string) error {
 		}
 
 		value.Set(reflect.ValueOf(int(intVal)))
+	case reflect.Int32:
+		int32Val, err := strconv.ParseInt(newValue, 10, 32)
+		if err != nil {
+			return fmt.Errorf("%w: %s", errFunc(), err.Error())
+		}
+
+		value.Set(reflect.ValueOf(int32(int32Val)))
 	case reflect.Int64:
 		int64Val, err := strconv.ParseInt(newValue, 10, 64)
 		if err != nil {

@@ -26,7 +26,7 @@ func shouldTestNode(n node, key []byte) bool {
 }
 
 func snapshotGetTestPoint(key []byte, faultyChance int) error {
-	rand.Seed(time.Now().UnixNano())
+	rand.NewSource(time.Now().UnixNano())
 	checkVal := rand.Intn(math.MaxInt)
 	if checkVal%faultyChance == 0 {
 		log.Debug("deliberately not returning hash", "hash", key)

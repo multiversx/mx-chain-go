@@ -86,6 +86,24 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ESDTMetadataContinuousCleanupFlag,
+		common.GlobalMintBurnFlag,
+		common.MultiClaimOnDelegationFlag,
+		common.MetaESDTSetFlag,
+		common.ESDTMetadataContinuousCleanupFlag,
+		common.ManagedCryptoAPIsFlag,
+		common.ESDTFlag,
+		common.ESDTTransferRoleFlag,
+		common.GlobalMintBurnFlag,
+		common.ESDTRegisterAndSetAllRolesFlag,
+		common.MetaESDTSetFlag,
+		common.ESDTNFTCreateOnMultiShardFlag,
+		common.NFTStopCreateFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.AddressPubKeyConverter) {
 		return nil, vm.ErrNilAddressPubKeyConverter
 	}
@@ -127,7 +145,7 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.init(args)
 	}
 
-	if !e.enableEpochsHandler.IsESDTFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.ESDTFlag) {
 		e.eei.AddReturnMessage("ESDT SC disabled")
 		return vmcommon.UserError
 	}
@@ -265,7 +283,9 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 
 	initialSupply := big.NewInt(0).SetBytes(args.Arguments[2])
-	isInvalidSupply := initialSupply.Cmp(zero) < 0 || (e.enableEpochsHandler.IsGlobalMintBurnFlagEnabled() && initialSupply.Cmp(zero) == 0)
+	isGlobalMintBurnFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.GlobalMintBurnFlag)
+	isSupplyZeroAfterFlag := isGlobalMintBurnFlagEnabled && initialSupply.Cmp(zero) == 0
+	isInvalidSupply := initialSupply.Cmp(zero) < 0 || isSupplyZeroAfterFlag
 	if isInvalidSupply {
 		e.eei.AddReturnMessage(vm.ErrNegativeOrZeroInitialSupply.Error())
 		return vmcommon.UserError
@@ -386,7 +406,7 @@ func (e *esdt) registerSemiFungible(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsMetaESDTSetFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.MetaESDTSetFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -436,7 +456,7 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 // arguments list: tokenName, tickerID prefix, type of token, numDecimals, numGlobalSettings, listGlobalSettings, list(address, special roles)
 func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.ESDTRegisterAndSetAllRolesFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
 	}
@@ -544,7 +564,7 @@ func getTokenType(compressed []byte) (bool, []byte, error) {
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsMetaESDTSetFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.MetaESDTSetFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -749,7 +769,7 @@ func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args
 		case canTransferNFTCreateRole:
 			token.CanTransferNFTCreateRole = val
 		case canCreateMultiShard:
-			if !e.enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabled() {
+			if !e.enableEpochsHandler.IsFlagEnabled(common.ESDTNFTCreateOnMultiShardFlag) {
 				return vm.ErrInvalidArgument
 			}
 			if mintBurnable {
@@ -796,7 +816,7 @@ func getStringFromBool(val bool) string {
 }
 
 func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsGlobalMintBurnFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.GlobalMintBurnFlag) {
 		e.eei.AddReturnMessage("global burn is no more enabled, use local burn")
 		return vmcommon.UserError
 	}
@@ -828,7 +848,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		}
 
 		e.eei.AddReturnMessage("token is not burnable")
-		if e.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 			return vmcommon.UserError
 		}
 		return vmcommon.Ok
@@ -852,7 +872,7 @@ func (e *esdt) burn(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (e *esdt) mint(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !e.enableEpochsHandler.IsGlobalMintBurnFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.GlobalMintBurnFlag) {
 		e.eei.AddReturnMessage("global mint is no more enabled, use local mint")
 		return vmcommon.UserError
 	}
@@ -1090,7 +1110,7 @@ func (e *esdt) togglePause(args *vmcommon.ContractCallInput, builtInFunc string)
 }
 
 func (e *esdt) checkInputReturnDataBurnForAll(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
-	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
 	if !isBurnForAllFlagEnabled {
 		e.eei.AddReturnMessage("invalid method to call")
 		return nil, vmcommon.FunctionNotFound
@@ -1156,7 +1176,7 @@ func (e *esdt) unsetBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.
 }
 
 func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) {
-	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	isBurnForAllFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
 	if !isBurnForAllFlagEnabled {
 		return
 	}
@@ -1502,7 +1522,7 @@ func (e *esdt) isSpecialRoleValidForFungible(argument string) error {
 	case core.ESDTRoleLocalBurn:
 		return nil
 	case core.ESDTRoleTransfer:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.ESDTTransferRoleFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
@@ -1520,7 +1540,7 @@ func (e *esdt) isSpecialRoleValidForSemiFungible(argument string) error {
 	case core.ESDTRoleNFTCreate:
 		return nil
 	case core.ESDTRoleTransfer:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+		if e.enableEpochsHandler.IsFlagEnabled(common.ESDTTransferRoleFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
@@ -1535,18 +1555,8 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 		return nil
 	case core.ESDTRoleNFTCreate:
 		return nil
-	case core.ESDTRoleTransfer:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
-			return nil
-		}
-		return vm.ErrInvalidArgument
-	case core.ESDTRoleNFTUpdateAttributes:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
-			return nil
-		}
-		return vm.ErrInvalidArgument
-	case core.ESDTRoleNFTAddURI:
-		if e.enableEpochsHandler.IsESDTTransferRoleFlagEnabled() {
+	case core.ESDTRoleTransfer, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI:
+		if e.enableEpochsHandler.IsFlagEnabled(common.ESDTTransferRoleFlag) {
 			return nil
 		}
 		return vm.ErrInvalidArgument
@@ -1564,7 +1574,7 @@ func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTD
 	case core.SemiFungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 	case metaESDT:
-		isCheckMetaESDTOnRolesFlagEnabled := e.enableEpochsHandler.IsManagedCryptoAPIsFlagEnabled()
+		isCheckMetaESDTOnRolesFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ManagedCryptoAPIsFlag)
 		if isCheckMetaESDTOnRolesFlagEnabled {
 			return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 		}
@@ -1641,6 +1651,11 @@ func (e *esdt) setRolesForTokenAndAddress(
 
 	if !token.CanAddSpecialRoles {
 		e.eei.AddReturnMessage("cannot add special roles")
+		return nil, vmcommon.UserError
+	}
+
+	if e.enableEpochsHandler.IsFlagEnabled(common.NFTStopCreateFlag) && token.NFTCreateStopped && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleNFTCreate)) {
+		e.eei.AddReturnMessage("cannot add NFT create role as NFT creation was stopped")
 		return nil, vmcommon.UserError
 	}
 
@@ -1851,7 +1866,7 @@ func (e *esdt) unSetSpecialRole(args *vmcommon.ContractCallInput) vmcommon.Retur
 }
 
 func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address []byte) {
-	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
 	if !isSendTransferRoleAddressFlagEnabled {
 		return
 	}
@@ -1861,7 +1876,7 @@ func (e *esdt) sendNewTransferRoleAddressToSystemAccount(token []byte, address [
 }
 
 func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address []byte) {
-	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
 	if !isSendTransferRoleAddressFlagEnabled {
 		return
 	}
@@ -1871,7 +1886,7 @@ func (e *esdt) deleteTransferRoleAddressFromSystemAccount(token []byte, address 
 }
 
 func (e *esdt) sendAllTransferRoleAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
+	isSendTransferRoleAddressFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
 	if !isSendTransferRoleAddressFlagEnabled {
 		e.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.FunctionNotFound
@@ -2162,7 +2177,7 @@ func (e *esdt) saveTokenV1(identifier []byte, token *ESDTDataV2) error {
 }
 
 func (e *esdt) saveToken(identifier []byte, token *ESDTDataV2) error {
-	if !e.enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabled() {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.ESDTNFTCreateOnMultiShardFlag) {
 		return e.saveTokenV1(identifier, token)
 	}
 
