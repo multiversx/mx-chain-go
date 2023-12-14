@@ -110,8 +110,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		NFTStopCreateEnableEpoch:                                 92,
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
-		EquivalentMessagesEnableEpoch:                    		  95,
-		ConsensusPropagationChangesEnableEpoch: 96,
+		EquivalentMessagesEnableEpoch:                            95,
+		ConsensusPropagationChangesEnableEpoch:                   96,
 	}
 }
 
@@ -300,7 +300,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixGasRemainingForSaveKeyValueFlag))
 	require.True(t, handler.IsFlagEnabled(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
-	require.True(t, handler.IsFlagEnabled(common.ConsensusPropagationFlag))
+	require.True(t, handler.IsFlagEnabled(common.ConsensusPropagationChangesFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {

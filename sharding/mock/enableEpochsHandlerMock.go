@@ -46,11 +46,6 @@ func (mock *EnableEpochsHandlerMock) GetCurrentEpoch() uint32 {
 	return mock.CurrentEpoch
 }
 
-// IsConsensusPropagationChangesFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsConsensusPropagationChangesFlagEnabled() bool {
-	return false
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

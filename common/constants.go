@@ -1002,5 +1002,6 @@ const (
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
 	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
+	ConsensusPropagationChangesFlag                    core.EnableEpochFlag = "ConsensusPropagationChangesFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

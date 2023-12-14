@@ -100,7 +100,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	if sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		return sr.processBlock(ctx, sr.RoundHandler().Index(), []byte(sr.SelfPubKey()), signatureShare)
 	}
 
@@ -147,7 +147,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	var signatureShare []byte
-	if sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		selfIndex, err := sr.SelfConsensusGroupIndex()
 		if err != nil {
 			log.Debug("sendBlock.SelfConsensusGroupIndex: not in consensus group")
@@ -480,7 +480,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 }
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) bool {
-	if !sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		return true
 	}
 
@@ -535,7 +535,7 @@ func (sr *subroundBlock) verifyLeaderSignature(
 	blockHeaderHash []byte,
 	signature []byte,
 ) bool {
-	if !sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		return true
 	}
 

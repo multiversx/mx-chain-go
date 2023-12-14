@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -446,9 +447,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				return 1
 			},
 		})
-		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusPropagationChangesFlagEnabledField: true,
-		})
+		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
@@ -757,9 +756,7 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	blockProcessorMock := mock.InitBlockProcessorMock(container.Marshalizer())
 
-	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsConsensusPropagationChangesFlagEnabledField: true,
-	})
+	container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
 
 	providedLeaderSignature := []byte("leader signature")
 	wasVerifySingleSignatureCalled := false
