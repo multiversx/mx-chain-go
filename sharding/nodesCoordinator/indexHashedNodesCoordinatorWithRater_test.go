@@ -102,6 +102,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -200,6 +201,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)
@@ -277,6 +279,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	numRounds := uint64(1000000)
@@ -354,6 +357,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -410,6 +414,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -480,6 +485,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -567,6 +573,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -875,6 +882,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		IsFullArchive:       false,
 		EnableEpochsHandler: &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(b, err)

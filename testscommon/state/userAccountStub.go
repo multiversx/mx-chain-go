@@ -20,6 +20,8 @@ type UserAccountStub struct {
 	UserName         []byte
 	Owner            []byte
 	Address          []byte
+	CodeMetadata     []byte
+	CodeHash         []byte
 
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
@@ -97,7 +99,7 @@ func (u *UserAccountStub) AddressBytes() []byte {
 	return u.Address
 }
 
-//IncreaseNonce -
+// IncreaseNonce -
 func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 }
 
@@ -121,7 +123,7 @@ func (u *UserAccountStub) SetCodeMetadata(_ []byte) {
 
 // GetCodeMetadata -
 func (u *UserAccountStub) GetCodeMetadata() []byte {
-	return nil
+	return u.CodeMetadata
 }
 
 // SetCodeHash -
@@ -131,7 +133,7 @@ func (u *UserAccountStub) SetCodeHash([]byte) {
 
 // GetCodeHash -
 func (u *UserAccountStub) GetCodeHash() []byte {
-	return nil
+	return u.CodeHash
 }
 
 // SetRootHash -

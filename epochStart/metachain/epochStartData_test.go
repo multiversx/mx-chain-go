@@ -3,19 +3,18 @@ package metachain
 import (
 	"bytes"
 	"crypto/rand"
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/database"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -81,21 +80,10 @@ func createMockEpochStartCreatorArguments() ArgsNewEpochStartData {
 	return argsNewEpochStartData
 }
 
-func createMemUnit() storage.Storer {
-	capacity := uint32(10)
-	shards := uint32(1)
-	sizeInBytes := uint64(0)
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := database.NewlruDB(100000)
-	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
-	return unit
-}
-
 func createMetaStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
-	store.AddStorer(dataRetriever.MetaBlockUnit, createMemUnit())
-	store.AddStorer(dataRetriever.BlockHeaderUnit, createMemUnit())
+	store.AddStorer(dataRetriever.MetaBlockUnit, testscommon.CreateMemUnit())
+	store.AddStorer(dataRetriever.BlockHeaderUnit, testscommon.CreateMemUnit())
 
 	return store
 }
@@ -186,6 +174,17 @@ func TestEpochStartData_NilEnableEpochsHandler(t *testing.T) {
 	esd, err := NewEpochStartData(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestEpochStartData_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartCreatorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	esd, err := NewEpochStartData(arguments)
+	require.Nil(t, esd)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestVerifyEpochStartDataForMetablock_NotEpochStartBlock(t *testing.T) {
@@ -708,7 +707,12 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldNotSetReserved(t *testing.T) {
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.MiniBlockPartialExecutionFlag {
+				return partialExecutionEnableEpoch
+			}
+			return 0
+		},
 	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		IsEpochStartCalled: func() bool {
@@ -734,7 +738,12 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 
 	arguments := createMockEpochStartCreatorArguments()
 	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		MiniBlockPartialExecutionEnableEpochField: partialExecutionEnableEpoch,
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.MiniBlockPartialExecutionFlag {
+				return partialExecutionEnableEpoch
+			}
+			return 0
+		},
 	}
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		IsEpochStartCalled: func() bool {
