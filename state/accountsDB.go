@@ -677,6 +677,10 @@ func (adb *AccountsDB) MigrateCodeLeaf(account vmcommon.AccountHandler) error {
 		return nil
 	}
 
+	if baseAcc.GetVersion() != uint8(core.WithoutCodeLeaf)-1 {
+		return fmt.Errorf("trie leaf version has to be migrated incrementally, expected %d, got %d", uint8(core.WithoutCodeLeaf)-1, baseAcc.GetVersion())
+	}
+
 	codeHash := baseAcc.GetCodeHash()
 	if len(codeHash) != adb.hasher.Size() {
 		return nil
