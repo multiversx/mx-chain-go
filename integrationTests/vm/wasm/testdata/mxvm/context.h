@@ -117,6 +117,8 @@ void upgradeFromSourceContract(
 		byte *initArgLengths,
 		byte *initArgs);	
 
+void upgradeContract(byte *destination, long long gas, byte *value, byte *code, byte *codeMetadata, int codeSize, int numInitArgs, byte *initArgLengths, byte *initArgs);
+
 // Return-related functions
 void finish(byte *data, int length);
 void int64finish(long long value);

@@ -14,12 +14,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/pkg/errors"
@@ -229,7 +229,7 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
-		cache:                        make(map[string]*accounts.ValidatorApiResponse),
+		cache:                        make(map[string]*validator.ValidatorStatistics),
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
@@ -321,10 +321,10 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	assert.Nil(t, err)
 	encodedLeaving, err := pubKeyConverter.Encode(pkLeaving)
 	assert.Nil(t, err)
-	cache := make(map[string]*accounts.ValidatorApiResponse)
-	cache[encondedInactive] = &accounts.ValidatorApiResponse{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
-	cache[encodedEligible] = &accounts.ValidatorApiResponse{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
-	cache[encodedLeaving] = &accounts.ValidatorApiResponse{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
+	cache := make(map[string]*validator.ValidatorStatistics)
+	cache[encondedInactive] = &validator.ValidatorStatistics{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
+	cache[encodedEligible] = &validator.ValidatorStatistics{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
+	cache[encodedLeaving] = &validator.ValidatorStatistics{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
 
 	nodesCoordinatorEligibleShardId := uint32(0)
 	nodesCoordinatorLeavingShardId := core.MetachainShardId

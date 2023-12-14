@@ -138,7 +138,7 @@ func deploySC(tb testing.TB, testContext *vm.VMTestContext, senderAddressBytes [
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(tb, err)
-	require.Equal(tb, returnCode, vmcommon.Ok)
+	require.Equal(tb, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(tb, err)

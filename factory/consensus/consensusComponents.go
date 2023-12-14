@@ -262,6 +262,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	sentSignaturesHandler, err := spos.NewSentSignaturesTracker(ccf.cryptoComponents.KeysHandler())
+	if err != nil {
+		return nil, err
+	}
+
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
@@ -269,6 +274,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.config.Consensus.Type,
 		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
+		sentSignaturesHandler,
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
 	)

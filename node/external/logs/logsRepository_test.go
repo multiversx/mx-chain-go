@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -127,7 +127,7 @@ func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
-				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
 					if epoch != 0 {
 						require.Fail(t, "unexpected")
 					}

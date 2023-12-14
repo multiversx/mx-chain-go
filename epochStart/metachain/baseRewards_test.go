@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -172,6 +174,18 @@ func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
 
 	assert.True(t, check.IfNil(rwd))
 	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
+}
+
+func TestBaseRewardsCreator_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestBaseRewardsCreator_clean(t *testing.T) {
@@ -1176,9 +1190,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		SwitchJailWaitingEnableEpochField: 0,
-	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
@@ -1203,8 +1215,9 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB:      userAccountsDB,
-		EnableEpochsHandler: enableEpochsHandler,
+		UserAccountsDB:        userAccountsDB,
+		EnableEpochsHandler:   enableEpochsHandler,
+		ExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 }
 

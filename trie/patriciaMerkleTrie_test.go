@@ -485,33 +485,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
-func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
-
-	storageManager := tr.GetStorageManager()
-	dirtyHashes := trie.GetDirtyHashes(tr)
-	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	iteratorChannels := &common.TrieIteratorChannels{
-		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	storageManager.SetCheckpoint(rootHash, make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
-	trie.WaitForOperationToComplete(storageManager)
-
-	err := storageManager.Remove(rootHash)
-	assert.Nil(t, err)
-
-	maxBuffToSend := uint64(500)
-	expectedNodes := 6
-	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodes, len(serializedNodes))
-}
-
 func TestPatriciaMerkleTrie_String(t *testing.T) {
 	t.Parallel()
 
@@ -1197,7 +1170,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		numLoadsCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1228,7 +1203,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		addLeafToMigrationQueueCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1264,7 +1241,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		addDefaultDataToTrie(tr)
@@ -1304,7 +1283,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		addDefaultDataToTrie(tr)
@@ -1402,7 +1383,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		addDefaultDataToTrie(tr)
@@ -1439,7 +1422,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		numAddLeafToMigrationQueueCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1475,7 +1460,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		numAddLeafToMigrationQueueCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1522,7 +1509,9 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 
 		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
 
@@ -1537,7 +1526,9 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 
 		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
 

@@ -34,7 +34,7 @@ func TestAsyncCallLegacy(t *testing.T) {
 
 	childSCAddress, forwarderSCAddress := deployForwarderAndTestContract(
 		testContext,
-		"testdata/first/first.wasm",
+		"testdata/first/output/first.wasm",
 		ownerAddr, senderAddr, t,
 		egldBalance,
 		esdtBalance,
@@ -77,7 +77,7 @@ func TestAsyncCallMulti(t *testing.T) {
 
 	childSCAddress, forwarderSCAddress := deployForwarderAndTestContract(
 		testContext,
-		"testdata/first/first.wasm",
+		"testdata/first/output/first.wasm",
 		ownerAddr, senderAddr, t,
 		egldBalance,
 		esdtBalance,
@@ -124,7 +124,7 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 
 	childSCAddress, forwarderSCAddress := deployForwarderAndTestContract(
 		testContext,
-		"testdata/first/first.wasm",
+		"testdata/first/output/first.wasm",
 		ownerAddr, senderAddr, t,
 		egldBalance,
 		esdtBalance,
@@ -308,7 +308,7 @@ func TestAsyncCallMulti_CrossShard(t *testing.T) {
 	gasLimit := uint64(5000000)
 	firstAccount, _ := testContextFirstContract.Accounts.LoadAccount(firstContractOwner)
 
-	pathToContract := "testdata/first/first.wasm"
+	pathToContract := "testdata/first/output/first.wasm"
 	firstScAddress := utils.DoDeploySecond(t, testContextFirstContract, pathToContract, firstAccount, gasPrice, gasLimit, nil, big.NewInt(50))
 
 	secondAccount, _ := testContextSecondContract.Accounts.LoadAccount(secondContractOwner)
@@ -394,7 +394,7 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 	gasLimit := uint64(5000000)
 	childOwnerAccount, _ := childShard.Accounts.LoadAccount(childOwner)
 
-	pathToContract := "testdata/first/first.wasm"
+	pathToContract := "testdata/first/output/first.wasm"
 	childSCAddress := utils.DoDeploySecond(t, childShard, pathToContract, childOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
 
 	forwarderOwnerAccount, _ := forwarderShard.Accounts.LoadAccount(forwarderOwner)
@@ -431,6 +431,7 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 
 	intermediateTxs := forwarderShard.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
+	require.Equal(t, 2, len(intermediateTxs))
 
 	// execute cross shard calls
 	scrCall1 := intermediateTxs[0]

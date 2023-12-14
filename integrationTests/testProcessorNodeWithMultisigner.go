@@ -442,6 +442,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			IsFullArchive:       false,
 			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -563,6 +564,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			IsFullArchive:       false,
 			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

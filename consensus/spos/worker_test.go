@@ -612,9 +612,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsEquivalentMessagesFlagEnabledField: true,
-	}
+	workerArgs.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.EquivalentMessagesFlag)
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")

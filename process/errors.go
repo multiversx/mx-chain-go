@@ -1227,6 +1227,9 @@ var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 // ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
+// ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
+var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
+
 // ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
 var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
 

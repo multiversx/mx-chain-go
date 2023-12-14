@@ -3,6 +3,7 @@ package state
 import (
 	"sync"
 
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -51,6 +52,7 @@ func CreateTestingTriePruningStorer(coordinator sharding.Coordinator, notifier p
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 		PersistersTracker:      pruning.NewPersistersTracker(epochsData),
+		StateStatsHandler:      disabled.NewStateStatistics(),
 	}
 
 	tps, err := pruning.NewTriePruningStorer(args)

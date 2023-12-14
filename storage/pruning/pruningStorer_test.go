@@ -17,6 +17,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -88,6 +89,7 @@ func getDefaultArgs() pruning.StorerArgs {
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 		PersistersTracker:      pruning.NewPersistersTracker(epochsData),
+		StateStatsHandler:      disabled.NewStateStatistics(),
 	}
 }
 
@@ -120,6 +122,7 @@ func getDefaultArgsSerialDB() pruning.StorerArgs {
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           20,
 		PersistersTracker:      pruning.NewPersistersTracker(epochData),
+		StateStatsHandler:      disabled.NewStateStatistics(),
 	}
 }
 
