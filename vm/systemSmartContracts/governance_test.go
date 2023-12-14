@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -57,9 +58,7 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 		ValidatorSCAddress:     vm.ValidatorSCAddress,
 		OwnerAddress:           bytes.Repeat([]byte{1}, 32),
 		UnBondPeriodInEpochs:   10,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGovernanceFlagEnabledField: true,
-		},
+		EnableEpochsHandler:    enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag),
 	}
 }
 
@@ -71,7 +70,7 @@ func createEEIWithBlockchainHook(blockchainHook vm.BlockchainHook) vm.ContextHan
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -174,6 +173,17 @@ func TestNewGovernanceContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	gsc, err := NewGovernanceContract(args)
 	require.Nil(t, gsc)
 	require.Equal(t, vm.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewGovernanceContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockGovernanceArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	gsc, err := NewGovernanceContract(args)
+	require.Nil(t, gsc)
+	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewGovernanceContract_ZeroBaseProposerCostShouldErr(t *testing.T) {
@@ -304,11 +314,11 @@ func TestGovernanceContract_ExecuteInitV2(t *testing.T) {
 
 	callInput := createVMInput(big.NewInt(0), "initV2", vm.GovernanceSCAddress, []byte("addr2"), nil)
 
-	enableEpochsHandler.IsGovernanceFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.GovernanceFlag)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	enableEpochsHandler.IsGovernanceFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.GovernanceFlag)
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -934,6 +944,9 @@ func TestGovernanceContract_CloseProposal(t *testing.T) {
 				CurrentNonceCalled: func() uint64 {
 					return 1
 				},
+				CurrentEpochCalled: func() uint32 {
+					return 1
+				},
 			}
 		},
 		GetStorageCalled: func(key []byte) []byte {
@@ -1242,6 +1255,16 @@ func TestGovernanceContract_CloseProposalComputeResultsErr(t *testing.T) {
 	args.Eei = &mock.SystemEIStub{
 		AddReturnMessageCalled: func(msg string) {
 			retMessage = msg
+		},
+		BlockChainHookCalled: func() vm.BlockchainHook {
+			return &mock.BlockChainHookStub{
+				CurrentNonceCalled: func() uint64 {
+					return 1
+				},
+				CurrentEpochCalled: func() uint32 {
+					return 1
+				},
+			}
 		},
 		GetStorageCalled: func(key []byte) []byte {
 			if bytes.Equal(key, append([]byte(noncePrefix), byte(1))) {

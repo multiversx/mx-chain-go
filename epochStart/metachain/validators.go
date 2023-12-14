@@ -71,6 +71,13 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.DeterministicSortOnValidatorsInfoFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	vic := &validatorInfoCreator{
 		shardCoordinator:     args.ShardCoordinator,
@@ -151,7 +158,7 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []*state.Validat
 }
 
 func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInfo) {
-	if vic.enableEpochsHandler.IsDeterministicSortOnValidatorsInfoFixEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag) {
 		vic.deterministicSortValidators(validators)
 		return
 	}
@@ -189,7 +196,7 @@ func (vic *validatorInfoCreator) legacySortValidators(validators []*state.Valida
 }
 
 func (vic *validatorInfoCreator) getShardValidatorInfoData(shardValidatorInfo *state.ShardValidatorInfo) ([]byte, error) {
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		return vic.getShardValidatorInfoHash(shardValidatorInfo)
 	}
 
@@ -325,7 +332,7 @@ func (vic *validatorInfoCreator) GetLocalValidatorInfoCache() epochStart.Validat
 
 // CreateMarshalledData creates the marshalled data to be sent to shards
 func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[string][][]byte {
-	if !vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if !vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		return nil
 	}
 
@@ -406,7 +413,7 @@ func (vic *validatorInfoCreator) setMapShardValidatorInfo(miniBlock *block.MiniB
 }
 
 func (vic *validatorInfoCreator) getShardValidatorInfo(txHash []byte) (*state.ShardValidatorInfo, error) {
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		validatorInfoCacher := vic.dataPool.CurrentEpochValidatorInfo()
 		shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
@@ -436,7 +443,7 @@ func (vic *validatorInfoCreator) SaveBlockDataToStorage(_ data.HeaderHandler, bo
 			continue
 		}
 
-		if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+		if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 			vic.saveValidatorInfo(miniBlock)
 		}
 
@@ -483,7 +490,7 @@ func (vic *validatorInfoCreator) DeleteBlockDataFromStorage(metaBlock data.Heade
 		return
 	}
 
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		vic.removeValidatorInfo(body)
 	}
 
@@ -522,7 +529,7 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderH
 		return
 	}
 
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		vic.removeValidatorInfoFromPool(body)
 	}
 

@@ -141,6 +141,21 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly,
+		common.StakingV2OwnerFlagInSpecificEpochOnly,
+		common.CorrectLastUnJailedFlagInSpecificEpochOnly,
+		common.DelegationSmartContractFlag,
+		common.CorrectLastUnJailedFlag,
+		common.SwitchJailWaitingFlag,
+		common.StakingV2Flag,
+		common.ESDTFlagInSpecificEpochOnly,
+		common.GovernanceFlag,
+		common.SaveJailedAlwaysFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	s := &systemSCProcessor{
 		systemVM:                 args.SystemVM,
@@ -178,14 +193,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	nonce uint64,
 	epoch uint32,
 ) error {
-	if s.enableEpochsHandler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly) {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2OwnerFlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2OwnerFlagInSpecificEpochOnly) {
 		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
@@ -199,28 +214,28 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsDelegationSmartContractFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag) {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) {
 		err := s.computeNumWaitingPerShard(validatorInfos)
 		if err != nil {
 			return err
@@ -232,7 +247,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		err := s.prepareRewardsData(validatorInfos, epoch)
 		if err != nil {
 			return err
@@ -254,7 +269,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsESDTFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly) {
 		err := s.initESDT()
 		if err != nil {
 			//not a critical error
@@ -262,7 +277,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		}
 	}
 
-	if s.enableEpochsHandler.IsGovernanceFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
@@ -274,7 +289,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
 func (s *systemSCProcessor) ToggleUnStakeUnBond(value bool) error {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		return nil
 	}
 
@@ -344,7 +359,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
 	}
 
@@ -755,7 +770,7 @@ func (s *systemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
-		if s.enableEpochsHandler.IsSaveJailedAlwaysFlagEnabled() {
+		if s.enableEpochsHandler.IsFlagEnabled(common.SaveJailedAlwaysFlag) {
 			err := s.processSCOutputAccounts(vmOutput)
 			if err != nil {
 				return nil, err

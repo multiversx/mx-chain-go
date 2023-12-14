@@ -84,10 +84,9 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 		MainP2pConfig:        mainP2PConfig,
 		FullArchiveP2pConfig: fullArchiveP2PConfig,
 		FlagsConfig: &config.ContextFlagsConfig{
-			WorkingDir:    tempDir,
-			NoKeyProvided: true,
-			Version:       "test version",
-			DbDir:         path.Join(tempDir, "db"),
+			WorkingDir: tempDir,
+			Version:    "test version",
+			DbDir:      path.Join(tempDir, "db"),
 		},
 		ImportDbConfig: &config.ImportDbConfig{},
 		ConfigurationPathsHolder: &config.ConfigurationPathsHolder{

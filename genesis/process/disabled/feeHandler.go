@@ -47,9 +47,9 @@ func (fh *FeeHandler) ExtraGasLimitGuardedTx() uint64 {
 	return 0
 }
 
-// MaxGasPriceSetGuardian returns 0
+// MaxGasPriceSetGuardian returns max uint64
 func (fh *FeeHandler) MaxGasPriceSetGuardian() uint64 {
-	return 0
+	return math.MaxUint64
 }
 
 // MaxGasLimitPerBlock returns max uint64
@@ -160,6 +160,26 @@ func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValue(_ data.TransactionW
 
 // ComputeTxFeeBasedOnGasUsed returns 0
 func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsed(_ data.TransactionWithFeeHandler, _ uint64) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeTxFeeInEpoch returns 0
+func (fh *FeeHandler) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeGasLimitInEpoch returns 0
+func (fh *FeeHandler) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+	return 0
+}
+
+// ComputeGasUsedAndFeeBasedOnRefundValueInEpoch returns 0
+func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int) {
+	return 0, big.NewInt(0)
+}
+
+// ComputeTxFeeBasedOnGasUsedInEpoch returns 0
+func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
 	return big.NewInt(0)
 }
 

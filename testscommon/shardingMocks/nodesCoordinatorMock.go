@@ -279,6 +279,11 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 	return weights, nil
 }
 
+// GetWaitingEpochsLeftForPublicKey always returns 0
+func (ncm *NodesCoordinatorMock) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
+	return 0, nil
+}
+
 // IsInterfaceNil -
 func (ncm *NodesCoordinatorMock) IsInterfaceNil() bool {
 	return ncm == nil

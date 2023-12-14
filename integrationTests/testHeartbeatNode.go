@@ -1,7 +1,9 @@
 package integrationTests
 
 import (
+	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"testing"
@@ -18,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,8 +33,10 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat/processor"
 	"github.com/multiversx/mx-chain-go/heartbeat/sender"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/keysManagement"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -57,8 +62,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// constants used for the hearbeat node & generated messages
 const (
-	defaultNodeName           = "heartbeatNode"
+	DefaultNodeName           = "heartbeatNode"
+	DefaultIdentity           = "test_identity"
 	timeBetweenPeerAuths      = 10 * time.Second
 	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
@@ -74,6 +81,12 @@ const (
 
 // TestMarshaller represents the main marshaller
 var TestMarshaller = &marshal.GogoProtoMarshalizer{}
+
+// TestBLSKeyGenerator represents the BLS key generator
+var TestBLSKeyGenerator = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
+// TestP2PKeyGenerator represents the p2p key generator
+var TestP2PKeyGenerator = signing.NewKeyGenerator(secp256k1.NewSecp256k1())
 
 // TestThrottler -
 var TestThrottler = &processMock.InterceptorThrottlerStub{
@@ -112,6 +125,7 @@ type TestHeartbeatNode struct {
 	MainDirectConnectionProcessor        update.Closer
 	FullArchiveDirectConnectionProcessor update.Closer
 	Interceptor                          *CountInterceptor
+	ManagedPeersHolder                   common.ManagedPeersHolder
 	heartbeatExpiryTimespanInSec         int64
 }
 
@@ -123,21 +137,34 @@ func NewTestHeartbeatNode(
 	minPeersWaiting int,
 	p2pConfig p2pConfig.P2PConfig,
 	heartbeatExpiryTimespanInSec int64,
+	nodeKeys *TestNodeKeys,
+	validatorsKeys []*TestKeyPair,
 ) *TestHeartbeatNode {
-	keygen := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
-	sk, pk := keygen.GeneratePair()
-
 	nodesCoordinatorInstance := &shardingMocks.NodesCoordinatorStub{
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {
-			validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
-			return validatorInstance, 0, nil
+			if len(validatorsKeys) == 0 {
+				// all keys are validators in the tests that do not define validators keys
+				validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+				return validatorInstance, 0, nil
+			}
+
+			for _, validatorKey := range validatorsKeys {
+				pkBuff, _ := validatorKey.Pk.ToByteArray()
+
+				if bytes.Equal(pkBuff, publicKey) {
+					validatorInstance, _ := nodesCoordinator.NewValidator(publicKey, defaultChancesSelection, 1)
+					return validatorInstance, 0, nil
+				}
+			}
+
+			return nil, 0, errors.New("not a validator")
 		},
 	}
 	singleSigner := singlesig.NewBlsSigner()
 
 	peerSigHandler := &cryptoMocks.PeerSignatureHandlerStub{
 		VerifyPeerSignatureCalled: func(pk []byte, pid core.PeerID, signature []byte) error {
-			senderPubKey, err := keygen.PublicKeyFromByteArray(pk)
+			senderPubKey, err := TestBLSKeyGenerator.PublicKeyFromByteArray(pk)
 			if err != nil {
 				return err
 			}
@@ -200,17 +227,32 @@ func NewTestHeartbeatNode(
 		MainPeerShardMapper:          peerShardMapper,
 		FullArchivePeerShardMapper:   peerShardMapperFullArch,
 		heartbeatExpiryTimespanInSec: heartbeatExpiryTimespanInSec,
+		NodeKeys:                     nodeKeys,
 	}
 
 	localId := thn.MainMessenger.ID()
-	pkBytes, _ := pk.ToByteArray()
+	pkBytes, _ := thn.NodeKeys.MainKey.Pk.ToByteArray()
 	thn.MainPeerShardMapper.UpdatePeerIDInfo(localId, pkBytes, shardCoordinator.SelfId())
 
-	thn.NodeKeys = &TestNodeKeys{
-		MainKey: &TestKeyPair{
-			Sk: sk,
-			Pk: pk,
+	argsKeysManagement := keysManagement.ArgsManagedPeersHolder{
+		KeyGenerator:          TestBLSKeyGenerator,
+		P2PKeyGenerator:       TestP2PKeyGenerator,
+		MaxRoundsOfInactivity: 0,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				NodeDisplayName: DefaultNodeName,
+				Identity:        DefaultIdentity,
+				RedundancyLevel: 0,
+			},
 		},
+		P2PKeyConverter: factory.NewP2PKeyConverter(),
+	}
+	thn.ManagedPeersHolder, _ = keysManagement.NewManagedPeersHolder(argsKeysManagement)
+
+	for _, handledKey := range thn.NodeKeys.HandledKeys {
+		skBytes, _ := handledKey.Sk.ToByteArray()
+		errAdd := thn.ManagedPeersHolder.AddManagedPeer(skBytes)
+		log.LogIfError(errAdd)
 	}
 
 	// start a go routine in order to allow peers to connect first
@@ -276,6 +318,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 		FullArchivePeerShardMapper:   &mock.PeerShardMapperStub{},
 		Interceptor:                  NewCountInterceptor(),
 		heartbeatExpiryTimespanInSec: 30,
+		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 	}
 
 	localId := thn.MainMessenger.ID()
@@ -315,24 +358,25 @@ func CreateNodesWithTestHeartbeatNode(
 					}, nil
 				},
 			},
-			Marshalizer:         TestMarshalizer,
-			Hasher:              TestHasher,
-			ShardIDAsObserver:   shardId,
-			NbShards:            uint32(numShards),
-			EligibleNodes:       validatorsForNodesCoordinator,
-			SelfPublicKey:       []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache: suCache,
-			Shuffler:            &shardingMocks.NodeShufflerMock{},
-			BootStorer:          CreateMemUnit(),
-			WaitingNodes:        make(map[uint32][]nodesCoordinator.Validator),
-			Epoch:               0,
-			EpochStartNotifier:  notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
-			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:       false,
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+			Marshalizer:              TestMarshalizer,
+			Hasher:                   TestHasher,
+			ShardIDAsObserver:        shardId,
+			NbShards:                 uint32(numShards),
+			EligibleNodes:            validatorsForNodesCoordinator,
+			SelfPublicKey:            []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:      suCache,
+			Shuffler:                 &shardingMocks.NodeShufflerMock{},
+			BootStorer:               CreateMemUnit(),
+			WaitingNodes:             make(map[uint32][]nodesCoordinator.Validator),
+			Epoch:                    0,
+			EpochStartNotifier:       notifier.NewEpochStartSubscriptionHandler(),
+			ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:            false,
+			EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -367,24 +411,25 @@ func CreateNodesWithTestHeartbeatNode(
 						}, nil
 					},
 				},
-				Marshalizer:         TestMarshalizer,
-				Hasher:              TestHasher,
-				ShardIDAsObserver:   shardId,
-				NbShards:            uint32(numShards),
-				EligibleNodes:       validatorsForNodesCoordinator,
-				SelfPublicKey:       []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache: suCache,
-				Shuffler:            &shardingMocks.NodeShufflerMock{},
-				BootStorer:          CreateMemUnit(),
-				WaitingNodes:        make(map[uint32][]nodesCoordinator.Validator),
-				Epoch:               0,
-				EpochStartNotifier:  notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
-				NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-				IsFullArchive:       false,
-				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+				Marshalizer:              TestMarshalizer,
+				Hasher:                   TestHasher,
+				ShardIDAsObserver:        shardId,
+				NbShards:                 uint32(numShards),
+				EligibleNodes:            validatorsForNodesCoordinator,
+				SelfPublicKey:            []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:      suCache,
+				Shuffler:                 &shardingMocks.NodeShufflerMock{},
+				BootStorer:               CreateMemUnit(),
+				WaitingNodes:             make(map[uint32][]nodesCoordinator.Validator),
+				Epoch:                    0,
+				EpochStartNotifier:       notifier.NewEpochStartSubscriptionHandler(),
+				ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+				NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
+				IsFullArchive:            false,
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+				GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
@@ -448,8 +493,8 @@ func (thn *TestHeartbeatNode) initSender() {
 		HeartbeatTopic:          identifierHeartbeat,
 		BaseVersionNumber:       "v01-base",
 		VersionNumber:           "v01",
-		NodeDisplayName:         defaultNodeName,
-		Identity:                defaultNodeName + "_identity",
+		NodeDisplayName:         DefaultNodeName,
+		Identity:                DefaultIdentity,
 		PeerSubType:             core.RegularPeer,
 		CurrentBlockProvider:    &testscommon.ChainHandlerStub{},
 		PeerSignatureHandler:    thn.PeerSigHandler,
@@ -459,7 +504,7 @@ func (thn *TestHeartbeatNode) initSender() {
 		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
 		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
-		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
+		ManagedPeersHolder:      thn.ManagedPeersHolder,
 		ShardCoordinator:        thn.ShardCoordinator,
 
 		PeerAuthenticationTimeBetweenSends:          timeBetweenPeerAuths,
@@ -822,7 +867,7 @@ func (thn *TestHeartbeatNode) GetFullArchiveConnectableAddress() string {
 
 // MakeDisplayTableForHeartbeatNodes returns a string containing counters for received messages for all provided test nodes
 func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) string {
-	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/FullObs/Unk/Sed"}
+	header := []string{"pk", "pid", "shard ID", "messages global", "messages intra", "messages cross", "conns Total/IntraVal/CrossVal/IntraObs/CrossObs/Unk/Sed"}
 	dataLines := make([]*display.LineData, 0)
 
 	for shardId, nodesList := range nodes {
