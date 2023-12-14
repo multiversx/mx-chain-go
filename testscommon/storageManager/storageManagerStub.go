@@ -31,6 +31,7 @@ type StorageManagerStub struct {
 	GetIdentifierCalled                    func() string
 	CloseCalled                            func() error
 	RemoveFromAllActiveEpochsCalled        func(hash []byte) error
+	IsSnapshotSupportedCalled              func() bool
 }
 
 // Put -
@@ -236,6 +237,15 @@ func (sms *StorageManagerStub) GetIdentifier() string {
 	}
 
 	return ""
+}
+
+// IsSnapshotSupported -
+func (sms *StorageManagerStub) IsSnapshotSupported() bool {
+	if sms.IsSnapshotSupportedCalled != nil {
+		return sms.IsSnapshotSupportedCalled()
+	}
+
+	return true
 }
 
 // IsInterfaceNil -

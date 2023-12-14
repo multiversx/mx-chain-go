@@ -675,6 +675,11 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 	return true
 }
 
+// IsSnapshotSupported returns true as the snapshotting process is supported by the current implementation
+func (tsm *trieStorageManager) IsSnapshotSupported() bool {
+	return true
+}
+
 func isTrieSynced(stsm *snapshotTrieStorageManager) bool {
 	val, err := stsm.GetFromCurrentEpoch([]byte(common.TrieSyncedKey))
 	if err != nil {
