@@ -248,7 +248,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
-		err := s.prepareRewardsData(validatorInfos)
+		err := s.prepareRewardsData(validatorInfos, epoch)
 		if err != nil {
 			return err
 		}

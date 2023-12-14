@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"

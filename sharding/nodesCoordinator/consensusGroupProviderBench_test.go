@@ -20,7 +20,7 @@ func getRandomness() []byte {
 
 func BenchmarkReslicingBasedProvider_Get(b *testing.B) {
 	numVals := numValidators
-	rand.Seed(randSeed)
+	rand.NewSource(randSeed)
 	expElList := getExpandedEligibleList(numValidatorsInEligibleList)
 	randomness := getRandomness()
 
@@ -32,7 +32,7 @@ func BenchmarkReslicingBasedProvider_Get(b *testing.B) {
 
 func BenchmarkSelectionBasedProvider_Get(b *testing.B) {
 	numVals := numValidators
-	rand.Seed(randSeed)
+	rand.NewSource(randSeed)
 	expElList := getExpandedEligibleList(numValidatorsInEligibleList)
 	randomness := getRandomness()
 

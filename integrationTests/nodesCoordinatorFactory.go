@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -88,7 +89,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 				return 0
 			},
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -154,7 +155,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 				return 0
 			},
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 	}
 
