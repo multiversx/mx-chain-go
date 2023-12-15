@@ -3,9 +3,11 @@ package bls_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -329,6 +331,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 		sr,
 		extend,
 		nil,
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -731,7 +734,12 @@ func testSubroundSignatureDoSignatureConsensusCheckShouldReturnFalseWhenNotAllSi
 
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusPropagationChangesFlagEnabledField: flagActive,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				if flag == common.ConsensusPropagationChangesFlag {
+					return flagActive
+				}
+				return false
+			},
 		})
 		sr := *initSubroundSignatureWithContainer(container)
 		sr.WaitingAllSignaturesTimeOut = false
@@ -761,7 +769,12 @@ func testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenAllSignat
 
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusPropagationChangesFlagEnabledField: flagActive,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				if flag == common.ConsensusPropagationChangesFlag {
+					return flagActive
+				}
+				return false
+			},
 		})
 		sr := *initSubroundSignatureWithContainer(container)
 		sr.WaitingAllSignaturesTimeOut = false
@@ -791,7 +804,12 @@ func testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenEnoughBut
 
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusPropagationChangesFlagEnabledField: flagActive,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				if flag == common.ConsensusPropagationChangesFlag {
+					return flagActive
+				}
+				return false
+			},
 		})
 		sr := *initSubroundSignatureWithContainer(container)
 		sr.WaitingAllSignaturesTimeOut = true

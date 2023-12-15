@@ -159,7 +159,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, isLeader bool)
 	}
 
 	// TODO[cleanup cns finality]: remove the isLeader check. Once the flag will be enabled, all participants will have to wait for signatures.
-	shouldWaitForAllSigsAsync := isLeader || sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled()
+	shouldWaitForAllSigsAsync := isLeader || sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
 	}
@@ -189,7 +189,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	}
 
 	// TODO[cleanup cns finality]: remove the leader checks. Once the flag will be enabled, all participants will have to wait for signatures.
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() && !sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() && !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		return false
 	}
 
@@ -279,7 +279,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
-	if isSubroundFinished && !sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if isSubroundFinished && !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		if isSelfLeader {
 			log.Debug("step 2: signatures",
 				"received", numSigs,
@@ -297,7 +297,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	// TODO[cleanup cns finality]: remove L271-L289
 	isJobDoneByConsensusNodeAfterPropagationChanges := isSelfInConsensusGroup && selfJobDone && multiKeyJobDone && isSignatureCollectionDone
-	if isJobDoneByConsensusNodeAfterPropagationChanges && sr.EnableEpochsHandler().IsConsensusPropagationChangesFlagEnabled() {
+	if isJobDoneByConsensusNodeAfterPropagationChanges && sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
