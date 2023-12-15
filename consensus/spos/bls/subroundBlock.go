@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -21,6 +22,11 @@ type subroundBlock struct {
 	*spos.Subround
 
 	processingThresholdPercentage int
+}
+
+type headerWithProof interface {
+	GetProof() *block.Proof
+	SetProof(proof *block.Proof)
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -406,7 +412,21 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	// TODO: add signature and pubkeysbitmap from currentHeader on the newly created hdr
+	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+		hdrWithProof, ok := hdr.(headerWithProof)
+		if !ok {
+			return hdr, nil
+		}
+
+		if len(currentHeader.GetSignature()) == 0 {
+			return nil, spos.ErrNilSignature
+		}
+
+		hdrWithProof.SetProof(&block.Proof{
+			PreviousPubkeysBitmap:       currentHeader.GetPubKeysBitmap(),
+			PreviousAggregatedSignature: currentHeader.GetSignature(),
+		})
+	}
 
 	return hdr, nil
 }
@@ -453,9 +473,14 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
+	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	if !sr.verifyProof(header) {
+		return false
+	}
+
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
-	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	sr.Header = header
 
 	isInvalidData := check.IfNil(sr.Body) || sr.isInvalidHeaderOrData()
 	if isInvalidData {
@@ -477,6 +502,31 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	)
 
 	return blockProcessedWithSuccess
+}
+
+func (sr *subroundBlock) verifyProof(header data.HeaderHandler) bool {
+	hdrWithProof, ok := header.(headerWithProof)
+	if !ok {
+		return true
+	}
+
+	hasProof := hdrWithProof.GetProof() != nil
+	hasLeaderSignature := len(header.GetLeaderSignature()) != 0
+	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
+	if isFlagEnabled && !hasProof {
+		log.Warn("received header without proof after flag activation")
+		return false
+	}
+	if !isFlagEnabled && hasProof {
+		log.Warn("received header with proof before flag activation")
+		return false
+	}
+	if isFlagEnabled && hasLeaderSignature {
+		log.Warn("received header with leader signature after flag activation")
+		return false
+	}
+
+	return true
 }
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) bool {
@@ -625,8 +675,13 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 		return false
 	}
 
+	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	if !sr.verifyProof(header) {
+		return false
+	}
+
 	sr.Data = cnsDta.BlockHeaderHash
-	sr.Header = sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	sr.Header = header
 
 	if sr.isInvalidHeaderOrData() {
 		return false
