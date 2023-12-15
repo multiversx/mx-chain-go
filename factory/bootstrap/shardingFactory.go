@@ -217,6 +217,7 @@ func CreateNodesCoordinator(
 		IsFullArchive:          prefsConfig.FullArchive,
 		EnableEpochsHandler:    enableEpochsHandler,
 		ValidatorInfoCacher:    validatorInfoCacher,
+		GenesisNodesSetupHandler: nodesConfig,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

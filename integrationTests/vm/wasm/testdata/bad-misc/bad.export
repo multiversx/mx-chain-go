@@ -1,3 +1,4 @@
+init
 memoryFault
 divideByZero
 badGetOwner1

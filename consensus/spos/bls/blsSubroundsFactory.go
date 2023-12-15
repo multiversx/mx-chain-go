@@ -16,10 +16,11 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler core.AppStatusHandler
-	outportHandler   outport.OutportHandler
-	chainID          []byte
-	currentPid       core.PeerID
+	appStatusHandler      core.AppStatusHandler
+	outportHandler        outport.OutportHandler
+	sentSignaturesTracker spos.SentSignaturesTracker
+	chainID               []byte
+	currentPid            core.PeerID
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -30,6 +31,7 @@ func NewSubroundsFactory(
 	chainID []byte,
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
+	sentSignaturesTracker spos.SentSignaturesTracker,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -37,18 +39,20 @@ func NewSubroundsFactory(
 		worker,
 		chainID,
 		appStatusHandler,
+		sentSignaturesTracker,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	fct := factory{
-		consensusCore:    consensusDataContainer,
-		consensusState:   consensusState,
-		worker:           worker,
-		appStatusHandler: appStatusHandler,
-		chainID:          chainID,
-		currentPid:       currentPid,
+		consensusCore:         consensusDataContainer,
+		consensusState:        consensusState,
+		worker:                worker,
+		appStatusHandler:      appStatusHandler,
+		chainID:               chainID,
+		currentPid:            currentPid,
+		sentSignaturesTracker: sentSignaturesTracker,
 	}
 
 	return &fct, nil
@@ -60,6 +64,7 @@ func checkNewFactoryParams(
 	worker spos.WorkerHandler,
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
+	sentSignaturesTracker spos.SentSignaturesTracker,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -73,6 +78,9 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(appStatusHandler) {
 		return spos.ErrNilAppStatusHandler
+	}
+	if check.IfNil(sentSignaturesTracker) {
+		return spos.ErrNilSentSignatureTracker
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
@@ -145,6 +153,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
+		fct.sentSignaturesTracker,
 		fct.worker.RemoveAllEquivalentMessages,
 	)
 	if err != nil {
@@ -222,6 +231,7 @@ func (fct *factory) generateSignatureSubround() error {
 		subround,
 		fct.worker.Extend,
 		fct.appStatusHandler,
+		fct.sentSignaturesTracker,
 	)
 	if err != nil {
 		return err
@@ -259,6 +269,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
 		fct.appStatusHandler,
+		fct.sentSignaturesTracker,
 	)
 	if err != nil {
 		return err
