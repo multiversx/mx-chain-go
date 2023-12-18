@@ -414,7 +414,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	sr.SetSelfPubKey("OTHER")
 	r = sr.DoSignatureJob()
-	assert.True(t, r)
+	assert.False(t, r)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[2])
 	container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
