@@ -154,7 +154,6 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
 		fct.sentSignaturesTracker,
-		fct.worker.RemoveAllEquivalentMessages,
 	)
 	if err != nil {
 		return err

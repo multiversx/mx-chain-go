@@ -110,7 +110,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		NFTStopCreateEnableEpoch:                                 92,
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
-		EquivalentMessagesEnableEpoch:                    		  95,
+		EquivalentMessagesEnableEpoch:                            95,
 	}
 }
 

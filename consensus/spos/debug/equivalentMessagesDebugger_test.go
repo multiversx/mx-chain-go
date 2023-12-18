@@ -3,6 +3,7 @@ package debug
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,8 +31,8 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 		}()
 
 		debugger := NewEquivalentMessagesDebugger()
-		debugger.DisplayEquivalentMessagesStatistics(func() map[string]uint64 {
-			return make(map[string]uint64)
+		debugger.DisplayEquivalentMessagesStatistics(func() map[string]*consensus.EquivalentMessageInfo {
+			return make(map[string]*consensus.EquivalentMessageInfo)
 		})
 	})
 	t.Run("nil get data handler should early exit", func(t *testing.T) {
@@ -66,12 +67,12 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 			return true
 		}
 
-		debugger.DisplayEquivalentMessagesStatistics(func() map[string]uint64 {
-			return map[string]uint64{
-				"hash1": 1,
-				"hash2": 2,
-				"hash3": 3,
-				"hash4": 4,
+		debugger.DisplayEquivalentMessagesStatistics(func() map[string]*consensus.EquivalentMessageInfo {
+			return map[string]*consensus.EquivalentMessageInfo{
+				"hash1": {NumMessages: 1, Validated: true},
+				"hash2": {NumMessages: 2, Validated: true},
+				"hash3": {NumMessages: 3, Validated: true},
+				"hash4": {NumMessages: 4, Validated: true},
 			}
 		})
 
