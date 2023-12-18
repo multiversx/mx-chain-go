@@ -343,6 +343,10 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte, lastEpoch uin
 	displayNodesConfigInfo(nodesConfig)
 	ihnc.mutNodesConfig.Lock()
 	ihnc.nodesConfig = nodesConfig
+	for epoch, nConfig := range nodesConfig {
+		ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nConfig, 0)
+		log.Debug("baseLoadState: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
+	}
 	ihnc.mutNodesConfig.Unlock()
 
 	return nil
@@ -387,6 +391,7 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
 		epochNodesData, ok := ihnc.getNodesConfig(epoch)
 		if !ok {
+			log.Debug("NodesCoordinatorToRegistry: did not find nodes config", "epoch", epoch)
 			continue
 		}
 

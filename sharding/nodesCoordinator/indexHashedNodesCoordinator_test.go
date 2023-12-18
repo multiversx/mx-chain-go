@@ -2910,8 +2910,6 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 	t.Run("should work with old epochs", func(t *testing.T) {
 		t.Parallel()
 
-		epochKey := []byte(fmt.Sprint(1))
-
 		args := createArguments()
 
 		shufflerArgs := &NodesShufflerArgs{
@@ -2935,7 +2933,6 @@ func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
 		wasCalled := false
 		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
 			PutCalled: func(key []byte, value interface{}, sieInBytes int) (evicted bool) {
-				require.Equal(t, epochKey, key)
 				wasCalled = true
 
 				return true

@@ -260,6 +260,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	if ok {
 		enc, ok := value.(*epochNodesConfig)
 		if ok {
+			log.Debug("getNodesConfig: manage to find nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
 			return enc, ok
 		}
 	}
@@ -270,6 +271,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	}
 
 	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
+	log.Debug("getNodesConfig: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
 
 	return nodesConfig, true
 }
@@ -325,6 +327,8 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	ihnc.nodesConfig[epoch] = nodesConfig
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
+	log.Debug("setNodesPerShards: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
 
 	ihnc.numTotalEligible = numTotalEligible
 	ihnc.setNodeType(isCurrentNodeValidator)
