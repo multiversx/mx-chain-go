@@ -711,7 +711,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	equivalentMessages := wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)])
+	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	equivMsgFrom := core.PeerID("from other peer id")
 	err = wrk.ProcessReceivedMessage(
@@ -727,7 +727,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
+	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
@@ -743,9 +743,9 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	// same state as before, invalid message should have been dropped
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
+	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
-	wrk.RemoveAllEquivalentMessages()
+	wrk.ResetConsensusMessages()
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 0, len(equivalentMessages))
 }

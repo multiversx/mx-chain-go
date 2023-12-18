@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -23,7 +24,7 @@ func NewEquivalentMessagesDebugger() *equivalentMessagesDebugger {
 }
 
 // DisplayEquivalentMessagesStatistics prints all the equivalent messages
-func (debugger *equivalentMessagesDebugger) DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]uint64) {
+func (debugger *equivalentMessagesDebugger) DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]*consensus.EquivalentMessageInfo) {
 	if !debugger.shouldProcessDataFunc() {
 		return
 	}
@@ -35,7 +36,7 @@ func (debugger *equivalentMessagesDebugger) DisplayEquivalentMessagesStatistics(
 	log.Trace(fmt.Sprintf("Equivalent messages statistics for current round\n%s", dataToString(dataMap)))
 }
 
-func dataToString(data map[string]uint64) string {
+func dataToString(data map[string]*consensus.EquivalentMessageInfo) string {
 	header := []string{
 		"Block header hash",
 		"Equivalent messages received",
@@ -43,11 +44,11 @@ func dataToString(data map[string]uint64) string {
 
 	lines := make([]*display.LineData, 0, len(data))
 	idx := 0
-	for hash, cnt := range data {
+	for hash, info := range data {
 		horizontalLineAfter := idx == len(data)
 		line := []string{
 			hash,
-			fmt.Sprintf("%d", cnt),
+			fmt.Sprintf("%d", info.NumMessages),
 		}
 		lines = append(lines, display.NewLineData(horizontalLineAfter, line))
 		idx++

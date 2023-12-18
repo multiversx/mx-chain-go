@@ -24,7 +24,6 @@ type subroundStartRound struct {
 	processingThresholdPercentage int
 	executeStoredMessages         func()
 	resetConsensusMessages        func()
-	removeAllEquivalentMessages   func()
 
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
@@ -38,7 +37,6 @@ func NewSubroundStartRound(
 	executeStoredMessages func(),
 	resetConsensusMessages func(),
 	sentSignatureTracker spos.SentSignaturesTracker,
-	removeAllEquivalentMessages func(),
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -58,16 +56,12 @@ func NewSubroundStartRound(
 	if check.IfNil(sentSignatureTracker) {
 		return nil, spos.ErrNilSentSignatureTracker
 	}
-	if removeAllEquivalentMessages == nil {
-		return nil, fmt.Errorf("%w for removeAllEquivalentMessages function", spos.ErrNilFunctionHandler)
-	}
 
 	srStartRound := subroundStartRound{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		executeStoredMessages:         executeStoredMessages,
 		resetConsensusMessages:        resetConsensusMessages,
-		removeAllEquivalentMessages:   removeAllEquivalentMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
 		sentSignatureTracker:          sentSignatureTracker,
 		outportMutex:                  sync.RWMutex{},
@@ -116,7 +110,6 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.resetConsensusMessages()
-	sr.removeAllEquivalentMessages()
 	return true
 }
 
