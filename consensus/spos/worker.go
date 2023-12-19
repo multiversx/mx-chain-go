@@ -783,8 +783,6 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 		return err
 	}
 
-	// TODO[Sorin next PR]: update EquivalentMessageInfo structure to hold also the proof(bitmap+signature) that was received
-	// then on commit block store this data on blockchain in order to use it on the next block creation
 	equivalentMsgInfo.Validated = true
 	equivalentMsgInfo.PreviousPubkeysBitmap = cnsMsg.PubKeysBitmap
 	equivalentMsgInfo.PreviousAggregateSignature = cnsMsg.AggregateSignature
