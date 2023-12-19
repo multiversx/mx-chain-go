@@ -883,7 +883,7 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 		return nil, vm.ErrNotEnoughStakeToVote
 	}
 
-	return big.NewInt(0).Set(value), nil // linear computation
+	return big.NewInt(0).Sqrt(value), nil
 }
 
 // function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it
