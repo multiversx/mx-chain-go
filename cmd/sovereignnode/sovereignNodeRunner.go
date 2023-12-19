@@ -429,14 +429,15 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
+	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
+
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		configs.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
+		outGoingOperationsPool,
 	)
-
-	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedCoreComponents,
@@ -1782,6 +1783,7 @@ func createIncomingHeaderProcessor(
 	config *sovereignConfig.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
+	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1798,6 +1800,7 @@ func createIncomingHeaderProcessor(
 		Marshaller:                      marshaller,
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
+		OutGoingOperationsPool:          outGoingOperationsPool,
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)

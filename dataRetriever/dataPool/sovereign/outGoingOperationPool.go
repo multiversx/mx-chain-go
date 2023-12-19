@@ -1,6 +1,9 @@
 package sovereign
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -25,7 +28,7 @@ type cacheEntry struct {
 type outGoingOperationsPool struct {
 	mutex   sync.RWMutex
 	timeout time.Duration
-	cache   map[string]cacheEntry
+	cache   map[string]*cacheEntry
 }
 
 // NewOutGoingOperationPool creates a new outgoing operation pool able to store data with an expiry time
@@ -34,7 +37,7 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 
 	return &outGoingOperationsPool{
 		timeout: expiryTime,
-		cache:   map[string]cacheEntry{},
+		cache:   map[string]*cacheEntry{},
 	}
 }
 
@@ -49,7 +52,7 @@ func (op *outGoingOperationsPool) Add(data *sovereign.BridgeOutGoingData) {
 		return
 	}
 
-	op.cache[hashStr] = cacheEntry{
+	op.cache[hashStr] = &cacheEntry{
 		data:     data,
 		expireAt: time.Now().Add(op.timeout),
 	}
@@ -60,7 +63,11 @@ func (op *outGoingOperationsPool) Get(hash []byte) *sovereign.BridgeOutGoingData
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
 
-	return op.cache[string(hash)].data
+	if cachedEntry, exists := op.cache[string(hash)]; exists {
+		return cachedEntry.data
+	}
+
+	return nil
 }
 
 // Delete removes the outgoing tx data at the specified hash
@@ -69,6 +76,47 @@ func (op *outGoingOperationsPool) Delete(hash []byte) {
 	defer op.mutex.Unlock()
 
 	delete(op.cache, string(hash))
+}
+
+// ConfirmOperation will confirm the bridge op hash by deleting the entry in the internal cache(while keeping the order).
+// If there are no more operations under the parent hash(hashOfHashes), the whole cached entry will be deleted
+func (op *outGoingOperationsPool) ConfirmOperation(hashOfHashes []byte, hash []byte) error {
+	op.mutex.Lock()
+	defer op.mutex.Unlock()
+
+	cachedEntry, found := op.cache[string(hashOfHashes)]
+	if !found {
+		return fmt.Errorf("%w, hash: %s", errHashOfHashesNotFound, hex.EncodeToString(hashOfHashes))
+	}
+
+	err := confirmOutGoingBridgeOpHash(cachedEntry, hash)
+	if err != nil {
+		return err
+	}
+
+	if len(cachedEntry.data.OutGoingOperations) == 0 {
+		delete(op.cache, string(hashOfHashes))
+	}
+
+	log.Debug("outGoingOperationsPool.ConfirmOperation", "hashOfHashes", hashOfHashes, "hash", hash)
+	return nil
+}
+
+func confirmOutGoingBridgeOpHash(cachedEntry *cacheEntry, hash []byte) error {
+	cacheData := cachedEntry.data
+	for idx, outGoingOp := range cacheData.OutGoingOperations {
+		if bytes.Equal(outGoingOp.Hash, hash) {
+			cacheData.OutGoingOperations = removeElement(cacheData.OutGoingOperations, idx)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("%w, hash: %s", errHashOfBridgeOpNotFound, hex.EncodeToString(hash))
+}
+
+func removeElement(slice []*sovereign.OutGoingOperation, index int) []*sovereign.OutGoingOperation {
+	copy(slice[index:], slice[index+1:])
+	return slice[:len(slice)-1]
 }
 
 // GetUnconfirmedOperations returns a list of unconfirmed operations.
@@ -81,7 +129,7 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*sovereign.Bridge
 	op.mutex.Lock()
 	for _, entry := range op.cache {
 		if time.Now().After(entry.expireAt) {
-			expiredEntries = append(expiredEntries, entry)
+			expiredEntries = append(expiredEntries, *entry)
 		}
 	}
 	op.mutex.Unlock()

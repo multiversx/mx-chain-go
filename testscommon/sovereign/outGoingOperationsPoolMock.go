@@ -8,6 +8,7 @@ type OutGoingOperationsPoolMock struct {
 	GetCalled                      func(hash []byte) *sovereign.BridgeOutGoingData
 	DeleteCalled                   func(hash []byte)
 	GetUnconfirmedOperationsCalled func() []*sovereign.BridgeOutGoingData
+	ConfirmOperationCalled         func(hashOfHashes []byte, hash []byte) error
 }
 
 // Add -
@@ -36,6 +37,14 @@ func (mock *OutGoingOperationsPoolMock) Delete(hash []byte) {
 func (mock *OutGoingOperationsPoolMock) GetUnconfirmedOperations() []*sovereign.BridgeOutGoingData {
 	if mock.GetUnconfirmedOperationsCalled != nil {
 		return mock.GetUnconfirmedOperationsCalled()
+	}
+	return nil
+}
+
+// ConfirmOperation -
+func (mock *OutGoingOperationsPoolMock) ConfirmOperation(hashOfHashes []byte, hash []byte) error {
+	if mock.ConfirmOperationCalled != nil {
+		return mock.ConfirmOperationCalled(hashOfHashes, hash)
 	}
 	return nil
 }
