@@ -492,8 +492,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
 		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
 		CertificateCfg: cert.FileCfg{
-			CertFile: snr.configs.SovereignExtraConfig.OutGoingBridge.CertificatePath,
-			PkFile:   snr.configs.SovereignExtraConfig.OutGoingBridge.CertificatePkPath,
+			CertFile: snr.configs.SovereignExtraConfig.OutGoingBridgeCertificate.CertificatePath,
+			PkFile:   snr.configs.SovereignExtraConfig.OutGoingBridgeCertificate.CertificatePkPath,
 		},
 	})
 	if err != nil {

@@ -245,6 +245,11 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 		return nil, err
 	}
 	log.Debug("config", "file", sovereignExtraConfigPath)
+
+	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
+		CertificatePath:   ctx.GlobalString(sovereignBridgeCertificateFile.Name),
+		CertificatePkPath: ctx.GlobalString(sovereignBridgeCertificatePkFile.Name),
+	}
 	generalConfig.SovereignConfig = *sovereignExtraConfig
 
 	if ctx.IsSet(port.Name) {

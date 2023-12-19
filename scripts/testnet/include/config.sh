@@ -22,17 +22,6 @@ generateConfig() {
     -hysteresis $HYSTERESIS \
     -sovereign=$SOVEREIGN_DEPLOY
   popd
-
-  if [ "$SOVEREIGN_DEPLOY" = true ]; then
-      git clone https://github.com/multiversx/mx-chain-sovereign-bridge-go.git
-      cd mx-chain-sovereign-bridge-go
-      git checkout eb39c56a1539
-      cd cert/cmd/cert
-      go build
-      ./cert
-      cd ../../../../
-  fi
-
 }
 
 copyConfig() {
@@ -46,8 +35,8 @@ copyConfig() {
   fi
 
   if [ "$SOVEREIGN_DEPLOY" = true ]; then
-      cp ./mx-chain-sovereign-bridge-go/cert/cmd/cert/private_key.pem ./node/config
-      cp ./mx-chain-sovereign-bridge-go/cert/cmd/cert/certificate.crt ./node/config
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/private_key.pem ./node/config
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/certificate.crt ./node/config
   fi
 
   echo "Configuration files copied from the configuration generator to the working directories of the executables."

@@ -7,6 +7,7 @@ type SovereignConfig struct {
 	MainChainNotarization            MainChainNotarization    `toml:"MainChainNotarization"`
 	OutgoingSubscribedEvents         OutgoingSubscribedEvents `toml:"OutgoingSubscribedEvents"`
 	OutGoingBridge                   OutGoingBridge           `toml:"OutGoingBridge"`
+	OutGoingBridgeCertificate        OutGoingBridgeCertificate
 }
 
 // OutgoingSubscribedEvents holds config for outgoing subscribed events
@@ -28,8 +29,12 @@ type MainChainNotarization struct {
 
 // OutGoingBridge holds config for grpc client to send outgoing bridge txs
 type OutGoingBridge struct {
-	GRPCHost          string `toml:"GRPCHost"`
-	GRPCPort          string `toml:"GRPCPort"`
-	CertificatePath   string `toml:"CertificatePath"`
-	CertificatePkPath string `toml:"CertificatePkPath"`
+	GRPCHost string `toml:"GRPCHost"`
+	GRPCPort string `toml:"GRPCPort"`
+}
+
+// OutGoingBridgeCertificate holds config for outgoing bridge certificate paths
+type OutGoingBridgeCertificate struct {
+	CertificatePath   string
+	CertificatePkPath string
 }
