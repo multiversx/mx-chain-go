@@ -28,6 +28,8 @@ type MainChainNotarization struct {
 
 // OutGoingBridge holds config for grpc client to send outgoing bridge txs
 type OutGoingBridge struct {
-	GRPCHost string `toml:"GRPCHost"`
-	GRPCPort string `toml:"GRPCPort"`
+	GRPCHost          string `toml:"GRPCHost"`
+	GRPCPort          string `toml:"GRPCPort"`
+	CertificatePath   string `toml:"CertificatePath"`
+	CertificatePkPath string `toml:"CertificatePkPath"`
 }

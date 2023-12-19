@@ -81,6 +81,7 @@ import (
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
 	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
@@ -490,6 +491,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&bridgeCfg.ClientConfig{
 		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
 		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
+		CertificateCfg: cert.FileCfg{
+			CertFile: snr.configs.SovereignExtraConfig.OutGoingBridge.CertificatePath,
+			PkFile:   snr.configs.SovereignExtraConfig.OutGoingBridge.CertificatePkPath,
+		},
 	})
 	if err != nil {
 		return true, err

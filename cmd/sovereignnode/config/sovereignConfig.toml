@@ -41,3 +41,5 @@
 [OutGoingBridge]
     GRPCHost = "localhost"
     GRPCPort = "8085"
+    CertificatePath = "config/certificate.crt"
+    CertificatePkPath = "config/private_key.pem"
