@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -105,7 +106,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		ShardCoordinator:           shardCoordinatorMock,
 		PeerSignatureHandler:       peerSigHandler,
 		SyncTimer:                  syncTimerMock,
-		HeaderSigVerifier:          &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:          &consensusMocks.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                    chainID,
 		NetworkShardingCollector:   &p2pmocks.NetworkShardingCollectorStub{},
@@ -1883,7 +1884,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{}
 	headerSigVerifier.VerifyRandSeedCalled = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch
 	}

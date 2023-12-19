@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,10 +21,11 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		Hasher:                  &hashingMocks.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HdrBuff:                 []byte("test buffer"),
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return arg
@@ -136,6 +139,17 @@ func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilValidityAttester, err)
+}
+
+func TestCheckBlockHeaderArgument_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.EnableEpochsHandler = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {

@@ -376,3 +376,9 @@ type ChainParametersSubscriptionHandler interface {
 	ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig)
 	IsInterfaceNil() bool
 }
+
+// HeaderWithProof defines a header that holds a proof
+type HeaderWithProof interface {
+	GetProof() *block.Proof
+	SetProof(proof *block.Proof)
+}

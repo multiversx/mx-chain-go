@@ -784,19 +784,19 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 	}
 
 	equivalentMsgInfo.Validated = true
+	equivalentMsgInfo.PreviousPubkeysBitmap = cnsMsg.PubKeysBitmap
+	equivalentMsgInfo.PreviousAggregateSignature = cnsMsg.AggregateSignature
 
 	return nil
 }
 
-func (wrk *Worker) verifyEquivalentMessageSignature(_ *consensus.Message) error {
+func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) error {
 	if check.IfNil(wrk.consensusState.Header) {
 		return ErrNilHeader
 	}
 
-	header := wrk.consensusState.Header.ShallowClone()
-
-	// TODO[Sorin]: after flag enabled, VerifySignature on previous hash, with the signature and bitmap from the proof on cnsMsg
-	return wrk.headerSigVerifier.VerifySignature(header)
+	header := wrk.consensusState.Header
+	return wrk.headerSigVerifier.VerifySignatureForHash(header, header.GetPrevHash(), cnsMsg.PubKeysBitmap, cnsMsg.Signature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {

@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +22,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		Hasher:                  testHasher,
 		Marshalizer:             testMarshalizer,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger: &mock.EpochStartTriggerStub{
@@ -28,6 +30,7 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 				return hdrEpoch
 			},
 		},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	hdr := createMockMetaHeader()
@@ -204,7 +207,7 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t
 	buff, _ := testMarshalizer.Marshal(hdr)
 
 	arg := createDefaultMetaArgument()
-	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},

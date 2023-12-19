@@ -10,9 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,10 +33,11 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		Hasher:                  testHasher,
 		Marshalizer:             testMarshalizer,
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	hdr := createMockShardHeader()
@@ -47,10 +51,11 @@ func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgIntercepted
 		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
 		Hasher:                  testHasher,
 		Marshalizer:             &marshal.GogoProtoMarshalizer{},
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
@@ -194,7 +199,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *te
 	expectedErr := errors.New("expected err")
 	buff, _ := marshaller.Marshal(hdr)
 
-	arg.HeaderSigVerifier = &mock.HeaderSigVerifierStub{
+	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifyRandSeedAndLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return expectedErr
 		},
@@ -224,6 +229,45 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T
 
 	err = inHdr.CheckValidity()
 	assert.Nil(t, err)
+}
+
+func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgumentWithV2Support()
+	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag)
+	wasVerifySignatureForHashCalled := false
+	providedPrevBitmap := []byte("provided bitmap")
+	providedPrevSig := []byte("provided sig")
+	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
+		VerifySignatureForHashCalled: func(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error {
+			wasVerifySignatureForHashCalled = true
+			assert.Equal(t, providedPrevBitmap, pubkeysBitmap)
+			assert.Equal(t, providedPrevSig, signature)
+			return nil
+		},
+	}
+	marshaller := arg.Marshalizer
+	hdr := &dataBlock.HeaderV2{
+		Header:                   createMockShardHeader(),
+		ScheduledRootHash:        []byte("root hash"),
+		ScheduledAccumulatedFees: big.NewInt(0),
+		ScheduledDeveloperFees:   big.NewInt(0),
+		Proof: &dataBlock.Proof{
+			PreviousPubkeysBitmap:       providedPrevBitmap,
+			PreviousAggregatedSignature: providedPrevSig,
+		},
+	}
+	buff, _ := marshaller.Marshal(hdr)
+
+	arg.HdrBuff = buff
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
+
+	err = inHdr.CheckValidity()
+	assert.Nil(t, err)
+	assert.True(t, wasVerifySignatureForHashCalled)
 }
 
 func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {

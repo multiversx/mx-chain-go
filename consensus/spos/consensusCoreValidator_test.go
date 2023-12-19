@@ -28,7 +28,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
-	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}

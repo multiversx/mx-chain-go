@@ -24,11 +24,6 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 }
 
-type headerWithProof interface {
-	GetProof() *block.Proof
-	SetProof(proof *block.Proof)
-}
-
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
 	baseSubround *spos.Subround,
@@ -413,18 +408,15 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		hdrWithProof, ok := hdr.(headerWithProof)
+		hdrWithProof, ok := hdr.(common.HeaderWithProof)
 		if !ok {
 			return hdr, nil
 		}
 
-		if len(currentHeader.GetSignature()) == 0 {
-			return nil, spos.ErrNilSignature
-		}
-
+		currentAggregatedSignature, currentPubKeysBitmap := sr.Blockchain().GetCurrentAggregatedSignatureAndBitmap()
 		hdrWithProof.SetProof(&block.Proof{
-			PreviousPubkeysBitmap:       currentHeader.GetPubKeysBitmap(),
-			PreviousAggregatedSignature: currentHeader.GetSignature(),
+			PreviousPubkeysBitmap:       currentPubKeysBitmap,
+			PreviousAggregatedSignature: currentAggregatedSignature,
 		})
 	}
 
@@ -505,7 +497,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 }
 
 func (sr *subroundBlock) verifyProof(header data.HeaderHandler) bool {
-	hdrWithProof, ok := header.(headerWithProof)
+	hdrWithProof, ok := header.(common.HeaderWithProof)
 	if !ok {
 		return true
 	}
