@@ -29,6 +29,8 @@ type SposWorkerMock struct {
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 	ResetConsensusMessagesCalled           func()
 	SaveProposedEquivalentMessageCalled    func(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte)
+	HasEquivalentMessageCalled             func(headerHash []byte) bool
+	GetEquivalentProofCalled               func(headerHash []byte) ([]byte, []byte)
 }
 
 // AddReceivedMessageCall -
@@ -114,6 +116,22 @@ func (sposWorkerMock *SposWorkerMock) SaveProposedEquivalentMessage(hash string,
 	if sposWorkerMock.SaveProposedEquivalentMessageCalled != nil {
 		sposWorkerMock.SaveProposedEquivalentMessageCalled(hash, previousPubkeysBitmap, previousAggregatedSignature)
 	}
+}
+
+// HasEquivalentMessage -
+func (sposWorkerMock *SposWorkerMock) HasEquivalentMessage(headerHash []byte) bool {
+	if sposWorkerMock.HasEquivalentMessageCalled != nil {
+		return sposWorkerMock.HasEquivalentMessageCalled(headerHash)
+	}
+	return false
+}
+
+// GetEquivalentProof returns the equivalent proof for the provided hash
+func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) ([]byte, []byte) {
+	if sposWorkerMock.GetEquivalentProofCalled != nil {
+		return sposWorkerMock.GetEquivalentProofCalled(headerHash)
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -830,6 +830,27 @@ func (wrk *Worker) SaveProposedEquivalentMessage(hash string, previousPubkeysBit
 	}
 }
 
+// HasEquivalentMessage returns true if an equivalent message was received before
+func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
+	wrk.mutEquivalentMessages.RLock()
+	_, has := wrk.equivalentMessages[string(headerHash)]
+	wrk.mutEquivalentMessages.RUnlock()
+
+	return has
+}
+
+// GetEquivalentProof returns the equivalent proof for the provided hash
+func (wrk *Worker) GetEquivalentProof(headerHash []byte) ([]byte, []byte) {
+	wrk.mutEquivalentMessages.RLock()
+	defer wrk.mutEquivalentMessages.RUnlock()
+	info, has := wrk.equivalentMessages[string(headerHash)]
+	if !has {
+		return nil, nil
+	}
+
+	return info.PreviousAggregateSignature, info.PreviousPubkeysBitmap
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil

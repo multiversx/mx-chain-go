@@ -270,6 +270,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.worker.DisplayStatistics,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
+		fct.worker.HasEquivalentMessage,
+		fct.worker.GetEquivalentProof,
 	)
 	if err != nil {
 		return err

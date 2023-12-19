@@ -144,6 +144,10 @@ type WorkerHandler interface {
 	ResetConsensusMessages()
 	// SaveProposedEquivalentMessage saves the proposed equivalent message
 	SaveProposedEquivalentMessage(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte)
+	// HasEquivalentMessage returns true if an equivalent message was received before
+	HasEquivalentMessage(headerHash []byte) bool
+	// GetEquivalentProof returns the equivalent proof for the provided hash
+	GetEquivalentProof(headerHash []byte) ([]byte, []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
