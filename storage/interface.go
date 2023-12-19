@@ -208,17 +208,17 @@ type ManagedPeersHolder interface {
 	IsInterfaceNil() bool
 }
 
-<<<<<<< HEAD
 // StateStatsHandler defines the behaviour needed to handler storage statistics
 type StateStatsHandler interface {
 	IncrCache()
 	IncrSnapshotCache()
 	IncrPersister(epoch uint32)
 	IncrSnapshotPersister(epoch uint32)
-=======
+	IsInterfaceNil() bool
+}
+
 // PersisterFactoryHandler defines the behaviour of a component which is able to create persisters
 type PersisterFactoryHandler interface {
 	Create(path string) (Persister, error)
 	IsInterfaceNil() bool
->>>>>>> rc/v1.6.0
 }
