@@ -295,7 +295,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return true
 	}
 
-	// TODO[cleanup cns finality]: remove L271-L289
+	// TODO[cleanup cns finality]: remove L272-L296
 	isJobDoneByConsensusNodeAfterPropagationChanges := isSelfInConsensusGroup && selfJobDone && multiKeyJobDone && isSignatureCollectionDone
 	if isJobDoneByConsensusNodeAfterPropagationChanges && sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		log.Debug("step 2: subround has been finished",
