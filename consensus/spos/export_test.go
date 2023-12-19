@@ -184,7 +184,7 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 }
 
 // GetEquivalentMessages -
-func (wrk *Worker) GetEquivalentMessages() map[string]uint64 {
+func (wrk *Worker) GetEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
 	return wrk.getEquivalentMessages()
 }
 

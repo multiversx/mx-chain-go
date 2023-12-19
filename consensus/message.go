@@ -40,3 +40,11 @@ func NewConsensusMessage(
 		InvalidSigners:     invalidSigners,
 	}
 }
+
+// EquivalentMessageInfo holds information about an equivalent message
+type EquivalentMessageInfo struct {
+	NumMessages                uint64
+	Validated                  bool
+	PreviousPubkeysBitmap      []byte
+	PreviousAggregateSignature []byte
+}

@@ -9,13 +9,15 @@ import (
 )
 
 type baseBlockChain struct {
-	mut                    sync.RWMutex
-	appStatusHandler       core.AppStatusHandler
-	genesisHeader          data.HeaderHandler
-	genesisHeaderHash      []byte
-	currentBlockHeader     data.HeaderHandler
-	currentBlockHeaderHash []byte
-	finalBlockInfo         *blockInfo
+	mut                        sync.RWMutex
+	appStatusHandler           core.AppStatusHandler
+	genesisHeader              data.HeaderHandler
+	genesisHeaderHash          []byte
+	currentBlockHeader         data.HeaderHandler
+	currentBlockHeaderHash     []byte
+	finalBlockInfo             *blockInfo
+	currentAggregatedSignature []byte
+	currentPubKeysBitmap       []byte
 }
 
 type blockInfo struct {
@@ -99,4 +101,21 @@ func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	rootHash := bbc.finalBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
+}
+
+// SetCurrentAggregatedSignatureAndBitmap sets the current aggregated signature and its validator's public keys bitmap
+func (bbc *baseBlockChain) SetCurrentAggregatedSignatureAndBitmap(signature []byte, pubKeysBitmap []byte) {
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
+	bbc.currentAggregatedSignature = signature
+	bbc.currentPubKeysBitmap = pubKeysBitmap
+}
+
+// GetCurrentAggregatedSignatureAndBitmap returns the current aggregated signature and its validator's public keys bitmap for the current block
+func (bbc *baseBlockChain) GetCurrentAggregatedSignatureAndBitmap() ([]byte, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	return bbc.currentAggregatedSignature, bbc.currentPubKeysBitmap
 }

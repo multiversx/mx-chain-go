@@ -6,17 +6,19 @@ import (
 
 // ChainHandlerStub -
 type ChainHandlerStub struct {
-	GetGenesisHeaderCalled                 func() data.HeaderHandler
-	SetGenesisHeaderCalled                 func(handler data.HeaderHandler) error
-	GetGenesisHeaderHashCalled             func() []byte
-	SetGenesisHeaderHashCalled             func([]byte)
-	GetCurrentBlockHeaderCalled            func() data.HeaderHandler
-	SetCurrentBlockHeaderAndRootHashCalled func(header data.HeaderHandler, rootHash []byte) error
-	GetCurrentBlockHeaderHashCalled        func() []byte
-	SetCurrentBlockHeaderHashCalled        func([]byte)
-	GetCurrentBlockRootHashCalled          func() []byte
-	SetFinalBlockInfoCalled                func(nonce uint64, headerHash []byte, rootHash []byte)
-	GetFinalBlockInfoCalled                func() (nonce uint64, blockHash []byte, rootHash []byte)
+	GetGenesisHeaderCalled                       func() data.HeaderHandler
+	SetGenesisHeaderCalled                       func(handler data.HeaderHandler) error
+	GetGenesisHeaderHashCalled                   func() []byte
+	SetGenesisHeaderHashCalled                   func([]byte)
+	GetCurrentBlockHeaderCalled                  func() data.HeaderHandler
+	SetCurrentBlockHeaderAndRootHashCalled       func(header data.HeaderHandler, rootHash []byte) error
+	GetCurrentBlockHeaderHashCalled              func() []byte
+	SetCurrentBlockHeaderHashCalled              func([]byte)
+	GetCurrentBlockRootHashCalled                func() []byte
+	SetFinalBlockInfoCalled                      func(nonce uint64, headerHash []byte, rootHash []byte)
+	GetFinalBlockInfoCalled                      func() (nonce uint64, blockHash []byte, rootHash []byte)
+	SetCurrentAggregatedSignatureAndBitmapCalled func(signature []byte, pubKeysBitmap []byte)
+	GetCurrentAggregatedSignatureAndBitmapCalled func() ([]byte, []byte)
 }
 
 // GetGenesisHeader -
@@ -104,6 +106,22 @@ func (stub *ChainHandlerStub) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 	}
 
 	return 0, nil, nil
+}
+
+// SetCurrentAggregatedSignatureAndBitmap -
+func (stub *ChainHandlerStub) SetCurrentAggregatedSignatureAndBitmap(signature []byte, pubKeysBitmap []byte) {
+	if stub.SetCurrentAggregatedSignatureAndBitmapCalled != nil {
+		stub.SetCurrentAggregatedSignatureAndBitmapCalled(signature, pubKeysBitmap)
+	}
+}
+
+// GetCurrentAggregatedSignatureAndBitmap -
+func (stub *ChainHandlerStub) GetCurrentAggregatedSignatureAndBitmap() ([]byte, []byte) {
+	if stub.GetCurrentAggregatedSignatureAndBitmapCalled != nil {
+		return stub.GetCurrentAggregatedSignatureAndBitmapCalled()
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil -

@@ -24,7 +24,6 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 		executeStoredMessages,
 		resetConsensusMessages,
 		&mock.SentSignatureTrackerStub{},
-		removeAllEquivalentMessages,
 	)
 
 	return startRound, err
@@ -38,7 +37,6 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		executeStoredMessages,
 		resetConsensusMessages,
 		&mock.SentSignatureTrackerStub{},
-		removeAllEquivalentMessages,
 	)
 
 	return startRound
@@ -78,7 +76,6 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		executeStoredMessages,
 		resetConsensusMessages,
 		&mock.SentSignatureTrackerStub{},
-		removeAllEquivalentMessages,
 	)
 
 	return srStartRound
@@ -121,7 +118,6 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 
 		assert.Nil(t, srStartRound)
@@ -137,7 +133,6 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 
 		assert.Nil(t, srStartRound)
@@ -154,7 +149,6 @@ func TestNewSubroundStartRound(t *testing.T) {
 			nil,
 			resetConsensusMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 
 		assert.Nil(t, srStartRound)
@@ -171,29 +165,11 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			nil,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 
 		assert.Nil(t, srStartRound)
 		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
 		assert.Contains(t, err.Error(), "resetConsensusMessages")
-	})
-	t.Run("nil removeAllEquivalentMessages function handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		srStartRound, err := bls.NewSubroundStartRound(
-			sr,
-			extend,
-			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			resetConsensusMessages,
-			&mock.SentSignatureTrackerStub{},
-			nil,
-		)
-
-		assert.Nil(t, srStartRound)
-		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
-		assert.Contains(t, err.Error(), "removeAllEquivalentMessages")
 	})
 	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
 		t.Parallel()
@@ -205,7 +181,6 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			nil,
-			removeAllEquivalentMessages,
 		)
 
 		assert.Nil(t, srStartRound)
@@ -587,7 +562,6 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -631,7 +605,6 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -695,7 +668,6 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -763,7 +735,6 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&mock.SentSignatureTrackerStub{},
-			removeAllEquivalentMessages,
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)

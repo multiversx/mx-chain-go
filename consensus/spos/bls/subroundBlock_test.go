@@ -24,10 +24,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type headerWithProof interface {
-	GetProof() *block.Proof
-}
-
 var expectedErr = errors.New("expected error")
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
@@ -457,13 +453,16 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		providedBitmap := []byte("provided bitmap")
 		providedHeadr := &block.HeaderV2{
 			Header: &block.Header{
-				Signature:     providedSignature,
-				PubKeysBitmap: providedBitmap,
+				Signature:     []byte("signature"),
+				PubKeysBitmap: []byte("bitmap"),
 			},
 		}
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return providedHeadr
+			},
+			GetCurrentAggregatedSignatureAndBitmapCalled: func() ([]byte, []byte) {
+				return providedSignature, providedBitmap
 			},
 		})
 
@@ -495,7 +494,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			PreviousPubkeysBitmap:       providedBitmap,
 			PreviousAggregatedSignature: providedSignature,
 		}
-		hdrWithProof, ok := sr.Header.(headerWithProof)
+		hdrWithProof, ok := sr.Header.(common.HeaderWithProof)
 		assert.True(t, ok)
 		assert.Equal(t, expectedProof, hdrWithProof.GetProof())
 	})

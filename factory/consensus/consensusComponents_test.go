@@ -136,7 +136,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			CurrentEpochProviderInternal:         &testsMocks.CurrentNetworkEpochProviderStub{},
 			HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
 			IntContainer:                         &testscommon.InterceptorsContainerStub{},
-			HeaderSigVerif:                       &testsMocks.HeaderSigVerifierStub{},
+			HeaderSigVerif:                       &consensusMocks.HeaderSigVerifierMock{},
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 		},

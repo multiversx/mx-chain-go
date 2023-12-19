@@ -8,6 +8,8 @@ import (
 )
 
 func TestBaseBlockchain_SetAndGetSetFinalBlockInfo(t *testing.T) {
+	t.Parallel()
+
 	base := &baseBlockChain{
 		appStatusHandler: &mock.AppStatusHandlerStub{},
 		finalBlockInfo:   &blockInfo{},
@@ -26,6 +28,8 @@ func TestBaseBlockchain_SetAndGetSetFinalBlockInfo(t *testing.T) {
 }
 
 func TestBaseBlockchain_SetAndGetSetFinalBlockInfoWorksWithNilValues(t *testing.T) {
+	t.Parallel()
+
 	base := &baseBlockChain{
 		appStatusHandler: &mock.AppStatusHandlerStub{},
 		finalBlockInfo:   &blockInfo{},
@@ -42,4 +46,20 @@ func TestBaseBlockchain_SetAndGetSetFinalBlockInfoWorksWithNilValues(t *testing.
 	require.Equal(t, uint64(0), actualNonce)
 	require.Nil(t, actualHash)
 	require.Nil(t, actualRootHash)
+}
+
+func TestBaseBlockChain_SetCurrentAggregatedSignatureAndBitmap(t *testing.T) {
+	t.Parallel()
+
+	base := &baseBlockChain{}
+	sig, bitmap := base.GetCurrentAggregatedSignatureAndBitmap()
+	require.Nil(t, sig)
+	require.Nil(t, bitmap)
+
+	providedSig := []byte("provided sig")
+	providedBitmap := []byte("provided bitmap")
+	base.SetCurrentAggregatedSignatureAndBitmap(providedSig, providedBitmap)
+	sig, bitmap = base.GetCurrentAggregatedSignatureAndBitmap()
+	require.Equal(t, providedSig, sig)
+	require.Equal(t, providedBitmap, bitmap)
 }

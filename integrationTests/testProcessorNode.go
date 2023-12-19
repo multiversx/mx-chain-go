@@ -104,6 +104,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -547,7 +548,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	tpn.HeaderSigVerifier = args.HeaderSigVerifier
 	if check.IfNil(tpn.HeaderSigVerifier) {
-		tpn.HeaderSigVerifier = &mock.HeaderSigVerifierStub{}
+		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{}
 	}
 
 	tpn.HeaderIntegrityVerifier = args.HeaderIntegrityVerifier
@@ -3282,7 +3283,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		BlockProcess:             &mock.BlockProcessorMock{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BoostrapStorerMock{},
-		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
+		HeaderSigVerif:           &consensusMocks.HeaderSigVerifierMock{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:      &mock.ValidatorStatisticsProcessorStub{},
 		ValidatorProvider:        &mock.ValidatorsProviderStub{},

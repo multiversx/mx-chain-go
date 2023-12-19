@@ -80,7 +80,7 @@ type Worker struct {
 	closer                    core.SafeCloser
 
 	mutEquivalentMessages      sync.RWMutex
-	equivalentMessages         map[string]uint64
+	equivalentMessages         map[string]*consensus.EquivalentMessageInfo
 	equivalentMessagesDebugger EquivalentMessagesDebugger
 }
 
@@ -161,7 +161,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		nodeRedundancyHandler:      args.NodeRedundancyHandler,
 		peerBlacklistHandler:       args.PeerBlacklistHandler,
 		closer:                     closing.NewSafeChanCloser(),
-		equivalentMessages:         make(map[string]uint64),
+		equivalentMessages:         make(map[string]*consensus.EquivalentMessageInfo),
 		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 	}
@@ -450,7 +450,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, errorsErd.ErrPIDMismatch) ||
 		errors.Is(err, errorsErd.ErrSignatureMismatch) ||
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
-		errors.Is(err, ErrMessageTypeLimitReached) {
+		errors.Is(err, ErrMessageTypeLimitReached) ||
+		errors.Is(err, crypto.ErrAggSigNotValid) {
 		return false
 	}
 
@@ -718,6 +719,10 @@ func (wrk *Worker) Close() error {
 // ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 func (wrk *Worker) ResetConsensusMessages() {
 	wrk.consensusMessageValidator.resetConsensusMessages()
+
+	wrk.mutEquivalentMessages.Lock()
+	wrk.equivalentMessages = make(map[string]*consensus.EquivalentMessageInfo)
+	wrk.mutEquivalentMessages.Unlock()
 }
 
 func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {
@@ -731,12 +736,7 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 		"size", len(p2pMessage.Data()),
 	)
 
-	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
-	}
-
-	// if the message is not with final info, no need to check its equivalent messages
-	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
+	if !wrk.shouldVerifyEquivalentMessages(msgType) {
 		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	}
 
@@ -757,20 +757,35 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 	return nil
 }
 
+func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
+	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return false
+	}
+
+	return wrk.consensusService.IsMessageWithFinalInfo(msgType)
+}
+
 func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message) error {
+	hdrHash := string(cnsMsg.BlockHeaderHash)
+	equivalentMsgInfo, ok := wrk.equivalentMessages[hdrHash]
+	if !ok {
+		equivalentMsgInfo = &consensus.EquivalentMessageInfo{}
+		wrk.equivalentMessages[hdrHash] = equivalentMsgInfo
+	}
+	equivalentMsgInfo.NumMessages++
+
+	if equivalentMsgInfo.Validated {
+		return ErrEquivalentMessageAlreadyReceived
+	}
+
 	err := wrk.verifyEquivalentMessageSignature(cnsMsg)
 	if err != nil {
 		return err
 	}
 
-	hdrHash := string(cnsMsg.BlockHeaderHash)
-
-	// if a valid equivalent message was seen before, return error to stop further broadcasts
-	numMessages := wrk.equivalentMessages[hdrHash]
-	wrk.equivalentMessages[hdrHash] = numMessages + 1
-	if numMessages > 0 {
-		return ErrEquivalentMessageAlreadyReceived
-	}
+	equivalentMsgInfo.Validated = true
+	equivalentMsgInfo.PreviousPubkeysBitmap = cnsMsg.PubKeysBitmap
+	equivalentMsgInfo.PreviousAggregateSignature = cnsMsg.AggregateSignature
 
 	return nil
 }
@@ -780,25 +795,8 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 		return ErrNilHeader
 	}
 
-	header := wrk.consensusState.Header.ShallowClone()
-
-	err := header.SetSignature(cnsMsg.Signature)
-	if err != nil {
-		return err
-	}
-
-	err = header.SetPubKeysBitmap(cnsMsg.PubKeysBitmap)
-	if err != nil {
-		return err
-	}
-
-	err = wrk.headerSigVerifier.VerifySignature(header)
-	if err != nil {
-		log.Debug("verifyEquivalentMessageSignature", "error", err.Error())
-		return err
-	}
-
-	return nil
+	header := wrk.consensusState.Header
+	return wrk.headerSigVerifier.VerifySignatureForHash(header, header.GetPrevHash(), cnsMsg.PubKeysBitmap, cnsMsg.Signature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
@@ -807,23 +805,16 @@ func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []
 }
 
 // getEquivalentMessages returns a copy of the equivalent messages
-func (wrk *Worker) getEquivalentMessages() map[string]uint64 {
+func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
 	wrk.mutEquivalentMessages.RLock()
 	defer wrk.mutEquivalentMessages.RUnlock()
 
-	equivalentMessagesCopy := make(map[string]uint64, len(wrk.equivalentMessages))
+	equivalentMessagesCopy := make(map[string]*consensus.EquivalentMessageInfo, len(wrk.equivalentMessages))
 	for hash, cnt := range wrk.equivalentMessages {
 		equivalentMessagesCopy[hash] = cnt
 	}
 
 	return equivalentMessagesCopy
-}
-
-// RemoveAllEquivalentMessages removes all the equivalent messages
-func (wrk *Worker) RemoveAllEquivalentMessages() {
-	wrk.mutEquivalentMessages.Lock()
-	wrk.equivalentMessages = make(map[string]uint64)
-	wrk.mutEquivalentMessages.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

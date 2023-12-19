@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -105,7 +106,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		ShardCoordinator:           shardCoordinatorMock,
 		PeerSignatureHandler:       peerSigHandler,
 		SyncTimer:                  syncTimerMock,
-		HeaderSigVerifier:          &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:          &consensusMocks.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
 		ChainID:                    chainID,
 		NetworkShardingCollector:   &p2pmocks.NetworkShardingCollectorStub{},
@@ -711,7 +712,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	equivalentMessages := wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)])
+	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	equivMsgFrom := core.PeerID("from other peer id")
 	err = wrk.ProcessReceivedMessage(
@@ -727,7 +728,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
+	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
@@ -743,9 +744,9 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	// same state as before, invalid message should have been dropped
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)])
+	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
-	wrk.RemoveAllEquivalentMessages()
+	wrk.ResetConsensusMessages()
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 0, len(equivalentMessages))
 }
@@ -1883,7 +1884,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{}
 	headerSigVerifier.VerifyRandSeedCalled = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch
 	}

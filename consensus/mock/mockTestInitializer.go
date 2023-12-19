@@ -199,7 +199,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	antifloodHandler := &P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &HeadersCacherStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
-	headerSigVerifier := &HeaderSigVerifierStub{}
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}

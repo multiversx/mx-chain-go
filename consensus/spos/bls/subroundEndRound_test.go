@@ -919,7 +919,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinal
 
 	container := mock.InitConsensusCore()
 
-	headerSigVerifier := &mock.HeaderSigVerifierStub{
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
 		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return errors.New("error")
 		},
@@ -974,7 +974,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 
 	container := mock.InitConsensusCore()
 
-	headerSigVerifier := &mock.HeaderSigVerifierStub{
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
 		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return errors.New("error")
 		},
@@ -996,7 +996,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 
 	container := mock.InitConsensusCore()
 
-	headerSigVerifier := &mock.HeaderSigVerifierStub{
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
 		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return nil
 		},
@@ -1018,7 +1018,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing
 
 	container := mock.InitConsensusCore()
 
-	headerSigVerifier := &mock.HeaderSigVerifierStub{
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
 		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
 			return nil
 		},
