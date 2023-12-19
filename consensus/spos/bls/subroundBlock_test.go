@@ -65,6 +65,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, err
 		sr,
 		extend,
 		bls.ProcessingThresholdPercent,
+		saveProposedEquivalentMessage,
 	)
 
 	return srBlock, err
@@ -75,6 +76,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.Subroun
 		sr,
 		extend,
 		bls.ProcessingThresholdPercent,
+		saveProposedEquivalentMessage,
 	)
 
 	return srBlock
@@ -156,6 +158,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		nil,
 		extend,
 		bls.ProcessingThresholdPercent,
+		saveProposedEquivalentMessage,
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -490,13 +493,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.Header.GetNonce())
 
-		expectedProof := &block.Proof{
-			PreviousPubkeysBitmap:       providedBitmap,
-			PreviousAggregatedSignature: providedSignature,
-		}
-		hdrWithProof, ok := sr.Header.(common.HeaderWithProof)
-		assert.True(t, ok)
-		assert.Equal(t, expectedProof, hdrWithProof.GetProof())
+		sig, bitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
+		assert.Equal(t, providedSignature, sig)
+		assert.Equal(t, providedBitmap, bitmap)
 	})
 	t.Run("should work, consensus propagation changes flag not enabled", func(t *testing.T) {
 		t.Parallel()
@@ -755,7 +754,10 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			ScheduledDeveloperFees:   big.NewInt(1),
 			ScheduledAccumulatedFees: big.NewInt(1),
 			ScheduledRootHash:        []byte("scheduled root hash"),
-			Proof:                    &block.Proof{},
+			Proof: &block.Proof{
+				PreviousPubkeysBitmap:       []byte("bitmap"),
+				PreviousAggregatedSignature: []byte("sig"),
+			},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
@@ -889,6 +891,11 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	blockProcessorMock := mock.InitBlockProcessorMock(container.Marshalizer())
+	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
+		hdr := &block.HeaderV2{}
+		_ = container.Marshalizer().Unmarshal(hdr, dta)
+		return hdr
+	}
 
 	container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
 
@@ -911,7 +918,17 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 
 	hdr := createDefaultHeader()
 	hdr.Nonce = 2
-	hdrStr, _ := container.Marshalizer().Marshal(hdr)
+	hdrV2 := &block.HeaderV2{
+		Header:                   hdr,
+		ScheduledRootHash:        []byte("sch root hash"),
+		ScheduledAccumulatedFees: big.NewInt(0),
+		ScheduledDeveloperFees:   big.NewInt(0),
+		Proof: &block.Proof{
+			PreviousPubkeysBitmap:       []byte("bitmap"),
+			PreviousAggregatedSignature: []byte("sig"),
+		},
+	}
+	hdrStr, _ := container.Marshalizer().Marshal(hdrV2)
 	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
