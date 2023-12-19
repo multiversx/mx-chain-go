@@ -82,13 +82,12 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return inHdr.verifySignatures()
 	}
 
-	hdrWithProof, ok := inHdr.hdr.(common.HeaderWithProof)
-	if !ok {
+	previousAggregatedSignature, previousBitmap := inHdr.hdr.GetPreviousAggregatedSignatureAndBitmap()
+	if len(previousAggregatedSignature) == 0 || len(previousBitmap) == 0 {
 		return inHdr.verifySignatures()
 	}
 
-	proof := hdrWithProof.GetProof()
-	return inHdr.sigVerifier.VerifySignatureForHash(inHdr.hdr, inHdr.hdr.GetPrevHash(), proof.GetPreviousPubkeysBitmap(), proof.GetPreviousAggregatedSignature())
+	return inHdr.sigVerifier.VerifySignatureForHash(inHdr.hdr, inHdr.hdr.GetPrevHash(), previousBitmap, previousAggregatedSignature)
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {

@@ -193,6 +193,7 @@ func (fct *factory) generateBlockSubround() error {
 		subround,
 		fct.worker.Extend,
 		processingThresholdPercent,
+		fct.worker.SaveProposedEquivalentMessage,
 	)
 	if err != nil {
 		return err
