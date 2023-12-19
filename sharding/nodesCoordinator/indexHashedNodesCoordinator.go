@@ -261,7 +261,15 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		enc, ok := value.(*epochNodesConfig)
 		if ok {
 			log.Debug("getNodesConfig: manage to find nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
-			return enc, ok
+			displayNodesConfiguration(
+				enc.eligibleMap,
+				enc.waitingMap,
+				enc.leavingMap,
+				make(map[uint32][]Validator),
+				enc.nbShards)
+
+			log.Debug("getNodesConfig: do not use cache")
+			// return enc, ok
 		}
 	}
 
