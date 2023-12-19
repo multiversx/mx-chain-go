@@ -6,6 +6,7 @@ type SovereignConfig struct {
 	ExtendedShardHeaderStorage       StorageConfig
 	MainChainNotarization            MainChainNotarization    `toml:"MainChainNotarization"`
 	OutgoingSubscribedEvents         OutgoingSubscribedEvents `toml:"OutgoingSubscribedEvents"`
+	OutGoingBridge                   OutGoingBridge           `toml:"OutGoingBridge"`
 }
 
 // OutgoingSubscribedEvents holds config for outgoing subscribed events
@@ -23,4 +24,10 @@ type SubscribedEvent struct {
 // MainChainNotarization defines necessary data to start main chain notarization on a sovereign shard
 type MainChainNotarization struct {
 	MainChainNotarizationStartRound uint64 `toml:"MainChainNotarizationStartRound"`
+}
+
+// OutGoingBridge holds config for grpc client to send outgoing bridge txs
+type OutGoingBridge struct {
+	GRPCHost string `toml:"GRPCHost"`
+	GRPCPort string `toml:"GRPCPort"`
 }

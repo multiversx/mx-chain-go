@@ -8,16 +8,16 @@ import (
 
 // BridgeOperationsHandlerMock -
 type BridgeOperationsHandlerMock struct {
-	SendCalled func(ctx context.Context, data *sovereign.BridgeOperations) error
+	SendCalled func(ctx context.Context, data *sovereign.BridgeOperations) (*sovereign.BridgeOperationsResponse, error)
 }
 
 // Send -
-func (mock *BridgeOperationsHandlerMock) Send(ctx context.Context, data *sovereign.BridgeOperations) error {
+func (mock *BridgeOperationsHandlerMock) Send(ctx context.Context, data *sovereign.BridgeOperations) (*sovereign.BridgeOperationsResponse, error) {
 	if mock.SendCalled != nil {
 		return mock.SendCalled(ctx, data)
 	}
 
-	return nil
+	return &sovereign.BridgeOperationsResponse{}, nil
 }
 
 // IsInterfaceNil -

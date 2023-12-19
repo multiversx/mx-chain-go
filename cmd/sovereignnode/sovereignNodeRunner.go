@@ -81,6 +81,8 @@ import (
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
+	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
@@ -433,7 +435,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 	)
 
-	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperation)
+	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -484,6 +486,14 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
+	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&bridgeCfg.ClientConfig{
+		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
+		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
+	})
+	if err != nil {
+		return true, err
+	}
+
 	managedConsensusComponents, err := snr.CreateManagedConsensusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
@@ -494,6 +504,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedProcessComponents,
 		managedStatusCoreComponents,
 		outGoingOperationsPool,
+		outGoingBridgeOpHandler,
 	)
 	if err != nil {
 		return true, err
@@ -523,8 +534,12 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating node structure")
 
-	extraOption := func(n *node.Node) error {
+	extraOptionNotifierReceiver := func(n *node.Node) error {
 		n.AddClosableComponent(sovereignWsReceiver)
+		return nil
+	}
+	extraOptionOutGoingBridgeSender := func(n *node.Node) error {
+		n.AddClosableComponent(outGoingBridgeOpHandler)
 		return nil
 	}
 	currentNode, err := node.CreateNode(
@@ -542,7 +557,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
-		extraOption,
+		extraOptionNotifierReceiver,
+		extraOptionOutGoingBridgeSender,
 	)
 	if err != nil {
 		return true, err
@@ -841,6 +857,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	outGoingOperationsPool block.OutGoingOperationsPool,
+	outGoingBridgeOpHandler bls.BridgeOperationsHandler,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -854,11 +871,6 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	}
 
 	extraSignersHolder, err := createOutGoingTxDataSigners(cryptoComponents.ConsensusSigningHandler())
-	if err != nil {
-		return nil, err
-	}
-
-	outGoingBridgeOpHandler, err := sovereignPool.NewOutGoingBridgeOperationsHandler()
 	if err != nil {
 		return nil, err
 	}

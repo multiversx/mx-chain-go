@@ -7,11 +7,12 @@ go 1.20
 require (
 	github.com/google/gops v0.3.18
 	github.com/multiversx/mx-chain-core-go v1.2.17-0.20231204120455-9672e1a91430
-	github.com/multiversx/mx-chain-go v1.5.13-0.20230814094948-35b80bdeb23e
+	github.com/multiversx/mx-chain-go v1.6.3
 	github.com/multiversx/mx-chain-logger-go v1.0.13
+	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20231206102301-5977c8a8c8b8
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230929085947-df9b345f49ac
 	github.com/stretchr/testify v1.8.4
-	github.com/urfave/cli v1.22.10
+	github.com/urfave/cli v1.22.14
 )
 
 require (
@@ -26,7 +27,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
@@ -144,9 +145,8 @@ require (
 	github.com/quic-go/quic-go v0.33.0 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tidwall/gjson v1.14.0 // indirect
