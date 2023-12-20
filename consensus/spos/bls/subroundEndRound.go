@@ -66,6 +66,7 @@ func NewSubroundEndRound(
 		processingThresholdPercentage: processingThresholdPercentage,
 		displayStatistics:             displayStatistics,
 		hasEquivalentProof:            hasEquivalentProof,
+		getValidatedEquivalentProof:   getValidatedEquivalentProof,
 		appStatusHandler:              appStatusHandler,
 		mutProcessingEndRound:         sync.Mutex{},
 		sentSignatureTracker:          sentSignatureTracker,
