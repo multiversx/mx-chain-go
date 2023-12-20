@@ -59,6 +59,11 @@ git clone git@github.com:multiversx/mx-chain-proxy-go.git
 
 if [ "$SOVEREIGN_DEPLOY" = true ]; then
     pushd .
+    cd mx-chain-deploy-go
+    git checkout feat/sovereign
+    popd
+
+    pushd .
 
     git clone https://github.com/multiversx/mx-chain-sovereign-bridge-go.git
     cd mx-chain-sovereign-bridge-go
