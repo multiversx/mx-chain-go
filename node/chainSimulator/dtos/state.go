@@ -2,9 +2,7 @@ package dtos
 
 // AddressState will hold the address state
 type AddressState struct {
-	Address string `json:"address"`
-	// ShardID: This field is needed for the system account address (it is the same on all shards).
-	ShardID          uint32            `json:"shardID,omitempty"`
+	Address          string            `json:"address"`
 	Nonce            uint64            `json:"nonce,omitempty"`
 	Balance          string            `json:"balance,omitempty"`
 	Code             string            `json:"code,omitempty"`

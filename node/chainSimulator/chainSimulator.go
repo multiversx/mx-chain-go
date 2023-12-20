@@ -187,7 +187,7 @@ func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 }
 
 // SetKeyValueForAddress will set the provided state for a given address
-func (s *simulator) SetKeyValueForAddress(address string, state map[string]string) error {
+func (s *simulator) SetKeyValueForAddress(address string, keyValueMap map[string]string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -197,13 +197,28 @@ func (s *simulator) SetKeyValueForAddress(address string, state map[string]strin
 		return err
 	}
 
+	if bytes.Equal(addressBytes, core.SystemAccountAddress) {
+		return s.setKeyValueSystemAccount(keyValueMap)
+	}
+
 	shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
 	testNode, ok := s.nodes[shardID]
 	if !ok {
 		return fmt.Errorf("cannot find a test node for the computed shard id, computed shard id: %d", shardID)
 	}
 
-	return testNode.SetKeyValueForAddress(addressBytes, state)
+	return testNode.SetKeyValueForAddress(addressBytes, keyValueMap)
+}
+
+func (s *simulator) setKeyValueSystemAccount(keyValueMap map[string]string) error {
+	for shard, node := range s.nodes {
+		err := node.SetKeyValueForAddress(core.SystemAccountAddress, keyValueMap)
+		if err != nil {
+			return fmt.Errorf("%w for shard %d", err, shard)
+		}
+	}
+
+	return nil
 }
 
 // SetStateMultiple will set state for multiple addresses
@@ -218,15 +233,25 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 			return err
 		}
 
-		shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
 		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
-			// for system account address use the provided shard ID
-			shardID = state.ShardID
+			err = s.setStateSystemAccount(state)
+		} else {
+			shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+			err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
 		}
-
-		err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
 		if err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
+	for shard, node := range s.nodes {
+		err := node.SetStateForAddress(core.SystemAccountAddress, state)
+		if err != nil {
+			return fmt.Errorf("%w for shard %d", err, shard)
 		}
 	}
 

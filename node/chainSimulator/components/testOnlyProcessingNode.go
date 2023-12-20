@@ -404,11 +404,8 @@ func (node *testOnlyProcessingNode) SetKeyValueForAddress(address []byte, keyVal
 	}
 
 	_, err = accountsAdapter.Commit()
-	if err != nil {
-		return err
-	}
 
-	return nil
+	return err
 }
 
 func setKeyValueMap(userAccount state.UserAccountHandler, keyValueMap map[string]string) error {
@@ -475,11 +472,7 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	}
 
 	_, err = accountsAdapter.Commit()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (node *testOnlyProcessingNode) setScDataIfNeeded(address []byte, userAccount state.UserAccountHandler, addressState *dtos.AddressState) error {
