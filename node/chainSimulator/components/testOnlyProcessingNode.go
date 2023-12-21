@@ -1,9 +1,11 @@
 package components
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
@@ -18,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/economics"
@@ -382,26 +385,37 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 	}
 }
 
-// SetState will set the provided state for the given address
-func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[string]string) error {
-	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
-	account, err := accountsAdapter.LoadAccount(address)
+// SetKeyValueForAddress will set the provided state for the given address
+func (node *testOnlyProcessingNode) SetKeyValueForAddress(address []byte, keyValueMap map[string]string) error {
+	userAccount, err := node.getUserAccount(address)
 	if err != nil {
 		return err
 	}
 
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return errors.New("cannot cast AccountHandler to UserAccountHandler")
+	err = setKeyValueMap(userAccount, keyValueMap)
+	if err != nil {
+		return err
 	}
 
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err = accountsAdapter.SaveAccount(userAccount)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+
+	return err
+}
+
+func setKeyValueMap(userAccount state.UserAccountHandler, keyValueMap map[string]string) error {
 	for keyHex, valueHex := range keyValueMap {
-		keyDecoded, errK := hex.DecodeString(keyHex)
-		if errK != nil {
+		keyDecoded, err := hex.DecodeString(keyHex)
+		if err != nil {
 			return fmt.Errorf("cannot decode key, error: %w", err)
 		}
-		valueDecoded, errV := hex.DecodeString(valueHex)
-		if errV != nil {
+		valueDecoded, err := hex.DecodeString(valueHex)
+		if err != nil {
 			return fmt.Errorf("cannot decode value, error: %w", err)
 		}
 
@@ -411,17 +425,107 @@ func (node *testOnlyProcessingNode) SetState(address []byte, keyValueMap map[str
 		}
 	}
 
-	err = accountsAdapter.SaveAccount(account)
+	return nil
+}
+
+// SetStateForAddress will set the state for the give address
+func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressState *dtos.AddressState) error {
+	userAccount, err := node.getUserAccount(address)
+	if err != nil {
+		return err
+	}
+
+	// set nonce to zero
+	userAccount.IncreaseNonce(-userAccount.GetNonce())
+	// set nonce with the provided value
+	userAccount.IncreaseNonce(addressState.Nonce)
+
+	bigValue, ok := big.NewInt(0).SetString(addressState.Balance, 10)
+	if !ok {
+		return errors.New("cannot convert string balance to *big.Int")
+	}
+	err = userAccount.AddToBalance(bigValue)
+	if err != nil {
+		return err
+	}
+
+	err = setKeyValueMap(userAccount, addressState.Keys)
+	if err != nil {
+		return err
+	}
+
+	err = node.setScDataIfNeeded(address, userAccount, addressState)
+	if err != nil {
+		return err
+	}
+
+	rootHash, err := base64.StdEncoding.DecodeString(addressState.RootHash)
+	if err != nil {
+		return err
+	}
+	userAccount.SetRootHash(rootHash)
+
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err = accountsAdapter.SaveAccount(userAccount)
 	if err != nil {
 		return err
 	}
 
 	_, err = accountsAdapter.Commit()
+	return err
+}
+
+func (node *testOnlyProcessingNode) setScDataIfNeeded(address []byte, userAccount state.UserAccountHandler, addressState *dtos.AddressState) error {
+	if !core.IsSmartContractAddress(address) {
+		return nil
+	}
+
+	decodedCode, err := hex.DecodeString(addressState.Code)
 	if err != nil {
 		return err
 	}
+	userAccount.SetCode(decodedCode)
+
+	codeHash, err := base64.StdEncoding.DecodeString(addressState.CodeHash)
+	if err != nil {
+		return err
+	}
+	userAccount.SetCodeHash(codeHash)
+
+	decodedCodeMetadata, err := base64.StdEncoding.DecodeString(addressState.CodeMetadata)
+	if err != nil {
+		return err
+	}
+	userAccount.SetCodeMetadata(decodedCodeMetadata)
+
+	ownerAddress, err := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(addressState.Owner)
+	if err != nil {
+		return err
+	}
+	userAccount.SetOwnerAddress(ownerAddress)
+
+	developerRewards, ok := big.NewInt(0).SetString(addressState.DeveloperRewards, 10)
+	if !ok {
+		return errors.New("cannot convert string developer rewards to *big.Int")
+	}
+	userAccount.AddToDeveloperReward(developerRewards)
 
 	return nil
+}
+
+func (node *testOnlyProcessingNode) getUserAccount(address []byte) (state.UserAccountHandler, error) {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	account, err := accountsAdapter.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, errors.New("cannot cast AccountHandler to UserAccountHandler")
+	}
+
+	return userAccount, nil
 }
 
 // Close will call the Close methods on all inner components

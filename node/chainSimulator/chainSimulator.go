@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 	"time"
@@ -185,8 +186,8 @@ func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 	return s.initialWalletKeys
 }
 
-// SetState will set the provided state for a given address
-func (s *simulator) SetState(address string, state map[string]string) error {
+// SetKeyValueForAddress will set the provided state for a given address
+func (s *simulator) SetKeyValueForAddress(address string, keyValueMap map[string]string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -196,13 +197,65 @@ func (s *simulator) SetState(address string, state map[string]string) error {
 		return err
 	}
 
+	if bytes.Equal(addressBytes, core.SystemAccountAddress) {
+		return s.setKeyValueSystemAccount(keyValueMap)
+	}
+
 	shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
 	testNode, ok := s.nodes[shardID]
 	if !ok {
 		return fmt.Errorf("cannot find a test node for the computed shard id, computed shard id: %d", shardID)
 	}
 
-	return testNode.SetState(addressBytes, state)
+	return testNode.SetKeyValueForAddress(addressBytes, keyValueMap)
+}
+
+func (s *simulator) setKeyValueSystemAccount(keyValueMap map[string]string) error {
+	for shard, node := range s.nodes {
+		err := node.SetKeyValueForAddress(core.SystemAccountAddress, keyValueMap)
+		if err != nil {
+			return fmt.Errorf("%w for shard %d", err, shard)
+		}
+	}
+
+	return nil
+}
+
+// SetStateMultiple will set state for multiple addresses
+func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	for _, state := range stateSlice {
+		addressBytes, err := addressConverter.Decode(state.Address)
+		if err != nil {
+			return err
+		}
+
+		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
+			err = s.setStateSystemAccount(state)
+		} else {
+			shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+			err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
+	for shard, node := range s.nodes {
+		err := node.SetStateForAddress(core.SystemAccountAddress, state)
+		if err != nil {
+			return fmt.Errorf("%w for shard %d", err, shard)
+		}
+	}
+
+	return nil
 }
 
 // Close will stop and close the simulator

@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -19,7 +20,8 @@ type NodeHandler interface {
 	GetStateComponents() factory.StateComponentsHolder
 	GetFacadeHandler() shared.FacadeHandler
 	GetStatusCoreComponents() factory.StatusCoreComponentsHolder
-	SetState(addressBytes []byte, state map[string]string) error
+	SetKeyValueForAddress(addressBytes []byte, state map[string]string) error
+	SetStateForAddress(address []byte, state *dtos.AddressState) error
 	Close() error
 	IsInterfaceNil() bool
 }
