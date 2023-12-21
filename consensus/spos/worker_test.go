@@ -678,6 +678,8 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	)
 	buffInvalidCnsMsg, _ := wrk.Marshalizer().Marshal(invalidCnsMsg)
 
+	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
+
 	err := wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
@@ -699,6 +701,9 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
 	}
+
+	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
+
 	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
@@ -713,6 +718,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	equivalentMessages := wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
+	assert.True(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
 	equivMsgFrom := core.PeerID("from other peer id")
 	err = wrk.ProcessReceivedMessage(

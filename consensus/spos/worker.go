@@ -833,10 +833,10 @@ func (wrk *Worker) SaveProposedEquivalentMessage(hash string, previousPubkeysBit
 // HasEquivalentMessage returns true if an equivalent message was received before
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 	wrk.mutEquivalentMessages.RLock()
-	_, has := wrk.equivalentMessages[string(headerHash)]
+	info, has := wrk.equivalentMessages[string(headerHash)]
 	wrk.mutEquivalentMessages.RUnlock()
 
-	return has
+	return has && info.Validated
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash

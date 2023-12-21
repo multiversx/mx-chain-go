@@ -432,6 +432,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// broadcast header
+	// TODO[Sorin next PR]: replace this with the delayed broadcast
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(leader))
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
@@ -487,12 +488,11 @@ func (sr *subroundEndRound) shouldSendFinalData() bool {
 		return false
 	}
 
+	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
 	if sr.hasEquivalentProof(headerHash) {
 		log.Debug("shouldSendFinalData: equivalent message already sent")
 		return false
 	}
-
-	// TODO: add gradual selection algorithm
 
 	return true
 }
@@ -669,6 +669,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(signature []byte, 
 		nil,
 	)
 
+	// TODO[Sorin next PR]: replace this with the delayed broadcast
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("createAndBroadcastHeaderFinalInfo.BroadcastConsensusMessage", "error", err.Error())
@@ -699,6 +700,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		invalidSigners,
 	)
 
+	// TODO[Sorin next PR]: check if this should be replaced with the delayed broadcast
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
@@ -915,6 +917,7 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 		return err
 	}
 
+	// TODO[Sorin next PR]: replace this with the delayed broadcast
 	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, []byte(leader))
 }
 
