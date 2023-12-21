@@ -253,9 +253,9 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 		ScheduledRootHash:        []byte("root hash"),
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
-		Proof: &dataBlock.Proof{
-			PreviousPubkeysBitmap:       providedPrevBitmap,
-			PreviousAggregatedSignature: providedPrevSig,
+		PreviousHeaderProof: &dataBlock.PreviousHeaderProof{
+			PubKeysBitmap:       providedPrevBitmap,
+			AggregatedSignature: providedPrevSig,
 		},
 	}
 	buff, _ := marshaller.Marshal(hdr)
