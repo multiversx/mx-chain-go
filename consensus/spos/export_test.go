@@ -183,6 +183,11 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
 }
 
+// GetEquivalentMessages -
+func (wrk *Worker) GetEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
+	return wrk.getEquivalentMessages()
+}
+
 // CheckConsensusMessageValidity -
 func (cmv *consensusMessageValidator) CheckConsensusMessageValidity(cnsMsg *consensus.Message, originator core.PeerID) error {
 	return cmv.checkConsensusMessageValidity(cnsMsg, originator)

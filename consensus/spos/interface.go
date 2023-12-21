@@ -178,3 +178,9 @@ type SentSignaturesTracker interface {
 	ReceivedActualSigners(signersPks []string)
 	IsInterfaceNil() bool
 }
+
+// EquivalentMessagesDebugger defines the specific debugger for equivalent messages
+type EquivalentMessagesDebugger interface {
+	DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]*consensus.EquivalentMessageInfo)
+	IsInterfaceNil() bool
+}

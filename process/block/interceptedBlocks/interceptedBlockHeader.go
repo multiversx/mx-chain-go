@@ -79,6 +79,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
+	// TODO[Sorin next PR]: after flag enabled, VerifySignature on previous hash with the signature and bitmap from the proof
 	return inHdr.sigVerifier.VerifySignature(inHdr.hdr)
 }
 

@@ -695,6 +695,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch,
 		},
+		common.EquivalentMessagesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EquivalentMessagesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EquivalentMessagesEnableEpoch,
+		},
 	}
 }
 
