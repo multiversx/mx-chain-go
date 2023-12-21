@@ -264,7 +264,7 @@
     MultiClaimOnDelegationEnableEpoch = 3
 
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
-    ChangeUsernameEnableEpoch = 3
+    ChangeUsernameEnableEpoch = 10
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
     ConsistentTokensValuesLengthCheckEnableEpoch = 3
