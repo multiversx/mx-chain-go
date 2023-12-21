@@ -96,7 +96,7 @@ Each event includes the transfer of an NFT and an ESDT token. The periodic trans
 (ASH-a642d1-01 & ASH-a642d1-02) and one ESDT token (WEGLD-bd4d79).
 
 To verify the success of token transfers, you can utilize the sovereign proxy for the subscribed address, which can be
-found in the [notifierConfig.toml](../../sovereignnode/config/notifierConfig.toml) file. By using the following API
+found in the [sovereignConfig.toml](../../sovereignnode/config/sovereignConfig.toml) file. By using the following API
 endpoint: `http://127.0.0.1:7950/address/:subscribed-address/esdt`, you can check the status of the token transfers.
 It's important to note that the blocks are sent with an arbitrary period between them, allowing for flexibility in the
 testing process.

@@ -7,19 +7,13 @@ type SovereignConfig struct {
 	MainChainNotarization            MainChainNotarization    `toml:"MainChainNotarization"`
 	OutgoingSubscribedEvents         OutgoingSubscribedEvents `toml:"OutgoingSubscribedEvents"`
 	OutGoingBridge                   OutGoingBridge           `toml:"OutGoingBridge"`
+	NotifierConfig                   NotifierConfig           `toml:"NotifierConfig"`
 	OutGoingBridgeCertificate        OutGoingBridgeCertificate
 }
 
 // OutgoingSubscribedEvents holds config for outgoing subscribed events
 type OutgoingSubscribedEvents struct {
-	SubscribedEvents                                   []SubscribedEvent `toml:"SubscribedEvents"`
-	TimeToWaitForUnconfirmedOutGoingOperationInSeconds uint32            `toml:"TimeToWaitForUnconfirmedOutGoingOperationInSeconds"`
-}
-
-// SubscribedEvent holds subscribed events config
-type SubscribedEvent struct {
-	Identifier string   `toml:"Identifier"`
-	Addresses  []string `toml:"Addresses"`
+	TimeToWaitForUnconfirmedOutGoingOperationInSeconds uint32 `toml:"TimeToWaitForUnconfirmedOutGoingOperationInSeconds"`
 }
 
 // MainChainNotarization defines necessary data to start main chain notarization on a sovereign shard
@@ -37,4 +31,29 @@ type OutGoingBridge struct {
 type OutGoingBridgeCertificate struct {
 	CertificatePath   string
 	CertificatePkPath string
+}
+
+// NotifierConfig holds sovereign notifier configuration
+type NotifierConfig struct {
+	SubscribedEvents []SubscribedEvent `toml:"SubscribedEvents"`
+	WebSocketConfig  WebSocketConfig   `toml:"WebSocket"`
+}
+
+// SubscribedEvent holds subscribed events config
+type SubscribedEvent struct {
+	Identifier string   `toml:"Identifier"`
+	Addresses  []string `toml:"Addresses"`
+}
+
+// WebSocketConfig holds web socket config
+type WebSocketConfig struct {
+	Url                string `toml:"Url"`
+	MarshallerType     string `toml:"MarshallerType"`
+	RetryDuration      uint32 `toml:"RetryDuration"`
+	BlockingAckOnError bool   `toml:"BlockingAckOnError"`
+	HasherType         string `toml:"HasherType"`
+	Mode               string `toml:"Mode"`
+	WithAcknowledge    bool   `toml:"WithAcknowledge"`
+	AcknowledgeTimeout int    `toml:"AcknowledgeTimeout"`
+	Version            uint32 `toml:"Version"`
 }

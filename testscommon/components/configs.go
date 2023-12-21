@@ -220,7 +220,7 @@ func GetGeneralConfig() config.Config {
 			RefreshIntervalInSec: 1,
 		},
 		SovereignConfig: config.SovereignConfig{
-			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+			NotifierConfig: config.NotifierConfig{
 				SubscribedEvents: []config.SubscribedEvent{
 					{
 						Identifier: "bridgeOps",
