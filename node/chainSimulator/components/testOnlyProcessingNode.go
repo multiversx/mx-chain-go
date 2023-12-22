@@ -40,7 +40,7 @@ type ArgsTestOnlyProcessingNode struct {
 
 	GasScheduleFilename    string
 	NumShards              uint32
-	SkIndex                int
+	ShardIDStr             string
 	BypassTxSignatureCheck bool
 }
 
@@ -104,13 +104,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.CryptoComponentsHolder, err = CreateCryptoComponents(ArgsCryptoComponentsHolder{
-		Config:                  *args.Configs.GeneralConfig,
-		EnableEpochsConfig:      args.Configs.EpochConfig.EnableEpochs,
-		Preferences:             *args.Configs.PreferencesConfig,
-		CoreComponentsHolder:    instance.CoreComponentsHolder,
-		ValidatorKeyPemFileName: args.Configs.ConfigurationPathsHolder.ValidatorKey,
-		SkIndex:                 args.SkIndex,
-		BypassTxSignatureCheck:  args.BypassTxSignatureCheck,
+		Config:                      *args.Configs.GeneralConfig,
+		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+		Preferences:                 *args.Configs.PreferencesConfig,
+		CoreComponentsHolder:        instance.CoreComponentsHolder,
+		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		AllValidatorKeysPemFileName: args.Configs.ConfigurationPathsHolder.AllValidatorKeys,
 	})
 	if err != nil {
 		return nil, err
@@ -131,6 +130,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		ImportDBConfig:       *args.Configs.ImportDbConfig,
 		PrefsConfig:          *args.Configs.PreferencesConfig,
 		Config:               *args.Configs.GeneralConfig,
+		ShardIDStr:           args.ShardIDStr,
 	})
 	if err != nil {
 		return nil, err

@@ -3,8 +3,12 @@ package process
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("process-block")
 
 type manualRoundHandler interface {
 	IncrementIndex()
@@ -34,12 +38,14 @@ func (creator *blocksCreator) IncrementRound() {
 func (creator *blocksCreator) CreateNewBlock() error {
 	bp := creator.nodeHandler.GetProcessComponents().BlockProcessor()
 
-	nonce, round, prevHash, prevRandSeed := creator.getPreviousHeaderData()
+	nonce, round, prevHash, prevRandSeed, epoch := creator.getPreviousHeaderData()
 	newHeader, err := bp.CreateNewHeader(round+1, nonce+1)
 	if err != nil {
 		return err
 	}
-	err = newHeader.SetShardID(creator.nodeHandler.GetShardCoordinator().SelfId())
+
+	shardID := creator.nodeHandler.GetShardCoordinator().SelfId()
+	err = newHeader.SetShardID(shardID)
 	if err != nil {
 		return err
 	}
@@ -70,9 +76,20 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	blsKeyBytes := creator.nodeHandler.GetCryptoComponents().PublicKeyBytes()
+	validatorsGroup, err := creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(prevRandSeed, newHeader.GetRound(), shardID, epoch)
+	if err != nil {
+		return err
+	}
+	blsKey := validatorsGroup[spos.IndexOfLeaderInConsensusGroup]
+
+	isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(blsKey.PubKey())
+	if !isManaged {
+		log.Debug("cannot propose block", "shard", creator.nodeHandler.GetShardCoordinator().SelfId(), "missing private key")
+		return nil
+	}
+
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
-	randSeed, err := signingHandler.CreateSignatureForPublicKey(newHeader.GetPrevRandSeed(), blsKeyBytes)
+	randSeed, err := signingHandler.CreateSignatureForPublicKey(newHeader.GetPrevRandSeed(), blsKey.PubKey())
 	if err != nil {
 		return err
 	}
@@ -88,7 +105,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	err = creator.setHeaderSignatures(header)
+	err = creator.setHeaderSignatures(header, blsKey.PubKey())
 	if err != nil {
 		return err
 	}
@@ -103,22 +120,22 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastHeader(header, blsKeyBytes)
+	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastHeader(header, blsKey.PubKey())
 	if err != nil {
 		return err
 	}
 
-	return creator.nodeHandler.GetBroadcastMessenger().BroadcastBlockDataLeader(header, miniBlocks, transactions, blsKeyBytes)
+	return creator.nodeHandler.GetBroadcastMessenger().BroadcastBlockDataLeader(header, miniBlocks, transactions, blsKey.PubKey())
 }
 
-func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prevHash, prevRandSeed []byte) {
+func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prevHash, prevRandSeed []byte, epoch uint32) {
 	currentHeader := creator.nodeHandler.GetChainHandler().GetCurrentBlockHeader()
 
 	if currentHeader != nil {
 		nonce, round = currentHeader.GetNonce(), currentHeader.GetRound()
 		prevHash = creator.nodeHandler.GetChainHandler().GetCurrentBlockHeaderHash()
 		prevRandSeed = currentHeader.GetRandSeed()
-
+		epoch = currentHeader.GetEpoch()
 		return
 	}
 
@@ -128,7 +145,7 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	return
 }
 
-func (creator *blocksCreator) setHeaderSignatures(header data.HeaderHandler) error {
+func (creator *blocksCreator) setHeaderSignatures(header data.HeaderHandler, blsKeyBytes []byte) error {
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
 	headerClone := header.ShallowClone()
 	_ = headerClone.SetPubKeysBitmap(nil)
@@ -138,7 +155,6 @@ func (creator *blocksCreator) setHeaderSignatures(header data.HeaderHandler) err
 		return err
 	}
 
-	blsKeyBytes := creator.nodeHandler.GetCryptoComponents().PublicKeyBytes()
 	err = signingHandler.Reset([]string{string(blsKeyBytes)})
 	if err != nil {
 		return err
@@ -165,7 +181,7 @@ func (creator *blocksCreator) setHeaderSignatures(header data.HeaderHandler) err
 		return err
 	}
 
-	leaderSignature, err := creator.createLeaderSignature(header)
+	leaderSignature, err := creator.createLeaderSignature(header, blsKeyBytes)
 	if err != nil {
 		return err
 	}
@@ -178,7 +194,7 @@ func (creator *blocksCreator) setHeaderSignatures(header data.HeaderHandler) err
 	return nil
 }
 
-func (creator *blocksCreator) createLeaderSignature(header data.HeaderHandler) ([]byte, error) {
+func (creator *blocksCreator) createLeaderSignature(header data.HeaderHandler, blsKeyBytes []byte) ([]byte, error) {
 	headerClone := header.ShallowClone()
 	err := headerClone.SetLeaderSignature(nil)
 	if err != nil {
@@ -192,7 +208,6 @@ func (creator *blocksCreator) createLeaderSignature(header data.HeaderHandler) (
 
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
 
-	blsKeyBytes := creator.nodeHandler.GetCryptoComponents().PublicKeyBytes()
 	return signingHandler.CreateSignatureForPublicKey(marshalizedHdr, blsKeyBytes)
 }
 

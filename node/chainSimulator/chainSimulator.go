@@ -25,6 +25,8 @@ type ArgsChainSimulator struct {
 	TempDir                string
 	PathToInitialConfig    string
 	NumOfShards            uint32
+	MinNodesPerShard       uint32
+	MetaChainMinNodes      uint32
 	GenesisTimestamp       int64
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
@@ -69,6 +71,8 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		GenesisTimeStamp:      args.GenesisTimestamp,
 		RoundDurationInMillis: args.RoundDurationInMillis,
 		TempDir:               args.TempDir,
+		MinNodesPerShard:      args.MinNodesPerShard,
+		MetaChainMinNodes:     args.MetaChainMinNodes,
 	})
 	if err != nil {
 		return err
@@ -78,11 +82,18 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 	}
 
-	for idx := range outputConfigs.ValidatorsPrivateKeys {
-		node, errCreate := s.createTestNode(outputConfigs.Configs, idx, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck)
+	for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
+		shardIDStr := fmt.Sprintf("%d", idx-1)
+		if idx == 0 {
+			shardIDStr = "metachain"
+		}
+
+		node, errCreate := s.createTestNode(outputConfigs.Configs, shardIDStr, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck)
 		if errCreate != nil {
 			return errCreate
 		}
+
+		fmt.Println(node.GetProcessComponents().ShardCoordinator().SelfId())
 
 		chainHandler, errCreate := process.NewBlocksCreator(node)
 		if errCreate != nil {
@@ -109,7 +120,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 
 func (s *simulator) createTestNode(
 	configs *config.Configs,
-	skIndex int,
+	shardIDStr string,
 	gasScheduleFilename string,
 	apiInterface components.APIConfigurator,
 	bypassTxSignatureCheck bool,
@@ -120,7 +131,7 @@ func (s *simulator) createTestNode(
 		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
 		NumShards:              s.numOfShards,
 		GasScheduleFilename:    gasScheduleFilename,
-		SkIndex:                skIndex,
+		ShardIDStr:             shardIDStr,
 		APIInterface:           apiInterface,
 		BypassTxSignatureCheck: bypassTxSignatureCheck,
 	}
