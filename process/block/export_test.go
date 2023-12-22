@@ -556,3 +556,129 @@ func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]by
 func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.setNonceOfFirstCommittedBlock(nonce)
 }
+
+// HdrForBlock -
+type HdrForBlock interface {
+	InitMaps()
+	Clone() *hdrForBlock
+	SetNumMissingHdrs(num uint32)
+	SetNumMissingFinalityAttestingHdrs(num uint32)
+	SetHighestHdrNonce(shardId uint32, nonce uint64)
+	SetHdrHashAndInfo(hash string, info *HdrInfo)
+	GetHdrHashMap() map[string]data.HeaderHandler
+	GetHighestHdrNonce() map[uint32]uint64
+	GetMissingHdrs() uint32
+	GetMissingFinalityAttestingHdrs() uint32
+	GetHdrHashAndInfo() map[string]*HdrInfo
+}
+
+// GetHdrForBlock -
+func (mp *metaProcessor) GetHdrForBlock() *hdrForBlock {
+	return mp.hdrsForCurrBlock
+}
+
+// InitMaps -
+func (hfb *hdrForBlock) InitMaps() {
+	hfb.initMaps()
+	hfb.resetMissingHdrs()
+}
+
+// Clone -
+func (hfb *hdrForBlock) Clone() *hdrForBlock {
+	return hfb
+}
+
+// SetNumMissingHdrs -
+func (hfb *hdrForBlock) SetNumMissingHdrs(num uint32) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.missingHdrs = num
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// SetNumMissingFinalityAttestingHdrs -
+func (hfb *hdrForBlock) SetNumMissingFinalityAttestingHdrs(num uint32) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.missingFinalityAttestingHdrs = num
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// SetHighestHdrNonce -
+func (hfb *hdrForBlock) SetHighestHdrNonce(shardId uint32, nonce uint64) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.highestHdrNonce[shardId] = nonce
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// HdrInfo -
+type HdrInfo struct {
+	UsedInBlock bool
+	Hdr         data.HeaderHandler
+}
+
+// SetHdrHashAndInfo -
+func (hfb *hdrForBlock) SetHdrHashAndInfo(hash string, info *HdrInfo) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.hdrHashAndInfo[hash] = &hdrInfo{
+		hdr:         info.Hdr,
+		usedInBlock: info.UsedInBlock,
+	}
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// GetHdrHashMap -
+func (hfb *hdrForBlock) GetHdrHashMap() map[string]data.HeaderHandler {
+	m := make(map[string]data.HeaderHandler)
+
+	hfb.mutHdrsForBlock.RLock()
+	for hash, hi := range hfb.hdrHashAndInfo {
+		m[hash] = hi.hdr
+	}
+	hfb.mutHdrsForBlock.RUnlock()
+
+	return m
+}
+
+// GetHighestHdrNonce -
+func (hfb *hdrForBlock) GetHighestHdrNonce() map[uint32]uint64 {
+	m := make(map[uint32]uint64)
+
+	hfb.mutHdrsForBlock.RLock()
+	for shardId, nonce := range hfb.highestHdrNonce {
+		m[shardId] = nonce
+	}
+	hfb.mutHdrsForBlock.RUnlock()
+
+	return m
+}
+
+// GetMissingHdrs -
+func (hfb *hdrForBlock) GetMissingHdrs() uint32 {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	return hfb.missingHdrs
+}
+
+// GetMissingFinalityAttestingHdrs -
+func (hfb *hdrForBlock) GetMissingFinalityAttestingHdrs() uint32 {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	return hfb.missingFinalityAttestingHdrs
+}
+
+// GetHdrHashAndInfo -
+func (hfb *hdrForBlock) GetHdrHashAndInfo() map[string]*HdrInfo {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	m := make(map[string]*HdrInfo)
+	for hash, hi := range hfb.hdrHashAndInfo {
+		m[hash] = &HdrInfo{
+			UsedInBlock: hi.usedInBlock,
+			Hdr:         hi.hdr,
+		}
+	}
+
+	return m
+}

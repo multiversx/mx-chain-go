@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -42,7 +43,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
+		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
 		&mock.ValidatorStatisticsProcessorStub{},
@@ -162,7 +163,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	bp, vmFactoryForSimulate, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
+		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
 		&mock.ValidatorStatisticsProcessorStub{},

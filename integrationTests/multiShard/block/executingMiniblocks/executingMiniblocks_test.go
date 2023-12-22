@@ -61,15 +61,15 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	proposerNode := nodes[0]
 
-	//sender shard keys, receivers  keys
+	// sender shard keys, receivers  keys
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
 	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
-		//receivers in same shard with the sender
+		// receivers in same shard with the sender
 		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)
-		//receivers in other shards
+		// receivers in other shards
 		for _, shardId := range recvShards {
 			_, pk, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 			receiversPublicKeys[shardId] = append(receiversPublicKeys[shardId], pk)
@@ -111,13 +111,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			continue
 		}
 
-		//test sender balances
+		// test sender balances
 		for _, sk := range sendersPrivateKeys {
 			valTransferred := big.NewInt(0).Mul(totalValuePerTx, big.NewInt(int64(len(receiversPublicKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
 			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}
-		//test receiver balances from same shard
+		// test receiver balances from same shard
 		for _, pk := range receiversPublicKeys[proposerNode.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
@@ -136,7 +136,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			continue
 		}
 
-		//test receiver balances from same shard
+		// test receiver balances from same shard
 		for _, pk := range receiversPublicKeys[n.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
@@ -353,7 +353,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 }
 
 func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
-	//TODO fix this test
+	// TODO fix this test
 	t.Skip("TODO fix this test")
 	if testing.Short() {
 		t.Skip("this is not a short test")
