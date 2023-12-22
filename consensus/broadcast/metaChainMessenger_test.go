@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -45,6 +46,9 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
+			Config: config.ConsensusGradualBroadcastConfig{
+				GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{},
+			},
 		},
 	}
 }

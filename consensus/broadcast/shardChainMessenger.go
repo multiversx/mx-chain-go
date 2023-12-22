@@ -52,6 +52,7 @@ func NewShardChainMessenger(
 		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
 		ShardCoordinator:      args.ShardCoordinator,
 		AlarmScheduler:        args.AlarmScheduler,
+		Config:                args.Config,
 	}
 
 	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
@@ -65,7 +66,7 @@ func NewShardChainMessenger(
 		commonMessenger: cm,
 	}
 
-	err = dbb.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
+	err = dbb.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader, scm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
 	}

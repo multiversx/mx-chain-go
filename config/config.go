@@ -222,9 +222,10 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig   PeersRatingConfig
-	PoolsCleanersConfig PoolsCleanersConfig
-	Redundancy          RedundancyConfig
+	PeersRatingConfig         PeersRatingConfig
+	PoolsCleanersConfig       PoolsCleanersConfig
+	Redundancy                RedundancyConfig
+	ConsensusGradualBroadcast ConsensusGradualBroadcastConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -656,4 +657,15 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+}
+
+// IndexBroadcastDelay holds a pair of starting consensus index and the delay the nodes should wait before broadcasting final info
+type IndexBroadcastDelay struct {
+	EndIndex            int
+	DelayInMilliseconds uint64
+}
+
+// ConsensusGradualBroadcastConfig holds the configuration for the consensus final info gradual broadcast
+type ConsensusGradualBroadcastConfig struct {
+	GradualIndexBroadcastDelay []IndexBroadcastDelay
 }

@@ -677,17 +677,32 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(signature []byte, 
 		nil,
 	)
 
-	// TODO[Sorin next PR]: replace this with the delayed broadcast
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	index, err := sr.ConsensusGroupIndex(leader)
 	if err != nil {
-		log.Debug("createAndBroadcastHeaderFinalInfo.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("createAndBroadcastHeaderFinalInfo.ConsensusGroupIndex", "error", err.Error())
 		return
 	}
 
-	log.Debug("step 3: block header final info has been sent",
+	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+		if err != nil {
+			log.Debug("createAndBroadcastHeaderFinalInfo.BroadcastConsensusMessage", "error", err.Error())
+			return
+		}
+
+		log.Debug("step 3: block header final info has been sent",
+			"PubKeysBitmap", bitmap,
+			"AggregateSignature", signature,
+			"LeaderSignature", leaderSignature)
+		return
+	}
+
+	sr.BroadcastMessenger().PrepareBroadcastFinalConsensusMessage(cnsMsg, index)
+	log.Debug("step 3: block header final info has been sent to delayed broadcaster",
 		"PubKeysBitmap", bitmap,
 		"AggregateSignature", signature,
-		"LeaderSignature", leaderSignature)
+		"LeaderSignature", leaderSignature,
+		"Index", index)
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {

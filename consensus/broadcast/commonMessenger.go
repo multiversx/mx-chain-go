@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process"
@@ -27,10 +28,12 @@ type delayedBroadcaster interface {
 	SetLeaderData(data *delayedBroadcastData) error
 	SetValidatorData(data *delayedBroadcastData) error
 	SetHeaderForValidator(vData *validatorHeaderBroadcastData) error
+	SetFinalConsensusMessageForValidator(message *consensus.Message, consensusIndex int) error
 	SetBroadcastHandlers(
 		mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 		txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 		headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+		consensusMessageBroadcast func(message *consensus.Message) error,
 	) error
 	Close()
 }
@@ -58,6 +61,7 @@ type CommonMessengerArgs struct {
 	MaxValidatorDelayCacheSize uint32
 	AlarmScheduler             core.TimersScheduler
 	KeysHandler                consensus.KeysHandler
+	Config                     config.ConsensusGradualBroadcastConfig
 }
 
 func checkCommonMessengerNilParameters(
@@ -192,6 +196,14 @@ func (cm *commonMessenger) BroadcastBlockData(
 		if err != nil {
 			log.Warn("commonMessenger.BroadcastBlockData: broadcast transactions", "error", err.Error())
 		}
+	}
+}
+
+// PrepareBroadcastFinalConsensusMessage prepares the validator final info data broadcast for when its turn comes
+func (cm *commonMessenger) PrepareBroadcastFinalConsensusMessage(message *consensus.Message, consensusIndex int) {
+	err := cm.delayedBlockBroadcaster.SetFinalConsensusMessageForValidator(message, consensusIndex)
+	if err != nil {
+		log.Error("commonMessenger.PrepareBroadcastFinalInfo", "error", err)
 	}
 }
 

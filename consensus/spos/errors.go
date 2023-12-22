@@ -255,3 +255,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrMissingProposerSignature signals that proposer signature is missing
 var ErrMissingProposerSignature = errors.New("missing proposer signature")
+
+// ErrNilConsensusMessage signals that a nil consensus message has been provided
+var ErrNilConsensusMessage = errors.New("nil consensus message")
