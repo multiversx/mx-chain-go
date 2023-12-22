@@ -269,6 +269,8 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
+	log.Debug("getLastBootstrapData: GetNodesCoordinatorRegistry", "numEpochsToSave", numEpochsToSave)
+
 	return &bootstrapData, config, nil
 }
 

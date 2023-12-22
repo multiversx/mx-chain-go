@@ -275,6 +275,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 
 	nodesConfig, err := ihnc.nodesConfigFromStaticStorer(epoch)
 	if err != nil {
+		log.Error("getNodesConfig: could not get nodes config from static storer", "epoch", epoch, "error", err.Error())
 		return nil, false
 	}
 
