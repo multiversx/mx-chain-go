@@ -1445,7 +1445,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		srEndRound.Header = &block.Header{}
 
 		r := srEndRound.DoEndRoundJobByLeader()
-		require.False(t, r)
+		require.True(t, r)
 		require.True(t, wasHasEquivalentProofCalled)
 	})
 	t.Run("not enough valid signature shares", func(t *testing.T) {

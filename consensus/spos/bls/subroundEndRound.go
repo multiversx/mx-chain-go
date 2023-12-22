@@ -345,8 +345,59 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	if !sr.shouldSendFinalData() {
+	if !sr.sendFinalInfo() {
 		return false
+	}
+
+	leader, err := sr.getLeader()
+	if err != nil {
+		return false
+	}
+
+	// broadcast header
+	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(leader))
+	if err != nil {
+		log.Warn("broadcastHeader.BroadcastHeader", "error", err.Error())
+	}
+
+	startTime := time.Now()
+	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= common.CommitMaxTime {
+		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block",
+			"time [s]", elapsedTime,
+		)
+	}
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.CommitBlock", "error", err)
+		return false
+	}
+
+	sr.SetStatus(sr.Current(), spos.SsFinished)
+
+	sr.displayStatistics()
+
+	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
+
+	err = sr.broadcastBlockDataLeader()
+	if err != nil {
+		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
+	}
+
+	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
+	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
+
+	sr.updateMetricsForLeader()
+
+	return true
+}
+
+func (sr *subroundEndRound) sendFinalInfo() bool {
+	if !sr.shouldSendFinalData() {
+		return true
 	}
 
 	bitmap := sr.GenerateBitmap(SrSignature)
@@ -426,52 +477,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 	sr.createAndBroadcastHeaderFinalInfo(aggregatedSigToBroadcast, bitmapToBroadcast, leaderSigToBroadcast)
 
-	leader, err := sr.getLeader()
-	if err != nil {
-		return false
-	}
-
-	// broadcast header
-	// TODO[Sorin next PR]: replace this with the delayed broadcast
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(leader))
-	if err != nil {
-		log.Debug("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
-	}
-
-	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
-	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.CommitMaxTime {
-		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
-	} else {
-		log.Debug("elapsed time to commit block",
-			"time [s]", elapsedTime,
-		)
-	}
-	if err != nil {
-		log.Debug("doEndRoundJobByLeader.CommitBlock", "error", err)
-		return false
-	}
-
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		sr.Blockchain().SetCurrentAggregatedSignatureAndBitmap(sig, bitmap)
 	}
-
-	sr.SetStatus(sr.Current(), spos.SsFinished)
-
-	sr.displayStatistics()
-
-	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
-
-	err = sr.broadcastBlockDataLeader()
-	if err != nil {
-		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
-	}
-
-	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
-	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
-
-	sr.updateMetricsForLeader()
 
 	return true
 }
@@ -700,7 +708,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		invalidSigners,
 	)
 
-	// TODO[Sorin next PR]: check if this should be replaced with the delayed broadcast
+	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
@@ -811,20 +819,26 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 	}
 
 	header := sr.Header.ShallowClone()
-	err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
-	if err != nil {
-		return false, nil
+	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+		err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
+		if err != nil {
+			return false, nil
+		}
+
+		err = header.SetSignature(cnsDta.AggregateSignature)
+		if err != nil {
+			return false, nil
+		}
+
+		err = header.SetLeaderSignature(cnsDta.LeaderSignature)
+		if err != nil {
+			return false, nil
+		}
+
+		return true, header
 	}
 
-	err = header.SetSignature(cnsDta.AggregateSignature)
-	if err != nil {
-		return false, nil
-	}
-
-	err = header.SetLeaderSignature(cnsDta.LeaderSignature)
-	if err != nil {
-		return false, nil
-	}
+	header.SetPreviousAggregatedSignatureAndBitmap(cnsDta.AggregateSignature, cnsDta.PubKeysBitmap)
 
 	return true, header
 }
@@ -917,7 +931,7 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 		return err
 	}
 
-	// TODO[Sorin next PR]: replace this with the delayed broadcast
+	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
 	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, []byte(leader))
 }
 
