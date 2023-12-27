@@ -679,8 +679,8 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		blkBody := &block.Body{}
 		hdr := &block.HeaderV2{
-			Header: &block.Header{},
-			Proof:  &block.Proof{},
+			Header:              &block.Header{},
+			PreviousHeaderProof: &block.PreviousHeaderProof{},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
@@ -702,8 +702,8 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		blkBody := &block.Body{}
 		hdr := &block.HeaderV2{
-			Header: &block.Header{},
-			Proof:  nil,
+			Header:              &block.Header{},
+			PreviousHeaderProof: nil,
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
@@ -728,7 +728,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			Header: &block.Header{
 				LeaderSignature: []byte("leader signature"),
 			},
-			Proof: &block.Proof{},
+			PreviousHeaderProof: &block.PreviousHeaderProof{},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
@@ -754,9 +754,9 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			ScheduledDeveloperFees:   big.NewInt(1),
 			ScheduledAccumulatedFees: big.NewInt(1),
 			ScheduledRootHash:        []byte("scheduled root hash"),
-			Proof: &block.Proof{
-				PreviousPubkeysBitmap:       []byte("bitmap"),
-				PreviousAggregatedSignature: []byte("sig"),
+			PreviousHeaderProof: &block.PreviousHeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte("sig"),
 			},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
@@ -923,9 +923,9 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 		ScheduledRootHash:        []byte("sch root hash"),
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
-		Proof: &block.Proof{
-			PreviousPubkeysBitmap:       []byte("bitmap"),
-			PreviousAggregatedSignature: []byte("sig"),
+		PreviousHeaderProof: &block.PreviousHeaderProof{
+			PubKeysBitmap:       []byte("bitmap"),
+			AggregatedSignature: []byte("sig"),
 		},
 	}
 	hdrStr, _ := container.Marshalizer().Marshal(hdrV2)
