@@ -714,6 +714,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		ch := make(chan bool, 1)
 		consensusState := initConsensusStateWithKeysHandler(keysHandler)
 		leader, _ := consensusState.GetLeader()
+		consensusState.SetSelfPubKey(leader)
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return string(pkBytes) == leader
 		}
