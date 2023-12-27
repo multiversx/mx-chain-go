@@ -89,19 +89,19 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
+		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+			sr.GetData(),
+			uint16(selfIndex),
+			sr.Header.GetEpoch(),
+			[]byte(sr.SelfPubKey()),
+		)
+		if err != nil {
+			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
+			return false
+		}
+
 		// leader already sent his signature on subround block
 		if !isSelfLeader {
-			signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-				sr.GetData(),
-				uint16(selfIndex),
-				sr.Header.GetEpoch(),
-				[]byte(sr.SelfPubKey()),
-			)
-			if err != nil {
-				log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
-				return false
-			}
-
 			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
 			if !ok {
 				return false
@@ -386,18 +386,18 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
-		if !isMultiKeyLeader {
-			signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-				sr.GetData(),
-				uint16(selfIndex),
-				sr.Header.GetEpoch(),
-				pkBytes,
-			)
-			if err != nil {
-				log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-				return false
-			}
+		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+			sr.GetData(),
+			uint16(selfIndex),
+			sr.Header.GetEpoch(),
+			pkBytes,
+		)
+		if err != nil {
+			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+			return false
+		}
 
+		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 			if !ok {
 				return false
