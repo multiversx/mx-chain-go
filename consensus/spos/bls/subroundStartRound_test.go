@@ -571,17 +571,22 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		wasCalled := false
 		container := mock.InitConsensusCore()
-		keysHandler := &testscommon.KeysHandlerStub{}
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return string(pkBytes) == "B"
+			},
+		}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
-					assert.Equal(t, value, "participant")
+					assert.Equal(t, "participant", value)
 				}
 			},
 		}
 		ch := make(chan bool, 1)
 		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState.SetSelfPubKey("B")
 		sr, _ := spos.NewSubround(
 			-1,
 			bls.SrStartRound,
