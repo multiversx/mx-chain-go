@@ -126,6 +126,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		ConsensusState:       args.ConsensusState,
 		ConsensusService:     args.ConsensusService,
 		PeerSignatureHandler: args.PeerSignatureHandler,
+		EnableEpochsHandler:  args.EnableEpochsHandler,
 		SignatureSize:        args.SignatureSize,
 		PublicKeySize:        args.PublicKeySize,
 		HeaderHashSize:       args.Hasher.Size(),
