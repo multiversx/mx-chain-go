@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -17,6 +18,7 @@ type consensusMessageValidator struct {
 	consensusState       *ConsensusState
 	consensusService     ConsensusService
 	peerSignatureHandler crypto.PeerSignatureHandler
+	enableEpochsHandler  common.EnableEpochsHandler
 
 	signatureSize       int
 	publicKeySize       int
@@ -33,6 +35,7 @@ type ArgsConsensusMessageValidator struct {
 	ConsensusState       *ConsensusState
 	ConsensusService     ConsensusService
 	PeerSignatureHandler crypto.PeerSignatureHandler
+	EnableEpochsHandler  common.EnableEpochsHandler
 	SignatureSize        int
 	PublicKeySize        int
 	HeaderHashSize       int
@@ -50,6 +53,7 @@ func NewConsensusMessageValidator(args ArgsConsensusMessageValidator) (*consensu
 		consensusState:       args.ConsensusState,
 		consensusService:     args.ConsensusService,
 		peerSignatureHandler: args.PeerSignatureHandler,
+		enableEpochsHandler:  args.EnableEpochsHandler,
 		signatureSize:        args.SignatureSize,
 		publicKeySize:        args.PublicKeySize,
 		chainID:              args.ChainID,
@@ -68,6 +72,9 @@ func checkArgsConsensusMessageValidator(args ArgsConsensusMessageValidator) erro
 	}
 	if check.IfNil(args.PeerSignatureHandler) {
 		return ErrNilPeerSignatureHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
 	}
 	if args.ConsensusState == nil {
 		return ErrNilConsensusState
@@ -239,7 +246,13 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidityForMessageTyp
 }
 
 func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.Message) error {
-	isMessageInvalid := cnsMsg.SignatureShare != nil ||
+	// TODO[cleanup cns finality]: remove this
+	isInvalidSigShare := cnsMsg.SignatureShare != nil
+	if cmv.enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+		isInvalidSigShare = cnsMsg.SignatureShare == nil
+	}
+
+	isMessageInvalid := isInvalidSigShare ||
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
 		cnsMsg.LeaderSignature != nil ||
