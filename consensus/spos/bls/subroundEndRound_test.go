@@ -998,7 +998,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			ScheduledRootHash:        []byte("sch root hash"),
 			ScheduledAccumulatedFees: big.NewInt(0),
 			ScheduledDeveloperFees:   big.NewInt(0),
-			Proof:                    nil,
+			PreviousHeaderProof:      nil,
 		}
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
@@ -1605,7 +1605,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			ScheduledRootHash:        []byte("sch root hash"),
 			ScheduledAccumulatedFees: big.NewInt(0),
 			ScheduledDeveloperFees:   big.NewInt(0),
-			Proof:                    nil,
+			PreviousHeaderProof:      nil,
 		}
 
 		r := srEndRound.DoEndRoundJobByLeader()
