@@ -1,6 +1,7 @@
 package nodesCoordinator
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
@@ -375,10 +376,34 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	}
 }
 
-func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
+func (ihnc *indexHashedNodesCoordinator) checkInitialSaveState(key []byte) error {
+	if !bytes.Equal(key, ihnc.savedStateKey) {
+		return nil
+	}
+
 	registry := ihnc.NodesCoordinatorToRegistry()
 
-	err := SaveNodesCoordinatorRegistry(registry, ihnc.bootStorer)
+	for epoch := range registry.EpochsConfig {
+		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(epoch)...)
+		_, err := ihnc.bootStorer.Get(ncInternalkey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
+	err := ihnc.checkInitialSaveState(key)
+	if err == nil {
+		log.Debug("initial saveState: no need to rewrite nodes coordinator keys")
+		return nil
+	}
+
+	registry := ihnc.NodesCoordinatorToRegistry()
+
+	err = SaveNodesCoordinatorRegistry(registry, ihnc.bootStorer)
 	if err != nil {
 		return err
 	}
