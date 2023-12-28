@@ -106,7 +106,13 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	sentWithSuccess, signatureShare := sr.sendBlock(header, body)
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		return false
+	}
+
+	sentWithSuccess, signatureShare := sr.sendBlock(header, body, leader)
 	if !sentWithSuccess {
 		return false
 	}
@@ -120,16 +126,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
 		sr.saveProposedEquivalentMessage(string(headerHash), previousBitmap, previousAggregatedSignature)
 
-		return sr.processBlock(ctx, sr.RoundHandler().Index(), []byte(sr.SelfPubKey()), signatureShare)
+		return sr.processBlock(ctx, sr.RoundHandler().Index(), []byte(leader), signatureShare)
 	}
 
 	// TODO[cleanup cns finality]: remove these lines once the above epoch will be active
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
-		return false
-	}
-
 	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
@@ -152,7 +152,7 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler) (bool, []byte) {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) (bool, []byte) {
 	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -167,9 +167,9 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 
 	var signatureShare []byte
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		selfIndex, err := sr.SelfConsensusGroupIndex()
+		selfIndex, err := sr.ConsensusGroupIndex(leader)
 		if err != nil {
-			log.Debug("sendBlock.SelfConsensusGroupIndex: not in consensus group")
+			log.Debug("sendBlock.SelfConsensusGroupIndex: leader not in consensus group")
 			return false, nil
 		}
 
