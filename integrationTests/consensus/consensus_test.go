@@ -307,21 +307,25 @@ func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
 	t.Run("before consensus propagation changes", func(t *testing.T) {
 		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
 	})
 	t.Run("after consensus propagation changes", func(t *testing.T) {
-		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
+		runFullConsensusTest(t, blsConsensusType, 5, 0)
 	})
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, equivalentMessagesEnableEpoch uint32) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, integrationTests.CreateEnableEpochsConfig())
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
+	enableEpochsConfig.ConsensusPropagationChangesEnableEpoch = equivalentMessagesEnableEpoch
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {
 		for shardID := range nodes {
@@ -359,7 +363,12 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runConsensusWithNotEnoughValidators(t, blsConsensusType)
+	t.Run("before consensus propagation changes", func(t *testing.T) {
+		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
+	})
+	t.Run("after consensus propagation changes", func(t *testing.T) {
+		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
+	})
 }
 
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
