@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -212,6 +213,8 @@ func GetNodesCoordinatorRegistry(
 		return nil, ErrNilBootStorer
 	}
 
+	log.Debug(string(debug.Stack()))
+
 	minEpoch := 0
 	if lastEpoch >= numStoredEpochs {
 		minEpoch = int(lastEpoch) - int(numStoredEpochs) + 1
@@ -240,10 +243,14 @@ func GetNodesCoordinatorRegistry(
 		}
 	}
 
-	return &NodesCoordinatorRegistry{
+	nc := &NodesCoordinatorRegistry{
 		EpochsConfig: epochsConfig,
 		CurrentEpoch: lastEpoch,
-	}, nil
+	}
+
+	DisplayNodesCoordinatorRegistry(nc)
+
+	return nc, nil
 }
 
 func setEpochConfigPerEpoch(
@@ -435,6 +442,8 @@ func SaveNodesCoordinatorRegistry(
 		return ErrNilNodesCoordinatorRegistry
 	}
 
+	log.Debug(string(debug.Stack()))
+
 	for epoch, config := range nodesConfig.EpochsConfig {
 		epochsConfig := make(map[string]*EpochValidators)
 		epochsConfig[epoch] = config
@@ -460,6 +469,8 @@ func SaveNodesCoordinatorRegistry(
 
 		log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 	}
+
+	DisplayNodesCoordinatorRegistry(nodesConfig)
 
 	return nil
 }

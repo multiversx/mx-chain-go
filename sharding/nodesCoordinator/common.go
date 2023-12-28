@@ -78,6 +78,34 @@ func displayNodesConfiguration(
 	}
 }
 
+func DisplayNodesCoordinatorRegistry(
+	nodesConfig *NodesCoordinatorRegistry,
+) {
+	log.Debug("DisplayNodesCoordinatorRegistry: START")
+	for epoch, epochValidators := range nodesConfig.EpochsConfig {
+		log.Debug("DisplayNodesCoordinatorRegistry: epoch", "epoch", epoch)
+		for _, validators := range epochValidators.EligibleValidators {
+			for shardID, v := range validators {
+				pk := v.PubKey
+				log.Debug("eligible", "pk", pk, "shardID", shardID)
+			}
+		}
+		for _, validators := range epochValidators.WaitingValidators {
+			for shardID, v := range validators {
+				pk := v.PubKey
+				log.Debug("waiting", "pk", pk, "shardID", shardID)
+			}
+		}
+		for _, validators := range epochValidators.LeavingValidators {
+			for shardID, v := range validators {
+				pk := v.PubKey
+				log.Debug("leaving", "pk", pk, "shardID", shardID)
+			}
+		}
+	}
+	log.Debug("DisplayNodesCoordinatorRegistry: END")
+}
+
 // SerializableValidatorsToValidators creates the validator map from serializable validator map
 func SerializableValidatorsToValidators(nodeRegistryValidators map[string][]*SerializableValidator) (map[uint32][]Validator, error) {
 	validators := make(map[uint32][]Validator)
