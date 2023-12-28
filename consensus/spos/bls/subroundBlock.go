@@ -178,7 +178,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 			headerHash,
 			uint16(selfIndex),
 			header.GetEpoch(),
-			[]byte(sr.SelfPubKey()),
+			[]byte(leader),
 		)
 		if err != nil {
 			log.Debug("sendBlock.CreateSignatureShareForPublicKey", "error", err.Error())
