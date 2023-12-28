@@ -52,6 +52,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	enableEpochsConfig config.EnableEpochs,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -63,6 +64,7 @@ func initNodesAndTest(
 		roundTime,
 		consensusType,
 		numKeysOnEachNode,
+		enableEpochsConfig,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -215,7 +217,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int, equivalentMessagesEnableEpoch uint32) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4 * numKeysOnEachNode)
@@ -229,7 +231,25 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		"consensusSize", consensusSize,
 	)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.ConsensusPropagationChangesEnableEpoch = equivalentMessagesEnableEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
+	nodes := initNodesAndTest(
+		numMetaNodes,
+		numNodes,
+		consensusSize,
+		numInvalid,
+		roundTime,
+		consensusType,
+		numKeysOnEachNode,
+		enableEpochsConfig,
+	)
+
+	for shardID := range nodes {
+		for _, n := range nodes[shardID] {
+			n.ChainHandler.SetCurrentAggregatedSignatureAndBitmap([]byte("sig"), []byte("bitmap"))
+		}
+	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -275,15 +295,24 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 1)
+	t.Run("before consensus propagation changes", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 1, integrationTests.UnreachableEpoch)
+	})
+	t.Run("after consensus propagation changes", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 1, 0)
+	})
 }
 
 func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	runFullConsensusTest(t, blsConsensusType, 5)
+	t.Run("before consensus propagation changes", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
+	})
+	t.Run("after consensus propagation changes", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
+	})
 }
 
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
@@ -292,7 +321,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, integrationTests.CreateEnableEpochsConfig())
 
 	defer func() {
 		for shardID := range nodes {

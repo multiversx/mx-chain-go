@@ -24,6 +24,7 @@ type BlockProcessorMock struct {
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
+	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 }
 
 // ProcessBlock mocks processing a block
@@ -137,6 +138,10 @@ func (bpm *BlockProcessorMock) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 // DecodeBlockHeader method decodes block header from a given byte array
 func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler {
+	if bpm.DecodeBlockHeaderCalled != nil {
+		return bpm.DecodeBlockHeaderCalled(dta)
+	}
+
 	if dta == nil {
 		return nil
 	}

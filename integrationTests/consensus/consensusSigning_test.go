@@ -30,6 +30,7 @@ func initNodesWithTestSigner(
 		roundTime,
 		consensusType,
 		1,
+		integrationTests.CreateEnableEpochsConfig(),
 	)
 
 	for shardID, nodesList := range nodes {
