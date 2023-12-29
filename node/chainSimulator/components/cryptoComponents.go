@@ -17,13 +17,12 @@ import (
 
 // ArgsCryptoComponentsHolder holds all arguments needed to create a crypto components holder
 type ArgsCryptoComponentsHolder struct {
-	Config                  config.Config
-	EnableEpochsConfig      config.EnableEpochs
-	Preferences             config.Preferences
-	CoreComponentsHolder    factory.CoreComponentsHolder
-	ValidatorKeyPemFileName string
-	SkIndex                 int
-	BypassTxSignatureCheck  bool
+	Config                      config.Config
+	EnableEpochsConfig          config.EnableEpochs
+	Preferences                 config.Preferences
+	CoreComponentsHolder        factory.CoreComponentsHolder
+	AllValidatorKeysPemFileName string
+	BypassTxSignatureCheck      bool
 }
 
 type cryptoComponentsHolder struct {
@@ -60,10 +59,9 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 		ActivateBLSPubKeyMessageVerification: true,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		P2pKeyPemFileName:                    "",
-		ValidatorKeyPemFileName:              args.ValidatorKeyPemFileName,
-		AllValidatorKeysPemFileName:          "",
-		SkIndex:                              args.SkIndex,
+		// set validator key pem file with a file that doesn't exist to all validators key pem file
+		ValidatorKeyPemFileName:     "missing.pem",
+		AllValidatorKeysPemFileName: args.AllValidatorKeysPemFileName,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)

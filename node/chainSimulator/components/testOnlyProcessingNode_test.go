@@ -19,6 +19,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		GenesisTimeStamp:      0,
 		RoundDurationInMillis: 6000,
 		TempDir:               t.TempDir(),
+		MinNodesPerShard:      1,
+		MetaChainMinNodes:     1,
 	})
 	require.Nil(t, err)
 
@@ -30,6 +32,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
 		ChanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 		APIInterface:           api.NewNoApiInterface(),
+		ShardIDStr:             "0",
 	}
 }
 

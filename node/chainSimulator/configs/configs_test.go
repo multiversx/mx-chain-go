@@ -18,6 +18,8 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 		RoundDurationInMillis: 6000,
 		GenesisTimeStamp:      0,
 		TempDir:               t.TempDir(),
+		MetaChainMinNodes:     1,
+		MinNodesPerShard:      1,
 	})
 	require.Nil(t, err)
 

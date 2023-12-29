@@ -34,7 +34,8 @@ const (
 	// ChainID contains the chain id
 	ChainID = "chain"
 
-	shardIDWalletWithStake = 0
+	shardIDWalletWithStake   = 0
+	allValidatorsPemFileName = "allValidatorsKeys.pem"
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
@@ -44,6 +45,8 @@ type ArgsChainSimulatorConfigs struct {
 	GenesisTimeStamp      int64
 	RoundDurationInMillis uint64
 	TempDir               string
+	MinNodesPerShard      uint32
+	MetaChainMinNodes     uint32
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -78,18 +81,15 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// generate validators key and nodesSetup.json
 	privateKeys, publicKeys, err := generateValidatorsKeyAndUpdateFiles(
 		configs,
-		args.NumOfShards,
 		initialWallets.InitialWalletWithStake.Address,
-		args.GenesisTimeStamp,
-		args.RoundDurationInMillis,
+		args,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	// generate validators.pem
-	configs.ConfigurationPathsHolder.ValidatorKey = path.Join(args.OriginalConfigsPath, "validatorKey.pem")
-	err = generateValidatorsPem(configs.ConfigurationPathsHolder.ValidatorKey, publicKeys, privateKeys)
+	configs.ConfigurationPathsHolder.AllValidatorKeys = path.Join(args.OriginalConfigsPath, allValidatorsPemFileName)
+	err = generateValidatorsPem(configs.ConfigurationPathsHolder.AllValidatorKeys, publicKeys, privateKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +102,12 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorage.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
+
+	maxNumNodes := uint64(args.MinNodesPerShard*args.NumOfShards + args.MetaChainMinNodes)
+	configs.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
+	for idx := 0; idx < len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch); idx++ {
+		configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[idx].MaxNumNodes = uint32(maxNumNodes)
+	}
 
 	// set compatible trie configs
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
@@ -136,7 +142,8 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 
 	addresses := make([]data.InitialAccount, 0)
 	stakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
-	stakedValue = stakedValue.Mul(stakedValue, big.NewInt(int64(args.NumOfShards)+1)) // 2500 EGLD * number of nodes
+	numOfNodes := args.MinNodesPerShard*args.NumOfShards + args.MetaChainMinNodes
+	stakedValue = stakedValue.Mul(stakedValue, big.NewInt(int64(numOfNodes))) // 2500 EGLD * number of nodes
 	addresses = append(addresses, data.InitialAccount{
 		Address:      initialAddressWithStake.Address,
 		StakingValue: stakedValue,
@@ -187,10 +194,8 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 
 func generateValidatorsKeyAndUpdateFiles(
 	configs *config.Configs,
-	numOfShards uint32,
 	address string,
-	genesisTimeStamp int64,
-	roundDurationInMillis uint64,
+	args ArgsChainSimulatorConfigs,
 ) ([]crypto.PrivateKey, []crypto.PublicKey, error) {
 	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
@@ -201,17 +206,20 @@ func generateValidatorsKeyAndUpdateFiles(
 		return nil, nil, err
 	}
 
-	nodes.RoundDuration = roundDurationInMillis
-	nodes.StartTime = genesisTimeStamp
-	nodes.ConsensusGroupSize = 1
-	nodes.MinNodesPerShard = 1
-	nodes.MetaChainMinNodes = 1
-	nodes.MetaChainConsensusGroupSize = 1
-	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
+	nodes.RoundDuration = args.RoundDurationInMillis
+	nodes.StartTime = args.GenesisTimeStamp
 
-	privateKeys := make([]crypto.PrivateKey, 0, numOfShards+1)
-	publicKeys := make([]crypto.PublicKey, 0, numOfShards+1)
-	for idx := uint32(0); idx < numOfShards+1; idx++ {
+	nodes.ConsensusGroupSize = 1
+	nodes.MetaChainConsensusGroupSize = 1
+
+	nodes.MinNodesPerShard = args.MinNodesPerShard
+	nodes.MetaChainMinNodes = args.MetaChainMinNodes
+
+	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
+	privateKeys := make([]crypto.PrivateKey, 0)
+	publicKeys := make([]crypto.PublicKey, 0)
+	// generate meta keys
+	for idx := uint32(0); idx < args.MetaChainMinNodes; idx++ {
 		sk, pk := blockSigningGenerator.GeneratePair()
 		privateKeys = append(privateKeys, sk)
 		publicKeys = append(publicKeys, pk)
@@ -225,6 +233,25 @@ func generateValidatorsKeyAndUpdateFiles(
 			PubKey:  hex.EncodeToString(pkBytes),
 			Address: address,
 		})
+	}
+
+	// generate shard keys
+	for idx1 := uint32(0); idx1 < args.NumOfShards; idx1++ {
+		for idx2 := uint32(0); idx2 < args.MinNodesPerShard; idx2++ {
+			sk, pk := blockSigningGenerator.GeneratePair()
+			privateKeys = append(privateKeys, sk)
+			publicKeys = append(publicKeys, pk)
+
+			pkBytes, errB := pk.ToByteArray()
+			if errB != nil {
+				return nil, nil, errB
+			}
+
+			nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
+				PubKey:  hex.EncodeToString(pkBytes),
+				Address: address,
+			})
+		}
 	}
 
 	marshaledNodes, err := json.Marshal(nodes)

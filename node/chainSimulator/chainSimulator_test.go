@@ -32,6 +32,8 @@ func TestNewChainSimulator(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         core.OptionalUint64{},
 		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -54,6 +56,8 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         core.OptionalUint64{},
 		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -83,6 +87,8 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       100,
+		MetaChainMinNodes:      100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -127,6 +133,8 @@ func TestChainSimulator_SetState(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -169,6 +177,8 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)

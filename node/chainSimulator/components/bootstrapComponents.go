@@ -23,6 +23,7 @@ type ArgsBootstrapComponentsHolder struct {
 	ImportDBConfig       config.ImportDbConfig
 	PrefsConfig          config.Preferences
 	Config               config.Config
+	ShardIDStr           string
 }
 
 type bootstrapComponentsHolder struct {
@@ -42,6 +43,8 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (factory.Boot
 	instance := &bootstrapComponentsHolder{
 		closeHandler: NewCloseHandler(),
 	}
+
+	args.PrefsConfig.Preferences.DestinationShardAsObserver = args.ShardIDStr
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
 		Config:               args.Config,
