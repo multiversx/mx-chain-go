@@ -34,7 +34,8 @@ const (
 	// ChainID contains the chain id
 	ChainID = "chain"
 
-	shardIDWalletWithStake = 0
+	shardIDWalletWithStake   = 0
+	allValidatorsPemFileName = "allValidatorsKeys.pem"
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
@@ -87,7 +88,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	configs.ConfigurationPathsHolder.AllValidatorKeys = path.Join(args.OriginalConfigsPath, "allValidatorsKeys.pem")
+	configs.ConfigurationPathsHolder.AllValidatorKeys = path.Join(args.OriginalConfigsPath, allValidatorsPemFileName)
 	err = generateValidatorsPem(configs.ConfigurationPathsHolder.AllValidatorKeys, publicKeys, privateKeys)
 	if err != nil {
 		return nil, err

@@ -59,8 +59,9 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 		ActivateBLSPubKeyMessageVerification: true,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		ValidatorKeyPemFileName:              "missing.pem",
-		AllValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
+		// set validator key pem file with a file that doesn't exist to all validators key pem file
+		ValidatorKeyPemFileName:     "missing.pem",
+		AllValidatorKeysPemFileName: args.AllValidatorKeysPemFileName,
 	}
 
 	cryptoComponentsFactory, err := cryptoComp.NewCryptoComponentsFactory(cryptoComponentsHandlerArgs)
