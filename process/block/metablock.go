@@ -1093,6 +1093,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			false)
 
 		if createErr != nil {
+			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 			return nil, 0, 0, createErr
 		}
 
@@ -1998,6 +1999,8 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 	}
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
 	for hdrHash, headerInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
 		if !headerInfo.usedInBlock {
 			continue
@@ -2047,7 +2050,6 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 
 		shardInfo = append(shardInfo, &shardData)
 	}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	log.Debug("created shard data",
 		"size", len(shardInfo),
