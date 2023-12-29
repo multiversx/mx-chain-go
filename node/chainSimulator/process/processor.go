@@ -84,7 +84,9 @@ func (creator *blocksCreator) CreateNewBlock() error {
 
 	isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(blsKey.PubKey())
 	if !isManaged {
-		log.Debug("cannot propose block", "shard", creator.nodeHandler.GetShardCoordinator().SelfId(), "missing private key")
+		log.Debug("cannot propose block - leader bls key is missing",
+			"leader key", blsKey.PubKey(),
+			"shard", creator.nodeHandler.GetShardCoordinator().SelfId())
 		return nil
 	}
 

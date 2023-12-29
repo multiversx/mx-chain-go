@@ -93,8 +93,6 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			return errCreate
 		}
 
-		fmt.Println(node.GetProcessComponents().ShardCoordinator().SelfId())
-
 		chainHandler, errCreate := process.NewBlocksCreator(node)
 		if errCreate != nil {
 			return errCreate
