@@ -136,6 +136,15 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.OptimizeGasUsedInCrossMiniBlocksFlag,
+		common.ScheduledMiniBlocksFlag,
+		common.FrontRunningProtectionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	if check.IfNil(args.TxTypeHandler) {
 		return nil, process.ErrNilTxTypeHandler
 	}
@@ -299,7 +308,7 @@ func (txs *transactions) computeCacheIdentifier(miniBlockStrCache string, tx *tr
 	if miniBlockType != block.InvalidBlock {
 		return miniBlockStrCache
 	}
-	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return miniBlockStrCache
 	}
 
@@ -495,7 +504,7 @@ func (txs *transactions) processTxsToMe(
 
 	var err error
 	scheduledMode := false
-	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
 		if err != nil {
 			return err
@@ -707,7 +716,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	randomness []byte,
 ) (block.MiniBlockSlice, error) {
 
-	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
@@ -1047,7 +1056,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 
 	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
 	gasBandwidthForScheduled := uint64(0)
-	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		gasBandwidthForScheduled = txs.getRemainingGasPerBlockAsScheduled() * selectionGasBandwidthIncreaseScheduledPercent / 100
 		gasBandwidth += gasBandwidthForScheduled
 	}
@@ -1129,7 +1138,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 
-	if !txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
@@ -1356,7 +1365,7 @@ func (txs *transactions) getMiniBlockSliceFromMap(mapMiniBlocks map[uint32]*bloc
 }
 
 func (txs *transactions) splitMiniBlocksBasedOnMaxGasLimitIfNeeded(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
-	if !txs.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+	if !txs.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 		return miniBlocks
 	}
 
@@ -1557,7 +1566,7 @@ func (txs *transactions) ProcessMiniBlock(
 			break
 		}
 
-		if txs.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+		if txs.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 				break
@@ -1680,7 +1689,7 @@ func (txs *transactions) IsInterfaceNil() bool {
 
 // sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
 func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction, randomness []byte) {
-	if !txs.enableEpochsHandler.IsFrontRunningProtectionFlagEnabled() {
+	if !txs.enableEpochsHandler.IsFlagEnabled(common.FrontRunningProtectionFlag) {
 		sortTransactionsBySenderAndNonceLegacy(transactions)
 		return
 	}
@@ -1861,7 +1870,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	var mapSCTxs map[string]struct{}
 	var remainingTxs []*txcache.WrappedTransaction
 
-	if txs.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		miniBlocks, remainingTxs, mapSCTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
 			haveTime,
 			isShardStuck,

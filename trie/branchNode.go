@@ -291,55 +291,6 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	return nil
 }
 
-func (bn *branchNode) commitCheckpoint(
-	originDb common.TrieStorageInteractor,
-	targetDb common.BaseStorer,
-	checkpointHashes CheckpointHashesHolder,
-	leavesChan chan core.KeyValueHolder,
-	ctx context.Context,
-	stats common.TrieStatisticsHandler,
-	idleProvider IdleNodeProvider,
-	depthLevel int,
-) error {
-	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return core.ErrContextClosing
-	}
-
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit checkpoint error %w", err)
-	}
-
-	hash, err := computeAndSetNodeHash(bn)
-	if err != nil {
-		return err
-	}
-
-	shouldCommit := checkpointHashes.ShouldCommit(hash)
-	if !shouldCommit {
-		return nil
-	}
-
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), originDb)
-		if err != nil {
-			return err
-		}
-
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
-		if err != nil {
-			return err
-		}
-	}
-
-	checkpointHashes.Remove(hash)
-	return bn.saveToStorage(targetDb, stats, depthLevel)
-}
-
 func (bn *branchNode) commitSnapshot(
 	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,

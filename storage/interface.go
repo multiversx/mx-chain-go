@@ -3,7 +3,7 @@ package storage
 import (
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -78,7 +78,7 @@ type Storer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error)
 	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
 	Close() error
@@ -212,4 +212,12 @@ type ManagedPeersHolder interface {
 type PersisterFactoryHandler interface {
 	Create(path string) (Persister, error)
 	IsInterfaceNil() bool
+}
+
+// StateStatsHandler defines the behaviour needed to handler storage statistics
+type StateStatsHandler interface {
+	IncrCache()
+	IncrSnapshotCache()
+	IncrPersister(epoch uint32)
+	IncrSnapshotPersister(epoch uint32)
 }
