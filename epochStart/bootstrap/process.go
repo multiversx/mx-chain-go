@@ -1136,13 +1136,26 @@ func (e *epochStartBootstrap) createStorageService(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier epochStart.EpochStartNotifier,
-	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,
 ) (dataRetriever.StorageService, error) {
+	startEpoch := uint32(0)
+
+	clonedConfig := e.generalConfig
+	clonedConfig.AccountsTrieStorage = config.StorageConfig{
+		Cache: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10,
+		},
+		DB: config.DBConfig{
+			Type: "MemoryDB",
+		},
+	}
+	clonedConfig.PeerAccountsTrieStorage = clonedConfig.AccountsTrieStorage
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        e.generalConfig,
+			Config:                        clonedConfig,
 			PrefsConfig:                   e.prefsConfig,
 			ShardCoordinator:              shardCoordinator,
 			PathManager:                   pathManager,

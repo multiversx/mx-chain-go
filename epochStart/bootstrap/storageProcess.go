@@ -231,8 +231,9 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
+	initialEpoch := uint32(1)
 	mesn := notifier.NewManualEpochStartNotifier()
-	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
+	mesn.NewEpoch(initialEpoch)
 	sesb.store, err = sesb.createStoreForStorageResolvers(shardCoordinator, mesn)
 	if err != nil {
 		return err
@@ -287,7 +288,6 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		shardCoordinator,
 		pathManager,
 		mesn,
-		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
 		sesb.importDbConfig.ImportDBTargetShardID,
 	)

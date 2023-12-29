@@ -1515,9 +1515,21 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 		}
 	}()
 
+	clonedConfig := pcf.config
+	clonedConfig.AccountsTrieStorage = config.StorageConfig{
+		Cache: config.CacheConfig{
+			Type:     "LRU",
+			Capacity: 10,
+		},
+		DB: config.DBConfig{
+			Type: "MemoryDB",
+		},
+	}
+	clonedConfig.PeerAccountsTrieStorage = clonedConfig.AccountsTrieStorage
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        pcf.config,
+			Config:                        clonedConfig,
 			PrefsConfig:                   pcf.prefConfigs.Preferences,
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
 			PathManager:                   pathManager,
