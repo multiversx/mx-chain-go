@@ -1,7 +1,6 @@
 package nodesCoordinator
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"runtime/debug"
@@ -377,10 +376,6 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 }
 
 func (ihnc *indexHashedNodesCoordinator) checkInitialSaveState(key []byte) error {
-	if !bytes.Equal(key, ihnc.savedStateKey) {
-		return nil
-	}
-
 	registry := ihnc.NodesCoordinatorToRegistry()
 
 	for epoch := range registry.EpochsConfig {

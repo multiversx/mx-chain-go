@@ -84,24 +84,26 @@ func DisplayNodesCoordinatorRegistry(
 	log.Debug("DisplayNodesCoordinatorRegistry: START")
 	for epoch, epochValidators := range nodesConfig.EpochsConfig {
 		log.Debug("DisplayNodesCoordinatorRegistry: epoch", "epoch", epoch)
-		for _, validators := range epochValidators.EligibleValidators {
-			for shardID, v := range validators {
-				pk := v.PubKey
-				log.Debug("eligible", "pk", pk, "shardID", shardID)
-			}
+
+		nConfig, err := epochValidatorsToEpochNodesConfig(epochValidators)
+		if err != nil {
+			log.Error("DisplayNodesCoordinatorRegistry: failed to convert epoch validators", "error", err.Error())
+			return
 		}
-		for _, validators := range epochValidators.WaitingValidators {
-			for shardID, v := range validators {
-				pk := v.PubKey
-				log.Debug("waiting", "pk", pk, "shardID", shardID)
-			}
+
+		nbShards := uint32(len(nConfig.eligibleMap))
+		if nbShards < 2 {
+			log.Error("DisplayNodesCoordinatorRegistry: invalid num shards", "error", ErrInvalidNumberOfShards)
+			return
 		}
-		for _, validators := range epochValidators.LeavingValidators {
-			for shardID, v := range validators {
-				pk := v.PubKey
-				log.Debug("leaving", "pk", pk, "shardID", shardID)
-			}
-		}
+		nConfig.nbShards = nbShards - 1
+
+		displayNodesConfiguration(
+			nConfig.eligibleMap,
+			nConfig.waitingMap,
+			nConfig.leavingMap,
+			make(map[uint32][]Validator),
+			nConfig.nbShards)
 	}
 	log.Debug("DisplayNodesCoordinatorRegistry: END")
 }
