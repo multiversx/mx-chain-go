@@ -282,7 +282,8 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
 	log.Debug("getNodesConfig: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
 
-	return nodesConfig, true
+	// return nodesConfig, true
+	return nc, ok
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
