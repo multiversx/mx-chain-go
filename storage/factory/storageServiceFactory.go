@@ -38,6 +38,9 @@ const (
 
 	// ProcessStorageService is used in normal processing
 	ProcessStorageService StorageServiceType = "process"
+
+	// ImportDBStorageService is used for the import-db storage service
+	ImportDBStorageService StorageServiceType = "import-db"
 )
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
@@ -418,11 +421,12 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
 	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
-	if !psf.snapshotsEnabled {
-		return psf.createTriePersister(storageConfig)
+	isPruningPersister := psf.snapshotsEnabled && psf.storageType != ImportDBStorageService
+	if isPruningPersister {
+		return psf.createTriePruningPersister(pruningStorageArgs)
 	}
 
-	return psf.createTriePruningPersister(pruningStorageArgs)
+	return psf.createTriePersister(storageConfig)
 }
 
 func (psf *StorageServiceFactory) setUpLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) error {
@@ -569,8 +573,8 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		NumOfActivePersisters: numOfActivePersisters,
 	}
 
-	dbConfigHandler := NewDBConfigHandler(storageConfig.DB)
-	persisterFactory, err := NewPersisterFactory(dbConfigHandler)
+	dbConfigHandlerInstance := NewDBConfigHandler(storageConfig.DB)
+	persisterFactory, err := NewPersisterFactory(dbConfigHandlerInstance)
 	if err != nil {
 		return pruning.StorerArgs{}, err
 	}

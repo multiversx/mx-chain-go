@@ -1132,7 +1132,7 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createStorageService(
+func (e *epochStartBootstrap) createStorageServiceForImportDB(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier epochStart.EpochStartNotifier,
@@ -1144,11 +1144,11 @@ func (e *epochStartBootstrap) createStorageService(
 	clonedConfig := e.generalConfig
 	clonedConfig.AccountsTrieStorage = config.StorageConfig{
 		Cache: config.CacheConfig{
-			Type:     "LRU",
+			Type:     string(storageunit.LRUCache),
 			Capacity: 10,
 		},
 		DB: config.DBConfig{
-			Type: "MemoryDB",
+			Type: string(storageunit.MemoryDB),
 		},
 	}
 	clonedConfig.PeerAccountsTrieStorage = clonedConfig.AccountsTrieStorage
@@ -1162,7 +1162,7 @@ func (e *epochStartBootstrap) createStorageService(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
 			CurrentEpoch:                  startEpoch,
-			StorageType:                   storageFactory.BootstrapStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,

@@ -284,7 +284,7 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		return nil, err
 	}
 
-	return sesb.createStorageService(
+	return sesb.createStorageServiceForImportDB(
 		shardCoordinator,
 		pathManager,
 		mesn,
