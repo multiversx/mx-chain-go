@@ -125,7 +125,7 @@ func (ihnc *indexHashedNodesCoordinator) nodesConfigFromValidatorsInfo(
 	validatorsInfo []*state.ShardValidatorInfo,
 ) (*epochNodesConfig, error) {
 	epoch := metaBlock.GetEpoch()
-	randomness := metaBlock.GetRandSeed()
+	randomness := metaBlock.GetPrevRandSeed()
 
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorsInfo)
 	if err != nil {
