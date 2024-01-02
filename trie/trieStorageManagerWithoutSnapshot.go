@@ -57,6 +57,11 @@ func (tsm *trieStorageManagerWithoutSnapshot) ShouldTakeSnapshot() bool {
 	return false
 }
 
+// IsSnapshotSupported returns false as the snapshotting process is not supported by the current implementation
+func (tsm *trieStorageManagerWithoutSnapshot) IsSnapshotSupported() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tsm *trieStorageManagerWithoutSnapshot) IsInterfaceNil() bool {
 	return tsm == nil
