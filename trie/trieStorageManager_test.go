@@ -563,6 +563,20 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 
 		assert.False(t, ts.ShouldTakeSnapshot())
 	})
+	t.Run("different syncVal marker should return true", func(t *testing.T) {
+		t.Parallel()
+
+		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
+				return []byte("invalid marker"), nil
+			},
+			MemDbMock: testscommon.NewMemDbMock(),
+		}
+		ts, _ := trie.NewTrieStorageManager(args)
+
+		assert.True(t, ts.ShouldTakeSnapshot())
+	})
 	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns ActiveDBVal should return true", func(t *testing.T) {
 		t.Parallel()
 
