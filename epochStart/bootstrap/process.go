@@ -1141,21 +1141,9 @@ func (e *epochStartBootstrap) createStorageServiceForImportDB(
 ) (dataRetriever.StorageService, error) {
 	startEpoch := uint32(0)
 
-	clonedConfig := e.generalConfig
-	clonedConfig.AccountsTrieStorage = config.StorageConfig{
-		Cache: config.CacheConfig{
-			Type:     string(storageunit.LRUCache),
-			Capacity: 10,
-		},
-		DB: config.DBConfig{
-			Type: string(storageunit.MemoryDB),
-		},
-	}
-	clonedConfig.PeerAccountsTrieStorage = clonedConfig.AccountsTrieStorage
-
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        clonedConfig,
+			Config:                        e.generalConfig,
 			PrefsConfig:                   e.prefsConfig,
 			ShardCoordinator:              shardCoordinator,
 			PathManager:                   pathManager,

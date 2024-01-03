@@ -10,16 +10,6 @@ func GetPersisterConfigFilePath(path string) string {
 	return getPersisterConfigFilePath(path)
 }
 
-// GetDefaultDBConfig -
-func GetDefaultDBConfig() *config.DBConfig {
-	return &config.DBConfig{
-		Type:              defaultType,
-		BatchDelaySeconds: defaultBatchDelaySeconds,
-		MaxBatchSize:      defaultMaxBatchSize,
-		MaxOpenFiles:      defaultMaxOpenFiles,
-	}
-}
-
 // NewPersisterCreator -
 func NewPersisterCreator(config config.DBConfig) *persisterCreator {
 	return newPersisterCreator(config)

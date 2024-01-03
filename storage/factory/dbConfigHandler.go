@@ -9,11 +9,7 @@ import (
 )
 
 const (
-	dbConfigFileName         = "config.toml"
-	defaultType              = "LvlDBSerial"
-	defaultBatchDelaySeconds = 2
-	defaultMaxBatchSize      = 100
-	defaultMaxOpenFiles      = 10
+	dbConfigFileName = "config.toml"
 )
 
 type dbConfigHandler struct {
@@ -42,21 +38,12 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
 	err := core.LoadTomlFile(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
-		log.Debug("GetDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
+		log.Debug("GetDBConfig: loaded db config from toml config file",
+			"config path", dbConfigFromFile,
+			"type", dbConfigFromFile.Type,
+			"DB file path", dbConfigFromFile.FilePath,
+		)
 		return dbConfigFromFile, nil
-	}
-
-	empty := checkIfDirIsEmpty(path)
-	if !empty {
-		dbConfig := &config.DBConfig{
-			Type:              defaultType,
-			BatchDelaySeconds: defaultBatchDelaySeconds,
-			MaxBatchSize:      defaultMaxBatchSize,
-			MaxOpenFiles:      defaultMaxOpenFiles,
-		}
-
-		log.Debug("GetDBConfig: loaded default db config")
-		return dbConfig, nil
 	}
 
 	dbConfig := &config.DBConfig{
@@ -68,7 +55,11 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		NumShards:           dh.numShards,
 	}
 
-	log.Debug("GetDBConfig: loaded db config from main config file")
+	log.Debug("GetDBConfig: loaded db config from main config file",
+		"type", dbConfig.Type,
+		"DB file path", dbConfig.FilePath,
+	)
+
 	return dbConfig, nil
 }
 
@@ -118,20 +109,6 @@ func checkIfDirExists(path string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-func checkIfDirIsEmpty(path string) bool {
-	files, err := os.ReadDir(path)
-	if err != nil {
-		log.Trace("getDBConfig: failed to check if dir is empty", "path", path, "error", err.Error())
-		return true
-	}
-
-	if len(files) == 0 {
-		return true
-	}
-
-	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

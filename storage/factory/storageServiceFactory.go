@@ -253,7 +253,7 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 
-	userAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
+	userAccountsUnit, err := psf.createTrieStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return fmt.Errorf("%w for AccountsTrieStorage", err)
 	}
@@ -409,7 +409,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	peerAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	peerAccountsUnit, err := psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +438,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	return store, err
 }
 
-func (psf *StorageServiceFactory) createTriePruningStorer(
+func (psf *StorageServiceFactory) createTrieStorer(
 	storageConfig config.StorageConfig,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
 ) (storage.Storer, error) {
@@ -458,12 +458,15 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
 	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
-	isPruningPersister := psf.snapshotsEnabled && psf.storageType != ImportDBStorageService
-	if isPruningPersister {
-		return psf.createTriePruningPersister(pruningStorageArgs)
+	if psf.storageType == ImportDBStorageService {
+		return storageDisabled.NewStorer(), nil
 	}
 
-	return psf.createTriePersister(storageConfig)
+	if !psf.snapshotsEnabled {
+		return psf.createTriePersister(storageConfig)
+	}
+
+	return psf.createTriePruningPersister(pruningStorageArgs)
 }
 
 func (psf *StorageServiceFactory) setUpLogsAndEventsStorer(chainStorer *dataRetriever.ChainStorer) error {
@@ -721,15 +724,10 @@ func (psf *StorageServiceFactory) createTriePersister(
 		return nil, err
 	}
 
-	trieUnit, err := storageunit.NewStorageUnitFromConf(
+	return storageunit.NewStorageUnitFromConf(
 		GetCacherFromConfig(storageConfig.Cache),
 		trieDBConfig,
 		persisterFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return trieUnit, nil
 }
 
 func (psf *StorageServiceFactory) createTriePruningPersister(arg pruning.StorerArgs) (storage.Storer, error) {
