@@ -102,7 +102,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
 	panicIfError("Create persister factory", err)
 
-	persister, err := storageunit.NewDB(persisterFactory, tempDir)
+	persister, err := persisterFactory.CreateWithRetries(tempDir)
 	panicIfError("Create trieSync DB", err)
 	tnf := factory.NewTrieNodeFactory()
 

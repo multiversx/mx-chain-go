@@ -14,9 +14,6 @@ type Unit = storageUnit.Unit
 // CacheConfig holds the configurable elements of a cache
 type CacheConfig = storageUnit.CacheConfig
 
-// ArgDB is a structure that is used to create a new storage.Persister implementation
-type ArgDB = storageUnit.ArgDB
-
 // DBConfig holds the configurable elements of a database
 type DBConfig = storageUnit.DBConfig
 
@@ -41,11 +38,6 @@ func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
 // NewCache creates a new cache from a cache config
 func NewCache(config CacheConfig) (storage.Cacher, error) {
 	return storageUnit.NewCache(config)
-}
-
-// NewDB creates a new database from database config
-func NewDB(persisterFactory storage.PersisterFactoryHandler, path string) (storage.Persister, error) {
-	return storageUnit.NewDB(persisterFactory, path)
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config

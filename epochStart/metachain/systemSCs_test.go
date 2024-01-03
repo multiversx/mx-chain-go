@@ -92,7 +92,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 	assert.Nil(t, err)
 
 	cache, _ := storageunit.NewCache(cacheConfig)
-	persist, _ := storageunit.NewDB(persisterFactory, dir)
+	persist, _ := persisterFactory.CreateWithRetries(dir)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit, dir

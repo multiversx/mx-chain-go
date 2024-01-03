@@ -3,7 +3,6 @@ package factory
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
@@ -74,7 +73,7 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 
 	persisterPath := o.getPersisterPath(pathWithoutShard, mostRecentShard, dbConfig)
 
-	persister, err := createDB(persisterFactory, persisterPath)
+	persister, err := persisterFactory.CreateWithRetries(persisterPath)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +117,7 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 		return nil, err
 	}
 
-	persister, err := createDB(persisterFactory, persisterPath)
+	persister, err := persisterFactory.CreateWithRetries(persisterPath)
 	if err != nil {
 		return nil, err
 	}
@@ -129,21 +128,6 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 	}
 
 	return storageunit.NewStorageUnit(lruCache, persister)
-}
-
-func createDB(persisterFactory *PersisterFactory, persisterPath string) (storage.Persister, error) {
-	var persister storage.Persister
-	var err error
-	for i := 0; i < storage.MaxRetriesToCreateDB; i++ {
-		persister, err = persisterFactory.Create(persisterPath)
-		if err == nil {
-			return persister, nil
-		}
-		log.Warn("Create Persister failed", "path", persisterPath, "error", err)
-		//TODO: extract this in a parameter and inject it
-		time.Sleep(storage.SleepTimeBetweenCreateDBRetries)
-	}
-	return nil, err
 }
 
 func (o *openStorageUnits) getMostUpToDateDirectory(

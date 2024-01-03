@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/disabled"
@@ -20,6 +22,26 @@ func NewPersisterFactory(dbConfigHandler storage.DBConfigHandler) (*PersisterFac
 	return &PersisterFactory{
 		dbConfigHandler: dbConfigHandler,
 	}, nil
+}
+
+// CreateWithRetries will return a new instance of a DB with a given path
+// It will try to create db multiple times
+func (pf *PersisterFactory) CreateWithRetries(path string) (storage.Persister, error) {
+	var persister storage.Persister
+	var err error
+
+	for i := 0; i < storage.MaxRetriesToCreateDB; i++ {
+		persister, err = pf.Create(path)
+		if err == nil {
+			return persister, nil
+		}
+		log.Warn("Create Persister failed", "path", path, "error", err)
+
+		// TODO: extract this in a parameter and inject it
+		time.Sleep(storage.SleepTimeBetweenCreateDBRetries)
+	}
+
+	return nil, err
 }
 
 // Create will return a new instance of a DB with a given path

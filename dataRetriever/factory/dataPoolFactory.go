@@ -194,7 +194,7 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 		path = filePath
 	}
 
-	db, err := storageunit.NewDB(persisterFactory, path)
+	db, err := persisterFactory.CreateWithRetries(path)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 	}

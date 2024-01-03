@@ -91,7 +91,7 @@ func TestNewDB(t *testing.T) {
 		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
 		assert.Nil(t, err)
 
-		db, err := storageunit.NewDB(persisterFactory, path)
+		db, err := persisterFactory.CreateWithRetries(path)
 		assert.True(t, check.IfNil(db))
 		assert.Equal(t, common.ErrNotSupportedDBType, err)
 	})
@@ -111,7 +111,7 @@ func TestNewDB(t *testing.T) {
 		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
 		assert.Nil(t, err)
 
-		db, err := storageunit.NewDB(persisterFactory, path)
+		db, err := persisterFactory.CreateWithRetries(path)
 		assert.False(t, check.IfNil(db))
 		assert.Nil(t, err)
 		_ = db.Close()
