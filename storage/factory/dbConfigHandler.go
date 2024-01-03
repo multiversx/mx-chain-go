@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -10,6 +11,7 @@ import (
 
 const (
 	dbConfigFileName = "config.toml"
+	defaultType      = "LvlDBSerial"
 )
 
 type dbConfigHandler struct {
@@ -39,11 +41,26 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	err := core.LoadTomlFile(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
 		log.Debug("GetDBConfig: loaded db config from toml config file",
-			"config path", dbConfigFromFile,
-			"type", dbConfigFromFile.Type,
-			"DB file path", dbConfigFromFile.FilePath,
+			"config path", path,
+			"configuration", fmt.Sprintf("%+v", dbConfigFromFile),
 		)
 		return dbConfigFromFile, nil
+	}
+
+	empty := checkIfDirIsEmpty(path)
+	if !empty {
+		dbConfig := &config.DBConfig{
+			Type:              defaultType,
+			BatchDelaySeconds: dh.batchDelaySeconds,
+			MaxBatchSize:      dh.maxBatchSize,
+			MaxOpenFiles:      dh.maxOpenFiles,
+		}
+
+		log.Debug("GetDBConfig: loaded default db config",
+			"configuration", fmt.Sprintf("%+v", dbConfig),
+		)
+
+		return dbConfig, nil
 	}
 
 	dbConfig := &config.DBConfig{
@@ -56,8 +73,7 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	}
 
 	log.Debug("GetDBConfig: loaded db config from main config file",
-		"type", dbConfig.Type,
-		"DB file path", dbConfig.FilePath,
+		"configuration", fmt.Sprintf("%+v", dbConfig),
 	)
 
 	return dbConfig, nil
@@ -109,6 +125,20 @@ func checkIfDirExists(path string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func checkIfDirIsEmpty(path string) bool {
+	files, err := os.ReadDir(path)
+	if err != nil {
+		log.Trace("getDBConfig: failed to check if dir is empty", "path", path, "error", err.Error())
+		return true
+	}
+
+	if len(files) == 0 {
+		return true
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

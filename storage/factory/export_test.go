@@ -5,6 +5,9 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// DefaultType exports the defaultType const to be used in tests
+const DefaultType = defaultType
+
 // GetPersisterConfigFilePath -
 func GetPersisterConfigFilePath(path string) string {
 	return getPersisterConfigFilePath(path)

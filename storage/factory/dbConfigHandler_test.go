@@ -53,6 +53,11 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		t.Parallel()
 
 		testConfig := createDefaultDBConfig()
+		testConfig.BatchDelaySeconds = 37
+		testConfig.MaxBatchSize = 38
+		testConfig.MaxOpenFiles = 39
+		testConfig.ShardIDProviderType = "BinarySplit"
+		testConfig.NumShards = 4
 		pf := factory.NewDBConfigHandler(testConfig)
 
 		dirPath := t.TempDir()
@@ -68,9 +73,20 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 			_ = f.Close()
 		}()
 
+		expectedDBConfig := &config.DBConfig{
+			FilePath:            "",
+			Type:                factory.DefaultType,
+			BatchDelaySeconds:   testConfig.BatchDelaySeconds,
+			MaxBatchSize:        testConfig.MaxBatchSize,
+			MaxOpenFiles:        testConfig.MaxOpenFiles,
+			UseTmpAsFilePath:    false,
+			ShardIDProviderType: "",
+			NumShards:           0,
+		}
+
 		conf, err := pf.GetDBConfig(dirPath)
 		require.Nil(t, err)
-		require.Equal(t, testConfig, *conf)
+		require.Equal(t, expectedDBConfig, conf)
 	})
 	t.Run("empty dir, load db config from main config", func(t *testing.T) {
 		t.Parallel()
