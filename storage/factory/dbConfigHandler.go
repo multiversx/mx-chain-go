@@ -12,7 +12,7 @@ const (
 	dbConfigFileName         = "config.toml"
 	defaultType              = "LvlDBSerial"
 	defaultBatchDelaySeconds = 2
-	defaultMaxBatchSize      = 100
+	defaultMaxBatchSize      = 45000 // TODO: refactor this in next release candidate
 	defaultMaxOpenFiles      = 10
 )
 
