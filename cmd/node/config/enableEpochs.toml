@@ -62,7 +62,7 @@
     ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 5
+    GovernanceEnableEpoch = 999999
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -252,40 +252,40 @@
     DeterministicSortOnValidatorsInfoEnableEpoch = 1
 
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
-    SCProcessorV2EnableEpoch = 3
+    SCProcessorV2EnableEpoch = 999999
 
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
-    AutoBalanceDataTriesEnableEpoch = 3
+    AutoBalanceDataTriesEnableEpoch = 999999
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
-    KeepExecOrderOnCreatedSCRsEnableEpoch = 3
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 999999
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
-    MultiClaimOnDelegationEnableEpoch = 3
+    MultiClaimOnDelegationEnableEpoch = 999999
 
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
-    ChangeUsernameEnableEpoch = 3
+    ChangeUsernameEnableEpoch = 999999
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
-    ConsistentTokensValuesLengthCheckEnableEpoch = 3
+    ConsistentTokensValuesLengthCheckEnableEpoch = 999999
 
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
-    FixDelegationChangeOwnerOnAccountEnableEpoch = 3
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 999999
 
     # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
-    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 999999
 
     # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
-    ScToScLogEventEnableEpoch = 3
+    ScToScLogEventEnableEpoch = 999999
 
     # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
-    NFTStopCreateEnableEpoch = 3
+    NFTStopCreateEnableEpoch = 999999
 
     # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
-    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 3
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 999999
 
     # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
-    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 3
+    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 999999
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
