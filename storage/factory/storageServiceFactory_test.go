@@ -439,6 +439,20 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
+	t.Run("should work for import-db", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StorageType = ImportDBStorageService
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storageService))
+		allStorers := storageService.GetAllStorers()
+		expectedStorers := 23
+		assert.Equal(t, expectedStorers, len(allStorers))
+		_ = storageService.CloseAll()
+	})
 }
 
 func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
@@ -490,6 +504,22 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForMeta()
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storageService))
+		allStorers := storageService.GetAllStorers()
+		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
+		numShardHdrStorage := 3
+		expectedStorers := 23 - missingStorers + numShardHdrStorage
+		assert.Equal(t, expectedStorers, len(allStorers))
+		_ = storageService.CloseAll()
+	})
+	t.Run("should work for import-db", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StorageType = ImportDBStorageService
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 		storageService, err := storageServiceFactory.CreateForMeta()
 		assert.Nil(t, err)
