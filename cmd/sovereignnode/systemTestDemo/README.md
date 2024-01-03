@@ -32,7 +32,7 @@ INFO [2023-04-24 17:08:42.024] [..overeign-process] [0/0/106/(END_ROUND)] found 
 ```
 
 Inside this folder, there is a `main.go` script which sends a transaction to one of the subscribed sovereign addresses.
-The address is specified by `SubscribedEvents` field from this config
+The address is specified by `Addresses` field from `SubscribedEvents` struct from this config
 file `mx-chain-go/cmd/sovereignnode/config/sovereignConfig.toml`
 
 ## How to use
