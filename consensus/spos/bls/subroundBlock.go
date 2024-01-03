@@ -112,7 +112,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	sentWithSuccess, signatureShare := sr.sendBlock(header, body, leader)
+	sentWithSuccess := sr.sendBlock(header, body, leader)
 	if !sentWithSuccess {
 		return false
 	}
@@ -125,11 +125,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		headerHash := sr.Hasher().Compute(string(marshalledHeader))
 		previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
 		sr.saveProposedEquivalentMessage(string(headerHash), previousBitmap, previousAggregatedSignature)
-
-		return sr.processBlock(ctx, sr.RoundHandler().Index(), []byte(leader), signatureShare)
 	}
 
-	// TODO[cleanup cns finality]: remove these lines once the above epoch will be active
 	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
@@ -152,17 +149,17 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) (bool, []byte) {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) bool {
 	marshalizedBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
-		return false, nil
+		return false
 	}
 
 	marshalizedHeader, err := sr.Marshalizer().Marshal(header)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: header", "error", err.Error())
-		return false, nil
+		return false
 	}
 
 	var signatureShare []byte
@@ -170,7 +167,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 		selfIndex, err := sr.ConsensusGroupIndex(leader)
 		if err != nil {
 			log.Debug("sendBlock.SelfConsensusGroupIndex: leader not in consensus group")
-			return false, nil
+			return false
 		}
 
 		headerHash := sr.Hasher().Compute(string(marshalizedHeader))
@@ -182,7 +179,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 		)
 		if err != nil {
 			log.Debug("sendBlock.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false, nil
+			return false
 		}
 	}
 
@@ -191,10 +188,10 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader, signatureShare) {
-		return false, nil
+		return false
 	}
 
-	return true, signatureShare
+	return true
 }
 
 func (sr *subroundBlock) couldBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
@@ -232,13 +229,13 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	marshalizedBody []byte,
 	marshalizedHeader []byte,
 	signature []byte,
-) (bool, []byte) {
+) bool {
 	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("sendBlockBodyAndHeader.GetLeader", "error", errGetLeader)
-		return false, nil
+		return false
 	}
 
 	cnsMsg := consensus.NewConsensusMessage(
@@ -261,7 +258,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("sendHeaderAndBlockBody.BroadcastConsensusMessage", "error", err.Error())
-		return false, nil
+		return false
 	}
 
 	log.Debug("step 1: block body and header have been sent",
@@ -272,7 +269,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.Body = bodyHandler
 	sr.Header = headerHandler
 
-	return true, signature
+	return true
 }
 
 // sendBlockBody method sends the proposed block body in the subround Block
