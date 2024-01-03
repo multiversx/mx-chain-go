@@ -73,6 +73,7 @@ GLOBAL OPTIONS:
    --logs-path directory                     This flag specifies the directory where the node will store logs.
    --operation-mode operation mode           String flag for specifying the desired operation mode(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `""` (empty). Multiple values can be separated via ,
    --repopulate-tokens-supplies              Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies
+   --p2p-prometheus-metrics                  Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics
    --help, -h                                show help
    --version, -v                             print the version
    

@@ -143,14 +143,18 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 		return err
 	}
 
-	if n.isPosCollapsed(int(pos)) {
-		err = n.resolveCollapsed(pos, db)
-		if err != nil {
-			return err
-		}
+	if !n.isPosCollapsed(int(pos)) {
+		handleStorageInteractorStats(db)
+		return nil
 	}
 
-	return nil
+	return n.resolveCollapsed(pos, db)
+}
+
+func handleStorageInteractorStats(db common.TrieStorageInteractor) {
+	if db != nil {
+		db.GetStateStatsHandler().IncrTrie()
+	}
 }
 
 func concat(s1 []byte, s2 ...byte) []byte {

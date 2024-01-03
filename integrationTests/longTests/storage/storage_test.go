@@ -112,7 +112,6 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 	storageManagerArgs.Hasher = blake2b.NewBlake2b()
 
 	options := storage.GetStorageManagerOptions()
-	options.CheckpointsEnabled = false
 	options.PruningEnabled = false
 
 	trieStorage, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)

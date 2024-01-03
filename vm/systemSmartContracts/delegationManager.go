@@ -75,6 +75,15 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.DelegationManagerFlag,
+		common.ValidatorToDelegationFlag,
+		common.FixDelegationChangeOwnerOnAccountFlag,
+		common.MultiClaimOnDelegationFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	minCreationDeposit, okConvert := big.NewInt(0).SetString(args.DelegationMgrSCConfig.MinCreationDeposit, conversionBase)
 	if !okConvert || minCreationDeposit.Cmp(zero) < 0 {
@@ -115,7 +124,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return vmcommon.UserError
 	}
 
-	if !d.enableEpochsHandler.IsDelegationManagerFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationManagerFlag) {
 		d.eei.AddReturnMessage("delegation manager contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -268,7 +277,7 @@ func (d *delegationManager) deployNewContract(
 }
 
 func (d *delegationManager) correctOwnerOnAccount(newAddress []byte, caller []byte) error {
-	if !d.enableEpochsHandler.FixDelegationChangeOwnerOnAccountEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag) {
 		return nil // backwards compatibility
 	}
 
@@ -305,7 +314,7 @@ func (d *delegationManager) makeNewContractFromValidatorData(args *vmcommon.Cont
 }
 
 func (d *delegationManager) checkValidatorToDelegationInput(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
@@ -563,7 +572,7 @@ func (d *delegationManager) executeFuncOnListAddresses(
 	args *vmcommon.ContractCallInput,
 	funcName string,
 ) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsMultiClaimOnDelegationEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
 	}
@@ -689,7 +698,7 @@ func (d *delegationManager) SetNewGasCost(gasCost vm.GasCost) {
 
 // CanUseContract returns true if contract can be used
 func (d *delegationManager) CanUseContract() bool {
-	return d.enableEpochsHandler.IsDelegationManagerFlagEnabled()
+	return d.enableEpochsHandler.IsFlagEnabled(common.DelegationManagerFlag)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

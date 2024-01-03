@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -53,6 +54,7 @@ type StorageServiceFactory struct {
 	nodeProcessingMode            common.NodeProcessingMode
 	snapshotsEnabled              bool
 	repopulateTokensSupplies      bool
+	stateStatsHandler             common.StateStatisticsHandler
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -69,6 +71,7 @@ type StorageServiceFactoryArgs struct {
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
 	RepopulateTokensSupplies      bool
+	StateStatsHandler             common.StateStatisticsHandler
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -104,6 +107,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		nodeProcessingMode:            args.NodeProcessingMode,
 		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
+		stateStatsHandler:             args.StateStatsHandler,
 	}, nil
 }
 
@@ -119,6 +123,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.EpochStartNotifier) {
 		return storage.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.StateStatsHandler) {
+		return statistics.ErrNilStateStatsHandler
 	}
 
 	return nil
@@ -248,26 +255,6 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 		return fmt.Errorf("%w for AccountsTrieStorage", err)
 	}
 	store.AddStorer(dataRetriever.UserAccountsUnit, userAccountsUnit)
-
-	userAccountsCheckpointsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.AccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover)
-	if err != nil {
-		return err
-	}
-	userAccountsCheckpointsUnit, err := psf.createPruningPersister(userAccountsCheckpointsUnitArgs)
-	if err != nil {
-		return fmt.Errorf("%w for AccountsTrieCheckpointsStorage", err)
-	}
-	store.AddStorer(dataRetriever.UserAccountsCheckpointsUnit, userAccountsCheckpointsUnit)
-
-	peerAccountsCheckpointsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieCheckpointsStorage, disabledCustomDatabaseRemover)
-	if err != nil {
-		return err
-	}
-	peerAccountsCheckpointsUnit, err := psf.createPruningPersister(peerAccountsCheckpointsUnitArgs)
-	if err != nil {
-		return fmt.Errorf("%w for PeerAccountsTrieCheckpointsStorage", err)
-	}
-	store.AddStorer(dataRetriever.PeerAccountsCheckpointsUnit, peerAccountsCheckpointsUnit)
 
 	statusMetricsDbConfig := GetDBFromConfig(psf.generalConfig.StatusMetricsStorage.DB)
 	shardId := core.GetShardIDString(psf.shardCoordinator.SelfId())
@@ -682,6 +669,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		EnabledDbLookupExtensions: psf.generalConfig.DbLookupExtensions.Enabled,
 		PersistersTracker:         pruning.NewPersistersTracker(epochsData),
 		EpochsData:                epochsData,
+		StateStatsHandler:         psf.stateStatsHandler,
 	}
 
 	return args, nil
