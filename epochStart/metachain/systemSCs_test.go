@@ -87,8 +87,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		MaxOpenFiles:      10,
 	}
 
-	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
 	assert.Nil(t, err)
 
 	cache, _ := storageunit.NewCache(cacheConfig)

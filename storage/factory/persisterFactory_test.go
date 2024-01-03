@@ -15,8 +15,7 @@ import (
 func TestNewPersisterFactory(t *testing.T) {
 	t.Parallel()
 
-	dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
-	pf, err := factory.NewPersisterFactory(dbConfigHandler)
+	pf, err := factory.NewPersisterFactory(createDefaultDBConfig())
 	require.NotNil(t, pf)
 	require.Nil(t, err)
 }
@@ -27,8 +26,7 @@ func TestPersisterFactory_Create(t *testing.T) {
 	t.Run("invalid file path, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
-		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 
 		p, err := pf.Create("")
 		require.Nil(t, p)
@@ -38,8 +36,7 @@ func TestPersisterFactory_Create(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
-		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 
 		dir := t.TempDir()
 
@@ -57,8 +54,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.LvlDB)
-		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
-		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -77,8 +73,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.LvlDBSerial)
-		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
-		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -97,8 +92,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.MemoryDB)
-		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
-		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -117,8 +111,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.MemoryDB)
-		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
-		pf, _ := factory.NewPersisterFactory(dbConfigHandler)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -135,8 +128,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 func TestPersisterFactory_CreateDisabled(t *testing.T) {
 	t.Parallel()
 
-	dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
-	factoryInstance, err := factory.NewPersisterFactory(dbConfigHandler)
+	factoryInstance, err := factory.NewPersisterFactory(createDefaultDBConfig())
 	require.Nil(t, err)
 
 	persisterInstance := factoryInstance.CreateDisabled()
@@ -147,10 +139,6 @@ func TestPersisterFactory_CreateDisabled(t *testing.T) {
 func TestPersisterFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	var pf *factory.PersisterFactory
-	require.True(t, pf.IsInterfaceNil())
-
-	dbConfigHandler := factory.NewDBConfigHandler(createDefaultDBConfig())
-	pf, _ = factory.NewPersisterFactory(dbConfigHandler)
+	pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 	require.False(t, pf.IsInterfaceNil())
 }

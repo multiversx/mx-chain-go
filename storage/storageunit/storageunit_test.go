@@ -87,8 +87,7 @@ func TestNewDB(t *testing.T) {
 			MaxOpenFiles:      10,
 		}
 
-		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
-		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		persisterFactory, err := factory.NewPersisterFactory(dbConfig)
 		assert.Nil(t, err)
 
 		db, err := persisterFactory.CreateWithRetries(path)
@@ -107,8 +106,7 @@ func TestNewDB(t *testing.T) {
 			MaxOpenFiles:      10,
 		}
 
-		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
-		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		persisterFactory, err := factory.NewPersisterFactory(dbConfig)
 		assert.Nil(t, err)
 
 		db, err := persisterFactory.CreateWithRetries(path)
@@ -144,8 +142,7 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 			MaxBatchSize:      dbConfig.MaxBatchSize,
 			MaxOpenFiles:      dbConfig.MaxOpenFiles,
 		}
-		dbConfigHandler := factory.NewDBConfigHandler(dbConf)
-		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		persisterFactory, err := factory.NewPersisterFactory(dbConf)
 		assert.Nil(t, err)
 
 		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig, persisterFactory)
@@ -166,8 +163,7 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 			MaxBatchSize:      dbConfig.MaxBatchSize,
 			MaxOpenFiles:      dbConfig.MaxOpenFiles,
 		}
-		dbConfigHandler := factory.NewDBConfigHandler(dbConf)
-		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		persisterFactory, err := factory.NewPersisterFactory(dbConf)
 		assert.Nil(t, err)
 
 		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig, persisterFactory)

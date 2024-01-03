@@ -179,8 +179,7 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
 	path := args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath)
 
-	dbConfigHandler := factory.NewDBConfigHandler(mainConfig.TrieSyncStorage.DB)
-	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := factory.NewPersisterFactory(mainConfig.TrieSyncStorage.DB)
 	if err != nil {
 		return nil, err
 	}
