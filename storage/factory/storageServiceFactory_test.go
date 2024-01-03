@@ -411,10 +411,10 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		expectedStorers := 23
 		assert.Equal(t, expectedStorers, len(allStorers))
 
-		storer, err := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
 		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
-		storer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
 		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
 		_ = storageService.CloseAll()
@@ -461,10 +461,10 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		expectedStorers := 23
 		assert.Equal(t, expectedStorers, len(allStorers))
 
-		storer, err := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
 		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
-		storer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
 		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
 		_ = storageService.CloseAll()
@@ -530,10 +530,10 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		expectedStorers := 23 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
-		storer, err := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
 		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
-		storer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
 		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
 		_ = storageService.CloseAll()
@@ -553,10 +553,10 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		expectedStorers := 23 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
-		storer, err := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
 		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
-		storer, err = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
 		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
 
 		_ = storageService.CloseAll()
