@@ -3,6 +3,7 @@ package blockchain
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -48,18 +49,21 @@ func TestBaseBlockchain_SetAndGetSetFinalBlockInfoWorksWithNilValues(t *testing.
 	require.Nil(t, actualRootHash)
 }
 
-func TestBaseBlockChain_SetCurrentAggregatedSignatureAndBitmap(t *testing.T) {
+func TestBaseBlockChain_SetCurrentHeaderProof(t *testing.T) {
 	t.Parallel()
 
 	base := &baseBlockChain{}
-	sig, bitmap := base.GetCurrentAggregatedSignatureAndBitmap()
-	require.Nil(t, sig)
-	require.Nil(t, bitmap)
+	proof := base.GetCurrentHeaderProof()
+	require.Nil(t, proof.AggregatedSignature)
+	require.Nil(t, proof.PubKeysBitmap)
 
 	providedSig := []byte("provided sig")
 	providedBitmap := []byte("provided bitmap")
-	base.SetCurrentAggregatedSignatureAndBitmap(providedSig, providedBitmap)
-	sig, bitmap = base.GetCurrentAggregatedSignatureAndBitmap()
-	require.Equal(t, providedSig, sig)
-	require.Equal(t, providedBitmap, bitmap)
+	providedProof := data.HeaderProof{
+		AggregatedSignature: providedSig,
+		PubKeysBitmap:       providedBitmap,
+	}
+	base.SetCurrentHeaderProof(providedProof)
+	proof = base.GetCurrentHeaderProof()
+	require.Equal(t, providedSig, proof)
 }

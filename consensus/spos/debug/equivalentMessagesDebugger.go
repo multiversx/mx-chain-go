@@ -52,7 +52,7 @@ func dataToString(data map[string]*consensus.EquivalentMessageInfo) string {
 		line := []string{
 			hash,
 			fmt.Sprintf("%d", info.NumMessages),
-			fmt.Sprintf("%T", info.Validated),
+			fmt.Sprintf("%t", info.Validated),
 			string(info.PreviousAggregateSignature),
 			string(info.PreviousPubkeysBitmap),
 		}

@@ -109,7 +109,7 @@ type EnableEpochs struct {
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
 	EquivalentMessagesEnableEpoch                            uint32
-	ConsensusPropagationChangesEnableEpoch           		 uint32
+	ConsensusPropagationChangesEnableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
