@@ -19,7 +19,7 @@ func (sn *SovereignNode) GetAllIssuedESDTs(tokenType string, ctx context.Context
 	return sn.baseGetAllIssuedESDTs(tokenType, ctx)
 }
 
-func (sn *SovereignNode) baseGetTokensIDsWithFilter(
+func (sn *SovereignNode) getTokensIDsWithFilter(
 	f filter,
 	options api.AccountQueryOptions,
 	ctx context.Context,
