@@ -54,11 +54,11 @@ type AccountsAdapter interface {
 	IsInterfaceNil() bool
 }
 
-<<<<<<< HEAD
 type AccountsAdapterWithMigration interface {
 	AccountsAdapter
 	MigrateData(rootHash []byte)
-=======
+}
+
 // SnapshotsManager defines the methods for the snapshot manager
 type SnapshotsManager interface {
 	SnapshotState(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
@@ -81,7 +81,6 @@ type StateMetrics interface {
 type IteratorChannelsProvider interface {
 	GetIteratorChannels() *common.TrieIteratorChannels
 	IsInterfaceNil() bool
->>>>>>> master
 }
 
 // AccountsAdapterWithClean extends the AccountsAdapter interface with a CleanCache method

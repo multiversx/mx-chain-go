@@ -7,11 +7,12 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -863,7 +864,7 @@ func (adb *AccountsDB) MigrateData(rootHash []byte) {
 	log.Debug("starting data trie migration", "rootHash", rootHash)
 
 	for leaf := range leavesChannels.LeavesChan {
-		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
+		userAccount, skipAccount, err := getUserAccountFromBytes(adb.accountFactory, adb.marshaller, leaf.Key(), leaf.Value())
 		if err != nil {
 			log.Error("error while getting user account from bytes", "err", err)
 			return
@@ -1262,81 +1263,6 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 			return contained
 		}
 	}
-}
-
-<<<<<<< HEAD
-func (adb *AccountsDB) snapshotUserAccountDataTrie(
-	isSnapshot bool,
-	mainTrieRootHash []byte,
-	iteratorChannels *common.TrieIteratorChannels,
-	missingNodesChannel chan []byte,
-	stats common.SnapshotStatisticsHandler,
-	epoch uint32,
-) {
-	for leaf := range iteratorChannels.LeavesChan {
-		userAccount, skipAccount, err := adb.getUserAccountFromBytes(leaf.Key(), leaf.Value())
-		if err != nil {
-			iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
-			return
-		}
-		if skipAccount {
-			continue
-		}
-
-		if len(userAccount.GetRootHash()) == 0 {
-			continue
-		}
-
-		stats.NewSnapshotStarted()
-
-		iteratorChannelsForDataTries := &common.TrieIteratorChannels{
-			LeavesChan: nil,
-			ErrChan:    iteratorChannels.ErrChan,
-		}
-		if isSnapshot {
-			address := adb.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
-			userAccountRootHash := userAccount.GetRootHash()
-			adb.mainTrie.GetStorageManager().TakeSnapshot(address, userAccountRootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
-
-			migratedDataTrieRootHash, err := adb.mainTrie.GetStorageManager().Get(append(userAccountRootHash, MigratedRootHashKeySuffix...))
-			if err != nil {
-				log.Warn("could not get migrated data trie root hash", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
-
-				dataTrie, err := adb.mainTrie.Recreate(userAccountRootHash)
-				if err != nil {
-					log.Warn("could not recreate data trie", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
-					continue
-				}
-
-				dt, ok := dataTrie.(DataTrie)
-				if !ok {
-					log.Warn("could not get data trie", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
-					continue
-				}
-
-				stats.NewSnapshotStarted()
-				err = adb.migrateDataTrie(userAccountRootHash, dt, NewDataTrieMigratorMock(), adb.mainTrie.GetStorageManager(), userAccount.AddressBytes())
-				if err != nil {
-					log.Error("could not migrate data trie", "error", err, "rootHash", userAccountRootHash, "address", userAccount.AddressBytes())
-				}
-				stats.SnapshotFinished()
-				continue
-			}
-
-			stats.NewSnapshotStarted()
-			adb.mainTrie.GetStorageManager().TakeSnapshot(address, migratedDataTrieRootHash, mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
-			continue
-		}
-
-		adb.mainTrie.GetStorageManager().SetCheckpoint(userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
-	}
-}
-
-=======
->>>>>>> master
-// SetStateCheckpoint sets a checkpoint for the state trie
-func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
-	adb.snapshotsManger.SetStateCheckpoint(rootHash, adb.getMainTrie().GetStorageManager())
 }
 
 // IsPruningEnabled returns true if state pruning is enabled

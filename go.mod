@@ -13,20 +13,6 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-<<<<<<< HEAD
-	github.com/multiversx/mx-chain-communication-go v1.0.5
-	github.com/multiversx/mx-chain-core-go v1.2.12
-	github.com/multiversx/mx-chain-crypto-go v1.2.7
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.8
-	github.com/multiversx/mx-chain-logger-go v1.0.11
-	github.com/multiversx/mx-chain-scenario-go v1.1.2
-	github.com/multiversx/mx-chain-storage-go v1.0.11
-	github.com/multiversx/mx-chain-vm-common-go v1.5.1-0.20230627123208-2baa0a0fb7a0
-	github.com/multiversx/mx-chain-vm-go v1.5.5-0.20230817075029-aceaf9902e63
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.59
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.60
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.87-0.20230816094106-d32bd90a2cfc
-=======
 	github.com/multiversx/mx-chain-communication-go v1.0.12
 	github.com/multiversx/mx-chain-core-go v1.2.18
 	github.com/multiversx/mx-chain-crypto-go v1.2.9
@@ -38,8 +24,7 @@ require (
 	github.com/multiversx/mx-chain-vm-go v1.5.22
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92
->>>>>>> master
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.93-0.20231228104100-1b46241e6e9d
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
