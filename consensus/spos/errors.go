@@ -13,9 +13,6 @@ var ErrEmptyConsensusGroup = errors.New("consensusGroup is empty")
 // ErrNotFoundInConsensus is raised when self expected in consensus group but not found
 var ErrNotFoundInConsensus = errors.New("self not found in consensus group")
 
-// ErrNilPrivateKey is raised when a valid private key was expected but nil was used
-var ErrNilPrivateKey = errors.New("private key is nil")
-
 // ErrNilSignature is raised when a valid signature was expected but nil was used
 var ErrNilSignature = errors.New("signature is nil")
 
@@ -127,12 +124,6 @@ var ErrInvalidHeader = errors.New("header is invalid")
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")
 
-// ErrNilBlsPrivateKey is raised when the bls private key is nil
-var ErrNilBlsPrivateKey = errors.New("BLS private key should not be nil")
-
-// ErrNilBlsSingleSigner is raised when a message from itself is received
-var ErrNilBlsSingleSigner = errors.New("BLS single signer should not be nil")
-
 // ErrNilHeader is raised when an expected header is nil
 var ErrNilHeader = errors.New("header is nil")
 
@@ -223,5 +214,32 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 // ErrNilScheduledProcessor signals that the provided scheduled processor is nil
 var ErrNilScheduledProcessor = errors.New("nil scheduled processor")
 
-// ErrNilSignatureHandler signals that provided signature handler is nil
-var ErrNilSignatureHandler = errors.New("nil signature handler")
+// ErrInvalidNumSigShares signals that an invalid number of signature shares has been provided
+var ErrInvalidNumSigShares = errors.New("invalid number of sig shares")
+
+// ErrNilMessageSigningHandler signals that the provided message signing handler is nil
+var ErrNilMessageSigningHandler = errors.New("nil message signing handler")
+
+// ErrNilPeerBlacklistHandler signals that the provided peer blacklist handler is nil
+var ErrNilPeerBlacklistHandler = errors.New("nil peer blacklist handler")
+
+// ErrNilPeerBlacklistCacher signals that a nil peer blacklist cacher has been provided
+var ErrNilPeerBlacklistCacher = errors.New("nil peer blacklist cacher")
+
+// ErrBlacklistedConsensusPeer signals that a consensus message has been received from a blacklisted peer
+var ErrBlacklistedConsensusPeer = errors.New("blacklisted consensus peer")
+
+// ErrNilSignatureOnP2PMessage signals that a p2p message without signature was received
+var ErrNilSignatureOnP2PMessage = errors.New("nil signature on the p2p message")
+
+// ErrNilSigningHandler signals that provided signing handler is nil
+var ErrNilSigningHandler = errors.New("nil signing handler")
+
+// ErrNilKeysHandler signals that a nil keys handler was provided
+var ErrNilKeysHandler = errors.New("nil keys handler")
+
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrNilFunctionHandler signals that a nil function handler was provided
+var ErrNilFunctionHandler = errors.New("nil function handler")

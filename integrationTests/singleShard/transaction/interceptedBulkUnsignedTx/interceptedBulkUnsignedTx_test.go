@@ -91,7 +91,7 @@ func TestNode_GenerateSendInterceptBulkUnsignedTransactionsWithMessenger(t *test
 		noOfUnsignedTx,
 		integrationTests.TestMarshalizer,
 		n.ShardCoordinator,
-		n.Messenger,
+		n.MainMessenger,
 	)
 
 	assert.Nil(t, err)
@@ -159,13 +159,11 @@ func generateAndSendBulkSmartContractResults(
 	}
 
 	for _, buff := range packets {
-		go func(bufferToSend []byte) {
-			_ = messenger.BroadcastOnChannelBlocking(
-				identifier,
-				identifier,
-				bufferToSend,
-			)
-		}(buff)
+		messenger.BroadcastOnChannel(
+			identifier,
+			identifier,
+			buff,
+		)
 	}
 
 	return nil

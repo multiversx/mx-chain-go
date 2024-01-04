@@ -1,26 +1,23 @@
 package converter
 
 import (
-	"encoding/hex"
-	"runtime/debug"
-
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("cmd/keygenerator/converter")
-
 type pidPubkeyConverter struct {
-	keyGen crypto.KeyGenerator
+	keyGen          crypto.KeyGenerator
+	p2PKeyConverter p2p.P2PKeyConverter
 }
 
 // NewPidPubkeyConverter creates a new instance of a public key converter that can handle conversions involving core.PeerID string representations
 func NewPidPubkeyConverter() *pidPubkeyConverter {
 	return &pidPubkeyConverter{
-		keyGen: signing.NewKeyGenerator(secp256k1.NewSecp256k1()),
+		keyGen:          signing.NewKeyGenerator(secp256k1.NewSecp256k1()),
+		p2PKeyConverter: factory.NewP2PKeyConverter(),
 	}
 }
 
@@ -30,19 +27,13 @@ func (converter *pidPubkeyConverter) Decode(_ string) ([]byte, error) {
 }
 
 // Encode encodes a byte array in its string representation
-func (converter *pidPubkeyConverter) Encode(pkBytes []byte) string {
+func (converter *pidPubkeyConverter) Encode(pkBytes []byte) (string, error) {
 	pidString, err := converter.encode(pkBytes)
 	if err != nil {
-		log.Warn("pidPubkeyConverter.Encode encode",
-			"hex buff", hex.EncodeToString(pkBytes),
-			"error", err,
-			"stack trace", string(debug.Stack()),
-		)
-
-		return ""
+		return "", err
 	}
 
-	return pidString
+	return pidString, nil
 }
 
 func (converter *pidPubkeyConverter) encode(pkBytes []byte) (string, error) {
@@ -51,7 +42,7 @@ func (converter *pidPubkeyConverter) encode(pkBytes []byte) (string, error) {
 		return "", err
 	}
 
-	pid, err := factory.ConvertPublicKeyToPeerID(pk)
+	pid, err := converter.p2PKeyConverter.ConvertPublicKeyToPeerID(pk)
 	if err != nil {
 		return "", err
 	}

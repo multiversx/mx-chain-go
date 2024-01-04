@@ -6,7 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -118,6 +120,9 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.cryptoComponents.messageSignVerifier) {
 		return errors.ErrNilMessageSignVerifier
 	}
+	if check.IfNil(mcc.cryptoComponents.managedPeersHolder) {
+		return errors.ErrNilManagedPeersHolder
+	}
 
 	return nil
 }
@@ -194,18 +199,6 @@ func (mcc *managedCryptoComponents) PublicKeyBytes() []byte {
 	return mcc.cryptoParams.publicKeyBytes
 }
 
-// PrivateKeyBytes returns the configured validator private key bytes
-func (mcc *managedCryptoComponents) PrivateKeyBytes() []byte {
-	mcc.mutCryptoComponents.RLock()
-	defer mcc.mutCryptoComponents.RUnlock()
-
-	if mcc.cryptoComponents == nil {
-		return nil
-	}
-
-	return mcc.cryptoParams.privateKeyBytes
-}
-
 // TxSingleSigner returns the transaction signer
 func (mcc *managedCryptoComponents) TxSingleSigner() crypto.SingleSigner {
 	mcc.mutCryptoComponents.RLock()
@@ -255,6 +248,10 @@ func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSig
 
 // SetMultiSignerContainer sets the multiSigner container in the crypto components
 func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.MultiSignerContainer) error {
+	if check.IfNil(ms) {
+		return errors.ErrNilMultiSignerContainer
+	}
+
 	mcc.mutCryptoComponents.Lock()
 	mcc.multiSignerContainer = ms
 	mcc.mutCryptoComponents.Unlock()
@@ -338,22 +335,61 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 	return mcc.cryptoComponents.messageSignVerifier
 }
 
+// ConsensusSigningHandler returns the consensus signing handler
+func (mcc *managedCryptoComponents) ConsensusSigningHandler() consensus.SigningHandler {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.consensusSigningHandler
+}
+
+// ManagedPeersHolder returns the managed peers holder
+func (mcc *managedCryptoComponents) ManagedPeersHolder() common.ManagedPeersHolder {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.managedPeersHolder
+}
+
+// KeysHandler returns the handler that manages keys either in single sign mode or multi key mode
+func (mcc *managedCryptoComponents) KeysHandler() consensus.KeysHandler {
+	mcc.mutCryptoComponents.RLock()
+	defer mcc.mutCryptoComponents.RUnlock()
+
+	if mcc.cryptoComponents == nil {
+		return nil
+	}
+
+	return mcc.cryptoComponents.keysHandler
+}
+
 // Clone creates a shallow clone of a managedCryptoComponents
 func (mcc *managedCryptoComponents) Clone() interface{} {
 	cryptoComp := (*cryptoComponents)(nil)
 	if mcc.cryptoComponents != nil {
 		cryptoComp = &cryptoComponents{
-			txSingleSigner:       mcc.TxSingleSigner(),
-			blockSingleSigner:    mcc.BlockSigner(),
-			p2pSingleSigner:      mcc.P2pSingleSigner(),
-			multiSignerContainer: mcc.MultiSignerContainer(),
-			peerSignHandler:      mcc.PeerSignatureHandler(),
-			blockSignKeyGen:      mcc.BlockSignKeyGen(),
-			txSignKeyGen:         mcc.TxSignKeyGen(),
-			p2pKeyGen:            mcc.P2pKeyGen(),
-			messageSignVerifier:  mcc.MessageSignVerifier(),
-			cryptoParams:         mcc.cryptoParams,
-			p2pCryptoParams:      mcc.p2pCryptoParams,
+			txSingleSigner:          mcc.TxSingleSigner(),
+			blockSingleSigner:       mcc.BlockSigner(),
+			p2pSingleSigner:         mcc.P2pSingleSigner(),
+			multiSignerContainer:    mcc.MultiSignerContainer(),
+			peerSignHandler:         mcc.PeerSignatureHandler(),
+			blockSignKeyGen:         mcc.BlockSignKeyGen(),
+			txSignKeyGen:            mcc.TxSignKeyGen(),
+			p2pKeyGen:               mcc.P2pKeyGen(),
+			messageSignVerifier:     mcc.MessageSignVerifier(),
+			consensusSigningHandler: mcc.ConsensusSigningHandler(),
+			managedPeersHolder:      mcc.ManagedPeersHolder(),
+			keysHandler:             mcc.KeysHandler(),
+			cryptoParams:            mcc.cryptoParams,
+			p2pCryptoParams:         mcc.p2pCryptoParams,
 		}
 	}
 

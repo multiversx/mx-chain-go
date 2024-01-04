@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-storage-go/common"
-
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,28 +78,40 @@ func TestNewDB(t *testing.T) {
 	t.Run("wrong config should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := storageunit.ArgDB{
-			DBType:            "invalid type",
-			Path:              "TEST",
+		path := "TEST"
+		dbConfig := config.DBConfig{
+			FilePath:          path,
+			Type:              "invalid type",
 			BatchDelaySeconds: 5,
 			MaxBatchSize:      10,
 			MaxOpenFiles:      10,
 		}
-		db, err := storageunit.NewDB(args)
+
+		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		assert.Nil(t, err)
+
+		db, err := storageunit.NewDB(persisterFactory, path)
 		assert.True(t, check.IfNil(db))
 		assert.Equal(t, common.ErrNotSupportedDBType, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := storageunit.ArgDB{
-			DBType:            "LvlDBSerial",
-			Path:              path.Join(t.TempDir(), "TEST"),
+		path := path.Join(t.TempDir(), "TEST")
+		dbConfig := config.DBConfig{
+			FilePath:          path,
+			Type:              "LvlDBSerial",
 			BatchDelaySeconds: 5,
 			MaxBatchSize:      10,
 			MaxOpenFiles:      10,
 		}
-		db, err := storageunit.NewDB(args)
+
+		dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		assert.Nil(t, err)
+
+		db, err := storageunit.NewDB(persisterFactory, path)
 		assert.False(t, check.IfNil(db))
 		assert.Nil(t, err)
 		_ = db.Close()
@@ -107,8 +121,9 @@ func TestNewDB(t *testing.T) {
 func TestNewStorageUnitFromConf(t *testing.T) {
 	t.Parallel()
 
+	path := path.Join(t.TempDir(), "TEST")
 	dbConfig := storageunit.DBConfig{
-		FilePath:          path.Join(t.TempDir(), "TEST"),
+		FilePath:          path,
 		Type:              "LvlDBSerial",
 		BatchDelaySeconds: 5,
 		MaxBatchSize:      10,
@@ -123,7 +138,17 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 			Capacity: 100,
 		}
 
-		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig)
+		dbConf := config.DBConfig{
+			Type:              dbConfig.FilePath,
+			BatchDelaySeconds: dbConfig.BatchDelaySeconds,
+			MaxBatchSize:      dbConfig.MaxBatchSize,
+			MaxOpenFiles:      dbConfig.MaxOpenFiles,
+		}
+		dbConfigHandler := factory.NewDBConfigHandler(dbConf)
+		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		assert.Nil(t, err)
+
+		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig, persisterFactory)
 		assert.Nil(t, unit)
 		assert.Equal(t, common.ErrNotSupportedCacheType, err)
 	})
@@ -135,7 +160,17 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 			Capacity: 100,
 		}
 
-		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig)
+		dbConf := config.DBConfig{
+			Type:              string(dbConfig.Type),
+			BatchDelaySeconds: dbConfig.BatchDelaySeconds,
+			MaxBatchSize:      dbConfig.MaxBatchSize,
+			MaxOpenFiles:      dbConfig.MaxOpenFiles,
+		}
+		dbConfigHandler := factory.NewDBConfigHandler(dbConf)
+		persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+		assert.Nil(t, err)
+
+		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig, persisterFactory)
 		assert.NotNil(t, unit)
 		assert.Nil(t, err)
 		_ = unit.Close()
@@ -155,7 +190,7 @@ func TestNewStorageCacherAdapter(t *testing.T) {
 	cacher := &mock.AdaptedSizedLruCacheStub{}
 	db := &mock.PersisterStub{}
 	storedDataFactory := &storage.StoredDataFactoryStub{}
-	marshaller := &testscommon.MarshalizerStub{}
+	marshaller := &marshallerMock.MarshalizerStub{}
 
 	t.Run("nil parameter should error", func(t *testing.T) {
 		t.Parallel()

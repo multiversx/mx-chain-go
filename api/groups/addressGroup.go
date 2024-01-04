@@ -17,26 +17,27 @@ import (
 )
 
 const (
-	getAccountPath            = "/:address"
-	getAccountsPath           = "/bulk"
-	getBalancePath            = "/:address/balance"
-	getUsernamePath           = "/:address/username"
-	getCodeHashPath           = "/:address/code-hash"
-	getKeysPath               = "/:address/keys"
-	getKeyPath                = "/:address/key/:key"
-	getESDTTokensPath         = "/:address/esdt"
-	getESDTBalancePath        = "/:address/esdt/:tokenIdentifier"
-	getESDTTokensWithRolePath = "/:address/esdts-with-role/:role"
-	getESDTsRolesPath         = "/:address/esdts/roles"
-	getRegisteredNFTsPath     = "/:address/registered-nfts"
-	getESDTNFTDataPath        = "/:address/nft/:tokenIdentifier/nonce/:nonce"
-	getGuardianData           = "/:address/guardian-data"
-	urlParamOnFinalBlock      = "onFinalBlock"
-	urlParamOnStartOfEpoch    = "onStartOfEpoch"
-	urlParamBlockNonce        = "blockNonce"
-	urlParamBlockHash         = "blockHash"
-	urlParamBlockRootHash     = "blockRootHash"
-	urlParamHintEpoch         = "hintEpoch"
+	getAccountPath                 = "/:address"
+	getAccountsPath                = "/bulk"
+	getBalancePath                 = "/:address/balance"
+	getUsernamePath                = "/:address/username"
+	getCodeHashPath                = "/:address/code-hash"
+	getKeysPath                    = "/:address/keys"
+	getKeyPath                     = "/:address/key/:key"
+	getDataTrieMigrationStatusPath = "/:address/is-data-trie-migrated"
+	getESDTTokensPath              = "/:address/esdt"
+	getESDTBalancePath             = "/:address/esdt/:tokenIdentifier"
+	getESDTTokensWithRolePath      = "/:address/esdts-with-role/:role"
+	getESDTsRolesPath              = "/:address/esdts/roles"
+	getRegisteredNFTsPath          = "/:address/registered-nfts"
+	getESDTNFTDataPath             = "/:address/nft/:tokenIdentifier/nonce/:nonce"
+	getGuardianData                = "/:address/guardian-data"
+	urlParamOnFinalBlock           = "onFinalBlock"
+	urlParamOnStartOfEpoch         = "onStartOfEpoch"
+	urlParamBlockNonce             = "blockNonce"
+	urlParamBlockHash              = "blockHash"
+	urlParamBlockRootHash          = "blockRootHash"
+	urlParamHintEpoch              = "hintEpoch"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests
@@ -54,6 +55,7 @@ type addressFacadeHandler interface {
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
+	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
 }
 
@@ -164,6 +166,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Method:  http.MethodGet,
 			Handler: ag.getGuardianData,
 		},
+		{
+			Path:    getDataTrieMigrationStatusPath,
+			Method:  http.MethodGet,
+			Handler: ag.isDataTrieMigrated,
+		},
 	}
 	ag.endpoints = endpoints
 
@@ -172,13 +179,7 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 
 // getAccount returns a response containing information about the account correlated with provided address
 func (ag *addressGroup) getAccount(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
 		return
@@ -220,13 +221,7 @@ func (ag *addressGroup) getAccounts(c *gin.Context) {
 
 // getBalance returns the balance for the address parameter
 func (ag *addressGroup) getBalance(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetBalance, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetBalance, err)
 		return
@@ -243,13 +238,7 @@ func (ag *addressGroup) getBalance(c *gin.Context) {
 
 // getUsername returns the username for the address parameter
 func (ag *addressGroup) getUsername(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
 		return
@@ -266,15 +255,9 @@ func (ag *addressGroup) getUsername(c *gin.Context) {
 
 // getCodeHash returns the code hash for the address parameter
 func (ag *addressGroup) getCodeHash(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := parseAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, errors.ErrBadUrlParams)
+		shared.RespondWithValidationError(c, errors.ErrGetCodeHash, err)
 		return
 	}
 
@@ -297,7 +280,7 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetUsername, err)
+		shared.RespondWithValidationError(c, errors.ErrGetValueForKey, err)
 		return
 	}
 
@@ -318,13 +301,7 @@ func (ag *addressGroup) getValueForKey(c *gin.Context) {
 
 // getGuardianData returns the guardian data and guarded state for a given account
 func (ag *addressGroup) getGuardianData(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetGuardianData, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetGuardianData, err)
 		return
@@ -341,13 +318,7 @@ func (ag *addressGroup) getGuardianData(c *gin.Context) {
 
 // addressGroup returns all the key-value pairs for the given address
 func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairs, err)
 		return
@@ -364,21 +335,9 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 
 // getESDTBalance returns the balance for the given address and esdt token
 func (ag *addressGroup) getESDTBalance(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, tokenIdentifier, options, err := extractGetESDTBalanceParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
-		return
-	}
-
-	tokenIdentifier := c.Param("tokenIdentifier")
-	if tokenIdentifier == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyTokenIdentifier)
 		return
 	}
 
@@ -399,13 +358,7 @@ func (ag *addressGroup) getESDTBalance(c *gin.Context) {
 
 // getESDTsRoles returns the token identifiers and roles for a given address
 func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetRolesForAccount, err)
 		return
@@ -422,32 +375,15 @@ func (ag *addressGroup) getESDTsRoles(c *gin.Context) {
 
 // getESDTTokensWithRole returns the token identifiers where a given address has the given role
 func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, role, options, err := extractGetESDTTokensWithRoleParams(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
-		return
-	}
-
-	role := c.Param("role")
-	if role == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyRole)
-		return
-	}
-
-	if !core.IsValidESDTRole(role) {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, fmt.Errorf("invalid role: %s", role))
+		shared.RespondWithValidationError(c, errors.ErrGetESDTTokensWithRole, err)
 		return
 	}
 
 	tokens, blockInfo, err := ag.getFacade().GetESDTsWithRole(addr, role, options)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithInternalError(c, errors.ErrGetESDTTokensWithRole, err)
 		return
 	}
 
@@ -456,21 +392,15 @@ func (ag *addressGroup) getESDTTokensWithRole(c *gin.Context) {
 
 // getNFTTokenIDsRegisteredByAddress returns the token identifiers of the tokens where a given address is the owner
 func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithValidationError(c, errors.ErrRegisteredNFTTokenIDs, err)
 		return
 	}
 
 	tokens, blockInfo, err := ag.getFacade().GetNFTTokenIDsRegisteredByAddress(addr, options)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetESDTBalance, err)
+		shared.RespondWithInternalError(c, errors.ErrRegisteredNFTTokenIDs, err)
 		return
 	}
 
@@ -479,37 +409,13 @@ func (ag *addressGroup) getNFTTokenIDsRegisteredByAddress(c *gin.Context) {
 
 // getESDTNFTData returns the nft data for the given token
 func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, tokenIdentifier, nonce, options, err := extractGetESDTNFTDataParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
 	}
 
-	tokenIdentifier := c.Param("tokenIdentifier")
-	if tokenIdentifier == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrEmptyTokenIdentifier)
-		return
-	}
-
-	nonceAsStr := c.Param("nonce")
-	if nonceAsStr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrNonceInvalid)
-		return
-	}
-
-	nonceAsBigInt, okConvert := big.NewInt(0).SetString(nonceAsStr, 10)
-	if !okConvert {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrNonceInvalid)
-		return
-	}
-
-	esdtData, blockInfo, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, nonceAsBigInt.Uint64(), options)
+	esdtData, blockInfo, err := ag.getFacade().GetESDTData(addr, tokenIdentifier, nonce.Uint64(), options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrGetESDTNFTData, err)
 		return
@@ -521,13 +427,7 @@ func (ag *addressGroup) getESDTNFTData(c *gin.Context) {
 
 // getAllESDTData returns the tokens list from this account
 func (ag *addressGroup) getAllESDTData(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, errors.ErrEmptyAddress)
-		return
-	}
-
-	options, err := extractAccountQueryOptions(c)
+	addr, options, err := extractBaseParams(c)
 	if err != nil {
 		shared.RespondWithValidationError(c, errors.ErrGetESDTNFTData, err)
 		return
@@ -547,6 +447,29 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"esdts": formattedTokens, "blockInfo": blockInfo})
+}
+
+// isDataTrieMigrated returns true if the data trie is migrated for the given address
+func (ag *addressGroup) isDataTrieMigrated(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithValidationError(c, errors.ErrIsDataTrieMigrated, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrIsDataTrieMigrated, err)
+		return
+	}
+
+	isMigrated, err := ag.getFacade().IsDataTrieMigrated(addr, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrIsDataTrieMigrated, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"isMigrated": isMigrated})
 }
 
 func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {
@@ -573,6 +496,76 @@ func (ag *addressGroup) getFacade() addressFacadeHandler {
 	defer ag.mutFacade.RUnlock()
 
 	return ag.facade
+}
+
+func extractBaseParams(c *gin.Context) (string, api.AccountQueryOptions, error) {
+	addr := c.Param("address")
+	if addr == "" {
+		return "", api.AccountQueryOptions{}, errors.ErrEmptyAddress
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		return "", api.AccountQueryOptions{}, err
+	}
+
+	return addr, options, nil
+}
+
+func extractGetESDTBalanceParams(c *gin.Context) (string, string, api.AccountQueryOptions, error) {
+	addr, options, err := extractBaseParams(c)
+	if err != nil {
+		return "", "", api.AccountQueryOptions{}, err
+	}
+
+	tokenIdentifier := c.Param("tokenIdentifier")
+	if tokenIdentifier == "" {
+		return "", "", api.AccountQueryOptions{}, errors.ErrEmptyTokenIdentifier
+	}
+
+	return addr, tokenIdentifier, options, nil
+}
+
+func extractGetESDTTokensWithRoleParams(c *gin.Context) (string, string, api.AccountQueryOptions, error) {
+	addr, options, err := extractBaseParams(c)
+	if err != nil {
+		return "", "", api.AccountQueryOptions{}, err
+	}
+
+	role := c.Param("role")
+	if role == "" {
+		return "", "", api.AccountQueryOptions{}, errors.ErrEmptyRole
+	}
+
+	if !core.IsValidESDTRole(role) {
+		return "", "", api.AccountQueryOptions{}, fmt.Errorf("%w: %s", errors.ErrInvalidRole, role)
+	}
+
+	return addr, role, options, nil
+}
+
+func extractGetESDTNFTDataParams(c *gin.Context) (string, string, *big.Int, api.AccountQueryOptions, error) {
+	addr, options, err := extractBaseParams(c)
+	if err != nil {
+		return "", "", nil, api.AccountQueryOptions{}, err
+	}
+
+	tokenIdentifier := c.Param("tokenIdentifier")
+	if tokenIdentifier == "" {
+		return "", "", nil, api.AccountQueryOptions{}, errors.ErrEmptyTokenIdentifier
+	}
+
+	nonceAsStr := c.Param("nonce")
+	if nonceAsStr == "" {
+		return "", "", nil, api.AccountQueryOptions{}, errors.ErrNonceInvalid
+	}
+
+	nonceAsBigInt, okConvert := big.NewInt(0).SetString(nonceAsStr, 10)
+	if !okConvert {
+		return "", "", nil, api.AccountQueryOptions{}, errors.ErrNonceInvalid
+	}
+
+	return addr, tokenIdentifier, nonceAsBigInt, options, nil
 }
 
 // UpdateFacade will update the facade

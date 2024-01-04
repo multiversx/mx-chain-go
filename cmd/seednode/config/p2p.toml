@@ -22,6 +22,10 @@
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d" # TCP listen address
             PreventPortReuse = true # seeder nodes will need to enable this option
+        [Node.ResourceLimiter]
+            Type = "default with manual scale"
+            ManualSystemMemoryInMB = 65536 # pretend that the host running the seeder has more RAM so it can handle more connections
+            ManualMaximumFD = 1048576
 
 # P2P peer discovery section
 
@@ -79,7 +83,3 @@
     #              the shard membership of the connected peers
     #  `NilListSharder` will disable conection trimming (sharder is off)
     Type = "NilListSharder"
-
-    [AdditionalConnections]
-        #this value will be added to the target peer count automatically when the node will be in full archive mode
-        MaxFullHistoryObservers = 0

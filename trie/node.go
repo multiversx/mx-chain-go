@@ -3,17 +3,16 @@ package trie
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"runtime/debug"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -76,7 +75,7 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 }
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
-func encodeNodeAndCommitToDB(n node, db common.DBWriteCacher) (int, error) {
+func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
 	key, err := computeAndSetNodeHash(n)
 	if err != nil {
 		return 0, err
@@ -118,12 +117,12 @@ func computeAndSetNodeHash(n node) ([]byte, error) {
 	return key, nil
 }
 
-func getNodeFromDBAndDecode(n []byte, db common.DBWriteCacher, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
+func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
 	encChild, err := db.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
 
-		return nil, fmt.Errorf(common.GetNodeFromDBErrorString+" %w for key %v", err, hex.EncodeToString(n))
+		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
 	return decodeNode(encChild, marshalizer, hasher)
@@ -134,10 +133,10 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 		return
 	}
 
-	logInstance.Trace(common.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
+	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
 }
 
-func resolveIfCollapsed(n node, pos byte, db common.DBWriteCacher) error {
+func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
 	err := n.isEmptyOrNil()
 	if err != nil {
 		return err
@@ -273,11 +272,31 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 }
 
 func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
-	if errors.IsClosingError(err) {
+	if core.IsClosingError(err) {
 		log.Debug("context closing", "hash", hash)
 		return
 	}
 
 	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
 	missingNodesChan <- hash
+}
+
+func shouldMigrateCurrentNode(
+	currentNode node,
+	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
+) (bool, error) {
+	version, err := currentNode.getVersion()
+	if err != nil {
+		return false, err
+	}
+
+	if version == migrationArgs.NewVersion {
+		return false, nil
+	}
+
+	if version != migrationArgs.OldVersion && version != core.NotSpecified {
+		return false, nil
+	}
+
+	return true, nil
 }

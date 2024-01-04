@@ -4,8 +4,9 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
-	p2p "github.com/multiversx/mx-chain-p2p-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 // MessageProcessor is the interface used to describe what a receive message processor should do
@@ -24,6 +25,9 @@ type Messenger = p2p.Messenger
 
 // MessageP2P defines what a p2p message can do (should return)
 type MessageP2P = p2p.MessageP2P
+
+// MessageHandler defines the behaviour of a component able to send and process messages
+type MessageHandler = p2p.MessageHandler
 
 // ChannelLoadBalancer defines what a load balancer that uses chans should do
 type ChannelLoadBalancer interface {
@@ -81,26 +85,52 @@ type PreferredPeersHolderHandler interface {
 // TODO move antiflooding inside network messenger
 type PeerDenialEvaluator = p2p.PeerDenialEvaluator
 
-// SyncTimer represent an entity able to tell the current time
+// SyncTimer represents an entity able to tell the current time
 type SyncTimer interface {
 	CurrentTime() time.Time
 	IsInterfaceNil() bool
 }
 
-// PeersRatingHandler represent an entity able to handle peers ratings
+// PeersRatingHandler represents an entity able to handle peers ratings
 type PeersRatingHandler interface {
-	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID
 	IsInterfaceNil() bool
 }
 
-// PeerTopicNotifier represent an entity able to handle new notifications on a new peer on a topic
+// PeersRatingMonitor represents an entity able to provide peers ratings
+type PeersRatingMonitor = p2p.PeersRatingMonitor
+
+// PeerTopicNotifier represents an entity able to handle new notifications on a new peer on a topic
 type PeerTopicNotifier = p2p.PeerTopicNotifier
+
+// P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
+type P2PSigningHandler interface {
+	Verify(message MessageP2P) error
+	Serialize(messages []MessageP2P) ([]byte, error)
+	Deserialize(messagesBytes []byte) ([]MessageP2P, error)
+	IsInterfaceNil() bool
+}
 
 // IdentityGenerator represent an entity able to create a random p2p identity
 type IdentityGenerator interface {
 	CreateRandomP2PIdentity() ([]byte, core.PeerID, error)
 	IsInterfaceNil() bool
 }
+
+// P2PKeyConverter defines what a p2p key converter can do
+type P2PKeyConverter interface {
+	ConvertPeerIDToPublicKey(keyGen crypto.KeyGenerator, pid core.PeerID) (crypto.PublicKey, error)
+	ConvertPublicKeyToPeerID(pk crypto.PublicKey) (core.PeerID, error)
+	IsInterfaceNil() bool
+}
+
+// Logger defines the behavior of a data logger component
+type Logger = p2p.Logger
+
+// ConnectionsHandler defines the behaviour of a component able to handle connections
+type ConnectionsHandler = p2p.ConnectionsHandler
+
+// Debugger represent a p2p debugger able to print p2p statistics (messages received/sent per topic)
+type Debugger = p2p.Debugger

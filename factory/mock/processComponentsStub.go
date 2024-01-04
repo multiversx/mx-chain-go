@@ -19,7 +19,9 @@ type ProcessComponentsMock struct {
 	NodesCoord                           nodesCoordinator.NodesCoordinator
 	ShardCoord                           sharding.Coordinator
 	IntContainer                         process.InterceptorsContainer
-	ResFinder                            dataRetriever.ResolversFinder
+	FullArchiveIntContainer              process.InterceptorsContainer
+	ResContainer                         dataRetriever.ResolversContainer
+	ReqFinder                            dataRetriever.RequestersFinder
 	RoundHandlerField                    consensus.RoundHandler
 	EpochTrigger                         epochStart.TriggerHandler
 	EpochNotifier                        factory.EpochStartNotifier
@@ -36,8 +38,9 @@ type ProcessComponentsMock struct {
 	ReqHandler                           process.RequestHandler
 	TxLogsProcess                        process.TransactionLogProcessorDatabase
 	HeaderConstructValidator             process.HeaderConstructionValidator
-	PeerMapper                           process.NetworkShardingCollector
-	TxSimulatorProcessor                 factory.TransactionSimulatorProcessor
+	MainPeerMapper                       process.NetworkShardingCollector
+	FullArchivePeerMapper                process.NetworkShardingCollector
+	TransactionEvaluator                 factory.TransactionEvaluator
 	FallbackHdrValidator                 process.FallbackHeaderValidator
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
@@ -85,9 +88,19 @@ func (pcm *ProcessComponentsMock) InterceptorsContainer() process.InterceptorsCo
 	return pcm.IntContainer
 }
 
-// ResolversFinder -
-func (pcm *ProcessComponentsMock) ResolversFinder() dataRetriever.ResolversFinder {
-	return pcm.ResFinder
+// FullArchiveInterceptorsContainer -
+func (pcm *ProcessComponentsMock) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
+	return pcm.FullArchiveIntContainer
+}
+
+// ResolversContainer -
+func (pcm *ProcessComponentsMock) ResolversContainer() dataRetriever.ResolversContainer {
+	return pcm.ResContainer
+}
+
+// RequestersFinder -
+func (pcm *ProcessComponentsMock) RequestersFinder() dataRetriever.RequestersFinder {
+	return pcm.ReqFinder
 }
 
 // RoundHandler -
@@ -172,7 +185,12 @@ func (pcm *ProcessComponentsMock) HeaderConstructionValidator() process.HeaderCo
 
 // PeerShardMapper -
 func (pcm *ProcessComponentsMock) PeerShardMapper() process.NetworkShardingCollector {
-	return pcm.PeerMapper
+	return pcm.MainPeerMapper
+}
+
+// FullArchivePeerShardMapper -
+func (pcm *ProcessComponentsMock) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	return pcm.FullArchivePeerMapper
 }
 
 // FallbackHeaderValidator -
@@ -180,9 +198,9 @@ func (pcm *ProcessComponentsMock) FallbackHeaderValidator() process.FallbackHead
 	return pcm.FallbackHdrValidator
 }
 
-// TransactionSimulatorProcessor -
-func (pcm *ProcessComponentsMock) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
-	return pcm.TxSimulatorProcessor
+// APITransactionEvaluator -
+func (pcm *ProcessComponentsMock) APITransactionEvaluator() factory.TransactionEvaluator {
+	return pcm.TransactionEvaluator
 }
 
 // WhiteListHandler -

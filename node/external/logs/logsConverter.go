@@ -19,20 +19,25 @@ func (converter *logsConverter) txLogToApiResource(logKey []byte, log *transacti
 	events := make([]*transaction.Events, len(log.Events))
 
 	for i, event := range log.Events {
+		eventAddress := converter.encodeAddress(event.Address)
+
 		events[i] = &transaction.Events{
-			Address:    converter.encodeAddress(event.Address),
-			Identifier: string(event.Identifier),
-			Topics:     event.Topics,
-			Data:       event.Data,
+			Address:        eventAddress,
+			Identifier:     string(event.Identifier),
+			Topics:         event.Topics,
+			Data:           event.Data,
+			AdditionalData: event.AdditionalData,
 		}
 	}
 
+	logAddress := converter.encodeAddress(log.Address)
+
 	return &transaction.ApiLogs{
-		Address: converter.encodeAddress(log.Address),
+		Address: logAddress,
 		Events:  events,
 	}
 }
 
 func (converter *logsConverter) encodeAddress(pubkey []byte) string {
-	return converter.pubKeyConverter.Encode(pubkey)
+	return converter.pubKeyConverter.SilentEncode(pubkey, log)
 }

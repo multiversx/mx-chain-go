@@ -13,8 +13,11 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.GenesisShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShardCoordinator)
 	}
-	if check.IfNil(args.Messenger) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	if check.IfNil(args.MainMessenger) {
+		return fmt.Errorf("%s on main network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return fmt.Errorf("%s on full archive network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
 	}
 	if check.IfNil(args.EconomicsData) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEconomicsData)
@@ -108,6 +111,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers < 1 {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumConcurrentTrieSyncers)
+	}
+	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
 	}
 
 	return nil

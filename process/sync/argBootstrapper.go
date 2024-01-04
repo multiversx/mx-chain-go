@@ -47,6 +47,7 @@ type ArgBaseBootstrapper struct {
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
+	RepopulateTokensSupplies     bool
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

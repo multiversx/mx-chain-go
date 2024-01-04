@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
@@ -112,7 +112,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.Bloc
 }
 
 // GetAlteredAccountsForBlock returns the altered accounts for the desired meta block
-func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (mbp *metaAPIBlockProcessor) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	headerHash, blockBytes, err := mbp.getHashAndBlockBytesFromStorer(options.GetBlockParameters)
 	if err != nil {
 		return nil, err
@@ -162,8 +162,6 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		return nil, err
 	}
 
-	headerEpoch := blockHeader.Epoch
-
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
 	for _, mb := range blockHeader.MiniBlockHeaders {
@@ -181,7 +179,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -230,6 +228,15 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		Timestamp:              time.Duration(blockHeader.GetTimeStamp()),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
+		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
+		Signature:              hex.EncodeToString(blockHeader.GetSignature()),
+		LeaderSignature:        hex.EncodeToString(blockHeader.GetLeaderSignature()),
+		ChainID:                string(blockHeader.GetChainID()),
+		SoftwareVersion:        hex.EncodeToString(blockHeader.GetSoftwareVersion()),
+		ReceiptsHash:           hex.EncodeToString(blockHeader.GetReceiptsHash()),
+		Reserved:               blockHeader.GetReserved(),
+		RandSeed:               hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:           hex.EncodeToString(blockHeader.GetPrevRandSeed()),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)

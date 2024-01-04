@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package esdtNFT
 
@@ -672,7 +671,7 @@ func testNFTSendCreateRole(t *testing.T, numOfShards int) {
 		nftCreator,
 		&round,
 		&nonce,
-		core.NonFungibleESDT,
+		core.SemiFungibleESDT,
 		initialQuantity,
 		roles,
 	)
@@ -779,7 +778,7 @@ func testESDTSemiFungibleTokenTransferRole(t *testing.T, numOfShards int) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			_ = n.MainMessenger.Close()
 		}
 	}()
 
@@ -929,7 +928,7 @@ func TestESDTSFTWithEnhancedTransferRole(t *testing.T) {
 
 	defer func() {
 		for _, n := range nodes {
-			_ = n.Messenger.Close()
+			_ = n.MainMessenger.Close()
 		}
 	}()
 
@@ -1081,4 +1080,145 @@ func TestESDTSFTWithEnhancedTransferRole(t *testing.T) {
 			1,
 		)
 	}
+}
+
+func TestNFTTransferCreateAndSetRolesInShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNFTTransferCreateRoleAndStop(t, 1)
+}
+
+func TestNFTTransferCreateAndSetRolesCrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNFTTransferCreateRoleAndStop(t, 2)
+}
+
+func testNFTTransferCreateRoleAndStop(t *testing.T, numOfShards int) {
+	nodes, idxProposers := esdt.CreateNodesAndPrepareBalances(numOfShards)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	initialVal := big.NewInt(10000000000)
+	integrationTests.MintAllNodes(nodes, initialVal)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+	}
+
+	nftCreator := nodes[0]
+	initialQuantity := int64(1)
+	tokenIdentifier, nftMetaData := nft.PrepareNFTWithRoles(
+		t,
+		nodes,
+		idxProposers,
+		nftCreator,
+		&round,
+		&nonce,
+		core.SemiFungibleESDT,
+		initialQuantity,
+		roles,
+	)
+
+	nftCreatorShId := nftCreator.ShardCoordinator.ComputeId(nftCreator.OwnAccount.Address)
+	nextNftCreator := nodes[1]
+	for _, node := range nodes {
+		if node.ShardCoordinator.ComputeId(node.OwnAccount.Address) != nftCreatorShId {
+			nextNftCreator = node
+			break
+		}
+	}
+
+	// transferNFTCreateRole
+	txData := []byte("transferNFTCreateRole" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(nftCreator.OwnAccount.Address) +
+		"@" + hex.EncodeToString(nextNftCreator.OwnAccount.Address))
+	integrationTests.CreateAndSendTransaction(
+		nftCreator,
+		nodes,
+		big.NewInt(0),
+		vm.ESDTSCAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 15, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// stopNFTCreate
+	txData = []byte("stopNFTCreate" + "@" + hex.EncodeToString([]byte(tokenIdentifier)))
+	integrationTests.CreateAndSendTransaction(
+		nftCreator,
+		nodes,
+		big.NewInt(0),
+		vm.ESDTSCAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// setCreateRole
+	txData = []byte("setSpecialRole" + "@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(nftCreator.OwnAccount.Address) +
+		"@" + hex.EncodeToString([]byte(core.ESDTRoleNFTCreate)))
+	integrationTests.CreateAndSendTransaction(
+		nftCreator,
+		nodes,
+		big.NewInt(0),
+		vm.ESDTSCAddress,
+		string(txData),
+		integrationTests.AdditionalGasLimit+core.MinMetaTxExtraGasCost,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 20, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	newNFTMetaData := nft.NftArguments{
+		Name:       []byte("NEW"),
+		Quantity:   1,
+		Royalties:  9000,
+		Hash:       []byte("NEW"),
+		Attributes: []byte("NEW"),
+		URI:        [][]byte{[]byte("NEW")},
+	}
+
+	nft.CreateNFT(
+		[]byte(tokenIdentifier),
+		nftCreator,
+		nodes,
+		&newNFTMetaData,
+	)
+
+	time.Sleep(time.Second)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	// we check that old data remains on NONCE 1 - as creation must return failure
+	nft.CheckNftData(
+		t,
+		nftCreator.OwnAccount.Address,
+		nftCreator.OwnAccount.Address,
+		nodes,
+		[]byte(tokenIdentifier),
+		nftMetaData,
+		1,
+	)
 }

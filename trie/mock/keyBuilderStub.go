@@ -33,3 +33,8 @@ func (stub *KeyBuilderStub) Clone() common.KeyBuilder {
 
 	return &KeyBuilderStub{}
 }
+
+// IsInterfaceNil -
+func (stub *KeyBuilderStub) IsInterfaceNil() bool {
+	return stub == nil
+}

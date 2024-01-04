@@ -78,7 +78,8 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)
 
-	nodesMap[0][0].BroadcastBlock(body, hdr)
+	pk := nodesMap[0][0].NodeKeys.MainKey.Pk
+	nodesMap[0][0].BroadcastBlock(body, hdr, pk)
 	time.Sleep(testBlock.StepDelay)
 
 	// the block should have not pass the interceptor
@@ -95,7 +96,7 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)
 
-	nodesMap[0][0].BroadcastBlock(body, hdr)
+	nodesMap[0][0].BroadcastBlock(body, hdr, pk)
 	time.Sleep(testBlock.StepDelay)
 
 	// this block should have not passed the interceptor
@@ -112,7 +113,7 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)
 
-	nodesMap[0][0].BroadcastBlock(body, hdr)
+	nodesMap[0][0].BroadcastBlock(body, hdr, pk)
 	time.Sleep(testBlock.StepDelay)
 
 	// this block should have passed the interceptor

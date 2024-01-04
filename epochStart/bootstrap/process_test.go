@@ -27,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -37,9 +36,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
@@ -47,7 +48,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
-	"github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -75,14 +76,14 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			Hash:                         &hashingMocks.HasherMock{},
 			TxSignHasherField:            &hashingMocks.HasherMock{},
 			UInt64ByteSliceConv:          &mock.Uint64ByteSliceConverterMock{},
-			AddrPubKeyConv:               &mock.PubkeyConverterMock{},
+			AddrPubKeyConv:               &testscommon.PubkeyConverterMock{},
 			PathHdl:                      &testscommon.PathManagerStub{},
 			EpochNotifierField:           &epochNotifier.EpochNotifierStub{},
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -92,6 +93,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			BlKeyGen:        &cryptoMocks.KeyGenStub{},
 			TxKeyGen:        &cryptoMocks.KeyGenStub{},
 			PeerSignHandler: &cryptoMocks.PeerSignatureHandlerStub{},
+			ManagedPeers:    &testscommon.ManagedPeersHolderStub{},
 		}
 }
 
@@ -104,11 +106,12 @@ func createMockEpochStartBootstrapArgs(
 		ScheduledSCRsStorer:    genericMocks.NewStorerMock(),
 		CoreComponentsHolder:   coreMock,
 		CryptoComponentsHolder: cryptoMock,
-		Messenger: &p2pmocks.MessengerStub{
+		MainMessenger: &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
 			},
 		},
+		FullArchiveMessenger: &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
@@ -144,7 +147,6 @@ func createMockEpochStartBootstrapArgs(
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				CheckpointRoundsModulus:     5,
-				SnapshotsEnabled:            true,
 				AccountsStatePruningEnabled: true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
@@ -196,7 +198,7 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			Resolvers: generalCfg.Resolvers,
+			Requesters: generalCfg.Requesters,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {
@@ -246,11 +248,21 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilShardCoordinator))
 	})
-	t.Run("nil messenger", func(t *testing.T) {
+	t.Run("nil main messenger", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
-		args.Messenger = nil
+		args.MainMessenger = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilMessenger))
+	})
+	t.Run("nil full archive messenger", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+		args.FullArchiveMessenger = nil
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
@@ -588,6 +600,17 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		assert.Equal(t, storage.ErrNotSupportedCacheType, err)
 		assert.Nil(t, epochStartProvider)
+	})
+	t.Run("nil managed peers holder", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		cryptoComp.ManagedPeers = nil
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, epochStart.ErrNilManagedPeersHolder))
 	})
 }
 
@@ -1233,7 +1256,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1367,7 +1390,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		coreComp.IntMarsh = &testscommon.MarshalizerStub{
+		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -1661,14 +1684,14 @@ func TestRequestAndProcessing(t *testing.T) {
 		assert.Error(t, err)
 		assert.True(t, strings.Contains(err.Error(), nodesCoordinator.ErrInvalidNumberOfShards.Error()))
 	})
-	t.Run("failed to create messenger topic", func(t *testing.T) {
+	t.Run("failed to create main messenger topic", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
 		args.GenesisNodesConfig = getNodesConfigMock(1)
 
 		expectedErr := errors.New("expected error")
-		args.Messenger = &p2pmocks.MessengerStub{
+		args.MainMessenger = &p2pmocks.MessengerStub{
 			CreateTopicCalled: func(topic string, identifier bool) error {
 				return expectedErr
 			},
@@ -2360,7 +2383,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	assert.Nil(t, err)
 
 	topicName := "transactions_0"
-	interceptor, err := epochStartProvider.interceptorContainer.Get(topicName)
+	interceptor, err := epochStartProvider.mainInterceptorContainer.Get(topicName)
 	assert.Nil(t, err)
 
 	tx := &transaction.Transaction{
@@ -2380,7 +2403,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	}
 	batchBytes, _ := coreComp.IntMarsh.Marshal(batch)
 
-	msg := &processMock.P2PMessageMock{
+	msg := &p2pmocks.P2PMessageMock{
 		FromField:      nil,
 		DataField:      batchBytes,
 		SeqNoField:     nil,
@@ -2392,7 +2415,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 		TimestampField: 0,
 	}
 
-	err = interceptor.ProcessReceivedMessage(msg, "pid")
+	err = interceptor.ProcessReceivedMessage(msg, "pid", nil)
 	assert.Nil(t, err)
 
 	time.Sleep(time.Second)

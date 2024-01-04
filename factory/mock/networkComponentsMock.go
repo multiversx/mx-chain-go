@@ -8,12 +8,15 @@ import (
 
 // NetworkComponentsMock -
 type NetworkComponentsMock struct {
-	Messenger               p2p.Messenger
-	InputAntiFlood          factory.P2PAntifloodHandler
-	OutputAntiFlood         factory.P2PAntifloodHandler
-	PeerBlackList           process.PeerBlackListCacher
-	PreferredPeersHolder    factory.PreferredPeersHolderHandler
-	PeersRatingHandlerField p2p.PeersRatingHandler
+	Messenger                        p2p.Messenger
+	InputAntiFlood                   factory.P2PAntifloodHandler
+	OutputAntiFlood                  factory.P2PAntifloodHandler
+	PeerBlackList                    process.PeerBlackListCacher
+	PreferredPeersHolder             factory.PreferredPeersHolderHandler
+	PeersRatingHandlerField          p2p.PeersRatingHandler
+	PeersRatingMonitorField          p2p.PeersRatingMonitor
+	FullArchiveNetworkMessengerField p2p.Messenger
+	FullArchivePreferredPeersHolder  factory.PreferredPeersHolderHandler
 }
 
 // PubKeyCacher -
@@ -69,6 +72,21 @@ func (ncm *NetworkComponentsMock) PreferredPeersHolderHandler() factory.Preferre
 // PeersRatingHandler -
 func (ncm *NetworkComponentsMock) PeersRatingHandler() p2p.PeersRatingHandler {
 	return ncm.PeersRatingHandlerField
+}
+
+// PeersRatingMonitor -
+func (ncm *NetworkComponentsMock) PeersRatingMonitor() p2p.PeersRatingMonitor {
+	return ncm.PeersRatingMonitorField
+}
+
+// FullArchiveNetworkMessenger -
+func (ncm *NetworkComponentsMock) FullArchiveNetworkMessenger() p2p.Messenger {
+	return ncm.FullArchiveNetworkMessengerField
+}
+
+// FullArchivePreferredPeersHolderHandler -
+func (ncm *NetworkComponentsMock) FullArchivePreferredPeersHolderHandler() factory.PreferredPeersHolderHandler {
+	return ncm.FullArchivePreferredPeersHolder
 }
 
 // IsInterfaceNil -

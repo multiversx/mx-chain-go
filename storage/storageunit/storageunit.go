@@ -29,6 +29,9 @@ type CacheType = storageUnit.CacheType
 // DBType represents the type of the supported databases
 type DBType = storageUnit.DBType
 
+// ShardIDProviderType represents the type of the supported shard id providers
+type ShardIDProviderType = storageUnit.ShardIDProviderType
+
 // NewStorageUnit is the constructor for the storage unit, creating a new storage unit
 // from the given cacher and persister.
 func NewStorageUnit(c storage.Cacher, p storage.Persister) (*Unit, error) {
@@ -41,13 +44,13 @@ func NewCache(config CacheConfig) (storage.Cacher, error) {
 }
 
 // NewDB creates a new database from database config
-func NewDB(argDB ArgDB) (storage.Persister, error) {
-	return storageUnit.NewDB(argDB)
+func NewDB(persisterFactory storage.PersisterFactoryHandler, path string) (storage.Persister, error) {
+	return storageUnit.NewDB(persisterFactory, path)
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig) (*Unit, error) {
-	return storageUnit.NewStorageUnitFromConf(cacheConf, dbConf)
+func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, persisterFactory storage.PersisterFactoryHandler) (*Unit, error) {
+	return storageUnit.NewStorageUnitFromConf(cacheConf, dbConf, persisterFactory)
 }
 
 // NewNilStorer will return a nil storer

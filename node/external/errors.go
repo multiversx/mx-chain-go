@@ -8,8 +8,8 @@ var ErrNilSCQueryService = errors.New("nil SC query service")
 // ErrNilStatusMetrics signals that a nil status metrics was provided
 var ErrNilStatusMetrics = errors.New("nil status metrics handler")
 
-// ErrNilTransactionCostHandler signals that a nil transaction cost handler was provided
-var ErrNilTransactionCostHandler = errors.New("nil transaction cost handler")
+// ErrNilAPITransactionEvaluator signals that a nil api transaction evaluator was provided
+var ErrNilAPITransactionEvaluator = errors.New("nil api transaction evaluator")
 
 // ErrNilTotalStakedValueHandler signals that a nil total staked value handler has been provided
 var ErrNilTotalStakedValueHandler = errors.New("nil total staked value handler")
@@ -41,5 +41,5 @@ var ErrNilAccountsParser = errors.New("nil accounts parser")
 // ErrNilGasScheduler signals that a nil gas scheduler has been provided
 var ErrNilGasScheduler = errors.New("nil gas scheduler")
 
-// ErrEpochSubscriberHandlerWrongTypeAssertion signals that a type conversion to an epoch subscriber handler type failed
-var ErrEpochSubscriberHandlerWrongTypeAssertion = errors.New("epoch subscriber handler - wrong type assertion")
+// ErrNilManagedPeersMonitor signals that a nil managed peers monitor has been provided
+var ErrNilManagedPeersMonitor = errors.New("nil managed peers monitor")

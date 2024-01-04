@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, log)
+var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()

@@ -18,6 +18,8 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
+    TrieLoadPerNode          = 100000
+    TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -39,6 +41,7 @@
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
     DelegationMgrOps      = 50000000
+    GetActiveFund         = 50000
     ValidatorToDelegation = 500000000
     GetAllNodeStates      = 100000000
     FixWaitingListSize    = 500000000
@@ -95,6 +98,15 @@
     CleanReturnData      = 100
     DeleteFromReturnData = 100
     GetOriginalTxHash    = 10000
+    GetPrevTxHash      = 10000
+    GetCurrentTxHash   = 10000
+    CreateAsyncCall      = 200000
+    SetAsyncCallback     = 100000
+    SetAsyncGroupCallback   = 100000
+    SetAsyncContextCallback = 100000
+    GetCallbackClosure   = 10000
+    GetCodeMetadata      = 10000
+    IsBuiltinFunction    = 10000
 
 [EthAPICost]
     UseGas              = 100
@@ -689,8 +701,127 @@
     LocalsUnmetered = 100
     MaxMemoryGrowDelta = 100
     MaxMemoryGrow = 100
+    Catch = 1
+    CatchAll = 1
+    Delegate = 1
+    F32x4Ceil = 1
+    F32x4DemoteF64x2Zero = 1
+    F32x4Floor = 1
+    F32x4Nearest = 1
+    F32x4PMax = 1
+    F32x4PMin = 1
+    F32x4Trunc = 1
+    F64x2Ceil = 1
+    F64x2ConvertLowI32x4S = 1
+    F64x2ConvertLowI32x4U = 1
+    F64x2Floor = 1
+    F64x2Nearest = 1
+    F64x2PMax = 1
+    F64x2PMin = 1
+    F64x2PromoteLowF32x4 = 1
+    F64x2Trunc = 1
+    I16x8Abs = 1
+    I16x8AddSatS = 1
+    I16x8AddSatU = 1
+    I16x8Bitmask = 1
+    I16x8ExtAddPairwiseI8x16S = 1
+    I16x8ExtAddPairwiseI8x16U = 1
+    I16x8ExtMulHighI8x16S = 1
+    I16x8ExtMulHighI8x16U = 1
+    I16x8ExtMulLowI8x16S = 1
+    I16x8ExtMulLowI8x16U = 1
+    I16x8ExtendHighI8x16S = 1
+    I16x8ExtendHighI8x16U = 1
+    I16x8ExtendLowI8x16S = 1
+    I16x8ExtendLowI8x16U = 1
+    I16x8Q15MulrSatS = 1
+    I16x8SubSatS = 1
+    I16x8SubSatU = 1
+    I32x4Abs = 1
+    I32x4Bitmask = 1
+    I32x4DotI16x8S = 1
+    I32x4ExtAddPairwiseI16x8S = 1
+    I32x4ExtAddPairwiseI16x8U = 1
+    I32x4ExtMulHighI16x8S = 1
+    I32x4ExtMulHighI16x8U = 1
+    I32x4ExtMulLowI16x8S = 1
+    I32x4ExtMulLowI16x8U = 1
+    I32x4ExtendHighI16x8S = 1
+    I32x4ExtendHighI16x8U = 1
+    I32x4ExtendLowI16x8S = 1
+    I32x4ExtendLowI16x8U = 1
+    I32x4TruncSatF64x2SZero = 1
+    I32x4TruncSatF64x2UZero = 1
+    I64x2Abs = 1
+    I64x2Bitmask = 1
+    I64x2Eq = 1
+    I64x2ExtMulHighI32x4S = 1
+    I64x2ExtMulHighI32x4U = 1
+    I64x2ExtMulLowI32x4S = 1
+    I64x2ExtMulLowI32x4U = 1
+    I64x2ExtendHighI32x4S = 1
+    I64x2ExtendHighI32x4U = 1
+    I64x2ExtendLowI32x4S = 1
+    I64x2ExtendLowI32x4U = 1
+    I64x2GeS = 1
+    I64x2GtS = 1
+    I64x2LeS = 1
+    I64x2LtS = 1
+    I64x2Ne = 1
+    I8x16Abs = 1
+    I8x16AddSatS = 1
+    I8x16AddSatU = 1
+    I8x16Bitmask = 1
+    I8x16Popcnt = 1
+    I8x16Shuffle = 1
+    I8x16SubSatS = 1
+    I8x16SubSatU = 1
+    I8x16Swizzle = 1
+    MemoryAtomicNotify = 1
+    MemoryAtomicWait32 = 1
+    MemoryAtomicWait64 = 1
+    Rethrow = 1
+    ReturnCall = 1
+    ReturnCallIndirect = 1
+    Throw = 1
+    Try = 1
+    Unwind = 1
+    V128AnyTrue = 1
+    V128Load16Lane = 1
+    V128Load16Splat = 1
+    V128Load16x4S = 1
+    V128Load16x4U = 1
+    V128Load32Lane = 1
+    V128Load32Splat = 1
+    V128Load32Zero = 1
+    V128Load32x2S = 1
+    V128Load32x2U = 1
+    V128Load64Lane = 1
+    V128Load64Splat = 1
+    V128Load64Zero = 1
+    V128Load8Lane = 1
+    V128Load8Splat = 1
+    V128Load8x8S = 1
+    V128Load8x8U = 1
+    V128Store16Lane = 1
+    V128Store32Lane = 1
+    V128Store64Lane = 1
+    V128Store8Lane = 1
 
 [MaxPerTransaction]
     MaxBuiltInCallsPerTx = 100
     MaxNumberOfTransfersPerTx = 250
     MaxNumberOfTrieReadsPerTx = 1500
+
+# Quadratic, Linear and Constant are the coefficients for a quadratic func. Separate variables are used for the
+# sign of each coefficient, 0 meaning positive and 1 meaning negative
+# The current values for the coefficients were computed based on benchmarking.
+# For the given coefficients, the minimum of the function must not be lower than MinimumGasCost
+[DynamicStorageLoad]
+    QuadraticCoefficient = 688
+    SignOfQuadratic = 0
+    LinearCoefficient = 31858
+    SignOfLinear = 0
+    ConstantCoefficient = 15287
+    SignOfConstant = 0
+    MinimumGasCost = 10000

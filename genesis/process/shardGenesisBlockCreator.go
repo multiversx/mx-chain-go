@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -12,9 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -29,9 +32,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
@@ -137,10 +143,22 @@ func createGenesisConfig() config.EnableEpochs {
 		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
 		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
+		SCProcessorV2EnableEpoch:                          unreachableEpoch,
 		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 		SetGuardianEnableEpoch:                            unreachableEpoch,
+		ScToScLogEventEnableEpoch:                         unreachableEpoch,
+	}
+}
+
+func createGenesisRoundConfig() *config.RoundConfig {
+	return &config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: strconv.FormatUint(unreachableRound, 10),
+			},
+		},
 	}
 }
 
@@ -163,7 +181,7 @@ func CreateShardGenesisBlock(
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
 	}
 
-	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig())
+	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -301,7 +319,7 @@ func createArgsShardBlockCreatorAfterHardFork(
 ) (hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShardGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs)
+	processors, err := createProcessorsForShardGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs, arg.RoundConfig)
 	if err != nil {
 		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
 	}
@@ -381,7 +399,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs) (*genesisProcessors, error) {
+func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig *config.RoundConfig) (*genesisProcessors, error) {
 	genesisWasmVMLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
 	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
@@ -389,9 +407,16 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	roundNotifier := forking.NewGenericRoundNotifier()
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig, roundNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               arg.GasSchedule,
 		MapDNSAddresses:           make(map[string]struct{}),
+		MapDNSV2Addresses:         make(map[string]struct{}),
 		EnableUserNameChange:      false,
 		Marshalizer:               arg.Core.InternalMarshalizer(),
 		Accounts:                  arg.Accounts,
@@ -408,23 +433,24 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              arg.Accounts,
-		PubkeyConv:            arg.Core.AddressPubKeyConverter(),
-		StorageService:        arg.Data.StorageService(),
-		BlockChain:            arg.Data.Blockchain(),
-		ShardCoordinator:      arg.ShardCoordinator,
-		Marshalizer:           arg.Core.InternalMarshalizer(),
-		Uint64Converter:       arg.Core.Uint64ByteSliceConverter(),
-		BuiltInFunctions:      builtInFuncFactory.BuiltInFunctionContainer(),
-		NFTStorageHandler:     builtInFuncFactory.NFTStorageHandler(),
-		GlobalSettingsHandler: builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		DataPool:              arg.Data.Datapool(),
-		CompiledSCPool:        arg.Data.Datapool().SmartContracts(),
-		EpochNotifier:         epochNotifier,
-		EnableEpochsHandler:   enableEpochsHandler,
-		NilCompiledSCStore:    true,
-		GasSchedule:           arg.GasSchedule,
-		Counter:               counters.NewDisabledCounter(),
+		Accounts:                 arg.Accounts,
+		PubkeyConv:               arg.Core.AddressPubKeyConverter(),
+		StorageService:           arg.Data.StorageService(),
+		BlockChain:               arg.Data.Blockchain(),
+		ShardCoordinator:         arg.ShardCoordinator,
+		Marshalizer:              arg.Core.InternalMarshalizer(),
+		Uint64Converter:          arg.Core.Uint64ByteSliceConverter(),
+		BuiltInFunctions:         builtInFuncFactory.BuiltInFunctionContainer(),
+		NFTStorageHandler:        builtInFuncFactory.NFTStorageHandler(),
+		GlobalSettingsHandler:    builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		DataPool:                 arg.Data.Datapool(),
+		CompiledSCPool:           arg.Data.Datapool().SmartContracts(),
+		EpochNotifier:            epochNotifier,
+		EnableEpochsHandler:      enableEpochsHandler,
+		NilCompiledSCStore:       true,
+		GasSchedule:              arg.GasSchedule,
+		Counter:                  counters.NewDisabledCounter(),
+		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -458,21 +484,29 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	err = blockChainHookImpl.SetVMContainer(vmContainer)
+	if err != nil {
+		return nil, err
+	}
+
 	err = builtInFuncFactory.SetPayableHandler(vmFactoryImpl.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
 
 	genesisFeeHandler := &disabled.FeeHandler{}
-	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Core.AddressPubKeyConverter(),
-		arg.Data.StorageService(),
-		arg.Data.Datapool(),
-		genesisFeeHandler,
-	)
+	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
+		ShardCoordinator:        arg.ShardCoordinator,
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		Hasher:                  arg.Core.Hasher(),
+		PubkeyConverter:         arg.Core.AddressPubKeyConverter(),
+		Store:                   arg.Data.StorageService(),
+		PoolsHolder:             arg.Data.Datapool(),
+		EconomicsFee:            genesisFeeHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		TxExecutionOrderHandler: arg.TxExecutionOrderHandler,
+	}
+	interimProcFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +556,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	argsNewScProcessor := smartContract.ArgsNewSmartContractProcessor{
+	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		Hasher:              arg.Core.Hasher(),
@@ -540,12 +574,14 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasSchedule:         arg.GasSchedule,
 		TxLogsProcessor:     arg.TxLogsProcessor,
 		BadTxForwarder:      badTxInterim,
+		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
-	scProcessor, err := smartContract.NewSmartContractProcessor(argsNewScProcessor)
+
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -566,7 +602,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		SignMarshalizer:     arg.Core.TxMarshalizer(),
 		ShardCoordinator:    arg.ShardCoordinator,
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        genesisFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        genesisFeeHandler,
@@ -574,6 +610,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BadTxForwarder:      badTxInterim,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		ScrForwarder:        scForwarder,
+		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    arg.Core.TxVersionChecker(),
 		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
@@ -601,8 +638,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Accounts,
 		disabledRequestHandler,
 		transactionProcessor,
-		scProcessor,
-		scProcessor,
+		scProcessorProxy,
+		scProcessorProxy,
 		rewardsTxProcessor,
 		arg.Economics,
 		gasHandler,
@@ -613,6 +650,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		txTypeHandler,
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
+		arg.TxExecutionOrderHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -653,8 +691,14 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	apiBlockchain, err := blockchain.NewBlockChain(disabledCommon.NewAppStatusHandler())
 	if err != nil {
 		return nil, err
 	}
@@ -663,10 +707,17 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		VmContainer:              vmContainer,
 		EconomicsFee:             arg.Economics,
 		BlockChainHook:           vmFactoryImpl.BlockChainHookImpl(),
-		BlockChain:               arg.Data.Blockchain(),
+		MainBlockChain:           arg.Data.Blockchain(),
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       genesisWasmVMLocker,
 		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        arg.HistoryRepository,
+		ShardCoordinator:         arg.ShardCoordinator,
+		StorageService:           arg.Data.StorageService(),
+		Marshaller:               arg.Core.InternalMarshalizer(),
+		Hasher:                   arg.Core.Hasher(),
+		Uint64ByteSliceConverter: arg.Core.Uint64ByteSliceConverter(),
 	}
 	queryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
 	if err != nil {
@@ -677,8 +728,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		txCoordinator:       txCoordinator,
 		systemSCs:           nil,
 		txProcessor:         transactionProcessor,
-		scProcessor:         scProcessor,
-		scrProcessor:        scProcessor,
+		scProcessor:         scProcessorProxy,
+		scrProcessor:        scProcessorProxy,
 		rwdProcessor:        rewardsTxProcessor,
 		blockchainHook:      vmFactoryImpl.BlockChainHookImpl(),
 		queryService:        queryService,

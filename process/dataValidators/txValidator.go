@@ -8,10 +8,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.TxValidator = (*txValidator)(nil)
+
+var log = logger.GetOrCreate("process/dataValidators")
 
 // txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
 type txValidator struct {
@@ -105,7 +108,7 @@ func (txv *txValidator) getSenderUserAccount(
 	if !ok {
 		return nil, fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
-			txv.pubKeyConverter.Encode(senderAddress),
+			txv.pubKeyConverter.SilentEncode(senderAddress, log),
 		)
 	}
 	return account, nil
@@ -118,7 +121,7 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactio
 		senderAddress := interceptedTx.SenderAddress()
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
-			txv.pubKeyConverter.Encode(senderAddress),
+			txv.pubKeyConverter.SilentEncode(senderAddress, log),
 			txFee,
 			accountBalance,
 		)
@@ -154,7 +157,7 @@ func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTransa
 	if err != nil {
 		return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
 			process.ErrAccountNotFound,
-			txv.pubKeyConverter.Encode(senderAddress),
+			txv.pubKeyConverter.SilentEncode(senderAddress, log),
 			txv.shardCoordinator.SelfId(),
 			err.Error(),
 		)

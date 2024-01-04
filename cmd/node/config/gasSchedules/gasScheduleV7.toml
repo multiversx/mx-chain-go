@@ -19,6 +19,8 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
+    TrieLoadPerNode          = 100000
+    TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
     Stake                 = 5000000
@@ -35,13 +37,14 @@
     ESDTIssue             = 50000000
     ESDTOperations        = 50000000
     Proposal              = 50000000
-    Vote                  = 50000000
+    Vote                  = 5000000
     DelegateVote          = 50000000
     RevokeVote            = 50000000
     CloseProposal         = 50000000
     GetAllNodeStates      = 20000000
     UnstakeTokens         = 5000000
     UnbondTokens          = 5000000
+    GetActiveFund         = 50000
     FixWaitingListSize    = 500000000
 
 [BaseOperationCost]
@@ -96,7 +99,16 @@
     GetOriginalTxHash    = 10000
     CleanReturnData      = 100
     DeleteFromReturnData = 100
-
+    GetPrevTxHash      = 10000
+    GetCurrentTxHash   = 10000
+    CreateAsyncCall      = 200000
+    SetAsyncCallback     = 100000
+    SetAsyncGroupCallback   = 100000
+    SetAsyncContextCallback = 100000
+    GetCallbackClosure   = 10000
+    GetCodeMetadata      = 10000
+    IsBuiltinFunction    = 10000
+    
 [EthAPICost]
     UseGas              = 100
     GetAddress          = 100000
@@ -690,8 +702,127 @@
     LocalsUnmetered = 100
     MaxMemoryGrowDelta = 1
     MaxMemoryGrow = 10
+    Catch = 10
+    CatchAll = 10
+    Delegate = 10
+    Rethrow = 10
+    ReturnCall = 10
+    ReturnCallIndirect = 10
+    Throw = 10
+    Try = 10
+    Unwind = 10
+    F32x4Ceil = 1000000
+    F32x4DemoteF64x2Zero = 1000000
+    F32x4Floor = 1000000
+    F32x4Nearest = 1000000
+    F32x4PMax = 1000000
+    F32x4PMin = 1000000
+    F32x4Trunc = 1000000
+    F64x2Ceil = 1000000
+    F64x2ConvertLowI32x4S = 1000000
+    F64x2ConvertLowI32x4U = 1000000
+    F64x2Floor = 1000000
+    F64x2Nearest = 1000000
+    F64x2PMax = 1000000
+    F64x2PMin = 1000000
+    F64x2PromoteLowF32x4 = 1000000
+    F64x2Trunc = 1000000
+    I16x8Abs = 1000000
+    I16x8AddSatS = 1000000
+    I16x8AddSatU = 1000000
+    I16x8Bitmask = 1000000
+    I16x8ExtAddPairwiseI8x16S = 1000000
+    I16x8ExtAddPairwiseI8x16U = 1000000
+    I16x8ExtMulHighI8x16S = 1000000
+    I16x8ExtMulHighI8x16U = 1000000
+    I16x8ExtMulLowI8x16S = 1000000
+    I16x8ExtMulLowI8x16U = 1000000
+    I16x8ExtendHighI8x16S = 1000000
+    I16x8ExtendHighI8x16U = 1000000
+    I16x8ExtendLowI8x16S = 1000000
+    I16x8ExtendLowI8x16U = 1000000
+    I16x8Q15MulrSatS = 1000000
+    I16x8SubSatS = 1000000
+    I16x8SubSatU = 1000000
+    I32x4Abs = 1000000
+    I32x4Bitmask = 1000000
+    I32x4DotI16x8S = 1000000
+    I32x4ExtAddPairwiseI16x8S = 1000000
+    I32x4ExtAddPairwiseI16x8U = 1000000
+    I32x4ExtMulHighI16x8S = 1000000
+    I32x4ExtMulHighI16x8U = 1000000
+    I32x4ExtMulLowI16x8S = 1000000
+    I32x4ExtMulLowI16x8U = 1000000
+    I32x4ExtendHighI16x8S = 1000000
+    I32x4ExtendHighI16x8U = 1000000
+    I32x4ExtendLowI16x8S = 1000000
+    I32x4ExtendLowI16x8U = 1000000
+    I32x4TruncSatF64x2SZero = 1000000
+    I32x4TruncSatF64x2UZero = 1000000
+    I64x2Abs = 1000000
+    I64x2Bitmask = 1000000
+    I64x2Eq = 1000000
+    I64x2ExtMulHighI32x4S = 1000000
+    I64x2ExtMulHighI32x4U = 1000000
+    I64x2ExtMulLowI32x4S = 1000000
+    I64x2ExtMulLowI32x4U = 1000000
+    I64x2ExtendHighI32x4S = 1000000
+    I64x2ExtendHighI32x4U = 1000000
+    I64x2ExtendLowI32x4S = 1000000
+    I64x2ExtendLowI32x4U = 1000000
+    I64x2GeS = 1000000
+    I64x2GtS = 1000000
+    I64x2LeS = 1000000
+    I64x2LtS = 1000000
+    I64x2Ne = 1000000
+    I8x16Abs = 1000000
+    I8x16AddSatS = 1000000
+    I8x16AddSatU = 1000000
+    I8x16Bitmask = 1000000
+    I8x16Popcnt = 1000000
+    I8x16Shuffle = 1000000
+    I8x16SubSatS = 1000000
+    I8x16SubSatU = 1000000
+    I8x16Swizzle = 1000000
+    MemoryAtomicNotify = 1000000
+    MemoryAtomicWait32 = 1000000
+    MemoryAtomicWait64 = 1000000
+    V128AnyTrue = 1000000
+    V128Load16Lane = 1000000
+    V128Load16Splat = 1000000
+    V128Load16x4S = 1000000
+    V128Load16x4U = 1000000
+    V128Load32Lane = 1000000
+    V128Load32Splat = 1000000
+    V128Load32Zero = 1000000
+    V128Load32x2S = 1000000
+    V128Load32x2U = 1000000
+    V128Load64Lane = 1000000
+    V128Load64Splat = 1000000
+    V128Load64Zero = 1000000
+    V128Load8Lane = 1000000
+    V128Load8Splat = 1000000
+    V128Load8x8S = 1000000
+    V128Load8x8U = 1000000
+    V128Store16Lane = 1000000
+    V128Store32Lane = 1000000
+    V128Store64Lane = 1000000
+    V128Store8Lane = 1000000
 
 [MaxPerTransaction]
     MaxBuiltInCallsPerTx = 100
     MaxNumberOfTransfersPerTx = 250
     MaxNumberOfTrieReadsPerTx = 1500
+
+# Quadratic, Linear and Constant are the coefficients for a quadratic func. Separate variables are used for the
+# sign of each coefficient, 0 meaning positive and 1 meaning negative
+# The current values for the coefficients were computed based on benchmarking.
+# For the given coefficients, the minimum of the function must not be lower than MinimumGasCost
+[DynamicStorageLoad]
+    QuadraticCoefficient = 688
+    SignOfQuadratic = 0
+    LinearCoefficient = 31858
+    SignOfLinear = 0
+    ConstantCoefficient = 15287
+    SignOfConstant = 0
+    MinimumGasCost = 10000

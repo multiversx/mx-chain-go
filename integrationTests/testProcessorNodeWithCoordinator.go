@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -37,13 +37,13 @@ func CreateProcessorNodesWithNodesCoordinator(
 ) (map[uint32][]*TestProcessorNode, uint32) {
 
 	ncp, nbShards := createNodesCryptoParams(rewardsAddrsAssignments)
-	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards)
-	pubKeys := PubKeysMapFromKeysMap(cp.Keys)
+	cp := CreateCryptoParams(len(ncp[0]), len(ncp[core.MetachainShardId]), nbShards, 1)
+	pubKeys := PubKeysMapFromNodesKeysMap(cp.NodesKeys)
 	validatorsMap := GenValidatorsFromPubKeys(pubKeys, nbShards)
 	validatorsMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(validatorsMap)
 
-	cpWaiting := CreateCryptoParams(1, 1, nbShards)
-	pubKeysWaiting := PubKeysMapFromKeysMap(cpWaiting.Keys)
+	cpWaiting := CreateCryptoParams(1, 1, nbShards, 1)
+	pubKeysWaiting := PubKeysMapFromNodesKeysMap(cpWaiting.NodesKeys)
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
@@ -73,7 +73,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
 				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
 				IsFullArchive:           false,
-				EnableEpochsHandler:     &testscommon.EnableEpochsHandlerStub{},
+				EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
 			}
 
@@ -107,9 +107,11 @@ func CreateProcessorNodesWithNodesCoordinator(
 				MaxShards:            numShards,
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
-				NodeKeys: &TestKeyPair{
-					Sk: kp.BlockSignSk,
-					Pk: kp.BlockSignPk,
+				NodeKeys: &TestNodeKeys{
+					MainKey: &TestKeyPair{
+						Sk: kp.BlockSignSk,
+						Pk: kp.BlockSignPk,
+					},
 				},
 				NodesSetup:       nodesSetup,
 				NodesCoordinator: nodesCoordinatorInstance,

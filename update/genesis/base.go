@@ -11,9 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // EpochStartMetaBlockIdentifier is the constant which defines the export/import identifier for epoch start metaBlock
@@ -84,19 +82,6 @@ func NewObject(objType Type) (interface{}, error) {
 		return &block.MetaBlock{}, nil
 	case RootHash:
 		return make([]byte, 0), nil
-	}
-	return nil, update.ErrUnknownType
-}
-
-// NewEmptyAccount returns a new account according to the given type
-func NewEmptyAccount(accType Type, address []byte) (vmcommon.AccountHandler, error) {
-	switch accType {
-	case UserAccount:
-		return state.NewUserAccount(address)
-	case ValidatorAccount:
-		return state.NewPeerAccount(address)
-	case DataTrie:
-		return nil, nil
 	}
 	return nil, update.ErrUnknownType
 }

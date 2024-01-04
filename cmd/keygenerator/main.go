@@ -41,6 +41,7 @@ const minedWalletPrefixKeys = "mined-wallet"
 const nopattern = "nopattern"
 const desiredpattern = "[0-f]+"
 const noshard = -1
+const pubkeyHrp = "erd"
 
 type key struct {
 	skBytes []byte
@@ -49,7 +50,7 @@ type key struct {
 
 type pubKeyConverter interface {
 	Decode(humanReadable string) ([]byte, error)
-	Encode(pkBytes []byte) string
+	Encode(pkBytes []byte) (string, error)
 	IsInterfaceNil() bool
 }
 
@@ -132,7 +133,7 @@ VERSION:
 
 	validatorPubKeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(blsPubkeyLen)
 	pidPubKeyConverter          = converter.NewPidPubkeyConverter()
-	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, log)
+	walletPubKeyConverter, _    = pubkeyConverter.NewBech32PubkeyConverter(txSignPubkeyLen, pubkeyHrp)
 )
 
 func main() {
@@ -365,7 +366,10 @@ func writeKeyToStream(writer io.Writer, key key, converter pubKeyConverter) erro
 		return fmt.Errorf("nil writer")
 	}
 
-	pkString := converter.Encode(key.pkBytes)
+	pkString, err := converter.Encode(key.pkBytes)
+	if err != nil {
+		return err
+	}
 
 	blk := pem.Block{
 		Type:  "PRIVATE KEY for " + pkString,

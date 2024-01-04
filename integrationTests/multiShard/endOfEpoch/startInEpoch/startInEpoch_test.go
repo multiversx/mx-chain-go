@@ -33,6 +33,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -134,6 +135,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 	for _, node := range nodes {
 		_ = dataRetriever.SetEpochHandlerToHdrResolver(node.ResolversContainer, epochHandler)
+		_ = dataRetriever.SetEpochHandlerToHdrRequester(node.RequestersContainer, epochHandler)
 	}
 
 	generalConfig := getGeneralConfig()
@@ -198,15 +200,17 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	})
 	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
-	nodeToJoinLate.Messenger = messenger
+	nodeToJoinLate.MainMessenger = messenger
+
+	nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 
 	for _, n := range nodes {
-		_ = n.ConnectTo(nodeToJoinLate)
+		_ = n.ConnectOnMain(nodeToJoinLate)
 	}
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
 	cryptoComponents := integrationTests.GetDefaultCryptoComponents()
-	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.Pk
+	cryptoComponents.PubKey = nodeToJoinLate.NodeKeys.MainKey.Pk
 	cryptoComponents.BlockSig = &mock.SignerMock{}
 	cryptoComponents.TxSig = &mock.SignerMock{}
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
@@ -229,7 +233,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		CryptoComponentsHolder: cryptoComponents,
 		CoreComponentsHolder:   coreComponents,
-		Messenger:              nodeToJoinLate.Messenger,
+		MainMessenger:          nodeToJoinLate.MainMessenger,
+		FullArchiveMessenger:   nodeToJoinLate.FullArchiveMessenger,
 		GeneralConfig:          generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
@@ -287,6 +292,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.Normal,
+			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 		},
 	)
 	assert.NoError(t, err)
