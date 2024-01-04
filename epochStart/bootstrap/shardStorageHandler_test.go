@@ -17,26 +17,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-LEAVING BUILD ERROR
--args.nodeProcessingMode,
--		disabled.NewStateStatistics(),
 
 func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 	defer func() {
@@ -1065,22 +1058,6 @@ type shardStorageArgs struct {
 	nodeTypeProvider   core.NodeTypeProviderHandler
 	nodeProcessingMode common.NodeProcessingMode
 	managedPeersHolder common.ManagedPeersHolder
-}
-
-func createDefaultShardStorageArgs() shardStorageArgs {
-	return shardStorageArgs{
-		generalConfig:      testscommon.GetGeneralConfig(),
-		prefsConfig:        config.PreferencesConfig{},
-		shardCoordinator:   &mock.ShardCoordinatorStub{},
-		pathManagerHandler: &testscommon.PathManagerStub{},
-		marshalizer:        &mock.MarshalizerMock{},
-		hasher:             &hashingMocks.HasherMock{},
-		currentEpoch:       0,
-		uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
-		nodeTypeProvider:   &nodeTypeProviderMock.NodeTypeProviderStub{},
-		nodeProcessingMode: common.Normal,
-		managedPeersHolder: &testscommon.ManagedPeersHolderStub{},
-	}
 }
 
 func createDefaultEpochStartShardData(lastFinishedMetaBlockHash []byte, shardHeaderHash []byte) []block.EpochStartShardData {

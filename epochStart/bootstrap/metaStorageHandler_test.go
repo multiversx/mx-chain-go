@@ -39,10 +39,10 @@ func createStorageHandlerArgs() StorageHandlerArgs {
 		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
-
-		LEAVE ERROR HERE
-		- common.Normal,
-		- disabled.NewStateStatistics(),
+		SnapshotsEnabled:                false,
+		NodeProcessingMode:              common.Normal,
+		StateStatsHandler:               disabled.NewStateStatistics(),
+		RepopulateTokensSupplies:        false,
 	}
 }
 

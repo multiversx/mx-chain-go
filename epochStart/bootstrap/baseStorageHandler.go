@@ -34,6 +34,9 @@ type StorageHandlerArgs struct {
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 	SnapshotsEnabled                bool
 	ManagedPeersHolder              common.ManagedPeersHolder
+	NodeProcessingMode              common.NodeProcessingMode
+	RepopulateTokensSupplies        bool
+	StateStatsHandler               common.StateStatisticsHandler
 }
 
 func checkNilArgs(args StorageHandlerArgs) error {

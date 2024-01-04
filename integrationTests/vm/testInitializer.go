@@ -61,7 +61,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -704,6 +703,7 @@ func CreateVMAndBlockchainHookMeta(
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
+		ArgBlockChainHook:   args,
 		NodesConfigProvider: &genesisMocks.NodesSetupStub{},
 		Hasher:              integrationtests.TestHasher,
 		Marshalizer:         integrationtests.TestMarshalizer,
@@ -1200,10 +1200,6 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEp
 	)
 }
 
-LEAVING BUILD ERROR TO CHECK THIS in the func below:
-feeAccumulator := postprocess.NewFeeAccumulator()
-accounts := integrationtests.CreateAccountsDB(db)
-
 // CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	enableEpochsConfig config.EnableEpochs,
@@ -1250,7 +1246,7 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 	roundsConfig config.RoundConfig,
 	vmConfig *config.VirtualMachineConfig,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
