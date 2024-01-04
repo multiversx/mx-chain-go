@@ -131,7 +131,6 @@ func createArguments() ArgNodesCoordinator {
 		},
 		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
-		StakingV4Step2EnableEpoch:       stakingV4Epoch,
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	return arguments
@@ -2553,8 +2552,9 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 			EnableEpochsHandler: &mock.EnableEpochsHandlerMock{
 				CurrentEpoch: 1,
 			},
-			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-			GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+			ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
+			NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 		}
 
 		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -2629,6 +2629,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 					return 0
 				},
 			},
+			NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 		}
 
 		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -2713,6 +2714,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 					return 2
 				},
 			},
+			NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 		}
 
 		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)

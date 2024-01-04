@@ -151,7 +151,6 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		enableEpochsHandler:             arguments.EnableEpochsHandler,
 		validatorInfoCacher:             arguments.ValidatorInfoCacher,
 		genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
-		stakingV4Step2EnableEpoch:       arguments.StakingV4Step2EnableEpoch,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
@@ -1292,10 +1291,10 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.StakingV4Step1EnableEpoch())
+	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.StakingV4Step1Flag))
 	log.Debug("indexHashedNodesCoordinator: flagStakingV4Started", "enabled", ihnc.flagStakingV4Started.IsSet())
 
-	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.stakingV4Step2EnableEpoch)
+	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 	log.Debug("indexHashedNodesCoordinator: flagStakingV4Step2", "enabled", ihnc.flagStakingV4Step2.IsSet())
 }
 

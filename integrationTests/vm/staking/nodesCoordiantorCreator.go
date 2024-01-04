@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	integrationMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/multiversx/mx-chain-storage-go/lrucache"
@@ -222,7 +222,7 @@ func savePeerAcc(
 	shardID uint32,
 	list common.PeerType,
 ) {
-	peerAccount, _ := state.NewPeerAccount(pubKey)
+	peerAccount, _ := accounts.NewPeerAccount(pubKey)
 	peerAccount.SetTempRating(initialRating)
 	peerAccount.ShardId = shardID
 	peerAccount.BLSPublicKey = pubKey

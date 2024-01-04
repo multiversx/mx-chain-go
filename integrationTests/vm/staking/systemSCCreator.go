@@ -198,11 +198,11 @@ func createVMContainerFactory(
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					LostProposalFee:  "50",
+					MinQuorum:        50,
+					MinPassThreshold: 10,
+					MinVetoThreshold: 10,
 				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     strconv.Itoa(nodePrice),

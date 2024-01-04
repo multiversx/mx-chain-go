@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-go/common"
@@ -835,9 +836,6 @@ func (rhs *randHashShuffler) updateShufflerConfig(epoch uint32) {
 		"epochEnable", rhs.activeNodesConfig.EpochEnable,
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
-
-	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
-	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
 
 	rhs.flagStakingV4Step3.SetValue(epoch >= rhs.stakingV4Step3EnableEpoch)
 	log.Debug("staking v4 step3", "enabled", rhs.flagStakingV4Step3.IsSet())

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -32,9 +33,11 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	stateTests "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -139,8 +142,9 @@ func createBootstrapComponents(
 
 func createStatusComponents() factory.StatusComponentsHolder {
 	return &integrationMocks.StatusComponentsStub{
-		Outport:          &outport.OutportStub{},
-		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+		Outport:                  &outport.OutportStub{},
+		SoftwareVersionCheck:     &integrationMocks.SoftwareVersionCheckerMock{},
+		ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 	}
 }
 
@@ -148,13 +152,22 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	tsmArgs := getNewTrieStorageManagerArgs(coreComponents)
 	tsm, _ := trie.CreateTrieStorageManager(tsmArgs, trie.StorageManagerOptions{})
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-	userAccountsDB := createAccountsDB(coreComponents, stateFactory.NewAccountCreator(), trieFactoryManager)
+
+	argsAccCreator := stateFactory.ArgsAccountCreator{
+		Hasher:              coreComponents.Hasher(),
+		Marshaller:          coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+
+	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
+
+	userAccountsDB := createAccountsDB(coreComponents, accCreator, trieFactoryManager)
 	peerAccountsDB := createAccountsDB(coreComponents, stateFactory.NewPeerAccountCreator(), trieFactoryManager)
 
 	_ = userAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
-	return &testscommon.StateComponentsMock{
+	return &factoryTests.StateComponentsMock{
 		PeersAcc: peerAccountsDB,
 		Accounts: userAccountsDB,
 	}
@@ -162,14 +175,13 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 
 func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
-		MainStorer: testscommon.CreateMemUnit(),
-		//CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:   coreComponents.InternalMarshalizer(),
-		Hasher:        coreComponents.Hasher(),
-		GeneralConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		LEAVING BUILD ERROR TO FILL THIS
-		//CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
+		MainStorer:     testscommon.CreateMemUnit(),
+		Marshalizer:    coreComponents.InternalMarshalizer(),
+		Hasher:         coreComponents.Hasher(),
+		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     "id",
+		StatsCollector: disabled.NewStateStatistics(),
 	}
 }
 
@@ -178,7 +190,13 @@ func createAccountsDB(
 	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), 5)
+	tr, _ := trie.NewTrie(
+		trieStorageManager,
+		coreComponents.InternalMarshalizer(),
+		coreComponents.Hasher(),
+		coreComponents.EnableEpochsHandler(),
+		5,
+	)
 
 	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 10,
@@ -192,10 +210,8 @@ func createAccountsDB(
 		Marshaller:            coreComponents.InternalMarshalizer(),
 		AccountFactory:        accountFactory,
 		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  coreComponents.ProcessStatusHandler(),
-		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
 		AddressConverter:      coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:      &stateTests.SnapshotsManagerStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb

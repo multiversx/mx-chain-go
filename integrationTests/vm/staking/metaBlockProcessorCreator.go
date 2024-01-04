@@ -93,7 +93,6 @@ func createMetaBlockProcessor(
 			BlockTracker:                   blockTracker,
 			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			EnableRoundsHandler:            coreComponents.EnableRoundsHandler(),
 			VMContainersFactory:            metaVMFactory,
 			VmContainer:                    vmContainer,
 			GasHandler:                     &mock.GasHandlerMock{},
