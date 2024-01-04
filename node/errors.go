@@ -141,3 +141,6 @@ var ErrNilCreateTransactionArgs = errors.New("nil args for create transaction")
 
 // ErrNilNodeRunner signals that a nil node runner was provided
 var ErrNilNodeRunner = errors.New("nil node runner")
+
+// ErrNilNode signals that a nil node was provided
+var ErrNilNode = errors.New("nil node")

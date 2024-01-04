@@ -9,12 +9,15 @@ func NewSovereignNodeFactory() *sovereignNodeFactory {
 
 func (snf *sovereignNodeFactory) CreateNewNode(opts ...Option) (NodeHandler, error) {
 	nd, err := NewNode(opts...)
-
 	if err != nil {
 		return nil, err
 	}
 
-	snd := NewSovereignNode(nd)
+	snd, err := NewSovereignNode(nd)
+	if err != nil {
+		return nil, err
+	}
+
 	return snd, nil
 }
 

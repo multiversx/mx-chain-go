@@ -1,7 +1,8 @@
-package node
+package node_test
 
 import (
-	"github.com/stretchr/testify/assert"
+	"fmt"
+	"github.com/multiversx/mx-chain-go/node"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -9,16 +10,17 @@ import (
 func TestNewNodeFactory(t *testing.T) {
 	t.Parallel()
 
-	nodeFactory := NewNodeFactory()
+	nodeFactory := node.NewNodeFactory()
 	require.False(t, nodeFactory.IsInterfaceNil())
 }
 
 func TestNodeFactory_CreateNewNode(t *testing.T) {
 	t.Parallel()
 
-	nodeFactory := NewNodeFactory()
+	nodeFactory := node.NewNodeFactory()
 
 	n, err := nodeFactory.CreateNewNode()
-	assert.Nil(t, err)
-	assert.NotNil(t, n)
+	require.Nil(t, err)
+	require.NotNil(t, n)
+	require.Equal(t, "*node.Node", fmt.Sprintf("%T", n))
 }

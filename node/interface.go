@@ -66,11 +66,13 @@ type accountHandlerWithDataTrieMigrationStatus interface {
 	IsDataTrieMigrated() (bool, error)
 }
 
+// NodeFactory can create a new node
 type NodeFactory interface {
 	CreateNewNode(opts ...Option) (NodeHandler, error)
 	IsInterfaceNil() bool
 }
 
+// NodeHandler defines the behavior of a node
 type NodeHandler interface {
 	facade.NodeHandler
 	CreateShardedStores() error
