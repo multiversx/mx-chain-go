@@ -37,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 )
 
 const hashSize = 32
@@ -163,12 +162,13 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 
 func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.CreateMemUnit(),
-		CheckpointsStorer:      testscommon.CreateMemUnit(),
-		Marshalizer:            coreComponents.InternalMarshalizer(),
-		Hasher:                 coreComponents.Hasher(),
-		GeneralConfig:          config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
+		MainStorer: testscommon.CreateMemUnit(),
+		//CheckpointsStorer:      testscommon.CreateMemUnit(),
+		Marshalizer:   coreComponents.InternalMarshalizer(),
+		Hasher:        coreComponents.Hasher(),
+		GeneralConfig: config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		LEAVING BUILD ERROR TO FILL THIS
+		//CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10, hashSize),
 		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
 	}
 }
