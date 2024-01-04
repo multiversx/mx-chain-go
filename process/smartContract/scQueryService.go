@@ -199,7 +199,9 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 
 		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-		err = accountsAdapter.RecreateTrieFromEpoch(holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch()}))
+
+		holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
+		err = accountsAdapter.RecreateTrieFromEpoch(holder)
 		if err != nil {
 			return nil, nil, err
 		}
