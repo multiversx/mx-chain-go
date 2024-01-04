@@ -1,19 +1,15 @@
 package metachain
 
 import (
-	"bytes"
-	"context"
 	"fmt"
 	"math"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/errChan"
-	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -69,7 +65,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
-	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+
+	err = core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly,
 		common.StakingV2OwnerFlagInSpecificEpochOnly,
 		common.CorrectLastUnJailedFlagInSpecificEpochOnly,
@@ -128,21 +125,21 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	if s.enableEpochsHandler.IsGovernanceFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV4Step1Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step1Flag) {
 		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV4Step2Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -237,71 +234,3 @@ func (s *systemSCProcessor) IsInterfaceNil() bool {
 func (s *systemSCProcessor) EpochConfirmed(epoch uint32, _ uint64) {
 	s.legacyEpochConfirmed(epoch)
 }
-
-LEAVING BUILD ERRORS:
-
-err = peerAcc.SetBLSPublicKey(blsKey)
-if err != nil {
-return err
-}
-
-in function
-
-func (s *systemSCProcessor) addNewlyStakedNodesToValidatorTrie(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
-	returnData [][]byte,
-	nonce uint64,
-) error {
-	for i := 0; i < len(returnData); i += 2 {
-		blsKey := returnData[i]
-		rewardAddress := returnData[i+1]
-
-		peerAcc, err := s.getPeerAccount(blsKey)
-		if err != nil {
-			return err
-		}
-
-		err = peerAcc.SetRewardAddress(rewardAddress)
-		if err != nil {
-			return err
-		}
-
-		err = peerAcc.SetBLSPublicKey(blsKey)
-		if err != nil {
-			return err
-		}
-
-		ALSO REFACTOR THIS:
-
-
-		func (s *systemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
-			arguments := make([][]byte, 0)
-
-			leavesChannels := &common.TrieIteratorChannels{
-				LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-				ErrChan:    errChan.NewErrChanWrapper(),
-			}
-			err := userValidatorAccount.GetAllLeaves(leavesChannels, context.Background())
-			if err != nil {
-				return nil, err
-			}
-			for leaf := range leavesChannels.LeavesChan {
-				validatorData := &systemSmartContracts.ValidatorDataV2{}
-
-				err = s.marshalizer.Unmarshal(validatorData, leaf.Value())
-				if err != nil {
-					continue
-				}
-				for _, blsKey := range validatorData.BlsPubKeys {
-					arguments = append(arguments, blsKey)
-					arguments = append(arguments, leaf.Key())
-				}
-			}
-
-			err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
-			if err != nil {
-				return nil, err
-			}
-
-			return arguments, nil
-		}
