@@ -1408,7 +1408,6 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
 	}

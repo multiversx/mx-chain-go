@@ -275,18 +275,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch,
 		},
-		common.BuiltInFunctionOnMetaFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
-		},
-		common.TransferToMetaFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
-		},
 		common.ComputeRewardCheckpointFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch
@@ -670,12 +658,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch,
-		},
-		common.WaitingListFixFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.WaitingListFixEnableEpoch,
 		},
 		common.NFTStopCreateFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {

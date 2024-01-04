@@ -180,7 +180,6 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		common.OptimizeGasUsedInCrossMiniBlocksFlag,
 		common.OptimizeNFTStoreFlag,
 		common.RemoveNonUpdatedStorageFlag,
-		common.BuiltInFunctionOnMetaFlag,
 		common.BackwardCompSaveKeyValueFlag,
 		common.ReturnDataToLastTransferFlagAfterEpoch,
 		common.FixAsyncCallBackArgsListFlag,

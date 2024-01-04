@@ -3341,7 +3341,6 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionsFlag, common.BuiltInFunctionOnMetaFlag)
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)

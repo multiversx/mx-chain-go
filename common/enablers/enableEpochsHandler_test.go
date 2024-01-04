@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-LEAVING BUILDING ERROR HERE TO REMEBER TO DELETE BuiltInFunctionOnMeta + WaitingListFixEnableEpoch
-
 func createEnableEpochsConfig() config.EnableEpochs {
 	return config.EnableEpochs{
 		SCDeployEnableEpoch:                                      1,
@@ -47,12 +45,10 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		SaveJailedAlwaysEnableEpoch:                              27,
 		ReDelegateBelowMinCheckEnableEpoch:                       28,
 		ValidatorToDelegationEnableEpoch:                         29,
-		WaitingListFixEnableEpoch:                                30,
 		IncrementSCRNonceInMultiTransferEnableEpoch:              31,
 		ESDTMultiTransferEnableEpoch:                             32,
 		GlobalMintBurnDisableEpoch:                               33,
 		ESDTTransferRoleEnableEpoch:                              34,
-		BuiltInFunctionOnMetaEnableEpoch:                         35,
 		ComputeRewardCheckpointEnableEpoch:                       36,
 		SCRSizeInvariantCheckEnableEpoch:                         37,
 		BackwardCompSaveKeyValueEnableEpoch:                      38,
@@ -232,7 +228,6 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.ESDTMultiTransferFlag))
 	require.False(t, handler.IsFlagEnabled(common.GlobalMintBurnFlag)) // <
 	require.True(t, handler.IsFlagEnabled(common.ESDTTransferRoleFlag))
-	require.True(t, handler.IsFlagEnabled(common.BuiltInFunctionOnMetaFlag))
 	require.True(t, handler.IsFlagEnabled(common.ComputeRewardCheckpointFlag))
 	require.True(t, handler.IsFlagEnabled(common.SCRSizeInvariantCheckFlag))
 	require.False(t, handler.IsFlagEnabled(common.BackwardCompSaveKeyValueFlag)) // <
@@ -348,7 +343,6 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ESDTMultiTransferEnableEpoch, handler.GetActivationEpoch(common.ESDTMultiTransferFlag))
 	require.Equal(t, cfg.GlobalMintBurnDisableEpoch, handler.GetActivationEpoch(common.GlobalMintBurnFlag))
 	require.Equal(t, cfg.ESDTTransferRoleEnableEpoch, handler.GetActivationEpoch(common.ESDTTransferRoleFlag))
-	require.Equal(t, cfg.BuiltInFunctionOnMetaEnableEpoch, handler.GetActivationEpoch(common.BuiltInFunctionOnMetaFlag))
 	require.Equal(t, cfg.ComputeRewardCheckpointEnableEpoch, handler.GetActivationEpoch(common.ComputeRewardCheckpointFlag))
 	require.Equal(t, cfg.SCRSizeInvariantCheckEnableEpoch, handler.GetActivationEpoch(common.SCRSizeInvariantCheckFlag))
 	require.Equal(t, cfg.BackwardCompSaveKeyValueEnableEpoch, handler.GetActivationEpoch(common.BackwardCompSaveKeyValueFlag))
@@ -389,7 +383,6 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ESDTMetadataContinuousCleanupEnableEpoch, handler.GetActivationEpoch(common.SendAlwaysFlag))
 	require.Equal(t, cfg.OptimizeNFTStoreEnableEpoch, handler.GetActivationEpoch(common.ValueLengthCheckFlag))
 	require.Equal(t, cfg.OptimizeNFTStoreEnableEpoch, handler.GetActivationEpoch(common.CheckTransferFlag))
-	require.Equal(t, cfg.BuiltInFunctionOnMetaEnableEpoch, handler.GetActivationEpoch(common.TransferToMetaFlag))
 	require.Equal(t, cfg.ESDTMultiTransferEnableEpoch, handler.GetActivationEpoch(common.ESDTNFTImprovementV1Flag))
 	require.Equal(t, cfg.ESDTMetadataContinuousCleanupEnableEpoch, handler.GetActivationEpoch(common.ChangeDelegationOwnerFlag))
 	require.Equal(t, cfg.RefactorPeersMiniBlocksEnableEpoch, handler.GetActivationEpoch(common.RefactorPeersMiniBlocksFlag))
@@ -415,7 +408,6 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ScToScLogEventEnableEpoch, handler.GetActivationEpoch(common.ScToScLogEventFlag))
 	require.Equal(t, cfg.BlockGasAndFeesReCheckEnableEpoch, handler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag))
 	require.Equal(t, cfg.BalanceWaitingListsEnableEpoch, handler.GetActivationEpoch(common.BalanceWaitingListsFlag))
-	require.Equal(t, cfg.WaitingListFixEnableEpoch, handler.GetActivationEpoch(common.WaitingListFixFlag))
 	require.Equal(t, cfg.NFTStopCreateEnableEpoch, handler.GetActivationEpoch(common.NFTStopCreateFlag))
 	require.Equal(t, cfg.ChangeOwnerAddressCrossShardThroughSCEnableEpoch, handler.GetActivationEpoch(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
 	require.Equal(t, cfg.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch, handler.GetActivationEpoch(common.FixGasRemainingForSaveKeyValueFlag))

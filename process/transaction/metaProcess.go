@@ -65,7 +65,6 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.PenalizedTooMuchGasFlag,
-		common.BuiltInFunctionOnMetaFlag,
 		common.ESDTFlag,
 	})
 	if err != nil {

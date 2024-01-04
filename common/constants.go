@@ -930,7 +930,6 @@ const (
 	ESDTMultiTransferFlag                              core.EnableEpochFlag = "ESDTMultiTransferFlag"
 	GlobalMintBurnFlag                                 core.EnableEpochFlag = "GlobalMintBurnFlag"
 	ESDTTransferRoleFlag                               core.EnableEpochFlag = "ESDTTransferRoleFlag"
-	BuiltInFunctionOnMetaFlag                          core.EnableEpochFlag = "BuiltInFunctionOnMetaFlag"
 	ComputeRewardCheckpointFlag                        core.EnableEpochFlag = "ComputeRewardCheckpointFlag"
 	SCRSizeInvariantCheckFlag                          core.EnableEpochFlag = "SCRSizeInvariantCheckFlag"
 	BackwardCompSaveKeyValueFlag                       core.EnableEpochFlag = "BackwardCompSaveKeyValueFlag"

@@ -17,8 +17,6 @@ func (mock *EnableEpochsHandlerMock) GetActivationEpoch(flag core.EnableEpochFla
 	switch flag {
 	case common.RefactorPeersMiniBlocksFlag:
 		return mock.RefactorPeersMiniBlocksEnableEpochField
-	case common.WaitingListFixFlag:
-		return mock.WaitingListFixEnableEpochField
 
 	default:
 		return 0

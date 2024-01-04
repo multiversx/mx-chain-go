@@ -458,8 +458,6 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 		return 0, nil
 	}
 
-	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionOnMetaFlag)
-
 	_, err = txProc.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.True(t, builtInCalled)
