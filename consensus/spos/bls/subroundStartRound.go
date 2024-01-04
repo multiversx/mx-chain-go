@@ -197,7 +197,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
 		isLeader := leader == sr.SelfPubKey() || sr.IsKeyManagedByCurrentNode([]byte(leader))
-		shouldConsiderSelfInConsensus := numMultiKeysInConsensusGroup > 0 && sr.ShouldConsiderSelfKeyInConsensus()
+		shouldConsiderSelfInConsensus := sr.ShouldConsiderSelfKeyInConsensus()
 		if !isLeader && shouldConsiderSelfInConsensus {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
