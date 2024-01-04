@@ -390,15 +390,9 @@ func (ihnc *indexHashedNodesCoordinator) checkInitialSaveState(key []byte) error
 }
 
 func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
-	err := ihnc.checkInitialSaveState(key)
-	if err == nil {
-		log.Debug("initial saveState: no need to rewrite nodes coordinator keys")
-		return nil
-	}
-
 	registry := ihnc.NodesCoordinatorToRegistry()
 
-	err = SaveNodesCoordinatorRegistry(registry, ihnc.bootStorer)
+	err := SaveNodesCoordinatorRegistry(registry, ihnc.bootStorer)
 	if err != nil {
 		return err
 	}

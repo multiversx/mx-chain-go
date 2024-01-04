@@ -268,8 +268,7 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 				make(map[uint32][]Validator),
 				enc.nbShards)
 
-			log.Debug("getNodesConfig: do not use cache")
-			// return enc, ok
+			return enc, ok
 		}
 	}
 
