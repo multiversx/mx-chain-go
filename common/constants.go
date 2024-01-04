@@ -1000,5 +1000,11 @@ const (
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
+	StakeLimitsFlag                                    core.EnableEpochFlag = "StakeLimitsFlag"
+	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
+	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
+	StakingV4Step3Flag                                 core.EnableEpochFlag = "StakingV4Step3Flag"
+	StakingQueueEnabledFlag                            core.EnableEpochFlag = "StakingQueueEnabledFlag"
+	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

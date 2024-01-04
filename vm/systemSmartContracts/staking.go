@@ -234,7 +234,7 @@ func (s *stakingSC) numSpareNodes() int64 {
 }
 
 func (s *stakingSC) canStake() bool {
-	if s.enableEpochsHandler.IsStakingV4Started() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return true
 	}
 
@@ -563,7 +563,7 @@ func (s *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 }
 
 func (s *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0, addFirst bool) error {
-	if s.enableEpochsHandler.IsStakingV4Started() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return s.processStakeV2(registrationData)
 	}
 
@@ -583,7 +583,7 @@ func (s *stakingSC) processStakeV2(registrationData *StakedDataV2_0) error {
 }
 
 func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.enableEpochsHandler.IsStakingV4Started() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return s.unStakeV2(args)
 	}
 
@@ -638,18 +638,6 @@ func (s *stakingSC) checkUnStakeArgs(args *vmcommon.ContractCallInput) (*StakedD
 	}
 
 	return registrationData, vmcommon.Ok
-}
-
-
-LEAVING BUILD ERROR TO CHECK THIS:
-
-addOneFromQueue := !s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) || s.canStakeIfOneRemoved()
-if addOneFromQueue {
-_, err = s.moveFirstFromWaitingToStaked()
-if err != nil {
-s.eei.AddReturnMessage(err.Error())
-return vmcommon.UserError
-}
 }
 
 func (s *stakingSC) tryUnStake(key []byte, registrationData *StakedDataV2_0) vmcommon.ReturnCode {
@@ -919,7 +907,7 @@ func (s *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
