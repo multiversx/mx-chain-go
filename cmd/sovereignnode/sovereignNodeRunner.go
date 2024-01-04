@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -678,19 +679,21 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs.Configs,
-		CoreComponents:       currentNode.GetCoreComponents(),
-		DataComponents:       currentNode.GetDataComponents(),
-		StateComponents:      currentNode.GetStateComponents(),
-		BootstrapComponents:  currentNode.GetBootstrapComponents(),
-		CryptoComponents:     currentNode.GetCryptoComponents(),
-		ProcessComponents:    currentNode.GetProcessComponents(),
-		StatusCoreComponents: currentNode.GetStatusCoreComponents(),
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     currentNode.GetStatusComponents(),
-		ChainRunType:         common.ChainRunTypeSovereign,
+		Configs:                 configs.Configs,
+		CoreComponents:          currentNode.GetCoreComponents(),
+		DataComponents:          currentNode.GetDataComponents(),
+		StateComponents:         currentNode.GetStateComponents(),
+		BootstrapComponents:     currentNode.GetBootstrapComponents(),
+		CryptoComponents:        currentNode.GetCryptoComponents(),
+		ProcessComponents:       currentNode.GetProcessComponents(),
+		StatusCoreComponents:    currentNode.GetStatusCoreComponents(),
+		GasScheduleNotifier:     gasScheduleNotifier,
+		Bootstrapper:            currentNode.GetConsensusComponents().Bootstrapper(),
+		AllowVMQueriesChan:      allowVMQueriesChan,
+		StatusComponents:        currentNode.GetStatusComponents(),
+		ChainRunType:            common.ChainRunTypeSovereign,
+		DelegatedListHandler:    trieIteratorsFactory.NewSovereignDelegatedListHandlerFactory(),
+		DirectStakedListHandler: trieIteratorsFactory.NewSovereignDirectStakedListHandlerFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

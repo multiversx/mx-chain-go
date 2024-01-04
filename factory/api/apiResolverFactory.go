@@ -55,20 +55,22 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs              *config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	GasScheduleNotifier  common.GasScheduleNotifierAPI
-	Bootstrapper         process.Bootstrapper
-	AllowVMQueriesChan   chan struct{}
-	ProcessingMode       common.NodeProcessingMode
-	ChainRunType         common.ChainRunType
+	Configs                 *config.Configs
+	CoreComponents          factory.CoreComponentsHolder
+	DataComponents          factory.DataComponentsHolder
+	StateComponents         factory.StateComponentsHolder
+	BootstrapComponents     factory.BootstrapComponentsHolder
+	CryptoComponents        factory.CryptoComponentsHolder
+	ProcessComponents       factory.ProcessComponentsHolder
+	StatusCoreComponents    factory.StatusCoreComponentsHolder
+	StatusComponents        factory.StatusComponentsHolder
+	GasScheduleNotifier     common.GasScheduleNotifierAPI
+	Bootstrapper            process.Bootstrapper
+	AllowVMQueriesChan      chan struct{}
+	ProcessingMode          common.NodeProcessingMode
+	ChainRunType            common.ChainRunType
+	DelegatedListHandler    trieIteratorsFactory.DelegatedListHandler
+	DirectStakedListHandler trieIteratorsFactory.DirectStakedListHandler
 }
 
 type scQueryServiceArgs struct {
@@ -201,12 +203,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(argsProcessors)
+	directStakedListHandler, err := args.DirectStakedListHandler.CreateDirectStakedListHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(argsProcessors)
+	delegatedListHandler, err := args.DelegatedListHandler.CreateDelegatedListHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
