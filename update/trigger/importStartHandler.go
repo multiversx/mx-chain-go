@@ -1,7 +1,6 @@
 package trigger
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,7 +48,7 @@ func (ish *importStartHandler) loadFileStatus() (string, bool) {
 		return "", false
 	}
 
-	contents, err := ioutil.ReadFile(ish.getFilename())
+	contents, err := os.ReadFile(ish.getFilename())
 	if err != nil {
 		log.Error("error reading must import file",
 			"file", ish.getFilename(),

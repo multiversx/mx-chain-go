@@ -147,7 +147,7 @@ type InterceptorThrottler interface {
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
-	RequestMiniBlocks(header data.HeaderHandler)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
 	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
@@ -455,7 +455,7 @@ type VirtualMachinesContainer interface {
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	Close() error
-	BlockChainHookImpl() BlockChainHookHandler
+	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
 }
 
@@ -538,6 +538,12 @@ type BlockChainHookHandler interface {
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
+}
+
+// BlockChainHookWithAccountsAdapter defines an extension of BlockChainHookHandler with the AccountsAdapter exposed
+type BlockChainHookWithAccountsAdapter interface {
+	BlockChainHookHandler
+	GetAccountsAdapter() state.AccountsAdapter
 }
 
 // Interceptor defines what a data interceptor should do
@@ -777,6 +783,8 @@ type SCQuery struct {
 	Arguments      [][]byte
 	SameScState    bool
 	ShouldBeSynced bool
+	BlockNonce     core.OptionalUint64
+	BlockHash      []byte
 }
 
 // GasHandler is able to perform some gas calculation
@@ -917,7 +925,7 @@ type PeerValidatorMapper interface {
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
-	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool

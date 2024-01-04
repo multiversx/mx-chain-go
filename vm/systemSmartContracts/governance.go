@@ -202,11 +202,12 @@ func (g *governanceContract) initV2(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 // changeConfig allows the owner to change the configuration for requesting proposals
-//  args.Arguments[0] - proposalFee - as string
-//  args.Arguments[1] - lostProposalFee - as string
-//  args.Arguments[2] - minQuorum - 0-10000 - represents percentage
-//  args.Arguments[3] - minVeto   - 0-10000 - represents percentage
-//  args.Arguments[4] - minPass   - 0-10000 - represents percentage
+//
+//	args.Arguments[0] - proposalFee - as string
+//	args.Arguments[1] - lostProposalFee - as string
+//	args.Arguments[2] - minQuorum - 0-10000 - represents percentage
+//	args.Arguments[3] - minVeto   - 0-10000 - represents percentage
+//	args.Arguments[4] - minPass   - 0-10000 - represents percentage
 func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !bytes.Equal(g.ownerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("changeConfig can be called only by owner")
@@ -347,7 +348,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[1], args.Arguments[2]},
+		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[2]},
 	}
 	g.eei.AddLogEntry(logEntry)
 
@@ -355,8 +356,9 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 }
 
 // vote casts a vote for a validator/delegation. This function receives 2 parameters and will vote with its full delegation + validator amount
-//  args.Arguments[0] - reference - nonce as string
-//  args.Arguments[1] - vote option (yes, no, veto, abstain)
+//
+//	args.Arguments[0] - reference - nonce as string
+//	args.Arguments[1] - vote option (yes, no, veto, abstain)
 func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
 		g.eei.AddReturnMessage("function is not payable")
@@ -407,10 +409,11 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 }
 
 // delegateVote casts a vote from a validator run by WASM SC and delegates it to someone else. This function receives 4 parameters:
-//  args.Arguments[0] - proposal reference - nonce of proposal
-//  args.Arguments[1] - vote option (yes, no, veto)
-//  args.Arguments[2] - delegatedTo
-//  args.Arguments[3] - balance to vote
+//
+//	args.Arguments[0] - proposal reference - nonce of proposal
+//	args.Arguments[1] - vote option (yes, no, veto)
+//	args.Arguments[2] - delegatedTo
+//	args.Arguments[3] - balance to vote
 func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) != 4 {
 		g.eei.AddReturnMessage("invalid number of arguments")
@@ -609,7 +612,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
-	if uint64(currentEpoch) < generalProposal.EndVoteEpoch {
+	if uint64(currentEpoch) <= generalProposal.EndVoteEpoch {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}
@@ -760,9 +763,26 @@ func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
-	g.eei.Finish([]byte(userVotes.String()))
+	g.finishWithIntValue(len(userVotes.Delegated)) // first we send the number of delegated nonces and afterward the nonces
+	for _, val := range userVotes.Delegated {
+		g.finishWithIntValue(int(val))
+	}
+
+	g.finishWithIntValue(len(userVotes.Direct)) // then we send the number of direct nonces and afterward the nonces
+	for _, val := range userVotes.Direct {
+		g.finishWithIntValue(int(val))
+	}
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) finishWithIntValue(value int) {
+	if value == 0 {
+		g.eei.Finish([]byte{0})
+		return
+	}
+
+	g.eei.Finish(big.NewInt(int64(value)).Bytes())
 }
 
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -852,7 +872,7 @@ func (g *governanceContract) addNewVote(vote string, power *big.Int, proposal *G
 }
 
 // computeVotingPower returns the voting power for a value. The value can be either a balance or
-//  the staked value for a validator
+// the staked value for a validator
 func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error) {
 	minValue, err := g.getMinValueToVote()
 	if err != nil {
@@ -863,7 +883,7 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 		return nil, vm.ErrNotEnoughStakeToVote
 	}
 
-	return big.NewInt(0).Sqrt(value), nil
+	return big.NewInt(0).Set(value), nil // linear computation
 }
 
 // function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it

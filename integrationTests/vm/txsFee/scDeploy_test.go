@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -25,7 +24,7 @@ func TestScDeployShouldWork(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(1962)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -40,12 +39,12 @@ func TestScDeployShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	// 8490 gas units the sc deploy consumed
-	expectedBalance := big.NewInt(91510)
+	expectedBalance := big.NewInt(80400)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(8490), accumulatedFees)
+	require.Equal(t, big.NewInt(19600), accumulatedFees)
 }
 
 func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
@@ -56,7 +55,7 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(1960)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -72,12 +71,12 @@ func TestScDeployInvalidContractCodeShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(90000)
+	expectedBalance := big.NewInt(80400)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, senderNonce+1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(10000), accumulatedFees)
+	require.Equal(t, big.NewInt(19600), accumulatedFees)
 }
 
 func TestScDeployInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
@@ -118,8 +117,8 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
-	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(570)
+	senderBalance := big.NewInt(13100)
+	gasLimit := uint64(1310)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -129,15 +128,15 @@ func TestScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(t, err)
-	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, returnCode, vmcommon.UserError)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(94300)
+	expectedBalance := big.NewInt(0)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(5700), accumulatedFees)
+	require.Equal(t, big.NewInt(13100), accumulatedFees)
 }

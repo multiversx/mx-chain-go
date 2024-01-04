@@ -816,9 +816,17 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 
 	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
 	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
+
+	dbConfigHandler := factory.NewDBConfigHandler(bh.configSCStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return err
+	}
+
 	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(bh.configSCStorage.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return err
@@ -900,6 +908,11 @@ func (bh *BlockChainHookImpl) ResetCounters() {
 // GetCounterValues returns the current counter values
 func (bh *BlockChainHookImpl) GetCounterValues() map[string]uint64 {
 	return bh.counter.GetCounterValues()
+}
+
+// GetAccountsAdapter returns the managed accounts adapter
+func (bh *BlockChainHookImpl) GetAccountsAdapter() state.AccountsAdapter {
+	return bh.accounts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

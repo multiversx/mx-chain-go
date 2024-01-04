@@ -1258,8 +1258,9 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 				log.Debug("using scheduled root hash for snapshotting", "schRootHash", schRootHash)
 				rootHash = schRootHash
 			}
-			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash)
-			accounts.SnapshotState(rootHash)
+			epoch := sp.epochStartTrigger.MetaEpoch()
+			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash, "epoch", epoch)
+			accounts.SnapshotState(rootHash, epoch)
 			sp.markSnapshotDoneInPeerAccounts()
 			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
 			go func() {
@@ -1905,6 +1906,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 
 		shouldContinue, errCreated := sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
 		if errCreated != nil {
+			sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 			return nil, errCreated
 		}
 		if !shouldContinue {

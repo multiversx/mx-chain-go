@@ -36,10 +36,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -187,7 +189,6 @@ var MinTxGasLimit = uint64(1000)
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
 const MaxGasLimitPerBlock = uint64(3000000)
 
-const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
 
 // OpGasValueForMockVm represents the gas value that it consumed by each operation called on the mock VM
@@ -374,6 +375,7 @@ type TestProcessorNode struct {
 	Rater                        sharding.PeerAccountListAndRatingHandler
 
 	EpochStartSystemSCProcessor process.EpochStartSystemSCProcessor
+	TxExecutionOrderHandler     common.TxExecutionOrderHandler
 
 	// Node is used to call the functionality already implemented in it
 	Node           *node.Node
@@ -521,6 +523,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		GuardedAccountHandler:      &guardianMocks.GuardedAccountHandlerStub{},
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
+		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -787,14 +790,27 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initInnerProcessors(gasMap, vmConfig)
 
 	if check.IfNil(args.TrieStore) {
+		var apiBlockchain data.ChainHandler
+		if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+			apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+		} else {
+			apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+		}
 		argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 			VmContainer:              tpn.VMContainer,
 			EconomicsFee:             tpn.EconomicsData,
 			BlockChainHook:           tpn.BlockchainHook,
-			BlockChain:               tpn.BlockChain,
+			MainBlockChain:           tpn.BlockChain,
+			APIBlockChain:            apiBlockchain,
 			WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 			Bootstrapper:             tpn.Bootstrapper,
 			AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+			HistoryRepository:        tpn.HistoryRepository,
+			ShardCoordinator:         tpn.ShardCoordinator,
+			StorageService:           tpn.Storage,
+			Marshaller:               TestMarshaller,
+			Hasher:                   TestHasher,
+			Uint64ByteSliceConverter: TestUint64Converter,
 		}
 		tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	} else {
@@ -864,7 +880,6 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		Accounts:                 tpn.AccntState,
 		PubkeyConv:               TestAddressPubkeyConverter,
 		StorageService:           tpn.Storage,
-		BlockChain:               tpn.BlockChain,
 		ShardCoordinator:         tpn.ShardCoordinator,
 		Marshalizer:              TestMarshalizer,
 		Uint64Converter:          TestUint64Converter,
@@ -881,7 +896,11 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
+	var apiBlockchain data.ChainHandler
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+		argsHook.BlockChain = apiBlockchain
+
 		tpn.EnableEpochs = config.EnableEpochs{}
 		sigVerifier, _ := disabled.NewMessageSignVerifier(&mock.KeyGenMock{})
 
@@ -952,6 +971,9 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		})
 		vmFactory, _ = metaProcess.NewVMContainerFactory(argsNewVmFactory)
 	} else {
+		apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+		argsHook.BlockChain = apiBlockchain
+
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
 		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -976,10 +998,17 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		VmContainer:              vmContainer,
 		EconomicsFee:             tpn.EconomicsData,
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
-		BlockChain:               tpn.BlockChain,
+		MainBlockChain:           tpn.BlockChain,
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        tpn.HistoryRepository,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		StorageService:           tpn.Storage,
+		Marshaller:               TestMarshaller,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 }
@@ -989,14 +1018,27 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 	tpn.initValidatorStatistics()
 	tpn.initBlockTracker()
 	tpn.initInnerProcessors(gasMap, getDefaultVMConfig())
+	var apiBlockchain data.ChainHandler
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		apiBlockchain, _ = blockchain.NewMetaChain(statusHandlerMock.NewAppStatusHandlerMock())
+	} else {
+		apiBlockchain, _ = blockchain.NewBlockChain(statusHandlerMock.NewAppStatusHandlerMock())
+	}
 	argsNewScQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              tpn.VMContainer,
 		EconomicsFee:             tpn.EconomicsData,
 		BlockChainHook:           tpn.BlockchainHook,
-		BlockChain:               tpn.BlockChain,
+		MainBlockChain:           tpn.BlockChain,
+		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       tpn.WasmVMChangeLocker,
 		Bootstrapper:             tpn.Bootstrapper,
 		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        tpn.HistoryRepository,
+		ShardCoordinator:         tpn.ShardCoordinator,
+		StorageService:           tpn.Storage,
+		Marshaller:               TestMarshaller,
+		Hasher:                   TestHasher,
+		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
 	tpn.initBlockProcessor(stateCheckpointModulus)
@@ -1261,7 +1303,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                 tpn.EconomicsData,
 			BlockBlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:            tpn.HeaderSigVerifier,
@@ -1329,7 +1371,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                 tpn.EconomicsData,
 			BlockBlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:            tpn.HeaderSigVerifier,
@@ -1499,28 +1541,30 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Marshalizer:         TestMarshalizer,
-		Hasher:              TestHasher,
-		PubkeyConverter:     TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		PoolsHolder:         tpn.DataPool,
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:        tpn.ShardCoordinator,
+		Marshalizer:             TestMarshalizer,
+		Hasher:                  TestHasher,
+		PubkeyConverter:         TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		PoolsHolder:             tpn.DataPool,
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	interimProcFactory, _ := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	argsNewIntermediateResultsProc := postprocess.ArgsNewIntermediateResultsProcessor{
-		Hasher:              TestHasher,
-		Marshalizer:         TestMarshalizer,
-		Coordinator:         tpn.ShardCoordinator,
-		PubkeyConv:          TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		BlockType:           dataBlock.SmartContractResultBlock,
-		CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		Hasher:                  TestHasher,
+		Marshalizer:             TestMarshalizer,
+		Coordinator:             tpn.ShardCoordinator,
+		PubkeyConv:              TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		BlockType:               dataBlock.SmartContractResultBlock,
+		CurrTxs:                 tpn.DataPool.CurrentBlockTxs(),
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(argsNewIntermediateResultsProc)
 
@@ -1686,6 +1730,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TestMarshalizer,
 		TestHasher,
 		tpn.ShardCoordinator,
+		tpn.TxExecutionOrderHandler,
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
@@ -1711,6 +1756,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		tpn.TxExecutionOrderHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1734,6 +1780,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -1741,28 +1788,30 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[string]uint64) {
 	argsFactory := metaProcess.ArgsNewIntermediateProcessorsContainerFactory{
-		ShardCoordinator:    tpn.ShardCoordinator,
-		Marshalizer:         TestMarshalizer,
-		Hasher:              TestHasher,
-		PubkeyConverter:     TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		PoolsHolder:         tpn.DataPool,
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ShardCoordinator:        tpn.ShardCoordinator,
+		Marshalizer:             TestMarshalizer,
+		Hasher:                  TestHasher,
+		PubkeyConverter:         TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		PoolsHolder:             tpn.DataPool,
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	interimProcFactory, _ := metaProcess.NewIntermediateProcessorsContainerFactory(argsFactory)
 
 	tpn.InterimProcContainer, _ = interimProcFactory.Create()
 	argsNewIntermediateResultsProc := postprocess.ArgsNewIntermediateResultsProcessor{
-		Hasher:              TestHasher,
-		Marshalizer:         TestMarshalizer,
-		Coordinator:         tpn.ShardCoordinator,
-		PubkeyConv:          TestAddressPubkeyConverter,
-		Store:               tpn.Storage,
-		BlockType:           dataBlock.SmartContractResultBlock,
-		CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
-		EconomicsFee:        tpn.EconomicsData,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		Hasher:                  TestHasher,
+		Marshalizer:             TestMarshalizer,
+		Coordinator:             tpn.ShardCoordinator,
+		PubkeyConv:              TestAddressPubkeyConverter,
+		Store:                   tpn.Storage,
+		BlockType:               dataBlock.SmartContractResultBlock,
+		CurrTxs:                 tpn.DataPool.CurrentBlockTxs(),
+		EconomicsFee:            tpn.EconomicsData,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		TxExecutionOrderHandler: tpn.TxExecutionOrderHandler,
 	}
 	tpn.ScrForwarder, _ = postprocess.NewTestIntermediateResultsProcessor(argsNewIntermediateResultsProc)
 
@@ -1941,7 +1990,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		scheduledSCRsStorer,
 		TestMarshalizer,
 		TestHasher,
-		tpn.ShardCoordinator)
+		tpn.ShardCoordinator,
+		tpn.TxExecutionOrderHandler,
+	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(
@@ -1964,6 +2015,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		txTypeHandler,
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
+		tpn.TxExecutionOrderHandler,
 	)
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
@@ -1987,6 +2039,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2266,6 +2319,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 				NodesConfigProvider:           tpn.NodesCoordinator,
 				UserAccountsDB:                tpn.AccntState,
 				EnableEpochsHandler:           tpn.EnableEpochsHandler,
+				ExecutionOrderHandler:         tpn.TxExecutionOrderHandler,
 			},
 			StakingDataProvider:   stakingDataProvider,
 			RewardsHandler:        tpn.EconomicsData,

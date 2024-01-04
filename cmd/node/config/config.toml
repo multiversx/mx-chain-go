@@ -324,6 +324,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -337,6 +339,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 1000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [AccountsTrieCheckpointsStorage]
     [AccountsTrieCheckpointsStorage.Cache]
@@ -692,7 +696,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 2, Version = "v1.5" },
+            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
 
     [VirtualMachine.Querying]
@@ -702,7 +706,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 2, Version = "v1.5" },
+            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
 
     [VirtualMachine.GasConfig]
@@ -951,3 +955,8 @@
         Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3

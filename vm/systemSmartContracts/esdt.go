@@ -1151,6 +1151,13 @@ func (e *esdt) unsetBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.
 
 	deleteRoleFromToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
 
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0], zero.Bytes(), zero.Bytes(), []byte(vmcommon.ESDTRoleBurnForAll)},
+	}
+	e.eei.AddLogEntry(logEntry)
+
 	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll)
 	return returnCode
 }
@@ -1163,6 +1170,13 @@ func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) 
 
 	burnForAllRole := &ESDTRoles{Roles: [][]byte{[]byte(vmcommon.ESDTRoleBurnForAll)}, Address: []byte{}}
 	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(vmcommon.BuiltInFunctionESDTSetBurnRoleForAll),
+		Address:    token.OwnerAddress,
+		Topics:     [][]byte{tokenID, zero.Bytes(), zero.Bytes(), []byte(vmcommon.ESDTRoleBurnForAll)},
+	}
+	e.eei.AddLogEntry(logEntry)
 
 	esdtTransferData := vmcommon.BuiltInFunctionESDTSetBurnRoleForAll + "@" + hex.EncodeToString(tokenID)
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
@@ -1641,6 +1655,11 @@ func (e *esdt) setRolesForTokenAndAddress(
 
 	if !token.CanAddSpecialRoles {
 		e.eei.AddReturnMessage("cannot add special roles")
+		return nil, vmcommon.UserError
+	}
+
+	if e.enableEpochsHandler.NFTStopCreateEnabled() && token.NFTCreateStopped && isDefinedRoleInArgs(roles, []byte(core.ESDTRoleNFTCreate)) {
+		e.eei.AddReturnMessage("cannot add NFT create role as NFT creation was stopped")
 		return nil, vmcommon.UserError
 	}
 

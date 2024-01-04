@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -708,6 +709,7 @@ func (nr *nodeRunner) createApiFacade(
 		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:   allowVMQueriesChan,
 		StatusComponents:     currentNode.statusComponents,
+		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1209,31 +1211,34 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                 *configs.GeneralConfig,
-		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            *configs.PreferencesConfig,
-		ImportDBConfig:         *configs.ImportDbConfig,
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nodesCoordinator,
-		Data:                   dataComponents,
-		CoreData:               coreComponents,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		BootstrapComponents:    bootstrapComponents,
-		StatusComponents:       statusComponents,
-		StatusCoreComponents:   statusCoreComponents,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         configs.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		FlagsConfig:            *configs.FlagsConfig,
+		Config:                  *configs.GeneralConfig,
+		EpochConfig:             *configs.EpochConfig,
+		PrefConfigs:             *configs.PreferencesConfig,
+		ImportDBConfig:          *configs.ImportDbConfig,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        nodesCoordinator,
+		Data:                    dataComponents,
+		CoreData:                coreComponents,
+		Crypto:                  cryptoComponents,
+		State:                   stateComponents,
+		Network:                 networkComponents,
+		BootstrapComponents:     bootstrapComponents,
+		StatusComponents:        statusComponents,
+		StatusCoreComponents:    statusCoreComponents,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          configs.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		FlagsConfig:             *configs.FlagsConfig,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1499,13 +1504,13 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
+		PrefsConfig:                          *configs.PreferencesConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            core.NewKeyLoader(),
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
-		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 

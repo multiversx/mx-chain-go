@@ -54,7 +54,7 @@ const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 
 // MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
 // in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 30000
+const MaxTxNonceDeltaAllowed = 100
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 // TODO convert this const into a var and read it from config when this code moves to another binary
@@ -612,6 +612,9 @@ const (
 
 	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
 	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+
+	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
 )
 
 const (
@@ -878,3 +881,6 @@ const MetricTrieSyncNumReceivedBytes = "erd_trie_sync_num_bytes_received"
 
 // MetricTrieSyncNumProcessedNodes is the metric that outputs the number of trie nodes processed for accounts during trie sync
 const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
+
+// FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
+const FullArchiveMetricSuffix = "_full_archive"

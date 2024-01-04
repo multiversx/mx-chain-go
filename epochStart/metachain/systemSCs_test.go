@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -76,16 +77,21 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		Shards:               0,
 	}
 	dir := t.TempDir()
-	persisterConfig := storageunit.ArgDB{
-		Path:              dir,
-		DBType:            "LvlDBSerial",
+
+	dbConfig := config.DBConfig{
+		FilePath:          dir,
+		Type:              "LvlDBSerial",
 		BatchDelaySeconds: 2,
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
 
+	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	assert.Nil(t, err)
+
 	cache, _ := storageunit.NewCache(cacheConfig)
-	persist, _ := storageunit.NewDB(persisterConfig)
+	persist, _ := storageunit.NewDB(persisterFactory, dir)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit, dir
@@ -497,7 +503,7 @@ func doStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB stat
 			CallerAddr:  owner,
 			Arguments:   args,
 			CallValue:   big.NewInt(0).Mul(big.NewInt(int64(numBlsKeys)), nodePrice),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",
@@ -516,7 +522,7 @@ func doUnStake(t *testing.T, systemVm vmcommon.VMExecutionHandler, accountsDB st
 			CallerAddr:  owner,
 			Arguments:   blsKeys,
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "unStake",

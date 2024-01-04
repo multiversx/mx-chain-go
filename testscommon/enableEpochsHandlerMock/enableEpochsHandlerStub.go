@@ -1,6 +1,8 @@
 package enableEpochsHandlerMock
 
-import "sync"
+import (
+	"sync"
+)
 
 // EnableEpochsHandlerStub -
 type EnableEpochsHandlerStub struct {
@@ -119,6 +121,7 @@ type EnableEpochsHandlerStub struct {
 	IsWipeSingleNFTLiquidityDecreaseEnabledField                 bool
 	IsAlwaysSaveTokenMetaDataEnabledField                        bool
 	IsSetGuardianEnabledField                                    bool
+	IsScToScEventLogEnabledField                                 bool
 	IsRelayedNonceFixEnabledField                                bool
 	IsDeterministicSortOnValidatorsInfoFixEnabledField           bool
 	IsKeepExecOrderOnCreatedSCRsEnabledField                     bool
@@ -128,6 +131,9 @@ type EnableEpochsHandlerStub struct {
 	IsAutoBalanceDataTriesEnabledField                           bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
+	IsNFTStopCreateEnabledField                                  bool
+	IsChangeOwnerAddressCrossShardThroughSCEnabledField          bool
+	FixGasRemainingForSaveKeyValueBuiltinFunctionEnabledField    bool
 }
 
 // ResetPenalizedTooMuchGasFlag -
@@ -1049,6 +1055,14 @@ func (stub *EnableEpochsHandlerStub) IsSetGuardianEnabled() bool {
 	return stub.IsSetGuardianEnabledField
 }
 
+// IsScToScEventLogEnabled -
+func (stub *EnableEpochsHandlerStub) IsScToScEventLogEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsScToScEventLogEnabledField
+}
+
 // IsRelayedNonceFixEnabled -
 func (stub *EnableEpochsHandlerStub) IsRelayedNonceFixEnabled() bool {
 	stub.RLock()
@@ -1111,6 +1125,30 @@ func (stub *EnableEpochsHandlerStub) FixDelegationChangeOwnerOnAccountEnabled() 
 	defer stub.RUnlock()
 
 	return stub.FixDelegationChangeOwnerOnAccountEnabledField
+}
+
+// NFTStopCreateEnabled -
+func (stub *EnableEpochsHandlerStub) NFTStopCreateEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsNFTStopCreateEnabledField
+}
+
+// IsChangeOwnerAddressCrossShardThroughSCEnabled -
+func (stub *EnableEpochsHandlerStub) IsChangeOwnerAddressCrossShardThroughSCEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsChangeOwnerAddressCrossShardThroughSCEnabledField
+}
+
+// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
+func (stub *EnableEpochsHandlerStub) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabledField
 }
 
 // IsInterfaceNil -

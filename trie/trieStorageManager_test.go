@@ -544,6 +544,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
+		args.MainStorer = testscommon.CreateMemUnit()
 		ts, _ := trie.NewTrieStorageManager(args)
 
 		assert.False(t, ts.ShouldTakeSnapshot())
@@ -555,40 +556,6 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return []byte(common.TrieSyncedVal), nil
-			},
-			MemDbMock: testscommon.NewMemDbMock(),
-		}
-		ts, _ := trie.NewTrieStorageManager(args)
-
-		assert.False(t, ts.ShouldTakeSnapshot())
-	})
-	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled error should return false", func(t *testing.T) {
-		t.Parallel()
-
-		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr // isTrieSynced returns false
-			},
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
-				return nil, core.OptionalUint32{}, storageMx.ErrDBIsClosed
-			},
-			MemDbMock: testscommon.NewMemDbMock(),
-		}
-		ts, _ := trie.NewTrieStorageManager(args)
-
-		assert.False(t, ts.ShouldTakeSnapshot())
-	})
-	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns non ActiveDBVal should return false", func(t *testing.T) {
-		t.Parallel()
-
-		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
-			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
-				return []byte("response"), nil
-			},
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
-				return []byte("response"), core.OptionalUint32{}, nil
 			},
 			MemDbMock: testscommon.NewMemDbMock(),
 		}
@@ -934,4 +901,13 @@ func TestTrieStorageManager_GetIdentifier(t *testing.T) {
 
 	id := ts.GetIdentifier()
 	assert.Equal(t, expectedId, id)
+}
+
+func TestTrieStorageManager_IsSnapshotSupportedShouldReturnTrue(t *testing.T) {
+	t.Parallel()
+
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	ts, _ := trie.NewTrieStorageManager(args)
+
+	assert.True(t, ts.IsSnapshotSupported())
 }

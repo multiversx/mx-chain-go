@@ -14,6 +14,7 @@ type SCQueryElementArgs struct {
 	EpochConfig           *config.EpochConfig
 	CoreComponents        factory.CoreComponentsHolder
 	StateComponents       factory.StateComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
 	DataComponents        factory.DataComponentsHolder
 	ProcessComponents     factory.ProcessComponentsHolder
 	GasScheduleNotifier   core.GasScheduleNotifier
@@ -35,6 +36,7 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 		stateComponents:       args.StateComponents,
 		dataComponents:        args.DataComponents,
 		processComponents:     args.ProcessComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
 		gasScheduleNotifier:   args.GasScheduleNotifier,
 		messageSigVerifier:    args.MessageSigVerifier,
 		systemSCConfig:        args.SystemSCConfig,

@@ -357,7 +357,7 @@ func checkAttestedPublicKeys(
 	userAddress []byte,
 ) {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  "getPublicKey",
 		Arguments: [][]byte{obfuscatedData},
@@ -369,7 +369,7 @@ func checkAttestedPublicKeys(
 
 func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, userAddress []byte, balance *big.Int) {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  "balanceOf",
 		Arguments: [][]byte{userAddress},

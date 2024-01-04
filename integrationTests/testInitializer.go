@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	mathRand "math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -59,7 +58,9 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -142,6 +143,9 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 				TCP: p2pConfig.P2PTCPTransport{
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
+			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -236,6 +240,9 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -262,6 +269,9 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 				TCP: p2pConfig.P2PTCPTransport{
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
+			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -718,7 +728,9 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig: &roundsConfig,
+		RoundConfig:             &roundsConfig,
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -822,6 +834,8 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -2725,8 +2739,10 @@ func GenerateTrieKeysForMaxLevel(numTrieLevels int, numChildrenPerBranch int) []
 
 func generateRandHexString(size int) string {
 	buff := make([]string, size)
+	lenCharsPoolBig := big.NewInt(int64(len(charsPool)))
 	for i := 0; i < size; i++ {
-		buff[i] = charsPool[mathRand.Intn(len(charsPool))]
+		randomIndexBig, _ := rand.Int(rand.Reader, lenCharsPoolBig)
+		buff[i] = charsPool[randomIndexBig.Int64()]
 	}
 
 	return strings.Join(buff, "")
