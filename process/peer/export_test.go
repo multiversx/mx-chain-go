@@ -3,6 +3,7 @@ package peer
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -48,7 +49,7 @@ func (ptp *PeerTypeProvider) GetCache() map[string]*peerListAndShard {
 }
 
 // GetCache -
-func (vp *validatorsProvider) GetCache() map[string]*state.ValidatorApiResponse {
+func (vp *validatorsProvider) GetCache() map[string]*validator.ValidatorStatistics {
 	vp.lock.RLock()
 	defer vp.lock.RUnlock()
 	return vp.cache

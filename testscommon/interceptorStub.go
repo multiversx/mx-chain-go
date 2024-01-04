@@ -15,7 +15,7 @@ type InterceptorStub struct {
 }
 
 // ProcessReceivedMessage -
-func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID) error {
+func (is *InterceptorStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	if is.ProcessReceivedMessageCalled != nil {
 		return is.ProcessReceivedMessageCalled(message)
 	}

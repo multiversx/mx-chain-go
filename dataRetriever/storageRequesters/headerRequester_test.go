@@ -1,7 +1,6 @@
 package storagerequesters
 
 import (
-	"errors"
 	"math"
 	"testing"
 	"time"
@@ -140,7 +139,6 @@ func TestHeaderRequester_SetEpochHandlerShouldWork(t *testing.T) {
 func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderRequesterArg()
@@ -173,7 +171,6 @@ func TestHeaderRequester_RequestDataFromHashNotFoundNotBufferedChannelShouldErr(
 func TestHeaderRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderRequesterArg()
@@ -248,7 +245,6 @@ func TestHeaderRequester_RequestDataFromHashShouldWork(t *testing.T) {
 func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	newEpochCalled := false
 	sendCalled := false
 	arg := createMockHeaderRequesterArg()
@@ -324,32 +320,72 @@ func TestHeaderRequester_RequestDataFromNonceShouldWork(t *testing.T) {
 	assert.True(t, sendCalled)
 }
 
-func TestHeaderRequester_RequestDataFromEpochShouldWork(t *testing.T) {
+func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 	t.Parallel()
 
-	sendCalled := false
-	epochIdentifier := []byte(core.EpochStartIdentifier(math.MaxUint32))
-	arg := createMockHeaderRequesterArg()
-	arg.HdrStorage = &storageStubs.StorerStub{
-		SearchFirstCalled: func(key []byte) ([]byte, error) {
-			assert.Equal(t, epochIdentifier, key)
-			return make([]byte, 0), nil
-		},
-	}
-	arg.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{}
-	arg.Messenger = &p2pmocks.MessengerStub{
-		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-			sendCalled = true
+	t.Run("unknown epoch should error", func(t *testing.T) {
+		t.Parallel()
 
-			return nil
-		},
-	}
-	hdReq, _ := NewHeaderRequester(arg)
+		epochIdentifier := []byte("unknown epoch")
+		arg := createMockHeaderRequesterArg()
+		arg.HdrStorage = &storageStubs.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				assert.Fail(t, "should not have been called")
+				return make([]byte, 0), nil
+			},
+		}
+		hdReq, _ := NewHeaderRequester(arg)
 
-	err := hdReq.RequestDataFromEpoch(epochIdentifier)
+		err := hdReq.RequestDataFromEpoch(epochIdentifier)
+		assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
+	})
+	t.Run("identifier not found should error", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, err)
-	assert.True(t, sendCalled)
+		epochIdentifier := []byte(core.EpochStartIdentifier(100))
+		arg := createMockHeaderRequesterArg()
+		arg.HdrStorage = &storageStubs.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				return make([]byte, 0), expectedErr
+			},
+		}
+		arg.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				assert.Fail(t, "should not have been called")
+				return nil
+			},
+		}
+		hdReq, _ := NewHeaderRequester(arg)
+
+		err := hdReq.RequestDataFromEpoch(epochIdentifier)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		sendCalled := false
+		epochIdentifier := []byte(core.EpochStartIdentifier(math.MaxUint32))
+		arg := createMockHeaderRequesterArg()
+		arg.HdrStorage = &storageStubs.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				assert.Equal(t, epochIdentifier, key)
+				return make([]byte, 0), nil
+			},
+		}
+		arg.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				sendCalled = true
+
+				return nil
+			},
+		}
+		hdReq, _ := NewHeaderRequester(arg)
+
+		err := hdReq.RequestDataFromEpoch(epochIdentifier)
+
+		assert.Nil(t, err)
+		assert.True(t, sendCalled)
+	})
 }
 
 func TestHeaderRequester_Close(t *testing.T) {

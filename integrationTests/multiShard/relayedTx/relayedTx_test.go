@@ -269,7 +269,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 	}()
 
 	for _, node := range nodes {
-		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	round := uint64(0)
@@ -357,7 +357,7 @@ func checkAttestedPublicKeys(
 	userAddress []byte,
 ) {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  "getPublicKey",
 		Arguments: [][]byte{obfuscatedData},
@@ -369,7 +369,7 @@ func checkAttestedPublicKeys(
 
 func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, userAddress []byte, balance *big.Int) {
 	scQuery := node.SCQueryService
-	vmOutput, err := scQuery.ExecuteQuery(&process.SCQuery{
+	vmOutput, _, err := scQuery.ExecuteQuery(&process.SCQuery{
 		ScAddress: scAddress,
 		FuncName:  "balanceOf",
 		Arguments: [][]byte{userAddress},

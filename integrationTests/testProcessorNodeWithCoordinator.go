@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
@@ -61,21 +62,22 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:   shardConsensusGroupSize,
-				MetaConsensusGroupSize:    metaConsensusGroupSize,
-				Marshalizer:               TestMarshalizer,
-				Hasher:                    TestHasher,
-				ShardIDAsObserver:         shardId,
-				NbShards:                  numShards,
-				EligibleNodes:             validatorsMapForNodesCoordinator,
-				WaitingNodes:              waitingMapForNodesCoordinator,
-				SelfPublicKey:             v.PubKeyBytes(),
-				ConsensusGroupCache:       lruCache,
-				ShuffledOutHandler:        &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:              endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:             false,
-				EnableEpochsHandler:       &testscommon.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:       &vic.ValidatorInfoCacherStub{},
+				ShardConsensusGroupSize:  shardConsensusGroupSize,
+				MetaConsensusGroupSize:   metaConsensusGroupSize,
+				Marshalizer:              TestMarshalizer,
+				Hasher:                   TestHasher,
+				ShardIDAsObserver:        shardId,
+				NbShards:                 numShards,
+				EligibleNodes:            validatorsMapForNodesCoordinator,
+				WaitingNodes:             waitingMapForNodesCoordinator,
+				SelfPublicKey:            v.PubKeyBytes(),
+				ConsensusGroupCache:      lruCache,
+				ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:            false,
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+				GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 				StakingV4Step2EnableEpoch: StakingV4Step2EnableEpoch,
 			}
 

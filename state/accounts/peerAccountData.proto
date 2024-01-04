@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "accounts";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+// SignRate is used to keep the number of success and failed signings
+message SignRate {
+    uint32 NumSuccess = 1;
+    uint32 NumFailure = 2;
+}
+
+// PeerAccountData represents the data that defines the PeerAccount
+message PeerAccountData {
+    bytes       BLSPublicKey                        = 1 [(gogoproto.jsontag) = "blsPublicKey"];
+    bytes       RewardAddress                       = 2 [(gogoproto.jsontag) = "rewardAddress,omitempty"];
+    uint32      ShardId                             = 3 [(gogoproto.jsontag) = "shardId"];
+    SignRate    ValidatorSuccessRate                = 4 [(gogoproto.jsontag) = "validatorSuccessRate", (gogoproto.nullable) = false];
+    SignRate    LeaderSuccessRate                   = 5 [(gogoproto.jsontag) = "leaderSuccessRate", (gogoproto.nullable) = false];
+    uint32      ValidatorIgnoredSignaturesRate      = 6 [(gogoproto.jsontag) = "validatorIgnoredSignaturesRate"];
+    uint32      Rating                              = 7 [(gogoproto.jsontag) = "rating"];
+    uint32      TempRating                          = 8 [(gogoproto.jsontag) = "tempRating"];
+    bytes       AccumulatedFees                     = 9 [(gogoproto.jsontag) = "accumulatedFees,omitempty", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    uint32      NumSelectedInSuccessBlocks          = 10 [(gogoproto.jsontag) = "numSelectedInSuccessBlocks"];
+    uint32      IndexInList                         = 11 [(gogoproto.jsontag) = "indexInList"];
+    string      List                                = 12 [(gogoproto.jsontag) = "list,omitempty"];
+    uint32      ConsecutiveProposerMisses           = 13 [(gogoproto.jsontag) = "consecutiveProposerMisses"];
+    SignRate    TotalValidatorSuccessRate           = 14 [(gogoproto.jsontag) = "totalValidatorSuccessRate", (gogoproto.nullable) = false];
+    SignRate    TotalLeaderSuccessRate              = 15 [(gogoproto.jsontag) = "totalLeaderSuccessRate", (gogoproto.nullable) = false];
+    uint32      TotalValidatorIgnoredSignaturesRate = 16 [(gogoproto.jsontag) = "totalValidatorIgnoredSignaturesRate"];
+    uint64      Nonce                               = 17 [(gogoproto.jsontag) = "nonce"];
+    uint32      UnStakedEpoch                       = 18 [(gogoproto.jsontag) = "unStakedEpoch"];
+    string      PreviousList                        = 19 [(gogoproto.jsontag) = "previousList,omitempty"];
+    uint32      PreviousIndexInList                 = 20 [(gogoproto.jsontag) = "previousIndexInList,omitempty"];
+}

@@ -19,6 +19,11 @@ type metaStorageHandler struct {
 	*baseStorageHandler
 }
 
+LEAVING BUILD ERR TO ADD THESE:
+	-nodeProcessingMode common.NodeProcessingMode,
+- stateStatsHandler common.StateStatisticsHandler,
+- RepopulateTokensSupplies : false
+
 // NewMetaStorageHandler will return a new instance of metaStorageHandler
 func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error) {
 	err := checkNilArgs(args)

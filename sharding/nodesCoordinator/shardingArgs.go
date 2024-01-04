@@ -32,6 +32,6 @@ type ArgNodesCoordinator struct {
 	IsFullArchive                   bool
 	EnableEpochsHandler             common.EnableEpochsHandler
 	ValidatorInfoCacher             epochStart.ValidatorInfoCacher
-	StakingV4Step2EnableEpoch       uint32
+	GenesisNodesSetupHandler        GenesisNodesSetupHandler
 	NodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }

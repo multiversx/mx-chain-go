@@ -3,7 +3,7 @@ package storage
 import (
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -47,25 +47,7 @@ type Cacher interface {
 }
 
 // Persister provides storage of data services in a database like construct
-type Persister interface {
-	// Put add the value to the (key, val) persistence medium
-	Put(key, val []byte) error
-	// Get gets the value associated to the key
-	Get(key []byte) ([]byte, error)
-	// Has returns true if the given key is present in the persistence medium
-	Has(key []byte) error
-	// Close closes the files/resources associated to the persistence medium
-	Close() error
-	// Remove removes the data associated to the given key
-	Remove(key []byte) error
-	// Destroy removes the persistence medium stored data
-	Destroy() error
-	// DestroyClosed removes the already closed persistence medium stored data
-	DestroyClosed() error
-	RangeKeys(handler func(key []byte, val []byte) bool)
-	// IsInterfaceNil returns true if there is no value under the interface
-	IsInterfaceNil() bool
-}
+type Persister = types.Persister
 
 // Batcher allows to batch the data first then write the batch to the persister in one go
 type Batcher interface {
@@ -96,7 +78,7 @@ type Storer interface {
 	ClearCache()
 	DestroyUnit() error
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storage.KeyValuePair, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error)
 	GetOldestEpoch() (uint32, error)
 	RangeKeys(handler func(key []byte, val []byte) bool)
 	Close() error
@@ -202,8 +184,40 @@ type AdaptedSizedLRUCache interface {
 	IsInterfaceNil() bool
 }
 
+// ShardIDProvider defines what a component which is able to provide persister id per key should do
+type ShardIDProvider interface {
+	ComputeId(key []byte) uint32
+	NumberOfShards() uint32
+	GetShardIDs() []uint32
+	IsInterfaceNil() bool
+}
+
+// PersisterCreator defines the behavour of a component which is able to create a persister
+type PersisterCreator = types.PersisterCreator
+
+// DBConfigHandler defines the behaviour of a component that will handle db config
+type DBConfigHandler interface {
+	GetDBConfig(path string) (*config.DBConfig, error)
+	SaveDBConfigToFilePath(path string, dbConfig *config.DBConfig) error
+	IsInterfaceNil() bool
+}
+
 // ManagedPeersHolder defines the operations of an entity that holds managed identities for a node
 type ManagedPeersHolder interface {
 	IsMultiKeyMode() bool
 	IsInterfaceNil() bool
+}
+
+// PersisterFactoryHandler defines the behaviour of a component which is able to create persisters
+type PersisterFactoryHandler interface {
+	Create(path string) (Persister, error)
+	IsInterfaceNil() bool
+}
+
+// StateStatsHandler defines the behaviour needed to handler storage statistics
+type StateStatsHandler interface {
+	IncrCache()
+	IncrSnapshotCache()
+	IncrPersister(epoch uint32)
+	IncrSnapshotPersister(epoch uint32)
 }

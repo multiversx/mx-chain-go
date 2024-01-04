@@ -3,10 +3,12 @@ package statusCore
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/common/statistics/machine"
 	"github.com/multiversx/mx-chain-go/config"
-	errErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/metrics"
@@ -46,6 +48,7 @@ type statusCoreComponents struct {
 	appStatusHandler   core.AppStatusHandler
 	statusMetrics      external.StatusMetricsHandler
 	persistentHandler  factory.PersistentStatusHandler
+	stateStatsHandler  common.StateStatisticsHandler
 }
 
 // NewStatusCoreComponentsFactory initializes the factory which is responsible to creating status core components
@@ -67,19 +70,10 @@ func NewStatusCoreComponentsFactory(args StatusCoreComponentsFactoryArgs) (*stat
 
 func checkArgs(args StatusCoreComponentsFactoryArgs) error {
 	if check.IfNil(args.CoreComp) {
-		return errErd.ErrNilCoreComponents
+		return errorsMx.ErrNilCoreComponents
 	}
 	if check.IfNil(args.CoreComp.EconomicsData()) {
-		return errErd.ErrNilEconomicsData
-	}
-	if check.IfNil(args.CoreComp.GenesisNodesSetup()) {
-		return errErd.ErrNilGenesisNodesSetupHandler
-	}
-	if check.IfNil(args.CoreComp.InternalMarshalizer()) {
-		return errErd.ErrNilMarshalizer
-	}
-	if check.IfNil(args.CoreComp.Uint64ByteSliceConverter()) {
-		return errErd.ErrNilUint64ByteSliceConverter
+		return errorsMx.ErrNilEconomicsData
 	}
 
 	return nil
@@ -103,6 +97,8 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		return nil, err
 	}
 
+	stateStatsHandler := sccf.createStateStatsHandler()
+
 	ssc := &statusCoreComponents{
 		resourceMonitor:    resourceMonitor,
 		networkStatistics:  netStats,
@@ -110,9 +106,18 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		appStatusHandler:   appStatusHandler,
 		statusMetrics:      statusMetrics,
 		persistentHandler:  persistentStatusHandler,
+		stateStatsHandler:  stateStatsHandler,
 	}
 
 	return ssc, nil
+}
+
+func (sccf *statusCoreComponentsFactory) createStateStatsHandler() common.StateStatisticsHandler {
+	if sccf.config.StateTriesConfig.StateStatisticsEnabled {
+		return statistics.NewStateStatistics()
+	}
+
+	return disabled.NewStateStatistics()
 }
 
 func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHandler, external.StatusMetricsHandler, factory.PersistentStatusHandler, error) {
@@ -142,7 +147,7 @@ func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHa
 		return nil, nil, nil, err
 	}
 
-	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup())
+	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup(), sccf.config.GatewayMetricsConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}

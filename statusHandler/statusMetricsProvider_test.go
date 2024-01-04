@@ -178,6 +178,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMetaConsensusGroupSize, 25)
 	sm.SetUInt64Value(common.MetricMinGasPrice, 1000)
 	sm.SetUInt64Value(common.MetricMinGasLimit, 50000)
+	sm.SetUInt64Value(common.MetricExtraGasLimitGuardedTx, 50000)
 	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
 	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
 	sm.SetStringValue(common.MetricChainId, "local-id")
@@ -200,6 +201,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_latest_tag_software_version":   "version1.0",
 		"erd_meta_consensus_group_size":     uint64(25),
 		"erd_min_gas_limit":                 uint64(50000),
+		"erd_extra_gas_limit_guarded_tx":    uint64(50000),
 		"erd_min_gas_price":                 uint64(1000),
 		"erd_min_transaction_version":       uint64(2),
 		"erd_num_metachain_nodes":           uint64(50),
@@ -313,6 +315,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, 2)
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -361,6 +364,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricDelegationSmartContractEnableEpoch:          uint64(2),
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
+		common.MetricSetGuardianEnableEpoch:                      uint64(3),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
@@ -477,10 +481,14 @@ func TestStatusMetrics_BootstrapMetrics(t *testing.T) {
 
 	sm.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(5001))
 	sm.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(10000))
+	sm.SetUInt64Value(common.MetricShardId, uint64(2))
+	sm.SetStringValue(common.MetricGatewayMetricsEndpoint, "http://localhost:8080")
 
 	expectedMetrics := map[string]interface{}{
 		common.MetricTrieSyncNumReceivedBytes:  uint64(5001),
 		common.MetricTrieSyncNumProcessedNodes: uint64(10000),
+		common.MetricShardId:                   uint64(2),
+		common.MetricGatewayMetricsEndpoint:    "http://localhost:8080",
 	}
 
 	bootstrapMetrics, err := sm.BootstrapMetrics()

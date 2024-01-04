@@ -59,7 +59,6 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 	saveDelegationManagerConfig(testContextMeta)
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
 	tx := vm.CreateTransaction(0, value2500EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
@@ -81,7 +80,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 	intermediateTxs = testContextMeta.GetIntermediateTransactions(t)
 	require.Equal(t, 2, len(intermediateTxs))
 
-	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scr.Value)
 }
 
@@ -95,8 +94,8 @@ func checkReturnLog(t *testing.T, testContextMeta *vm.VMTestContext, subStr stri
 	}
 
 	found := false
-	for _, log := range allLogs {
-		for _, event := range log.GetLogEvents() {
+	for _, eventLog := range allLogs {
+		for _, event := range eventLog.GetLogEvents() {
 			if string(event.GetIdentifier()) == identifierStr {
 				require.True(t, strings.Contains(string(event.GetTopics()[1]), subStr))
 				found = true
@@ -122,7 +121,6 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
 	tx := vm.CreateTransaction(0, value2500EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
@@ -169,7 +167,6 @@ func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *t
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0})
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
 	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
@@ -182,9 +179,9 @@ func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *t
 	testContextMeta.TxsLogsProcessor.Clean()
 
 	tx = vm.CreateTransaction(0, big.NewInt(0), sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte("unBondTokens@"+hex.EncodeToString(value200EGLD.Bytes())))
-	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.Ok, nil)
+	executeTxAndCheckResults(t, testContextMeta, tx, vmcommon.UserError, nil)
 
-	checkReturnLog(t, testContextMeta, noTokensToUnBondMessage, false)
+	checkReturnLog(t, testContextMeta, noTokensToUnBondMessage, true)
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(t *testing.T) {
@@ -203,7 +200,6 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
 	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))
@@ -222,7 +218,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	intermediateTxs := testContextMeta.GetIntermediateTransactions(t)
 	require.Equal(t, 2, len(intermediateTxs))
 
-	scr := intermediateTxs[1].(*smartContractResult.SmartContractResult)
+	scr := intermediateTxs[0].(*smartContractResult.SmartContractResult)
 	require.Equal(t, value2500EGLD, scr.Value)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContextMeta)
@@ -256,7 +252,6 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	saveDelegationManagerConfig(testContextMeta)
 	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
 
-	gasPrice := uint64(10)
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
 	tx := vm.CreateTransaction(0, value2700EGLD, sndAddr, vmAddr.ValidatorSCAddress, gasPrice, gasLimit, []byte(validatorStakeData))

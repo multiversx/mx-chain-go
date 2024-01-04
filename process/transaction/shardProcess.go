@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -45,6 +45,7 @@ type txProcessor struct {
 	scrForwarder        process.IntermediateTransactionHandler
 	signMarshalizer     marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
+	txLogsProcessor     process.TransactionLogProcessor
 }
 
 // ArgsNewTxProcessor defines the arguments needed for new tx processor
@@ -63,7 +64,11 @@ type ArgsNewTxProcessor struct {
 	BadTxForwarder      process.IntermediateTransactionHandler
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
+	EnableRoundsHandler process.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	GuardianChecker     process.GuardianChecker
+	TxLogsProcessor     process.TransactionLogProcessor
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -110,8 +115,31 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.SignMarshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PenalizedTooMuchGasFlag,
+		common.MetaProtectionFlag,
+		common.AddFailedRelayedTxToInvalidMBsFlag,
+		common.RelayedTransactionsFlag,
+		common.RelayedTransactionsV2Flag,
+		common.RelayedNonceFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.GuardianChecker) {
+		return nil, process.ErrNilGuardianChecker
+	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
 	}
 
 	baseTxProcess := &baseTxProcessor{
@@ -123,6 +151,8 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		marshalizer:         args.Marshalizer,
 		scProcessor:         args.ScProcessor,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionChecker:    args.TxVersionChecker,
+		guardianChecker:     args.GuardianChecker,
 	}
 
 	txProc := &txProcessor{
@@ -135,6 +165,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		scrForwarder:        args.ScrForwarder,
 		signMarshalizer:     args.SignMarshalizer,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		txLogsProcessor:     args.TxLogsProcessor,
 	}
 
 	return txProc, nil
@@ -174,7 +205,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 			}
 		}
 
-		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsFlag) {
 			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
 				return vmcommon.UserError, receiptErr
@@ -217,6 +248,10 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 	tx *transaction.Transaction,
 	txError error,
 ) error {
+	if core.IsGetNodeFromDBError(txError) {
+		return txError
+	}
+
 	acntSnd, err := txProc.getAccountFromAddress(tx.SndAddr)
 	if err != nil {
 		return err
@@ -312,7 +347,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	if check.IfNil(acntSnd) || isUserTxOfRelayed {
 		return nil
 	}
-	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() && core.IsSmartContractAddress(tx.RcvAddr)
+	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && core.IsSmartContractAddress(tx.RcvAddr)
 	if destShardTxType != process.MoveBalance || shouldCreateReceiptBackwardCompatible {
 		return nil
 	}
@@ -367,13 +402,14 @@ func (txProc *txProcessor) processTxFee(
 
 	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalCost := txProc.economicsFee.ComputeTxFee(tx)
-	if !txProc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
 		totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
 	}
 
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if dstShardTxType != process.MoveBalance ||
-		(!txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() && isCrossShardSCCall) {
+		(!txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && isCrossShardSCCall) {
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -404,7 +440,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 		return process.ErrInvalidMetaTransaction
 	}
 
-	if txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) {
 		// additional check
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
 			return fmt.Errorf("%w: not enough gas", process.ErrInvalidMetaTransaction)
@@ -592,7 +628,7 @@ func (txProc *txProcessor) processRelayedTxV2(
 	tx *transaction.Transaction,
 	relayerAcnt, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsV2FlagEnabled() {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV2Flag) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2Disabled)
 	}
 	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {
@@ -627,7 +663,7 @@ func (txProc *txProcessor) processRelayedTx(
 	if len(args) != 1 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsFlag) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
 
@@ -672,6 +708,9 @@ func (txProc *txProcessor) computeRelayedTxFees(tx *transaction.Transaction) rel
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
+	originalTxHash []byte,
+	originalTx *transaction.Transaction,
+	executionErr error,
 ) error {
 	userAcnt, err := txProc.getAccountFromAddress(userTx.SndAddr)
 	if err != nil {
@@ -690,7 +729,15 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	if err != nil {
 		return err
 	}
-	userAcnt.IncreaseNonce(1)
+
+	if txProc.shouldIncreaseNonce(executionErr) {
+		userAcnt.IncreaseNonce(1)
+	}
+
+	err = txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
+	if err != nil {
+		return err
+	}
 
 	err = txProc.accounts.SaveAccount(userAcnt)
 	if err != nil {
@@ -698,6 +745,19 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	}
 
 	return nil
+}
+
+func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+	if !isNonExecutableError(executionErr) {
+		return nil
+	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(core.SignalErrorOperation),
+		Address:    originalTx.GetRcvAddr(),
+	}
+
+	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
@@ -731,11 +791,17 @@ func (txProc *txProcessor) processUserTx(
 		return 0, err
 	}
 
+	var originalTxHash []byte
+	originalTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, originalTx)
+	if err != nil {
+		return 0, err
+	}
+
 	relayerAdr := originalTx.SndAddr
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst, true)
 	if err != nil {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -750,12 +816,6 @@ func (txProc *txProcessor) processUserTx(
 	}
 
 	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, txHash)
-	if err != nil {
-		return 0, err
-	}
-
-	var originalTxHash []byte
-	originalTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, originalTx)
 	if err != nil {
 		return 0, err
 	}
@@ -787,7 +847,7 @@ func (txProc *txProcessor) processUserTx(
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -924,7 +984,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 			return err
 		}
 
-		if txProc.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlag() {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag) {
 			err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
 			if err != nil {
 				return err
@@ -938,6 +998,24 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 	}
 
 	return nil
+}
+
+func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedNonceFixFlag) {
+		return true
+	}
+
+	if isNonExecutableError(executionErr) {
+		return false
+	}
+
+	return true
+}
+
+func isNonExecutableError(executionErr error) bool {
+	return errors.Is(executionErr, process.ErrLowerNonceInTransaction) ||
+		errors.Is(executionErr, process.ErrHigherNonceInTransaction) ||
+		errors.Is(executionErr, process.ErrTransactionNotExecutable)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

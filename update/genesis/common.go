@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // TODO: create a structure or use this function also in process/peer/process.go
@@ -16,7 +17,7 @@ func getValidatorDataFromLeaves(
 ) (state.ShardValidatorsInfoMapHandler, error) {
 	validators := state.NewShardValidatorsInfoMap()
 	for pa := range leavesChannels.LeavesChan {
-		peerAccount, err := unmarshalPeer(pa.Value(), marshalizer)
+		peerAccount, err := unmarshalPeer(pa, marshalizer)
 		if err != nil {
 			return nil, err
 		}
@@ -28,7 +29,7 @@ func getValidatorDataFromLeaves(
 		}
 	}
 
-	err := common.GetErrorFromChanNonBlocking(leavesChannels.ErrChan)
+	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +37,12 @@ func getValidatorDataFromLeaves(
 	return validators, nil
 }
 
-func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
-	peerAccount := state.NewEmptyPeerAccount()
-	err := marshalizer.Unmarshal(peerAccount, pa)
+func unmarshalPeer(peerAccountData core.KeyValueHolder, marshalizer marshal.Marshalizer) (state.PeerAccountHandler, error) {
+	peerAccount, err := accounts.NewPeerAccount(peerAccountData.Key())
+	if err != nil {
+		return nil, err
+	}
+	err = marshalizer.Unmarshal(peerAccount, peerAccountData.Value())
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +51,7 @@ func unmarshalPeer(pa []byte, marshalizer marshal.Marshalizer) (state.PeerAccoun
 
 func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo {
 	return &state.ValidatorInfo{
-		PublicKey:                  peerAccount.GetBLSPublicKey(),
+		PublicKey:                  peerAccount.AddressBytes(),
 		ShardId:                    peerAccount.GetShardId(),
 		List:                       getActualList(peerAccount),
 		PreviousList:               peerAccount.GetPreviousList(),
@@ -56,14 +60,14 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
-		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().NumSuccess,
-		LeaderFailure:              peerAccount.GetLeaderSuccessRate().NumFailure,
-		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().NumSuccess,
-		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().NumFailure,
-		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().NumSuccess,
-		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().NumFailure,
-		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().NumSuccess,
-		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().NumFailure,
+		LeaderSuccess:              peerAccount.GetLeaderSuccessRate().GetNumSuccess(),
+		LeaderFailure:              peerAccount.GetLeaderSuccessRate().GetNumFailure(),
+		ValidatorSuccess:           peerAccount.GetValidatorSuccessRate().GetNumSuccess(),
+		ValidatorFailure:           peerAccount.GetValidatorSuccessRate().GetNumFailure(),
+		TotalLeaderSuccess:         peerAccount.GetTotalLeaderSuccessRate().GetNumSuccess(),
+		TotalLeaderFailure:         peerAccount.GetTotalLeaderSuccessRate().GetNumFailure(),
+		TotalValidatorSuccess:      peerAccount.GetTotalValidatorSuccessRate().GetNumSuccess(),
+		TotalValidatorFailure:      peerAccount.GetTotalValidatorSuccessRate().GetNumFailure(),
 		NumSelectedInSuccessBlocks: peerAccount.GetNumSelectedInSuccessBlocks(),
 		AccumulatedFees:            big.NewInt(0).Set(peerAccount.GetAccumulatedFees()),
 	}

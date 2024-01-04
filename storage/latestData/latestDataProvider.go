@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -53,6 +54,13 @@ type latestDataProvider struct {
 
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
+	if check.IfNil(args.DirectoryReader) {
+		return nil, storage.ErrNilDirectoryReader
+	}
+	if check.IfNil(args.BootstrapDataProvider) {
+		return nil, storage.ErrNilBootstrapDataProvider
+	}
+
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
 		parentDir:             args.ParentDir,
@@ -124,7 +132,12 @@ func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterFactory := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
+	dbConfigHandler := factory.NewDBConfigHandler(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return storage.LatestDataFromStorage{}, err
+	}
+
 	pathWithoutShard := filepath.Join(
 		parentDir,
 		fmt.Sprintf("%s_%d", ldp.defaultEpochString, lastEpoch),

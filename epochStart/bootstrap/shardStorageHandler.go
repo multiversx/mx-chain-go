@@ -23,6 +23,11 @@ type shardStorageHandler struct {
 	*baseStorageHandler
 }
 
+LEAVING BUILD ERROR
+NodeProcessingMode:            nodeProcessingMode,
+RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
+StateStatsHandler:             stateStatsHandler,
+
 // NewShardStorageHandler will return a new instance of shardStorageHandler
 func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, error) {
 	err := checkNilArgs(args)
@@ -44,6 +49,11 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 			CreateTrieEpochRootHashStorer: false,
 			SnapshotsEnabled:              args.SnapshotsEnabled,
 			ManagedPeersHolder:            args.ManagedPeersHolder,
+
+			NodeProcessingMode:            nodeProcessingMode,
+			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
+			ManagedPeersHolder:            managedPeersHolder,
+			StateStatsHandler:             stateStatsHandler,
 		},
 	)
 	if err != nil {

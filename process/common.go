@@ -26,6 +26,8 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+const VMStoragePrefix = "VM@"
+
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
 
@@ -711,6 +713,15 @@ func DisplayProcessTxDetails(
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed
 func IsAllowedToSaveUnderKey(key []byte) bool {
+	vmStoragePrefix := core.ProtectedKeyPrefix + VMStoragePrefix
+	vmPrefixLen := len(vmStoragePrefix)
+	if len(key) > vmPrefixLen {
+		trimmedKey := key[:len(vmStoragePrefix)]
+		if bytes.Equal(trimmedKey, []byte(vmStoragePrefix)) {
+			return true
+		}
+	}
+
 	prefixLen := len(core.ProtectedKeyPrefix)
 	if len(key) < prefixLen {
 		return true
@@ -895,6 +906,17 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 		}
 	}
 	return nil
+}
+
+// IsBuiltinFuncCallWithParam checks if the given transaction data represents a builtin function call with parameters
+func IsBuiltinFuncCallWithParam(txData []byte, function string) bool {
+	expectedTxDataPrefix := []byte(function + "@")
+	return bytes.HasPrefix(txData, expectedTxDataPrefix)
+}
+
+// IsSetGuardianCall checks if the given transaction data represents the set guardian builtin function call
+func IsSetGuardianCall(txData []byte) bool {
+	return IsBuiltinFuncCallWithParam(txData, core.BuiltInFunctionSetGuardian)
 }
 
 // CheckIfIndexesAreOutOfBound checks if the given indexes are out of bound for the given mini block

@@ -5,15 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 )
 
 // MemDbMock represents the memory database storage. It holds a map of key value pairs
 // and a mutex to handle concurrent accesses to the map
 type MemDbMock struct {
-	db        map[string][]byte
-	mutx      sync.RWMutex
-	PutCalled func(key, val []byte) error
-	GetCalled func(key []byte) ([]byte, error)
+	db                         map[string][]byte
+	mutx                       sync.RWMutex
+	PutCalled                  func(key, val []byte) error
+	GetCalled                  func(key []byte) ([]byte, error)
+	GetIdentifierCalled        func() string
+	GetStateStatsHandlerCalled func() common.StateStatisticsHandler
 }
 
 // NewMemDbMock creates a new memorydb object
@@ -115,6 +120,24 @@ func (s *MemDbMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 			return
 		}
 	}
+}
+
+// GetIdentifier returns the identifier of the storage medium
+func (s *MemDbMock) GetIdentifier() string {
+	if s.GetIdentifierCalled != nil {
+		return s.GetIdentifierCalled()
+	}
+
+	return ""
+}
+
+// GetStateStatsHandler -
+func (s *MemDbMock) GetStateStatsHandler() common.StateStatisticsHandler {
+	if s.GetStateStatsHandlerCalled != nil {
+		return s.GetStateStatsHandlerCalled()
+	}
+
+	return disabled.NewStateStatistics()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

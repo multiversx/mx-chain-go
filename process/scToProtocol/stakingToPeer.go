@@ -106,8 +106,10 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-
-	return nil
+	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StakeFlag,
+		common.ValidatorToDelegationFlag,
+	})
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
@@ -226,13 +228,6 @@ func (stp *stakingToPeer) updatePeerStateV1(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
-	}
-
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	isJailed := stakingData.JailedNonce >= stakingData.UnJailedNonce && stakingData.JailedNonce > 0
 
@@ -272,26 +267,26 @@ func (stp *stakingToPeer) updatePeerState(
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
-	if !stp.enableEpochsHandler.IsStakeFlagEnabled() {
+	if !stp.enableEpochsHandler.IsFlagEnabled(common.StakeFlag) {
 		return stp.updatePeerStateV1(stakingData, blsPubKey, nonce)
 	}
 
-	account, err := stp.getPeerAccount(blsPubKey)
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(stp.peerState, blsPubKey)
 	if err != nil {
 		return err
 	}
 
-	isUnJailForInactive := len(account.GetBLSPublicKey()) > 0 && !stakingData.Staked &&
+	isUnJailForInactive := !isNew && !stakingData.Staked &&
 		stakingData.UnJailedNonce == nonce && account.GetList() == string(common.JailedList)
 	if isUnJailForInactive {
-		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.GetBLSPublicKey(), "unStakedEpoch", stakingData.UnStakedEpoch)
+		log.Debug("unJail for inactive node changed status to inactive list", "blsKey", account.AddressBytes(), "unStakedEpoch", stakingData.UnStakedEpoch)
 		account.SetListAndIndex(account.GetShardId(), string(common.InactiveList), uint32(stakingData.UnJailedNonce), stp.enableEpochsHandler.IsStakingV4Started())
 		if account.GetTempRating() < stp.unJailRating {
 			account.SetTempRating(stp.unJailRating)
 		}
 		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 
-		if stp.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+		if stp.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 			log.Debug("new reward address", "blsKey", blsPubKey, "rwdAddr", stakingData.RewardAddress)
 			err = account.SetRewardAddress(stakingData.RewardAddress)
 			if err != nil {
@@ -314,12 +309,8 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
+	if isNew {
 		log.Debug("new node", "blsKey", blsPubKey)
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return err
-		}
 	}
 
 	newNodesList := common.NewList

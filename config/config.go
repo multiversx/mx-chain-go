@@ -21,12 +21,14 @@ type HeadersPoolConfig struct {
 
 // DBConfig will map the database configuration
 type DBConfig struct {
-	FilePath          string
-	Type              string
-	BatchDelaySeconds int
-	MaxBatchSize      int
-	MaxOpenFiles      int
-	UseTmpAsFilePath  bool
+	FilePath            string
+	Type                string
+	BatchDelaySeconds   int
+	MaxBatchSize        int
+	MaxOpenFiles        int
+	UseTmpAsFilePath    bool
+	ShardIDProviderType string
+	NumShards           int32
 }
 
 // StorageConfig will map the storage unit configuration
@@ -106,6 +108,11 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// GatewayMetricsConfig will hold the configuration for gateway endpoint configuration
+type GatewayMetricsConfig struct {
+	URL string
+}
+
 // HeartbeatV2Config will hold the configuration for heartbeat v2
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
@@ -152,14 +159,12 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage                StorageConfig
-	PeerAccountsTrieStorage            StorageConfig
-	AccountsTrieCheckpointsStorage     StorageConfig
-	PeerAccountsTrieCheckpointsStorage StorageConfig
-	EvictionWaitingList                EvictionWaitingListConfig
-	StateTriesConfig                   StateTriesConfig
-	TrieStorageManagerConfig           TrieStorageManagerConfig
-	BadBlocksCache                     CacheConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -209,6 +214,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	GatewayMetricsConfig  GatewayMetricsConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
 	Logs                  LogsConfig
@@ -218,6 +224,7 @@ type Config struct {
 
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
+	Redundancy          RedundancyConfig
 
 	SoftAuctionConfig SoftAuctionConfig
 }
@@ -281,30 +288,31 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	SetGuardianEpochsDelay               uint32
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
-	RestApiInterface string
-	PprofEnabled     bool
+	RestApiInterface            string
+	PprofEnabled                bool
+	P2PPrometheusMetricsEnabled bool
 }
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	CheckpointRoundsModulus     uint
-	CheckpointsEnabled          bool
+	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	StateStatisticsEnabled      bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen              uint32
-	SnapshotsBufferLen            uint32
-	SnapshotsGoroutineNum         uint32
-	CheckpointHashesHolderMaxSize uint64
+	PruningBufferLen      uint32
+	SnapshotsBufferLen    uint32
+	SnapshotsGoroutineNum uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -422,6 +430,7 @@ type VirtualMachineGasConfig struct {
 type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
+	DNSV2Addresses                []string
 }
 
 // HardforkConfig holds the configuration for the hardfork trigger
@@ -567,7 +576,8 @@ type Configs struct {
 	RatingsConfig            *RatingsConfig
 	PreferencesConfig        *Preferences
 	ExternalConfig           *ExternalConfig
-	P2pConfig                *p2pConfig.P2PConfig
+	MainP2pConfig            *p2pConfig.P2PConfig
+	FullArchiveP2pConfig     *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -584,7 +594,8 @@ type ConfigurationPathsHolder struct {
 	Ratings                  string
 	Preferences              string
 	External                 string
-	P2p                      string
+	MainP2p                  string
+	FullArchiveP2p           string
 	GasScheduleDirectoryName string
 	Nodes                    string
 	Genesis                  string
@@ -615,6 +626,11 @@ type RequesterConfig struct {
 type PoolsCleanersConfig struct {
 	MaxRoundsToKeepUnprocessedMiniBlocks   int64
 	MaxRoundsToKeepUnprocessedTransactions int64
+}
+
+// RedundancyConfig represents the config options to be used when setting the redundancy configuration
+type RedundancyConfig struct {
+	MaxRoundsOfInactivityAccepted int
 }
 
 // SoftAuctionConfig represents the config options for soft auction selecting used in staking v4

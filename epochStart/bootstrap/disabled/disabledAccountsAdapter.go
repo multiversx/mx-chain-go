@@ -100,11 +100,7 @@ func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
 // SnapshotState -
-func (a *accountsAdapter) SnapshotState(_ []byte) {
-}
-
-// SetStateCheckpoint -
-func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
+func (a *accountsAdapter) SnapshotState(_ []byte, _ uint32) {
 }
 
 // IsPruningEnabled -
@@ -118,7 +114,7 @@ func (a *accountsAdapter) ClosePersister() error {
 }
 
 // GetAllLeaves -
-func (a *accountsAdapter) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+func (a *accountsAdapter) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 	return nil
 }
 

@@ -8,8 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	mockTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,17 +19,15 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 	return state.ArgsAccountsDB{
 		Trie: &mockTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
-				return &testscommon.StorageManagerStub{}
+				return &storageManager.StorageManagerStub{}
 			},
 		},
 		Hasher:                &testscommon.HasherStub{},
-		Marshaller:            &testscommon.MarshalizerMock{},
+		Marshaller:            &marshallerMock.MarshalizerMock{},
 		AccountFactory:        &mockState.AccountsFactoryStub{},
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
-		ProcessingMode:        0,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
 	}
 }
 

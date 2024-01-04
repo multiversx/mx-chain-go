@@ -22,6 +22,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -41,26 +43,27 @@ const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
-	Accounts              state.AccountsAdapter
-	PubkeyConv            core.PubkeyConverter
-	StorageService        dataRetriever.StorageService
-	DataPool              dataRetriever.PoolsHolder
-	BlockChain            data.ChainHandler
-	ShardCoordinator      sharding.Coordinator
-	Marshalizer           marshal.Marshalizer
-	Uint64Converter       typeConverters.Uint64ByteSliceConverter
-	BuiltInFunctions      vmcommon.BuiltInFunctionContainer
-	NFTStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
-	GlobalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
-	CompiledSCPool        storage.Cacher
-	ConfigSCStorage       config.StorageConfig
-	EnableEpochs          config.EnableEpochs
-	EpochNotifier         vmcommon.EpochNotifier
-	EnableEpochsHandler   common.EnableEpochsHandler
-	WorkingDir            string
-	NilCompiledSCStore    bool
-	GasSchedule           core.GasScheduleNotifier
-	Counter               BlockChainHookCounter
+	Accounts                 state.AccountsAdapter
+	PubkeyConv               core.PubkeyConverter
+	StorageService           dataRetriever.StorageService
+	DataPool                 dataRetriever.PoolsHolder
+	BlockChain               data.ChainHandler
+	ShardCoordinator         sharding.Coordinator
+	Marshalizer              marshal.Marshalizer
+	Uint64Converter          typeConverters.Uint64ByteSliceConverter
+	BuiltInFunctions         vmcommon.BuiltInFunctionContainer
+	NFTStorageHandler        vmcommon.SimpleESDTNFTStorageHandler
+	GlobalSettingsHandler    vmcommon.ESDTGlobalSettingsHandler
+	CompiledSCPool           storage.Cacher
+	ConfigSCStorage          config.StorageConfig
+	EnableEpochs             config.EnableEpochs
+	EpochNotifier            vmcommon.EpochNotifier
+	EnableEpochsHandler      common.EnableEpochsHandler
+	WorkingDir               string
+	NilCompiledSCStore       bool
+	GasSchedule              core.GasScheduleNotifier
+	Counter                  BlockChainHookCounter
+	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -73,6 +76,7 @@ type BlockChainHookImpl struct {
 	marshalizer           marshal.Marshalizer
 	uint64Converter       typeConverters.Uint64ByteSliceConverter
 	builtInFunctions      vmcommon.BuiltInFunctionContainer
+	vmContainer           process.VirtualMachinesContainer
 	nftStorageHandler     vmcommon.SimpleESDTNFTStorageHandler
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
@@ -89,8 +93,9 @@ type BlockChainHookImpl struct {
 
 	mapActivationEpochs map[uint32]struct{}
 
-	mutGasLock  sync.RWMutex
-	gasSchedule core.GasScheduleNotifier
+	mutGasLock               sync.RWMutex
+	gasSchedule              core.GasScheduleNotifier
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // NewBlockChainHookImpl creates a new BlockChainHookImpl instance
@@ -103,23 +108,24 @@ func NewBlockChainHookImpl(
 	}
 
 	blockChainHookImpl := &BlockChainHookImpl{
-		accounts:              args.Accounts,
-		pubkeyConv:            args.PubkeyConv,
-		storageService:        args.StorageService,
-		blockChain:            args.BlockChain,
-		shardCoordinator:      args.ShardCoordinator,
-		marshalizer:           args.Marshalizer,
-		uint64Converter:       args.Uint64Converter,
-		builtInFunctions:      args.BuiltInFunctions,
-		compiledScPool:        args.CompiledSCPool,
-		configSCStorage:       args.ConfigSCStorage,
-		workingDir:            args.WorkingDir,
-		nilCompiledSCStore:    args.NilCompiledSCStore,
-		nftStorageHandler:     args.NFTStorageHandler,
-		globalSettingsHandler: args.GlobalSettingsHandler,
-		enableEpochsHandler:   args.EnableEpochsHandler,
-		gasSchedule:           args.GasSchedule,
-		counter:               args.Counter,
+		accounts:                 args.Accounts,
+		pubkeyConv:               args.PubkeyConv,
+		storageService:           args.StorageService,
+		blockChain:               args.BlockChain,
+		shardCoordinator:         args.ShardCoordinator,
+		marshalizer:              args.Marshalizer,
+		uint64Converter:          args.Uint64Converter,
+		builtInFunctions:         args.BuiltInFunctions,
+		compiledScPool:           args.CompiledSCPool,
+		configSCStorage:          args.ConfigSCStorage,
+		workingDir:               args.WorkingDir,
+		nilCompiledSCStore:       args.NilCompiledSCStore,
+		nftStorageHandler:        args.NFTStorageHandler,
+		globalSettingsHandler:    args.GlobalSettingsHandler,
+		enableEpochsHandler:      args.EnableEpochsHandler,
+		gasSchedule:              args.GasSchedule,
+		counter:                  args.Counter,
+		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -130,6 +136,7 @@ func NewBlockChainHookImpl(
 	blockChainHookImpl.ClearCompiledCodes()
 	blockChainHookImpl.currentHdr = &block.Header{}
 	blockChainHookImpl.mapActivationEpochs = createMapActivationEpochs(&args.EnableEpochs)
+	blockChainHookImpl.vmContainer = containers.NewVirtualMachinesContainer()
 
 	args.EpochNotifier.RegisterNotifyHandler(blockChainHookImpl)
 	args.GasSchedule.RegisterNotifyHandler(blockChainHookImpl)
@@ -192,13 +199,24 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PayableBySCFlag,
+		common.DoNotReturnOldBlockInBlockchainHookFlag,
+		common.OptimizeNFTStoreFlag,
+		common.MaxBlockchainHookCountersFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return process.ErrNilGasSchedule
 	}
 	if check.IfNil(args.Counter) {
 		return ErrNilBlockchainHookCounter
 	}
-
+	if check.IfNil(args.MissingTrieNodesNotifier) {
+		return ErrNilMissingTrieNodesNotifier
+	}
 	return nil
 }
 
@@ -264,6 +282,8 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	if err != nil {
 		messages = append(messages, "error")
 		messages = append(messages, err)
+
+		bh.syncIfMissingDataTrieNode(err)
 	}
 	log.Trace("GetStorageData ", messages...)
 
@@ -272,8 +292,21 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	return value, trieDepth, nil
 }
 
+func (bh *BlockChainHookImpl) syncIfMissingDataTrieNode(err error) {
+	if !core.IsGetNodeFromDBError(err) {
+		return
+	}
+
+	getNodeErr := core.UnwrapGetNodeFromDBErr(err)
+	if check.IfNil(getNodeErr) {
+		return
+	}
+
+	bh.missingTrieNodesNotifier.AsyncNotifyMissingTrieNode(getNodeErr.GetKey())
+}
+
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
-	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+	if !bh.enableEpochsHandler.IsFlagEnabled(common.MaxBlockchainHookCountersFlag) {
 		return nil
 	}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -298,7 +331,7 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	if nonce == hdr.GetNonce() {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
-	if bh.enableEpochsHandler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.DoNotReturnOldBlockInBlockchainHookFlag) {
 		return nil, process.ErrInvalidNonceRequest
 	}
 
@@ -480,7 +513,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 }
 
 func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
-	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+	if !bh.enableEpochsHandler.IsFlagEnabled(common.MaxBlockchainHookCountersFlag) {
 		return nil
 	}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -528,7 +561,7 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
-	if bh.enableEpochsHandler.IsPayableBySCFlagEnabled() && bh.IsSmartContract(sndAddress) {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.PayableBySCFlag) && bh.IsSmartContract(sndAddress) {
 		return metadata.Payable || metadata.PayableBySC, nil
 	}
 
@@ -538,14 +571,14 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 // FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
 // taking into account the activation flags for the future flags. This should be used in the upgrade SC process
 func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
-	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsFlagEnabled(common.PayableBySCFlag)
 	if !isFilterCodeMetadataFlagSet {
 		// return the raw bytes unconditioned here for backwards compatibility reasons
 		return input, nil
 	}
 
 	raw := vmcommon.CodeMetadataFromBytes(input)
-	filtered := bh.ApplyFiltersOnCodeMetadata(raw)
+	filtered := bh.ApplyFiltersOnSCCodeMetadata(raw)
 	if bytes.Equal(input, filtered.ToBytes()) {
 		return filtered.ToBytes(), nil
 	}
@@ -553,9 +586,10 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 	return nil, parsers.ErrInvalidCodeMetadata
 }
 
-// ApplyFiltersOnCodeMetadata will apply all known filters on the provided code metadata value
-func (bh *BlockChainHookImpl) ApplyFiltersOnCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
-	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+// ApplyFiltersOnSCCodeMetadata will apply all known filters on the provided code metadata value
+func (bh *BlockChainHookImpl) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
+	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsFlagEnabled(common.PayableBySCFlag)
+	codeMetadata.Guarded = false
 
 	return codeMetadata
 }
@@ -610,6 +644,15 @@ func (bh *BlockChainHookImpl) GetBuiltinFunctionsContainer() vmcommon.BuiltInFun
 	return bh.builtInFunctions
 }
 
+func (bh *BlockChainHookImpl) IsBuiltinFunctionName(functionName string) bool {
+	function, err := bh.builtInFunctions.Get(functionName)
+	if err != nil {
+		return false
+	}
+
+	return function.IsActive()
+}
+
 // GetAllState returns the underlying state of a given account
 // TODO remove this func completely
 func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
@@ -628,7 +671,7 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-	if !bh.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabled() {
+	if !bh.enableEpochsHandler.IsFlagEnabled(common.OptimizeNFTStoreFlag) {
 		return bh.returnESDTTokenByLegacyMethod(userAcc, esdtData, esdtTokenKey, nonce)
 	}
 
@@ -782,9 +825,17 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 
 	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
 	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
+
+	dbConfigHandler := factory.NewDBConfigHandler(bh.configSCStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return err
+	}
+
 	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(bh.configSCStorage.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return err
@@ -810,6 +861,24 @@ func (bh *BlockChainHookImpl) EpochConfirmed(epoch uint32, _ uint64) {
 	if ok {
 		bh.ClearCompiledCodes()
 	}
+}
+
+// ExecuteSmartContractCallOnOtherVM on another VM
+func (bh *BlockChainHookImpl) ExecuteSmartContractCallOnOtherVM(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	vmExec, _, err := scrCommon.FindVMByScAddress(bh.vmContainer, input.RecipientAddr)
+	if err != nil {
+		return nil, err
+	}
+	return vmExec.RunSmartContractCall(input)
+}
+
+// SetVMContainer sets the vm container in order to be used for sc execution via blockchain
+func (bh *BlockChainHookImpl) SetVMContainer(vmContainer process.VirtualMachinesContainer) error {
+	if check.IfNil(vmContainer) {
+		return process.ErrNilVMContainer
+	}
+	bh.vmContainer = vmContainer
+	return nil
 }
 
 // GasScheduleChange sets the new gas schedule where it is needed
@@ -848,6 +917,11 @@ func (bh *BlockChainHookImpl) ResetCounters() {
 // GetCounterValues returns the current counter values
 func (bh *BlockChainHookImpl) GetCounterValues() map[string]uint64 {
 	return bh.counter.GetCounterValues()
+}
+
+// GetAccountsAdapter returns the managed accounts adapter
+func (bh *BlockChainHookImpl) GetAccountsAdapter() state.AccountsAdapter {
+	return bh.accounts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestNewTrieStorageManagerWithoutPruningWithNilStorage(t *testing.T) {
 func TestNewTrieStorageManagerWithoutPruning(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 	ts, err := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	assert.Nil(t, err)
 	assert.NotNil(t, ts)
@@ -29,7 +29,7 @@ func TestNewTrieStorageManagerWithoutPruning(t *testing.T) {
 func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
 	t.Parallel()
 
-	tsm, _ := trie.NewTrieStorageManager(getNewTrieStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(trie.GetDefaultTrieStorageManagerParameters())
 	ts, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	assert.False(t, ts.IsPruningEnabled())
 }
@@ -37,11 +37,11 @@ func TestTrieStorageManagerWithoutPruning_IsPruningEnabled(t *testing.T) {
 func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 	t.Parallel()
 
-	removeFromCheckpointHashesHolderCalled := false
 	tsm := &trie.StorageManagerExtensionStub{
-		StorageManagerStub: &testscommon.StorageManagerStub{
-			RemoveFromCheckpointHashesHolderCalled: func(hash []byte) {
-				removeFromCheckpointHashesHolderCalled = true
+		StorageManagerStub: &storageManager.StorageManagerStub{
+			RemoveCalled: func(_ []byte) error {
+				assert.Fail(t, "remove should not have been called")
+				return nil
 			},
 		},
 	}
@@ -51,5 +51,4 @@ func TestTrieStorageManagerWithoutPruning_Remove(t *testing.T) {
 
 	ts, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	assert.Nil(t, ts.Remove([]byte("key")))
-	assert.True(t, removeFromCheckpointHashesHolderCalled)
 }

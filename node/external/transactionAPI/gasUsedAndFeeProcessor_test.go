@@ -7,21 +7,36 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
 )
+
+func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
+	economicsConfig := testscommon.GetEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		Economics:                   &economicsConfig,
+		EnableEpochsHandler:         enableEpochsHandler,
+		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
+	})
+
+	return economicsData
+}
 
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-	})
+	req := require.New(t)
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
@@ -39,18 +54,19 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(moveBalanceTx)
-	require.Equal(uint64(50_000), moveBalanceTx.GasUsed)
-	require.Equal("50000000000000", moveBalanceTx.Fee)
+	req.Equal(uint64(50_000), moveBalanceTx.GasUsed)
+	req.Equal("50000000000000", moveBalanceTx.Fee)
 }
 
 func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-	})
+	req := require.New(t)
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
+	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
@@ -76,8 +92,8 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSignalErrorLog)
-	require.Equal(uint64(80_000), txWithSignalErrorLog.GasUsed)
-	require.Equal("50300000000000", txWithSignalErrorLog.Fee)
+	req.Equal(uint64(80_000), txWithSignalErrorLog.GasUsed)
+	req.Equal("50300000000000", txWithSignalErrorLog.Fee)
 }
 
 func silentDecodeAddress(address string) []byte {
@@ -88,11 +104,12 @@ func silentDecodeAddress(address string) []byte {
 func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	t.Parallel()
 
-	require := require.New(t)
-	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-	})
+	req := require.New(t)
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
+	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
@@ -120,16 +137,17 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(relayedTxWithWriteLog)
-	require.Equal(uint64(200_000), relayedTxWithWriteLog.GasUsed)
-	require.Equal("66350000000000", relayedTxWithWriteLog.Fee)
+	req.Equal(uint64(200_000), relayedTxWithWriteLog.GasUsed)
+	req.Equal("66350000000000", relayedTxWithWriteLog.Fee)
 }
 
 func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.T) {
-	require := require.New(t)
-	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-	})
+	req := require.New(t)
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
+	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
@@ -166,17 +184,19 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 	}
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
-	require.Equal(uint64(3_365_000), txWithSRefundSCR.GasUsed)
-	require.Equal("98000000000000", txWithSRefundSCR.Fee)
+	req.Equal(uint64(3_365_000), txWithSRefundSCR.GasUsed)
+	req.Equal("98000000000000", txWithSRefundSCR.Fee)
 }
 
 func TestNFTTransferWithScCall(t *testing.T) {
-	require := require.New(t)
-	feeComp, _ := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-	})
+	req := require.New(t)
+	feeComp, err := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
+		},
+	}))
 	computer := fee.NewTestFeeComputer(feeComp)
+	req.Nil(err)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
 
@@ -199,6 +219,6 @@ func TestNFTTransferWithScCall(t *testing.T) {
 	tx.InitiallyPaidFee = feeComp.ComputeTransactionFee(tx).String()
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
-	require.Equal(uint64(55_000_000), tx.GasUsed)
-	require.Equal("822250000000000", tx.Fee)
+	req.Equal(uint64(55_000_000), tx.GasUsed)
+	req.Equal("822250000000000", tx.Fee)
 }

@@ -3,7 +3,6 @@ package groups
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
 	"net/http"
 	"strconv"
 	"sync"
@@ -18,7 +17,8 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/api/shared/logging"
 	"github.com/multiversx/mx-chain-go/common"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 )
 
 const (
@@ -43,12 +43,11 @@ const (
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
 type transactionFacadeHandler interface {
-	CreateTransaction(nonce uint64, value string, receiver string, receiverUsername []byte, sender string, senderUsername []byte, gasPrice uint64,
-		gasLimit uint64, data []byte, signatureHex string, chainID string, version uint32, options uint32) (*transaction.Transaction, []byte, error)
+	CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error)
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, checkSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
-	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
@@ -144,41 +143,9 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 	return tg, nil
 }
 
-// TxRequest represents the structure on which user input for generating a new transaction will validate against
-type TxRequest struct {
-	Sender   string   `form:"sender" json:"sender"`
-	Receiver string   `form:"receiver" json:"receiver"`
-	Value    *big.Int `form:"value" json:"value"`
-	Data     string   `form:"data" json:"data"`
-}
-
-// MultipleTxRequest represents the structure on which user input for generating a bulk of transactions will validate against
-type MultipleTxRequest struct {
-	Receiver string   `form:"receiver" json:"receiver"`
-	Value    *big.Int `form:"value" json:"value"`
-	TxCount  int      `form:"txCount" json:"txCount"`
-}
-
-// SendTxRequest represents the structure that maps and validates user input for publishing a new transaction
-type SendTxRequest struct {
-	Sender           string `form:"sender" json:"sender"`
-	Receiver         string `form:"receiver" json:"receiver"`
-	SenderUsername   []byte `json:"senderUsername,omitempty"`
-	ReceiverUsername []byte `json:"receiverUsername,omitempty"`
-	Value            string `form:"value" json:"value"`
-	Data             []byte `form:"data" json:"data"`
-	Nonce            uint64 `form:"nonce" json:"nonce"`
-	GasPrice         uint64 `form:"gasPrice" json:"gasPrice"`
-	GasLimit         uint64 `form:"gasLimit" json:"gasLimit"`
-	Signature        string `form:"signature" json:"signature"`
-	ChainID          string `form:"chainID" json:"chainID"`
-	Version          uint32 `form:"version" json:"version"`
-	Options          uint32 `json:"options,omitempty"`
-}
-
 // TxResponse represents the structure on which the response will be validated against
 type TxResponse struct {
-	SendTxRequest
+	transaction.FrontendTransaction
 	ShardID     uint32 `json:"shardId"`
 	Hash        string `json:"hash"`
 	BlockNumber uint64 `json:"blockNumber"`
@@ -188,8 +155,8 @@ type TxResponse struct {
 
 // simulateTransaction will receive a transaction from the client and will simulate its execution and return the results
 func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
-	var gtx = SendTxRequest{}
-	err := c.ShouldBindJSON(&gtx)
+	var ftx = transaction.FrontendTransaction{}
+	err := c.ShouldBindJSON(&ftx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -215,23 +182,27 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            ftx.Nonce,
+		Value:            ftx.Value,
+		Receiver:         ftx.Receiver,
+		ReceiverUsername: ftx.ReceiverUsername,
+		Sender:           ftx.Sender,
+		SenderUsername:   ftx.SenderUsername,
+		GasPrice:         ftx.GasPrice,
+		GasLimit:         ftx.GasLimit,
+		DataField:        ftx.Data,
+		SignatureHex:     ftx.Signature,
+		ChainID:          ftx.ChainID,
+		Version:          ftx.Version,
+		Options:          ftx.Options,
+		Guardian:         ftx.GuardianAddr,
+		GuardianSigHex:   ftx.GuardianSignature,
+	}
 	start := time.Now()
-	tx, txHash, err := tg.getFacade().CreateTransaction(
-		gtx.Nonce,
-		gtx.Value,
-		gtx.Receiver,
-		gtx.ReceiverUsername,
-		gtx.Sender,
-		gtx.SenderUsername,
-		gtx.GasPrice,
-		gtx.GasLimit,
-		gtx.Data,
-		gtx.Signature,
-		gtx.ChainID,
-		gtx.Version,
-		gtx.Options,
-	)
+	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
+
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -287,8 +258,8 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 
 // sendTransaction will receive a transaction from the client and propagate it for processing
 func (tg *transactionGroup) sendTransaction(c *gin.Context) {
-	var gtx = SendTxRequest{}
-	err := c.ShouldBindJSON(&gtx)
+	var ftx = transaction.FrontendTransaction{}
+	err := c.ShouldBindJSON(&ftx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -301,22 +272,25 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            ftx.Nonce,
+		Value:            ftx.Value,
+		Receiver:         ftx.Receiver,
+		ReceiverUsername: ftx.ReceiverUsername,
+		Sender:           ftx.Sender,
+		SenderUsername:   ftx.SenderUsername,
+		GasPrice:         ftx.GasPrice,
+		GasLimit:         ftx.GasLimit,
+		DataField:        ftx.Data,
+		SignatureHex:     ftx.Signature,
+		ChainID:          ftx.ChainID,
+		Version:          ftx.Version,
+		Options:          ftx.Options,
+		Guardian:         ftx.GuardianAddr,
+		GuardianSigHex:   ftx.GuardianSignature,
+	}
 	start := time.Now()
-	tx, txHash, err := tg.getFacade().CreateTransaction(
-		gtx.Nonce,
-		gtx.Value,
-		gtx.Receiver,
-		gtx.ReceiverUsername,
-		gtx.Sender,
-		gtx.SenderUsername,
-		gtx.GasPrice,
-		gtx.GasLimit,
-		gtx.Data,
-		gtx.Signature,
-		gtx.ChainID,
-		gtx.Version,
-		gtx.Options,
-	)
+	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {
 		c.JSON(
@@ -373,8 +347,8 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 
 // sendMultipleTransactions will receive a number of transactions and will propagate them for processing
 func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
-	var gtx []SendTxRequest
-	err := c.ShouldBindJSON(&gtx)
+	var ftxs []transaction.FrontendTransaction
+	err := c.ShouldBindJSON(&ftxs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -395,23 +369,25 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 
 	var start time.Time
 	txsHashes := make(map[int]string)
-	for idx, receivedTx := range gtx {
-		start = time.Now()
-		tx, txHash, err = tg.getFacade().CreateTransaction(
-			receivedTx.Nonce,
-			receivedTx.Value,
-			receivedTx.Receiver,
-			receivedTx.ReceiverUsername,
-			receivedTx.Sender,
-			receivedTx.SenderUsername,
-			receivedTx.GasPrice,
-			receivedTx.GasLimit,
-			receivedTx.Data,
-			receivedTx.Signature,
-			receivedTx.ChainID,
-			receivedTx.Version,
-			receivedTx.Options,
-		)
+	for idx, receivedTx := range ftxs {
+		txArgs := &external.ArgsCreateTransaction{
+			Nonce:            receivedTx.Nonce,
+			Value:            receivedTx.Value,
+			Receiver:         receivedTx.Receiver,
+			ReceiverUsername: receivedTx.ReceiverUsername,
+			Sender:           receivedTx.Sender,
+			SenderUsername:   receivedTx.SenderUsername,
+			GasPrice:         receivedTx.GasPrice,
+			GasLimit:         receivedTx.GasLimit,
+			DataField:        receivedTx.Data,
+			SignatureHex:     receivedTx.Signature,
+			ChainID:          receivedTx.ChainID,
+			Version:          receivedTx.Version,
+			Options:          receivedTx.Options,
+			Guardian:         receivedTx.GuardianAddr,
+			GuardianSigHex:   receivedTx.GuardianSignature,
+		}
+		tx, txHash, err = tg.getFacade().CreateTransaction(txArgs)
 		logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 		if err != nil {
 			continue
@@ -509,8 +485,8 @@ func (tg *transactionGroup) getTransaction(c *gin.Context) {
 
 // computeTransactionGasLimit returns how many gas units a transaction wil consume
 func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
-	var gtx SendTxRequest
-	err := c.ShouldBindJSON(&gtx)
+	var ftx transaction.FrontendTransaction
+	err := c.ShouldBindJSON(&ftx)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -523,22 +499,25 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
+	txArgs := &external.ArgsCreateTransaction{
+		Nonce:            ftx.Nonce,
+		Value:            ftx.Value,
+		Receiver:         ftx.Receiver,
+		ReceiverUsername: ftx.ReceiverUsername,
+		Sender:           ftx.Sender,
+		SenderUsername:   ftx.SenderUsername,
+		GasPrice:         ftx.GasPrice,
+		GasLimit:         ftx.GasLimit,
+		DataField:        ftx.Data,
+		SignatureHex:     ftx.Signature,
+		ChainID:          ftx.ChainID,
+		Version:          ftx.Version,
+		Options:          ftx.Options,
+		Guardian:         ftx.GuardianAddr,
+		GuardianSigHex:   ftx.GuardianSignature,
+	}
 	start := time.Now()
-	tx, _, err := tg.getFacade().CreateTransaction(
-		gtx.Nonce,
-		gtx.Value,
-		gtx.Receiver,
-		gtx.ReceiverUsername,
-		gtx.Sender,
-		gtx.SenderUsername,
-		gtx.GasPrice,
-		gtx.GasLimit,
-		gtx.Data,
-		gtx.Signature,
-		gtx.ChainID,
-		gtx.Version,
-		gtx.Options,
-	)
+	tx, _, err := tg.getFacade().CreateTransaction(txArgs)
 	logging.LogAPIActionDurationIfNeeded(start, "API call: CreateTransaction")
 	if err != nil {
 		c.JSON(

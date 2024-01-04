@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package multiShard
 
@@ -8,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -31,15 +31,15 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	require.Equal(t, uint32(1), testContextRelayer.ShardCoordinator.ComputeId(sndAddr))
 
 	gasPrice := uint64(10)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(1961)
 
-	_, _ = vm.CreateAccount(testContextRelayer.Accounts, relayerAddr, 0, big.NewInt(50000))
+	_, _ = vm.CreateAccount(testContextRelayer.Accounts, relayerAddr, 0, big.NewInt(100000))
 
 	contractPath := "../../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm"
 	scCode := wasm.GetSCCode(contractPath)
 	userTx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -51,12 +51,12 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 	_, err = testContextRelayer.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(26930)
+	expectedBalanceRelayer := big.NewInt(52520)
 	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check accumulated fees
 	accumulatedFees := testContextRelayer.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(13070), accumulatedFees)
+	require.Equal(t, big.NewInt(27870), accumulatedFees)
 
 	// execute on inner tx destination
 	retCode, err = testContextInner.TxProcessor.ProcessTransaction(rtx)
@@ -71,13 +71,10 @@ func TestRelayedSCDeployShouldWork(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees = testContextInner.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(8490), accumulatedFees)
+	require.Equal(t, big.NewInt(19600), accumulatedFees)
 
 	txs := testContextInner.GetIntermediateTransactions(t)
 
-	scr := txs[0]
-	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.Ok, nil)
-
-	expectedBalanceRelayer = big.NewInt(28440)
-	utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+	scr := txs[2]
+	utils.ProcessSCRResult(t, testContextRelayer, scr, vmcommon.UserError, nil)
 }

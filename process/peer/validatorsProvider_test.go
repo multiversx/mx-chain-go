@@ -16,6 +16,7 @@ import (
 	coreAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -260,7 +261,7 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
-		cache:                        make(map[string]*state.ValidatorApiResponse),
+		cache:                        make(map[string]*validator.ValidatorStatistics),
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
@@ -349,10 +350,10 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	encodedEligible, _ := pubKeyConverter.Encode(pkEligible)
 	encondedInactive, _ := pubKeyConverter.Encode(pkInactive)
 	encodedLeaving, _ := pubKeyConverter.Encode(pkLeaving)
-	cache := make(map[string]*state.ValidatorApiResponse)
-	cache[encondedInactive] = &state.ValidatorApiResponse{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
-	cache[encodedEligible] = &state.ValidatorApiResponse{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
-	cache[encodedLeaving] = &state.ValidatorApiResponse{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
+	cache := make(map[string]*validator.ValidatorStatistics)
+	cache[encondedInactive] = &validator.ValidatorStatistics{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
+	cache[encodedEligible] = &validator.ValidatorStatistics{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
+	cache[encodedLeaving] = &validator.ValidatorStatistics{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
 
 	nodesCoordinatorEligibleShardId := uint32(0)
 	nodesCoordinatorLeavingShardId := core.MetachainShardId

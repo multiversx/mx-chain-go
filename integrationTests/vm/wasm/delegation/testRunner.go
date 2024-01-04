@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -53,8 +53,13 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	persisterFactory := factory.NewPersisterFactory(dbConfig)
-	tempDir, err := ioutil.TempDir("", "integrationTest")
+	dbConfigHandler := factory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	tempDir, err := os.MkdirTemp("", "integrationTest")
 	if err != nil {
 		return nil, err
 	}
@@ -89,8 +94,8 @@ func RunDelegationStressTest(
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20MIL eGLD
 	nodeInitialBalance := big.NewInt(0).Set(totalSupply)
 	nodeInitialBalance.Div(nodeInitialBalance, big.NewInt(2))
-	node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
-	node.EconomicsData.SetMinGasLimit(50000)
+	node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
+	node.EconomicsData.SetMinGasLimit(50000, 0)
 	node.EconomicsData.SetMinGasPrice(1000000000)
 	node.EconomicsData.SetTotalSupply(totalSupply)
 	integrationTests.MintAllNodes([]*integrationTests.TestProcessorNode{node}, nodeInitialBalance)
@@ -154,14 +159,14 @@ func RunDelegationStressTest(
 					getClaimableRewards.Arguments = [][]byte{copiedAddresses[j]}
 					getUserStakeByType.Arguments = [][]byte{copiedAddresses[j]}
 
-					_, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
+					_, _, localErrQuery := scQuery.ExecuteQuery(getClaimableRewards)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
 						mutExecutionError.Unlock()
 					}
 
-					_, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
+					_, _, localErrQuery = scQuery.ExecuteQuery(getUserStakeByType)
 					if localErrQuery != nil {
 						mutExecutionError.Lock()
 						executionError = localErrQuery
@@ -213,7 +218,7 @@ func deployDelegationSC(node *integrationTests.TestProcessorNode, delegationFile
 	blocksBeforeUnBond := 60
 	value := big.NewInt(10)
 
-	contractBytes, err := ioutil.ReadFile(delegationFilename)
+	contractBytes, err := os.ReadFile(delegationFilename)
 	if err != nil {
 		return err
 	}
@@ -223,7 +228,7 @@ func deployDelegationSC(node *integrationTests.TestProcessorNode, delegationFile
 		node.OwnAccount.Nonce,
 		big.NewInt(0),
 		node.EconomicsData.MinGasPrice(),
-		node.EconomicsData.GetMinGasLimit()+uint64(100000000),
+		node.EconomicsData.GetMinGasLimit(0)+uint64(100000000),
 		wasm.CreateDeployTxData(hex.EncodeToString(contractBytes))+
 			"@"+hex.EncodeToString(systemVm.ValidatorSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
 			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+

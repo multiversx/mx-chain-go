@@ -109,6 +109,12 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 // ErrNilValidatorInfoCacher signals that a nil value for the validator info cacher has been provided
 var ErrNilValidatorInfoCacher = errors.New("validator info cacher is nil")
 
+// ErrNilGenesisNodesSetupHandler signals that a nil genesis nodes setup handler has been provided
+var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler")
+
+// ErrKeyNotFoundInWaitingList signals that the provided key has not been found in waiting list
+var ErrKeyNotFoundInWaitingList = errors.New("key not found in waiting list")
+
 // ErrNilNodesCoordinatorRegistryFactory signals that a nil nodes coordinator registry factory has been given
 var ErrNilNodesCoordinatorRegistryFactory = errors.New("nil nodes coordinator registry factory has been given")
 

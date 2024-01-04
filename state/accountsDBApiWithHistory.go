@@ -112,11 +112,7 @@ func (accountsDB *accountsDBApiWithHistory) CancelPrune(_ []byte, _ TriePruningI
 }
 
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte) {
-}
-
-// SetStateCheckpoint is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApiWithHistory) SetStateCheckpoint(_ []byte) {
+func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte, _ uint32) {
 }
 
 // IsPruningEnabled will return false
@@ -125,7 +121,7 @@ func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
 }
 
 // GetAllLeaves will return an error
-func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte) error {
+func (accountsDB *accountsDBApiWithHistory) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 	return ErrOperationNotPermitted
 }
 

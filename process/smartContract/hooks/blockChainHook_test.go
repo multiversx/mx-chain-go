@@ -22,11 +22,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -58,13 +61,14 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		DataPool:              datapool,
 		CompiledSCPool:        datapool.SmartContracts(),
 		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:   &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:   enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		NilCompiledSCStore:    true,
 		EnableEpochs: config.EnableEpochs{
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch: math.MaxUint32,
 		},
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
-		Counter:     &testscommon.BlockChainHookCounterStub{},
+		GasSchedule:              testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
+		Counter:                  &testscommon.BlockChainHookCounterStub{},
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 	return arguments
 }
@@ -77,6 +81,11 @@ func createContractCallInput(function string, sender, receiver []byte) *vmcommon
 			CallerAddr: sender,
 		},
 	}
+}
+
+func createAccount(address []byte) state.UserAccountHandler {
+	account, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
+	return account
 }
 
 func TestNewBlockChainHookImpl(t *testing.T) {
@@ -216,6 +225,14 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 		},
 		{
 			args: func() hooks.ArgBlockChainHook {
+				args := createMockBlockChainHookArgs()
+				args.MissingTrieNodesNotifier = nil
+				return args
+			},
+			expectedErr: hooks.ErrNilMissingTrieNodesNotifier,
+		},
+		{
+			args: func() hooks.ArgBlockChainHook {
 				return createMockBlockChainHookArgs()
 			},
 			expectedErr: nil,
@@ -261,10 +278,10 @@ func TestBlockChainHookImpl_GetCode(t *testing.T) {
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		account, _ := state.NewUserAccount([]byte("address"))
+		account := createAccount([]byte("address"))
 		account.SetCodeHash(expectedCodeHash)
 
-		code := bh.GetCode(account)
+		code := bh.GetCode(account.(vmcommon.UserAccountHandler))
 		require.Equal(t, expectedCode, code)
 	})
 }
@@ -310,7 +327,7 @@ func TestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
-			return &mock.PeerAccountHandlerMock{}, nil
+			return &stateMock.PeerAccountHandlerMock{}, nil
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -321,7 +338,7 @@ func TestBlockChainHookImpl_GetUserAccountWrongTypeShouldErr(t *testing.T) {
 func TestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedAccount, _ := state.NewUserAccount([]byte("1234"))
+	expectedAccount := createAccount([]byte("1234"))
 	args := createMockBlockChainHookArgs()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
@@ -329,7 +346,7 @@ func TestBlockChainHookImpl_GetUserAccount(t *testing.T) {
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	acc, err := bh.GetUserAccount(expectedAccount.Address)
+	acc, err := bh.GetUserAccount(expectedAccount.AddressBytes())
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedAccount, acc)
@@ -414,9 +431,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
 				return expectedErr
@@ -465,9 +480,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.Counter = &testscommon.BlockChainHookCounterStub{
 			ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
 				counterProcessedCalled = true
@@ -497,9 +510,7 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			CurrentShard: core.MetachainShardId,
 		}
@@ -522,6 +533,95 @@ func TestBlockChainHookImpl_GetStorageData(t *testing.T) {
 		assert.Equal(t, variableValue, value)
 		assert.False(t, counterProcessedCalled)
 	})
+	t.Run("data trie node not found should call missingTrieNodesNotifier", func(t *testing.T) {
+		t.Parallel()
+
+		missingDataTrieKey := []byte("missingDataTrieKey")
+		notifyMissingTrieNodeCalled := false
+		accnt := stateMock.NewAccountWrapMock(nil)
+		accnt.AccountDataHandlerCalled = func() (handler vmcommon.AccountDataHandler) {
+			return &trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					trieErr := core.NewGetNodeFromDBErrWithKey(key, errors.New(core.GetNodeFromDBErrorString), "")
+					return nil, 0, fmt.Errorf("error: %w", trieErr)
+				},
+			}
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				return accnt, nil
+			},
+		}
+		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+				assert.Equal(t, missingDataTrieKey, hash)
+				notifyMissingTrieNodeCalled = true
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
+		assert.True(t, notifyMissingTrieNodeCalled)
+	})
+	t.Run("random retrieve err should not call missingTrieNodesNotifier", func(t *testing.T) {
+		t.Parallel()
+
+		missingDataTrieKey := []byte("missingDataTrieKey")
+		accnt := stateMock.NewAccountWrapMock(nil)
+		accnt.AccountDataHandlerCalled = func() (handler vmcommon.AccountDataHandler) {
+			return &trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					return nil, 0, errors.New("random error")
+				},
+			}
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				return accnt, nil
+			},
+		}
+		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+				assert.Fail(t, "should not have been called")
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
+	})
+	t.Run("unwrapped err is not of wanted type, should not call missingTrieNodesNotifier", func(t *testing.T) {
+		t.Parallel()
+
+		missingDataTrieKey := []byte("missingDataTrieKey")
+		accnt := stateMock.NewAccountWrapMock(nil)
+		accnt.AccountDataHandlerCalled = func() (handler vmcommon.AccountDataHandler) {
+			return &trie.DataTrieTrackerStub{
+				RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+					baseErr := errors.New(core.GetNodeFromDBErrorString)
+					return nil, 0, fmt.Errorf("error: %w", baseErr)
+				},
+			}
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				return accnt, nil
+			},
+		}
+		args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+			AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+				assert.Fail(t, "should not have been called")
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		_, _, _ = bh.GetStorageData([]byte("address"), missingDataTrieKey)
+	})
 }
 
 func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
@@ -529,7 +629,7 @@ func TestBlockChainHookImpl_NewAddressLengthNoGood(t *testing.T) {
 
 	acnts := &stateMock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return state.NewUserAccount(address)
+		return createAccount(address).(vmcommon.AccountHandler), nil
 	}
 	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
@@ -553,7 +653,7 @@ func TestBlockChainHookImpl_NewAddressVMTypeTooLong(t *testing.T) {
 
 	acnts := &stateMock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return state.NewUserAccount(address)
+		return createAccount(address).(vmcommon.AccountHandler), nil
 	}
 	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
@@ -573,7 +673,7 @@ func TestBlockChainHookImpl_NewAddress(t *testing.T) {
 
 	acnts := &stateMock.AccountsStub{}
 	acnts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		return state.NewUserAccount(address)
+		return createAccount(address).(vmcommon.AccountHandler), nil
 	}
 	args := createMockBlockChainHookArgs()
 	args.Accounts = acnts
@@ -732,9 +832,7 @@ func TestBlockChainHookImpl_GetBlockhashFromStorerInSameEpochWithFlagEnabled(t *
 	t.Parallel()
 
 	args := createMockBlockChainHookArgs()
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
-	}
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DoNotReturnOldBlockInBlockchainHookFlag)
 	nonce := uint64(10)
 	header := &block.Header{Nonce: nonce}
 	shardID := args.ShardCoordinator.SelfId()
@@ -890,9 +988,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		}
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsDoNotReturnOldBlockInBlockchainHookFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DoNotReturnOldBlockInBlockchainHookFlag)
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdrToRet
@@ -1042,9 +1138,7 @@ func TestBlockChainHookImpl_IsPayablePayableBySC(t *testing.T) {
 			return acc, nil
 		},
 	}
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsPayableBySCFlagEnabledField: true,
-	}
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 	isPayable, err := bh.IsPayable(make([]byte, 32), make([]byte, 32))
@@ -1375,7 +1469,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		args.Accounts = &stateMock.AccountsStub{
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrSender, addressContainer)
-				return &stateMock.UserAccountStub{}, nil
+				return &stateMock.StateUserAccountHandlerStub{}, nil
 			},
 		}
 		bh, _ := hooks.NewBlockChainHookImpl(args)
@@ -1422,7 +1516,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Equal(t, addrReceiver, addressContainer)
-				return &stateMock.UserAccountStub{}, nil
+				return &stateMock.StateUserAccountHandlerStub{}, nil
 			},
 		}
 
@@ -1649,9 +1743,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.BuiltInFunctions = builtInFunctionsContainer
 
 		args.Accounts = &stateMock.AccountsStub{
@@ -1684,9 +1776,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.BuiltInFunctions = builtInFunctionsContainer
 
 		args.Accounts = &stateMock.AccountsStub{
@@ -1720,9 +1810,7 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 
 		counterProcessedCalled := false
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsMaxBlockchainHookCountersFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MaxBlockchainHookCountersFlag)
 		args.BuiltInFunctions = builtInFunctionsContainer
 		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			CurrentShard: core.MetachainShardId,
@@ -1812,21 +1900,19 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			},
 		}
 		errMarshaller := errors.New("error marshaller")
-		args.Marshalizer = &testscommon.MarshalizerStub{
+		args.Marshalizer = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				require.Equal(t, emptyESDTData, obj)
 				require.Equal(t, invalidUnmarshalledData, buff)
 				return errMarshaller
 			},
 		}
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		require.Nil(t, esdtData)
 		require.Equal(t, errMarshaller, err)
@@ -1858,14 +1944,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Nil(t, esdtData)
 		assert.Equal(t, state.ErrNilTrie, err)
@@ -1886,14 +1970,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, emptyESDTData, esdtData)
 		assert.Nil(t, err)
@@ -1913,14 +1995,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nftNonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -1938,14 +2018,12 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return addressHandler, nil
 			},
 		}
-		enableEpochsHandlerStub := &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 		args.EnableEpochsHandler = enableEpochsHandlerStub
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-		enableEpochsHandlerStub.IsOptimizeNFTStoreFlagEnabledField = false
+		enableEpochsHandlerStub.RemoveActiveFlags(common.OptimizeNFTStoreFlag)
 		esdtData, err := bh.GetESDTToken(address, token, nonce)
 		assert.Equal(t, testESDTData, esdtData)
 		assert.Nil(t, err)
@@ -1968,9 +2046,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return nil, false, expectedErr
 			},
 		}
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -1997,9 +2073,7 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 				return &copyToken, false, nil
 			},
 		}
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsOptimizeNFTStoreFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.OptimizeNFTStoreFlag)
 
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
@@ -2024,7 +2098,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Readable:    true,
 		}
 
-		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted := bh.ApplyFiltersOnSCCodeMetadata(provided)
 
 		expected := vmcommon.CodeMetadata{
 			Payable:     true,
@@ -2038,9 +2112,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		provided := vmcommon.CodeMetadata{
@@ -2050,7 +2122,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Readable:    true,
 		}
 
-		resulted := bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted := bh.ApplyFiltersOnSCCodeMetadata(provided)
 		expected := vmcommon.CodeMetadata{
 			Payable:     true,
 			PayableBySC: true,
@@ -2065,7 +2137,7 @@ func TestBlockChainHookImpl_ApplyFiltersOnCodeMetadata(t *testing.T) {
 			Upgradeable: true,
 			Readable:    true,
 		}
-		resulted = bh.ApplyFiltersOnCodeMetadata(provided)
+		resulted = bh.ApplyFiltersOnSCCodeMetadata(provided)
 		expected = vmcommon.CodeMetadata{
 			Payable:     true,
 			PayableBySC: false,
@@ -2110,9 +2182,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF, 0xFF}
@@ -2124,9 +2194,7 @@ func TestBlockChainHookImpl_FilterCodeMetadataForUpgrade(t *testing.T) {
 		t.Parallel()
 
 		args := createMockBlockChainHookArgs()
-		args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-			IsPayableBySCFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PayableBySCFlag)
 		bh, _ := hooks.NewBlockChainHookImpl(args)
 
 		providedBytes := []byte{0xFF, 0xFF}

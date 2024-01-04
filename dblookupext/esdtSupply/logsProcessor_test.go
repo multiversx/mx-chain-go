@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -69,7 +69,7 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	}
 
 	putCalledNum := 0
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
@@ -128,7 +128,7 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 		},
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	storer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			supplyESDT := &SupplyESDT{

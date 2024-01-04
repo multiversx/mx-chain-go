@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -302,13 +303,13 @@ func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []
 	return list
 }
 
-func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*outportcore.Pool {
-	txsPoolPerShard := make(map[uint32]*outportcore.Pool)
+func (ap *accountsParser) createIndexerPools(shardIDs []uint32) map[uint32]*outportcore.TransactionPool {
+	txsPoolPerShard := make(map[uint32]*outportcore.TransactionPool)
 
 	for _, id := range shardIDs {
-		txsPoolPerShard[id] = &outportcore.Pool{
-			Txs:  make(map[string]coreData.TransactionHandlerWithGasUsedAndFee),
-			Scrs: make(map[string]coreData.TransactionHandlerWithGasUsedAndFee),
+		txsPoolPerShard[id] = &outportcore.TransactionPool{
+			Transactions:         make(map[string]*outportcore.TxInfo),
+			SmartContractResults: make(map[string]*outportcore.SCRInfo),
 		}
 	}
 
@@ -388,10 +389,12 @@ func (ap *accountsParser) getAllTxs(
 func (ap *accountsParser) setScrsTxsPool(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-	txsPoolPerShard map[uint32]*outportcore.Pool,
+	txsPoolPerShard map[uint32]*outportcore.TransactionPool,
 ) {
 	for _, id := range indexingData {
 		for txHash, tx := range id.ScrsTxs {
+			hexEncodedTxHash := hex.EncodeToString([]byte(txHash))
+
 			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
 			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
@@ -401,8 +404,14 @@ func (ap *accountsParser) setScrsTxsPool(
 			}
 			scrTx.GasLimit = uint64(0)
 
-			txsPoolPerShard[senderShardID].Scrs[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(scrTx, 0, big.NewInt(0))
-			txsPoolPerShard[receiverShardID].Scrs[txHash] = outportcore.NewTransactionHandlerWithGasAndFee(scrTx, 0, big.NewInt(0))
+			txsPoolPerShard[senderShardID].SmartContractResults[hexEncodedTxHash] = &outportcore.SCRInfo{
+				SmartContractResult: scrTx,
+				FeeInfo:             &outportcore.FeeInfo{Fee: big.NewInt(0)},
+			}
+			txsPoolPerShard[receiverShardID].SmartContractResults[hexEncodedTxHash] = &outportcore.SCRInfo{
+				SmartContractResult: scrTx,
+				FeeInfo:             &outportcore.FeeInfo{Fee: big.NewInt(0)},
+			}
 		}
 	}
 }
@@ -410,7 +419,7 @@ func (ap *accountsParser) setScrsTxsPool(
 func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 	shardCoordinator sharding.Coordinator,
 	allTxs []coreData.TransactionHandler,
-	txsPoolPerShard map[uint32]*outportcore.Pool,
+	txsPoolPerShard map[uint32]*outportcore.TransactionPool,
 	miniBlocks []*block.MiniBlock,
 ) error {
 
@@ -436,8 +445,21 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 		tx.Signature = []byte(common.GenesisTxSignatureString)
 		tx.GasLimit = uint64(0)
 
-		txsPoolPerShard[senderShardID].Txs[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
-		txsPoolPerShard[receiverShardID].Txs[string(txHash)] = outportcore.NewTransactionHandlerWithGasAndFee(tx, 0, big.NewInt(0))
+		txsPoolPerShard[senderShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
+			Transaction: tx,
+			FeeInfo: &outportcore.FeeInfo{
+				Fee:            big.NewInt(0),
+				InitialPaidFee: big.NewInt(0),
+			},
+		}
+
+		txsPoolPerShard[receiverShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
+			Transaction: tx,
+			FeeInfo: &outportcore.FeeInfo{
+				Fee:            big.NewInt(0),
+				InitialPaidFee: big.NewInt(0),
+			},
+		}
 
 		for _, miniBlock := range miniBlocks {
 			if senderShardID == miniBlock.GetSenderShardID() &&
@@ -466,7 +488,7 @@ func getNonEmptyMiniBlocks(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
 func (ap *accountsParser) GenerateInitialTransactions(
 	shardCoordinator sharding.Coordinator,
 	indexingData map[uint32]*genesis.IndexingData,
-) ([]*block.MiniBlock, map[uint32]*outportcore.Pool, error) {
+) ([]*block.MiniBlock, map[uint32]*outportcore.TransactionPool, error) {
 	if check.IfNil(shardCoordinator) {
 		return nil, nil, genesis.ErrNilShardCoordinator
 	}

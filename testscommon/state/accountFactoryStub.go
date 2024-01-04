@@ -1,6 +1,8 @@
 package state
 
-import "github.com/multiversx/mx-chain-vm-common-go"
+import (
+	"github.com/multiversx/mx-chain-vm-common-go"
+)
 
 // TODO: move all the mocks from the mock package to testscommon
 

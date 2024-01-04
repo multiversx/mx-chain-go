@@ -5,8 +5,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -19,8 +19,9 @@ func createAccountAdapter(
 	accountFactory state.AccountFactory,
 	trieStorage common.StorageManager,
 	addressConverter core.PubkeyConverter,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -31,10 +32,8 @@ func createAccountAdapter(
 		Marshaller:            marshaller,
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 		AddressConverter:      addressConverter,
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 
 	adb, err := state.NewAccountsDB(args)

@@ -57,6 +57,12 @@ func NewTxTypeHandler(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ESDTMetadataContinuousCleanupFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	tc := &txTypeHandler{
 		pubkeyConv:          args.PubkeyConverter,
@@ -99,7 +105,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 	}
 
-	if isAsynchronousCallBack(tx) {
+	if isCallOfType(tx, vm.AsynchronousCallBack) {
 		return process.SCInvoking, process.SCInvoking
 	}
 
@@ -127,18 +133,18 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 	return process.MoveBalance, process.MoveBalance
 }
 
-func isAsynchronousCallBack(tx data.TransactionHandler) bool {
+func isCallOfType(tx data.TransactionHandler, callType vm.CallType) bool {
 	scr, ok := tx.(*smartContractResult.SmartContractResult)
 	if !ok {
 		return false
 	}
 
-	return scr.CallType == vm.AsynchronousCallBack
+	return scr.CallType == callType
 }
 
 func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
-	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabled()
-	if isTransferAndAsyncCallbackFixFlagSet && isAsynchronousCallBack(tx) {
+	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
+	if isTransferAndAsyncCallbackFixFlagSet && isCallOfType(tx, vm.AsynchronousCallBack) {
 		return true
 	}
 	if len(args) <= 2 {

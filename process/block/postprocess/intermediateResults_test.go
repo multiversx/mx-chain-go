@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"sort"
 	"strconv"
@@ -12,10 +13,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -28,19 +33,29 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
+func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsProcessor {
+	args := ArgsNewIntermediateResultsProcessor{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Coordinator:         mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConv:          createMockPubkeyConverter(),
+		Store:               &storage.ChainStorerStub{},
+		BlockType:           block.SmartContractResultBlock,
+		CurrTxs:             &mock.TxForCurrentBlockStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
+		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
+	}
+
+	return args
+}
+
 func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		nil,
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Hasher = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -49,16 +64,9 @@ func TestNewIntermediateResultsProcessor_NilHashes(t *testing.T) {
 func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		nil,
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Marshalizer = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
@@ -67,16 +75,9 @@ func TestNewIntermediateResultsProcessor_NilMarshalizer(t *testing.T) {
 func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		nil,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -85,16 +86,9 @@ func TestNewIntermediateResultsProcessor_NilShardCoordinator(t *testing.T) {
 func TestNewIntermediateResultsProcessor_NilPubkeyConverter(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		nil,
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.PubkeyConv = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
@@ -103,16 +97,9 @@ func TestNewIntermediateResultsProcessor_NilPubkeyConverter(t *testing.T) {
 func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		nil,
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Store = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilStorage, err)
@@ -121,16 +108,9 @@ func TestNewIntermediateResultsProcessor_NilStorer(t *testing.T) {
 func TestNewIntermediateResultsProcessor_NilTxForCurrentBlockHandler(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		nil,
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.CurrTxs = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilTxForCurrentBlockHandler, err)
@@ -139,34 +119,51 @@ func TestNewIntermediateResultsProcessor_NilTxForCurrentBlockHandler(t *testing.
 func TestNewIntermediateResultsProcessor_NilEconomicsFeeHandler(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		nil,
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.EconomicsFee = nil
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 }
 
+func TestNewIntermediateResultsProcessor_NilEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.EnableEpochsHandler = nil
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewIntermediateResultsProcessor_InvalidEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
+func TestNewIntermediateResultsProcessor_NilTxExecutionOrderHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.TxExecutionOrderHandler = nil
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
+}
+
 func TestNewIntermediateResultsProcessor_Good(t *testing.T) {
 	t.Parallel()
 
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	irp, err := NewIntermediateResultsProcessor(createMockArgsNewIntermediateResultsProcessor())
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -176,16 +173,9 @@ func TestIntermediateResultsProcessor_getShardIdsFromAddressesGood(t *testing.T)
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -201,16 +191,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -223,16 +206,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -248,16 +224,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilSender(t *te
 	t.Parallel()
 
 	shardC := mock.NewMultiShardsCoordinatorMock(2)
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardC,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardC
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -281,16 +250,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilReceiver(t *
 	t.Parallel()
 
 	shardC := mock.NewMultiShardsCoordinatorMock(2)
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardC,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardC
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -321,20 +283,14 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 			return 1
 		},
 	}
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardC,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardC
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -355,16 +311,9 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 	t.Parallel()
 
 	shardC := mock.NewMultiShardsCoordinatorMock(2)
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardC,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardC
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -395,20 +344,14 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -429,16 +372,16 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+
+	calledCount := 0
+	args.TxExecutionOrderHandler = &txExecOrderStub.TxExecutionOrderHandlerStub{
+		AddCalled: func(txHash []byte) {
+			calledCount++
+		},
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -458,6 +401,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(txs), calledCount)
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)
@@ -476,20 +420,14 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -502,20 +440,14 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	t.Parallel()
 
 	nrShards := 5
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(uint32(nrShards)),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -540,20 +472,14 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 
 	nrShards := 5
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -603,16 +529,9 @@ func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *t
 		return uint32(shardID)
 	}
 
-	irp, _ := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	irp, _ := NewIntermediateResultsProcessor(args)
 
 	txs := make([]data.TransactionHandler, 0)
 	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 0, SndAddr: snd, RcvAddr: []byte("0"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
@@ -637,17 +556,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksNilBody(t *testing.T)
 	t.Parallel()
 
 	nrShards := 5
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -661,17 +572,9 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 	t.Parallel()
 
 	nrShards := 5
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -679,8 +582,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldpassAsNotCr
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{
 		Type:            block.SmartContractResultBlock,
-		ReceiverShardID: shardCoordinator.SelfId(),
-		SenderShardID:   shardCoordinator.SelfId() + 1})
+		ReceiverShardID: args.Coordinator.SelfId(),
+		SenderShardID:   args.Coordinator.SelfId() + 1})
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
@@ -690,23 +593,14 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMissingMiniblock(
 	t.Parallel()
 
 	nrShards := 5
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
-
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	irp, err := NewIntermediateResultsProcessor(args)
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
 	body := &block.Body{}
-	otherShard := shardCoordinator.SelfId() + 1
+	otherShard := args.Coordinator.SelfId() + 1
 	body.MiniBlocks = append(body.MiniBlocks, &block.MiniBlock{Type: block.SmartContractResultBlock, ReceiverShardID: otherShard})
 
 	err = irp.VerifyInterMiniBlocks(body)
@@ -718,20 +612,14 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 
 	nrShards := 5
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -768,23 +656,19 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 
 	nrShards := 5
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
-			MaxGasLimitPerBlockCalled: func() uint64 {
-				return maxGasLimitPerBlock
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+			return maxGasLimitPerBlock
 		},
-	)
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+			return maxGasLimitPerBlock
+		},
+	}
+	enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	args.EnableEpochsHandler = enableEpochHandler
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -827,6 +711,19 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
+
+	enableEpochHandler.AddActiveFlags(common.KeepExecOrderOnCreatedSCRsFlag)
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Equal(t, err, process.ErrMiniBlockHashMismatch)
+
+	miniBlock.TxHashes = make([][]byte, 0)
+	for i := 0; i < len(txs); i++ {
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, txs[i])
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+	}
+
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Nil(t, err)
 }
 
 func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSave(t *testing.T) {
@@ -835,24 +732,18 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 	nrShards := 5
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	putCounter := 0
-	irp, err := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{
-			PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
-				if unitType == dataRetriever.UnsignedTransactionUnit {
-					putCounter++
-				}
-				return nil
-			},
-		},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
 
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.Store = &storage.ChainStorerStub{
+		PutCalled: func(unitType dataRetriever.UnitType, key []byte, value []byte) error {
+			if unitType == dataRetriever.UnsignedTransactionUnit {
+				putCounter++
+			}
+			return nil
+		},
+	}
+	irp, err := NewIntermediateResultsProcessor(args)
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
@@ -884,18 +775,11 @@ func TestIntermediateResultsProcessor_CreateMarshalizedDataNothingToMarshal(t *t
 
 	nrShards := 5
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	hasher := &hashingMocks.HasherMock{}
-	marshalizer := &mock.MarshalizerMock{}
-	irp, err := NewIntermediateResultsProcessor(
-		hasher,
-		marshalizer,
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.Hasher = &hashingMocks.HasherMock{}
+	args.Marshalizer = &mock.MarshalizerMock{}
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -918,16 +802,11 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	irp, err := NewIntermediateResultsProcessor(
-		hasher,
-		marshalizer,
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.Hasher = hasher
+	args.Marshalizer = marshalizer
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -986,16 +865,11 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	irp, err := NewIntermediateResultsProcessor(
-		hasher,
-		marshalizer,
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.Hasher = hasher
+	args.Marshalizer = marshalizer
+	irp, err := NewIntermediateResultsProcessor(args)
 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
@@ -1030,23 +904,19 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
-	irp, _ := NewIntermediateResultsProcessor(
-		hasher,
-		marshalizer,
-		shardCoordinator,
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.SmartContractResultBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{
-			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
-				return gasLimit
-			},
-			MaxGasLimitPerTxCalled: func() uint64 {
-				return gasLimit
-			},
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.Hasher = hasher
+	args.Marshalizer = marshalizer
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return gasLimit
 		},
-	)
+		MaxGasLimitPerTxCalled: func() uint64 {
+			return gasLimit
+		},
+	}
+	irp, _ := NewIntermediateResultsProcessor(args)
 
 	tx1 := transaction.Transaction{Nonce: 0, GasLimit: 100}
 	tx2 := transaction.Transaction{Nonce: 1, GasLimit: 100}
@@ -1085,16 +955,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *testing.T) {
 	t.Parallel()
 
-	irp, _ := NewIntermediateResultsProcessor(
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		mock.NewMultiShardsCoordinatorMock(5),
-		createMockPubkeyConverter(),
-		&storage.ChainStorerStub{},
-		block.TxBlock,
-		&mock.TxForCurrentBlockStub{},
-		&mock.FeeHandlerStub{},
-	)
+	irp, _ := NewIntermediateResultsProcessor(createMockArgsNewIntermediateResultsProcessor())
 
 	key := []byte("key")
 	irp.InitProcessedResults(key)

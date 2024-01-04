@@ -6,7 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
+	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -36,7 +36,9 @@ func NewMetaRequestersContainerFactory(
 		shardIDForTries:          args.ShardIDForTries,
 		chainID:                  args.ChainID,
 		workingDir:               args.WorkingDirectory,
-		snapshotsEnabled:         args.SnapshotsEnabled,
+		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
+		enableEpochsHandler:      args.EnableEpochsHandler,
+		stateStatsHandler:        args.StateStatsHandler,
 	}
 
 	err := base.checkParams()
@@ -185,15 +187,12 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 		return err
 	}
 
-	userAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		userAccountsStorer,
-		userAccountsCheckpointStorer,
+		dataRetriever.UserAccountsUnit,
+		mrcf.enableEpochsHandler,
+		mrcf.stateStatsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
@@ -221,15 +220,12 @@ func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error 
 		return err
 	}
 
-	peerAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
 	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
 		peerAccountsStorer,
-		peerAccountsCheckpointStorer,
+		dataRetriever.PeerAccountsUnit,
+		mrcf.enableEpochsHandler,
+		mrcf.stateStatsHandler,
 	)
 	if err != nil {
 		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)

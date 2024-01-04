@@ -13,6 +13,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -20,10 +26,17 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+LEAVING BUILD ERROR
+-args.nodeProcessingMode,
+-		disabled.NewStateStatistics(),
 
 func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 	defer func() {
@@ -728,7 +741,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 
 	args := createStorageHandlerArgs()
 	expectedErr := fmt.Errorf("expected error")
-	args.Marshaller = &testscommon.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
+	args.Marshaller = &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
 		return nil, expectedErr
 	}}
 	shardStorage, _ := NewShardStorageHandler(args)
@@ -1038,6 +1051,36 @@ func Test_getShardHeaderAndMetaHashes(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, shardHeader, headers[shardHdrKey])
 	require.Equal(t, metaHashes, headers[shardHdrKey].(data.ShardHeaderHandler).GetMetaBlockHashes())
+}
+
+type shardStorageArgs struct {
+	generalConfig      config.Config
+	prefsConfig        config.PreferencesConfig
+	shardCoordinator   sharding.Coordinator
+	pathManagerHandler storage.PathManagerHandler
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	currentEpoch       uint32
+	uint64Converter    typeConverters.Uint64ByteSliceConverter
+	nodeTypeProvider   core.NodeTypeProviderHandler
+	nodeProcessingMode common.NodeProcessingMode
+	managedPeersHolder common.ManagedPeersHolder
+}
+
+func createDefaultShardStorageArgs() shardStorageArgs {
+	return shardStorageArgs{
+		generalConfig:      testscommon.GetGeneralConfig(),
+		prefsConfig:        config.PreferencesConfig{},
+		shardCoordinator:   &mock.ShardCoordinatorStub{},
+		pathManagerHandler: &testscommon.PathManagerStub{},
+		marshalizer:        &mock.MarshalizerMock{},
+		hasher:             &hashingMocks.HasherMock{},
+		currentEpoch:       0,
+		uint64Converter:    &mock.Uint64ByteSliceConverterMock{},
+		nodeTypeProvider:   &nodeTypeProviderMock.NodeTypeProviderStub{},
+		nodeProcessingMode: common.Normal,
+		managedPeersHolder: &testscommon.ManagedPeersHolderStub{},
+	}
 }
 
 func createDefaultEpochStartShardData(lastFinishedMetaBlockHash []byte, shardHeaderHash []byte) []block.EpochStartShardData {

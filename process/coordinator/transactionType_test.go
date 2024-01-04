@@ -3,6 +3,7 @@ package coordinator
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"testing"
 
@@ -10,9 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -22,14 +25,12 @@ import (
 func createMockArguments() ArgNewTxTypeHandler {
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(&mock.MarshalizerMock{})
 	return ArgNewTxTypeHandler{
-		PubkeyConverter:    createMockPubkeyConverter(),
-		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
-		BuiltInFunctions:   builtInFunctions.NewBuiltInFunctionContainer(),
-		ArgumentParser:     parsers.NewCallArgsParser(),
-		ESDTTransferParser: esdtTransferParser,
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{
-			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
-		},
+		PubkeyConverter:     createMockPubkeyConverter(),
+		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(3),
+		BuiltInFunctions:    builtInFunctions.NewBuiltInFunctionContainer(),
+		ArgumentParser:      parsers.NewCallArgsParser(),
+		ESDTTransferParser:  esdtTransferParser,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTMetadataContinuousCleanupFlag),
 	}
 }
 
@@ -68,6 +69,28 @@ func TestNewTxTypeHandler_NilArgParser(t *testing.T) {
 
 	assert.Nil(t, tth)
 	assert.Equal(t, process.ErrNilArgumentParser, err)
+}
+
+func TestNewTxTypeHandler_NilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.EnableEpochsHandler = nil
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.Nil(t, tth)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewTxTypeHandler_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	tth, err := NewTxTypeHandler(arg)
+
+	assert.Nil(t, tth)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewTxTypeHandler_NilBuiltInFuncs(t *testing.T) {

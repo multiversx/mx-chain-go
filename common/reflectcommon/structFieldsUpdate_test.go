@@ -31,6 +31,17 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, "invalid structure name: InvalidFieldName", err.Error())
 	})
 
+	t.Run("empty path, should not panic, but catch the error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedNewValue := "%5050"
+		cfg := &config.Config{}
+
+		err := AdaptStructureValueBasedOnPath(cfg, "", expectedNewValue)
+
+		require.Equal(t, "empty path to update", err.Error())
+	})
+
 	t.Run("should error when invalid field during multiple levels depth", func(t *testing.T) {
 		t.Parallel()
 
@@ -55,6 +66,18 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
 		require.Equal(t, "invalid structure name: FilePath2", err.Error())
+	})
+
+	t.Run("should error when setting on unsupported type", func(t *testing.T) {
+		t.Parallel()
+
+		path := "TrieSyncStorage.DB"
+		expectedNewValue := "provided value"
+		cfg := &config.Config{}
+
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
+
+		require.ErrorContains(t, err, "unsupported type <struct> when trying to set the value <provided value>")
 	})
 
 	t.Run("should error when setting invalid uint32", func(t *testing.T) {
@@ -357,6 +380,20 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.StoragePruning.FullArchiveNumActivePersisters)
+	})
+
+	t.Run("should work and override int32 value", func(t *testing.T) {
+		t.Parallel()
+
+		path := "Antiflood.NumConcurrentResolverJobs"
+		cfg := &config.Config{}
+		cfg.Antiflood.NumConcurrentResolverJobs = int32(50)
+		expectedNewValue := int32(37)
+
+		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		require.NoError(t, err)
+
+		require.Equal(t, expectedNewValue, cfg.Antiflood.NumConcurrentResolverJobs)
 	})
 
 	t.Run("should work and override string value on multiple levels depth", func(t *testing.T) {

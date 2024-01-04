@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -25,7 +26,7 @@ type managedStatusCoreComponents struct {
 // NewManagedStatusCoreComponents creates a new status core components handler implementation
 func NewManagedStatusCoreComponents(sccf *statusCoreComponentsFactory) (*managedStatusCoreComponents, error) {
 	if sccf == nil {
-		return nil, errors.ErrNilCoreComponentsFactory
+		return nil, errors.ErrNilStatusCoreComponentsFactory
 	}
 
 	mcc := &managedStatusCoreComponents{
@@ -167,6 +168,18 @@ func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.Persi
 	}
 
 	return mscc.statusCoreComponents.persistentHandler
+}
+
+// StateStatsHandler returns the state statistics handler component
+func (mscc *managedStatusCoreComponents) StateStatsHandler() common.StateStatisticsHandler {
+	mscc.mutCoreComponents.RLock()
+	defer mscc.mutCoreComponents.RUnlock()
+
+	if mscc.statusCoreComponents == nil {
+		return nil
+	}
+
+	return mscc.statusCoreComponents.stateStatsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

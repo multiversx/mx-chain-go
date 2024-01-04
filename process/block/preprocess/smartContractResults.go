@@ -49,6 +49,7 @@ func NewSmartContractResultPreprocessor(
 	balanceComputation BalanceComputationHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
+	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*smartContractResults, error) {
 
 	if check.IfNil(hasher) {
@@ -96,6 +97,17 @@ func NewSmartContractResultPreprocessor(
 	if check.IfNil(processedMiniBlocksTracker) {
 		return nil, process.ErrNilProcessedMiniBlocksTracker
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.OptimizeGasUsedInCrossMiniBlocksFlag,
+		common.ScheduledMiniBlocksFlag,
+		common.FrontRunningProtectionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	bpp := &basePreProcess{
 		hasher:      hasher,
@@ -111,6 +123,7 @@ func NewSmartContractResultPreprocessor(
 		pubkeyConverter:            pubkeyConverter,
 		enableEpochsHandler:        enableEpochsHandler,
 		processedMiniBlocksTracker: processedMiniBlocksTracker,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	scr := &smartContractResults{
@@ -314,7 +327,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				return process.ErrWrongTypeAssertion
 			}
 
-			if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+			if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
@@ -329,9 +342,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 				scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
 			}
 
-			scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			err = scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
+			if err != nil {
+				return err
+			}
 
-			_, err := scr.scrProcessor.ProcessSmartContractResult(currScr)
+			scr.txExecutionOrderHandler.Add(txHash)
+			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
 				return err
 			}
@@ -604,16 +621,21 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			break
 		}
 
-		if scr.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+		if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 			if gasInfo.totalGasConsumedInSelfShard > maxGasLimitUsedForDestMeTxs {
 				err = process.ErrMaxGasLimitUsedForDestMeTxsIsReached
 				break
 			}
 		}
 
-		scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
+		err = scr.saveAccountBalanceForAddress(miniBlockScrs[txIndex].GetRcvAddr())
+		if err != nil {
+			break
+		}
 
 		snapshot := scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+
+		scr.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		_, err = scr.scrProcessor.ProcessSmartContractResult(miniBlockScrs[txIndex])
 		if err != nil {
 			scr.handleProcessTransactionError(preProcessorExecutionInfoHandler, snapshot, miniBlockTxHashes[txIndex])
