@@ -55,8 +55,10 @@ func CreateNode(
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
+	factoryNode NodeFactory,
 	extraOptions ...Option,
-) (*Node, error) {
+
+) (NodeHandler, error) {
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := createAndAttachPeerDenialEvaluators(networkComponents, processComponents)
@@ -71,7 +73,7 @@ func CreateNode(
 		return nil, err
 	}
 
-	var nd *Node
+	var nd NodeHandler
 	options := []Option{
 		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
@@ -101,7 +103,7 @@ func CreateNode(
 	}
 	options = append(options, extraOptions...)
 
-	nd, err = NewNode(options...)
+	nd, err = factoryNode.CreateNewNode(options...)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}
