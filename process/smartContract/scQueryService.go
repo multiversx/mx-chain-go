@@ -199,7 +199,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 
 		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-		err = accountsAdapter.RecreateTrieFromEpoch(holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: 1247}))
+		err = accountsAdapter.RecreateTrieFromEpoch(holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch()}))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -260,7 +260,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 // TODO: extract duplicated code with nodeBlocks.go
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
-
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
