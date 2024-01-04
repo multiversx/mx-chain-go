@@ -1340,6 +1340,11 @@ func (adb *AccountsDB) GetStatsForRootHash(rootHash []byte) (common.TriesStatist
 	return stats, nil
 }
 
+// SetStateCheckpoint sets a checkpoint for the state trie
+func (adb *AccountsDB) SetStateCheckpoint(rootHash []byte) {
+	adb.snapshotsManger.SetStateCheckpoint(rootHash, adb.getMainTrie().GetStorageManager())
+}
+
 func collectStats(
 	tr common.TrieStats,
 	stats common.TriesStatisticsCollector,
