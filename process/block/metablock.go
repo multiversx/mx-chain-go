@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
@@ -42,6 +43,8 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
+
+	ad *accountsDumper
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -138,6 +141,16 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 	}
 
+	pubKeyConverter, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	if err != nil {
+		return nil, err
+	}
+
+	ad, err := newAccountsDumper(arguments.CoreComponents.InternalMarshalizer(), pubKeyConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	mp := metaProcessor{
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
@@ -149,6 +162,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorStatisticsProcessor: arguments.ValidatorStatisticsProcessor,
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
+
+		ad: ad,
 	}
 
 	argsTransactionCounter := ArgsTransactionCounter{
@@ -1291,6 +1306,14 @@ func (mp *metaProcessor) CommitBlock(
 
 	if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
+	}
+
+	if header.IsStartOfEpochBlock() {
+		accounts := mp.accountsDB[state.UserAccountsState]
+		err = mp.ad.dumpBalancesInfo(header.GetShardID(), header.GetEpoch(), accounts)
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?

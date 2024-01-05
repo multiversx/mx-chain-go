@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
@@ -47,6 +48,8 @@ type shardProcessor struct {
 	*baseProcessor
 	metaBlockFinality uint32
 	chRcvAllMetaHdrs  chan bool
+
+	ad *accountsDumper
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -123,7 +126,18 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 	}
 
+	pubKeyConverter, err := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	if err != nil {
+		return nil, err
+	}
+
+	ad, err := newAccountsDumper(arguments.CoreComponents.InternalMarshalizer(), pubKeyConverter)
+	if err != nil {
+		return nil, err
+	}
+
 	sp := shardProcessor{
+		ad:            ad,
 		baseProcessor: base,
 	}
 
@@ -1027,6 +1041,14 @@ func (sp *shardProcessor) CommitBlock(
 	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
 	if err != nil {
 		return err
+	}
+
+	if header.IsStartOfEpochBlock() {
+		accounts := sp.accountsDB[state.UserAccountsState]
+		err = sp.ad.dumpBalancesInfo(header.GetShardID(), header.GetEpoch(), accounts)
+		if err != nil {
+			return err
+		}
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
