@@ -2136,29 +2136,6 @@ func TestAccountsDB_MigrateCodeLeaf(t *testing.T) {
 		require.Equal(t, uint8(core.WithoutCodeLeaf), account.GetVersion())
 	})
 
-	t.Run("should fail if previous version is not the most recent one", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockAccountsDBArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.MigrateCodeLeafFlag
-			},
-		}
-
-		adb, err := state.NewAccountsDB(args)
-		require.Nil(t, err)
-
-		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
-		require.Nil(t, err)
-		account.SetVersion(uint8(core.NotSpecified))
-
-		err = adb.MigrateCodeLeaf(account)
-		require.Error(t, err)
-
-		require.Equal(t, uint8(core.NotSpecified), account.GetVersion())
-	})
-
 	t.Run("invalid code hash size, should return nil", func(t *testing.T) {
 		t.Parallel()
 

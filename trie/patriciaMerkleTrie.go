@@ -703,10 +703,6 @@ func (tr *patriciaMerkleTrie) checkIfMigrationPossible(args vmcommon.ArgsMigrate
 		return fmt.Errorf("%w: cannot migrate from %v to %v", errors.ErrInvalidTrieNodeVersion, core.AutoBalanceEnabled, core.NotSpecified)
 	}
 
-	if args.NewVersion == core.AutoBalanceEnabled && args.OldVersion == core.WithoutCodeLeaf {
-		return fmt.Errorf("%w: cannot migrate from %v to %v", errors.ErrInvalidTrieNodeVersion, core.WithoutCodeLeaf, core.AutoBalanceEnabled)
-	}
-
 	return nil
 }
 
