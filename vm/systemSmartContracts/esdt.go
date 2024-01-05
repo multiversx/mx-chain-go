@@ -1347,7 +1347,7 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 		roles := strings.Join(rolesAsString, ",")
 
 		specialRoleAddress, errEncode := e.addressPubKeyConverter.Encode(specialRole.Address)
-		e.treatErrorForGetSpecialRoles(errEncode, rolesAsString, specialRole.Address)
+		e.treatEncodeErrorForGetSpecialRoles(errEncode, rolesAsString, specialRole.Address)
 
 		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
 		e.eei.Finish([]byte(message))
@@ -1356,7 +1356,7 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 	return vmcommon.Ok
 }
 
-func (e *esdt) treatErrorForGetSpecialRoles(err error, roles []string, address []byte) {
+func (e *esdt) treatEncodeErrorForGetSpecialRoles(err error, roles []string, address []byte) {
 	if err == nil {
 		return
 	}
@@ -1369,7 +1369,7 @@ func (e *esdt) treatErrorForGetSpecialRoles(err error, roles []string, address [
 		}
 	}
 
-	log.Log(logLevel, "esdt.treatErrorForGetSpecialRoles",
+	log.Log(logLevel, "esdt.treatEncodeErrorForGetSpecialRoles",
 		"hex specialRole.Address", hex.EncodeToString(address),
 		"roles", strings.Join(roles, ", "),
 		"error", err)
