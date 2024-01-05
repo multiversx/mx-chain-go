@@ -155,6 +155,10 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			sr.ConsensusGroup(),
 			sr.RoundHandler().Index(),
 		)
+		// TODO refactor the usage of the single key & multikey redundancy system
+		if sr.NodeRedundancyHandler().IsMainMachineActive() {
+			return false
+		}
 	}
 
 	leader, err := sr.GetLeader()
