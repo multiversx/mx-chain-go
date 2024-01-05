@@ -90,7 +90,7 @@ func readCorrectConfigurationFromToml(dbConfig *config.DBConfig, filePath string
 		return err
 	}
 
-	isInvalidConfig := len(dbConfig.Type) == 0 || dbConfig.MaxBatchSize <= 0 || dbConfig.BatchDelaySeconds <= 0
+	isInvalidConfig := len(dbConfig.Type) == 0 || dbConfig.MaxBatchSize <= 0 || dbConfig.BatchDelaySeconds <= 0 || dbConfig.MaxOpenFiles <= 0
 	if isInvalidConfig {
 		return errInvalidConfiguration
 	}

@@ -2556,26 +2556,29 @@ func TestEsdt_GetSpecialRolesWithEmptyAddressShouldWork(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
-	addr1 := ""
-	addr1Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr1)
-
-	addr2 := ""
-	addr2Bytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr2)
+	addr := ""
+	addrBytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr)
 
 	specialRoles := []*ESDTRoles{
 		{
-			Address: addr1Bytes,
+			Address: addrBytes,
 			Roles: [][]byte{
 				[]byte(core.ESDTRoleLocalMint),
 				[]byte(core.ESDTRoleLocalBurn),
 			},
 		},
 		{
-			Address: addr2Bytes,
+			Address: addrBytes,
 			Roles: [][]byte{
 				[]byte(core.ESDTRoleNFTAddQuantity),
 				[]byte(core.ESDTRoleNFTCreate),
 				[]byte(core.ESDTRoleNFTBurn),
+			},
+		},
+		{
+			Address: addrBytes,
+			Roles: [][]byte{
+				[]byte(vmcommon.ESDTRoleBurnForAll),
 			},
 		},
 	}
@@ -2596,9 +2599,10 @@ func TestEsdt_GetSpecialRolesWithEmptyAddressShouldWork(t *testing.T) {
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
-	assert.Equal(t, 2, len(eei.output))
+	assert.Equal(t, 3, len(eei.output))
 	assert.Equal(t, []byte(":ESDTRoleLocalMint,ESDTRoleLocalBurn"), eei.output[0])
 	assert.Equal(t, []byte(":ESDTRoleNFTAddQuantity,ESDTRoleNFTCreate,ESDTRoleNFTBurn"), eei.output[1])
+	assert.Equal(t, []byte(":ESDTRoleBurnForAll"), eei.output[2])
 }
 
 func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
