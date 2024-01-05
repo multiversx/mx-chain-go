@@ -566,10 +566,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		srStartRound.Check()
 		assert.True(t, wasCalled)
 	})
-	t.Run("participant node", func(t *testing.T) {
+	t.Run("main key participant", func(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
+		wasIncrementCalled := false
 		container := mock.InitConsensusCore()
 		keysHandler := &testscommon.KeysHandlerStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
@@ -581,6 +582,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
 					assert.Equal(t, "participant", value)
+				}
+			},
+			IncrementHandler: func(key string) {
+				if key == common.MetricCountConsensus {
+					wasIncrementCalled = true
 				}
 			},
 		}
@@ -613,6 +619,60 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
+		assert.True(t, wasIncrementCalled)
+	})
+	t.Run("multi key participant", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		wasIncrementCalled := false
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{}
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				if key == common.MetricConsensusState {
+					wasCalled = true
+					assert.Equal(t, value, "participant")
+				}
+			},
+			IncrementHandler: func(key string) {
+				if key == common.MetricCountConsensus {
+					wasIncrementCalled = true
+				}
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return string(pkBytes) == consensusState.SelfPubKey()
+		}
+		sr, _ := spos.NewSubround(
+			-1,
+			bls.SrStartRound,
+			bls.SrBlock,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(START_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			appStatusHandler,
+		)
+
+		srStartRound, _ := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			executeStoredMessages,
+			&mock.SentSignatureTrackerStub{},
+		)
+		srStartRound.Check()
+		assert.True(t, wasCalled)
+		assert.True(t, wasIncrementCalled)
 	})
 	t.Run("main key leader", func(t *testing.T) {
 		t.Parallel()
