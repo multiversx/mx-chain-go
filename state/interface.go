@@ -348,4 +348,5 @@ type ValidatorInfoHandler interface {
 
 	ShallowClone() ValidatorInfoHandler
 	String() string
+	GoString() string
 }

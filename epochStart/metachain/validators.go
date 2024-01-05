@@ -142,9 +142,9 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.Validato
 	validatorCopy := make([]state.ValidatorInfoHandler, len(validatorsInfo))
 	copy(validatorCopy, validatorsInfo)
 
-	vic.sortValidators(validatorsCopy)
+	vic.sortValidators(validatorCopy)
 
-	for index, validator := range validatorsCopy {
+	for index, validator := range validatorCopy {
 		shardValidatorInfo := createShardValidatorInfo(validator)
 
 		shardValidatorInfoData, err := vic.getShardValidatorInfoData(shardValidatorInfo)
@@ -158,7 +158,7 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.Validato
 	return miniBlock, nil
 }
 
-func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInfo) {
+func (vic *validatorInfoCreator) sortValidators(validators []state.ValidatorInfoHandler) {
 	if vic.enableEpochsHandler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag) {
 		vic.deterministicSortValidators(validators)
 		return
@@ -167,9 +167,9 @@ func (vic *validatorInfoCreator) sortValidators(validators []*state.ValidatorInf
 	vic.legacySortValidators(validators)
 }
 
-func (vic *validatorInfoCreator) deterministicSortValidators(validators []*state.ValidatorInfo) {
+func (vic *validatorInfoCreator) deterministicSortValidators(validators []state.ValidatorInfoHandler) {
 	sort.SliceStable(validators, func(a, b int) bool {
-		result := bytes.Compare(validators[a].PublicKey, validators[b].PublicKey)
+		result := bytes.Compare(validators[a].GetPublicKey(), validators[b].GetPublicKey())
 		if result != 0 {
 			return result < 0
 		}
@@ -186,12 +186,12 @@ func (vic *validatorInfoCreator) deterministicSortValidators(validators []*state
 	})
 }
 
-func (vic *validatorInfoCreator) legacySortValidators(validators []*state.ValidatorInfo) {
+func (vic *validatorInfoCreator) legacySortValidators(validators []state.ValidatorInfoHandler) {
 	swap := func(a, b int) {
 		validators[a], validators[b] = validators[b], validators[a]
 	}
 	less := func(a, b int) bool {
-		return bytes.Compare(validators[a].PublicKey, validators[b].PublicKey) < 0
+		return bytes.Compare(validators[a].GetPublicKey(), validators[b].GetPublicKey()) < 0
 	}
 	compatibility.SortSlice(swap, less, len(validators))
 }

@@ -1,8 +1,8 @@
 package stakingcommon
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ValidatorsProviderStub -

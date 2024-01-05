@@ -171,14 +171,14 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) && !s.enableEpochsHandler.IsFlagDefined(common.StakingV4Step2Flag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) && !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) && !s.enableEpochsHandler.IsFlagDefined(common.StakingV4Step2Flag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) && !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.computeNumWaitingPerShard(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -190,7 +190,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) && !s.enableEpochsHandler.IsFlagDefined(common.StakingV4Step2Flag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) && !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -707,7 +707,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 
 	blsPubKey := activeStorageUpdate.Offset
 	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
-	account, err := s.getPeerAccount(blsPubKey)
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(s.peerAccountsDB, blsPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -719,13 +719,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
+	if !isNew {
 		err = validatorsInfoMap.Delete(jailedValidator)
 		if err != nil {
 			return nil, err

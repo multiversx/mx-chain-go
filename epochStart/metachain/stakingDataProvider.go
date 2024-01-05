@@ -351,7 +351,7 @@ func (sdp *stakingDataProvider) checkAndFillOwnerValidatorAuctionData(
 			hex.EncodeToString(validator.GetPublicKey()),
 		)
 	}
-	if !sdp.enableEpochsHandler.IsStakingV4Started() {
+	if !sdp.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return fmt.Errorf("stakingDataProvider.checkAndFillOwnerValidatorAuctionData for validator in auction error: %w, owner: %s, node: %s",
 			epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4,
 			hex.EncodeToString(ownerPubKey),
@@ -447,7 +447,7 @@ func (sdp *stakingDataProvider) createMapBLSKeyStatus(validatorsInfo state.Shard
 		list := validator.GetList()
 		pubKey := validator.GetPublicKey()
 
-		if sdp.enableEpochsHandler.IsStakingV4Step2Enabled() && list == string(common.NewList) {
+		if sdp.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) && list == string(common.NewList) {
 			return nil, fmt.Errorf("%w, bls key = %s",
 				epochStart.ErrReceivedNewListNodeInStakingV4,
 				hex.EncodeToString(pubKey),
@@ -517,7 +517,7 @@ func (sdp *stakingDataProvider) arrangeBlsKeysByStatus(mapBlsKeyStatus map[strin
 
 func (sdp *stakingDataProvider) getNewNodesList() string {
 	newNodesList := string(common.NewList)
-	if sdp.enableEpochsHandler.IsStakingV4Step2Enabled() {
+	if sdp.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		newNodesList = string(common.AuctionList)
 	}
 

@@ -1129,7 +1129,7 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 
 	require.Equal(t, len(input), len(expected))
 
-	validators := make([]*state.ValidatorInfo, 0, len(input))
+	validators := state.NewShardValidatorsInfoMap()
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	for _, marshalledData := range input {
 		vinfo := &state.ValidatorInfo{}
@@ -1139,7 +1139,8 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 		err = marshaller.Unmarshal(vinfo, buffMarshalledData)
 		require.Nil(t, err)
 
-		validators = append(validators, vinfo)
+		err = validators.Add(vinfo)
+		require.Nil(t, err)
 	}
 
 	arguments := createMockEpochValidatorInfoCreatorsArguments()
@@ -1157,7 +1158,7 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 	arguments.ValidatorInfoStorage = storer
 	vic, _ := NewValidatorInfoCreator(arguments)
 
-	mb, err := vic.createMiniBlock(validators)
+	mb, err := vic.createMiniBlock(validators.GetAllValidatorsInfo())
 	require.Nil(t, err)
 
 	// test all generated miniblock's "txhashes" are the same with the expected ones
@@ -1274,12 +1275,16 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		list := []*state.ValidatorInfo{thirdValidator, secondValidator, firstValidator}
-		vic.sortValidators(list)
+		list := state.NewShardValidatorsInfoMap()
+		_ = list.Add(thirdValidator)
+		_ = list.Add(secondValidator)
+		_ = list.Add(firstValidator)
 
-		assert.Equal(t, list[0], secondValidator) // order not changed for the ones with same public key
-		assert.Equal(t, list[1], firstValidator)
-		assert.Equal(t, list[2], thirdValidator)
+		vic.sortValidators(list.GetAllValidatorsInfo())
+
+		assert.Equal(t, list.GetAllValidatorsInfo()[0], secondValidator) // order not changed for the ones with same public key
+		assert.Equal(t, list.GetAllValidatorsInfo()[1], firstValidator)
+		assert.Equal(t, list.GetAllValidatorsInfo()[2], thirdValidator)
 	})
 	t.Run("deterministic sort should change order taking into consideration all fields", func(t *testing.T) {
 		t.Parallel()
@@ -1292,12 +1297,16 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		list := []*state.ValidatorInfo{thirdValidator, secondValidator, firstValidator}
-		vic.sortValidators(list)
+		list := state.NewShardValidatorsInfoMap()
+		_ = list.Add(thirdValidator)
+		_ = list.Add(secondValidator)
+		_ = list.Add(firstValidator)
 
-		assert.Equal(t, list[0], firstValidator) // proper sorting
-		assert.Equal(t, list[1], secondValidator)
-		assert.Equal(t, list[2], thirdValidator)
+		vic.sortValidators(list.GetAllValidatorsInfo())
+
+		assert.Equal(t, list.GetAllValidatorsInfo()[0], firstValidator) // proper sorting
+		assert.Equal(t, list.GetAllValidatorsInfo()[1], secondValidator)
+		assert.Equal(t, list.GetAllValidatorsInfo()[2], thirdValidator)
 	})
 }
 

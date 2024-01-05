@@ -210,11 +210,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContract(t *testing.T) {
 	}
 	_ = validatorsInfo.Add(vInfo)
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	assert.Len(t, validatorsInfo.GetShardValidatorsInfoMap()[0], 1)
+	require.Len(t, validatorsInfo.GetShardValidatorsInfoMap()[0], 1)
 	newValidatorInfo := validatorsInfo.GetShardValidatorsInfoMap()[0][0]
-	assert.Equal(t, newValidatorInfo.GetList(), string(common.NewList))
+	require.Equal(t, newValidatorInfo.GetList(), string(common.NewList))
 }
 
 func TestSystemSCProcessor_JailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T) {
@@ -258,12 +258,12 @@ func testSystemSCProcessorJailedNodesShouldNotBeSwappedAllAtOnce(t *testing.T, s
 	_ = validatorsInfo.SetValidatorsInShard(0, jailed)
 
 	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	for i := 0; i < numWaiting; i++ {
-		assert.Equal(t, string(common.NewList), validatorsInfo.GetShardValidatorsInfoMap()[0][i].GetList())
+		require.Equal(t, string(common.NewList), validatorsInfo.GetShardValidatorsInfoMap()[0][i].GetList())
 	}
 	for i := numWaiting; i < numJailed; i++ {
-		assert.Equal(t, string(common.JailedList), validatorsInfo.GetShardValidatorsInfoMap()[0][i].GetList())
+		require.Equal(t, string(common.JailedList), validatorsInfo.GetShardValidatorsInfoMap()[0][i].GetList())
 	}
 
 	newJailedNodes := jailed[numWaiting:numJailed]
@@ -805,10 +805,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		ShardCoordinator:         &mock.ShardCoordinatorStub{},
 		Marshalizer:              marshalizer,
 		Uint64Converter:          &mock.Uint64ByteSliceConverterMock{},
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		DataPool:              testDataPool,
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		NFTStorageHandler:        &testscommon.SimpleNFTStorageHandlerStub{},
+		BuiltInFunctions:         vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
+		DataPool:                 testDataPool,
+		GlobalSettingsHandler:    &testscommon.ESDTGlobalSettingsHandlerStub{},
 		CompiledSCPool:           testDataPool.SmartContracts(),
 		EpochNotifier:            en,
 		EnableEpochsHandler:      enableEpochsHandler,
@@ -880,6 +880,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
+		ArgBlockChainHook:   argsHook,
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
@@ -1783,36 +1784,33 @@ func TestSystemSCProcessor_ProcessSystemSmartContractSwapJailedWithWaiting(t *te
 	jailedAcc, _ := args.PeerAccountsDB.LoadAccount([]byte("jailedPubKey0"))
 	_ = args.PeerAccountsDB.SaveAccount(jailedAcc)
 
-	validatorInfos := make(map[uint32][]*state.ValidatorInfo)
-	vInfo := &state.ValidatorInfo{
+	validatorsInfo := state.NewShardValidatorsInfoMap()
+	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey:       []byte("jailedPubKey0"),
 		ShardId:         0,
 		List:            string(common.JailedList),
 		TempRating:      1,
 		RewardAddress:   []byte("address"),
 		AccumulatedFees: big.NewInt(0),
-	}
-	validatorInfos[0] = append(validatorInfos[0], vInfo)
-
-	vInfo1 := &state.ValidatorInfo{
+	})
+	_ = validatorsInfo.Add(&state.ValidatorInfo{
 		PublicKey: []byte("waitingPubKey"),
 		ShardId:   0,
 		List:      string(common.WaitingList),
-	}
-	validatorInfos[0] = append(validatorInfos[0], vInfo1)
+	})
 
-	err := s.ProcessSystemSmartContract(validatorInfos, 0, 0)
+	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
 	assert.Nil(t, err)
 
-	assert.Equal(t, 2, len(validatorInfos[0]))
-	newValidatorInfo := validatorInfos[0][0]
-	assert.Equal(t, newValidatorInfo.List, string(common.NewList))
+	require.Len(t, validatorsInfo.GetShardValidatorsInfoMap()[0], 2)
+	newValidatorInfo := validatorsInfo.GetShardValidatorsInfoMap()[0][0]
+	require.Equal(t, newValidatorInfo.GetList(), string(common.NewList))
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
 	owner1 := []byte("owner1")
@@ -1877,7 +1875,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepareStakingData(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
 
 	errProcessStakingData := errors.New("error processing staking data")
 	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
@@ -1904,7 +1902,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4EnabledCannotPrepa
 func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 8}})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             args.ShardCoordinator,
@@ -2067,7 +2065,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestart(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
 	nodesConfigEpoch0 := config.MaxNodesChangeConfig{
 		EpochEnable:            0,
 		MaxNumNodes:            36,
@@ -2091,7 +2089,15 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 			nodesConfigEpoch6,
 		})
 	args.MaxNodesChangeConfigProvider = nodesConfigProvider
-	args.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{IsStakingV2FlagEnabledField: true}
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			if flag == common.StakingV2Flag {
+				return true
+			}
+
+			return false
+		},
+	}
 	validatorsInfoMap := state.NewShardValidatorsInfoMap()
 	s, _ := NewSystemSCProcessor(args)
 
@@ -2157,7 +2163,7 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 func TestSystemSCProcessor_ProcessSystemSmartContractNilInputValues(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, createMemUnit())
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
 	s, _ := NewSystemSCProcessor(args)
 
 	t.Run("nil validators info map, expect error", func(t *testing.T) {
