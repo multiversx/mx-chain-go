@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/frozen"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -96,6 +97,10 @@ func (bs *bootstrapStorer) Get(round int64) (BootstrapData, error) {
 
 // GetHighestRound will return the highest round saved in storage
 func (bs *bootstrapStorer) GetHighestRound() int64 {
+	if frozen.ShouldOverrideHighestRound {
+		return frozen.HighestRound
+	}
+
 	roundBytes, err := bs.store.Get([]byte(common.HighestRoundFromBootStorage))
 	if err != nil {
 		return 0

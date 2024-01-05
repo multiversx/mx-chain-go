@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/frozen"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -148,6 +149,11 @@ func (boot *MetaBootstrap) StartSyncingBlocks() error {
 
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+
+	if frozen.IsFrozen {
+		return nil
+	}
+
 	go boot.syncBlocks(ctx)
 
 	return nil

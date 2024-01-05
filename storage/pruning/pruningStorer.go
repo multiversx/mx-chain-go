@@ -15,6 +15,7 @@ import (
 	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/frozen"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -220,7 +221,12 @@ func initPersistersInEpoch(
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	for epoch := int64(args.EpochsData.StartingEpoch); epoch >= 0; epoch-- {
+	oldestEpoch := int64(0)
+	if frozen.IsFrozen {
+		oldestEpoch = int64(args.EpochsData.StartingEpoch) - 1
+	}
+
+	for epoch := int64(args.EpochsData.StartingEpoch); epoch >= oldestEpoch; epoch-- {
 		if args.PersistersTracker.HasInitializedEnoughPersisters(epoch) {
 			break
 		}

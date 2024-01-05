@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/frozen"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -137,6 +138,10 @@ func (boot *ShardBootstrap) StartSyncingBlocks() error {
 	err := boot.handleAccountsTrieIteration()
 	if err != nil {
 		return fmt.Errorf("%w while handling accounts trie iteration", err)
+	}
+
+	if frozen.IsFrozen {
+		return nil
 	}
 
 	go boot.syncBlocks(ctx)
