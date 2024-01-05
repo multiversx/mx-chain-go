@@ -66,7 +66,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			common.ValidatorToDelegationFlag,
 			common.DoubleKeyProtectionFlag,
 			common.MultiClaimOnDelegationFlag,
-			IsStakeLimitsFlagEnabledField:           true,
+			common.StakeLimitsFlag,
 		),
 		NodesCoordinator: &mock.NodesCoordinatorStub{},
 	}
@@ -5228,9 +5228,8 @@ func TestStakingValidatorSC_MergeValidatorData(t *testing.T) {
 func TestStakingValidatorSC_MergeValidatorDataTooMuchStake(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
-		IsStakingV2FlagEnabledField: false,
-	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	argsVMContext := createArgsVMContext()
 	argsVMContext.InputParser = parsers.NewCallArgsParser()
 	argsVMContext.EnableEpochsHandler = enableEpochsHandler
@@ -5276,9 +5275,8 @@ func TestStakingValidatorSC_MergeValidatorDataTooMuchStake(t *testing.T) {
 func TestStakingValidatorSC_MergeValidatorDataTooMuchNodes(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
-		IsStakingV2FlagEnabledField: false,
-	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	argsVMContext := createArgsVMContext()
 	argsVMContext.InputParser = parsers.NewCallArgsParser()
 	argsVMContext.EnableEpochsHandler = enableEpochsHandler

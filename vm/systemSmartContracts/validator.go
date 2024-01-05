@@ -923,7 +923,7 @@ func (v *validatorSC) checkAllGivenKeysAreUnStaked(registrationData *ValidatorDa
 }
 
 func (v *validatorSC) isStakeTooHigh(registrationData *ValidatorDataV2) bool {
-	if !v.enableEpochsHandler.IsStakeLimitsFlagEnabled() {
+	if !v.enableEpochsHandler.IsFlagEnabled(common.StakeLimitsFlag) {
 		return false
 	}
 
@@ -931,7 +931,7 @@ func (v *validatorSC) isStakeTooHigh(registrationData *ValidatorDataV2) bool {
 }
 
 func (v *validatorSC) isNumberOfNodesTooHigh(registrationData *ValidatorDataV2) bool {
-	if !v.enableEpochsHandler.IsStakeLimitsFlagEnabled() {
+	if !v.enableEpochsHandler.IsFlagEnabled(common.StakeLimitsFlag) {
 		return false
 	}
 

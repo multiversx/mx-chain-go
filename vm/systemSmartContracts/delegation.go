@@ -1739,11 +1739,6 @@ func (d *delegation) unDelegateValueFromAddress(
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(d.eei, d.governanceSCAddr, args.CallerAddr) {
-		d.eei.AddReturnMessage("stake is locked for voting")
-		return vmcommon.UserError
-	}
-
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
@@ -1753,8 +1748,7 @@ func (d *delegation) unDelegateValueFromAddress(
 	minDelegationAmount := delegationManagement.MinDelegationAmount
 
 	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
-	err = d.checkRemainingFundValue(remainedFund)
-	if err != nil {
+	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
 		return vmcommon.UserError
 	}
@@ -1829,20 +1823,6 @@ func (d *delegation) unDelegateValueFromAddress(
 	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes(), unDelegateFundKey)
 
 	return vmcommon.Ok
-}
-
-func (d *delegation) checkRemainingFundValue(remainedFund *big.Int) error {
-	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
-	if err != nil {
-		return err
-	}
-
-	minDelegationAmount := delegationManagement.MinDelegationAmount
-	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
-		return vm.ErrNotEnoughRemainingFunds
-	}
-
-	return nil
 }
 
 func (d *delegation) addNewUnStakedFund(

@@ -726,7 +726,7 @@ func (s *stakingSC) cleanAdditionalQueueNotEnoughFunds(
 }
 
 func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}

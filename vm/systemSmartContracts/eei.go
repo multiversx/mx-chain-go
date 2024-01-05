@@ -1,8 +1,8 @@
 package systemSmartContracts
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -218,10 +218,18 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 	}
 }
 
-// Transfer handles any necessary value transfer required and takes
-// the necessary steps to create accounts
-func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
+func (host *vmContext) transferValueOnly(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+) {
+	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 
+	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
+	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
+}
+
+func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcommon.OutputAccount, *vmcommon.OutputAccount) {
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
 		senderAcc = &vmcommon.OutputAccount{
@@ -245,17 +253,6 @@ func (host *vmContext) Transfer(destination []byte, sender []byte, value *big.In
 	return senderAcc, destAcc
 }
 
-func (host *vmContext) transferValueOnly(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-) {
-	senderAcc, destAcc := host.getSenderDestination(sender, destination)
-
-	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
-	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
-}
-
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
 func (host *vmContext) Transfer(
@@ -264,7 +261,7 @@ func (host *vmContext) Transfer(
 	value *big.Int,
 	input []byte,
 	gasLimit uint64,
-) error {
+) {
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
@@ -434,7 +431,8 @@ func createDirectCallInput(
 
 func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
 	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
-		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+		host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+		return nil
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 

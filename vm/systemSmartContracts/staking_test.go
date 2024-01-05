@@ -63,8 +63,6 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			common.CorrectFirstQueuedFlag,
 			common.CorrectJailedNotUnStakedEmptyQueueFlag,
 			common.ValidatorToDelegationFlag,
-			IsStakingV4Step1FlagEnabledField:                     false,
-		IsStakingV4Step2FlagEnabledField:                     false,
 		),
 	}
 }
@@ -107,7 +105,8 @@ func createArgsVMContext() VMContextArgs {
 		InputParser:         &mock.ArgumentParserMock{},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		UserAccountsDB:      &stateMock.AccountsStub{},
 	}
 }
 
@@ -1017,7 +1016,8 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsStakingV2FlagEnabledField: true}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 
 	args := createMockStakingScArguments()
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1050,7 +1050,7 @@ func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("addr0"), []byte("addr0"), vmcommon.Ok)
 	requireRegisteredNodes(t, stakingSmartContract, eei, 4, 5)
 
-	enableEpochsHandler.IsStakingV4StartedField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
 	for i := 5; i < 10; i++ {
 		idxStr := strconv.Itoa(i)
 		addr := []byte("addr" + idxStr)
@@ -1073,7 +1073,8 @@ func TestStakingSc_StakeWithStakingV4(t *testing.T) {
 func TestStakingSc_UnStakeNodeFromWaitingListAfterStakingV4ShouldError(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{IsStakingV2FlagEnabledField: true}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 
 	args := createMockStakingScArguments()
 	stakingAccessAddress := []byte("stakingAccessAddress")
@@ -1093,7 +1094,7 @@ func TestStakingSc_UnStakeNodeFromWaitingListAfterStakingV4ShouldError(t *testin
 	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"))
 	requireRegisteredNodes(t, stakingSmartContract, eei, 2, 1)
 
-	enableEpochsHandler.IsStakingV4StartedField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
 	eei.returnMessage = ""
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"), vmcommon.ExecutionFailed)
 	require.Equal(t, eei.returnMessage, vm.ErrWaitingListDisabled.Error())
@@ -3420,17 +3421,16 @@ func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
 func TestStakingSC_StakingV4Flags(t *testing.T) {
 	t.Parallel()
 
-	enableEpochsHandler := &testscommon.EnableEpochsHandlerStub{
-		IsStakeFlagEnabledField:                              true,
-		IsCorrectLastUnJailedFlagEnabledField:                true,
-		IsCorrectFirstQueuedFlagEnabledField:                 true,
-		IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
-		IsSwitchJailWaitingFlagEnabledField:                  true,
-		IsValidatorToDelegationFlagEnabledField:              true,
-		IsStakingV4Step1FlagEnabledField:                     true,
-		IsStakingV4StartedField:                              true,
-		IsStakingV2FlagEnabledField:                          true,
-	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakeFlag)
+	enableEpochsHandler.AddActiveFlags(common.CorrectLastUnJailedFlag)
+	enableEpochsHandler.AddActiveFlags(common.CorrectFirstQueuedFlag)
+	enableEpochsHandler.AddActiveFlags(common.CorrectJailedNotUnStakedEmptyQueueFlag)
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV4Step1Flag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+
 	argsVMContext := createArgsVMContext()
 	argsVMContext.EnableEpochsHandler = enableEpochsHandler
 	eei, _ := NewVMContext(argsVMContext)
@@ -3490,7 +3490,7 @@ func TestStakingSC_StakingV4Flags(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
 
-	enableEpochsHandler.IsStakingV4Step1FlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.StakingV4Step1Flag)
 	// All functions from above are not allowed anymore starting STAKING V4 epoch
 	eei.CleanCache()
 	arguments.Function = "getQueueIndex"
