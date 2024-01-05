@@ -10,13 +10,13 @@ import (
 type delegatedListHandlerFactory struct {
 }
 
+// NewDelegatedListHandlerFactory create a new delegated list handler
 func NewDelegatedListHandlerFactory() *delegatedListHandlerFactory {
 	return &delegatedListHandlerFactory{}
 }
 
 // CreateDelegatedListHandler will create a new instance of DirectStakedListHandler
 func (d *delegatedListHandlerFactory) CreateDelegatedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
-	//TODO add unit tests
 	if args.ShardID != core.MetachainShardId {
 		return disabled.NewDisabledDelegatedListProcessor(), nil
 	}
@@ -24,6 +24,7 @@ func (d *delegatedListHandlerFactory) CreateDelegatedListHandler(args trieIterat
 	return trieIterators.NewDelegatedListProcessor(args)
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (d *delegatedListHandlerFactory) IsInterfaceNil() bool {
 	return d == nil
 }

@@ -1,4 +1,4 @@
-package factory
+package factory_test
 
 import (
 	"fmt"
@@ -8,25 +8,33 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateDelegatedListHandlerHandler_Disabled(t *testing.T) {
+func TestNewDelegatedListHandlerFactory(t *testing.T) {
+	t.Parallel()
+
+	delegatedListHandlerFactory := trieIteratorsFactory.NewDelegatedListHandlerFactory()
+	require.False(t, delegatedListHandlerFactory.IsInterfaceNil())
+}
+
+func TestDelegatedListHandlerFactory_CreateDelegatedListHandler_Disabled(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID: 0,
 	}
 
-	delegatedListHandler, err := CreateDelegatedListHandler(args)
+	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListHandlerFactory().CreateDelegatedListHandler(args)
 	require.Nil(t, err)
 	assert.Equal(t, "*disabled.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
 }
 
-func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) {
+func TestDelegatedListHandlerFactory_CreateDelegatedListHandler_DelegatedListProcessor(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
@@ -39,7 +47,7 @@ func TestCreateDelegatedListHandlerHandler_DelegatedListProcessor(t *testing.T) 
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	delegatedListHandler, err := CreateDelegatedListHandler(args)
+	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListHandlerFactory().CreateDelegatedListHandler(args)
 	require.Nil(t, err)
 	assert.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
 }

@@ -8,6 +8,7 @@ import (
 type sovereignDelegatedListHandlerFactory struct {
 }
 
+// NewSovereignDelegatedListHandlerFactory create a new sovereign delegated list handler
 func NewSovereignDelegatedListHandlerFactory() *sovereignDelegatedListHandlerFactory {
 	return &sovereignDelegatedListHandlerFactory{}
 }
@@ -17,6 +18,7 @@ func (sd *sovereignDelegatedListHandlerFactory) CreateDelegatedListHandler(args 
 	return trieIterators.NewDelegatedListProcessor(args)
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (sd *sovereignDelegatedListHandlerFactory) IsInterfaceNil() bool {
 	return sd == nil
 }
