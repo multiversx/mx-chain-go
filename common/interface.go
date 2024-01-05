@@ -108,6 +108,7 @@ type StorageManager interface {
 	RemoveFromAllActiveEpochs(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	IsSnapshotSupported() bool
 	GetBaseTrieStorageManager() StorageManager
 	IsClosed() bool
 	Close() error

@@ -667,7 +667,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 2, Version = "v1.5" },
+            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
 
     [VirtualMachine.Querying]
@@ -677,7 +677,7 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.3" },
             { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 2, Version = "v1.5" },
+            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
 
     [VirtualMachine.GasConfig]
@@ -804,6 +804,10 @@
 [SoftwareVersionConfig]
     StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
+
+[GatewayMetricsConfig]
+    # TODO: set this to gateway URL based on testnet/devnet/mainnet env
+    URL = ""
 
 [LogsAndEvents]
     SaveInStorageEnabled = false

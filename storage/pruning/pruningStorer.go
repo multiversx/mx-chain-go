@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
@@ -533,7 +532,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -550,11 +549,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storag
 	}
 	defer closePersister()
 
-	results := make([]storageCore.KeyValuePair, 0, len(keys))
+	results := make([]data.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			keyValue := storageCore.KeyValuePair{Key: key, Value: v.([]byte)}
+			keyValue := data.KeyValuePair{Key: key, Value: v.([]byte)}
 			results = append(results, keyValue)
 			continue
 		}
@@ -568,7 +567,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storag
 			continue
 		}
 
-		keyValue := storageCore.KeyValuePair{Key: key, Value: res}
+		keyValue := data.KeyValuePair{Key: key, Value: res}
 		results = append(results, keyValue)
 	}
 

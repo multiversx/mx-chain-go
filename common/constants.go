@@ -338,6 +338,9 @@ const MetricTopUpFactor = "erd_top_up_factor"
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
 const MetricMinTransactionVersion = "erd_min_transaction_version"
 
+// MetricGatewayMetricsEndpoint is the metric that specifies gateway endpoint
+const MetricGatewayMetricsEndpoint = "erd_gateway_metrics_endpoint"
+
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
 
@@ -994,6 +997,8 @@ const (
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
 	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
+	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
+	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
 	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicESDTFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

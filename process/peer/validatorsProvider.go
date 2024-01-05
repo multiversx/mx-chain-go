@@ -9,12 +9,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
@@ -23,7 +23,7 @@ var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
 type validatorsProvider struct {
 	nodesCoordinator             process.NodesCoordinator
 	validatorStatistics          process.ValidatorStatisticsProcessor
-	cache                        map[string]*accounts.ValidatorApiResponse
+	cache                        map[string]*validator.ValidatorStatistics
 	cacheRefreshIntervalDuration time.Duration
 	refreshCache                 chan uint32
 	lastCacheUpdate              time.Time
@@ -46,7 +46,7 @@ type ArgValidatorsProvider struct {
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible for keeping account of
-//  the latest information about the validators
+// the latest information about the validators
 func NewValidatorsProvider(
 	args ArgValidatorsProvider,
 ) (*validatorsProvider, error) {
@@ -74,7 +74,7 @@ func NewValidatorsProvider(
 	valProvider := &validatorsProvider{
 		nodesCoordinator:             args.NodesCoordinator,
 		validatorStatistics:          args.ValidatorStatistics,
-		cache:                        make(map[string]*accounts.ValidatorApiResponse),
+		cache:                        make(map[string]*validator.ValidatorStatistics),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
@@ -91,7 +91,7 @@ func NewValidatorsProvider(
 }
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
-func (vp *validatorsProvider) GetLatestValidators() map[string]*accounts.ValidatorApiResponse {
+func (vp *validatorsProvider) GetLatestValidators() map[string]*validator.ValidatorStatistics {
 	vp.lock.RLock()
 	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
 	vp.lock.RUnlock()
@@ -107,8 +107,8 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*accounts.Validat
 	return clonedMap
 }
 
-func cloneMap(cache map[string]*accounts.ValidatorApiResponse) map[string]*accounts.ValidatorApiResponse {
-	newMap := make(map[string]*accounts.ValidatorApiResponse)
+func cloneMap(cache map[string]*validator.ValidatorStatistics) map[string]*validator.ValidatorStatistics {
+	newMap := make(map[string]*validator.ValidatorStatistics)
 
 	for k, v := range cache {
 		newMap[k] = cloneValidatorAPIResponse(v)
@@ -117,11 +117,11 @@ func cloneMap(cache map[string]*accounts.ValidatorApiResponse) map[string]*accou
 	return newMap
 }
 
-func cloneValidatorAPIResponse(v *accounts.ValidatorApiResponse) *accounts.ValidatorApiResponse {
+func cloneValidatorAPIResponse(v *validator.ValidatorStatistics) *validator.ValidatorStatistics {
 	if v == nil {
 		return nil
 	}
-	return &accounts.ValidatorApiResponse{
+	return &validator.ValidatorStatistics{
 		TempRating:                         v.TempRating,
 		NumLeaderSuccess:                   v.NumLeaderSuccess,
 		NumLeaderFailure:                   v.NumLeaderFailure,
@@ -200,7 +200,7 @@ func (vp *validatorsProvider) updateCache() {
 func (vp *validatorsProvider) createNewCache(
 	epoch uint32,
 	allNodes map[uint32][]*state.ValidatorInfo,
-) map[string]*accounts.ValidatorApiResponse {
+) map[string]*validator.ValidatorStatistics {
 	newCache := vp.createValidatorApiResponseMapFromValidatorInfoMap(allNodes)
 
 	nodesMapEligible, err := vp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
@@ -218,13 +218,13 @@ func (vp *validatorsProvider) createNewCache(
 	return newCache
 }
 
-func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*accounts.ValidatorApiResponse {
-	newCache := make(map[string]*accounts.ValidatorApiResponse)
+func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*validator.ValidatorStatistics {
+	newCache := make(map[string]*validator.ValidatorStatistics)
 	for _, validatorInfosInShard := range allNodes {
 		for _, validatorInfo := range validatorInfosInShard {
 			strKey := vp.pubkeyConverter.SilentEncode(validatorInfo.PublicKey, log)
 
-			newCache[strKey] = &accounts.ValidatorApiResponse{
+			newCache[strKey] = &validator.ValidatorStatistics{
 				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,
 				NumLeaderFailure:                   validatorInfo.LeaderFailure,
 				NumValidatorSuccess:                validatorInfo.ValidatorSuccess,
@@ -248,7 +248,7 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 }
 
 func (vp *validatorsProvider) aggregateLists(
-	newCache map[string]*accounts.ValidatorApiResponse,
+	newCache map[string]*validator.ValidatorStatistics,
 	validatorsMap map[uint32][][]byte,
 	currentList common.PeerType,
 ) {
@@ -261,7 +261,7 @@ func (vp *validatorsProvider) aggregateLists(
 			peerType := string(currentList)
 
 			if !ok || foundInTrieValidator == nil {
-				newCache[encodedKey] = &accounts.ValidatorApiResponse{}
+				newCache[encodedKey] = &validator.ValidatorStatistics{}
 				newCache[encodedKey].ShardId = shardID
 				newCache[encodedKey].ValidatorStatus = peerType
 				log.Debug("validator from map not found in trie", "pk", encodedKey, "map", peerType)
