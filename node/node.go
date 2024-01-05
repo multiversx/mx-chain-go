@@ -213,6 +213,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	return n.baseGetAllIssuedESDTs(tokenType, ctx)
 }
 
+// baseGetAllIssuedESDTs returns all the issued esdt tokens
 func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
@@ -438,6 +439,7 @@ func (n *Node) GetESDTData(address, tokenID string, nonce uint64, options api.Ac
 	return esdtToken, blockInfo, nil
 }
 
+// getTokensIDsWithFilter returns token IDs based on filters, works only on metachain
 func (n *Node) getTokensIDsWithFilter(
 	f filter,
 	options api.AccountQueryOptions,
@@ -450,6 +452,7 @@ func (n *Node) getTokensIDsWithFilter(
 	return n.baseGetTokensIDsWithFilter(f, options, ctx)
 }
 
+// baseGetTokensIDsWithFilter returns token IDs based on filters
 func (n *Node) baseGetTokensIDsWithFilter(
 	f filter,
 	options api.AccountQueryOptions,
