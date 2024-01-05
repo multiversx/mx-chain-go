@@ -697,9 +697,9 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 		},
 		common.DynamicESDTFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.NFTStopCreateEnableEpoch
+				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.NFTStopCreateEnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.DynamicESDTEnableEpoch,
 		},
 	}
 }
