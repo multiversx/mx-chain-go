@@ -86,6 +86,7 @@ func newAccountsDumper(marshaller marshal.Marshalizer, addressConverter core.Pub
 }
 
 func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapter state.AccountsAdapter) error {
+	log.Warn("start dumping balances", "epoch", epoch)
 	accountsMap, err := ad.getAllAccounts(accountsAdapter)
 	if err != nil {
 		return err
@@ -141,6 +142,8 @@ func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapte
 			return err
 		}
 	}
+
+	log.Warn("all balances was saved", "epoch", epoch)
 
 	return nil
 }
