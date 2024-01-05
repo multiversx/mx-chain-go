@@ -10,4 +10,4 @@
 [RoundActivations]
     [RoundActivations.DisableAsyncCallV1]
         Options = []
-        Round = "300"
+        Round = "100"
