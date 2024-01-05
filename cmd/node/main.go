@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
+	"github.com/multiversx/mx-chain-go/frozen"
 	"github.com/multiversx/mx-chain-go/node"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-logger-go/file"
@@ -128,6 +129,8 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 
 	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
+
+	frozen.Setup()
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
 	if errRunner != nil {
