@@ -1343,7 +1343,7 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 			rolesAsString = append(rolesAsString, string(role))
 		}
 
-		specialRoleAddress := e.addressPubKeyConverter.SilentEncode(specialRole.Address, log)
+		specialRoleAddress, _ := e.addressPubKeyConverter.Encode(specialRole.Address)
 
 		roles := strings.Join(rolesAsString, ",")
 		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
