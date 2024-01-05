@@ -840,7 +840,7 @@ func TestEnableEpochConfig(t *testing.T) {
     FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
 
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
-    DynamicESDTEnableEpoch = 91
+    DynamicESDTEnableEpoch = 92
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
