@@ -296,6 +296,27 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 	return adb.saveCode(baseNewAcc, baseOldAccount)
 }
 
+func (adb *AccountsDB) updateMigratedCode(
+	newAcc baseAccountHandler,
+	oldCodeHash []byte,
+) error {
+	codeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
+	if err != nil {
+		return err
+	}
+
+	if codeEntry == nil {
+		return nil
+	}
+
+	err = adb.mainTrie.GetStorageManager().Put(oldCodeHash, codeEntry.Code)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (adb *AccountsDB) updateCode(
 	newAcc baseAccountHandler,
 	oldAccVersion, newAccVersion uint8,
@@ -333,7 +354,8 @@ func (adb *AccountsDB) isCodeMigration(newAcc, oldAcc baseAccountHandler) (uint8
 		newAccVersion = newAcc.GetVersion()
 	}
 
-	if newAccVersion == uint8(core.WithoutCodeLeaf) && oldAccVersion == uint8(core.NotSpecified) {
+	if newAccVersion == uint8(core.WithoutCodeLeaf) &&
+		(oldAccVersion == uint8(core.NotSpecified) || oldAccVersion == uint8(core.AutoBalanceEnabled)) {
 		return oldAccVersion, newAccVersion, true
 	}
 
@@ -357,7 +379,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	}
 
 	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) && isCodeMigration {
-		return adb.updateCode(newAcc, oldAccVersion, newAccVersion, newCodeHash, oldCodeHash, newCode)
+		return adb.updateMigratedCode(newAcc, oldCodeHash)
 	}
 
 	if !newAcc.HasNewCode() {

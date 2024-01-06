@@ -282,7 +282,7 @@ func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor
 }
 
 func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
-	if bytes.Equal(ln.Value, newData.Value) {
+	if bytes.Equal(ln.Value, newData.Value) && ln.Version == uint32(newData.Version) {
 		return nil, [][]byte{}, nil
 	}
 
