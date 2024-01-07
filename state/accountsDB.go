@@ -299,6 +299,7 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 func (adb *AccountsDB) updateMigratedCode(
 	newAcc baseAccountHandler,
 	oldCodeHash []byte,
+	oldAccVersion, newAccVersion uint8,
 ) error {
 	codeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
@@ -313,6 +314,17 @@ func (adb *AccountsDB) updateMigratedCode(
 	if err != nil {
 		return err
 	}
+
+	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash, oldAccVersion)
+	if err != nil {
+		return err
+	}
+
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller, adb.enableEpochsHandler, oldAccVersion, newAccVersion)
+	if err != nil {
+		return err
+	}
+	adb.journalize(entry)
 
 	return nil
 }
@@ -379,7 +391,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	}
 
 	if adb.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) && isCodeMigration {
-		return adb.updateMigratedCode(newAcc, oldCodeHash)
+		return adb.updateMigratedCode(newAcc, oldCodeHash, oldAccVersion, newAccVersion)
 	}
 
 	if !newAcc.HasNewCode() {

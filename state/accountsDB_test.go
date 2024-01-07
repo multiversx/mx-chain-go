@@ -610,7 +610,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		t.Parallel()
 
 		codeData := []byte("codeData")
-		newCodeData := []byte("newCodeData")
 
 		args := createMockAccountsDBArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -619,7 +618,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 			},
 		}
 		oldCodeDataHash := args.Hasher.Compute(string(codeData))
-		newCodeDataHash := args.Hasher.Compute(string(newCodeData))
 
 		adr := make([]byte, 32)
 		oldAcc := stateMock.NewAccountWrapMock(adr)
@@ -668,8 +666,8 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 				return &storageManager.StorageManagerStub{
 					PutCalled: func(key, value []byte) error {
 						putCalled = true
-						require.Equal(t, key, newCodeDataHash)
-						require.Equal(t, value, newCodeData)
+						require.Equal(t, key, oldCodeDataHash)
+						require.Equal(t, value, codeData)
 						return nil
 					},
 				}
@@ -683,7 +681,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 
 		adr = make([]byte, 32)
 		account := stateMock.NewAccountWrapMock(adr)
-		account.SetCode(newCodeData)
 		account.SetVersion(uint8(core.WithoutCodeLeaf))
 
 		err = adb.SaveAccount(account)
@@ -705,11 +702,27 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		}
 		codeDataHash := args.Hasher.Compute(string(codeData))
 
+		adr := make([]byte, 32)
+		oldAcc := stateMock.NewAccountWrapMock(adr)
+		oldAcc.SetCode(codeData)
+		oldAcc.SetCodeHash(codeDataHash)
+		oldAcc.SetVersion(uint8(core.WithoutCodeLeaf))
+		oldAccBytes, _ := args.Marshaller.Marshal(oldAcc)
+
 		putCalled := false
 		updateWithVersionCalled := false
 		ts := &trieMock.TrieStub{
-			GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
-				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				if bytes.Equal(key, codeDataHash) {
+					codeEntry := state.CodeEntry{
+						Code:          codeData,
+						NumReferences: 2,
+					}
+					codeEntryBytes, _ := args.Marshaller.Marshal(codeEntry)
+					return common.NewTrieLeafHolder(codeEntryBytes, 0, core.NotSpecified), nil
+				}
+
+				return common.NewTrieLeafHolder(oldAccBytes, 0, core.NotSpecified), nil
 			},
 			UpdateCalled: func(key, value []byte) error {
 				return nil
@@ -735,7 +748,6 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		adb, err := state.NewAccountsDB(args)
 		require.Nil(t, err)
 
-		adr := make([]byte, 32)
 		account := stateMock.NewAccountWrapMock(adr)
 		account.SetCode(codeData)
 		account.SetVersion(uint8(core.WithoutCodeLeaf))
