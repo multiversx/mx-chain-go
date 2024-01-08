@@ -1171,6 +1171,8 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 }
 
 func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIsTooLow(t *testing.T) {
+	t.Parallel()
+
 	pubKeys := generateAddresses(0, 20)
 
 	owner1 := "owner1"
