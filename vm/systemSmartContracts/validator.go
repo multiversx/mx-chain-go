@@ -1092,7 +1092,7 @@ func (v *validatorSC) executeOnStakingSC(data []byte) (*vmcommon.VMOutput, error
 	return v.eei.ExecuteOnDestContext(v.stakingSCAddress, v.validatorSCAddress, big.NewInt(0), data)
 }
 
-//nolint
+// nolint
 func (v *validatorSC) setOwnerOfBlsKey(blsKey []byte, ownerAddress []byte) bool {
 	vmOutput, err := v.executeOnStakingSC([]byte("setOwner@" + hex.EncodeToString(blsKey) + "@" + hex.EncodeToString(ownerAddress)))
 	if err != nil {
@@ -1865,10 +1865,10 @@ func (v *validatorSC) getTotalStaked(args *vmcommon.ContractCallInput) vmcommon.
 }
 
 func (v *validatorSC) getTotalStakedTopUpStakedBlsKeys(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
-		v.eei.AddReturnMessage("invalid method to call")
-		return vmcommon.UserError
-	}
+	//if !v.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	//	v.eei.AddReturnMessage("invalid method to call")
+	//	return vmcommon.UserError
+	//}
 	if args.CallValue.Cmp(zero) != 0 {
 		v.eei.AddReturnMessage(vm.TransactionValueMustBeZero)
 		return vmcommon.UserError
@@ -2098,7 +2098,7 @@ func (v *validatorSC) changeOwnerAndRewardAddressOnStaking(registrationData *Val
 	return vmcommon.Ok
 }
 
-//nolint
+// nolint
 func (v *validatorSC) slash(_ *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	// TODO: implement this. It is needed as last component of slashing. Slashing should happen to the funds of the
 	// validator which is running the nodes

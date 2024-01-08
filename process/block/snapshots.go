@@ -174,7 +174,7 @@ func (ad *accountsDumper) getLegacyDelegationState() ([]byte, error) {
 
 // TODO --- call endpoint /direct-staked-info -- dump result in a file --- META
 func (ad *accountsDumper) getDirectStakeInfo() ([]byte, error) {
-	endpoint := "/direct-staked-info"
+	endpoint := "/network/direct-staked-info"
 	genericResponse := &shared.GenericAPIResponse{}
 	err := ad.restClient.CallGetRestEndPoint(endpoint, genericResponse)
 	if err != nil {
@@ -194,7 +194,7 @@ func (ad *accountsDumper) getDirectStakeInfo() ([]byte, error) {
 
 // TODO --- call endpoint /delegated-info -- dump result in a file --- META
 func (ad *accountsDumper) getDelegatedInfo() ([]byte, error) {
-	endpoint := "/delegated-info"
+	endpoint := "/network/delegated-info"
 	genericResponse := &shared.GenericAPIResponse{}
 	err := ad.restClient.CallGetRestEndPoint(endpoint, genericResponse)
 	if err != nil {
