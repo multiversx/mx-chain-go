@@ -13,15 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
@@ -1044,20 +1038,6 @@ func Test_getShardHeaderAndMetaHashes(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, shardHeader, headers[shardHdrKey])
 	require.Equal(t, metaHashes, headers[shardHdrKey].(data.ShardHeaderHandler).GetMetaBlockHashes())
-}
-
-type shardStorageArgs struct {
-	generalConfig      config.Config
-	prefsConfig        config.PreferencesConfig
-	shardCoordinator   sharding.Coordinator
-	pathManagerHandler storage.PathManagerHandler
-	marshalizer        marshal.Marshalizer
-	hasher             hashing.Hasher
-	currentEpoch       uint32
-	uint64Converter    typeConverters.Uint64ByteSliceConverter
-	nodeTypeProvider   core.NodeTypeProviderHandler
-	nodeProcessingMode common.NodeProcessingMode
-	managedPeersHolder common.ManagedPeersHolder
 }
 
 func createDefaultEpochStartShardData(lastFinishedMetaBlockHash []byte, shardHeaderHash []byte) []block.EpochStartShardData {

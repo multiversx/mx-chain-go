@@ -465,7 +465,10 @@ func (host *vmContext) DeploySystemSC(
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 
-	host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
+	err := host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
+	if err != nil {
+		return vmcommon.ExecutionFailed, err
+	}
 
 	contract, err := host.systemContracts.Get(baseContract)
 	if err != nil {
@@ -519,7 +522,10 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
+	err = host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
+	if err != nil {
+		return nil, err
+	}
 
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()

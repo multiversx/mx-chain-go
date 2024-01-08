@@ -2091,11 +2091,7 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	args.MaxNodesChangeConfigProvider = nodesConfigProvider
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			if flag == common.StakingV2Flag {
-				return true
-			}
-
-			return false
+			return flag == common.StakingV2Flag
 		},
 	}
 	validatorsInfoMap := state.NewShardValidatorsInfoMap()
