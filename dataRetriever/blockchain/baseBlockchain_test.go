@@ -65,5 +65,5 @@ func TestBaseBlockChain_SetCurrentHeaderProof(t *testing.T) {
 	}
 	base.SetCurrentHeaderProof(providedProof)
 	proof = base.GetCurrentHeaderProof()
-	require.Equal(t, providedSig, proof)
+	require.Equal(t, providedProof, proof)
 }

@@ -728,7 +728,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.False(t, r)
 	})
-	t.Run("header with leader sig after flag activation should error", func(t *testing.T) {
+	t.Run("header without leader sig after flag activation should error", func(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
@@ -743,10 +743,11 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		blkBody := &block.Body{}
 		hdr := &block.HeaderV2{
-			Header: &block.Header{
-				LeaderSignature: []byte("leader signature"),
+			Header: &block.Header{},
+			PreviousHeaderProof: &block.PreviousHeaderProof{
+				PubKeysBitmap:       []byte{0, 1, 1, 1},
+				AggregatedSignature: []byte("sig"),
 			},
-			PreviousHeaderProof: &block.PreviousHeaderProof{},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
@@ -773,7 +774,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			ScheduledAccumulatedFees: big.NewInt(1),
 			ScheduledRootHash:        []byte("scheduled root hash"),
 			PreviousHeaderProof: &block.PreviousHeaderProof{
-				PubKeysBitmap:       []byte("bitmap"),
+				PubKeysBitmap:       []byte{1, 1, 1, 1},
 				AggregatedSignature: []byte("sig"),
 			},
 		}
@@ -943,7 +944,7 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
 		PreviousHeaderProof: &block.PreviousHeaderProof{
-			PubKeysBitmap:       []byte("bitmap"),
+			PubKeysBitmap:       []byte{1, 1, 1, 1},
 			AggregatedSignature: []byte("sig"),
 		},
 	}

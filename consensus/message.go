@@ -1,7 +1,10 @@
 //go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/multiversx/protobuf/protobuf  --gogoslick_out=. message.proto
 package consensus
 
-import "github.com/multiversx/mx-chain-core-go/core"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+)
 
 // MessageType specifies what type of message was received
 type MessageType int
@@ -43,8 +46,7 @@ func NewConsensusMessage(
 
 // EquivalentMessageInfo holds information about an equivalent message
 type EquivalentMessageInfo struct {
-	NumMessages                uint64
-	Validated                  bool
-	PreviousPubkeysBitmap      []byte
-	PreviousAggregateSignature []byte
+	NumMessages uint64
+	Validated   bool
+	Proof       data.HeaderProof
 }

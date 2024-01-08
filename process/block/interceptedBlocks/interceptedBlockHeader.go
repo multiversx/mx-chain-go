@@ -138,7 +138,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 			inHdr.epochStartTrigger.EpochFinalityAttestingRound())
 	}
 
-	err := checkHeaderHandler(inHdr.HeaderHandler())
+	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
