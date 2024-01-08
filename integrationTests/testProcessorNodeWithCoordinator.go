@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -77,8 +76,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				IsFullArchive:            false,
 				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-				GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
-				StakingV4Step2EnableEpoch: StakingV4Step2EnableEpoch,
+				GenesisNodesSetupHandler: &genesisMocks.NodesSetupStub{},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
+	nodesSetupMock "github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/multiversx/mx-chain-storage-go/lrucache"
 )
@@ -69,11 +70,11 @@ func createNodesCoordinator(
 		Shuffler:                        nodeShuffler,
 		BootStorer:                      bootStorer,
 		EpochStartNotifier:              coreComponents.EpochStartNotifierWithConfirm(),
-		StakingV4Step2EnableEpoch:       stakingV4Step2EnableEpoch,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		NodeTypeProvider:                coreComponents.NodeTypeProvider(),
 		EnableEpochsHandler:             coreComponents.EnableEpochsHandler(),
 		ValidatorInfoCacher:             dataPool.NewCurrentEpochValidatorInfoPool(),
+		GenesisNodesSetupHandler:        &nodesSetupMock.NodesSetupStub{},
 	}
 
 	baseNodesCoordinator, _ := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

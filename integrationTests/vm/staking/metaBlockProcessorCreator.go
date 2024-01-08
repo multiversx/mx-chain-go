@@ -101,6 +101,8 @@ func createMetaBlockProcessor(
 			ProcessedMiniBlocksTracker:     processedMb.NewProcessedMiniBlocksTracker(),
 			OutportDataProvider:            &outport.OutportDataProviderStub{},
 			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
+			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
+			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

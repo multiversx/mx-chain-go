@@ -386,8 +386,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		ShardIDAsObserver:               tcn.ShardCoordinator.SelfId(),
-		GenesisNodesSetupHandler:        &testscommon.NodesSetupStub{},
-		StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}
 

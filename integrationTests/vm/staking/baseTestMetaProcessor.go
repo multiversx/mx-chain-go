@@ -97,7 +97,7 @@ func newTestMetaProcessor(
 	)
 
 	gasScheduleNotifier := createGasScheduleNotifier()
-	blockChainHook := createBlockChainHook(
+	argsBlockChainHook, blockChainHook := createBlockChainHook(
 		dataComponents,
 		coreComponents,
 		stateComponents.AccountsAdapter(),
@@ -109,7 +109,8 @@ func newTestMetaProcessor(
 		coreComponents,
 		gasScheduleNotifier,
 		blockChainHook,
-		stateComponents.PeerAccounts(),
+		argsBlockChainHook,
+		stateComponents,
 		bootstrapComponents.ShardCoordinator(),
 		nc,
 		maxNodesConfig[0].MaxNumNodes,

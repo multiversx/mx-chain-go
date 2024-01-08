@@ -1597,61 +1597,6 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 	return nodes, hardforkStarter
 }
 
-// CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
-func CreateNodesWithCustomStateCheckpointModulus(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	stateCheckpointModulus uint,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
-	enableEpochsConfig := GetDefaultEnableEpochsConfig()
-	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4Step1EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4Step2EnableEpoch = UnreachableEpoch
-	enableEpochsConfig.StakingV4Step3EnableEpoch = UnreachableEpoch
-
-	scm := &IntWrapper{
-		Value: stateCheckpointModulus,
-	}
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(ArgTestProcessorNode{
-				MaxShards:              uint32(numOfShards),
-				NodeShardId:            shardId,
-				TxSignPrivKeyShardId:   shardId,
-				StateCheckpointModulus: scm,
-				EpochsConfig:           enableEpochsConfig,
-			})
-
-			nodes[idx] = n
-			connectableNodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:              uint32(numOfShards),
-			NodeShardId:            core.MetachainShardId,
-			TxSignPrivKeyShardId:   0,
-			StateCheckpointModulus: scm,
-			EpochsConfig:           enableEpochsConfig,
-		})
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-		connectableNodes[idx] = metaNode
-	}
-
-	ConnectNodes(connectableNodes)
-
-	return nodes
-}
-
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node
 func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {

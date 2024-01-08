@@ -1293,7 +1293,7 @@ func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
 	ihnc.flagStakingV4Started.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.StakingV4Step1Flag))
 	log.Debug("indexHashedNodesCoordinator: flagStakingV4Started", "enabled", ihnc.flagStakingV4Started.IsSet())
 
-	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
+	ihnc.flagStakingV4Step2.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.StakingV4Step2Flag))
 	log.Debug("indexHashedNodesCoordinator: flagStakingV4Step2", "enabled", ihnc.flagStakingV4Step2.IsSet())
 }
 

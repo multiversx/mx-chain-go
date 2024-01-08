@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	notifierMocks "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
@@ -66,6 +67,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		StakingV4Step1EnableEpoch:          stakingV4Step1EnableEpoch,
 		StakingV4Step2EnableEpoch:          stakingV4Step2EnableEpoch,
 		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
+		GovernanceEnableEpoch:              integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 
@@ -87,6 +89,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		ProcessStatusHandlerInternal:       statusHandler.NewProcessStatusHandler(),
 		EnableEpochsHandlerField:           enableEpochsHandler,
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		RoundNotifierField:                 &notifierMocks.RoundNotifierStub{},
 	}
 }
 

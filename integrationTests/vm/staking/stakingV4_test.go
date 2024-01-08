@@ -162,6 +162,8 @@ func checkStakingV4EpochChangeFlow(
 }
 
 func TestStakingV4(t *testing.T) {
+	t.Parallel()
+
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
 	numOfEligibleNodesPerShard := uint32(400)
@@ -256,6 +258,8 @@ func TestStakingV4(t *testing.T) {
 }
 
 func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootHash(t *testing.T) {
+	t.Parallel()
+
 	numOfMetaNodes := uint32(6)
 	numOfShards := uint32(3)
 	numOfEligibleNodesPerShard := uint32(6)
@@ -301,6 +305,8 @@ func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootH
 }
 
 func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
+	t.Parallel()
+
 	pubKeys := generateAddresses(0, 20)
 
 	// Owner1 has 8 nodes, but enough stake for just 7 nodes. At the end of the epoch(staking v4 init),
@@ -457,6 +463,8 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 }
 
 func TestStakingV4_StakeNewNodes(t *testing.T) {
+	t.Parallel()
+
 	pubKeys := generateAddresses(0, 20)
 
 	// Owner1 has 6 nodes, zero top up
@@ -596,6 +604,8 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 }
 
 func TestStakingV4_UnStakeNodes(t *testing.T) {
+	t.Parallel()
+
 	pubKeys := generateAddresses(0, 20)
 
 	owner1 := "owner1"
@@ -689,9 +699,9 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	})
 	currNodesConfig = node.NodesConfig
 	require.Len(t, currNodesConfig.new, 1)
-	require.Equal(t, currNodesConfig.new[0], queue[0])
+	requireSliceContains(t, queue, currNodesConfig.new)
 	require.Empty(t, currNodesConfig.auction)
-	queue = remove(queue, queue[0])
+	queue = remove(queue, currNodesConfig.new[0])
 	require.Len(t, currNodesConfig.queue, 5)
 	requireSameSliceDifferentOrder(t, queue, currNodesConfig.queue)
 
@@ -789,6 +799,8 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 }
 
 func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
+	t.Parallel()
+
 	pubKeys := generateAddresses(0, 20)
 
 	owner1 := "owner1"
@@ -944,6 +956,8 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 }
 
 func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffledToToWaiting(t *testing.T) {
+	t.Parallel()
+
 	pubKeys := generateAddresses(0, 20)
 
 	owner1 := "owner1"
