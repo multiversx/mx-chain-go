@@ -387,7 +387,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		configs.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch,
 	)
 	if err != nil {
 		return true, err
@@ -1248,7 +1247,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		EpochConfig:             *configs.EpochConfig,
 		PrefConfigs:             *configs.PreferencesConfig,
 		ImportDBConfig:          *configs.ImportDbConfig,
-		EconomicsConfig:        *configs.EconomicsConfig,
+		EconomicsConfig:         *configs.EconomicsConfig,
 		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
