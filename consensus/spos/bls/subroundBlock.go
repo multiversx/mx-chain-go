@@ -2,7 +2,6 @@ package bls
 
 import (
 	"context"
-	"encoding/hex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -525,31 +524,19 @@ func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) e
 	}
 
 	node := string(nodeKey)
-	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(nodeKey))
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Debug("saveLeaderSignature.ConsensusGroupIndex",
-			"node", pkForLogs,
-			"error", err.Error())
 		return err
 	}
 
 	err = sr.SigningHandler().StoreSignatureShare(uint16(index), signature)
 	if err != nil {
-		log.Debug("saveLeaderSignature.StoreSignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
 		return err
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
 	if err != nil {
-		log.Debug("saveLeaderSignature.SetJobDone for leader",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
 		return err
 	}
 
