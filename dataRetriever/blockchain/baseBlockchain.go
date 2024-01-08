@@ -9,15 +9,14 @@ import (
 )
 
 type baseBlockChain struct {
-	mut                        sync.RWMutex
-	appStatusHandler           core.AppStatusHandler
-	genesisHeader              data.HeaderHandler
-	genesisHeaderHash          []byte
-	currentBlockHeader         data.HeaderHandler
-	currentBlockHeaderHash     []byte
-	finalBlockInfo             *blockInfo
-	currentAggregatedSignature []byte
-	currentPubKeysBitmap       []byte
+	mut                    sync.RWMutex
+	appStatusHandler       core.AppStatusHandler
+	genesisHeader          data.HeaderHandler
+	genesisHeaderHash      []byte
+	currentBlockHeader     data.HeaderHandler
+	currentBlockHeaderHash []byte
+	finalBlockInfo         *blockInfo
+	currentHeaderProof     data.HeaderProof
 }
 
 type blockInfo struct {
@@ -103,19 +102,18 @@ func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	return nonce, hash, rootHash
 }
 
-// SetCurrentAggregatedSignatureAndBitmap sets the current aggregated signature and its validator's public keys bitmap
-func (bbc *baseBlockChain) SetCurrentAggregatedSignatureAndBitmap(signature []byte, pubKeysBitmap []byte) {
+// SetCurrentHeaderProof sets the current aggregated signature and its validator's public keys bitmap
+func (bbc *baseBlockChain) SetCurrentHeaderProof(proof data.HeaderProof) {
 	bbc.mut.Lock()
 	defer bbc.mut.Unlock()
 
-	bbc.currentAggregatedSignature = signature
-	bbc.currentPubKeysBitmap = pubKeysBitmap
+	bbc.currentHeaderProof = proof
 }
 
-// GetCurrentAggregatedSignatureAndBitmap returns the current aggregated signature and its validator's public keys bitmap for the current block
-func (bbc *baseBlockChain) GetCurrentAggregatedSignatureAndBitmap() ([]byte, []byte) {
+// GetCurrentHeaderProof returns the current aggregated signature and its validator's public keys bitmap for the current block
+func (bbc *baseBlockChain) GetCurrentHeaderProof() data.HeaderProof {
 	bbc.mut.RLock()
 	defer bbc.mut.RUnlock()
 
-	return bbc.currentAggregatedSignature, bbc.currentPubKeysBitmap
+	return bbc.currentHeaderProof
 }

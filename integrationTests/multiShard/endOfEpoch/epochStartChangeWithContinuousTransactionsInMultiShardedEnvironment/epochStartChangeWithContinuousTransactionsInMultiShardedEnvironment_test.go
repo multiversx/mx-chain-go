@@ -20,9 +20,10 @@ func TestEpochStartChangeWithContinuousTransactionsInMultiShardedEnvironment(t *
 	numMetachainNodes := 3
 
 	enableEpochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
+		StakingV2EnableEpoch:                   integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:         integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:   integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

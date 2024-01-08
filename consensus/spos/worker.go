@@ -126,6 +126,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		ConsensusState:       args.ConsensusState,
 		ConsensusService:     args.ConsensusService,
 		PeerSignatureHandler: args.PeerSignatureHandler,
+		EnableEpochsHandler:  args.EnableEpochsHandler,
 		SignatureSize:        args.SignatureSize,
 		PublicKeySize:        args.PublicKeySize,
 		HeaderHashSize:       args.Hasher.Size(),
@@ -784,8 +785,10 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 	}
 
 	equivalentMsgInfo.Validated = true
-	equivalentMsgInfo.PreviousPubkeysBitmap = cnsMsg.PubKeysBitmap
-	equivalentMsgInfo.PreviousAggregateSignature = cnsMsg.AggregateSignature
+	equivalentMsgInfo.Proof = data.HeaderProof{
+		AggregatedSignature: cnsMsg.AggregateSignature,
+		PubKeysBitmap:       cnsMsg.PubKeysBitmap,
+	}
 
 	return nil
 }
@@ -796,7 +799,12 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 	}
 
 	header := wrk.consensusState.Header
-	return wrk.headerSigVerifier.VerifySignatureForHash(header, header.GetPrevHash(), cnsMsg.PubKeysBitmap, cnsMsg.Signature)
+	headerHash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	return wrk.headerSigVerifier.VerifySignatureForHash(header, headerHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
@@ -818,15 +826,17 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 }
 
 // SaveProposedEquivalentMessage saves the proposed equivalent message
-func (wrk *Worker) SaveProposedEquivalentMessage(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte) {
+func (wrk *Worker) SaveProposedEquivalentMessage(hash string, pubkeysBitmap []byte, aggregatedSignature []byte) {
 	wrk.mutEquivalentMessages.Lock()
 	defer wrk.mutEquivalentMessages.Unlock()
 
 	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
-		NumMessages:                1,
-		Validated:                  true,
-		PreviousPubkeysBitmap:      previousPubkeysBitmap,
-		PreviousAggregateSignature: previousAggregatedSignature,
+		NumMessages: 1,
+		Validated:   true,
+		Proof: data.HeaderProof{
+			AggregatedSignature: aggregatedSignature,
+			PubKeysBitmap:       pubkeysBitmap,
+		},
 	}
 }
 

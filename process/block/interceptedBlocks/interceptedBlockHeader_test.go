@@ -237,7 +237,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 	arg := createDefaultShardArgumentWithV2Support()
 	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag)
 	wasVerifySignatureForHashCalled := false
-	providedPrevBitmap := []byte("provided bitmap")
+	providedPrevBitmap := []byte{1, 1, 1, 1}
 	providedPrevSig := []byte("provided sig")
 	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifySignatureForHashCalled: func(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error {

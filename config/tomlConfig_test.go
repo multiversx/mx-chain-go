@@ -975,7 +975,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
 			EquivalentMessagesEnableEpoch:                            92,
-			ConsensusPropagationChangesEnableEpoch: 93,
+			ConsensusPropagationChangesEnableEpoch:                   93,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

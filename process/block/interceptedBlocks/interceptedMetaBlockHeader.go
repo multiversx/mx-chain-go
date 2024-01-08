@@ -140,7 +140,7 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 
 // integrity checks the integrity of the meta header block wrapper
 func (imh *InterceptedMetaHeader) integrity() error {
-	err := checkHeaderHandler(imh.HeaderHandler())
+	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler)
 	if err != nil {
 		return err
 	}

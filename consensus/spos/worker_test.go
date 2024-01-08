@@ -1996,6 +1996,6 @@ func TestWorker_SaveProposedEquivalentMessage(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, uint64(1), info.NumMessages)
 	require.True(t, info.Validated)
-	require.Equal(t, providedBitmap, info.PreviousPubkeysBitmap)
-	require.Equal(t, providedSig, info.PreviousAggregateSignature)
+	require.Equal(t, providedBitmap, info.Proof.PubKeysBitmap)
+	require.Equal(t, providedSig, info.Proof.AggregatedSignature)
 }

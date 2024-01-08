@@ -22,7 +22,7 @@ type subroundEndRound struct {
 	processingThresholdPercentage int
 	displayStatistics             func()
 	hasEquivalentProof            func(headerHash []byte) bool
-	getValidatedEquivalentProof   func(headerHash []byte) ([]byte, []byte)
+	getValidatedEquivalentProof   func(headerHash []byte) data.HeaderProof
 	appStatusHandler              core.AppStatusHandler
 	mutProcessingEndRound         sync.Mutex
 	sentSignatureTracker          spos.SentSignaturesTracker
@@ -37,7 +37,7 @@ func NewSubroundEndRound(
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
 	hasEquivalentProof func(headerHash []byte) bool,
-	getValidatedEquivalentProof func(headerHash []byte) ([]byte, []byte),
+	getValidatedEquivalentProof func(headerHash []byte) data.HeaderProof,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -766,6 +766,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		return false
 	}
 
+	// TODO[Sorin]: sr.Blockchain().SetCurrentHeaderProof()
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)

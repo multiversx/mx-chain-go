@@ -41,8 +41,8 @@ func dataToString(data map[string]*consensus.EquivalentMessageInfo) string {
 		"Block header hash",
 		"Equivalent messages received",
 		"Validated",
-		"Previous aggregated signature",
-		"Previous Pubkeys Bitmap",
+		"Aggregated signature",
+		"Pubkeys Bitmap",
 	}
 
 	lines := make([]*display.LineData, 0, len(data))
@@ -52,9 +52,9 @@ func dataToString(data map[string]*consensus.EquivalentMessageInfo) string {
 		line := []string{
 			hash,
 			fmt.Sprintf("%d", info.NumMessages),
-			fmt.Sprintf("%T", info.Validated),
-			string(info.PreviousAggregateSignature),
-			string(info.PreviousPubkeysBitmap),
+			fmt.Sprintf("%t", info.Validated),
+			string(info.Proof.AggregatedSignature),
+			string(info.Proof.PubKeysBitmap),
 		}
 		lines = append(lines, display.NewLineData(horizontalLineAfter, line))
 		idx++
