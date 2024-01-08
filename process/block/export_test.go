@@ -177,6 +177,10 @@ func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHea
 	mp.receivedShardHeader(header, shardHeaderHash)
 }
 
+func (mp *metaProcessor) GetDataPool() dataRetriever.PoolsHolder {
+	return mp.dataPool
+}
+
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHash []byte) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
