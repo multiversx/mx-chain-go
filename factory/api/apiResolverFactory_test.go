@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
@@ -108,7 +109,9 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType:       common.ChainRunTypeRegular,
+		ChainRunType:            common.ChainRunTypeRegular,
+		DelegatedListHandler:    trieIteratorsFactory.NewDelegatedListHandlerFactory(),
+		DirectStakedListHandler: trieIteratorsFactory.NewDirectStakedListHandlerFactory(),
 	}
 }
 

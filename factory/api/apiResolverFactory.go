@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -116,6 +117,14 @@ type scQueryElementArgs struct {
 // TODO: refactor to further decrease node's codebase
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
+
+	if check.IfNilReflect(args.DelegatedListHandler) {
+		return nil, factory.ErrorNilDelegatedListHandler
+	}
+	if check.IfNilReflect(args.DirectStakedListHandler) {
+		return nil, factory.ErrorNilDirectStakedListHandler
+	}
+
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:         args.Configs.GeneralConfig,
 		epochConfig:           args.Configs.EpochConfig,
