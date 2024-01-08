@@ -825,21 +825,6 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 	return equivalentMessagesCopy
 }
 
-// SaveProposedEquivalentMessage saves the proposed equivalent message
-func (wrk *Worker) SaveProposedEquivalentMessage(hash string, pubkeysBitmap []byte, aggregatedSignature []byte) {
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
-
-	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
-		NumMessages: 1,
-		Validated:   true,
-		Proof: data.HeaderProof{
-			AggregatedSignature: aggregatedSignature,
-			PubKeysBitmap:       pubkeysBitmap,
-		},
-	}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil
