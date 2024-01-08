@@ -105,7 +105,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	validatorStatistics := ValidatorStatisticsResponse{}
+	validatorStatistics := validatorStatisticsResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
 	_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
@@ -154,10 +154,10 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 		validatorGroup, err := groups.NewValidatorGroup(&facade)
 		require.NoError(t, err)
 
-	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
-	req, _ := http.NewRequest("GET", "/validator/statistics", nil)
-	resp := httptest.NewRecorder()
-	ws.ServeHTTP(resp, req)
+		ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
+		req, _ := http.NewRequest("GET", "/validator/statistics", nil)
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
 
 		response := shared.GenericAPIResponse{}
 		loadResponse(resp.Body, &response)

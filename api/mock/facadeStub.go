@@ -388,7 +388,7 @@ func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, ap
 		return f.ExecuteSCQueryHandler(query)
 	}
 
-	return nil, nil
+	return nil, api.BlockInfo{}, nil
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics
@@ -473,12 +473,16 @@ func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 		return f.GetPeerInfoCalled(pid)
 	}
 
-// GetConnectedPeersRatingsOnMainNetwork -
-func (f *FacadeStub) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
-	return f.GetConnectedPeersRatingsOnMainNetworkCalled()
+	return nil, nil
 }
 
-	return nil, nil
+// GetConnectedPeersRatingsOnMainNetwork -
+func (f *FacadeStub) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	if f.GetConnectedPeersRatingsOnMainNetworkCalled != nil {
+		return f.GetConnectedPeersRatingsOnMainNetworkCalled()
+	}
+
+	return "", nil
 }
 
 // GetEpochStartDataAPI -

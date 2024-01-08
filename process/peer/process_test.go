@@ -2660,9 +2660,9 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 	pk1 := []byte("pk1")
 	pk2 := []byte("pk2")
 
-	account0, _ := state.NewPeerAccount(pk0)
-	account1, _ := state.NewPeerAccount(pk1)
-	account2, _ := state.NewPeerAccount(pk2)
+	account0, _ := accounts.NewPeerAccount(pk0)
+	account1, _ := accounts.NewPeerAccount(pk1)
+	account2, _ := accounts.NewPeerAccount(pk2)
 
 	ctLoadAccount := &atomic.Counter{}
 	ctSaveAccount := &atomic.Counter{}
@@ -2722,16 +2722,18 @@ func TestValidatorStatisticsProcessor_SaveNodesCoordinatorUpdatesWithStakingV4(t
 		},
 	}
 	stakingV4Step2EnableEpochCalledCt := 0
-	arguments.EnableEpochsHandler = &testscommon.EnableEpochsHandlerStub{
-		IsStakingV4Step2Called: func() bool {
-			stakingV4Step2EnableEpochCalledCt++
-			switch stakingV4Step2EnableEpochCalledCt {
-			case 1:
-				return false
-			case 2:
-				return true
-			default:
-				require.Fail(t, "should only call this twice")
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			if flag == common.StakingV4Step2Flag {
+				stakingV4Step2EnableEpochCalledCt++
+				switch stakingV4Step2EnableEpochCalledCt {
+				case 1:
+					return false
+				case 2:
+					return true
+				default:
+					require.Fail(t, "should only call this twice")
+				}
 			}
 
 			return false

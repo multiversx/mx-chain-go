@@ -153,6 +153,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 			},
 		},
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 

@@ -34,6 +34,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
@@ -235,15 +236,15 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		444,
 	)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,
 		CoreComponentsHolder:            coreComponents,
-		MainMessenger:                       nodeToJoinLate.MainMessenger,
-		FullArchiveMessenger:   nodeToJoinLate.FullArchiveMessenger,
+		MainMessenger:                   nodeToJoinLate.MainMessenger,
+		FullArchiveMessenger:            nodeToJoinLate.FullArchiveMessenger,
 		GeneralConfig:                   generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
