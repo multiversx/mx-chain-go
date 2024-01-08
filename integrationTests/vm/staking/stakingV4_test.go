@@ -1169,3 +1169,140 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 		epoch++
 	}
 }
+
+func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIsTooLow(t *testing.T) {
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:4],
+			0:                     pubKeys[4:8],
+		},
+		WaitingBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[8:9],
+			0:                     pubKeys[9:10],
+		},
+		TotalStake: big.NewInt(20 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        2,
+		ShardConsensusGroupSize:       2,
+		MinNumberOfEligibleShardNodes: 4,
+		MinNumberOfEligibleMetaNodes:  4,
+		NumOfShards:                   1,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            20,
+				NodesToShufflePerShard: 1,
+			},
+			{
+				EpochEnable:            stakingV4Step3EnableEpoch,
+				MaxNumNodes:            18,
+				NodesToShufflePerShard: 1,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	expectedNodesNum := &configNum{
+		eligible: map[uint32]int{
+			core.MetachainShardId: 4,
+			0:                     4,
+		},
+		waiting: map[uint32]int{
+			core.MetachainShardId: 1,
+			0:                     1,
+		},
+	}
+	currNodesConfig := node.NodesConfig
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+
+	// Epoch = 0, before staking v4, owner2 stakes 2 nodes
+	// - maxNumNodes    = 20
+	// - activeNumNodes = 10
+	// Newly staked nodes should be sent to new list
+	owner2Nodes := pubKeys[12:14]
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		"owner2": {
+			BLSKeys:    owner2Nodes,
+			TotalStake: big.NewInt(2 * nodePrice),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.new = 2
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	requireSameSliceDifferentOrder(t, currNodesConfig.new, owner2Nodes)
+
+	// Epoch = 1, staking v4 step 1
+	// - maxNumNodes    = 20
+	// - activeNumNodes = 12
+	// Owner2's new nodes should have been sent to waiting
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.new = 0
+	expectedNodesNum.waiting[0]++
+	expectedNodesNum.waiting[core.MetachainShardId]++
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), owner2Nodes, 2)
+
+	// Epoch = 1, before staking v4, owner3 stakes 2 nodes
+	// - maxNumNodes    = 20
+	// - activeNumNodes = 12
+	// Newly staked nodes should be sent to auction list
+	owner3Nodes := pubKeys[15:17]
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		"owner3": {
+			BLSKeys:    owner3Nodes,
+			TotalStake: big.NewInt(2 * nodePrice),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.auction = 2
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, owner3Nodes)
+
+	// Epoch = 2, staking v4 step 2
+	// - maxNumNodes    = 20
+	// - activeNumNodes = 14
+	// Owner3's auction nodes should have been sent to waiting
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	expectedNodesNum.auction = 0
+	expectedNodesNum.waiting[0]++
+	expectedNodesNum.waiting[core.MetachainShardId]++
+	checkConfig(t, expectedNodesNum, currNodesConfig)
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), owner3Nodes, 2)
+
+	// During epochs 2-6, we will have:
+	// - activeNodes = 14
+	// - maxNumNodes = 18-20
+	// Since activeNodes < maxNumNodes, shuffled out nodes will always be sent directly to waiting list, instead of auction
+	epoch := uint32(2)
+	require.Equal(t, epoch, node.EpochStartTrigger.Epoch())
+
+	numOfShuffledOut := 2
+	numRemainingEligible := 6
+	numOfUnselectedNodesFromAuction := 0
+	numOfSelectedNodesFromAuction := 0
+
+	prevNodesConfig := currNodesConfig
+	for epoch < 6 {
+		node.Process(t, 5)
+
+		currNodesConfig = node.NodesConfig
+		checkConfig(t, expectedNodesNum, currNodesConfig)
+		checkShuffledOutNodes(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numRemainingEligible)
+		checkStakingV4EpochChangeFlow(t, currNodesConfig, prevNodesConfig, numOfShuffledOut, numOfUnselectedNodesFromAuction, numOfSelectedNodesFromAuction)
+
+		prevNodesConfig = currNodesConfig
+		epoch++
+	}
+}

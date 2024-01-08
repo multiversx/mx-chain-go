@@ -320,7 +320,8 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		flagStakingV4Step2: arg.flagStakingV4Step2,
 	}
 
-	if arg.flagStakingV4Step3 {
+	lowWaitingList := shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg)
+	if arg.flagStakingV4Step3 || lowWaitingList {
 		log.Debug("distributing selected nodes from auction to waiting",
 			"num auction nodes", len(arg.auction), "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
@@ -331,7 +332,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		}
 	}
 
-	if shouldDistributeShuffledToWaiting(shuffledNodesCfg) {
+	if !arg.flagStakingV4Step2 || lowWaitingList {
 		log.Debug("distributing shuffled out nodes to waiting",
 			"num shuffled nodes", shuffledNodesCfg.numShuffled, "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
@@ -605,9 +606,9 @@ func checkAndDistributeNewNodes(
 	return nil
 }
 
-func shouldDistributeShuffledToWaiting(shuffledNodesCfg *shuffledNodesConfig) bool {
+func shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg *shuffledNodesConfig) bool {
 	if !shuffledNodesCfg.flagStakingV4Step2 {
-		return true
+		return false
 	}
 
 	totalNewWaiting := shuffledNodesCfg.numNewWaiting + shuffledNodesCfg.numSelectedAuction
