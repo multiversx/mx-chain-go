@@ -52,7 +52,26 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 		return nil, err
 	}
 
+	err = gbc.initSystemAccount()
+	if err != nil {
+		return nil, err
+	}
+
 	return gbc.createSovereignHeaders(argsCreateBlock)
+}
+
+func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
+	acc, err := gbc.arg.Accounts.LoadAccount(core.SystemAccountAddress)
+	if err != nil {
+		return err
+	}
+
+	err = gbc.arg.Accounts.SaveAccount(acc)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
