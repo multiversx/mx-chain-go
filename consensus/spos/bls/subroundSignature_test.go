@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const setThresholdJobsDone = "threshold"
+
 func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.SubroundSignature {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -42,9 +44,9 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 
 	srSignature, _ := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	return srSignature
@@ -83,35 +85,35 @@ func TestNewSubroundSignature(t *testing.T) {
 
 		srSignature, err := bls.NewSubroundSignature(
 			nil,
-			extend,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srSignature)
 		assert.Equal(t, spos.ErrNilSubround, err)
 	})
-	t.Run("nil extend function handler should error", func(t *testing.T) {
+	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
 
 		srSignature, err := bls.NewSubroundSignature(
 			sr,
-			nil,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
+			nil,
 		)
 
 		assert.Nil(t, srSignature)
-		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
+		assert.Equal(t, spos.ErrNilWorker, err)
 	})
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
 		srSignature, err := bls.NewSubroundSignature(
 			sr,
-			extend,
 			nil,
 			&mock.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -122,9 +124,9 @@ func TestNewSubroundSignature(t *testing.T) {
 
 		srSignature, err := bls.NewSubroundSignature(
 			sr,
-			extend,
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -158,9 +160,9 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	sr.ConsensusState = nil
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -192,9 +194,9 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	container.SetHasher(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -226,9 +228,9 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 	container.SetMultiSignerContainer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -261,9 +263,9 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -295,9 +297,9 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 	container.SetSyncTimer(nil)
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -329,9 +331,9 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		nil,
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -363,9 +365,9 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 
 	srSignature, err := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	assert.False(t, check.IfNil(srSignature))
@@ -470,13 +472,13 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	signatureSentForPks := make(map[string]struct{})
 	srSignature, _ := bls.NewSubroundSignature(
 		sr,
-		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{
 			SignatureSentCalled: func(pkBytes []byte) {
 				signatureSentForPks[string(pkBytes)] = struct{}{}
 			},
 		},
+		&mock.SposWorkerMock{},
 	)
 
 	srSignature.Header = &block.Header{}
@@ -724,81 +726,29 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenSignatu
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenNotAllSignaturesCollectedAndTimeIsNotOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("with flag active", testSubroundSignatureDoSignatureConsensusCheckShouldReturnFalseWhenNotAllSignaturesCollectedAndTimeIsNotOut(true))
-	t.Run("with flag inactive", testSubroundSignatureDoSignatureConsensusCheckShouldReturnFalseWhenNotAllSignaturesCollectedAndTimeIsNotOut(false))
-}
-
-func testSubroundSignatureDoSignatureConsensusCheckShouldReturnFalseWhenNotAllSignaturesCollectedAndTimeIsNotOut(flagActive bool) func(t *testing.T) {
-	return func(t *testing.T) {
-		t.Parallel()
-
-		container := mock.InitConsensusCore()
-		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				if flag == common.ConsensusPropagationChangesFlag {
-					return flagActive
-				}
-				return false
-			},
-		})
-		sr := *initSubroundSignatureWithContainer(container)
-		sr.WaitingAllSignaturesTimeOut = false
-
-		if !flagActive {
-			sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-		}
-
-		for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-		}
-
-		assert.False(t, sr.DoSignatureConsensusCheck())
-	}
+	t.Run("with flag active, should return false when not all signatures are collected and time is not out", testSubroundSignatureDoSignatureConsensusCheck(true, setThresholdJobsDone, false, false))
+	t.Run("with flag inactive, should return false when not all signatures are collected and time is not out", testSubroundSignatureDoSignatureConsensusCheck(true, setThresholdJobsDone, false, false))
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenAllSignaturesCollected(t *testing.T) {
 	t.Parallel()
-
-	t.Run("with flag active", testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenAllSignaturesCollected(true))
-	t.Run("with flag inactive", testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenAllSignaturesCollected(false))
-}
-
-func testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenAllSignaturesCollected(flagActive bool) func(t *testing.T) {
-	return func(t *testing.T) {
-		t.Parallel()
-
-		container := mock.InitConsensusCore()
-		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				if flag == common.ConsensusPropagationChangesFlag {
-					return flagActive
-				}
-				return false
-			},
-		})
-		sr := *initSubroundSignatureWithContainer(container)
-		sr.WaitingAllSignaturesTimeOut = false
-
-		if !flagActive {
-			sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-		}
-
-		for i := 0; i < sr.ConsensusGroupSize(); i++ {
-			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-		}
-
-		assert.True(t, sr.DoSignatureConsensusCheck())
-	}
+	t.Run("with flag active, should return true when all signatures are collected", testSubroundSignatureDoSignatureConsensusCheck(true, "all", false, true))
+	t.Run("with flag inactive, should return true when all signatures are collected", testSubroundSignatureDoSignatureConsensusCheck(true, "all", false, true))
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughButNotAllSignaturesCollectedAndTimeIsOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("with flag active", testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenEnoughButNotAllSignaturesCollectedAndTimeIsOut(true))
-	t.Run("with flag inactive", testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenEnoughButNotAllSignaturesCollectedAndTimeIsOut(false))
+	t.Run("with flag active, should return true when enough but not all signatures collected and time is out", testSubroundSignatureDoSignatureConsensusCheck(true, setThresholdJobsDone, true, true))
+	t.Run("with flag inactive, should return true when enough but not all signatures collected and time is out", testSubroundSignatureDoSignatureConsensusCheck(false, setThresholdJobsDone, true, true))
 }
 
-func testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenEnoughButNotAllSignaturesCollectedAndTimeIsOut(flagActive bool) func(t *testing.T) {
+func testSubroundSignatureDoSignatureConsensusCheck(
+	flagActive bool,
+	jobsDone string,
+	waitingAllSignaturesTimeOut bool,
+	expectedResult bool,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -812,17 +762,21 @@ func testSubroundSignatureDoSignatureConsensusCheckShouldReturnTrueWhenEnoughBut
 			},
 		})
 		sr := *initSubroundSignatureWithContainer(container)
-		sr.WaitingAllSignaturesTimeOut = true
+		sr.WaitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
 
 		if !flagActive {
 			sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 		}
 
-		for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
+		numberOfJobsDone := sr.ConsensusGroupSize()
+		if jobsDone == setThresholdJobsDone {
+			numberOfJobsDone = sr.Threshold(bls.SrSignature)
+		}
+		for i := 0; i < numberOfJobsDone; i++ {
 			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
 		}
 
-		assert.True(t, sr.DoSignatureConsensusCheck())
+		assert.Equal(t, expectedResult, sr.DoSignatureConsensusCheck())
 	}
 }
 

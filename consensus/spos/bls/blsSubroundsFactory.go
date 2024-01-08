@@ -228,9 +228,9 @@ func (fct *factory) generateSignatureSubround() error {
 
 	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
-		fct.worker.Extend,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
+		fct.worker,
 	)
 	if err != nil {
 		return err
