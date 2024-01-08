@@ -15,8 +15,28 @@ type EsdtStorageHandlerStub struct {
 	GetESDTNFTTokenOnDestinationCalled                        func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
 	GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, systemAccount vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error)
 	WasAlreadySentToDestinationShardAndUpdateStateCalled      func(tickerID []byte, nonce uint64, dstAddress []byte) (bool, error)
-	SaveNFTMetaDataToSystemAccountCalled                      func(tx data.TransactionHandler) error
+	SaveNFTMetaDataCalled                                     func(tx data.TransactionHandler) error
 	AddToLiquiditySystemAccCalled                             func(esdtTokenKey []byte, nonce uint64, transferValue *big.Int) error
+	SaveMetaDataToSystemAccountCalled                         func(tokenKey []byte, nonce uint64, esdtData *esdt.ESDigitalToken) error
+	GetMetaDataFromSystemAccountCalled                        func(bytes []byte, u uint64) (*esdt.MetaData, error)
+}
+
+// SaveMetaDataToSystemAccount -
+func (e *EsdtStorageHandlerStub) SaveMetaDataToSystemAccount(tokenKey []byte, nonce uint64, esdtData *esdt.ESDigitalToken) error {
+	if e.SaveMetaDataToSystemAccountCalled != nil {
+		return e.SaveMetaDataToSystemAccountCalled(tokenKey, nonce, esdtData)
+	}
+
+	return nil
+}
+
+// GetMetaDataFromSystemAccount -
+func (e *EsdtStorageHandlerStub) GetMetaDataFromSystemAccount(bytes []byte, u uint64) (*esdt.MetaData, error) {
+	if e.GetMetaDataFromSystemAccountCalled != nil {
+		return e.GetMetaDataFromSystemAccountCalled(bytes, u)
+	}
+
+	return nil, nil
 }
 
 // SaveESDTNFTToken -
@@ -64,10 +84,10 @@ func (e *EsdtStorageHandlerStub) WasAlreadySentToDestinationShardAndUpdateState(
 	return false, nil
 }
 
-// SaveNFTMetaDataToSystemAccount -
-func (e *EsdtStorageHandlerStub) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
-	if e.SaveNFTMetaDataToSystemAccountCalled != nil {
-		return e.SaveNFTMetaDataToSystemAccountCalled(tx)
+// SaveNFTMetaData -
+func (e *EsdtStorageHandlerStub) SaveNFTMetaData(tx data.TransactionHandler) error {
+	if e.SaveNFTMetaDataCalled != nil {
+		return e.SaveNFTMetaDataCalled(tx)
 	}
 
 	return nil
