@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -359,7 +360,7 @@ func TestInitMetrics(t *testing.T) {
 			return 0
 		},
 	}
-	nodesSetup := &testscommon.NodesSetupStub{
+	nodesSetup := &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return 63
 		},
