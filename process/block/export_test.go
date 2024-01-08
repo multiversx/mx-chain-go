@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -564,24 +565,17 @@ func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.setNonceOfFirstCommittedBlock(nonce)
 }
 
-// HdrForBlock -
-type HdrForBlock interface {
-	InitMaps()
-	Clone() *hdrForBlock
-	SetNumMissingHdrs(num uint32)
-	SetNumMissingFinalityAttestingHdrs(num uint32)
-	SetHighestHdrNonce(shardId uint32, nonce uint64)
-	SetHdrHashAndInfo(hash string, info *HdrInfo)
-	GetHdrHashMap() map[string]data.HeaderHandler
-	GetHighestHdrNonce() map[uint32]uint64
-	GetMissingHdrs() uint32
-	GetMissingFinalityAttestingHdrs() uint32
-	GetHdrHashAndInfo() map[string]*HdrInfo
-}
-
 // GetHdrForBlock -
 func (mp *metaProcessor) GetHdrForBlock() *hdrForBlock {
 	return mp.hdrsForCurrBlock
+}
+
+func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
+	return mp.chRcvAllHdrs
+}
+
+func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
+	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
 // InitMaps -

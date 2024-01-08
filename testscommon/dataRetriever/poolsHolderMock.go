@@ -142,6 +142,10 @@ func (holder *PoolsHolderMock) Headers() dataRetriever.HeadersPool {
 	return holder.headers
 }
 
+func(holder *PoolsHolderMock) SetHeadersPool(headersPool dataRetriever.HeadersPool) {
+	holder.headers = headersPool
+}
+
 // MiniBlocks -
 func (holder *PoolsHolderMock) MiniBlocks() storage.Cacher {
 	return holder.miniBlocks
