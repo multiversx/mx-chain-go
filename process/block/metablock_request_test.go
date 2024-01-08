@@ -443,7 +443,10 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		mp.ReceivedShardHeader(td[1].attestationHeaderData.header, td[1].attestationHeaderData.headerHash)
 		wg.Wait()
 
-		require.Equal(t, uint32(2), numCalls.Load())
+		time.Sleep(100 * time.Millisecond)
+		// the receive of an attestation header, if not the last one, will trigger a new request of missing attestation headers
+		// TODO: refactor request logic to not request recently already requested headers
+		require.Equal(t, uint32(3), numCalls.Load())
 		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
 	})
 }
