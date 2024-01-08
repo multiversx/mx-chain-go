@@ -800,10 +800,9 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		SnapshotsEnabled:                e.flagsConfig.SnapshotsEnabled,
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		e.nodeProcessingMode,
-		e.stateStatsHandler,
+		NodeProcessingMode:              e.nodeProcessingMode,
+		StateStatsHandler:               e.stateStatsHandler,
 	}
 	storageHandlerComponent, err := NewMetaStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -973,10 +972,9 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		SnapshotsEnabled:                e.flagsConfig.SnapshotsEnabled,
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		e.nodeProcessingMode,
-		e.stateStatsHandler,
+		NodeProcessingMode:              e.nodeProcessingMode,
+		StateStatsHandler:               e.stateStatsHandler,
 	}
 	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {

@@ -1275,16 +1275,12 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		list := state.NewShardValidatorsInfoMap()
-		_ = list.Add(thirdValidator)
-		_ = list.Add(secondValidator)
-		_ = list.Add(firstValidator)
+		list := []state.ValidatorInfoHandler{thirdValidator, secondValidator, firstValidator}
+		vic.sortValidators(list)
 
-		vic.sortValidators(list.GetAllValidatorsInfo())
-
-		assert.Equal(t, list.GetAllValidatorsInfo()[0], secondValidator) // order not changed for the ones with same public key
-		assert.Equal(t, list.GetAllValidatorsInfo()[1], firstValidator)
-		assert.Equal(t, list.GetAllValidatorsInfo()[2], thirdValidator)
+		assert.Equal(t, list[0], secondValidator) // order not changed for the ones with same public key
+		assert.Equal(t, list[1], firstValidator)
+		assert.Equal(t, list[2], thirdValidator)
 	})
 	t.Run("deterministic sort should change order taking into consideration all fields", func(t *testing.T) {
 		t.Parallel()
@@ -1297,16 +1293,12 @@ func TestValidatorInfoCreator_sortValidators(t *testing.T) {
 		}
 		vic, _ := NewValidatorInfoCreator(arguments)
 
-		list := state.NewShardValidatorsInfoMap()
-		_ = list.Add(thirdValidator)
-		_ = list.Add(secondValidator)
-		_ = list.Add(firstValidator)
+		list := []state.ValidatorInfoHandler{thirdValidator, secondValidator, firstValidator}
+		vic.sortValidators(list)
 
-		vic.sortValidators(list.GetAllValidatorsInfo())
-
-		assert.Equal(t, list.GetAllValidatorsInfo()[0], firstValidator) // proper sorting
-		assert.Equal(t, list.GetAllValidatorsInfo()[1], secondValidator)
-		assert.Equal(t, list.GetAllValidatorsInfo()[2], thirdValidator)
+		assert.Equal(t, list[0], firstValidator) // proper sorting
+		assert.Equal(t, list[1], secondValidator)
+		assert.Equal(t, list[2], thirdValidator)
 	})
 }
 

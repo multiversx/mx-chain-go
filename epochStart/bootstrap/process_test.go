@@ -87,7 +87,12 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				StakingV4Step2EnableEpochField: 99999,
+				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+					if flag == common.StakingV4Step2Flag {
+						return 99999
+					}
+					return 0
+				},
 			},
 		},
 		&mock.CryptoComponentsMock{
@@ -116,7 +121,7 @@ func createMockEpochStartBootstrapArgs(
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
 			}},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-		FullArchiveMessenger: &p2pmocks.MessengerStub{},
+		FullArchiveMessenger:            &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
 			MiniBlocksStorage:               generalCfg.MiniBlocksStorage,
 			PeerBlockBodyStorage:            generalCfg.PeerBlockBodyStorage,

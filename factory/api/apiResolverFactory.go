@@ -470,12 +470,12 @@ func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBl
 		Marshalizer:         args.coreComponents.InternalMarshalizer(),
 		SystemSCConfig:      args.systemSCConfig,
 		ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
-		UserAccountsDB:      args.stateComponents.AccountsAdapterAPI(),	ChanceComputer:      args.coreComponents.Rater(),
-			ShardCoordinator:    args.processComponents.ShardCoordinator(),
-			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-			NodesCoordinator:    args.processComponents.NodesCoordinator(),
-		}
-		vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
+		UserAccountsDB:      args.stateComponents.AccountsAdapterAPI(), ChanceComputer: args.coreComponents.Rater(),
+		ShardCoordinator:    args.processComponents.ShardCoordinator(),
+		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		NodesCoordinator:    args.processComponents.NodesCoordinator(),
+	}
+	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
 	if err != nil {
 		return nil, nil, err
 	}
