@@ -42,26 +42,7 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 		numCallsMissingAttestation := atomic.Uint32{}
 		numCallsMissingHeaders := atomic.Uint32{}
 		arguments := createMetaProcessorArguments(t, noOfShards)
-		requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
-		require.True(t, ok)
-
-		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
-			attestationNonce := td[shardID].attestationHeaderData.header.GetNonce()
-			if nonce != attestationNonce {
-				require.Fail(t, fmt.Sprintf("nonce should have been %d", attestationNonce))
-			}
-			numCallsMissingAttestation.Add(1)
-		}
-		requestHandler.RequestShardHeaderCalled = func(shardID uint32, hash []byte) {
-			for _, sh := range metaBlock.ShardInfo {
-				if bytes.Equal(sh.HeaderHash, hash) && sh.ShardID == shardID {
-					numCallsMissingHeaders.Add(1)
-					return
-				}
-			}
-
-			require.Fail(t, fmt.Sprintf("header hash %s not found in meta block", hash))
-		}
+		updateRequestsHandlerForCountingRequests(t, arguments, td, metaBlock, &numCallsMissingHeaders, &numCallsMissingAttestation)
 
 		mp, err := blockProcess.NewMetaProcessor(*arguments)
 		require.Nil(t, err)
@@ -81,19 +62,154 @@ func TestMetaProcessor_computeExistingAndRequestMissingShardHeaders(t *testing.T
 	})
 	t.Run("one referenced shard header present and one missing", func(t *testing.T) {
 		t.Parallel()
+		referencedHeaders := []*shardHeaderData{td[0].referencedHeaderData, td[1].referencedHeaderData}
+		shardInfo := createShardInfo(referencedHeaders)
+		metaBlock := &block.MetaBlock{
+			ShardInfo: shardInfo,
+		}
 
+		numCallsMissingAttestation := atomic.Uint32{}
+		numCallsMissingHeaders := atomic.Uint32{}
+		arguments := createMetaProcessorArguments(t, noOfShards)
+		poolsHolder, ok := arguments.DataComponents.Datapool().(*dataRetrieverMock.PoolsHolderMock)
+		require.True(t, ok)
+
+		headersPoolStub := createPoolsHolderForHeaderRequests()
+		poolsHolder.SetHeadersPool(headersPoolStub)
+		updateRequestsHandlerForCountingRequests(t, arguments, td, metaBlock, &numCallsMissingHeaders, &numCallsMissingAttestation)
+
+		mp, err := blockProcess.NewMetaProcessor(*arguments)
+		require.Nil(t, err)
+		require.NotNil(t, mp)
+
+		headersPool := mp.GetDataPool().Headers()
+		// adding the existing header
+		headersPool.AddHeader(td[0].referencedHeaderData.headerHash, td[0].referencedHeaderData.header)
+		numMissing, numAttestationMissing := mp.ComputeExistingAndRequestMissingShardHeaders(metaBlock)
+		time.Sleep(100 * time.Millisecond)
+		headersForBlock := mp.GetHdrForBlock()
+		require.Equal(t, uint32(1), numMissing)
+		require.Equal(t, uint32(1), headersForBlock.GetMissingHdrs())
+		// before receiving all missing headers referenced in metaBlock, the number of missing attestations is not updated
+		require.Equal(t, uint32(0), numAttestationMissing)
+		require.Equal(t, uint32(0), headersForBlock.GetMissingFinalityAttestingHdrs())
+		require.Len(t, headersForBlock.GetHdrHashAndInfo(), 2)
+		require.Equal(t, uint32(0), numCallsMissingAttestation.Load())
+		require.Equal(t, uint32(1), numCallsMissingHeaders.Load())
 	})
 	t.Run("all referenced shard headers present, all attestation headers missing", func(t *testing.T) {
 		t.Parallel()
+		referencedHeaders := []*shardHeaderData{td[0].referencedHeaderData, td[1].referencedHeaderData}
+		shardInfo := createShardInfo(referencedHeaders)
+		metaBlock := &block.MetaBlock{
+			ShardInfo: shardInfo,
+		}
 
+		numCallsMissingAttestation := atomic.Uint32{}
+		numCallsMissingHeaders := atomic.Uint32{}
+		arguments := createMetaProcessorArguments(t, noOfShards)
+		poolsHolder, ok := arguments.DataComponents.Datapool().(*dataRetrieverMock.PoolsHolderMock)
+		require.True(t, ok)
+
+		headersPoolStub := createPoolsHolderForHeaderRequests()
+		poolsHolder.SetHeadersPool(headersPoolStub)
+		updateRequestsHandlerForCountingRequests(t, arguments, td, metaBlock, &numCallsMissingHeaders, &numCallsMissingAttestation)
+
+		mp, err := blockProcess.NewMetaProcessor(*arguments)
+		require.Nil(t, err)
+		require.NotNil(t, mp)
+
+		headersPool := mp.GetDataPool().Headers()
+		// adding the existing headers
+		headersPool.AddHeader(td[0].referencedHeaderData.headerHash, td[0].referencedHeaderData.header)
+		headersPool.AddHeader(td[1].referencedHeaderData.headerHash, td[1].referencedHeaderData.header)
+		numMissing, numAttestationMissing := mp.ComputeExistingAndRequestMissingShardHeaders(metaBlock)
+		time.Sleep(100 * time.Millisecond)
+		headersForBlock := mp.GetHdrForBlock()
+		require.Equal(t, uint32(0), numMissing)
+		require.Equal(t, uint32(0), headersForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(2), numAttestationMissing)
+		require.Equal(t, uint32(2), headersForBlock.GetMissingFinalityAttestingHdrs())
+		require.Len(t, headersForBlock.GetHdrHashAndInfo(), 2)
+		require.Equal(t, uint32(2), numCallsMissingAttestation.Load())
+		require.Equal(t, uint32(0), numCallsMissingHeaders.Load())
 	})
 	t.Run("all referenced shard headers present, one attestation header missing", func(t *testing.T) {
 		t.Parallel()
+		referencedHeaders := []*shardHeaderData{td[0].referencedHeaderData, td[1].referencedHeaderData}
+		shardInfo := createShardInfo(referencedHeaders)
+		metaBlock := &block.MetaBlock{
+			ShardInfo: shardInfo,
+		}
 
+		numCallsMissingAttestation := atomic.Uint32{}
+		numCallsMissingHeaders := atomic.Uint32{}
+		arguments := createMetaProcessorArguments(t, noOfShards)
+		poolsHolder, ok := arguments.DataComponents.Datapool().(*dataRetrieverMock.PoolsHolderMock)
+		require.True(t, ok)
+
+		headersPoolStub := createPoolsHolderForHeaderRequests()
+		poolsHolder.SetHeadersPool(headersPoolStub)
+		updateRequestsHandlerForCountingRequests(t, arguments, td, metaBlock, &numCallsMissingHeaders, &numCallsMissingAttestation)
+
+		mp, err := blockProcess.NewMetaProcessor(*arguments)
+		require.Nil(t, err)
+		require.NotNil(t, mp)
+
+		headersPool := mp.GetDataPool().Headers()
+		// adding the existing headers
+		headersPool.AddHeader(td[0].referencedHeaderData.headerHash, td[0].referencedHeaderData.header)
+		headersPool.AddHeader(td[1].referencedHeaderData.headerHash, td[1].referencedHeaderData.header)
+		headersPool.AddHeader(td[0].attestationHeaderData.headerHash, td[0].attestationHeaderData.header)
+		numMissing, numAttestationMissing := mp.ComputeExistingAndRequestMissingShardHeaders(metaBlock)
+		time.Sleep(100 * time.Millisecond)
+		headersForBlock := mp.GetHdrForBlock()
+		require.Equal(t, uint32(0), numMissing)
+		require.Equal(t, uint32(0), headersForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(1), numAttestationMissing)
+		require.Equal(t, uint32(1), headersForBlock.GetMissingFinalityAttestingHdrs())
+		require.Len(t, headersForBlock.GetHdrHashAndInfo(), 3)
+		require.Equal(t, uint32(1), numCallsMissingAttestation.Load())
+		require.Equal(t, uint32(0), numCallsMissingHeaders.Load())
 	})
 	t.Run("all referenced shard headers present, all attestation headers present", func(t *testing.T) {
 		t.Parallel()
+		referencedHeaders := []*shardHeaderData{td[0].referencedHeaderData, td[1].referencedHeaderData}
+		shardInfo := createShardInfo(referencedHeaders)
+		metaBlock := &block.MetaBlock{
+			ShardInfo: shardInfo,
+		}
 
+		numCallsMissingAttestation := atomic.Uint32{}
+		numCallsMissingHeaders := atomic.Uint32{}
+		arguments := createMetaProcessorArguments(t, noOfShards)
+		poolsHolder, ok := arguments.DataComponents.Datapool().(*dataRetrieverMock.PoolsHolderMock)
+		require.True(t, ok)
+
+		headersPoolStub := createPoolsHolderForHeaderRequests()
+		poolsHolder.SetHeadersPool(headersPoolStub)
+		updateRequestsHandlerForCountingRequests(t, arguments, td, metaBlock, &numCallsMissingHeaders, &numCallsMissingAttestation)
+
+		mp, err := blockProcess.NewMetaProcessor(*arguments)
+		require.Nil(t, err)
+		require.NotNil(t, mp)
+
+		headersPool := mp.GetDataPool().Headers()
+		// adding the existing headers
+		headersPool.AddHeader(td[0].referencedHeaderData.headerHash, td[0].referencedHeaderData.header)
+		headersPool.AddHeader(td[1].referencedHeaderData.headerHash, td[1].referencedHeaderData.header)
+		headersPool.AddHeader(td[0].attestationHeaderData.headerHash, td[0].attestationHeaderData.header)
+		headersPool.AddHeader(td[1].attestationHeaderData.headerHash, td[1].attestationHeaderData.header)
+		numMissing, numAttestationMissing := mp.ComputeExistingAndRequestMissingShardHeaders(metaBlock)
+		time.Sleep(100 * time.Millisecond)
+		headersForBlock := mp.GetHdrForBlock()
+		require.Equal(t, uint32(0), numMissing)
+		require.Equal(t, uint32(0), headersForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(0), numAttestationMissing)
+		require.Equal(t, uint32(0), headersForBlock.GetMissingFinalityAttestingHdrs())
+		require.Len(t, headersForBlock.GetHdrHashAndInfo(), 4)
+		require.Equal(t, uint32(0), numCallsMissingAttestation.Load())
+		require.Equal(t, uint32(0), numCallsMissingHeaders.Load())
 	})
 }
 
@@ -498,4 +614,33 @@ func createShardInfo(referencedHeaders []*shardHeaderData) []block.ShardData {
 	}
 
 	return shardData
+}
+
+func updateRequestsHandlerForCountingRequests(
+	t *testing.T,
+	arguments *blockProcess.ArgMetaProcessor,
+	td map[uint32]*shardTestData,
+	metaBlock *block.MetaBlock,
+	numCallsMissingHeaders, numCallsMissingAttestation *atomic.Uint32,
+) {
+	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+	require.True(t, ok)
+
+	requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
+		attestationNonce := td[shardID].attestationHeaderData.header.GetNonce()
+		if nonce != attestationNonce {
+			require.Fail(t, fmt.Sprintf("nonce should have been %d", attestationNonce))
+		}
+		numCallsMissingAttestation.Add(1)
+	}
+	requestHandler.RequestShardHeaderCalled = func(shardID uint32, hash []byte) {
+		for _, sh := range metaBlock.ShardInfo {
+			if bytes.Equal(sh.HeaderHash, hash) && sh.ShardID == shardID {
+				numCallsMissingHeaders.Add(1)
+				return
+			}
+		}
+
+		require.Fail(t, fmt.Sprintf("header hash %s not found in meta block", hash))
+	}
 }
