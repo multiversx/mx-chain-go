@@ -498,7 +498,8 @@ func (sr *subroundBlock) verifyPreviousBlockProof() bool {
 	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
 	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
 	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
-	if isFlagEnabled && !hasProof {
+	isHeaderForOlderEpoch := sr.Header.GetEpoch() < sr.EnableEpochsHandler().GetCurrentEpoch()
+	if isFlagEnabled && !hasProof && !isHeaderForOlderEpoch {
 		log.Debug("received header without proof after flag activation")
 		return false
 	}
@@ -506,7 +507,7 @@ func (sr *subroundBlock) verifyPreviousBlockProof() bool {
 		log.Debug("received header with proof before flag activation")
 		return false
 	}
-	if isFlagEnabled && !hasLeaderSignature {
+	if isFlagEnabled && !hasLeaderSignature && !isHeaderForOlderEpoch {
 		log.Debug("received header without leader signature after flag activation")
 		return false
 	}
