@@ -209,7 +209,7 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		nbShards:                args.NbShards,
 		distributor:             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
-		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists.IsSet(),
+		flagBalanceWaitingLists: rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.BalanceWaitingListsFlag, args.Epoch),
 		flagStakingV4Step2:      rhs.flagStakingV4Step2.IsSet(),
 		flagStakingV4Step3:      rhs.flagStakingV4Step3.IsSet(),
 		maxNumNodes:             rhs.activeNodesConfig.MaxNumNodes,
