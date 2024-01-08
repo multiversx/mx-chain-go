@@ -825,18 +825,6 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 	return equivalentMessagesCopy
 }
 
-// SaveProposedEquivalentMessage saves the proposed equivalent message
-func (wrk *Worker) SaveProposedEquivalentMessage(hash string, proof data.HeaderProof) {
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
-
-	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
-		NumMessages: 1,
-		Validated:   true,
-		Proof:       proof,
-	}
-}
-
 // HasEquivalentMessage returns true if an equivalent message was received before
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 	wrk.mutEquivalentMessages.RLock()

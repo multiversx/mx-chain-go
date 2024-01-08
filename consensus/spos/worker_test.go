@@ -1979,27 +1979,3 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		require.Equal(t, msg, p2pMsgWithSignature)
 	})
 }
-
-func TestWorker_SaveProposedEquivalentMessage(t *testing.T) {
-	t.Parallel()
-
-	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	workerArgs.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.EquivalentMessagesFlag)
-	wrk, _ := spos.NewWorker(workerArgs)
-
-	providedHash := "provided hash"
-	providedBitmap := []byte("bitmap")
-	providedSig := []byte("sig")
-	proof := data.HeaderProof{
-		AggregatedSignature: providedSig,
-		PubKeysBitmap:       providedBitmap,
-	}
-	wrk.SaveProposedEquivalentMessage(providedHash, proof)
-	equivalentMessages := wrk.GetEquivalentMessages()
-	info, ok := equivalentMessages[providedHash]
-	require.True(t, ok)
-	require.Equal(t, uint64(1), info.NumMessages)
-	require.True(t, info.Validated)
-	require.Equal(t, providedBitmap, info.Proof.PubKeysBitmap)
-	require.Equal(t, providedSig, info.Proof.AggregatedSignature)
-}

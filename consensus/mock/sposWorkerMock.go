@@ -28,7 +28,6 @@ type SposWorkerMock struct {
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 	ResetConsensusMessagesCalled           func()
-	SaveProposedEquivalentMessageCalled    func(hash string, proof data.HeaderProof)
 	HasEquivalentMessageCalled             func(headerHash []byte) bool
 	GetEquivalentProofCalled               func(headerHash []byte) data.HeaderProof
 }
@@ -108,13 +107,6 @@ func (sposWorkerMock *SposWorkerMock) StartWorking() {
 func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
 	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
 		sposWorkerMock.ResetConsensusMessagesCalled()
-	}
-}
-
-// SaveProposedEquivalentMessage -
-func (sposWorkerMock *SposWorkerMock) SaveProposedEquivalentMessage(hash string, proof data.HeaderProof) {
-	if sposWorkerMock.SaveProposedEquivalentMessageCalled != nil {
-		sposWorkerMock.SaveProposedEquivalentMessageCalled(hash, proof)
 	}
 }
 

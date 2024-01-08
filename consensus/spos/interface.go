@@ -142,8 +142,6 @@ type WorkerHandler interface {
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
-	// SaveProposedEquivalentMessage saves the proposed equivalent message
-	SaveProposedEquivalentMessage(hash string, proof data.HeaderProof)
 	// HasEquivalentMessage returns true if an equivalent message was received before
 	HasEquivalentMessage(headerHash []byte) bool
 	// GetEquivalentProof returns the equivalent proof for the provided hash
