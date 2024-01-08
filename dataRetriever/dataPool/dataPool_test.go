@@ -128,7 +128,7 @@ func TestNewDataPool_NilPeerAuthenticationsShouldErr(t *testing.T) {
 	args.PeerAuthentications = nil
 	tdp, err := dataPool.NewDataPool(args)
 
-	assert.Equal(t, dataRetriever.ErrNilPeerAuthenticationPool, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilPeerAuthenticationPool))
 	assert.Nil(t, tdp)
 }
 
@@ -139,7 +139,7 @@ func TestNewDataPool_NilHeartbeatsShouldErr(t *testing.T) {
 	args.Heartbeats = nil
 	tdp, err := dataPool.NewDataPool(args)
 
-	assert.Equal(t, dataRetriever.ErrNilHeartbeatPool, err)
+	assert.True(t, errors.Is(err, dataRetriever.ErrNilHeartbeatPool))
 	assert.Nil(t, tdp)
 }
 
@@ -209,6 +209,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.SmartContracts == tdp.SmartContracts())
 	assert.True(t, args.PeerAuthentications == tdp.PeerAuthentications())
 	assert.True(t, args.Heartbeats == tdp.Heartbeats())
+	assert.True(t, args.ValidatorsInfo == tdp.ValidatorsInfo())
 }
 
 func TestNewDataPool_Close(t *testing.T) {

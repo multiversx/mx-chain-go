@@ -19,6 +19,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -211,7 +213,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
 		lock:                         sync.RWMutex{},
-		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		pubkeyConverter:              testscommon.NewPubkeyConverterMock(32),
 	}
 
 	vsp.updateCache()
@@ -227,7 +229,7 @@ func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
-		cache:                        make(map[string]*state.ValidatorApiResponse),
+		cache:                        make(map[string]*accounts.ValidatorApiResponse),
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
@@ -286,7 +288,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		cache:                        nil,
 		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 nil,
-		pubkeyConverter:              mock.NewPubkeyConverterMock(32),
+		pubkeyConverter:              testscommon.NewPubkeyConverterMock(32),
 		lock:                         sync.RWMutex{},
 	}
 
@@ -294,14 +296,15 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 
 	assert.NotNil(t, vsp.cache)
 	assert.Equal(t, len(validatorsMap[initialShardId]), len(vsp.cache))
-	encodedKey := arg.PubKeyConverter.Encode(pk)
+	encodedKey, err := arg.PubKeyConverter.Encode(pk)
+	assert.Nil(t, err)
 	assert.NotNil(t, vsp.cache[encodedKey])
 	assert.Equal(t, initialList, vsp.cache[encodedKey].ValidatorStatus)
 	assert.Equal(t, initialShardId, vsp.cache[encodedKey].ShardId)
 }
 
 func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
-	pubKeyConverter := mock.NewPubkeyConverterMock(32)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(32)
 	pkInactive := []byte("pk1")
 	trieInctiveShardId := uint32(0)
 	inactiveList := string(common.InactiveList)
@@ -312,13 +315,16 @@ func TestValidatorsProvider_aggregatePType_equal(t *testing.T) {
 	trieLeavingShardId := uint32(2)
 	leavingList := string(common.LeavingList)
 
-	encodedEligible := pubKeyConverter.Encode(pkEligible)
-	encondedInactive := pubKeyConverter.Encode(pkInactive)
-	encodedLeaving := pubKeyConverter.Encode(pkLeaving)
-	cache := make(map[string]*state.ValidatorApiResponse)
-	cache[encondedInactive] = &state.ValidatorApiResponse{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
-	cache[encodedEligible] = &state.ValidatorApiResponse{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
-	cache[encodedLeaving] = &state.ValidatorApiResponse{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
+	encodedEligible, err := pubKeyConverter.Encode(pkEligible)
+	assert.Nil(t, err)
+	encondedInactive, err := pubKeyConverter.Encode(pkInactive)
+	assert.Nil(t, err)
+	encodedLeaving, err := pubKeyConverter.Encode(pkLeaving)
+	assert.Nil(t, err)
+	cache := make(map[string]*accounts.ValidatorApiResponse)
+	cache[encondedInactive] = &accounts.ValidatorApiResponse{ValidatorStatus: inactiveList, ShardId: trieInctiveShardId}
+	cache[encodedEligible] = &accounts.ValidatorApiResponse{ValidatorStatus: eligibleList, ShardId: trieEligibleShardId}
+	cache[encodedLeaving] = &accounts.ValidatorApiResponse{ValidatorStatus: leavingList, ShardId: trieLeavingShardId}
 
 	nodesCoordinatorEligibleShardId := uint32(0)
 	nodesCoordinatorLeavingShardId := core.MetachainShardId
@@ -399,7 +405,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		},
 	}
 	arg := createDefaultValidatorsProviderArg()
-	pubKeyConverter := mock.NewPubkeyConverterMock(32)
+	pubKeyConverter := testscommon.NewPubkeyConverterMock(32)
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
@@ -413,22 +419,26 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 
 	assert.NotNil(t, cache)
 
-	encodedPkEligible := pubKeyConverter.Encode(pkEligible)
+	encodedPkEligible, err := pubKeyConverter.Encode(pkEligible)
+	assert.Nil(t, err)
 	assert.NotNil(t, cache[encodedPkEligible])
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, eligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkWaiting := pubKeyConverter.Encode(pkWaiting)
+	encodedPkWaiting, err := pubKeyConverter.Encode(pkWaiting)
+	assert.Nil(t, err)
 	assert.NotNil(t, cache[encodedPkWaiting])
 	assert.Equal(t, waitingList, cache[encodedPkWaiting].ValidatorStatus)
 	assert.Equal(t, waitingShardId, cache[encodedPkWaiting].ShardId)
 
-	encodedPkLeaving := pubKeyConverter.Encode(pkLeaving)
+	encodedPkLeaving, err := pubKeyConverter.Encode(pkLeaving)
+	assert.Nil(t, err)
 	assert.NotNil(t, cache[encodedPkLeaving])
 	assert.Equal(t, leavingList, cache[encodedPkLeaving].ValidatorStatus)
 	assert.Equal(t, leavingShardId, cache[encodedPkLeaving].ShardId)
 
-	encodedPkNew := pubKeyConverter.Encode(pkNew)
+	encodedPkNew, err := pubKeyConverter.Encode(pkNew)
+	assert.Nil(t, err)
 	assert.NotNil(t, cache[encodedPkNew])
 	assert.Equal(t, newList, cache[encodedPkNew].ValidatorStatus)
 	assert.Equal(t, newShardId, cache[encodedPkNew].ShardId)
@@ -489,12 +499,14 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 
 	cache := vsp.createNewCache(0, validatorsMap)
 
-	encodedPkEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedPkEligible, err := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	assert.Nil(t, err)
 	assert.NotNil(t, cache[encodedPkEligible])
 	assert.Equal(t, eligibleList, cache[encodedPkEligible].ValidatorStatus)
 	assert.Equal(t, nodesCoordinatorEligibleShardId, cache[encodedPkEligible].ShardId)
 
-	encodedPkLeavingInTrie := arg.PubKeyConverter.Encode(pkLeavingInTrie)
+	encodedPkLeavingInTrie, err := arg.PubKeyConverter.Encode(pkLeavingInTrie)
+	assert.Nil(t, err)
 	computedPeerType := fmt.Sprintf(common.CombinedPeerType, common.EligibleList, common.LeavingList)
 	assert.NotNil(t, cache[encodedPkLeavingInTrie])
 	assert.Equal(t, computedPeerType, cache[encodedPkLeavingInTrie].ValidatorStatus)
@@ -571,7 +583,8 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible, err := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	epochStartNotifier.NotifyAll(&block.Header{Nonce: 1, ShardID: 2, Round: 3})
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
@@ -610,7 +623,8 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	arg.ValidatorStatistics = validatorStatisticsProcessor
 
 	vsp, _ := NewValidatorsProvider(arg)
-	encodedEligible := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	encodedEligible, err := arg.PubKeyConverter.Encode(pkEligibleInTrie)
+	assert.Nil(t, err)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
@@ -668,6 +682,6 @@ func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 			},
 		},
 		MaxRating:       100,
-		PubKeyConverter: mock.NewPubkeyConverterMock(32),
+		PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 	}
 }

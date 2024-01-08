@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/heartbeat"
@@ -23,11 +22,12 @@ import (
 
 func createMockArgPeerShardSender() ArgPeerShardSender {
 	return ArgPeerShardSender{
-		Messenger:             &p2pmocks.MessengerStub{},
-		Marshaller:            &marshal.GogoProtoMarshalizer{},
-		ShardCoordinator:      &testscommon.ShardsCoordinatorMock{},
-		TimeBetweenSends:      time.Second,
-		ThresholdBetweenSends: 0.1,
+		MainMessenger:             &p2pmocks.MessengerStub{},
+		FullArchiveMessenger:      &p2pmocks.MessengerStub{},
+		Marshaller:                &marshal.GogoProtoMarshalizer{},
+		ShardCoordinator:          &testscommon.ShardsCoordinatorMock{},
+		TimeBetweenSends:          time.Second,
+		TimeThresholdBetweenSends: 0.1,
 		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{
 			GetValidatorWithPublicKeyCalled: func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error) {
 				return nil, 0, errors.New("the node is an observer")
@@ -39,15 +39,25 @@ func createMockArgPeerShardSender() ArgPeerShardSender {
 func TestNewPeerShardSender(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil messenger should error", func(t *testing.T) {
+	t.Run("nil main messenger should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerShardSender()
-		args.Messenger = nil
+		args.MainMessenger = nil
 
 		pss, err := NewPeerShardSender(args)
-		assert.Equal(t, process.ErrNilMessenger, err)
-		assert.True(t, check.IfNil(pss))
+		assert.True(t, errors.Is(err, process.ErrNilMessenger))
+		assert.Nil(t, pss)
+	})
+	t.Run("nil full archive messenger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgPeerShardSender()
+		args.FullArchiveMessenger = nil
+
+		pss, err := NewPeerShardSender(args)
+		assert.True(t, errors.Is(err, process.ErrNilMessenger))
+		assert.Nil(t, pss)
 	})
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
@@ -57,7 +67,7 @@ func TestNewPeerShardSender(t *testing.T) {
 
 		pss, err := NewPeerShardSender(args)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
-		assert.True(t, check.IfNil(pss))
+		assert.Nil(t, pss)
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
@@ -67,7 +77,7 @@ func TestNewPeerShardSender(t *testing.T) {
 
 		pss, err := NewPeerShardSender(args)
 		assert.Equal(t, process.ErrNilShardCoordinator, err)
-		assert.True(t, check.IfNil(pss))
+		assert.Nil(t, pss)
 	})
 	t.Run("invalid time between sends should error", func(t *testing.T) {
 		t.Parallel()
@@ -78,18 +88,18 @@ func TestNewPeerShardSender(t *testing.T) {
 		pss, err := NewPeerShardSender(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
 		assert.True(t, strings.Contains(err.Error(), "TimeBetweenSends"))
-		assert.True(t, check.IfNil(pss))
+		assert.Nil(t, pss)
 	})
 	t.Run("invalid threshold between sends should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerShardSender()
-		args.ThresholdBetweenSends = 0
+		args.TimeThresholdBetweenSends = 0
 
 		pss, err := NewPeerShardSender(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrInvalidThreshold))
-		assert.True(t, strings.Contains(err.Error(), "ThresholdBetweenSends"))
-		assert.True(t, check.IfNil(pss))
+		assert.True(t, strings.Contains(err.Error(), "TimeThresholdBetweenSends"))
+		assert.Nil(t, pss)
 	})
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {
 		t.Parallel()
@@ -99,14 +109,14 @@ func TestNewPeerShardSender(t *testing.T) {
 
 		pss, err := NewPeerShardSender(args)
 		assert.True(t, errors.Is(err, heartbeat.ErrNilNodesCoordinator))
-		assert.True(t, check.IfNil(pss))
+		assert.Nil(t, pss)
 	})
 	t.Run("should work and validator should not broadcast", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgPeerShardSender()
 		wasCalled := false
-		args.Messenger = &p2pmocks.MessengerStub{
+		args.MainMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				wasCalled = true
 			},
@@ -119,7 +129,7 @@ func TestNewPeerShardSender(t *testing.T) {
 		args.TimeBetweenSends = 2 * time.Second
 
 		pss, _ := NewPeerShardSender(args)
-		assert.False(t, check.IfNil(pss))
+		assert.NotNil(t, pss)
 
 		time.Sleep(3 * time.Second)
 		_ = pss.Close()
@@ -131,7 +141,17 @@ func TestNewPeerShardSender(t *testing.T) {
 		args := createMockArgPeerShardSender()
 		expectedShard := fmt.Sprintf("%d", args.ShardCoordinator.SelfId())
 		numOfCalls := uint32(0)
-		args.Messenger = &p2pmocks.MessengerStub{
+		args.MainMessenger = &p2pmocks.MessengerStub{
+			BroadcastCalled: func(topic string, buff []byte) {
+				shardInfo := &factory.PeerShard{}
+				err := args.Marshaller.Unmarshal(shardInfo, buff)
+				assert.Nil(t, err)
+				assert.Equal(t, expectedShard, shardInfo.ShardId)
+				assert.Equal(t, common.ConnectionTopic, topic)
+				atomic.AddUint32(&numOfCalls, 1)
+			},
+		}
+		args.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			BroadcastCalled: func(topic string, buff []byte) {
 				shardInfo := &factory.PeerShard{}
 				err := args.Marshaller.Unmarshal(shardInfo, buff)
@@ -144,10 +164,20 @@ func TestNewPeerShardSender(t *testing.T) {
 		args.TimeBetweenSends = 2 * time.Second
 
 		pss, _ := NewPeerShardSender(args)
-		assert.False(t, check.IfNil(pss))
+		assert.NotNil(t, pss)
 
 		time.Sleep(3 * time.Second)
 		_ = pss.Close()
-		assert.Equal(t, uint32(1), atomic.LoadUint32(&numOfCalls))
+		assert.Equal(t, uint32(2), atomic.LoadUint32(&numOfCalls)) // one call for each messenger
 	})
+}
+
+func TestPeerShardSender_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var pss *peerShardSender
+	assert.True(t, pss.IsInterfaceNil())
+
+	pss, _ = NewPeerShardSender(createMockArgPeerShardSender())
+	assert.False(t, pss.IsInterfaceNil())
 }

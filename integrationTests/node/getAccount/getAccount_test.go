@@ -53,7 +53,8 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	encodedAddress := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	encodedAddress, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
+	require.Nil(t, err)
 	recovAccnt, _, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
@@ -92,7 +93,8 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	testAddress := coreComponents.AddressPubKeyConverter().Encode(testPubkey)
+	testAddress, err := coreComponents.AddressPubKeyConverter().Encode(testPubkey)
+	require.Nil(t, err)
 	recovAccnt, _, err := n.GetAccount(testAddress, api.AccountQueryOptions{})
 
 	require.Nil(t, err)

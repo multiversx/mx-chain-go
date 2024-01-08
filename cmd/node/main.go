@@ -63,7 +63,8 @@ func main() {
 	app.Name = "MultiversX Node CLI App"
 	machineID := core.GetAnonymizedMachineID(app.Name)
 
-	app.Version = fmt.Sprintf("%s/%s/%s-%s/%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH, machineID)
+	baseVersion := fmt.Sprintf("%s/%s/%s-%s", appVersion, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+	app.Version = fmt.Sprintf("%s/%s", baseVersion, machineID)
 	app.Usage = "This is the entry point for starting a new MultiversX node - the app will start after the genesis timestamp"
 	app.Flags = getFlags()
 	app.Authors = []cli.Author{
@@ -74,7 +75,7 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
-		return startNodeRunner(c, log, app.Version)
+		return startNodeRunner(c, log, baseVersion, app.Version)
 	}
 
 	err := app.Run(os.Args)
@@ -84,7 +85,7 @@ func main() {
 	}
 }
 
-func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
+func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) error {
 	flagsConfig := getFlagsConfig(c, log)
 
 	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
@@ -125,6 +126,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, version string) error {
 		log.Debug("initialized memory ballast object", "size", core.ConvertBytes(uint64(len(memoryBallastObject))))
 	}
 
+	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)
@@ -199,12 +201,19 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.External)
 
-	configurationPaths.P2p = ctx.GlobalString(p2pConfigurationFile.Name)
-	p2pConfig, err := common.LoadP2PConfig(configurationPaths.P2p)
+	configurationPaths.MainP2p = ctx.GlobalString(p2pConfigurationFile.Name)
+	mainP2PConfig, err := common.LoadP2PConfig(configurationPaths.MainP2p)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationPaths.P2p)
+	log.Debug("config", "file", configurationPaths.MainP2p)
+
+	configurationPaths.FullArchiveP2p = ctx.GlobalString(fullArchiveP2PConfigurationFile.Name)
+	fullArchiveP2PConfig, err := common.LoadP2PConfig(configurationPaths.FullArchiveP2p)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.FullArchiveP2p)
 
 	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
 	epochConfig, err := common.LoadEpochConfig(configurationPaths.Epoch)
@@ -221,7 +230,10 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	log.Debug("config", "file", configurationPaths.RoundActivation)
 
 	if ctx.IsSet(port.Name) {
-		p2pConfig.Node.Port = ctx.GlobalString(port.Name)
+		mainP2PConfig.Node.Port = ctx.GlobalString(port.Name)
+	}
+	if ctx.IsSet(fullArchivePort.Name) {
+		fullArchiveP2PConfig.Node.Port = ctx.GlobalString(fullArchivePort.Name)
 	}
 	if ctx.IsSet(destinationShardAsObserver.Name) {
 		preferencesConfig.Preferences.DestinationShardAsObserver = ctx.GlobalString(destinationShardAsObserver.Name)
@@ -241,7 +253,8 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		RatingsConfig:            ratingsConfig,
 		PreferencesConfig:        preferencesConfig,
 		ExternalConfig:           externalConfig,
-		P2pConfig:                p2pConfig,
+		MainP2pConfig:            mainP2PConfig,
+		FullArchiveP2pConfig:     fullArchiveP2PConfig,
 		ConfigurationPathsHolder: configurationPaths,
 		EpochConfig:              epochConfig,
 		RoundConfig:              roundConfig,
@@ -253,7 +266,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	var err error
 	if flagsConfig.SaveLogFile {
 		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.WorkingDir,
+			WorkingDir:      flagsConfig.LogsDir,
 			DefaultLogsPath: defaultLogsPath,
 			LogFilePrefix:   logFilePrefix,
 		}

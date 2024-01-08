@@ -3,8 +3,8 @@ package process
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/state"
@@ -63,14 +63,14 @@ func TestExportUserAccountState(t *testing.T) {
 	})
 	t.Run("test files are produced", func(t *testing.T) {
 		tempDir := t.TempDir()
-		contents, errReadDir := ioutil.ReadDir(tempDir)
+		contents, errReadDir := os.ReadDir(tempDir)
 		require.Nil(t, errReadDir)
 		assert.Zero(t, len(contents))
 
 		errExport := ExportUserAccountState(accounts, "", address, tempDir)
 		require.Nil(t, errExport)
 
-		contents, errReadDir = ioutil.ReadDir(tempDir)
+		contents, errReadDir = os.ReadDir(tempDir)
 		require.Nil(t, errReadDir)
 		assert.Equal(t, 2, len(contents))
 	})

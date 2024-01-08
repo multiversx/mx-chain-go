@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,7 +27,7 @@ func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthentica
 	return processor.ArgPeerAuthenticationInterceptorProcessor{
 		PeerAuthenticationCacher: testscommon.NewCacherStub(),
 		PeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
-		Marshaller:               testscommon.MarshalizerMock{},
+		Marshaller:               marshallerMock.MarshalizerMock{},
 		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
 }
@@ -149,7 +150,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 
 		expectedError := errors.New("expected error")
 		args := createPeerAuthenticationInterceptorProcessArg()
-		args.Marshaller = &testscommon.MarshalizerStub{
+		args.Marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedError
 			},

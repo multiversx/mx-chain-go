@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,9 +20,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 
 	return StorageServiceFactoryArgs{
 		Config: config.Config{
-			StateTriesConfig: config.StateTriesConfig{
-				SnapshotsEnabled: true,
-			},
+			StateTriesConfig: config.StateTriesConfig{},
 			StoragePruning: config.StoragePruningConfig{
 				Enabled:                    true,
 				NumActivePersisters:        3,
@@ -75,6 +74,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 		StorageType:                   ProcessStorageService,
 		CurrentEpoch:                  0,
 		CreateTrieEpochRootHashStorer: true,
+		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -446,20 +446,6 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		expectedStorers := 25 // we still have a storer for trie epoch root hash
-		assert.Equal(t, expectedStorers, len(allStorers))
-		_ = storageService.CloseAll()
-	})
-	t.Run("should work if the snapshots are not enabled", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgument(t)
-		args.Config.StateTriesConfig.SnapshotsEnabled = false
-		storageServiceFactory, _ := NewStorageServiceFactory(args)
-		storageService, err := storageServiceFactory.CreateForShard()
-		assert.Nil(t, err)
-		assert.False(t, check.IfNil(storageService))
-		allStorers := storageService.GetAllStorers()
-		expectedStorers := 25
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})

@@ -34,13 +34,14 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	ratingsConfig, _ := common.LoadRatingsConfig(configPathsHolder.Ratings)
 	economicsConfig, _ := common.LoadEconomicsConfig(configPathsHolder.Economics)
 	prefsConfig, _ := common.LoadPreferencesConfig(configPathsHolder.Preferences)
-	p2pConfig, _ := common.LoadP2PConfig(configPathsHolder.P2p)
+	mainP2PConfig, _ := common.LoadP2PConfig(configPathsHolder.MainP2p)
+	fullArchiveP2PConfig, _ := common.LoadP2PConfig(configPathsHolder.FullArchiveP2p)
 	externalConfig, _ := common.LoadExternalConfig(configPathsHolder.External)
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
 	roundConfig, _ := common.LoadRoundConfig(configPathsHolder.RoundActivation)
 
-	p2pConfig.KadDhtPeerDiscovery.Enabled = false
+	mainP2PConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
 	prefsConfig.Preferences.ConnectionWatcherType = p2p.ConnectionWatcherTypePrint
 
@@ -50,14 +51,18 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.EconomicsConfig = economicsConfig
 	configs.SystemSCConfig = systemSCConfig
 	configs.PreferencesConfig = prefsConfig
-	configs.P2pConfig = p2pConfig
+	configs.MainP2pConfig = mainP2PConfig
+	configs.FullArchiveP2pConfig = fullArchiveP2PConfig
 	configs.ExternalConfig = externalConfig
 	configs.EpochConfig = epochConfig
 	configs.RoundConfig = roundConfig
 	configs.FlagsConfig = &config.ContextFlagsConfig{
-		WorkingDir: tb.TempDir(),
-		UseLogView: true,
-		Version:    Version,
+		WorkingDir:  tb.TempDir(),
+		DbDir:       "dbDir",
+		LogsDir:     "logsDir",
+		UseLogView:  true,
+		BaseVersion: BaseVersion,
+		Version:     Version,
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
 	configs.ImportDbConfig = &config.ImportDbConfig{}
@@ -76,7 +81,8 @@ func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
 		Economics:                concatPath(EconomicsPath),
 		Preferences:              concatPath(PrefsPath),
 		External:                 concatPath(ExternalPath),
-		P2p:                      concatPath(P2pPath),
+		MainP2p:                  concatPath(MainP2pPath),
+		FullArchiveP2p:           concatPath(FullArchiveP2pPath),
 		Epoch:                    concatPath(EpochPath),
 		SystemSC:                 concatPath(SystemSCConfigPath),
 		GasScheduleDirectoryName: concatPath(GasSchedule),

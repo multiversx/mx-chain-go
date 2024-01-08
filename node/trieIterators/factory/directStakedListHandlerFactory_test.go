@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,7 +35,7 @@ func TestCreateDirectStakedListHandlerHandler_DirectStakedListProcessor(t *testi
 			Mutex:           &sync.Mutex{},
 			AccountsAdapter: &stateMock.AccountsStub{},
 		},
-		PublicKeyConverter: &mock.PubkeyConverterMock{},
+		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 

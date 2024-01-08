@@ -6,7 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/machine"
 	"github.com/multiversx/mx-chain-go/config"
-	errErd "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/metrics"
@@ -67,19 +67,10 @@ func NewStatusCoreComponentsFactory(args StatusCoreComponentsFactoryArgs) (*stat
 
 func checkArgs(args StatusCoreComponentsFactoryArgs) error {
 	if check.IfNil(args.CoreComp) {
-		return errErd.ErrNilCoreComponents
+		return errorsMx.ErrNilCoreComponents
 	}
 	if check.IfNil(args.CoreComp.EconomicsData()) {
-		return errErd.ErrNilEconomicsData
-	}
-	if check.IfNil(args.CoreComp.GenesisNodesSetup()) {
-		return errErd.ErrNilGenesisNodesSetupHandler
-	}
-	if check.IfNil(args.CoreComp.InternalMarshalizer()) {
-		return errErd.ErrNilMarshalizer
-	}
-	if check.IfNil(args.CoreComp.Uint64ByteSliceConverter()) {
-		return errErd.ErrNilUint64ByteSliceConverter
+		return errorsMx.ErrNilEconomicsData
 	}
 
 	return nil

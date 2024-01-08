@@ -21,57 +21,40 @@ type ResolverThrottler interface {
 
 // Resolver defines what a data resolver should do
 type Resolver interface {
-	RequestDataFromHash(hash []byte, epoch uint32) error
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	SetNumPeersToQuery(intra int, cross int)
-	NumPeersToQuery() (int, int)
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
+	SetDebugHandler(handler DebugHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }
 
-// TrieNodesResolver defines what a trie nodes resolver should do
-type TrieNodesResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+// Requester defines what a data requester should do
+type Requester interface {
+	RequestDataFromHash(hash []byte, epoch uint32) error
+	SetNumPeersToQuery(intra int, cross int)
+	NumPeersToQuery() (int, int)
+	SetDebugHandler(handler DebugHandler) error
+	IsInterfaceNil() bool
 }
 
 // HeaderResolver defines what a block header resolver should do
 type HeaderResolver interface {
 	Resolver
-	RequestDataFromNonce(nonce uint64, epoch uint32) error
-	RequestDataFromEpoch(identifier []byte) error
 	SetEpochHandler(epochHandler EpochHandler) error
 }
 
-// MiniBlocksResolver defines what a mini blocks resolver should do
-type MiniBlocksResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-}
-
-// PeerAuthenticationResolver defines what a peer authentication resolver should do
-type PeerAuthenticationResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
-}
-
-// ValidatorInfoResolver defines what a validator info resolver should do
-type ValidatorInfoResolver interface {
-	Resolver
-	RequestDataFromHashArray(hashes [][]byte, epoch uint32) error
+// HeaderRequester defines what a block header requester should do
+type HeaderRequester interface {
+	Requester
+	SetEpochHandler(epochHandler EpochHandler) error
 }
 
 // TopicResolverSender defines what sending operations are allowed for a topic resolver
 type TopicResolverSender interface {
-	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
-	Send(buff []byte, peer core.PeerID) error
+	Send(buff []byte, peer core.PeerID, destination p2p.MessageHandler) error
 	RequestTopic() string
 	TargetShardID() uint32
-	SetNumPeersToQuery(intra int, cross int)
-	SetResolverDebugHandler(handler ResolverDebugHandler) error
-	ResolverDebugHandler() ResolverDebugHandler
-	NumPeersToQuery() (int, int)
+	SetDebugHandler(handler DebugHandler) error
+	DebugHandler() DebugHandler
 	IsInterfaceNil() bool
 }
 
@@ -89,18 +72,50 @@ type ResolversContainer interface {
 	IsInterfaceNil() bool
 }
 
-// ResolversFinder extends a container resolver and have 2 additional functionality
-type ResolversFinder interface {
-	ResolversContainer
-	IntraShardResolver(baseTopic string) (Resolver, error)
-	MetaChainResolver(baseTopic string) (Resolver, error)
-	CrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
-	MetaCrossShardResolver(baseTopic string, crossShard uint32) (Resolver, error)
+// RequestersFinder extends a requesters container
+type RequestersFinder interface {
+	RequestersContainer
+	IntraShardRequester(baseTopic string) (Requester, error)
+	MetaChainRequester(baseTopic string) (Requester, error)
+	CrossShardRequester(baseTopic string, crossShard uint32) (Requester, error)
+	MetaCrossShardRequester(baseTopic string, crossShard uint32) (Requester, error)
 }
 
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	IsInterfaceNil() bool
+}
+
+// TopicRequestSender defines what sending operations are allowed for a topic requester
+type TopicRequestSender interface {
+	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
+	SetNumPeersToQuery(intra int, cross int)
+	NumPeersToQuery() (int, int)
+	RequestTopic() string
+	TargetShardID() uint32
+	SetDebugHandler(handler DebugHandler) error
+	DebugHandler() DebugHandler
+	IsInterfaceNil() bool
+}
+
+// RequestersContainer defines a requesters holder data type with basic functionality
+type RequestersContainer interface {
+	Get(key string) (Requester, error)
+	Add(key string, val Requester) error
+	AddMultiple(keys []string, requesters []Requester) error
+	Replace(key string, val Requester) error
+	Remove(key string)
+	Len() int
+	RequesterKeys() string
+	Iterate(handler func(key string, requester Requester) bool)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// RequestersContainerFactory defines the functionality to create a requesters container
+type RequestersContainerFactory interface {
+	Create() (RequestersContainer, error)
 	IsInterfaceNil() bool
 }
 
@@ -120,9 +135,10 @@ type ManualEpochStartNotifier interface {
 // MessageHandler defines the functionality needed by structs to send data to other peers
 type MessageHandler interface {
 	ConnectedPeersOnTopic(topic string) []core.PeerID
-	ConnectedFullHistoryPeersOnTopic(topic string) []core.PeerID
 	SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error
 	ID() core.PeerID
+	ConnectedPeers() []core.PeerID
+	IsConnected(peerID core.PeerID) bool
 	IsInterfaceNil() bool
 }
 
@@ -131,23 +147,6 @@ type TopicHandler interface {
 	HasTopic(name string) bool
 	CreateTopic(name string, createChannelForTopic bool) error
 	RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error
-}
-
-// TopicMessageHandler defines the functionality needed by structs to manage topics, message processors and to send data
-// to other peers
-type TopicMessageHandler interface {
-	MessageHandler
-	TopicHandler
-}
-
-// Messenger defines which methods a p2p messenger should implement
-type Messenger interface {
-	MessageHandler
-	TopicHandler
-	UnregisterMessageProcessor(topic string, identifier string) error
-	UnregisterAllMessageProcessors() error
-	UnjoinAllTopics() error
-	ConnectedPeers() []core.PeerID
 }
 
 // IntRandomizer interface provides functionality over generating integer numbers
@@ -163,7 +162,6 @@ type StorageType uint8
 type PeerListCreator interface {
 	CrossShardPeerList() []core.PeerID
 	IntraShardPeerList() []core.PeerID
-	FullHistoryList() []core.PeerID
 	IsInterfaceNil() bool
 }
 
@@ -311,8 +309,8 @@ type WhiteListHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ResolverDebugHandler defines an interface for debugging the reqested-resolved data
-type ResolverDebugHandler interface {
+// DebugHandler defines an interface for debugging the requested-resolved data
+type DebugHandler interface {
 	LogRequestedData(topic string, hashes [][]byte, numReqIntra int, numReqCross int)
 	LogFailedToResolveData(topic string, hash []byte, err error)
 	LogSucceededToResolveData(topic string, hash []byte)
@@ -335,7 +333,6 @@ type PreferredPeersHolderHandler interface {
 
 // PeersRatingHandler represent an entity able to handle peers ratings
 type PeersRatingHandler interface {
-	AddPeer(pid core.PeerID)
 	IncreaseRating(pid core.PeerID)
 	DecreaseRating(pid core.PeerID)
 	GetTopRatedPeersFromList(peers []core.PeerID, minNumOfPeersExpected int) []core.PeerID

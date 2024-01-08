@@ -5,29 +5,35 @@ import (
 	"sync"
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
 // CryptoComponentsStub -
 type CryptoComponentsStub struct {
-	PubKey            crypto.PublicKey
-	PrivKey           crypto.PrivateKey
-	P2pPubKey         crypto.PublicKey
-	P2pPrivKey        crypto.PrivateKey
-	P2pSig            crypto.SingleSigner
-	PubKeyString      string
-	PrivKeyBytes      []byte
-	PubKeyBytes       []byte
-	BlockSig          crypto.SingleSigner
-	TxSig             crypto.SingleSigner
-	MultiSigContainer cryptoCommon.MultiSignerContainer
-	PeerSignHandler   crypto.PeerSignatureHandler
-	BlKeyGen          crypto.KeyGenerator
-	TxKeyGen          crypto.KeyGenerator
-	P2PKeyGen         crypto.KeyGenerator
-	MsgSigVerifier    vm.MessageSignVerifier
-	mutMultiSig       sync.RWMutex
+	PubKey                  crypto.PublicKey
+	PublicKeyCalled         func() crypto.PublicKey
+	PrivKey                 crypto.PrivateKey
+	P2pPubKey               crypto.PublicKey
+	P2pPrivKey              crypto.PrivateKey
+	PubKeyBytes             []byte
+	PubKeyString            string
+	BlockSig                crypto.SingleSigner
+	TxSig                   crypto.SingleSigner
+	P2pSig                  crypto.SingleSigner
+	MultiSigContainer       cryptoCommon.MultiSignerContainer
+	PeerSignHandler         crypto.PeerSignatureHandler
+	BlKeyGen                crypto.KeyGenerator
+	TxKeyGen                crypto.KeyGenerator
+	P2PKeyGen               crypto.KeyGenerator
+	MsgSigVerifier          vm.MessageSignVerifier
+	ManagedPeersHolderField common.ManagedPeersHolder
+	KeysHandlerField        consensus.KeysHandler
+	KeysHandlerCalled       func() consensus.KeysHandler
+	SigHandler              consensus.SigningHandler
+	mutMultiSig             sync.RWMutex
 }
 
 // Create -
@@ -47,6 +53,9 @@ func (ccs *CryptoComponentsStub) CheckSubcomponents() error {
 
 // PublicKey -
 func (ccs *CryptoComponentsStub) PublicKey() crypto.PublicKey {
+	if ccs.PublicKeyCalled != nil {
+		return ccs.PublicKeyCalled()
+	}
 	return ccs.PubKey
 }
 
@@ -73,11 +82,6 @@ func (ccs *CryptoComponentsStub) PublicKeyString() string {
 // PublicKeyBytes -
 func (ccs *CryptoComponentsStub) PublicKeyBytes() []byte {
 	return ccs.PubKeyBytes
-}
-
-// PrivateKeyBytes -
-func (ccs *CryptoComponentsStub) PrivateKeyBytes() []byte {
-	return ccs.PrivKeyBytes
 }
 
 // BlockSigner -
@@ -152,25 +156,44 @@ func (ccs *CryptoComponentsStub) MessageSignVerifier() vm.MessageSignVerifier {
 	return ccs.MsgSigVerifier
 }
 
+// ConsensusSigningHandler -
+func (ccs *CryptoComponentsStub) ConsensusSigningHandler() consensus.SigningHandler {
+	return ccs.SigHandler
+}
+
+// ManagedPeersHolder -
+func (ccs *CryptoComponentsStub) ManagedPeersHolder() common.ManagedPeersHolder {
+	return ccs.ManagedPeersHolderField
+}
+
+// KeysHandler -
+func (ccs *CryptoComponentsStub) KeysHandler() consensus.KeysHandler {
+	if ccs.KeysHandlerCalled != nil {
+		return ccs.KeysHandlerCalled()
+	}
+	return ccs.KeysHandlerField
+}
+
 // Clone -
 func (ccs *CryptoComponentsStub) Clone() interface{} {
 	return &CryptoComponentsStub{
-		PubKey:            ccs.PubKey,
-		P2pPubKey:         ccs.P2pPubKey,
-		PrivKey:           ccs.PrivKey,
-		P2pPrivKey:        ccs.P2pPrivKey,
-		PubKeyString:      ccs.PubKeyString,
-		PrivKeyBytes:      ccs.PrivKeyBytes,
-		PubKeyBytes:       ccs.PubKeyBytes,
-		BlockSig:          ccs.BlockSig,
-		TxSig:             ccs.TxSig,
-		MultiSigContainer: ccs.MultiSigContainer,
-		PeerSignHandler:   ccs.PeerSignHandler,
-		BlKeyGen:          ccs.BlKeyGen,
-		TxKeyGen:          ccs.TxKeyGen,
-		P2PKeyGen:         ccs.P2PKeyGen,
-		MsgSigVerifier:    ccs.MsgSigVerifier,
-		mutMultiSig:       sync.RWMutex{},
+		PubKey:                  ccs.PubKey,
+		P2pPubKey:               ccs.P2pPubKey,
+		PrivKey:                 ccs.PrivKey,
+		P2pPrivKey:              ccs.P2pPrivKey,
+		PubKeyString:            ccs.PubKeyString,
+		PubKeyBytes:             ccs.PubKeyBytes,
+		BlockSig:                ccs.BlockSig,
+		TxSig:                   ccs.TxSig,
+		MultiSigContainer:       ccs.MultiSigContainer,
+		PeerSignHandler:         ccs.PeerSignHandler,
+		BlKeyGen:                ccs.BlKeyGen,
+		TxKeyGen:                ccs.TxKeyGen,
+		P2PKeyGen:               ccs.P2PKeyGen,
+		MsgSigVerifier:          ccs.MsgSigVerifier,
+		ManagedPeersHolderField: ccs.ManagedPeersHolderField,
+		KeysHandlerField:        ccs.KeysHandlerField,
+		mutMultiSig:             sync.RWMutex{},
 	}
 }
 

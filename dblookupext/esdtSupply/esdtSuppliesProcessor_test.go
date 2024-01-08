@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -33,13 +34,13 @@ func TestNewSuppliesProcessor(t *testing.T) {
 	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
-	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
 	require.Equal(t, core.ErrNilStore, err)
 
-	_, err = NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
 	require.Equal(t, core.ErrNilStore, err)
 
-	proc, err := NewSuppliesProcessor(&testscommon.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 	require.Nil(t, err)
 	require.NotNil(t, proc)
 	require.False(t, proc.IsInterfaceNil())
@@ -102,7 +103,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	}
 
 	putCalledNum := 0
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if string(key) == "processed-block" {
@@ -230,7 +231,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	}
 
 	membDB := testscommon.NewMemDbMock()
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 	numTimesCalled := 0
 	suppliesStorer := &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
@@ -361,7 +362,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 		},
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 
 	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
@@ -452,7 +453,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 		},
 	}
 
-	marshalizer := testscommon.MarshalizerMock{}
+	marshalizer := marshallerMock.MarshalizerMock{}
 
 	logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 	mintLogToBeRevertedBytes, err := marshalizer.Marshal(mintLogToBeReverted)
@@ -525,7 +526,7 @@ func getSupplyESDT(marshalizer marshal.Marshalizer, data []byte) SupplyESDT {
 func TestSupplyESDT_GetSupply(t *testing.T) {
 	t.Parallel()
 
-	marshalizer := &testscommon.MarshalizerMock{}
+	marshalizer := &marshallerMock.MarshalizerMock{}
 	proc, _ := NewSuppliesProcessor(marshalizer, &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
 			if string(key) == "my-token" {

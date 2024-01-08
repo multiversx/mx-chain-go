@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -103,7 +104,7 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &testscommon.MarshalizerMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
 	mutRecoveredTransactions := &sync.RWMutex{}
 	recoveredTransactions := make(map[uint32][]*transaction.Transaction)
 	shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(2)
@@ -157,7 +158,7 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 	}()
 
 	mes := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(pipe string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(pipe string, topic string, buff []byte) {
 
 			b := &batch.Batch{}
 			err := marshaller.Unmarshal(b, buff)
@@ -176,12 +177,11 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 
 				wg.Done()
 			}
-			return nil
 		},
 	}
-	dataPacker, _ := partitioning.NewSimpleDataPacker(&testscommon.MarshalizerMock{})
+	dataPacker, _ := partitioning.NewSimpleDataPacker(&marshallerMock.MarshalizerMock{})
 	args := ArgsTxsSenderWithAccumulator{
-		Marshaller:       &testscommon.MarshalizerMock{},
+		Marshaller:       &marshallerMock.MarshalizerMock{},
 		ShardCoordinator: shardCoordinator,
 		NetworkMessenger: mes,
 		DataPacker:       dataPacker,
@@ -252,7 +252,7 @@ func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *t
 	}
 
 	txMarshalled := []byte("txMarshalled")
-	marshaller := &testscommon.MarshalizerStub{
+	marshaller := &marshallerMock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			ctMarshallCalled.Increment()
 			require.Equal(t, tx, obj)
@@ -270,12 +270,11 @@ func TestTxsSender_sendFromTxAccumulatorSendOneTxOneSCRExpectOnlyTxToBeSent(t *t
 		},
 	}
 	messenger := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(channel string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
 			ctBroadCastCalled.Increment()
 			require.Equal(t, SendTransactionsPipe, channel)
 			require.Equal(t, factory.TransactionTopic+communicationIdentifier, topic)
 			require.Equal(t, txChunk, buff)
-			return nil
 		},
 	}
 
@@ -332,7 +331,7 @@ func TestTxsSender_sendBulkTransactionsSendTwoTxsFailToMarshallOneExpectOnlyOneT
 	}
 
 	tx1Marshalled := []byte("tx1Marshalled")
-	marshaller := &testscommon.MarshalizerStub{
+	marshaller := &marshallerMock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
 			switch ctMarshallCalled.Get() {
 			case 0:
@@ -360,12 +359,11 @@ func TestTxsSender_sendBulkTransactionsSendTwoTxsFailToMarshallOneExpectOnlyOneT
 		},
 	}
 	messenger := &p2pmocks.MessengerStub{
-		BroadcastOnChannelBlockingCalled: func(channel string, topic string, buff []byte) error {
+		BroadcastOnChannelCalled: func(channel string, topic string, buff []byte) {
 			ctBroadCastCalled.Increment()
 			require.Equal(t, SendTransactionsPipe, channel)
 			require.Equal(t, factory.TransactionTopic+communicationIdentifierTx1, topic)
 			require.Equal(t, tx1Chunk, buff)
-			return nil
 		},
 	}
 
@@ -426,7 +424,7 @@ func TestTxsSender_SendBulkTransactionsNoTxToProcessExpectError(t *testing.T) {
 }
 
 func generateMockArgsTxsSender() ArgsTxsSenderWithAccumulator {
-	marshaller := testscommon.MarshalizerMock{}
+	marshaller := marshallerMock.MarshalizerMock{}
 	dataPacker, _ := partitioning.NewSimpleDataPacker(marshaller)
 	accumulatorConfig := config.TxAccumulatorConfig{
 		MaxAllowedTimeInMilliseconds:   10,

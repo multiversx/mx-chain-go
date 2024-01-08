@@ -1,16 +1,23 @@
 generateConfig() {
   echo "Generating configuration using values from scripts/variables.sh..."
 
+  TMP_SHARD_OBSERVERCOUNT=$SHARD_OBSERVERCOUNT
+  TMP_META_OBSERVERCOUNT=$META_OBSERVERCOUNT
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+    TMP_SHARD_OBSERVERCOUNT=0
+    TMP_META_OBSERVERCOUNT=0
+  fi
+
   pushd $TESTNETDIR/filegen
   ./filegen \
-    -output-directory $CONFIGGENERATOROUTPUTDIR           \
-    -num-of-shards $SHARDCOUNT                            \
-    -num-of-nodes-in-each-shard $SHARD_VALIDATORCOUNT     \
-    -num-of-observers-in-each-shard $SHARD_OBSERVERCOUNT  \
-    -consensus-group-size $SHARD_CONSENSUS_SIZE           \
-    -num-of-metachain-nodes $META_VALIDATORCOUNT          \
-    -num-of-observers-in-metachain $META_OBSERVERCOUNT    \
-    -metachain-consensus-group-size $META_CONSENSUS_SIZE  \
+    -output-directory $CONFIGGENERATOROUTPUTDIR               \
+    -num-of-shards $SHARDCOUNT                                \
+    -num-of-nodes-in-each-shard $SHARD_VALIDATORCOUNT         \
+    -num-of-observers-in-each-shard $TMP_SHARD_OBSERVERCOUNT  \
+    -consensus-group-size $SHARD_CONSENSUS_SIZE               \
+    -num-of-metachain-nodes $META_VALIDATORCOUNT              \
+    -num-of-observers-in-metachain $TMP_META_OBSERVERCOUNT    \
+    -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS
   popd
@@ -22,6 +29,12 @@ copyConfig() {
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/genesis.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/nodesSetup.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/*.pem ./node/config #there might be more .pem files there
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+      mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      if [[ $EXTRA_KEYS -eq 1 ]]; then
+        cat $NODEDIR/config/testKeys/"${EXTRA_KEY_PEM_FILE}" >> ./node/config/"$MULTI_KEY_PEM_FILE"
+      fi
+  fi
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -68,6 +81,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/prefs.toml ./node/config
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
+  cp $NODEDIR/config/fullArchiveP2P.toml ./node/config
   cp $NODEDIR/config/enableEpochs.toml ./node/config
   cp $NODEDIR/config/enableRounds.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
@@ -100,6 +114,13 @@ updateNodeConfig() {
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
 		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
 		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
+	fi
+
+	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
+    sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_observer.toml
+    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_observer.toml
+	  sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_validator.toml
+    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
 	fi
 
   cp nodesSetup_edit.json nodesSetup.json

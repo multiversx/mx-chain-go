@@ -3,8 +3,8 @@ package intermediate
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -23,17 +23,17 @@ type baseDeploy struct {
 
 func (dp *baseDeploy) deployForOneAddress(
 	sc genesis.InitialSmartContractHandler,
-	ownerAddress []byte,
+	ownerAddressBytes []byte,
 	code string,
 	initParams string,
 ) ([]byte, error) {
-	nonce, err := dp.GetNonce(ownerAddress)
+	nonce, err := dp.GetNonce(ownerAddressBytes)
 	if err != nil {
 		return nil, err
 	}
 
 	scResultingAddressBytes, err := dp.blockchainHook.NewAddress(
-		ownerAddress,
+		ownerAddressBytes,
 		nonce,
 		sc.VmTypeBytes(),
 	)
@@ -42,7 +42,12 @@ func (dp *baseDeploy) deployForOneAddress(
 	}
 
 	sc.AddAddressBytes(scResultingAddressBytes)
-	sc.AddAddress(dp.pubkeyConv.Encode(scResultingAddressBytes))
+
+	scResultingAddress, err := dp.pubkeyConv.Encode(scResultingAddressBytes)
+	if err != nil {
+		return nil, err
+	}
+	sc.AddAddress(scResultingAddress)
 
 	vmType := sc.GetVmType()
 	arguments := []string{code, vmType, codeMetadataHexForInitialSC}
@@ -53,7 +58,7 @@ func (dp *baseDeploy) deployForOneAddress(
 
 	log.Trace("deploying genesis SC",
 		"SC owner", sc.GetOwner(),
-		"SC ownerAddress", dp.pubkeyConv.Encode(scResultingAddressBytes),
+		"SC ownerAddress", scResultingAddress,
 		"type", sc.GetType(),
 		"VM type", sc.GetVmType(),
 		"init params", initParams,
@@ -64,14 +69,14 @@ func (dp *baseDeploy) deployForOneAddress(
 		return nil, fmt.Errorf("%w for SC ownerAddress %s, owner %s with nonce %d",
 			genesis.ErrAccountAlreadyExists,
 			scResultingAddressBytes,
-			ownerAddress,
+			ownerAddressBytes,
 			nonce,
 		)
 	}
 
 	err = dp.ExecuteTransaction(
 		nonce,
-		ownerAddress,
+		ownerAddressBytes,
 		dp.emptyAddress,
 		big.NewInt(0),
 		[]byte(deployTxData),
@@ -80,12 +85,17 @@ func (dp *baseDeploy) deployForOneAddress(
 		return nil, err
 	}
 
+	ownerAddress, err := dp.pubkeyConv.Encode(ownerAddressBytes)
+	if err != nil {
+		return nil, err
+	}
+
 	_, accountExists = dp.GetAccount(scResultingAddressBytes)
 	if !accountExists {
 		return nil, fmt.Errorf("%w for SC ownerAddress %s, owner %s with nonce %d",
 			genesis.ErrAccountNotCreated,
-			dp.pubkeyConv.Encode(scResultingAddressBytes),
-			dp.pubkeyConv.Encode(ownerAddress),
+			scResultingAddress,
+			ownerAddress,
 			nonce,
 		)
 	}
@@ -94,7 +104,7 @@ func (dp *baseDeploy) deployForOneAddress(
 }
 
 func getSCCodeAsHex(filename string) (string, error) {
-	code, err := ioutil.ReadFile(filepath.Clean(filename))
+	code, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return "", err
 	}

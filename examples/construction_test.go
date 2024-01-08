@@ -1,13 +1,13 @@
 package examples
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/mock"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -21,7 +21,7 @@ import (
 )
 
 var (
-	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, &mock.LoggerMock{})
+	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	signingMarshalizer = &marshal.JsonMarshalizer{}
 	txSignHasher       = keccak.NewKeccak()
 	signer             = &singlesig.Ed25519Signer{}
@@ -145,6 +145,33 @@ func TestConstructTransaction_WithDataWithLargeValue(t *testing.T) {
 
 	txHash := contentHasher.Compute(string(data))
 	require.Equal(t, "e4a6048d92409cfe50f12e81218cb92f39966c618979a693b8d16320a06061c1", hex.EncodeToString(txHash))
+}
+
+func TestConstructTransaction_WithGuardianFields(t *testing.T) {
+	tx := &transaction.Transaction{
+		Nonce:    92,
+		Value:    stringToBigInt("123456789000000000000000000000"),
+		RcvAddr:  getPubkeyOfAddress(t, "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
+		SndAddr:  getPubkeyOfAddress(t, "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"),
+		GasPrice: 1000000000,
+		GasLimit: 150000,
+		Data:     []byte("test data field"),
+		ChainID:  []byte("local-testnet"),
+		Version:  2,
+		Options:  2,
+	}
+
+	tx.GuardianAddr = getPubkeyOfAddress(t, "erd1x23lzn8483xs2su4fak0r0dqx6w38enpmmqf2yrkylwq7mfnvyhsxqw57y")
+	tx.GuardianSignature = bytes.Repeat([]byte{0}, 64)
+
+	tx.Signature = computeTransactionSignature(t, alicePrivateKeyHex, tx)
+	require.Equal(t, "e574d78b19e1481a6b9575c162e66f2f906a3178aec537509356385c4f1a5330a9b73a87a456fc6d7041e93b5f8a1231a92fb390174872a104a0929215600c0c", hex.EncodeToString(tx.Signature))
+
+	data, _ := contentMarshalizer.Marshal(tx)
+	require.Equal(t, "085c120e00018ee90ff6181f3761632000001a208049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f82a200139472eff6886771a982f3083da5d421f24c29181e63888228dc81ca60d69e1388094ebdc0340f093094a0f746573742064617461206669656c64520d6c6f63616c2d746573746e657458026240e574d78b19e1481a6b9575c162e66f2f906a3178aec537509356385c4f1a5330a9b73a87a456fc6d7041e93b5f8a1231a92fb390174872a104a0929215600c0c6802722032a3f14cf53c4d0543954f6cf1bda0369d13e661dec095107627dc0f6d33612f7a4000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", hex.EncodeToString(data))
+
+	txHash := contentHasher.Compute(string(data))
+	require.Equal(t, "242022e9dcfa0ee1d8199b0043314dbda8601619f70069ebc441b9f03349a35c", hex.EncodeToString(txHash))
 }
 
 func TestConstructTransaction_WithNonceZero(t *testing.T) {

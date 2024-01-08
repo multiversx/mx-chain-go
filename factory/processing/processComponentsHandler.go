@@ -1,6 +1,7 @@
 package processing
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -86,11 +87,17 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.shardCoordinator) {
 		return errors.ErrNilShardCoordinator
 	}
-	if check.IfNil(m.processComponents.interceptorsContainer) {
-		return errors.ErrNilInterceptorsContainer
+	if check.IfNil(m.processComponents.mainInterceptorsContainer) {
+		return fmt.Errorf("%w on main network", errors.ErrNilInterceptorsContainer)
 	}
-	if check.IfNil(m.processComponents.resolversFinder) {
-		return errors.ErrNilResolversFinder
+	if check.IfNil(m.processComponents.fullArchiveInterceptorsContainer) {
+		return fmt.Errorf("%w on full archive network", errors.ErrNilInterceptorsContainer)
+	}
+	if check.IfNil(m.processComponents.resolversContainer) {
+		return errors.ErrNilResolversContainer
+	}
+	if check.IfNil(m.processComponents.requestersFinder) {
+		return errors.ErrNilRequestersFinder
 	}
 	if check.IfNil(m.processComponents.roundHandler) {
 		return errors.ErrNilRoundHandler
@@ -140,8 +147,11 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.headerConstructionValidator) {
 		return errors.ErrNilHeaderConstructionValidator
 	}
-	if check.IfNil(m.processComponents.peerShardMapper) {
-		return errors.ErrNilPeerShardMapper
+	if check.IfNil(m.processComponents.mainPeerShardMapper) {
+		return fmt.Errorf("%w for main", errors.ErrNilPeerShardMapper)
+	}
+	if check.IfNil(m.processComponents.fullArchivePeerShardMapper) {
+		return fmt.Errorf("%w for full archive", errors.ErrNilPeerShardMapper)
 	}
 	if check.IfNil(m.processComponents.fallbackHeaderValidator) {
 		return errors.ErrNilFallbackHeaderValidator
@@ -192,7 +202,7 @@ func (m *managedProcessComponents) ShardCoordinator() sharding.Coordinator {
 	return m.processComponents.shardCoordinator
 }
 
-// InterceptorsContainer returns the interceptors container
+// InterceptorsContainer returns the interceptors container on the main network
 func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsContainer {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
@@ -201,11 +211,11 @@ func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsC
 		return nil
 	}
 
-	return m.processComponents.interceptorsContainer
+	return m.processComponents.mainInterceptorsContainer
 }
 
-// ResolversFinder returns the resolvers finder
-func (m *managedProcessComponents) ResolversFinder() dataRetriever.ResolversFinder {
+// FullArchiveInterceptorsContainer returns the interceptors container on the full archive network
+func (m *managedProcessComponents) FullArchiveInterceptorsContainer() process.InterceptorsContainer {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -213,7 +223,31 @@ func (m *managedProcessComponents) ResolversFinder() dataRetriever.ResolversFind
 		return nil
 	}
 
-	return m.processComponents.resolversFinder
+	return m.processComponents.fullArchiveInterceptorsContainer
+}
+
+// ResolversContainer returns the resolvers container
+func (m *managedProcessComponents) ResolversContainer() dataRetriever.ResolversContainer {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.resolversContainer
+}
+
+// RequestersFinder returns the requesters finder
+func (m *managedProcessComponents) RequestersFinder() dataRetriever.RequestersFinder {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.requestersFinder
 }
 
 // RoundHandler returns the roundHandler
@@ -408,7 +442,7 @@ func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderC
 	return m.processComponents.headerConstructionValidator
 }
 
-// PeerShardMapper returns the peer to shard mapper
+// PeerShardMapper returns the peer to shard mapper of the main network
 func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingCollector {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
@@ -417,7 +451,19 @@ func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingColl
 		return nil
 	}
 
-	return m.processComponents.peerShardMapper
+	return m.processComponents.mainPeerShardMapper
+}
+
+// FullArchivePeerShardMapper returns the peer to shard mapper of the full archive network
+func (m *managedProcessComponents) FullArchivePeerShardMapper() process.NetworkShardingCollector {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.fullArchivePeerShardMapper
 }
 
 // FallbackHeaderValidator returns the fallback header validator
@@ -432,8 +478,8 @@ func (m *managedProcessComponents) FallbackHeaderValidator() process.FallbackHea
 	return m.processComponents.fallbackHeaderValidator
 }
 
-// TransactionSimulatorProcessor returns the transaction simulator processor
-func (m *managedProcessComponents) TransactionSimulatorProcessor() factory.TransactionSimulatorProcessor {
+// APITransactionEvaluator returns the api transaction evaluator
+func (m *managedProcessComponents) APITransactionEvaluator() factory.TransactionEvaluator {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -441,7 +487,7 @@ func (m *managedProcessComponents) TransactionSimulatorProcessor() factory.Trans
 		return nil
 	}
 
-	return m.processComponents.txSimulatorProcessor
+	return m.processComponents.apiTransactionEvaluator
 }
 
 // WhiteListHandler returns the white list handler
