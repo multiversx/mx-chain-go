@@ -20,24 +20,19 @@ import (
 type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
-	displayStatistics             func()
-	hasEquivalentProof            func(headerHash []byte) bool
-	getValidatedEquivalentProof   func(headerHash []byte) data.HeaderProof
 	appStatusHandler              core.AppStatusHandler
 	mutProcessingEndRound         sync.Mutex
 	sentSignatureTracker          spos.SentSignaturesTracker
+	worker                        spos.WorkerHandler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
 func NewSubroundEndRound(
 	baseSubround *spos.Subround,
-	extend func(subroundId int),
 	processingThresholdPercentage int,
-	displayStatistics func(),
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
-	hasEquivalentProof func(headerHash []byte) bool,
-	getValidatedEquivalentProof func(headerHash []byte) data.HeaderProof,
+	worker spos.WorkerHandler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -45,35 +40,27 @@ func NewSubroundEndRound(
 	if err != nil {
 		return nil, err
 	}
-	if extend == nil {
-		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
-	}
-	if hasEquivalentProof == nil {
-		return nil, fmt.Errorf("%w for hasEquivalentProof function", spos.ErrNilFunctionHandler)
-	}
-	if getValidatedEquivalentProof == nil {
-		return nil, fmt.Errorf("%w for getValidatedEquivalentProof function", spos.ErrNilFunctionHandler)
-	}
 	if check.IfNil(appStatusHandler) {
 		return nil, spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignatureTracker) {
 		return nil, spos.ErrNilSentSignatureTracker
 	}
+	if check.IfNil(worker) {
+		return nil, spos.ErrNilWorker
+	}
 
 	srEndRound := subroundEndRound{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
-		displayStatistics:             displayStatistics,
-		hasEquivalentProof:            hasEquivalentProof,
-		getValidatedEquivalentProof:   getValidatedEquivalentProof,
 		appStatusHandler:              appStatusHandler,
 		mutProcessingEndRound:         sync.Mutex{},
 		sentSignatureTracker:          sentSignatureTracker,
+		worker:                        worker,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
-	srEndRound.Extend = extend
+	srEndRound.Extend = worker.Extend
 
 	return &srEndRound, nil
 }
@@ -378,7 +365,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
-	sr.displayStatistics()
+	sr.worker.DisplayStatistics()
 
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
@@ -472,13 +459,19 @@ func (sr *subroundEndRound) sendFinalInfo() bool {
 			log.Debug("doEndRoundJobByLeader: calculate header hash", "error", err.Error())
 			return false
 		}
-		aggregatedSigToBroadcast, bitmapToBroadcast = sr.getValidatedEquivalentProof(headerHash)
+		proof := sr.worker.GetEquivalentProof(headerHash)
+		bitmapToBroadcast = proof.PubKeysBitmap
+		aggregatedSigToBroadcast = proof.AggregatedSignature
 		leaderSigToBroadcast = nil
 	}
 	sr.createAndBroadcastHeaderFinalInfo(aggregatedSigToBroadcast, bitmapToBroadcast, leaderSigToBroadcast)
 
+	// TODO[Sorin]:
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		sr.Blockchain().SetCurrentAggregatedSignatureAndBitmap(sig, bitmap)
+		sr.Blockchain().SetCurrentHeaderProof(data.HeaderProof{
+			AggregatedSignature: aggregatedSigToBroadcast,
+			PubKeysBitmap:       bitmap,
+		})
 	}
 
 	return true
@@ -497,7 +490,7 @@ func (sr *subroundEndRound) shouldSendFinalData() bool {
 	}
 
 	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
-	if sr.hasEquivalentProof(headerHash) {
+	if sr.worker.HasEquivalentMessage(headerHash) {
 		log.Debug("shouldSendFinalData: equivalent message already sent")
 		return false
 	}
@@ -766,7 +759,6 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		return false
 	}
 
-	// TODO[Sorin]: sr.Blockchain().SetCurrentHeaderProof()
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
@@ -783,8 +775,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		signature, bitmap := sr.getValidatedEquivalentProof(cnsDta.BlockHeaderHash)
-		sr.Blockchain().SetCurrentAggregatedSignatureAndBitmap(signature, bitmap)
+		sr.Blockchain().SetCurrentHeaderProof(sr.worker.GetEquivalentProof(cnsDta.BlockHeaderHash))
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -796,7 +787,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		}
 	}
 
-	sr.displayStatistics()
+	sr.worker.DisplayStatistics()
 
 	log.Debug("step 3: Body and Header have been committed")
 

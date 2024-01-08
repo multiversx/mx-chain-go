@@ -264,13 +264,10 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
-		fct.worker.Extend,
 		spos.MaxThresholdPercent,
-		fct.worker.DisplayStatistics,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
-		fct.worker.HasEquivalentMessage,
-		fct.worker.GetEquivalentProof,
+		fct.worker,
 	)
 	if err != nil {
 		return err

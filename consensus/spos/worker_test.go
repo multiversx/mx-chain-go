@@ -1990,7 +1990,11 @@ func TestWorker_SaveProposedEquivalentMessage(t *testing.T) {
 	providedHash := "provided hash"
 	providedBitmap := []byte("bitmap")
 	providedSig := []byte("sig")
-	wrk.SaveProposedEquivalentMessage(providedHash, providedBitmap, providedSig)
+	proof := data.HeaderProof{
+		AggregatedSignature: providedSig,
+		PubKeysBitmap:       providedBitmap,
+	}
+	wrk.SaveProposedEquivalentMessage(providedHash, proof)
 	equivalentMessages := wrk.GetEquivalentMessages()
 	info, ok := equivalentMessages[providedHash]
 	require.True(t, ok)

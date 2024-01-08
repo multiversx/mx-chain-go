@@ -826,17 +826,14 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 }
 
 // SaveProposedEquivalentMessage saves the proposed equivalent message
-func (wrk *Worker) SaveProposedEquivalentMessage(hash string, pubkeysBitmap []byte, aggregatedSignature []byte) {
+func (wrk *Worker) SaveProposedEquivalentMessage(hash string, proof data.HeaderProof) {
 	wrk.mutEquivalentMessages.Lock()
 	defer wrk.mutEquivalentMessages.Unlock()
 
 	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
 		NumMessages: 1,
 		Validated:   true,
-		Proof: data.HeaderProof{
-			AggregatedSignature: aggregatedSignature,
-			PubKeysBitmap:       pubkeysBitmap,
-		},
+		Proof:       proof,
 	}
 }
 
@@ -850,15 +847,15 @@ func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash
-func (wrk *Worker) GetEquivalentProof(headerHash []byte) ([]byte, []byte) {
+func (wrk *Worker) GetEquivalentProof(headerHash []byte) data.HeaderProof {
 	wrk.mutEquivalentMessages.RLock()
 	defer wrk.mutEquivalentMessages.RUnlock()
 	info, has := wrk.equivalentMessages[string(headerHash)]
 	if !has {
-		return nil, nil
+		return data.HeaderProof{}
 	}
 
-	return info.PreviousAggregateSignature, info.PreviousPubkeysBitmap
+	return info.Proof
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

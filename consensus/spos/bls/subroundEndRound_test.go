@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"math/big"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -31,14 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func hasEquivalentProof([]byte) bool {
-	return false
-}
-
-func getValidatedEquivalentProof(_ []byte) ([]byte, []byte) {
-	return []byte(""), []byte("")
-}
-
 func initSubroundEndRoundWithContainer(
 	container *mock.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
@@ -63,13 +54,10 @@ func initSubroundEndRoundWithContainer(
 
 	srEndRound, _ := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		appStatusHandler,
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	return srEndRound
@@ -107,47 +95,24 @@ func TestNewSubroundEndRound(t *testing.T) {
 
 		srEndRound, err := bls.NewSubroundEndRound(
 			nil,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
-			hasEquivalentProof,
-			getValidatedEquivalentProof,
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srEndRound)
 		assert.Equal(t, spos.ErrNilSubround, err)
-	})
-	t.Run("nil extend function handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		srEndRound, err := bls.NewSubroundEndRound(
-			sr,
-			nil,
-			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
-			hasEquivalentProof,
-			getValidatedEquivalentProof,
-		)
-
-		assert.Nil(t, srEndRound)
-		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
 	})
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
 		srEndRound, err := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			nil,
 			&mock.SentSignatureTrackerStub{},
-			hasEquivalentProof,
-			getValidatedEquivalentProof,
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srEndRound)
@@ -158,53 +123,28 @@ func TestNewSubroundEndRound(t *testing.T) {
 
 		srEndRound, err := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
-			hasEquivalentProof,
-			getValidatedEquivalentProof,
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srEndRound)
 		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
 	})
-	t.Run("nil hasEquivalentProof should error", func(t *testing.T) {
+	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
 
 		srEndRound, err := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
-			nil,
-			getValidatedEquivalentProof,
-		)
-
-		assert.Nil(t, srEndRound)
-		assert.True(t, errors.Is(err, spos.ErrNilFunctionHandler))
-		assert.True(t, strings.Contains(err.Error(), "hasEquivalentProof"))
-	})
-	t.Run("nil getValidatedEquivalentProof should error", func(t *testing.T) {
-		t.Parallel()
-
-		srEndRound, err := bls.NewSubroundEndRound(
-			sr,
-			extend,
-			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
-			hasEquivalentProof,
 			nil,
 		)
 
 		assert.Nil(t, srEndRound)
-		assert.True(t, errors.Is(err, spos.ErrNilFunctionHandler))
-		assert.True(t, strings.Contains(err.Error(), "getValidatedEquivalentProof"))
+		assert.Equal(t, spos.ErrNilWorker, err)
 	})
 }
 
@@ -233,13 +173,10 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	container.SetBlockchain(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -271,13 +208,10 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	container.SetBlockProcessor(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -310,13 +244,10 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	sr.ConsensusState = nil
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -348,13 +279,10 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 	container.SetMultiSignerContainer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -386,13 +314,10 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 	container.SetRoundHandler(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -424,13 +349,10 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	container.SetSyncTimer(nil)
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -462,13 +384,10 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 
 	srEndRound, err := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
@@ -998,7 +917,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			ScheduledRootHash:        []byte("sch root hash"),
 			ScheduledAccumulatedFees: big.NewInt(0),
 			ScheduledDeveloperFees:   big.NewInt(0),
-			Proof:                    nil,
+			PreviousHeaderProof:      nil,
 		}
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
@@ -1007,7 +926,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
 			},
-			SetCurrentAggregatedSignatureAndBitmapCalled: func(signature []byte, pubKeysBitmap []byte) {
+			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
 				wasSetCurrentAggregatedSignatureAndBitmapCalled = true
 
 			},
@@ -1039,15 +958,17 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
-			hasEquivalentProof,
-			func(hash []byte) ([]byte, []byte) {
-				assert.Equal(t, cnsData.BlockHeaderHash, hash)
-				return providedPrevSig, providedPrevBitmap
+			&mock.SposWorkerMock{
+				GetEquivalentProofCalled: func(headerHash []byte) data.HeaderProof {
+					assert.Equal(t, cnsData.BlockHeaderHash, headerHash)
+					return data.HeaderProof{
+						AggregatedSignature: providedPrevSig,
+						PubKeysBitmap:       providedPrevBitmap,
+					}
+				},
 			},
 		)
 
@@ -1424,16 +1345,15 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		wasHasEquivalentProofCalled := false
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
-			func(hash []byte) bool {
-				wasHasEquivalentProofCalled = true
-				return true
+			&mock.SposWorkerMock{
+				HasEquivalentMessageCalled: func(headerHash []byte) bool {
+					wasHasEquivalentProofCalled = true
+					return true
+				},
 			},
-			getValidatedEquivalentProof,
 		)
 
 		srEndRound.SetThreshold(bls.SrEndRound, 2)
@@ -1553,10 +1473,10 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
 			},
-			SetCurrentAggregatedSignatureAndBitmapCalled: func(signature []byte, pubKeysBitmap []byte) {
+			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
 				wasSetCurrentAggregatedSignatureAndBitmapCalled = true
-				require.NotEqual(t, signature, providedPrevSig)
-				require.NotEqual(t, pubKeysBitmap, providedPrevBitmap)
+				require.NotEqual(t, providedPrevSig, proof.AggregatedSignature)
+				require.NotEqual(t, providedPrevBitmap, proof.PubKeysBitmap)
 			},
 		})
 		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
@@ -1582,15 +1502,17 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		wasGetValidatedEquivalentProof := false
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
-			hasEquivalentProof,
-			func(headerHash []byte) ([]byte, []byte) {
-				wasGetValidatedEquivalentProof = true
-				return providedPrevSig, providedPrevBitmap
+			&mock.SposWorkerMock{
+				GetEquivalentProofCalled: func(headerHash []byte) data.HeaderProof {
+					wasGetValidatedEquivalentProof = true
+					return data.HeaderProof{
+						AggregatedSignature: providedPrevSig,
+						PubKeysBitmap:       providedPrevBitmap,
+					}
+				},
 			},
 		)
 
@@ -1605,7 +1527,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			ScheduledRootHash:        []byte("sch root hash"),
 			ScheduledAccumulatedFees: big.NewInt(0),
 			ScheduledDeveloperFees:   big.NewInt(0),
-			Proof:                    nil,
+			PreviousHeaderProof:      nil,
 		}
 
 		r := srEndRound.DoEndRoundJobByLeader()
@@ -1990,13 +1912,10 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 
 	srEndRound, _ := bls.NewSubroundEndRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
-		hasEquivalentProof,
-		getValidatedEquivalentProof,
+		&mock.SposWorkerMock{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {
