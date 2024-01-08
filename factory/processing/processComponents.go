@@ -213,7 +213,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochConfig:             args.EpochConfig,
 		prefConfigs:             args.PrefConfigs,
 		importDBConfig:          args.ImportDBConfig,
-		economicsConfig:        args.EconomicsConfig,
+		economicsConfig:         args.EconomicsConfig,
 		accountsParser:          args.AccountsParser,
 		smartContractParser:     args.SmartContractParser,
 		gasSchedule:             args.GasSchedule,

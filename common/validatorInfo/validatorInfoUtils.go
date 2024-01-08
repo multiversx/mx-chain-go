@@ -25,7 +25,7 @@ func WasLeavingEligibleInCurrentEpoch(valInfo state.ValidatorInfoHandler) bool {
 }
 
 // WasJailedEligibleInCurrentEpoch returns true if the validator was jailed in the epoch but also active/eligible due to not enough
-//nodes in shard.
+// nodes in shard.
 func WasJailedEligibleInCurrentEpoch(valInfo state.ValidatorInfoHandler) bool {
 	if valInfo == nil {
 		return false

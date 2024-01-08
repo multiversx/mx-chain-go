@@ -111,19 +111,19 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:             argumentsBase,
-			SCToProtocol:                 &mock.SCToProtocolStub{},
-			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
-			EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
-			EpochEconomics:               &mock.EpochEconomicsStub{},
-			EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
-			EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
+			ArgBaseProcessor:          argumentsBase,
+			SCToProtocol:              &mock.SCToProtocolStub{},
+			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:            &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:       &testscommon.RewardsCreatorStub{},
+			EpochValidatorInfoCreator: &testscommon.EpochValidatorInfoCreatorStub{},
 			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{
 				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
 					return []byte("validator stats root hash"), nil
 				},
 			},
-			EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

@@ -3533,9 +3533,9 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:         UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
-		StakingV4Step1EnableEpoch:                   UnreachableEpoch,
-		StakingV4Step2EnableEpoch:                   UnreachableEpoch,
-		StakingV4Step3EnableEpoch:                   UnreachableEpoch,
+		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
+		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
+		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 	}
 }
 
