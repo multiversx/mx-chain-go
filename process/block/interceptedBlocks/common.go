@@ -1,9 +1,12 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -66,7 +69,7 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	return nil
 }
 
-func checkHeaderHandler(hdr data.HeaderHandler) error {
+func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
 	if len(hdr.GetPubKeysBitmap()) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
@@ -85,8 +88,33 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 	if len(hdr.GetPrevRandSeed()) == 0 {
 		return process.ErrNilPrevRandSeed
 	}
+	err := verifyPreviousBlockProof(hdr, enableEpochsHandler)
+	if err != nil {
+		return err
+	}
 
 	return hdr.CheckFieldsForNil()
+}
+
+func verifyPreviousBlockProof(header data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
+	previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
+	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
+	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
+	isFlagEnabled := enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag)
+	if isFlagEnabled && !hasProof {
+		log.Debug("received header without proof after flag activation")
+		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
+	}
+	if !isFlagEnabled && hasProof {
+		log.Debug("received header with proof before flag activation")
+		return fmt.Errorf("%w, received header with proof before flag activation", process.ErrInvalidHeader)
+	}
+	if isFlagEnabled && !hasLeaderSignature {
+		log.Debug("received header without leader signature after flag activation")
+		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
+	}
+
+	return nil
 }
 
 func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.Coordinator) error {

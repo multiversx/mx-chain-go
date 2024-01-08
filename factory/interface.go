@@ -400,7 +400,7 @@ type ConsensusWorker interface {
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// SaveProposedEquivalentMessage saves the proposed equivalent message
-	SaveProposedEquivalentMessage(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte)
+	SaveProposedEquivalentMessage(hash string, pubKeysBitmap []byte, aggregatedSignature []byte)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

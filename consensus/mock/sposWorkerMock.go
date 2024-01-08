@@ -110,9 +110,9 @@ func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
 }
 
 // SaveProposedEquivalentMessage -
-func (sposWorkerMock *SposWorkerMock) SaveProposedEquivalentMessage(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte) {
+func (sposWorkerMock *SposWorkerMock) SaveProposedEquivalentMessage(hash string, pubkeysBitmap []byte, aggregatedSignature []byte) {
 	if sposWorkerMock.SaveProposedEquivalentMessageCalled != nil {
-		sposWorkerMock.SaveProposedEquivalentMessageCalled(hash, previousPubkeysBitmap, previousAggregatedSignature)
+		sposWorkerMock.SaveProposedEquivalentMessageCalled(hash, pubkeysBitmap, aggregatedSignature)
 	}
 }
 

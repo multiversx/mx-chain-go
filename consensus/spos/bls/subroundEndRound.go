@@ -369,7 +369,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		log.Debug("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
 	}
 
-	// TODO[Sorin]: sr.Blockchain().SetCurrentAggregatedSignatureAndBitmap()
+	// TODO[Sorin]: sr.Blockchain().SetCurrentHeaderProof()
 	startTime := time.Now()
 	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
 	elapsedTime := time.Since(startTime)
@@ -664,7 +664,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		return false
 	}
 
-	// TODO[Sorin]: sr.Blockchain().SetCurrentAggregatedSignatureAndBitmap()
+	// TODO[Sorin]: sr.Blockchain().SetCurrentHeaderProof()
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)

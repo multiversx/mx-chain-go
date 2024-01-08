@@ -17,8 +17,7 @@ type ChainHandlerMock struct {
 	finalBlockHash     []byte
 	finalBlockRootHash []byte
 
-	currentPubKeysBitmap       []byte
-	currentAggregatedSignature []byte
+	currentHeaderProof data.HeaderProof
 }
 
 // GetGenesisHeader -
@@ -81,15 +80,14 @@ func (mock *ChainHandlerMock) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 	return mock.finalBlockNonce, mock.finalBlockHash, mock.finalBlockRootHash
 }
 
-// SetCurrentAggregatedSignatureAndBitmap -
-func (mock *ChainHandlerMock) SetCurrentAggregatedSignatureAndBitmap(signature []byte, pubKeysBitmap []byte) {
-	mock.currentPubKeysBitmap = pubKeysBitmap
-	mock.currentAggregatedSignature = signature
+// SetCurrentHeaderProof -
+func (mock *ChainHandlerMock) SetCurrentHeaderProof(proof data.HeaderProof) {
+	mock.currentHeaderProof = proof
 }
 
-// GetCurrentAggregatedSignatureAndBitmap -
-func (mock *ChainHandlerMock) GetCurrentAggregatedSignatureAndBitmap() ([]byte, []byte) {
-	return mock.currentAggregatedSignature, mock.currentPubKeysBitmap
+// GetCurrentHeaderProof -
+func (mock *ChainHandlerMock) GetCurrentHeaderProof() data.HeaderProof {
+	return mock.currentHeaderProof
 }
 
 // IsInterfaceNil -
