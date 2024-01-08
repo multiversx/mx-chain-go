@@ -108,7 +108,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType:       common.ChainRunTypeRegular,
+		ChainRunType: common.ChainRunTypeRegular,
 	}
 }
 
