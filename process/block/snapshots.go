@@ -89,6 +89,7 @@ func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapte
 	log.Warn("start dumping balances", "epoch", epoch)
 	accountsMap, err := ad.getAllAccounts(accountsAdapter)
 	if err != nil {
+		log.Warn("call:getAllAccounts", "error", err.Error())
 		return err
 	}
 
@@ -107,6 +108,7 @@ func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapte
 	if shardID == 2 {
 		legacyDelegationState, errL := ad.getLegacyDelegationState()
 		if errL != nil {
+			log.Warn("call:getLegacyDelegationState", "error", errL.Error())
 			return errL
 		}
 
@@ -120,6 +122,7 @@ func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapte
 	if shardID == core.MetachainShardId {
 		directStake, errL := ad.getDirectStakeInfo()
 		if errL != nil {
+			log.Warn("call:getDirectStakeInfo", "error", errL.Error())
 			return errL
 		}
 
@@ -134,6 +137,7 @@ func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapte
 	if shardID == core.MetachainShardId && epoch >= stakingProvidersActivationEpoch {
 		delegatedInfo, errL := ad.getDelegatedInfo()
 		if errL != nil {
+			log.Warn("call:getDelegatedInfo", "error", errL.Error())
 			return errL
 		}
 
@@ -149,7 +153,13 @@ func (ad *accountsDumper) dumpBalancesInfo(shardID, epoch uint32, accountsAdapte
 }
 
 func (ad *accountsDumper) writeInS3(fileName string, fileBytes []byte) error {
-	return ad.sClient.Put(fileBytes, fileName)
+	err := ad.sClient.Put(fileBytes, fileName)
+	if err != nil {
+		log.Warn("call:writeInS3", "error", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // TODO --- dump legacy delegation state -- SHARD 2 // check if the vm query exists
