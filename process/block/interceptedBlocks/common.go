@@ -101,16 +101,14 @@ func verifyPreviousBlockProof(header data.HeaderHandler, enableEpochsHandler com
 	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
 	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
 	isFlagEnabled := enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag)
-	if isFlagEnabled && !hasProof {
-		log.Debug("received header without proof after flag activation")
+	isHeaderForOlderEpoch := header.GetEpoch() < enableEpochsHandler.GetCurrentEpoch()
+	if isFlagEnabled && !hasProof && !isHeaderForOlderEpoch {
 		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
 	}
 	if !isFlagEnabled && hasProof {
-		log.Debug("received header with proof before flag activation")
 		return fmt.Errorf("%w, received header with proof before flag activation", process.ErrInvalidHeader)
 	}
-	if isFlagEnabled && !hasLeaderSignature {
-		log.Debug("received header without leader signature after flag activation")
+	if isFlagEnabled && !hasLeaderSignature && !isHeaderForOlderEpoch {
 		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
 	}
 

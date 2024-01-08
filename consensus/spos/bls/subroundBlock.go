@@ -2,7 +2,6 @@ package bls
 
 import (
 	"context"
-	"encoding/hex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -499,7 +498,8 @@ func (sr *subroundBlock) verifyPreviousBlockProof() bool {
 	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
 	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
 	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
-	if isFlagEnabled && !hasProof {
+	isHeaderForOlderEpoch := sr.Header.GetEpoch() < sr.EnableEpochsHandler().GetCurrentEpoch()
+	if isFlagEnabled && !hasProof && !isHeaderForOlderEpoch {
 		log.Debug("received header without proof after flag activation")
 		return false
 	}
@@ -507,7 +507,7 @@ func (sr *subroundBlock) verifyPreviousBlockProof() bool {
 		log.Debug("received header with proof before flag activation")
 		return false
 	}
-	if isFlagEnabled && !hasLeaderSignature {
+	if isFlagEnabled && !hasLeaderSignature && !isHeaderForOlderEpoch {
 		log.Debug("received header without leader signature after flag activation")
 		return false
 	}
@@ -525,31 +525,19 @@ func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) e
 	}
 
 	node := string(nodeKey)
-	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(nodeKey))
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Debug("saveLeaderSignature.ConsensusGroupIndex",
-			"node", pkForLogs,
-			"error", err.Error())
 		return err
 	}
 
 	err = sr.SigningHandler().StoreSignatureShare(uint16(index), signature)
 	if err != nil {
-		log.Debug("saveLeaderSignature.StoreSignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
 		return err
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
 	if err != nil {
-		log.Debug("saveLeaderSignature.SetJobDone for leader",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
 		return err
 	}
 
