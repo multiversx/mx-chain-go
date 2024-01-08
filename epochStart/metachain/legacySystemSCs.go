@@ -206,7 +206,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 			return err
 		}
 
-		if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueEnabledFlag) {
+		if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
 			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
@@ -585,7 +585,7 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 		return err
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueEnabledFlag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
 		sw.Start("stakeNodesFromQueue")
 		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
 		sw.Stop("stakeNodesFromQueue")

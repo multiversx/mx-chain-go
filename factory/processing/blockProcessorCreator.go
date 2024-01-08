@@ -453,7 +453,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
 	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
 
-	return blockProcessorAndVmFactories, nil
+	return blockProcessorComponents, nil
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(

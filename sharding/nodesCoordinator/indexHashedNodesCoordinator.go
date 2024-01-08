@@ -237,7 +237,6 @@ func checkArguments(arguments ArgNodesCoordinator) error {
 	}
 	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
-		common.WaitingListFixFlag,
 	})
 	if err != nil {
 		return err

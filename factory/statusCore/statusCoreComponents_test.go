@@ -15,7 +15,6 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,49 +39,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 
 		args := componentsMock.GetStatusCoreArgs(coreComp)
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errErd.ErrNilEconomicsData, err)
-		require.Nil(t, sccf)
-	})
-	t.Run("nil genesis node setup should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp := &mock.CoreComponentsStub{
-			EconomicsDataField:     &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField: nil,
-		}
-
-		args := componentsMock.GetStatusCoreArgs(coreComp)
-		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
-		require.Nil(t, sccf)
-	})
-	t.Run("nil marshaller should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp := &mock.CoreComponentsStub{
-			EconomicsDataField:       &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField:   &genesisMocks.NodesSetupStub{},
-			InternalMarshalizerField: nil,
-		}
-
-		args := componentsMock.GetStatusCoreArgs(coreComp)
-		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errErd.ErrNilMarshalizer, err)
-		require.Nil(t, sccf)
-	})
-	t.Run("nil slice converter should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp := &mock.CoreComponentsStub{
-			EconomicsDataField:            &economicsmocks.EconomicsHandlerStub{},
-			GenesisNodesSetupField:        &genesisMocks.NodesSetupStub{},
-			InternalMarshalizerField:      &testscommon.MarshalizerStub{},
-			Uint64ByteSliceConverterField: nil,
-		}
-
-		args := componentsMock.GetStatusCoreArgs(coreComp)
-		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
-		assert.Equal(t, errErd.ErrNilUint64ByteSliceConverter, err)
+		assert.Equal(t, errorsMx.ErrNilEconomicsData, err)
 		require.Nil(t, sccf)
 	})
 	t.Run("should work", func(t *testing.T) {

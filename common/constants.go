@@ -970,7 +970,6 @@ const (
 	SendAlwaysFlag                                     core.EnableEpochFlag = "SendAlwaysFlag"
 	ValueLengthCheckFlag                               core.EnableEpochFlag = "ValueLengthCheckFlag"
 	CheckTransferFlag                                  core.EnableEpochFlag = "CheckTransferFlag"
-	TransferToMetaFlag                                 core.EnableEpochFlag = "TransferToMetaFlag"
 	ESDTNFTImprovementV1Flag                           core.EnableEpochFlag = "ESDTNFTImprovementV1Flag"
 	ChangeDelegationOwnerFlag                          core.EnableEpochFlag = "ChangeDelegationOwnerFlag"
 	RefactorPeersMiniBlocksFlag                        core.EnableEpochFlag = "RefactorPeersMiniBlocksFlag"
@@ -996,7 +995,6 @@ const (
 	ScToScLogEventFlag                                 core.EnableEpochFlag = "ScToScLogEventFlag"
 	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
-	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
@@ -1004,7 +1002,7 @@ const (
 	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
 	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
 	StakingV4Step3Flag                                 core.EnableEpochFlag = "StakingV4Step3Flag"
-	StakingQueueEnabledFlag                            core.EnableEpochFlag = "StakingQueueEnabledFlag"
+	StakingQueueFlag                                   core.EnableEpochFlag = "StakingQueueFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

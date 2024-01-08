@@ -701,7 +701,7 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
 		},
-		common.StakingQueueEnabledFlag: {
+		common.StakingQueueFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 			},

@@ -189,7 +189,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		bcf.coreComponents.InternalMarshalizer(),
-		bcf.coreComponents.EnableEpochsHandler().StakingV4Step2EnableEpoch(),
+		bcf.coreComponents.EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag),
 	)
 	if err != nil {
 		return nil, err

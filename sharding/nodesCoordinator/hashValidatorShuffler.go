@@ -91,7 +91,6 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.BalanceWaitingListsFlag,
-		common.WaitingListFixFlag,
 	})
 	if err != nil {
 		return nil, err
