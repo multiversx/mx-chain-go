@@ -111,15 +111,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		headerHash, errCalculateHash := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
-		if errCalculateHash != nil {
-			return false
-		}
-		previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
-		sr.worker.SaveProposedEquivalentMessage(string(headerHash), previousBitmap, previousAggregatedSignature)
-	}
-
 	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
