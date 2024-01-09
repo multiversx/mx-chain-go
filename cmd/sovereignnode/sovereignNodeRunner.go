@@ -434,7 +434,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
-		configs,
+		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		outGoingOperationsPool,
@@ -531,7 +531,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	sovereignWsReceiver, err := createSovereignWsReceiver(
-		configs,
+		&configs.SovereignExtraConfig.NotifierConfig,
 		incomingHeaderHandler,
 	)
 	if err != nil {
@@ -1785,16 +1785,16 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createIncomingHeaderProcessor(
-	config *sovereignConfig.SovereignConfig,
+	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (process.IncomingHeaderSubscriber, error) {
-	marshaller, err := marshallerFactory.NewMarshalizer(config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.MarshallerType)
+	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
 		return nil, err
 	}
-	hasher, err := hasherFactory.NewHasher(config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.HasherType)
+	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
 	if err != nil {
 		return nil, err
 	}
@@ -1812,13 +1812,13 @@ func createIncomingHeaderProcessor(
 }
 
 func createSovereignWsReceiver(
-	config *sovereignConfig.SovereignConfig,
+	config *config.NotifierConfig,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
-		MarshallerType:   config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.MarshallerType,
-		SubscribedEvents: getNotifierSubscribedEvents(config.SovereignExtraConfig.NotifierConfig.SubscribedEvents),
-		HasherType:       config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.HasherType,
+		MarshallerType:   config.WebSocketConfig.MarshallerType,
+		SubscribedEvents: getNotifierSubscribedEvents(config.SubscribedEvents),
+		HasherType:       config.WebSocketConfig.HasherType,
 	}
 
 	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
@@ -1833,14 +1833,14 @@ func createSovereignWsReceiver(
 
 	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
 		WebSocketConfig: notifierCfg.WebSocketConfig{
-			Url:                config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.Url,
-			MarshallerType:     config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.MarshallerType,
-			Mode:               config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.Mode,
-			RetryDuration:      config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.RetryDuration,
-			WithAcknowledge:    config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.WithAcknowledge,
-			BlockingAckOnError: config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.BlockingAckOnError,
-			AcknowledgeTimeout: config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.AcknowledgeTimeout,
-			Version:            config.SovereignExtraConfig.NotifierConfig.WebSocketConfig.Version,
+			Url:                config.WebSocketConfig.Url,
+			MarshallerType:     config.WebSocketConfig.MarshallerType,
+			Mode:               config.WebSocketConfig.Mode,
+			RetryDuration:      config.WebSocketConfig.RetryDuration,
+			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
+			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
+			Version:            config.WebSocketConfig.Version,
 		},
 		SovereignNotifier: sovereignNotifier,
 	}
