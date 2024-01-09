@@ -1646,6 +1646,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 		}
 		container.SetBroadcastMessenger(messenger)
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.SetSelfPubKey("A")
 
 		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
 
