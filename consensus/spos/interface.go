@@ -146,6 +146,8 @@ type WorkerHandler interface {
 	HasEquivalentMessage(headerHash []byte) bool
 	// GetEquivalentProof returns the equivalent proof for the provided hash
 	GetEquivalentProof(headerHash []byte) data.HeaderProof
+	// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
+	SetValidEquivalentProof(hash string, proof data.HeaderProof)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

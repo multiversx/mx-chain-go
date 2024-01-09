@@ -30,6 +30,7 @@ type SposWorkerMock struct {
 	ResetConsensusMessagesCalled           func()
 	HasEquivalentMessageCalled             func(headerHash []byte) bool
 	GetEquivalentProofCalled               func(headerHash []byte) data.HeaderProof
+	SetValidEquivalentProofCalled          func(hash string, proof data.HeaderProof)
 }
 
 // AddReceivedMessageCall -
@@ -124,6 +125,13 @@ func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) data
 		return sposWorkerMock.GetEquivalentProofCalled(headerHash)
 	}
 	return data.HeaderProof{}
+}
+
+// SetValidEquivalentProof -
+func (sposWorkerMock *SposWorkerMock) SetValidEquivalentProof(hash string, proof data.HeaderProof) {
+	if sposWorkerMock.SetValidEquivalentProofCalled != nil {
+		sposWorkerMock.SetValidEquivalentProofCalled(hash, proof)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

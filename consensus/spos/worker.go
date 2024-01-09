@@ -846,6 +846,22 @@ func (wrk *Worker) GetEquivalentProof(headerHash []byte) data.HeaderProof {
 	return info.Proof
 }
 
+// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
+func (wrk *Worker) SetValidEquivalentProof(hash string, proof data.HeaderProof) {
+	wrk.mutEquivalentMessages.Lock()
+	defer wrk.mutEquivalentMessages.Unlock()
+
+	equivalentMessage, ok := wrk.equivalentMessages[hash]
+	if !ok {
+		equivalentMessage = &consensus.EquivalentMessageInfo{
+			NumMessages: 1,
+		}
+		wrk.equivalentMessages[hash] = equivalentMessage
+	}
+	equivalentMessage.Validated = true
+	equivalentMessage.Proof = proof
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (wrk *Worker) IsInterfaceNil() bool {
 	return wrk == nil
