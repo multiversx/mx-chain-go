@@ -1322,7 +1322,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		assert.False(t, res)
 	})
 
-	t.Run("received message for self leader", func(t *testing.T) {
+	t.Run("received message from self leader should return false", func(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
@@ -1336,6 +1336,53 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+	})
+
+	t.Run("received message from self multikey leader should return false", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return string(pkBytes) == "A"
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		sr, _ := spos.NewSubround(
+			bls.SrSignature,
+			bls.SrEndRound,
+			-1,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(END_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		srEndRound, _ := bls.NewSubroundEndRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			&statusHandler.AppStatusHandlerStub{},
+			&mock.SentSignatureTrackerStub{},
+		)
+
+		srEndRound.SetSelfPubKey("A")
+
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+		}
+
+		res := srEndRound.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
 
