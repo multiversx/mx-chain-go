@@ -2,8 +2,6 @@ package bls
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,37 +20,33 @@ type subroundBlock struct {
 	*spos.Subround
 
 	processingThresholdPercentage int
-	saveProposedEquivalentMessage func(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte)
+	worker                        spos.WorkerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
 	baseSubround *spos.Subround,
-	extend func(subroundId int),
 	processingThresholdPercentage int,
-	saveProposedEquivalentMessage func(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte),
+	worker spos.WorkerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
 		return nil, err
 	}
 
-	if extend == nil {
-		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
-	}
-	if saveProposedEquivalentMessage == nil {
-		return nil, fmt.Errorf("%w for saveProposedEquivalentMessage function", spos.ErrNilFunctionHandler)
+	if check.IfNil(worker) {
+		return nil, spos.ErrNilWorker
 	}
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
-		saveProposedEquivalentMessage: saveProposedEquivalentMessage,
+		worker:                        worker,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
 	srBlock.Check = srBlock.doBlockConsensusCheck
-	srBlock.Extend = extend
+	srBlock.Extend = srBlock.worker.Extend
 
 	return &srBlock, nil
 }
@@ -117,16 +111,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		marshalledHeader, err := sr.Marshalizer().Marshal(header)
-		if err != nil {
-			return false
-		}
-		headerHash := sr.Hasher().Compute(string(marshalledHeader))
-		previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
-		sr.saveProposedEquivalentMessage(string(headerHash), previousBitmap, previousAggregatedSignature)
-	}
-
 	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
@@ -164,7 +148,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 
 	var signatureShare []byte
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		selfIndex, err := sr.ConsensusGroupIndex(leader)
+		leaderIndex, err := sr.ConsensusGroupIndex(leader)
 		if err != nil {
 			log.Debug("sendBlock.SelfConsensusGroupIndex: leader not in consensus group")
 			return false
@@ -173,7 +157,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 		headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
 			headerHash,
-			uint16(selfIndex),
+			uint16(leaderIndex),
 			header.GetEpoch(),
 			[]byte(leader),
 		)
@@ -423,8 +407,8 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		currentAggregatedSignature, currentPubKeysBitmap := sr.Blockchain().GetCurrentAggregatedSignatureAndBitmap()
-		hdr.SetPreviousAggregatedSignatureAndBitmap(currentAggregatedSignature, currentPubKeysBitmap)
+		prevBlockProof := sr.Blockchain().GetCurrentHeaderProof()
+		hdr.SetPreviousAggregatedSignatureAndBitmap(prevBlockProof.AggregatedSignature, prevBlockProof.PubKeysBitmap)
 	}
 
 	return hdr, nil
@@ -468,10 +452,6 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
-	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
-		return false
-	}
-
 	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
 
 	sr.Data = cnsDta.BlockHeaderHash
@@ -480,6 +460,10 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 
 	isInvalidData := check.IfNil(sr.Body) || sr.isInvalidHeaderOrData()
 	if isInvalidData {
+		return false
+	}
+
+	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
 		return false
 	}
 
@@ -500,67 +484,52 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) verifyProof() bool {
+func (sr *subroundBlock) verifyPreviousBlockProof() bool {
 	previousAggregatedSignature, previousBitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
 	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
-	hasLeaderSignature := len(sr.Header.GetLeaderSignature()) != 0
+	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
 	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
-	if isFlagEnabled && !hasProof {
-		log.Warn("received header without proof after flag activation")
+	isHeaderForOlderEpoch := sr.Header.GetEpoch() < sr.EnableEpochsHandler().GetCurrentEpoch()
+	if isFlagEnabled && !hasProof && !isHeaderForOlderEpoch {
+		log.Debug("received header without proof after flag activation")
 		return false
 	}
 	if !isFlagEnabled && hasProof {
-		log.Warn("received header with proof before flag activation")
+		log.Debug("received header with proof before flag activation")
 		return false
 	}
-	if isFlagEnabled && hasLeaderSignature {
-		log.Warn("received header with leader signature after flag activation")
+	if isFlagEnabled && !hasLeaderSignature && !isHeaderForOlderEpoch {
+		log.Debug("received header without leader signature after flag activation")
 		return false
 	}
 
 	return true
 }
 
-func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) bool {
+func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) error {
 	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		return true
+		return nil
 	}
 
 	if len(signature) == 0 {
-		return true
-	}
-
-	if sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound() {
-		return true
+		return spos.ErrNilSignature
 	}
 
 	node := string(nodeKey)
-	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(nodeKey))
 
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
-		log.Debug("saveLeaderSignature.ConsensusGroupIndex",
-			"node", pkForLogs,
-			"error", err.Error())
-		return false
+		return err
 	}
 
 	err = sr.SigningHandler().StoreSignatureShare(uint16(index), signature)
 	if err != nil {
-		log.Debug("saveLeaderSignature.StoreSignatureShare",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
-		return false
+		return err
 	}
 
 	err = sr.SetJobDone(node, SrSignature, true)
 	if err != nil {
-		log.Debug("saveLeaderSignature.SetJobDone for leader",
-			"node", pkForLogs,
-			"index", index,
-			"error", err.Error())
-		return false
+		return err
 	}
 
 	sr.PeerHonestyHandler().ChangeScore(
@@ -569,7 +538,7 @@ func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) b
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
-	return true
+	return nil
 }
 
 func (sr *subroundBlock) verifyLeaderSignature(
@@ -595,7 +564,7 @@ func (sr *subroundBlock) verifyLeaderSignature(
 }
 
 func (sr *subroundBlock) isInvalidHeaderOrData() bool {
-	return sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil || !sr.verifyProof()
+	return sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil || !sr.verifyPreviousBlockProof()
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
@@ -759,8 +728,8 @@ func (sr *subroundBlock) processBlock(
 		return false
 	}
 
-	ok := sr.saveLeaderSignature(pubkey, signature)
-	if !ok {
+	err = sr.saveLeaderSignature(pubkey, signature)
+	if err != nil {
 		sr.printCancelRoundLogMessage(ctx, err)
 		return false
 	}

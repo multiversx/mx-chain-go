@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 	"testing"
 	"time"
 
@@ -64,9 +63,8 @@ func createDefaultHeader() *block.Header {
 func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, error) {
 	srBlock, err := bls.NewSubroundBlock(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		saveProposedEquivalentMessage,
+		&mock.SposWorkerMock{},
 	)
 
 	return srBlock, err
@@ -75,9 +73,8 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, err
 func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.SubroundBlock {
 	srBlock, _ := bls.NewSubroundBlock(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		saveProposedEquivalentMessage,
+		&mock.SposWorkerMock{},
 	)
 
 	return srBlock
@@ -157,9 +154,8 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 
 	srBlock, err := bls.NewSubroundBlock(
 		nil,
-		extend,
 		bls.ProcessingThresholdPercent,
-		saveProposedEquivalentMessage,
+		&mock.SposWorkerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -301,7 +297,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestSubroundBlock_NewSubroundBlockNilExtendFuncShouldFail(t *testing.T) {
+func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := mock.InitConsensusCore()
 
@@ -312,33 +308,11 @@ func TestSubroundBlock_NewSubroundBlockNilExtendFuncShouldFail(t *testing.T) {
 
 	srBlock, err := bls.NewSubroundBlock(
 		sr,
-		nil,
-		bls.ProcessingThresholdPercent,
-		saveProposedEquivalentMessage,
-	)
-	assert.Nil(t, srBlock)
-	assert.True(t, errors.Is(err, spos.ErrNilFunctionHandler))
-	assert.True(t, strings.Contains(err.Error(), "extend function"))
-}
-
-func TestSubroundBlock_NewSubroundBlockNilSaveProposedEquivalentMessageFuncShouldFail(t *testing.T) {
-	t.Parallel()
-	container := mock.InitConsensusCore()
-
-	consensusState := initConsensusState()
-
-	ch := make(chan bool, 1)
-	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
-
-	srBlock, err := bls.NewSubroundBlock(
-		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
 		nil,
 	)
 	assert.Nil(t, srBlock)
-	assert.True(t, errors.Is(err, spos.ErrNilFunctionHandler))
-	assert.True(t, strings.Contains(err.Error(), "saveProposedEquivalentMessage function"))
+	assert.Equal(t, spos.ErrNilWorker, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
@@ -505,8 +479,11 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return providedHeadr
 			},
-			GetCurrentAggregatedSignatureAndBitmapCalled: func() ([]byte, []byte) {
-				return providedSignature, providedBitmap
+			GetCurrentHeaderProofCalled: func() data.HeaderProof {
+				return data.HeaderProof{
+					AggregatedSignature: providedSignature,
+					PubKeysBitmap:       providedBitmap,
+				}
 			},
 		})
 
@@ -751,7 +728,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.False(t, r)
 	})
-	t.Run("header with leader sig after flag activation should error", func(t *testing.T) {
+	t.Run("header without leader sig after flag activation should error", func(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
@@ -766,10 +743,11 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		blkBody := &block.Body{}
 		hdr := &block.HeaderV2{
-			Header: &block.Header{
-				LeaderSignature: []byte("leader signature"),
+			Header: &block.Header{},
+			PreviousHeaderProof: &block.PreviousHeaderProof{
+				PubKeysBitmap:       []byte{0, 1, 1, 1},
+				AggregatedSignature: []byte("sig"),
 			},
-			PreviousHeaderProof: &block.PreviousHeaderProof{},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
@@ -796,11 +774,12 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			ScheduledAccumulatedFees: big.NewInt(1),
 			ScheduledRootHash:        []byte("scheduled root hash"),
 			PreviousHeaderProof: &block.PreviousHeaderProof{
-				PubKeysBitmap:       []byte("bitmap"),
+				PubKeysBitmap:       []byte{1, 1, 1, 1},
 				AggregatedSignature: []byte("sig"),
 			},
 		}
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
+		cnsMsg.SignatureShare = []byte("signature")
 		sr.Data = nil
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.True(t, r)
@@ -965,7 +944,7 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
 		PreviousHeaderProof: &block.PreviousHeaderProof{
-			PubKeysBitmap:       []byte("bitmap"),
+			PubKeysBitmap:       []byte{1, 1, 1, 1},
 			AggregatedSignature: []byte("sig"),
 		},
 	}

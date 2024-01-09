@@ -3,7 +3,6 @@ package bls
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,9 +21,9 @@ type subroundSignature struct {
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
-	extend func(subroundId int),
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
+	worker spos.WorkerHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -32,14 +31,14 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
-	if extend == nil {
-		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
-	}
 	if check.IfNil(appStatusHandler) {
 		return nil, spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignatureTracker) {
 		return nil, spos.ErrNilSentSignatureTracker
+	}
+	if check.IfNil(worker) {
+		return nil, spos.ErrNilWorker
 	}
 
 	srSignature := subroundSignature{
@@ -49,7 +48,7 @@ func NewSubroundSignature(
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
-	srSignature.Extend = extend
+	srSignature.Extend = worker.Extend
 
 	return &srSignature, nil
 }

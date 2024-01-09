@@ -2,10 +2,12 @@ package interceptedBlocks
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -236,7 +238,7 @@ func TestCheckHeaderHandler_NilPubKeysBitmapShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
 }
@@ -249,7 +251,7 @@ func TestCheckHeaderHandler_NilPrevHashShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPreviousBlockHash, err)
 }
@@ -262,7 +264,7 @@ func TestCheckHeaderHandler_NilSignatureShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilSignature, err)
 }
@@ -275,7 +277,7 @@ func TestCheckHeaderHandler_NilRootHashErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilRootHash, err)
 }
@@ -288,7 +290,7 @@ func TestCheckHeaderHandler_NilRandSeedErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilRandSeed, err)
 }
@@ -301,9 +303,45 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
+}
+
+func TestCheckHeaderHandler_FlagEnabledAndNoProofShouldError(t *testing.T) {
+	t.Parallel()
+
+	hdr := createDefaultHeaderHandler()
+
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
+	assert.True(t, errors.Is(err, process.ErrInvalidHeader))
+	assert.True(t, strings.Contains(err.Error(), "received header without proof after flag activation"))
+}
+
+func TestCheckHeaderHandler_FlagNotEnabledAndProofShouldError(t *testing.T) {
+	t.Parallel()
+
+	hdr := createDefaultHeaderHandler()
+	hdr.GetPreviousAggregatedSignatureAndBitmapCalled = func() ([]byte, []byte) {
+		return []byte("sig"), []byte("bitmap")
+	}
+
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	assert.True(t, errors.Is(err, process.ErrInvalidHeader))
+	assert.True(t, strings.Contains(err.Error(), "received header with proof before flag activation"))
+}
+
+func TestCheckHeaderHandler_FlagEnabledAndLeaderSignatureShouldError(t *testing.T) {
+	t.Parallel()
+
+	hdr := createDefaultHeaderHandler()
+	hdr.GetPreviousAggregatedSignatureAndBitmapCalled = func() ([]byte, []byte) {
+		return []byte("sig"), []byte{0, 1, 1, 1}
+	}
+
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
+	assert.True(t, errors.Is(err, process.ErrInvalidHeader))
+	assert.True(t, strings.Contains(err.Error(), "received header without leader signature after flag activation"))
 }
 
 func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
@@ -315,7 +353,7 @@ func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
 		return expectedErr
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -325,7 +363,7 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 
 	hdr := createDefaultHeaderHandler()
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Nil(t, err)
 }

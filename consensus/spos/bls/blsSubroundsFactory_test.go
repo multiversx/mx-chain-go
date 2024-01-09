@@ -31,9 +31,6 @@ func extend(subroundId int) {
 	fmt.Println(subroundId)
 }
 
-func saveProposedEquivalentMessage(_ string, _ []byte, _ []byte) {
-}
-
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
 }

@@ -785,8 +785,10 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 	}
 
 	equivalentMsgInfo.Validated = true
-	equivalentMsgInfo.PreviousPubkeysBitmap = cnsMsg.PubKeysBitmap
-	equivalentMsgInfo.PreviousAggregateSignature = cnsMsg.AggregateSignature
+	equivalentMsgInfo.Proof = data.HeaderProof{
+		AggregatedSignature: cnsMsg.AggregateSignature,
+		PubKeysBitmap:       cnsMsg.PubKeysBitmap,
+	}
 
 	return nil
 }
@@ -797,7 +799,12 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 	}
 
 	header := wrk.consensusState.Header
-	return wrk.headerSigVerifier.VerifySignatureForHash(header, header.GetPrevHash(), cnsMsg.PubKeysBitmap, cnsMsg.Signature)
+	headerHash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, header)
+	if err != nil {
+		return err
+	}
+
+	return wrk.headerSigVerifier.VerifySignatureForHash(header, headerHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
@@ -818,19 +825,6 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 	return equivalentMessagesCopy
 }
 
-// SaveProposedEquivalentMessage saves the proposed equivalent message
-func (wrk *Worker) SaveProposedEquivalentMessage(hash string, previousPubkeysBitmap []byte, previousAggregatedSignature []byte) {
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
-
-	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
-		NumMessages:                1,
-		Validated:                  true,
-		PreviousPubkeysBitmap:      previousPubkeysBitmap,
-		PreviousAggregateSignature: previousAggregatedSignature,
-	}
-}
-
 // HasEquivalentMessage returns true if an equivalent message was received before
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 	wrk.mutEquivalentMessages.RLock()
@@ -841,15 +835,31 @@ func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash
-func (wrk *Worker) GetEquivalentProof(headerHash []byte) ([]byte, []byte) {
+func (wrk *Worker) GetEquivalentProof(headerHash []byte) data.HeaderProof {
 	wrk.mutEquivalentMessages.RLock()
 	defer wrk.mutEquivalentMessages.RUnlock()
 	info, has := wrk.equivalentMessages[string(headerHash)]
 	if !has {
-		return nil, nil
+		return data.HeaderProof{}
 	}
 
-	return info.PreviousAggregateSignature, info.PreviousPubkeysBitmap
+	return info.Proof
+}
+
+// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
+func (wrk *Worker) SetValidEquivalentProof(hash string, proof data.HeaderProof) {
+	wrk.mutEquivalentMessages.Lock()
+	defer wrk.mutEquivalentMessages.Unlock()
+
+	equivalentMessage, ok := wrk.equivalentMessages[hash]
+	if !ok {
+		equivalentMessage = &consensus.EquivalentMessageInfo{
+			NumMessages: 1,
+		}
+		wrk.equivalentMessages[hash] = equivalentMessage
+	}
+	equivalentMessage.Validated = true
+	equivalentMessage.Proof = proof
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
