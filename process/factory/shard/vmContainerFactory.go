@@ -44,6 +44,7 @@ type vmContainerFactory struct {
 	wasmVMChangeLocker  common.Locker
 	esdtTransferParser  vmcommon.ESDTTransferParser
 	hasher              hashing.Hasher
+	hardCodedToVM15     bool
 }
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
@@ -58,6 +59,7 @@ type ArgVMContainerFactory struct {
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
 	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	Hasher              hashing.Hasher
+	HardCodedToVM15     bool
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -102,6 +104,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		wasmVMChangeLocker:  args.WasmVMChangeLocker,
 		esdtTransferParser:  args.ESDTTransferParser,
 		hasher:              args.Hasher,
+		hardCodedToVM15:     args.HardCodedToVM15,
 	}
 
 	vmf.wasmVMVersions = args.Config.WasmVMVersions
@@ -152,7 +155,13 @@ func (vmf *vmContainerFactory) Create() (process.VirtualMachinesContainer, error
 	container := containers.NewVirtualMachinesContainer()
 
 	vmf.wasmVMChangeLocker.Lock()
-	version := vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
+	version := config.WasmVMVersionByEpoch{
+		Version:    "v1.5",
+		StartEpoch: 0,
+	}
+	if !vmf.hardCodedToVM15 {
+		version = vmf.getMatchingVersion(vmf.epochNotifier.CurrentEpoch())
+	}
 	currentVM, err := vmf.createWasmVM(version)
 	if err != nil {
 		vmf.wasmVMChangeLocker.Unlock()

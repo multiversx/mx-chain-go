@@ -470,6 +470,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		BlockProcessorWithRevert:     ccf.processComponents.BlockProcessorWithRevert(),
 		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
