@@ -921,13 +921,13 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		}
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-		wasSetCurrentAggregatedSignatureAndBitmapCalled := false
+		wasSetCurrentHeaderProofCalled := false
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
 			},
 			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
-				wasSetCurrentAggregatedSignatureAndBitmapCalled = true
+				wasSetCurrentHeaderProofCalled = true
 
 			},
 		})
@@ -988,7 +988,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
 		assert.True(t, res)
 		assert.True(t, receivedActualSignersCalled)
-		assert.True(t, wasSetCurrentAggregatedSignatureAndBitmapCalled)
+		assert.True(t, wasSetCurrentHeaderProofCalled)
 	})
 	t.Run("should return false when final info is not valid", func(t *testing.T) {
 		t.Parallel()
@@ -1467,14 +1467,14 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		providedPrevSig := []byte("prev sig")
 		providedPrevBitmap := []byte("prev bitmap")
-		wasSetCurrentAggregatedSignatureAndBitmapCalled := false
+		wasSetCurrentHeaderProofCalled := false
 		container := mock.InitConsensusCore()
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
 			},
 			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
-				wasSetCurrentAggregatedSignatureAndBitmapCalled = true
+				wasSetCurrentHeaderProofCalled = true
 				require.NotEqual(t, providedPrevSig, proof.AggregatedSignature)
 				require.NotEqual(t, providedPrevBitmap, proof.PubKeysBitmap)
 			},
@@ -1532,7 +1532,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		r := srEndRound.DoEndRoundJobByLeader()
 		require.True(t, r)
-		require.True(t, wasSetCurrentAggregatedSignatureAndBitmapCalled)
+		require.True(t, wasSetCurrentHeaderProofCalled)
 		require.True(t, wasGetValidatedEquivalentProof)
 	})
 }
