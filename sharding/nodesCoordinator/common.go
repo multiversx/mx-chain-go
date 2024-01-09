@@ -53,7 +53,9 @@ func displayNodesConfiguration(
 	leaving map[uint32][]Validator,
 	actualRemaining map[uint32][]Validator,
 	nbShards uint32,
+	shardID uint32,
 ) {
+	log.Debug("displayNodesConfiguration: shard", "shardID", shardID)
 	for shard := uint32(0); shard <= nbShards; shard++ {
 		shardID := shard
 		if shardID == nbShards {
@@ -103,7 +105,9 @@ func DisplayNodesCoordinatorRegistry(
 			nConfig.waitingMap,
 			nConfig.leavingMap,
 			make(map[uint32][]Validator),
-			nConfig.nbShards)
+			nConfig.nbShards,
+			nConfig.shardID,
+		)
 	}
 	log.Debug("DisplayNodesCoordinatorRegistry: END")
 }

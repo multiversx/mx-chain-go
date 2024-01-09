@@ -359,7 +359,9 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte, lastEpoch uin
 			nConfig.waitingMap,
 			nConfig.leavingMap,
 			make(map[uint32][]Validator),
-			nConfig.nbShards)
+			nConfig.nbShards,
+			nConfig.shardID,
+		)
 	}
 	ihnc.mutNodesConfig.Unlock()
 
@@ -409,7 +411,9 @@ func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
 			nConfig.waitingMap,
 			nConfig.leavingMap,
 			make(map[uint32][]Validator),
-			nConfig.nbShards)
+			nConfig.nbShards,
+			nConfig.shardID,
+		)
 	}
 
 	return nil
