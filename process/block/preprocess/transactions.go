@@ -627,6 +627,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
+	log.Debug("processTxsFromMe", "randomness", hex.EncodeToString(randomness))
 	txs.sortTransactionsBySenderAndNonce(txsFromMe, randomness)
 
 	isShardStuckFalse := func(uint32) bool {
@@ -690,10 +691,16 @@ func (txs *transactions) processTxsFromMe(
 	if !bytes.Equal(receivedBodyHash, calculatedBodyHash) {
 		for _, mb := range receivedMiniBlocks {
 			log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+			for _, txHash := range mb.TxHashes {
+				log.Debug("received tx", "txHash", hex.EncodeToString(txHash))
+			}
 		}
 
 		for _, mb := range calculatedMiniBlocks {
 			log.Debug("calculated miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+			for _, txHash := range mb.TxHashes {
+				log.Debug("calculated tx", "txHash", hex.EncodeToString(txHash))
+			}
 		}
 
 		log.Debug("block body missmatch",
