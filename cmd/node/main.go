@@ -105,7 +105,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 
 	errCheckEpochsCfg := config.SanityCheckEnableEpochsStakingV4(cfgs)
 	if errCheckEpochsCfg != nil {
-		return errCfg
+		return errCheckEpochsCfg
 	}
 
 	if !check.IfNil(fileLogging) {
