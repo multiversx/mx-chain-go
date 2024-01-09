@@ -1603,7 +1603,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 	t.Parallel()
 
-	t.Run("redundancy node should not send", func(t *testing.T) {
+	t.Run("redundancy node should not send while main is active", func(t *testing.T) {
 		t.Parallel()
 
 		expectedInvalidSigners := []byte("invalid signers")
@@ -1611,6 +1611,9 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 		container := mock.InitConsensusCore()
 		nodeRedundancy := &mock.NodeRedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
 				return true
 			},
 		}
