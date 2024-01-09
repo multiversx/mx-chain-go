@@ -347,19 +347,28 @@ func createScQueryService(
 func createScQueryElement(
 	args *scQueryElementArgs,
 ) (process.SCQueryService, error) {
+	argsNewSCQueryService, err := createArgsSCQueryService(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return smartContract.NewSCQueryService(argsNewSCQueryService)
+}
+
+func createArgsSCQueryService(args *scQueryElementArgs) (smartContract.ArgsNewSCQueryService, error) {
 	var err error
 
 	pkConverter := args.coreComponents.AddressPubKeyConverter()
 	automaticCrawlerAddressesStrings := args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddresses
 	convertedAddresses, errDecode := factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
 	if errDecode != nil {
-		return nil, errDecode
+		return smartContract.ArgsNewSCQueryService{}, errDecode
 	}
 
 	dnsV2AddressesStrings := args.generalConfig.BuiltInFunctions.DNSV2Addresses
 	convertedDNSV2Addresses, errDecode := factory.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
 	if errDecode != nil {
-		return nil, errDecode
+		return smartContract.ArgsNewSCQueryService{}, errDecode
 	}
 
 	builtInFuncFactory, err := createBuiltinFuncs(
@@ -375,13 +384,13 @@ func createScQueryElement(
 		convertedDNSV2Addresses,
 	)
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 
 	cacherCfg := storageFactory.GetCacherFromConfig(args.generalConfig.SmartContractDataPool)
 	smartContractsCache, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 
 	scStorage := args.generalConfig.SmartContractsStorageForSCQuery
@@ -409,7 +418,7 @@ func createScQueryElement(
 
 	apiBlockchain, err := blockchain.NewMetaChain(disabled.NewAppStatusHandler())
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 	argsHook.BlockChain = apiBlockchain
 
@@ -421,7 +430,7 @@ func createScQueryElement(
 
 		accAdapter, err = createNewAccountsAdapterApi(args, apiBlockchain)
 		if err != nil {
-			return nil, err
+			return smartContract.ArgsNewSCQueryService{}, err
 		}
 		argsHook.Accounts = accAdapter
 
@@ -431,33 +440,33 @@ func createScQueryElement(
 		argsHook.Accounts = accAdapter
 	}
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
 
 	vmContainer, err := vmFactory.Create()
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 
 	if args.chainRunType == common.ChainRunTypeSovereign {
 		err = addSystemVMToContainer(args, vmContainer, argsHook)
 		if err != nil {
-			return nil, err
+			return smartContract.ArgsNewSCQueryService{}, err
 		}
 	}
 
 	err = vmFactory.BlockChainHookImpl().SetVMContainer(vmContainer)
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
-		return nil, err
+		return smartContract.ArgsNewSCQueryService{}, err
 	}
 
-	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+	return smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmContainer,
 		EconomicsFee:             args.coreComponents.EconomicsData(),
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
@@ -473,9 +482,7 @@ func createScQueryElement(
 		Marshaller:               args.coreComponents.InternalMarshalizer(),
 		Hasher:                   args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter: args.coreComponents.Uint64ByteSliceConverter(),
-	}
-
-	return smartContract.NewSCQueryService(argsNewSCQueryService)
+	}, nil
 }
 
 func addSystemVMToContainer(args *scQueryElementArgs, vmContainer process.VirtualMachinesContainer, argsHook hooks.ArgBlockChainHook) error {

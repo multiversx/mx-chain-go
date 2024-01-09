@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -451,4 +453,128 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		require.Nil(t, scQueryService)
 	})
 
+}
+
+func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sovereign should add systemVM", func(t *testing.T) {
+		t.Parallel()
+		args := createMockSCQueryElementArgs()
+		args.SystemSCConfig = &config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
+				},
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
+				},
+				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			},
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				GenesisNodePrice:                     "2500000000000000000000",
+				MinStakeValue:                        "1",
+				UnJailValue:                          "1",
+				MinStepValue:                         "1",
+				UnBondPeriod:                         0,
+				NumRoundsWithoutBleed:                0,
+				MaximumPercentageToBleed:             0,
+				BleedPercentagePerRound:              0,
+				MaxNumberOfNodesForStake:             10,
+				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
+			},
+		}
+		args.ChainRunType = common.ChainRunTypeSovereign
+
+		argsScQueryService, err := api.CreateArgsSCQueryService(args)
+		require.Nil(t, err)
+		require.NotNil(t, argsScQueryService.VmContainer)
+
+		require.Equal(t, 2, argsScQueryService.VmContainer.Len())
+
+		svm, err := argsScQueryService.VmContainer.Get(vmFactory.SystemVirtualMachine)
+		require.Nil(t, err)
+		require.NotNil(t, svm)
+		require.Equal(t, "*process.systemVM", fmt.Sprintf("%T", svm))
+	})
+	t.Run("shard should NOT add systemVM", func(t *testing.T) {
+		t.Parallel()
+		args := createMockSCQueryElementArgs()
+		args.SystemSCConfig = &config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+			},
+			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+				V1: config.GovernanceSystemSCConfigV1{
+					ProposalCost:     "500",
+					NumNodes:         100,
+					MinQuorum:        50,
+					MinPassThreshold: 50,
+					MinVetoThreshold: 50,
+				},
+				Active: config.GovernanceSystemSCConfigActive{
+					ProposalCost:     "500",
+					MinQuorum:        0.5,
+					MinPassThreshold: 0.5,
+					MinVetoThreshold: 0.5,
+				},
+				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			},
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				GenesisNodePrice:                     "2500000000000000000000",
+				MinStakeValue:                        "1",
+				UnJailValue:                          "1",
+				MinStepValue:                         "1",
+				UnBondPeriod:                         0,
+				NumRoundsWithoutBleed:                0,
+				MaximumPercentageToBleed:             0,
+				BleedPercentagePerRound:              0,
+				MaxNumberOfNodesForStake:             10,
+				ActivateBLSPubKeyMessageVerification: false,
+				MinUnstakeTokensValue:                "1",
+			},
+			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+				MinCreationDeposit:  "100",
+				MinStakeAmount:      "100",
+				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			},
+			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+				MinServiceFee: 0,
+				MaxServiceFee: 100,
+			},
+		}
+		args.ChainRunType = common.ChainRunTypeRegular
+
+		argsScQueryService, err := api.CreateArgsSCQueryService(args)
+		require.Nil(t, err)
+		require.NotNil(t, argsScQueryService.VmContainer)
+
+		require.Equal(t, 1, argsScQueryService.VmContainer.Len())
+
+		svm, err := argsScQueryService.VmContainer.Get(vmFactory.SystemVirtualMachine)
+		require.NotNil(t, err)
+		require.Nil(t, svm)
+	})
 }
