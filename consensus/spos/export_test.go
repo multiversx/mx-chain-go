@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
@@ -186,6 +187,18 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 // GetEquivalentMessages -
 func (wrk *Worker) GetEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
 	return wrk.getEquivalentMessages()
+}
+
+// SetEquivalentProof -
+func (wrk *Worker) SetEquivalentProof(hash string, proof data.HeaderProof) {
+	wrk.mutEquivalentMessages.Lock()
+	defer wrk.mutEquivalentMessages.Unlock()
+
+	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
+		NumMessages: 0,
+		Validated:   false,
+		Proof:       proof,
+	}
 }
 
 // CheckConsensusMessageValidity -

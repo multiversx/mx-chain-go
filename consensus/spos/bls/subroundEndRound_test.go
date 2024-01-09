@@ -911,7 +911,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		t.Parallel()
 
 		providedPrevSig := []byte("prev sig")
-		providedPrevBitmap := []byte("prev bitmap")
+		providedPrevBitmap := []byte{1, 1, 1, 1}
 		hdr := &block.HeaderV2{
 			Header:                   createDefaultHeader(),
 			ScheduledRootHash:        []byte("sch root hash"),
@@ -962,12 +962,12 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{
-				GetEquivalentProofCalled: func(headerHash []byte) data.HeaderProof {
-					assert.Equal(t, cnsData.BlockHeaderHash, headerHash)
+				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProof, error) {
+					assert.Equal(t, hdr.GetPrevHash(), headerHash)
 					return data.HeaderProof{
 						AggregatedSignature: providedPrevSig,
 						PubKeysBitmap:       providedPrevBitmap,
-					}
+					}, nil
 				},
 			},
 		)
@@ -1506,12 +1506,12 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{
-				GetEquivalentProofCalled: func(headerHash []byte) data.HeaderProof {
+				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProof, error) {
 					wasGetValidatedEquivalentProof = true
 					return data.HeaderProof{
 						AggregatedSignature: providedPrevSig,
 						PubKeysBitmap:       providedPrevBitmap,
-					}
+					}, nil
 				},
 			},
 		)

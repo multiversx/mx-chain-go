@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1977,5 +1978,72 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
 		require.True(t, ok)
 		require.Equal(t, msg, p2pMsgWithSignature)
+	})
+}
+
+func TestWorker_EquivalentProof(t *testing.T) {
+	t.Parallel()
+
+	providedHash := []byte("hash")
+	providedProof := data.HeaderProof{
+		AggregatedSignature: []byte("sig"),
+		PubKeysBitmap:       []byte("bitmap"),
+	}
+	t.Run("all operations should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+
+		_, err := wrk.GetEquivalentProof(providedHash)
+		require.Equal(t, spos.ErrMissingEquivalentProof, err)
+
+		wrk.SetEquivalentProof(string(providedHash), providedProof)
+		proof, err := wrk.GetEquivalentProof(providedHash)
+		require.Equal(t, spos.ErrEquivalentProofNotValidated, err)
+		require.Equal(t, providedProof, proof)
+
+		require.False(t, wrk.HasEquivalentMessage(providedHash))
+
+		wrk.SetValidEquivalentProof(providedHash, providedProof)
+		require.True(t, wrk.HasEquivalentMessage(providedHash))
+
+		proof, err = wrk.GetEquivalentProof(providedHash)
+		require.NoError(t, err)
+		require.Equal(t, providedProof, proof)
+	})
+	t.Run("concurrent operations should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+
+		numCalls := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func(idx int) {
+				switch idx % 3 {
+				case 0:
+					wrk.SetValidEquivalentProof(providedHash, providedProof)
+				case 1:
+					_, _ = wrk.GetEquivalentProof(providedHash)
+				case 2:
+					_ = wrk.HasEquivalentMessage(providedHash)
+				default:
+					require.Fail(t, "should never happen")
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+
+		require.True(t, wrk.HasEquivalentMessage(providedHash))
+		proof, err := wrk.GetEquivalentProof(providedHash)
+		require.NoError(t, err)
+		require.Equal(t, providedProof, proof)
 	})
 }

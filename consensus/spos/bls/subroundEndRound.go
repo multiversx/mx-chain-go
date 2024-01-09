@@ -164,7 +164,12 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return sr.verifySignatures(header, cnsDta)
 	}
 
-	header.SetPreviousAggregatedSignatureAndBitmap(cnsDta.AggregateSignature, cnsDta.PubKeysBitmap)
+	prevHeaderProof, err := sr.worker.GetEquivalentProof(sr.Header.GetPrevHash())
+	if err != nil {
+		log.Debug("isBlockHeaderFinalInfoValid.GetEquivalentProof", "error", err.Error(), "header hash", string(sr.Header.GetPrevHash()))
+		return false
+	}
+	header.SetPreviousAggregatedSignatureAndBitmap(prevHeaderProof.AggregatedSignature, prevHeaderProof.PubKeysBitmap)
 
 	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
 	if err != nil {
@@ -348,7 +353,6 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 
 // TODO[cleanup cns finality]: rename this method, as this will be done by each participant
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	// TODO[Sorin]: update this to work in multikey mode as well
 	if !sr.sendFinalInfo() {
 		return false
 	}
@@ -400,7 +404,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) sendFinalInfo() bool {
-	if !sr.shouldSendFinalData() {
+	if !sr.shouldSendFinalInfo() {
 		return true
 	}
 
@@ -450,7 +454,11 @@ func (sr *subroundEndRound) sendFinalInfo() bool {
 			return false
 		}
 	} else {
-		prevProof := sr.worker.GetEquivalentProof(sr.Header.GetPrevHash())
+		prevProof, err := sr.worker.GetEquivalentProof(sr.Header.GetPrevHash())
+		if err != nil {
+			log.Debug("sendFinalInfo.GetEquivalentProof", "error", err.Error(), "header hash", string(sr.Header.GetPrevHash()))
+			return false
+		}
 		sr.Header.SetPreviousAggregatedSignatureAndBitmap(prevProof.AggregatedSignature, prevProof.PubKeysBitmap)
 	}
 
@@ -479,25 +487,26 @@ func (sr *subroundEndRound) sendFinalInfo() bool {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		proof := data.HeaderProof{
-			AggregatedSignature: sig,
-			PubKeysBitmap:       bitmap,
-		}
-		sr.Blockchain().SetCurrentHeaderProof(proof)
-
 		headerHash, errCalculateHash := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
 		if errCalculateHash != nil {
 			log.Debug("sendFinalInfo.CalculateHash", "error", err.Error())
 			return false
 		}
 
-		sr.worker.SetValidEquivalentProof(string(headerHash), proof)
+		proof := data.HeaderProof{
+			AggregatedSignature: sig,
+			PubKeysBitmap:       bitmap,
+		}
+
+		sr.worker.SetValidEquivalentProof(headerHash, proof)
+
+		sr.Blockchain().SetCurrentHeaderProof(proof)
 	}
 
 	return true
 }
 
-func (sr *subroundEndRound) shouldSendFinalData() bool {
+func (sr *subroundEndRound) shouldSendFinalInfo() bool {
 	// TODO[cleanup cns finality]: remove this check
 	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		return true
@@ -505,13 +514,13 @@ func (sr *subroundEndRound) shouldSendFinalData() bool {
 
 	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
 	if err != nil {
-		log.Debug("shouldSendFinalData: calculate header hash", "error", err.Error())
+		log.Debug("shouldSendFinalInfo: calculate header hash", "error", err.Error())
 		return false
 	}
 
 	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
 	if sr.worker.HasEquivalentMessage(headerHash) {
-		log.Debug("shouldSendFinalData: equivalent message already sent")
+		log.Debug("shouldSendFinalInfo: equivalent message already sent")
 		return false
 	}
 
@@ -802,7 +811,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 			PubKeysBitmap:       cnsDta.PubKeysBitmap,
 		}
 		sr.Blockchain().SetCurrentHeaderProof(proof)
-		sr.worker.SetValidEquivalentProof(string(cnsDta.BlockHeaderHash), proof)
+		sr.worker.SetValidEquivalentProof(cnsDta.BlockHeaderHash, proof)
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -859,7 +868,12 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 		return true, header
 	}
 
-	header.SetPreviousAggregatedSignatureAndBitmap(cnsDta.AggregateSignature, cnsDta.PubKeysBitmap)
+	prevHeaderProof, err := sr.worker.GetEquivalentProof(header.GetPrevHash())
+	if err != nil {
+		log.Debug("haveConsensusHeaderWithFullInfo.GetEquivalentProof", "error", err.Error(), "header hash", string(header.GetPrevHash()))
+		return false, nil
+	}
+	header.SetPreviousAggregatedSignatureAndBitmap(prevHeaderProof.AggregatedSignature, prevHeaderProof.PubKeysBitmap)
 
 	return true, header
 }
