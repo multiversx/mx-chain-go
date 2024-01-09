@@ -419,11 +419,11 @@ func createScQueryElement(
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
 
-		accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
+		accAdapter, err = createNewAccountsAdapterApi(args, apiBlockchain)
 		if err != nil {
 			return nil, err
 		}
-		argsHook.Accounts = accountsAdapterApi
+		argsHook.Accounts = accAdapter
 
 		vmFactory, err = createMetaVmContainerFactory(args, argsHook)
 	} else {
