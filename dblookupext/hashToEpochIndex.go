@@ -46,3 +46,7 @@ func (i *epochByHashIndex) saveEpochByHash(hash []byte, epoch uint32) error {
 
 	return i.storer.Put(hash, rawBytes)
 }
+
+func (i *epochByHashIndex) removeEpochByHash(hash []byte) error {
+	return i.storer.Remove(hash)
+}

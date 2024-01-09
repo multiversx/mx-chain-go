@@ -2,7 +2,6 @@ package dblookupext
 
 import (
 	"errors"
-	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -139,11 +138,27 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 			},
 		},
 	}
+	miniblockHash0, _ := core.CalculateHash(args.Marshalizer, args.Hasher, blockBody.MiniBlocks[0])
+	miniblockHash1, _ := core.CalculateHash(args.Marshalizer, args.Hasher, blockBody.MiniBlocks[1])
+	blockHeader.MiniBlockHeaders = []block.MiniBlockHeader{
+		{
+			Hash:            miniblockHash0,
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxCount:         uint32(len(blockBody.MiniBlocks[0].TxHashes)),
+		},
+		{
+			Hash:            miniblockHash1,
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+			TxCount:         uint32(len(blockBody.MiniBlocks[1].TxHashes)),
+		},
+	}
 
 	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil, nil, nil)
 	require.Nil(t, err)
 	// Two miniblocks
-	require.Equal(t, 2, repo.miniblocksMetadataStorer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
+	require.Equal(t, 2, repo.miniblocksHandler.miniblocksMetadataStorer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 	// One block, two miniblocks
 	require.Equal(t, 3, repo.epochByHashIndex.storer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
 	// Two transactions
@@ -168,16 +183,30 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 		TxHashes: [][]byte{[]byte("txB")},
 	}
 
-	_ = repo.RecordBlock([]byte("fooblock"),
-		&block.Header{Epoch: 42, Round: 4321},
-		&block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				miniblockA,
-				miniblockB,
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			miniblockA,
+			miniblockB,
+		},
+	}
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+	miniblockHashB, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockB)
+	header := &block.Header{
+		Epoch: 42,
+		Round: 4321,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:    miniblockHashA,
+				TxCount: uint32(len(miniblockA.TxHashes)),
+			},
+			{
+				Hash:    miniblockHashB,
+				TxCount: uint32(len(miniblockB.TxHashes)),
 			},
 		},
-		nil, nil, nil, nil,
-	)
+	}
+
+	_ = repo.RecordBlock([]byte("fooblock"), header, body, nil, nil, nil, nil)
 
 	metadata, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
 	require.Nil(t, err)
@@ -206,15 +235,29 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 	miniblockB := &block.MiniBlock{
 		TxHashes: [][]byte{[]byte("txB")},
 	}
-	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
-	miniblockHashB, _ := repo.computeMiniblockHash(miniblockB)
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+	miniblockHashB, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockB)
 
-	_ = repo.RecordBlock([]byte("fooblock"), &block.Header{Epoch: 42}, &block.Body{
+	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
 			miniblockA,
 			miniblockB,
 		},
-	}, nil, nil, nil, nil)
+	}
+	header := &block.Header{
+		Epoch: 42,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:    miniblockHashA,
+				TxCount: uint32(len(miniblockA.TxHashes)),
+			},
+			{
+				Hash:    miniblockHashB,
+				TxCount: uint32(len(miniblockB.TxHashes)),
+			},
+		},
+	}
+	_ = repo.RecordBlock([]byte("fooblock"), header, body, nil, nil, nil, nil)
 
 	// Get epoch by block hash
 	epoch, err := repo.GetEpochByHash([]byte("fooblock"))
@@ -259,13 +302,38 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 		ReceiverShardID: 13,
 		TxHashes:        [][]byte{[]byte("txC")},
 	}
-	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
-	miniblockHashB, _ := repo.computeMiniblockHash(miniblockB)
-	miniblockHashC, _ := repo.computeMiniblockHash(miniblockC)
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+	miniblockHashB, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockB)
+	miniblockHashC, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockC)
 
+	header := &block.Header{
+		Epoch: 42,
+		Round: 4321,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            miniblockHashA,
+				SenderShardID:   miniblockA.SenderShardID,
+				ReceiverShardID: miniblockA.ReceiverShardID,
+				TxCount:         uint32(len(miniblockA.TxHashes)),
+			},
+			{
+				Hash:            miniblockHashB,
+				SenderShardID:   miniblockB.SenderShardID,
+				ReceiverShardID: miniblockB.ReceiverShardID,
+				TxCount:         uint32(len(miniblockB.TxHashes)),
+			},
+			{
+				Hash:            miniblockHashC,
+				SenderShardID:   miniblockC.SenderShardID,
+				ReceiverShardID: miniblockC.ReceiverShardID,
+				TxCount:         uint32(len(miniblockC.TxHashes)),
+			},
+		},
+	}
+	headerHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
 	// Let's have a block committed
-	_ = repo.RecordBlock([]byte("fooblock"),
-		&block.Header{Epoch: 42, Round: 4321},
+	_ = repo.RecordBlock(headerHash,
+		header,
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
@@ -276,27 +344,31 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	)
 
 	// Check "notarization coordinates"
-	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	metadata, err := repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashA)
 	require.Nil(t, err)
-	require.Equal(t, 0, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashB)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashB)
 	require.Nil(t, err)
-	require.Equal(t, 0, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashC)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashC)
 	require.Nil(t, err)
-	require.Equal(t, 0, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
 	// Now, let's receive a metablock that notarized a self-shard block, with miniblocks A and B
 	metablock := &block.MetaBlock{
 		Nonce: 4000,
 		ShardInfo: []block.ShardData{
 			{
-				ShardID: 13,
+				HeaderHash: headerHash,
+				ShardID:    13,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					{
 						SenderShardID:   13,
@@ -315,27 +387,31 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockX")})
 
 	// Check "notarization coordinates" again
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashA)
 	require.Nil(t, err)
-	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 4000, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashB)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashB)
 	require.Nil(t, err)
-	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashC)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashC)
 	require.Nil(t, err)
-	require.Equal(t, 0, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
 	// Let's receive a metablock that notarized two shard blocks, with miniblocks B (at destination) and C (at source)
 	metablock = &block.MetaBlock{
 		Nonce: 4001,
 		ShardInfo: []block.ShardData{
 			{
-				ShardID: 14,
+				HeaderHash: headerHash,
+				ShardID:    14,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					{
 						SenderShardID:   13,
@@ -345,7 +421,8 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 				},
 			},
 			{
-				ShardID: 15,
+				HeaderHash: headerHash,
+				ShardID:    15,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					{
 						SenderShardID:   15,
@@ -360,27 +437,31 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockY")})
 
 	// Check "notarization coordinates" again
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashA)
 	require.Nil(t, err)
-	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 4000, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashB)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashB)
 	require.Nil(t, err)
-	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashC)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashC)
 	require.Nil(t, err)
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
 	// Let's receive a metablock that notarized one shard block, with miniblock C (at destination)
 	metablock = &block.MetaBlock{
 		Nonce: 4002,
 		ShardInfo: []block.ShardData{
 			{
-				ShardID: 13,
+				HeaderHash: headerHash,
+				ShardID:    13,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					{
 						SenderShardID:   15,
@@ -395,113 +476,23 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockZ")})
 
 	// Check "notarization coordinates" again
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashA)
 	require.Nil(t, err)
-	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 4000, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashB)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashB)
 	require.Nil(t, err)
-	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4000, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashC)
+	metadata, err = repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashC)
 	require.Nil(t, err)
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, 4002, int(metadata.NotarizedAtDestinationInMetaNonce))
-}
-
-func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestination(t *testing.T) {
-	t.Parallel()
-
-	args := createMockHistoryRepoArgs(42)
-	args.SelfShardID = 14
-	repo, err := NewHistoryRepository(args)
-	require.Nil(t, err)
-
-	// Assumming these miniblocks of transactions,
-	miniblockA := &block.MiniBlock{
-		SenderShardID:   12,
-		ReceiverShardID: 14,
-		TxHashes:        [][]byte{[]byte("txA")},
-	}
-	miniblockB := &block.MiniBlock{
-		SenderShardID:   13,
-		ReceiverShardID: 14,
-		TxHashes:        [][]byte{[]byte("txB")},
-	}
-	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
-	miniblockHashB, _ := repo.computeMiniblockHash(miniblockB)
-
-	// Let's receive a metablock and the notifications of "notarization at source"
-	metablock := &block.MetaBlock{
-		Nonce: 4001,
-		ShardInfo: []block.ShardData{
-			{
-				ShardID: 12,
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{
-					{
-						SenderShardID:   12,
-						ReceiverShardID: 14,
-						Hash:            miniblockHashA,
-					},
-				},
-			},
-			{
-				ShardID: 13,
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{
-					{
-						SenderShardID:   13,
-						ReceiverShardID: 14,
-						Hash:            miniblockHashB,
-					},
-				},
-			},
-		},
-	}
-
-	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
-
-	// Notifications have been queued
-	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
-
-	// Let's commit the blocks at destination
-	_ = repo.RecordBlock([]byte("fooBlock"),
-		&block.Header{Epoch: 42, Round: 4321},
-		&block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				miniblockA,
-			},
-		}, nil, nil, nil, nil,
-	)
-	_ = repo.RecordBlock([]byte("barBlock"),
-		&block.Header{Epoch: 42, Round: 4322},
-		&block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				miniblockB,
-			},
-		}, nil, nil, nil, nil,
-	)
-
-	// Notifications have not been cleared after record block
-	require.Equal(t, 2, repo.pendingNotarizedAtSourceNotifications.Len())
-
-	// Now receive any new notarization notification
-	repo.OnNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
-
-	// Notifications have been processed & cleared
-	require.Equal(t, 0, repo.pendingNotarizedAtSourceNotifications.Len())
-
-	// Check "notarization coordinates"
-	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
-	require.Nil(t, err)
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
-
-	metadata, err = repo.getMiniblockMetadataByMiniblockHash(miniblockHashB)
-	require.Nil(t, err)
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 4002, int(metadata[0].NotarizedAtDestinationInMetaNonce))
 }
 
 func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
@@ -518,11 +509,26 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 		ReceiverShardID: 14,
 		TxHashes:        [][]byte{[]byte("txA")},
 	}
-	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
+	miniblockHashA, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblockA)
+
+	header := &block.Header{
+		Epoch: 42,
+		Round: 4321,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				SenderShardID:   miniblockA.SenderShardID,
+				ReceiverShardID: miniblockA.ReceiverShardID,
+				Hash:            miniblockHashA,
+				TxCount:         uint32(len(miniblockA.TxHashes)),
+			},
+		},
+	}
+	headerHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
 
 	// Let's commit the intrashard block in epoch 42
-	_ = repo.RecordBlock([]byte("fooBlock"),
-		&block.Header{Epoch: 42, Round: 4321},
+	_ = repo.RecordBlock(
+		headerHash,
+		header,
 		&block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
@@ -537,7 +543,8 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 		Nonce: 4001,
 		ShardInfo: []block.ShardData{
 			{
-				ShardID: 14,
+				HeaderHash: headerHash,
+				ShardID:    14,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					{
 						SenderShardID:   14,
@@ -552,13 +559,14 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
 
 	// Check "notarization coordinates"
-	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHashA)
+	metadata, err := repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHashA)
 	require.Nil(t, err)
-	require.Equal(t, 42, int(metadata.Epoch))
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
-	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 42, int(metadata[0].Epoch))
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata[0].NotarizedAtSourceInMetaHash)
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, []byte("metablockFoo"), metadata[0].NotarizedAtDestinationInMetaHash)
 }
 
 func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
@@ -575,29 +583,59 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 		ReceiverShardID: 14,
 		TxHashes:        [][]byte{[]byte("txA")},
 	}
-	miniblockHash, _ := repo.computeMiniblockHash(miniblock)
+	miniblockHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, miniblock)
+
+	forkedHeader := &block.Header{
+		Epoch: 42,
+		Round: 4321,
+		Nonce: 4300,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				SenderShardID:   miniblock.SenderShardID,
+				ReceiverShardID: miniblock.ReceiverShardID,
+				Hash:            miniblockHash,
+				TxCount:         uint32(len(miniblock.TxHashes)),
+			},
+		},
+	}
+	forkedHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, forkedHeader)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			miniblock,
+		},
+	}
 
 	// Let's commit the intrashard block in epoch 42, on a fork
-	_ = repo.RecordBlock([]byte("fooOnFork"),
-		&block.Header{Epoch: 42, Round: 4321},
-		&block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				miniblock,
-			},
-		}, nil, nil, nil, nil,
+	_ = repo.RecordBlock(forkedHeaderHash,
+		forkedHeader,
+		body, nil, nil, nil, nil,
 	)
+
+	_ = repo.RevertBlock(forkedHeader, body)
 
 	// Let's go to next epoch
 	args.MiniblocksMetadataStorer.(*genericMocks.StorerMock).SetCurrentEpoch(43)
 
-	// Let's commit a block with the same miniblock, in the next epoch, on the canonical chain
-	_ = repo.RecordBlock([]byte("fooOnChain"),
-		&block.Header{Epoch: 43, Round: 4350},
-		&block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				miniblock,
+	canonicalHeader := &block.Header{
+		Epoch: 43,
+		Round: 4400,
+		Nonce: 4300,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				SenderShardID:   miniblock.SenderShardID,
+				ReceiverShardID: miniblock.ReceiverShardID,
+				Hash:            miniblockHash,
+				TxCount:         uint32(len(miniblock.TxHashes)),
 			},
-		}, nil, nil, nil, nil,
+		},
+	}
+	canonicalHeaderHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, canonicalHeader)
+
+	// Let's commit a block with the same miniblock, in the next epoch, on the canonical chain
+	_ = repo.RecordBlock(canonicalHeaderHash,
+		canonicalHeader,
+		body, nil, nil, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification
@@ -606,7 +644,8 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 		Nonce: 4001,
 		ShardInfo: []block.ShardData{
 			{
-				ShardID: 14,
+				ShardID:    14,
+				HeaderHash: canonicalHeaderHash,
 				ShardMiniBlockHeaders: []block.MiniBlockHeader{
 					{
 						SenderShardID:   14,
@@ -617,127 +656,50 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 			},
 		},
 	}
-	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
+	metablockHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, metablock)
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{metablockHash})
 
 	// Check "notarization coordinates"
-	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	metadata, err := repo.miniblocksHandler.getMiniblockMetadataByMiniblockHash(miniblockHash)
 	require.Nil(t, err)
-	require.Equal(t, 43, int(metadata.Epoch))
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
-	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
+	require.Equal(t, 1, len(metadata))
+	require.Equal(t, 43, int(metadata[0].Epoch))
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtSourceInMetaNonce))
+	require.Equal(t, metablockHash, metadata[0].NotarizedAtSourceInMetaHash)
+	require.Equal(t, 4001, int(metadata[0].NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, metablockHash, metadata[0].NotarizedAtDestinationInMetaHash)
 
-	// Epoch 42 will contain an orphaned record
+	// Epoch 42 will not contain data because it was reverted
 	orphanedMetadata := &MiniblockMetadata{}
-	_ = args.MiniblocksMetadataStorer.(*genericMocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
-
-	require.Equal(t, 42, int(orphanedMetadata.Epoch))
-	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtSourceInMetaNonce))
-	require.Nil(t, orphanedMetadata.NotarizedAtSourceInMetaHash)
-	require.Equal(t, 0, int(orphanedMetadata.NotarizedAtDestinationInMetaNonce))
-	require.Nil(t, orphanedMetadata.NotarizedAtDestinationInMetaHash)
+	err = args.MiniblocksMetadataStorer.(*genericMocks.StorerMock).GetFromEpochWithMarshalizer(miniblockHash, 42, orphanedMetadata, args.Marshalizer)
+	require.NotNil(t, err)
 }
 
 func TestHistoryRepository_getMiniblockMetadataByMiniblockHashGetFromEpochErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
+	epochIndex := newHashToEpochIndex(
+		&storageStubs.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return []byte("{}"), nil
+			},
+		},
+		&mock.MarshalizerMock{},
+	)
 	hr := &historyRepository{
-		epochByHashIndex: newHashToEpochIndex(
-			&storageStubs.StorerStub{
-				GetCalled: func(key []byte) ([]byte, error) {
-					return []byte("{}"), nil
+		epochByHashIndex: epochIndex,
+		miniblocksHandler: &miniblocksHandler{
+			miniblocksMetadataStorer: &storageStubs.StorerStub{
+				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					return nil, expectedErr
 				},
 			},
-			&mock.MarshalizerMock{},
-		),
-		miniblocksMetadataStorer: &storageStubs.StorerStub{
-			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-				return nil, expectedErr
-			},
+			epochIndex: epochIndex,
 		},
 	}
 
-	mbMetadata, err := hr.getMiniblockMetadataByMiniblockHash([]byte("hash"))
+	mbMetadata, err := hr.miniblocksHandler.getMiniblockMetadataByMiniblockHash([]byte("hash"))
 	assert.Nil(t, mbMetadata)
 	assert.Equal(t, err, expectedErr)
-}
-
-func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes_Loop(t *testing.T) {
-	for i := 0; i < 100; i++ {
-		TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t)
-	}
-}
-
-func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t *testing.T) {
-	args := createMockHistoryRepoArgs(42)
-	args.SelfShardID = 14
-	repo, err := NewHistoryRepository(args)
-	require.Nil(t, err)
-
-	miniblock := &block.MiniBlock{
-		SenderShardID:   14,
-		ReceiverShardID: 14,
-		TxHashes:        [][]byte{[]byte("txA")},
-	}
-	miniblockHash, _ := repo.computeMiniblockHash(miniblock)
-
-	metablock := &block.MetaBlock{
-		Nonce: 4001,
-		ShardInfo: []block.ShardData{
-			{
-				ShardID: 14,
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{
-					{
-						SenderShardID:   14,
-						ReceiverShardID: 14,
-						Hash:            miniblockHash,
-					},
-				},
-			},
-		},
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		// Simulate commit & rollback
-		for i := 0; i < 500; i++ {
-			_ = repo.RecordBlock([]byte("fooBlock"),
-				&block.Header{Epoch: 42, Round: 4321},
-				&block.Body{
-					MiniBlocks: []*block.MiniBlock{
-						miniblock,
-					},
-				}, nil, nil, nil, nil,
-			)
-		}
-
-		wg.Done()
-	}()
-
-	go func() {
-		// Receive fewer notifications (to test more aggressively)
-		for i := 0; i < 50; i++ {
-			repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockFoo")})
-		}
-
-		wg.Done()
-	}()
-
-	wg.Wait()
-
-	// Simulate continuation of the blockchain (so that any pending notifications are consumed)
-	repo.OnNotarizedBlocks(42, []data.HeaderHandler{}, [][]byte{[]byte("nothing")})
-
-	metadata, err := repo.getMiniblockMetadataByMiniblockHash(miniblockHash)
-	require.Nil(t, err)
-	require.Equal(t, 42, int(metadata.Epoch))
-	require.Equal(t, 4321, int(metadata.Round))
-	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
-	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
-	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
 }

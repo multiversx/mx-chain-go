@@ -2,7 +2,6 @@ package genericMocks
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -177,13 +176,22 @@ func (sm *StorerMock) Has(key []byte) error {
 }
 
 // RemoveFromCurrentEpoch -
-func (sm *StorerMock) RemoveFromCurrentEpoch(_ []byte) error {
-	return errors.New("not implemented")
+func (sm *StorerMock) RemoveFromCurrentEpoch(key []byte) error {
+	sm.GetEpochData(sm.currentEpoch.Get()).Remove(string(key))
+
+	return nil
 }
 
 // Remove -
-func (sm *StorerMock) Remove(_ []byte) error {
-	return errors.New("not implemented")
+func (sm *StorerMock) Remove(key []byte) error {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	for _, data := range sm.DataByEpoch {
+		data.Remove(string(key))
+	}
+
+	return nil
 }
 
 // ClearAll removes all data from the mock (useful in unit tests)
