@@ -77,6 +77,8 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		common.ESDTFlagInSpecificEpochOnly,
 		common.GovernanceFlag,
 		common.SaveJailedAlwaysFlag,
+		common.StakingV4Step1Flag,
+		common.StakingV4Step2Flag,
 	})
 	if err != nil {
 		return nil, err

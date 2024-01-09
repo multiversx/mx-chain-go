@@ -59,10 +59,11 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
-			GovernanceEnableEpoch:                   unreachableEpoch,
-			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
-			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
-			MaxBlockchainHookCountersEnableEpoch:    unreachableEpoch, DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
+			GovernanceEnableEpoch:                           unreachableEpoch,
+			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
+			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
+			MaxBlockchainHookCountersEnableEpoch:            unreachableEpoch,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: unreachableEpoch,
 		},
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
