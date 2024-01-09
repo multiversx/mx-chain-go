@@ -589,6 +589,11 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() {
+		return
+	}
+
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("createAndBroadcastInvalidSigners.GetLeader", "error", errGetLeader)

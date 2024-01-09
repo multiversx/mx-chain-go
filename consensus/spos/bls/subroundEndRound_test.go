@@ -1603,29 +1603,56 @@ func TestVerifyInvalidSigners(t *testing.T) {
 func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 	t.Parallel()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	t.Run("redundancy node should not send", func(t *testing.T) {
+		t.Parallel()
 
-	expectedInvalidSigners := []byte("invalid signers")
+		expectedInvalidSigners := []byte("invalid signers")
 
-	wasCalled := false
-	container := mock.InitConsensusCore()
-	messenger := &mock.BroadcastMessengerMock{
-		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			wg.Done()
-			assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
-			wasCalled = true
-			return nil
-		},
-	}
-	container.SetBroadcastMessenger(messenger)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		container := mock.InitConsensusCore()
+		nodeRedundancy := &mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+		}
+		container.SetNodeRedundancyHandler(nodeRedundancy)
+		messenger := &mock.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				assert.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(messenger)
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-	sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	wg.Wait()
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
 
-	require.True(t, wasCalled)
+		expectedInvalidSigners := []byte("invalid signers")
+
+		wasCalled := false
+		container := mock.InitConsensusCore()
+		messenger := &mock.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				wg.Done()
+				assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
+				wasCalled = true
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(messenger)
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+
+		wg.Wait()
+
+		require.True(t, wasCalled)
+	})
 }
 
 func TestGetFullMessagesForInvalidSigners(t *testing.T) {
