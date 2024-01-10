@@ -18,8 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -728,7 +728,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 
 	args := createStorageHandlerArgs()
 	expectedErr := fmt.Errorf("expected error")
-	args.Marshaller = &testscommon.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
+	args.Marshaller = &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
 		return nil, expectedErr
 	}}
 	shardStorage, _ := NewShardStorageHandler(args)

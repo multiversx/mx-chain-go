@@ -31,6 +31,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 		senderBalance,
 		config.EnableEpochs{
 			IsPayableBySCEnableEpoch: 1,
+			SetGuardianEnableEpoch:   1,
 		},
 	)
 	require.Nil(t, err)
@@ -46,6 +47,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 			PayableBySC: false,
 			Upgradeable: true,
 			Readable:    true,
+			Guarded:     false,
 		}
 
 		assert.Equal(t, expectedCodeMetadata.ToBytes(), getCodeMetadata(t, testContext.Accounts, contractAddress))
@@ -60,6 +62,7 @@ func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 			PayableBySC: true,
 			Upgradeable: true,
 			Readable:    true,
+			Guarded:     false,
 		}
 
 		assert.Equal(t, expectedCodeMetadata.ToBytes(), getCodeMetadata(t, testContext.Accounts, contractAddress))
@@ -135,7 +138,7 @@ func deploySC(tb testing.TB, testContext *vm.VMTestContext, senderAddressBytes [
 
 	returnCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Nil(tb, err)
-	require.Equal(tb, returnCode, vmcommon.Ok)
+	require.Equal(tb, vmcommon.Ok, returnCode)
 
 	_, err = testContext.Accounts.Commit()
 	require.Nil(tb, err)

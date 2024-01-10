@@ -3,7 +3,6 @@ package metachain
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -16,13 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -137,14 +136,14 @@ func (s *legacySystemSCProcessor) processLegacy(
 	nonce uint64,
 	epoch uint32,
 ) error {
-	if s.enableEpochsHandler.IsSwitchHysteresisForMinNodesFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly) {
 		err := s.updateSystemSCConfigMinNodes()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2OwnerFlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2OwnerFlagInSpecificEpochOnly) {
 		err := s.updateOwnersForBlsKeys()
 		if err != nil {
 			return err
@@ -158,28 +157,28 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
 		err := s.resetLastUnJailed()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsDelegationSmartContractFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag) {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsCorrectLastUnJailedFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Step2Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) && !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.cleanAdditionalQueue()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && !s.enableEpochsHandler.IsStakingV4Step2Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) && !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.computeNumWaitingPerShard(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -191,7 +190,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV2FlagEnabled() && !s.enableEpochsHandler.IsStakingV4Step2Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) && !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err
@@ -207,7 +206,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 			return err
 		}
 
-		if s.enableEpochsHandler.IsStakingQueueEnabled() {
+		if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
 			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
@@ -215,7 +214,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsESDTFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly) {
 		err := s.initESDT()
 		if err != nil {
 			// not a critical error
@@ -228,7 +227,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 
 // ToggleUnStakeUnBond will pause/unPause the unStake/unBond functions on the validator system sc
 func (s *legacySystemSCProcessor) ToggleUnStakeUnBond(value bool) error {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		return nil
 	}
 
@@ -290,7 +289,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		}
 
 		validatorLeaving := validatorInfo.ShallowClone()
-		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), s.enableEpochsHandler.IsStakingV4Started())
+		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
 		if err != nil {
 			return 0, err
@@ -344,7 +343,7 @@ func (s *legacySystemSCProcessor) unStakeOneNode(blsKey []byte, epoch uint32) er
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(common.LeavingList), peerAccount.GetIndexInList(), s.enableEpochsHandler.IsStakingV4Started())
+	peerAccount.SetListAndIndex(peerAccount.GetShardId(), string(common.LeavingList), peerAccount.GetIndexInList(), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 	peerAccount.SetUnStakedEpoch(epoch)
 	err = s.peerAccountsDB.SaveAccount(peerAccount)
 	if err != nil {
@@ -586,7 +585,7 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 		return err
 	}
 
-	if s.enableEpochsHandler.IsStakingQueueEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
 		sw.Start("stakeNodesFromQueue")
 		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
 		sw.Stop("stakeNodesFromQueue")
@@ -685,7 +684,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 	if activeStorageUpdate == nil {
 		log.Debug("no one in waiting suitable for switch")
-		if s.enableEpochsHandler.IsSaveJailedAlwaysFlagEnabled() {
+		if s.enableEpochsHandler.IsFlagEnabled(common.SaveJailedAlwaysFlag) {
 			err := s.processSCOutputAccounts(vmOutput)
 			if err != nil {
 				return nil, err
@@ -708,7 +707,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 
 	blsPubKey := activeStorageUpdate.Offset
 	log.Debug("staking validator key who switches with the jailed one", "blsKey", blsPubKey)
-	account, err := s.getPeerAccount(blsPubKey)
+	account, isNew, err := state.GetPeerAccountAndReturnIfNew(s.peerAccountsDB, blsPubKey)
 	if err != nil {
 		return nil, err
 	}
@@ -720,20 +719,14 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		}
 	}
 
-	if !bytes.Equal(account.GetBLSPublicKey(), blsPubKey) {
-		err = account.SetBLSPublicKey(blsPubKey)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		// old jailed validator getting switched back after unJail with stake - must remove first from exported map
+	if !isNew {
 		err = validatorsInfoMap.Delete(jailedValidator)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce), s.enableEpochsHandler.IsStakingV4Started())
+	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 	account.SetTempRating(s.startRating)
 	account.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 
@@ -747,7 +740,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 		return nil, err
 	}
 
-	jailedAccount.SetListAndIndex(jailedValidator.GetShardId(), string(common.JailedList), jailedValidator.GetIndex(), s.enableEpochsHandler.IsStakingV4Started())
+	jailedAccount.SetListAndIndex(jailedValidator.GetShardId(), string(common.JailedList), jailedValidator.GetIndex(), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 	jailedAccount.ResetAtNewEpoch()
 	err = s.peerAccountsDB.SaveAccount(jailedAccount)
 	if err != nil {
@@ -977,27 +970,18 @@ func (s *legacySystemSCProcessor) getValidatorSystemAccount() (state.UserAccount
 func (s *legacySystemSCProcessor) getArgumentsForSetOwnerFunctionality(userValidatorAccount state.UserAccountHandler) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 
-	rootHash, err := userValidatorAccount.DataTrie().RootHash()
-	if err != nil {
-		return nil, err
-	}
-
 	leavesChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userValidatorAccount.DataTrie().GetAllLeavesOnChannel(leavesChannels, context.Background(), rootHash, keyBuilder.NewKeyBuilder())
+	err := userValidatorAccount.GetAllLeaves(leavesChannels, context.Background())
 	if err != nil {
 		return nil, err
 	}
 	for leaf := range leavesChannels.LeavesChan {
 		validatorData := &systemSmartContracts.ValidatorDataV2{}
-		value, errTrim := leaf.ValueWithoutSuffix(append(leaf.Key(), vm.ValidatorSCAddress...))
-		if errTrim != nil {
-			return nil, fmt.Errorf("%w for validator key %s", errTrim, hex.EncodeToString(leaf.Key()))
-		}
 
-		err = s.marshalizer.Unmarshal(validatorData, value)
+		err = s.marshalizer.Unmarshal(validatorData, leaf.Value())
 		if err != nil {
 			continue
 		}
@@ -1005,6 +989,11 @@ func (s *legacySystemSCProcessor) getArgumentsForSetOwnerFunctionality(userValid
 			arguments = append(arguments, blsKey)
 			arguments = append(arguments, leaf.Key())
 		}
+	}
+
+	err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+	if err != nil {
+		return nil, err
 	}
 
 	return arguments, nil
@@ -1223,7 +1212,7 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce), s.enableEpochsHandler.IsStakingV4Started())
+		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 		peerAcc.SetTempRating(s.startRating)
 		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
 

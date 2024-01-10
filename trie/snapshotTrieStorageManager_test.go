@@ -1,12 +1,15 @@
 package trie
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -14,7 +17,9 @@ import (
 func TestNewSnapshotTrieStorageManagerInvalidStorerType(t *testing.T) {
 	t.Parallel()
 
-	_, trieStorage := newEmptyTrie()
+	args := GetDefaultTrieStorageManagerParameters()
+	args.MainStorer = testscommon.CreateMemUnit()
+	trieStorage, _ := NewTrieStorageManager(args)
 
 	stsm, err := newSnapshotTrieStorageManager(trieStorage, 0)
 	assert.True(t, check.IfNil(stsm))
@@ -31,55 +36,117 @@ func TestNewSnapshotTrieStorageManager(t *testing.T) {
 	assert.False(t, check.IfNil(stsm))
 }
 
-func TestNewSnapshotTrieStorageManager_GetFromOldEpochsWithoutCache(t *testing.T) {
+func TestSnapshotTrieStorageManager_Get(t *testing.T) {
 	t.Parallel()
 
-	_, trieStorage := newEmptyTrie()
-	getFromOldEpochsWithoutCacheCalled := false
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
-			getFromOldEpochsWithoutCacheCalled = true
-			return nil, core.OptionalUint32{}, nil
-		},
-	}
-	stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
 
-	_, _ = stsm.Get([]byte("key"))
-	assert.True(t, getFromOldEpochsWithoutCacheCalled)
+		_, trieStorage := newEmptyTrie()
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+		_ = stsm.Close()
+
+		val, err := stsm.Get([]byte("key"))
+		assert.Equal(t, core.ErrContextClosing, err)
+		assert.Nil(t, val)
+	})
+	t.Run("GetFromOldEpochsWithoutAddingToCache returns db closed should error", func(t *testing.T) {
+		t.Parallel()
+
+		_, trieStorage := newEmptyTrie()
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+				return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
+			},
+		}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+
+		val, err := stsm.Get([]byte("key"))
+		assert.Equal(t, storage.ErrDBIsClosed, err)
+		assert.Nil(t, val)
+	})
+	t.Run("should work from old epochs without cache", func(t *testing.T) {
+		t.Parallel()
+
+		_, trieStorage := newEmptyTrie()
+		getFromOldEpochsWithoutCacheCalled := false
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+				getFromOldEpochsWithoutCacheCalled = true
+				return nil, core.OptionalUint32{}, nil
+			},
+		}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+
+		_, _ = stsm.Get([]byte("key"))
+		assert.True(t, getFromOldEpochsWithoutCacheCalled)
+	})
 }
 
-func TestNewSnapshotTrieStorageManager_PutWithoutCache(t *testing.T) {
+func TestSnapshotTrieStorageManager_Put(t *testing.T) {
 	t.Parallel()
 
-	_, trieStorage := newEmptyTrie()
-	putWithoutCacheCalled := false
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		PutInEpochWithoutCacheCalled: func(_ []byte, _ []byte, _ uint32) error {
-			putWithoutCacheCalled = true
-			return nil
-		},
-	}
-	stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
 
-	_ = stsm.Put([]byte("key"), []byte("data"))
-	assert.True(t, putWithoutCacheCalled)
+		_, trieStorage := newEmptyTrie()
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+		_ = stsm.Close()
+
+		err := stsm.Put([]byte("key"), []byte("data"))
+		assert.Equal(t, core.ErrContextClosing, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		_, trieStorage := newEmptyTrie()
+		putWithoutCacheCalled := false
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			PutInEpochWithoutCacheCalled: func(_ []byte, _ []byte, _ uint32) error {
+				putWithoutCacheCalled = true
+				return nil
+			},
+		}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+
+		_ = stsm.Put([]byte("key"), []byte("data"))
+		assert.True(t, putWithoutCacheCalled)
+	})
 }
 
-func TestNewSnapshotTrieStorageManager_GetFromLastEpoch(t *testing.T) {
+func TestSnapshotTrieStorageManager_GetFromLastEpoch(t *testing.T) {
 	t.Parallel()
 
-	_, trieStorage := newEmptyTrie()
-	getFromLastEpochCalled := false
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-		GetFromLastEpochCalled: func(_ []byte) ([]byte, error) {
-			getFromLastEpochCalled = true
-			return nil, nil
-		},
-	}
-	stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+	t.Run("closed storage manager should error", func(t *testing.T) {
+		t.Parallel()
 
-	_, _ = stsm.GetFromLastEpoch([]byte("key"))
-	assert.True(t, getFromLastEpochCalled)
+		_, trieStorage := newEmptyTrie()
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+		_ = stsm.Close()
+
+		val, err := stsm.GetFromLastEpoch([]byte("key"))
+		assert.Equal(t, core.ErrContextClosing, err)
+		assert.Nil(t, val)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		_, trieStorage := newEmptyTrie()
+		getFromLastEpochCalled := false
+		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+			GetFromLastEpochCalled: func(_ []byte) ([]byte, error) {
+				getFromLastEpochCalled = true
+				return nil, nil
+			},
+		}
+		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 0)
+
+		_, _ = stsm.GetFromLastEpoch([]byte("key"))
+		assert.True(t, getFromLastEpochCalled)
+	})
 }
 
 func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
@@ -200,7 +267,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 			},
 			PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
 				putInEpochCalled = true
-				return nil
+				return errors.New("error for coverage only")
 			},
 		}
 		stsm, _ := newSnapshotTrieStorageManager(trieStorage, 5)

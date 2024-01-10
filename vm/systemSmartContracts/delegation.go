@@ -34,6 +34,9 @@ const deleteWhitelistForMerge = "deleteWhitelistForMerge"
 const whitelistedAddress = "whitelistedAddress"
 const changeOwner = "changeOwner"
 const withdraw = "withdraw"
+const claimRewards = "claimRewards"
+const reDelegateRewards = "reDelegateRewards"
+const delegate = "delegate"
 
 const (
 	active    = uint32(0)
@@ -114,6 +117,21 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.AddTokensToDelegationFlag,
+		common.DelegationSmartContractFlag,
+		common.ChangeDelegationOwnerFlag,
+		common.ReDelegateBelowMinCheckFlag,
+		common.ValidatorToDelegationFlag,
+		common.DeleteDelegatorAfterClaimRewardsFlag,
+		common.ComputeRewardCheckpointFlag,
+		common.StakingV2FlagAfterEpoch,
+		common.FixDelegationChangeOwnerOnAccountFlag,
+		common.MultiClaimOnDelegationFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	d := &delegation{
 		eei:                    args.Eei,
@@ -160,7 +178,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	if !d.enableEpochsHandler.IsDelegationSmartContractFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag) {
 		d.eei.AddReturnMessage("delegation contract is not enabled")
 		return vmcommon.UserError
 	}
@@ -199,7 +217,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unBondNodes(args)
 	case "unJailNodes":
 		return d.unJailNodes(args)
-	case "delegate":
+	case delegate:
 		return d.delegate(args)
 	case "unDelegate":
 		return d.unDelegate(args)
@@ -215,7 +233,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.modifyTotalDelegationCap(args)
 	case "updateRewards":
 		return d.updateRewards(args)
-	case "claimRewards":
+	case claimRewards:
 		return d.claimRewards(args)
 	case "getRewardData":
 		return d.getRewardData(args)
@@ -245,7 +263,7 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.getContractConfig(args)
 	case "unStakeAtEndOfEpoch":
 		return d.unStakeAtEndOfEpoch(args)
-	case "reDelegateRewards":
+	case reDelegateRewards:
 		return d.reDelegateRewards(args)
 	case "reStakeUnStakedNodes":
 		return d.reStakeUnStakedNodes(args)
@@ -265,6 +283,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.correctNodesStatus(args)
 	case changeOwner:
 		return d.changeOwner(args)
+	case "synchronizeOwner":
+		return d.synchronizeOwner(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -355,7 +375,7 @@ func (d *delegation) initDelegationStructures(
 }
 
 func (d *delegation) checkArgumentsForValidatorToDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -459,7 +479,7 @@ func (d *delegation) updateDelegationStatusFromValidatorData(
 		case active:
 			dStatus.StakedKeys = append(dStatus.StakedKeys, nodesData)
 		case unStaked:
-			if d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
+			if d.enableEpochsHandler.IsFlagEnabled(common.AddTokensToDelegationFlag) {
 				dStatus.UnStakedKeys = append(dStatus.UnStakedKeys, nodesData)
 			} else {
 				dStatus.UnStakedKeys = append(dStatus.StakedKeys, nodesData)
@@ -576,7 +596,7 @@ func (d *delegation) mergeValidatorDataToDelegation(args *vmcommon.ContractCallI
 }
 
 func (d *delegation) checkInputForWhitelisting(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -638,7 +658,7 @@ func (d *delegation) deleteWhitelistForMerge(args *vmcommon.ContractCallInput) v
 }
 
 func (d *delegation) getWhitelistForMerge(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -901,7 +921,7 @@ func (d *delegation) checkBLSKeysIfExistsInStakingSC(blsKeys [][]byte) bool {
 }
 
 func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsChangeDelegationOwnerFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ChangeDelegationOwnerFlag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -914,7 +934,8 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		d.eei.AddReturnMessage("wrong number of arguments, expected 1")
 		return vmcommon.UserError
 	}
-	if len(args.Arguments[0]) != len(args.CallerAddr) {
+	newOwner := args.Arguments[0]
+	if len(newOwner) != len(args.CallerAddr) {
 		d.eei.AddReturnMessage("invalid argument, wanted an address")
 		return vmcommon.UserError
 	}
@@ -925,7 +946,7 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
-	isNew, _, err := d.getOrCreateDelegatorData(args.Arguments[0])
+	isNew, _, err := d.getOrCreateDelegatorData(newOwner)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -946,17 +967,61 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	d.eei.SetStorage(args.CallerAddr, nil)
-	err = d.saveDelegatorData(args.Arguments[0], ownerDelegatorData)
+	err = d.saveDelegatorData(newOwner, ownerDelegatorData)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
 
-	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.Arguments[0], args.RecipientAddr)
+	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, newOwner, args.RecipientAddr)
 	d.eei.SetStorageForAddress(d.delegationMgrSCAddress, args.CallerAddr, []byte{})
-	d.eei.SetStorage([]byte(ownerKey), args.Arguments[0])
+	d.eei.SetStorage([]byte(ownerKey), newOwner)
+
+	err = d.saveOwnerToAccount(newOwner)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	d.createLogEventsForChangeOwner(args, ownerDelegatorData)
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag) {
+		return nil
+	}
+
+	return d.eei.SetOwnerOperatingOnAccount(newOwner)
+}
+
+func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag) {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("invalid number of arguments, expected 0")
+		return vmcommon.UserError
+	}
+
+	ownerAddress := d.eei.GetStorage([]byte(ownerKey))
+	err = d.eei.SetOwnerOperatingOnAccount(ownerAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -1514,7 +1579,7 @@ func (d *delegation) addToActiveFund(
 }
 
 func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
-	if !d.enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.ReDelegateBelowMinCheckFlag) {
 		return nil
 	}
 
@@ -1674,14 +1739,16 @@ func (d *delegation) unDelegateValueFromAddress(
 		return vmcommon.UserError
 	}
 
-	if isStakeLocked(d.eei, d.governanceSCAddr, delegatorAddress) {
-		d.eei.AddReturnMessage("stake is locked for voting")
+	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
+	if err != nil {
+		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
 		return vmcommon.UserError
 	}
 
+	minDelegationAmount := delegationManagement.MinDelegationAmount
+
 	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
-	err = d.checkRemainingFundValue(remainedFund)
-	if err != nil {
+	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
 		return vmcommon.UserError
 	}
@@ -1756,20 +1823,6 @@ func (d *delegation) unDelegateValueFromAddress(
 	d.createAndAddLogEntry(args, valueToUnDelegate.Bytes(), remainedFund.Bytes(), zeroValueByteSlice, globalFund.TotalActive.Bytes(), unDelegateFundKey)
 
 	return vmcommon.Ok
-}
-
-func (d *delegation) checkRemainingFundValue(remainedFund *big.Int) error {
-	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
-	if err != nil {
-		return err
-	}
-
-	minDelegationAmount := delegationManagement.MinDelegationAmount
-	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
-		return vm.ErrNotEnoughRemainingFunds
-	}
-
-	return nil
 }
 
 func (d *delegation) addNewUnStakedFund(
@@ -1895,7 +1948,7 @@ func (d *delegation) saveRewardData(epoch uint32, rewardsData *RewardComputation
 func (d *delegation) computeAndUpdateRewards(callerAddress []byte, delegator *DelegatorData) error {
 	currentEpoch := d.eei.BlockChainHook().CurrentEpoch()
 	if len(delegator.ActiveFund) == 0 {
-		if d.enableEpochsHandler.IsComputeRewardCheckpointFlagEnabled() {
+		if d.enableEpochsHandler.IsFlagEnabled(common.ComputeRewardCheckpointFlag) {
 			delegator.RewardsCheckpoint = currentEpoch + 1
 		}
 		return nil
@@ -1947,7 +2000,7 @@ func (d *delegation) computeRewards(
 
 		var rewardsForOwner *big.Int
 		percentage := float64(rewardData.ServiceFee) / float64(d.maxServiceFee)
-		if d.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+		if d.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
 			rewardsForOwner = core.GetIntTrimmedPercentageOfValue(rewardData.RewardsToDistribute, percentage)
 		} else {
 			rewardsForOwner = core.GetApproximatePercentageOfValue(rewardData.RewardsToDistribute, percentage)
@@ -2007,7 +2060,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	var wasDeleted bool
-	if d.enableEpochsHandler.IsDeleteDelegatorAfterClaimRewardsFlagEnabled() {
+	if d.enableEpochsHandler.IsFlagEnabled(common.DeleteDelegatorAfterClaimRewardsFlag) {
 		wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(args.CallerAddr, delegator)
 		if err != nil {
 			d.eei.AddReturnMessage(err.Error())
@@ -2096,6 +2149,9 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 	if totalUnBondable.Cmp(zero) == 0 {
 		d.eei.AddReturnMessage("nothing to unBond")
+		if d.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
+			return vmcommon.UserError
+		}
 		return vmcommon.Ok
 	}
 
@@ -2378,7 +2434,7 @@ func (d *delegation) getNumNodes(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.AddTokensToDelegationFlag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -2832,7 +2888,7 @@ func (d *delegation) getMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) addTokens(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !d.enableEpochsHandler.IsAddTokensToDelegationFlagEnabled() {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.AddTokensToDelegationFlag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
@@ -3119,7 +3175,7 @@ func (d *delegation) SetNewGasCost(gasCost vm.GasCost) {
 
 // CanUseContract returns true if contract can be used
 func (d *delegation) CanUseContract() bool {
-	return d.enableEpochsHandler.IsDelegationSmartContractFlagEnabled()
+	return d.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

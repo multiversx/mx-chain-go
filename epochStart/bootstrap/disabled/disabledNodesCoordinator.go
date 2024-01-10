@@ -108,6 +108,11 @@ func (n *nodesCoordinator) GetNumTotalEligible() uint64 {
 	return 0
 }
 
+// GetWaitingEpochsLeftForPublicKey returns 0
+func (n *nodesCoordinator) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
+	return 0, nil
+}
+
 // IsInterfaceNil -
 func (n *nodesCoordinator) IsInterfaceNil() bool {
 	return n == nil

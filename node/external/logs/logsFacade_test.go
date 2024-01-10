@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,14 +16,14 @@ func TestNewLogsFacade(t *testing.T) {
 	t.Run("NilStorageService", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  nil,
-			Marshaller:      testscommon.MarshalizerMock{},
+			Marshaller:      marshallerMock.MarshalizerMock{},
 			PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		}
 
 		facade, err := NewLogsFacade(arguments)
 		require.ErrorIs(t, err, errCannotCreateLogsFacade)
 		require.ErrorContains(t, err, core.ErrNilStore.Error())
-		require.True(t, check.IfNil(facade))
+		require.Nil(t, facade)
 	})
 
 	t.Run("NilMarshaller", func(t *testing.T) {
@@ -36,20 +36,20 @@ func TestNewLogsFacade(t *testing.T) {
 		facade, err := NewLogsFacade(arguments)
 		require.ErrorIs(t, err, errCannotCreateLogsFacade)
 		require.ErrorContains(t, err, core.ErrNilMarshalizer.Error())
-		require.True(t, check.IfNil(facade))
+		require.Nil(t, facade)
 	})
 
 	t.Run("NilPubKeyConverter", func(t *testing.T) {
 		arguments := ArgsNewLogsFacade{
 			StorageService:  genericMocks.NewChainStorerMock(7),
-			Marshaller:      testscommon.MarshalizerMock{},
+			Marshaller:      marshallerMock.MarshalizerMock{},
 			PubKeyConverter: nil,
 		}
 
 		facade, err := NewLogsFacade(arguments)
 		require.ErrorIs(t, err, errCannotCreateLogsFacade)
 		require.ErrorContains(t, err, core.ErrNilPubkeyConverter.Error())
-		require.True(t, check.IfNil(facade))
+		require.Nil(t, facade)
 	})
 }
 
@@ -143,4 +143,19 @@ func TestLogsFacade_IncludeLogsInTransactionsShouldWork(t *testing.T) {
 	require.Equal(t, "second", transactions[1].Logs.Events[0].Identifier)
 	require.Nil(t, transactions[2].Logs)
 	require.Equal(t, "fourth", transactions[3].Logs.Events[0].Identifier)
+}
+
+func TestLogsFacade_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var lf *logsFacade
+	require.True(t, lf.IsInterfaceNil())
+
+	arguments := ArgsNewLogsFacade{
+		StorageService:  genericMocks.NewChainStorerMock(7),
+		Marshaller:      &marshal.GogoProtoMarshalizer{},
+		PubKeyConverter: testscommon.NewPubkeyConverterMock(32),
+	}
+	lf, _ = NewLogsFacade(arguments)
+	require.False(t, lf.IsInterfaceNil())
 }

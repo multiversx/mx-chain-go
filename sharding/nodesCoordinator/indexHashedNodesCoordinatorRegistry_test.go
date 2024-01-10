@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,6 +79,14 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 	t.Parallel()
 
 	args := createArguments()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.StakingV4Step2Flag {
+				return stakingV4Epoch
+			}
+			return 0
+		},
+	}
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
 	expectedConfig := nodesCoordinator.nodesConfig[0]

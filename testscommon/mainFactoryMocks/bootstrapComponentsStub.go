@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -14,9 +15,11 @@ type BootstrapComponentsStub struct {
 	BootstrapParams                      factory.BootstrapParamsHolder
 	NodeRole                             core.NodeType
 	ShCoordinator                        sharding.Coordinator
+	ShardCoordinatorCalled               func() sharding.Coordinator
 	HdrVersionHandler                    nodeFactory.HeaderVersionHandler
 	VersionedHdrFactory                  nodeFactory.VersionedHeaderFactory
 	HdrIntegrityVerifier                 nodeFactory.HeaderIntegrityVerifierHandler
+	GuardedAccountHandlerField           process.GuardedAccountHandler
 	NodesCoordinatorRegistryFactoryField nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
@@ -52,6 +55,9 @@ func (bcs *BootstrapComponentsStub) NodeType() core.NodeType {
 
 // ShardCoordinator -
 func (bcs *BootstrapComponentsStub) ShardCoordinator() sharding.Coordinator {
+	if bcs.ShardCoordinatorCalled != nil {
+		return bcs.ShardCoordinatorCalled()
+	}
 	return bcs.ShCoordinator
 }
 
@@ -74,6 +80,11 @@ func (bcs *BootstrapComponentsStub) HeaderIntegrityVerifier() nodeFactory.Header
 func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator sharding.Coordinator) error {
 	bcs.ShCoordinator = shardCoordinator
 	return nil
+}
+
+// GuardedAccountHandler -
+func (bcs *BootstrapComponentsStub) GuardedAccountHandler() process.GuardedAccountHandler {
+	return bcs.GuardedAccountHandlerField
 }
 
 // NodesCoordinatorRegistryFactory -

@@ -30,7 +30,9 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -231,13 +233,14 @@ func CreateNodesWithNodesCoordinatorFactory(
 	}
 
 	epochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                 UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
-		StakingV4Step1EnableEpoch:            UnreachableEpoch,
-		StakingV4Step2EnableEpoch:            UnreachableEpoch,
-		StakingV4Step3EnableEpoch:            UnreachableEpoch,
+		StakingV2EnableEpoch:                            UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:                  UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
+		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
+		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
+		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
+		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -402,7 +405,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler:  &testscommon.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
@@ -413,7 +416,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	}}
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		StakingV4Step2EnableEpoch,
 	)
 	completeNodesList := make([]Connectable, 0)
@@ -437,9 +440,9 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
-			EnableEpochsHandler:             &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
-			StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
+			GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
 			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -533,7 +536,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	}
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		StakingV4Step2EnableEpoch,
 	)
 	completeNodesList := make([]Connectable, 0)
@@ -558,10 +561,10 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 			IsFullArchive:                   false,
-			EnableEpochsHandler:             &testscommon.EnableEpochsHandlerStub{},
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
 			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-			StakingV4Step2EnableEpoch:       StakingV4Step2EnableEpoch,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

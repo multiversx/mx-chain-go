@@ -4,13 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
@@ -25,13 +25,13 @@ func TestNewLogsRepository(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return nil, errors.New("new error")
 			},
-		}, testscommon.MarshalizerMock{})
+		}, marshallerMock.MarshalizerMock{})
 		require.Nil(t, repository)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		repository := newLogsRepository(&genericMocks.ChainStorerMock{}, testscommon.MarshalizerMock{})
+		repository := newLogsRepository(&genericMocks.ChainStorerMock{}, marshallerMock.MarshalizerMock{})
 		require.NotNil(t, repository)
 	})
 }
@@ -127,7 +127,7 @@ func TestLogsRepository_GetLogsShouldNotFallbackToPreviousEpochIfZero(t *testing
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
-				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
 					if epoch != 0 {
 						require.Fail(t, "unexpected")
 					}

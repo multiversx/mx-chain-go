@@ -6,50 +6,62 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewFeeComputer(t *testing.T) {
-	t.Run("NilBuiltInFunctionsCostHandler", func(t *testing.T) {
-		arguments := ArgsNewFeeComputer{
-			BuiltInFunctionsCostHandler: nil,
-			EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		}
-
-		computer, err := NewFeeComputer(arguments)
-		require.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
-		require.True(t, check.IfNil(computer))
+func createEconomicsData() process.EconomicsDataHandler {
+	economicsConfig := testscommon.GetEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
+		Economics:                   &economicsConfig,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.PenalizedTooMuchGasFlag {
+					return epoch >= 124
+				}
+				if flag == common.GasPriceModifierFlag {
+					return epoch >= 180
+				}
+				return false
+			},
+		},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
 	})
 
-	t.Run("AllArgumentsProvided", func(t *testing.T) {
-		arguments := ArgsNewFeeComputer{
-			BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-			EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		}
+	return economicsData
+}
 
-		computer, err := NewFeeComputer(arguments)
+func TestNewFeeComputer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil economics data should error", func(t *testing.T) {
+		t.Parallel()
+
+		computer, err := NewFeeComputer(nil)
+		require.Equal(t, errNilEconomicsData, err)
+		require.Nil(t, computer)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		computer, err := NewFeeComputer(createEconomicsData())
 		require.Nil(t, err)
 		require.NotNil(t, computer)
 	})
 }
 
 func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -76,16 +88,7 @@ func TestFeeComputer_ComputeGasUsedAndFeeBasedOnRefundValue(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -110,16 +113,7 @@ func TestFeeComputer_ComputeFeeBasedOnGasUsed(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeGasLimit(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
@@ -143,18 +137,9 @@ func TestFeeComputer_ComputeGasLimit(t *testing.T) {
 }
 
 func TestFeeComputer_ComputeTransactionFeeShouldWorkForDifferentEpochs(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
 	contract, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000000abba")
 
-	computer, _ := NewFeeComputer(arguments)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	checkComputedFee(t, "50000000000000", computer, 0, 80000, 1000000000, "", nil)
 	checkComputedFee(t, "57500000000000", computer, 0, 80000, 1000000000, "hello", nil)
@@ -185,16 +170,7 @@ func checkComputedFee(t *testing.T, expectedFee string, computer *feeComputer, e
 }
 
 func TestFeeComputer_InHighConcurrency(t *testing.T) {
-	arguments := ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		EconomicsConfig:             testscommon.GetEconomicsConfig(),
-		EnableEpochsConfig: config.EnableEpochs{
-			PenalizedTooMuchGasEnableEpoch: 124,
-			GasPriceModifierEnableEpoch:    180,
-		},
-	}
-
-	computer, _ := NewFeeComputer(arguments)
+	computer, _ := NewFeeComputer(createEconomicsData())
 
 	n := 1000
 	wg := sync.WaitGroup{}
@@ -215,4 +191,14 @@ func TestFeeComputer_InHighConcurrency(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestFeeComputer_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var fc *feeComputer
+	require.True(t, fc.IsInterfaceNil())
+
+	fc, _ = NewFeeComputer(createEconomicsData())
+	require.False(t, fc.IsInterfaceNil())
 }

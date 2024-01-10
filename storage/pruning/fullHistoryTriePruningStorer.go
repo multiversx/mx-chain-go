@@ -1,7 +1,7 @@
 package pruning
 
 import (
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type fullHistoryTriePruningStorer struct {
@@ -42,7 +42,7 @@ func (fhtps *fullHistoryTriePruningStorer) GetFromEpoch(key []byte, epoch uint32
 }
 
 // GetBulkFromEpoch will call the same function from the underlying FullHistoryPruningStorer
-func (fhtps *fullHistoryTriePruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+func (fhtps *fullHistoryTriePruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
 	return fhtps.storerWithEpochOperations.GetBulkFromEpoch(keys, epoch)
 }
 
@@ -54,4 +54,9 @@ func (fhtps *fullHistoryTriePruningStorer) PutInEpoch(key []byte, data []byte, e
 // Close will call the same function from the underlying FullHistoryPruningStorer
 func (fhtps *fullHistoryTriePruningStorer) Close() error {
 	return fhtps.storerWithEpochOperations.Close()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (fhtps *fullHistoryTriePruningStorer) IsInterfaceNil() bool {
+	return fhtps == nil
 }

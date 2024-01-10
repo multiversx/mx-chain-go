@@ -226,22 +226,23 @@ func (scf *systemSCFactory) createESDTContract() (vm.SystemSmartContract, error)
 }
 
 func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, error) {
-	firstWhitelistAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.FirstWhitelistedAddress)
+	ownerAddress, err := scf.addressPubKeyConverter.Decode(scf.systemSCConfig.GovernanceSystemSCConfig.OwnerAddress)
 	if err != nil {
-		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.FirstWhitelistedAddress in systemSCFactory", vm.ErrInvalidAddress)
+		return nil, fmt.Errorf("%w for GovernanceSystemSCConfig.OwnerAddress in systemSCFactory", vm.ErrInvalidAddress)
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                         scf.systemEI,
-		GasCost:                     scf.gasCost,
-		GovernanceConfig:            scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:                 scf.marshalizer,
-		Hasher:                      scf.hasher,
-		GovernanceSCAddress:         vm.GovernanceSCAddress,
-		DelegationMgrSCAddress:      vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:          vm.ValidatorSCAddress,
-		EnableEpochsHandler:         scf.enableEpochsHandler,
-		InitialWhiteListedAddresses: [][]byte{firstWhitelistAddress},
+		Eei:                    scf.systemEI,
+		GasCost:                scf.gasCost,
+		GovernanceConfig:       scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:            scf.marshalizer,
+		Hasher:                 scf.hasher,
+		GovernanceSCAddress:    vm.GovernanceSCAddress,
+		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:     vm.ValidatorSCAddress,
+		EnableEpochsHandler:    scf.enableEpochsHandler,
+		UnBondPeriodInEpochs:   scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
+		OwnerAddress:           ownerAddress,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err

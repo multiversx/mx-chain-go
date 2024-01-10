@@ -34,7 +34,7 @@ type AccountsParser interface {
 	GenesisMintingAddress() string
 	GetTotalStakedForDelegationAddress(delegationAddress string) *big.Int
 	GetInitialAccountsForDelegated(addressBytes []byte) []InitialAccountHandler
-	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*outport.Pool, error)
+	GenerateInitialTransactions(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error)
 	IsInterfaceNil() bool
 }
 
@@ -84,7 +84,7 @@ type InitialSmartContractHandler interface {
 }
 
 // InitialSmartContractParser contains the parsed genesis initial smart contracts
-//json file and has some functionality regarding processed data
+// json file and has some functionality regarding processed data
 type InitialSmartContractParser interface {
 	InitialSmartContractsSplitOnOwnersShards(shardCoordinator sharding.Coordinator) (map[uint32][]InitialSmartContractHandler, error)
 	GetDeployedSCAddresses(scType string) (map[string]struct{}, error)

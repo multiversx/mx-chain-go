@@ -1,18 +1,18 @@
 package stakingcommon
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ValidatorsProviderStub -
 type ValidatorsProviderStub struct {
-	GetLatestValidatorsCalled func() map[string]*state.ValidatorApiResponse
+	GetLatestValidatorsCalled func() map[string]*validator.ValidatorStatistics
 	GetAuctionListCalled      func() ([]*common.AuctionListValidatorAPIResponse, error)
 }
 
 // GetLatestValidators -
-func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*state.ValidatorApiResponse {
+func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*validator.ValidatorStatistics {
 	if vp.GetLatestValidatorsCalled != nil {
 		return vp.GetLatestValidatorsCalled()
 	}

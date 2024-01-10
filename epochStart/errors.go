@@ -65,7 +65,7 @@ var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 // ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
 var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
-// ErrNilStorageService signals that nil storage service has been provided
+// ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
 // ErrNilRequestHandler signals that nil request handler has been provided
@@ -331,6 +331,9 @@ var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
 
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
+
+// ErrNilExecutionOrderHandler signals that a nil execution order handler has been provided
+var ErrNilExecutionOrderHandler = errors.New("nil execution order handler")
 
 // ErrReceivedNewListNodeInStakingV4 signals that a new node has been assigned in common.NewList instead of common.AuctionList after staking v4
 var ErrReceivedNewListNodeInStakingV4 = errors.New("new node has been assigned in common.NewList instead of common.AuctionList after staking v4")

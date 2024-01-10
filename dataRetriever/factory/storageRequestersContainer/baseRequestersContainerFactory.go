@@ -11,10 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	disabledRequesters "github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters/disabled"
-	"github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
+	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -27,13 +30,15 @@ const defaultBeforeGracefulClose = time.Minute
 type baseRequestersContainerFactory struct {
 	container                dataRetriever.RequestersContainer
 	shardCoordinator         sharding.Coordinator
-	messenger                dataRetriever.TopicMessageHandler
+	messenger                p2p.Messenger
 	store                    dataRetriever.StorageService
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	dataPacker               dataRetriever.DataPacker
 	manualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
+	enableEpochsHandler      common.EnableEpochsHandler
+	stateStatsHandler        common.StateStatisticsHandler
 	chanGracefullyClose      chan endProcess.ArgEndProcess
 	generalConfig            config.Config
 	shardIDForTries          uint32
@@ -69,6 +74,12 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 	}
 	if check.IfNil(brcf.hasher) {
 		return dataRetriever.ErrNilHasher
+	}
+	if check.IfNil(brcf.enableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(brcf.stateStatsHandler) {
+		return statistics.ErrNilStateStatsHandler
 	}
 
 	return nil
@@ -230,7 +241,9 @@ func (brcf *baseRequestersContainerFactory) createMiniBlocksRequester(responseTo
 
 func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	mainStorer storage.Storer,
-	checkpointsStorer storage.Storer,
+	storageIdentifier dataRetriever.UnitType,
+	handler common.EnableEpochsHandler,
+	stateStatsHandler common.StateStatisticsHandler,
 ) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
 	pathManager, err := storageFactory.CreatePathManager(
 		storageFactory.ArgCreatePathManager{
@@ -254,13 +267,14 @@ func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
 	}
 
 	args := trieFactory.TrieCreateArgs{
-		MainStorer:         mainStorer,
-		CheckpointsStorer:  checkpointsStorer,
-		PruningEnabled:     brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled: brcf.generalConfig.StateTriesConfig.CheckpointsEnabled,
-		MaxTrieLevelInMem:  brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:   brcf.snapshotsEnabled,
-		IdleProvider:       disabled.NewProcessStatusHandler(),
+		MainStorer:          mainStorer,
+		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
+		SnapshotsEnabled:    brcf.snapshotsEnabled,
+		IdleProvider:        disabled.NewProcessStatusHandler(),
+		Identifier:          storageIdentifier.String(),
+		EnableEpochsHandler: handler,
+		StatsCollector:      stateStatsHandler,
 	}
 	return trieFactoryInstance.Create(args)
 }

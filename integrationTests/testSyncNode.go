@@ -5,16 +5,19 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/outport/disabled"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -47,8 +50,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
-	coreComponents.EnableEpochsHandlerField = &testscommon.EnableEpochsHandlerStub{
-		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+	coreComponents.RoundNotifierField = tpn.RoundNotifier
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.RefactorPeersMiniBlocksFlag {
+				return UnreachableEpoch
+			}
+			return 0
+		},
 	}
 
 	dataComponents := GetDefaultDataComponents()
@@ -61,12 +70,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	statusComponents := GetDefaultStatusComponents()
 
-	triesConfig := config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus: stateCheckpointModulus,
-		},
-	}
-
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -77,7 +80,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               triesConfig,
+		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         nil,
 		NodesCoordinator:     tpn.NodesCoordinator,
@@ -94,12 +97,13 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockTracker:                 tpn.BlockTracker,
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
-		EnableRoundsHandler:          coreComponents.EnableRoundsHandler(),
 		GasHandler:                   tpn.GasHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
+		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
+		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -107,19 +111,19 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:             argumentsBase,
-			SCToProtocol:                 &mock.SCToProtocolStub{},
-			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
-			EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
-			EpochEconomics:               &mock.EpochEconomicsStub{},
-			EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
-			EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
+			ArgBaseProcessor:          argumentsBase,
+			SCToProtocol:              &mock.SCToProtocolStub{},
+			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
+			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
+			EpochEconomics:            &mock.EpochEconomicsStub{},
+			EpochRewardsCreator:       &testscommon.RewardsCreatorStub{},
+			EpochValidatorInfoCreator: &testscommon.EpochValidatorInfoCreatorStub{},
 			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{
 				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
 					return []byte("validator stats root hash"), nil
 				},
 			},
-			EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -156,20 +160,21 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
 		BlackListHandler:             tpn.BlockBlackListHandler,
-		NetworkWatcher:               tpn.Messenger,
+		NetworkWatcher:               tpn.MainMessenger,
 		BootStorer:                   tpn.BootstrapStorer,
 		StorageBootstrapper:          tpn.StorageBootstrapper,
 		EpochHandler:                 tpn.EpochStartTrigger,
 		MiniblocksProvider:           tpn.MiniblocksProvider,
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,
-		OutportHandler:               mock.NewNilOutport(),
+		OutportHandler:               disabled.NewDisabledOutport(),
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
+		RepopulateTokensSupplies:     false,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -201,20 +206,21 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
 		BlackListHandler:             tpn.BlockBlackListHandler,
-		NetworkWatcher:               tpn.Messenger,
+		NetworkWatcher:               tpn.MainMessenger,
 		BootStorer:                   tpn.BootstrapStorer,
 		StorageBootstrapper:          tpn.StorageBootstrapper,
 		EpochHandler:                 tpn.EpochStartTrigger,
 		MiniblocksProvider:           tpn.MiniblocksProvider,
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,
-		OutportHandler:               mock.NewNilOutport(),
+		OutportHandler:               disabled.NewDisabledOutport(),
 		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
 		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
 		IsInImportMode:               false,
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
+		RepopulateTokensSupplies:     false,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

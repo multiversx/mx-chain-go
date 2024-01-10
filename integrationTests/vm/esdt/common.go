@@ -68,6 +68,12 @@ func GetUserAccountWithAddress(
 // SetRoles -
 func SetRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
 	tokenIssuer := nodes[0]
+	SetRolesWithSenderAccount(nodes, tokenIssuer.OwnAccount, addrForRole, tokenIdentifier, roles)
+}
+
+// SetRolesWithSenderAccount -
+func SetRolesWithSenderAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, addrForRole []byte, tokenIdentifier []byte, roles [][]byte) {
+	tokenIssuer := nodes[0]
 
 	txData := "setSpecialRole" +
 		"@" + hex.EncodeToString(tokenIdentifier) +
@@ -77,7 +83,7 @@ func SetRoles(nodes []*integrationTests.TestProcessorNode, addrForRole []byte, t
 		txData += "@" + hex.EncodeToString(role)
 	}
 
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
+	integrationTests.CreateAndSendTransactionWithSenderAccount(tokenIssuer, nodes, big.NewInt(0), issuerAccount, vm.ESDTSCAddress, txData, core.MinMetaTxExtraGasCost)
 }
 
 // DeployNonPayableSmartContract -
@@ -159,20 +165,35 @@ func CheckAddressHasTokens(
 
 // CreateNodesAndPrepareBalances -
 func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestProcessorNode, []int) {
-	nodesPerShard := 1
-	numMetachainNodes := 1
-
 	enableEpochs := config.EnableEpochs{
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
+	roundsConfig := integrationTests.GetDefaultRoundsConfig()
+	return CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(
+		numOfShards,
+		enableEpochs,
+		roundsConfig,
+	)
+}
 
-	nodes := integrationTests.CreateNodesWithEnableEpochs(
+// CreateNodesAndPrepareBalances -
+func CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(numOfShards int, enableEpochs config.EnableEpochs, roundsConfig config.RoundConfig) ([]*integrationTests.TestProcessorNode, []int) {
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		enableEpochs,
+		roundsConfig,
+		&config.VirtualMachineConfig{
+			WasmVMVersions: []config.WasmVMVersionByEpoch{
+				{StartEpoch: 0, Version: "*"},
+			},
+		},
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -209,6 +230,10 @@ func IssueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	issueTestToken(nodes, initialSupply, ticker, core.MinMetaTxExtraGasCost)
 }
 
+func IssueTestTokenWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, initialSupply int64, ticker string) {
+	issueTestTokenWithIssuerAccount(nodes, issuerAccount, initialSupply, ticker, core.MinMetaTxExtraGasCost)
+}
+
 // IssueTestTokenWithCustomGas -
 func IssueTestTokenWithCustomGas(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
 	issueTestToken(nodes, initialSupply, ticker, gas)
@@ -220,6 +245,11 @@ func IssueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode,
 }
 
 func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
+	tokenIssuer := nodes[0]
+	issueTestTokenWithIssuerAccount(nodes, tokenIssuer.OwnAccount, initialSupply, ticker, gas)
+}
+
+func issueTestTokenWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, initialSupply int64, ticker string, gas uint64) {
 	tokenName := "token"
 	issuePrice := big.NewInt(1000)
 
@@ -228,7 +258,7 @@ func issueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	txData.Clear().IssueESDT(tokenName, ticker, initialSupply, 6)
 	txData.CanFreeze(true).CanWipe(true).CanPause(true).CanMint(true).CanBurn(true)
 
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, issuePrice, vm.ESDTSCAddress, txData.ToString(), gas)
+	integrationTests.CreateAndSendTransactionWithSenderAccount(tokenIssuer, nodes, issuePrice, issuerAccount, vm.ESDTSCAddress, txData.ToString(), gas)
 }
 
 func issueTestTokenWithSpecialRoles(nodes []*integrationTests.TestProcessorNode, initialSupply int64, ticker string, gas uint64) {
@@ -259,12 +289,12 @@ func CheckNumCallBacks(
 
 		scQuery := &process.SCQuery{
 			ScAddress:  address,
-			FuncName:   "callback_data",
+			FuncName:   "callback_args",
 			CallerAddr: address,
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{},
 		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, err := node.SCQueryService.ExecuteQuery(scQuery)
 		require.Nil(t, err)
 		require.NotNil(t, vmOutput)
 		require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
@@ -272,14 +302,11 @@ func CheckNumCallBacks(
 	}
 }
 
-// CheckSavedCallBackData -
-func CheckSavedCallBackData(
+func CheckForwarderRawSavedCallbackArgs(
 	t *testing.T,
 	address []byte,
 	nodes []*integrationTests.TestProcessorNode,
 	callbackIndex int,
-	expectedTokenId string,
-	expectedPayment *big.Int,
 	expectedResultCode vmcommon.ReturnCode,
 	expectedArguments [][]byte) {
 
@@ -289,27 +316,64 @@ func CheckSavedCallBackData(
 			continue
 		}
 
-		scQuery := &process.SCQuery{
+		scQueryArgs := &process.SCQuery{
 			ScAddress:  address,
-			FuncName:   "callback_data_at_index",
+			FuncName:   "callback_args_at_index",
 			CallerAddr: address,
 			CallValue:  big.NewInt(0),
 			Arguments: [][]byte{
 				{byte(callbackIndex)},
 			},
 		}
-		vmOutput, err := node.SCQueryService.ExecuteQuery(scQuery)
+		vmOutputArgs, _, err := node.SCQueryService.ExecuteQuery(scQueryArgs)
 		require.Nil(t, err)
-		require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
-		require.GreaterOrEqual(t, 3, len(vmOutput.ReturnData))
-		require.Equal(t, []byte(expectedTokenId), vmOutput.ReturnData[0])
-		require.Equal(t, expectedPayment.Bytes(), vmOutput.ReturnData[1])
+		require.Equal(t, vmcommon.Ok, vmOutputArgs.ReturnCode)
+		require.GreaterOrEqual(t, len(vmOutputArgs.ReturnData), 1)
 		if expectedResultCode == vmcommon.Ok {
-			require.Equal(t, []byte{0x0}, vmOutput.ReturnData[2])
+			require.Equal(t, []byte{0x0}, vmOutputArgs.ReturnData[0])
+			require.Equal(t, expectedArguments, vmOutputArgs.ReturnData[1:])
 		} else {
-			require.Equal(t, []byte{byte(expectedResultCode)}, vmOutput.ReturnData[2])
+			require.Equal(t, []byte{byte(expectedResultCode)}, vmOutputArgs.ReturnData[0])
 		}
-		require.Equal(t, expectedArguments, vmOutput.ReturnData[3:])
+	}
+}
+
+// ForwarderRawSavedPaymentInfo contains token data to be checked in the forwarder-raw contract.
+type ForwarderRawSavedPaymentInfo struct {
+	TokenId string
+	Nonce   uint64
+	Payment *big.Int
+}
+
+func CheckForwarderRawSavedCallbackPayments(
+	t *testing.T,
+	address []byte,
+	nodes []*integrationTests.TestProcessorNode,
+	expectedPayments []*ForwarderRawSavedPaymentInfo) {
+
+	scQueryPayment := &process.SCQuery{
+		ScAddress:  address,
+		FuncName:   "callback_payments_triples",
+		CallerAddr: address,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{},
+	}
+
+	contractID := nodes[0].ShardCoordinator.ComputeId(address)
+	for _, node := range nodes {
+		if node.ShardCoordinator.SelfId() != contractID {
+			continue
+		}
+		vmOutputPayment, _, err := node.SCQueryService.ExecuteQuery(scQueryPayment)
+		require.Nil(t, err)
+		require.Equal(t, vmcommon.Ok, vmOutputPayment.ReturnCode)
+
+		require.Equal(t, len(expectedPayments)*3, len(vmOutputPayment.ReturnData))
+		for i, expectedPayment := range expectedPayments {
+			require.Equal(t, []byte(expectedPayment.TokenId), vmOutputPayment.ReturnData[3*i])
+			require.Equal(t, big.NewInt(0).SetUint64(expectedPayment.Nonce).Bytes(), vmOutputPayment.ReturnData[3*i+1])
+			require.Equal(t, expectedPayment.Payment.Bytes(), vmOutputPayment.ReturnData[3*i+2])
+		}
 	}
 }
 
@@ -322,7 +386,27 @@ func PrepareFungibleTokensWithLocalBurnAndMint(
 	round *uint64,
 	nonce *uint64,
 ) string {
-	IssueTestToken(nodes, 100, "TKN")
+	return PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount(
+		t,
+		nodes,
+		nodes[0].OwnAccount,
+		addressWithRoles,
+		idxProposers,
+		round,
+		nonce)
+}
+
+// PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount -
+func PrepareFungibleTokensWithLocalBurnAndMintWithIssuerAccount(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	issuerAccount *integrationTests.TestWalletAccount,
+	addressWithRoles []byte,
+	idxProposers []int,
+	round *uint64,
+	nonce *uint64,
+) string {
+	IssueTestTokenWithIssuerAccount(nodes, issuerAccount, 100, "TKN")
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 5
@@ -331,7 +415,7 @@ func PrepareFungibleTokensWithLocalBurnAndMint(
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("TKN")))
 
-	SetRoles(nodes, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
+	SetRolesWithSenderAccount(nodes, issuerAccount, addressWithRoles, []byte(tokenIdentifier), [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)})
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard = 5

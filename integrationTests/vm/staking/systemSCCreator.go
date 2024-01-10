@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonMock "github.com/multiversx/mx-chain-vm-common-go/mock"
@@ -127,7 +128,7 @@ func createBlockChainHook(
 	accountsAdapter state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	gasScheduleNotifier core.GasScheduleNotifier,
-) process.BlockChainHookHandler {
+) (hooks.ArgBlockChainHook, process.BlockChainHookWithAccountsAdapter) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:               gasScheduleNotifier,
 		MapDNSAddresses:           make(map[string]struct{}),
@@ -138,6 +139,8 @@ func createBlockChainHook(
 		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
 		AutomaticCrawlerAddresses: [][]byte{core.SystemAccountAddress},
 		MaxNumNodesInTransferRole: 1,
+		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
+		MapDNSV2Addresses:         make(map[string]struct{}),
 	}
 
 	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -145,35 +148,36 @@ func createBlockChainHook(
 	builtInFunctionsContainer.BuiltInFunctionContainer()
 
 	argsHook := hooks.ArgBlockChainHook{
-		Accounts:              accountsAdapter,
-		PubkeyConv:            coreComponents.AddressPubKeyConverter(),
-		StorageService:        dataComponents.StorageService(),
-		BlockChain:            dataComponents.Blockchain(),
-		ShardCoordinator:      shardCoordinator,
-		Marshalizer:           coreComponents.InternalMarshalizer(),
-		Uint64Converter:       coreComponents.Uint64ByteSliceConverter(),
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		BuiltInFunctions:      builtInFunctionsContainer.BuiltInFunctionContainer(),
-		DataPool:              dataComponents.Datapool(),
-		CompiledSCPool:        dataComponents.Datapool().SmartContracts(),
-		EpochNotifier:         coreComponents.EpochNotifier(),
-		GlobalSettingsHandler: &vmcommonMock.GlobalSettingsHandlerStub{},
-		NilCompiledSCStore:    true,
-		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
-		GasSchedule:           gasScheduleNotifier,
-		Counter:               counters.NewDisabledCounter(),
+		Accounts:                 accountsAdapter,
+		PubkeyConv:               coreComponents.AddressPubKeyConverter(),
+		StorageService:           dataComponents.StorageService(),
+		BlockChain:               dataComponents.Blockchain(),
+		ShardCoordinator:         shardCoordinator,
+		Marshalizer:              coreComponents.InternalMarshalizer(),
+		Uint64Converter:          coreComponents.Uint64ByteSliceConverter(),
+		NFTStorageHandler:        &testscommon.SimpleNFTStorageHandlerStub{},
+		BuiltInFunctions:         builtInFunctionsContainer.BuiltInFunctionContainer(),
+		DataPool:                 dataComponents.Datapool(),
+		CompiledSCPool:           dataComponents.Datapool().SmartContracts(),
+		EpochNotifier:            coreComponents.EpochNotifier(),
+		GlobalSettingsHandler:    &vmcommonMock.GlobalSettingsHandlerStub{},
+		NilCompiledSCStore:       true,
+		EnableEpochsHandler:      coreComponents.EnableEpochsHandler(),
+		GasSchedule:              gasScheduleNotifier,
+		Counter:                  counters.NewDisabledCounter(),
+		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
-	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
-	_ = err
-	return blockChainHook
+	blockChainHook, _ := hooks.NewBlockChainHookImpl(argsHook)
+	return argsHook, blockChainHook
 }
 
 func createVMContainerFactory(
 	coreComponents factory.CoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
-	blockChainHook process.BlockChainHookHandler,
-	peerAccounts state.AccountsAdapter,
+	blockChainHook process.BlockChainHookWithAccountsAdapter,
+	argsBlockChainHook hooks.ArgBlockChainHook,
+	stateComponents factory.StateComponentsHandler,
 	shardCoordinator sharding.Coordinator,
 	nc nodesCoordinator.NodesCoordinator,
 	maxNumNodes uint32,
@@ -196,13 +200,14 @@ func createVMContainerFactory(
 				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				Active: config.GovernanceSystemSCConfigActive{
+				V1: config.GovernanceSystemSCConfigV1{
+					NumNodes:         2000,
 					ProposalCost:     "500",
-					MinQuorum:        "50",
-					MinPassThreshold: "50",
-					MinVetoThreshold: "50",
+					MinQuorum:        50,
+					MinPassThreshold: 10,
+					MinVetoThreshold: 10,
 				},
-				FirstWhitelistedAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+				OwnerAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
 				GenesisNodePrice:                     strconv.Itoa(nodePrice),
@@ -229,11 +234,13 @@ func createVMContainerFactory(
 				MaxServiceFee: 100,
 			},
 		},
-		ValidatorAccountsDB: peerAccounts,
+		ValidatorAccountsDB: stateComponents.PeerAccounts(),
 		ChanceComputer:      coreComponents.Rater(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 		ShardCoordinator:    shardCoordinator,
 		NodesCoordinator:    nc,
+		UserAccountsDB:      stateComponents.AccountsAdapter(),
+		ArgBlockChainHook:   argsBlockChainHook,
 	}
 
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)

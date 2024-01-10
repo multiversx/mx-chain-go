@@ -122,6 +122,7 @@ type basePreProcess struct {
 	pubkeyConverter            core.PubkeyConverter
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
 	enableEpochsHandler        common.EnableEpochsHandler
+	txExecutionOrderHandler    common.TxExecutionOrderHandler
 }
 
 func (bpp *basePreProcess) removeBlockDataFromPools(
@@ -406,17 +407,21 @@ func (bpp *basePreProcess) requestMissingTxsForShard(
 	return requestedTxs
 }
 
-func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) {
+func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) error {
 	if bpp.balanceComputation.IsAddressSet(address) {
-		return
+		return nil
 	}
 
 	balance, err := bpp.getBalanceForAddress(address)
 	if err != nil {
+		if core.IsGetNodeFromDBError(err) {
+			return err
+		}
 		balance = big.NewInt(0)
 	}
 
 	bpp.balanceComputation.SetBalanceToAddress(address, balance)
+	return nil
 }
 
 func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error) {
@@ -445,7 +450,7 @@ func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
-	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+	if !bpp.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 		return bpp.gasHandler.TotalGasProvided()
 	}
 
@@ -468,7 +473,7 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 ) {
-	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+	if !bpp.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 		return
 	}
 
@@ -507,6 +512,7 @@ func (bpp *basePreProcess) handleProcessTransactionError(preProcessorExecutionIn
 	}
 
 	preProcessorExecutionInfoHandler.RevertProcessedTxsResults([][]byte{txHash}, txHash)
+	bpp.txExecutionOrderHandler.Remove(txHash)
 }
 
 func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHash []byte) (data.MiniBlockHeaderHandler, error) {

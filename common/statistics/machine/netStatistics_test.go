@@ -262,7 +262,9 @@ func TestNetStatistics_EpochConfirmed(t *testing.T) {
 	ns.EpochConfirmed(0, 0)
 
 	assert.Equal(t, uint64(0), ns.TotalBytesSentInCurrentEpoch())
+	assert.Equal(t, "0 B", ns.TotalSentInCurrentEpoch())
 	assert.Equal(t, uint64(0), ns.TotalBytesReceivedInCurrentEpoch())
+	assert.Equal(t, "0 B", ns.TotalReceivedInCurrentEpoch())
 	assert.Equal(t, uint64(0), ns.BpsRecvPeak())
 	assert.Equal(t, uint64(0), ns.BpsSentPeak())
 }

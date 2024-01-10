@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -32,7 +34,9 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -201,10 +205,12 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	})
 	messenger := integrationTests.CreateMessengerWithNoDiscovery()
 	time.Sleep(integrationTests.P2pBootstrapDelay)
-	nodeToJoinLate.Messenger = messenger
+	nodeToJoinLate.MainMessenger = messenger
+
+	nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 
 	for _, n := range nodes {
-		_ = n.ConnectTo(nodeToJoinLate)
+		_ = n.ConnectOnMain(nodeToJoinLate)
 	}
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
@@ -230,14 +236,15 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
-		&testscommon.MarshalizerMock{},
+		&marshallerMock.MarshalizerMock{},
 		444,
 	)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,
 		CoreComponentsHolder:            coreComponents,
-		Messenger:                       nodeToJoinLate.Messenger,
+		MainMessenger:                   nodeToJoinLate.MainMessenger,
+		FullArchiveMessenger:            nodeToJoinLate.FullArchiveMessenger,
 		GeneralConfig:                   generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
@@ -271,6 +278,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:          disabled.NewStateStatistics(),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -294,8 +302,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			CurrentEpoch:                  0,
 			StorageType:                   factory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: false,
-			SnapshotsEnabled:              false,
+			NodeProcessingMode:            common.Normal,
 			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
+			StateStatsHandler:             disabled.NewStateStatistics(),
 		},
 	)
 	assert.NoError(t, err)

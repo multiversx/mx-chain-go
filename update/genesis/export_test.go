@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -288,14 +287,14 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			RootCalled: func() ([]byte, error) {
 				return []byte{}, nil
 			},
-			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				mm := &mock.MarshalizerMock{}
 				valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 				pacB, _ := mm.Marshal(valInfo)
 
 				go func() {
 					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
-					channels.ErrChan <- expectedErr
+					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(channels.LeavesChan)
 				}()
 
@@ -337,7 +336,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 			RootCalled: func() ([]byte, error) {
 				return []byte{}, nil
 			},
-			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder) error {
+			GetAllLeavesOnChannelCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				mm := &mock.MarshalizerMock{}
 				valInfo := &state.ValidatorInfo{List: string(common.EligibleList)}
 				pacB, _ := mm.Marshal(valInfo)
@@ -345,7 +344,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 				go func() {
 					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
 					close(channels.LeavesChan)
-					close(channels.ErrChan)
+					channels.ErrChan.Close()
 				}()
 
 				return nil
@@ -406,7 +405,7 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 
 	var nodesSetup sharding.NodesSetup
 
-	nsBytes, err := ioutil.ReadFile(filepath.Join(testFolderName, common.NodesSetupJsonFileName))
+	nsBytes, err := os.ReadFile(filepath.Join(testFolderName, common.NodesSetupJsonFileName))
 	require.NoError(t, err)
 
 	err = json.Unmarshal(nsBytes, &nodesSetup)

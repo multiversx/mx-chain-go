@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	p2pConfig "github.com/multiversx/mx-chain-p2p-go/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,11 +45,21 @@ func TestOverrideConfigValues(t *testing.T) {
 	t.Run("should work for p2p.toml", func(t *testing.T) {
 		t.Parallel()
 
-		configs := &config.Configs{P2pConfig: &p2pConfig.P2PConfig{Sharding: p2pConfig.ShardingConfig{TargetPeerCount: 5}}}
+		configs := &config.Configs{MainP2pConfig: &p2pConfig.P2PConfig{Sharding: p2pConfig.ShardingConfig{TargetPeerCount: 5}}}
 
 		err := OverrideConfigValues([]config.OverridableConfig{{Path: "Sharding.TargetPeerCount", Value: "37", File: "p2p.toml"}}, configs)
 		require.NoError(t, err)
-		require.Equal(t, uint32(37), configs.P2pConfig.Sharding.TargetPeerCount)
+		require.Equal(t, uint32(37), configs.MainP2pConfig.Sharding.TargetPeerCount)
+	})
+
+	t.Run("should work for fullArchiveP2P.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{FullArchiveP2pConfig: &p2pConfig.P2PConfig{Sharding: p2pConfig.ShardingConfig{TargetPeerCount: 5}}}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "Sharding.TargetPeerCount", Value: "37", File: "fullArchiveP2P.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, uint32(37), configs.FullArchiveP2pConfig.Sharding.TargetPeerCount)
 	})
 
 	t.Run("should work for external.toml", func(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +47,7 @@ func TestRequestData_UnmarshalNilMarshalizer(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.UnmarshalWith(nil, &mock.P2PMessageMock{})
+	err := requestData.UnmarshalWith(nil, &p2pmocks.P2PMessageMock{})
 	require.Equal(t, dataRetriever.ErrNilMarshalizer, err)
 }
 
@@ -64,7 +65,7 @@ func TestRequestData_UnmarshalNilMessageData(t *testing.T) {
 
 	requestData := dataRetriever.RequestData{}
 
-	err := requestData.UnmarshalWith(&mock.MarshalizerMock{}, &mock.P2PMessageMock{})
+	err := requestData.UnmarshalWith(&mock.MarshalizerMock{}, &p2pmocks.P2PMessageMock{})
 	require.Equal(t, dataRetriever.ErrNilDataToProcess, err)
 }
 
@@ -78,7 +79,7 @@ func TestRequestData_CannotUnmarshal(t *testing.T) {
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return localErr
 		},
-	}, &mock.P2PMessageMock{
+	}, &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 	})
 	require.Equal(t, localErr, err)
@@ -93,7 +94,7 @@ func TestRequestData_UnmarshalOk(t *testing.T) {
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
 		},
-	}, &mock.P2PMessageMock{
+	}, &p2pmocks.P2PMessageMock{
 		DataField: []byte("data"),
 	})
 	require.Nil(t, err)

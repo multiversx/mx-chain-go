@@ -1,11 +1,11 @@
 package bootstrap
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -29,6 +30,15 @@ func CreateShardCoordinator(
 	prefsConfig config.PreferencesConfig,
 	log logger.Logger,
 ) (sharding.Coordinator, core.NodeType, error) {
+	if check.IfNil(nodesConfig) {
+		return nil, "", errErd.ErrNilGenesisNodesSetupHandler
+	}
+	if check.IfNil(pubKey) {
+		return nil, "", errErd.ErrNilPublicKey
+	}
+	if check.IfNil(log) {
+		return nil, "", errErd.ErrNilLogger
+	}
 
 	selfShardId, err := getShardIdFromNodePubKey(pubKey, nodesConfig)
 	nodeType := core.NodeTypeValidator
@@ -71,10 +81,6 @@ func CreateShardCoordinator(
 }
 
 func getShardIdFromNodePubKey(pubKey crypto.PublicKey, nodesConfig sharding.GenesisNodesSetupHandler) (uint32, error) {
-	if pubKey == nil {
-		return 0, errors.New("nil public key")
-	}
-
 	publicKey, err := pubKey.ToByteArray()
 	if err != nil {
 		return 0, err
@@ -108,8 +114,22 @@ func CreateNodesCoordinator(
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
-	stakingV4Step2EnableEpoch uint32,
 ) (nodesCoordinator.NodesCoordinator, error) {
+	if check.IfNil(nodeShufflerOut) {
+		return nil, errErd.ErrNilShuffleOutCloser
+	}
+	if check.IfNil(nodesConfig) {
+		return nil, errErd.ErrNilGenesisNodesSetupHandler
+	}
+	if check.IfNil(epochStartNotifier) {
+		return nil, errErd.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(pubKey) {
+		return nil, errErd.ErrNilPublicKey
+	}
+	if check.IfNil(bootstrapParameters) {
+		return nil, errErd.ErrNilBootstrapParamsHandler
+	}
 	if chanNodeStop == nil {
 		return nil, nodesCoordinator.ErrNilNodeStopChannel
 	}
@@ -199,8 +219,8 @@ func CreateNodesCoordinator(
 		IsFullArchive:                   prefsConfig.FullArchive,
 		EnableEpochsHandler:             enableEpochsHandler,
 		ValidatorInfoCacher:             validatorInfoCacher,
+		GenesisNodesSetupHandler:        nodesConfig,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		StakingV4Step2EnableEpoch:       stakingV4Step2EnableEpoch,
 	}
 
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -222,6 +242,10 @@ func CreateNodesShuffleOut(
 	epochConfig config.EpochStartConfig,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (factory.ShuffleOutCloser, error) {
+
+	if check.IfNil(nodesConfig) {
+		return nil, errErd.ErrNilGenesisNodesSetupHandler
+	}
 
 	maxThresholdEpochDuration := epochConfig.MaxShuffledOutRestartThreshold
 	if !(maxThresholdEpochDuration >= 0.0 && maxThresholdEpochDuration <= 1.0) {

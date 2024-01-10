@@ -7,10 +7,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 // validatorFacadeHandler defines the methods to be implemented by a facade for validator requests
 type validatorFacadeHandler interface {
-	ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error)
+	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
 	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	IsInterfaceNil() bool
 }

@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -65,6 +66,24 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
 
+	err = core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly,
+		common.StakingV2OwnerFlagInSpecificEpochOnly,
+		common.CorrectLastUnJailedFlagInSpecificEpochOnly,
+		common.DelegationSmartContractFlag,
+		common.CorrectLastUnJailedFlag,
+		common.SwitchJailWaitingFlag,
+		common.StakingV2Flag,
+		common.ESDTFlagInSpecificEpochOnly,
+		common.GovernanceFlag,
+		common.SaveJailedAlwaysFlag,
+		common.StakingV4Step1Flag,
+		common.StakingV4Step2Flag,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	s := &systemSCProcessor{
 		legacySystemSCProcessor: legacy,
 		auctionListSelector:     args.AuctionListSelector,
@@ -108,21 +127,21 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	if s.enableEpochsHandler.IsGovernanceFlagEnabledForCurrentEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV4Step1Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step1Flag) {
 		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
 		if err != nil {
 			return err
 		}
 	}
 
-	if s.enableEpochsHandler.IsStakingV4Step2Enabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
 		err := s.prepareStakingDataForEligibleNodes(validatorsInfoMap)
 		if err != nil {
 			return err

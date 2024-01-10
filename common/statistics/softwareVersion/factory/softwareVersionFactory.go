@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/softwareVersion"
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -30,9 +31,7 @@ func NewSoftwareVersionFactory(
 }
 
 // Create returns a software version checker object
-func (svf *softwareVersionFactory) Create() (*softwareVersion.SoftwareVersionChecker, error) {
+func (svf *softwareVersionFactory) Create() (statistics.SoftwareVersionChecker, error) {
 	stableTagProvider := softwareVersion.NewStableTagProvider(svf.config.StableTagLocation)
-	softwareVersionChecker, err := softwareVersion.NewSoftwareVersionChecker(svf.statusHandler, stableTagProvider, svf.config.PollingIntervalInMinutes)
-
-	return softwareVersionChecker, err
+	return softwareVersion.NewSoftwareVersionChecker(svf.statusHandler, stableTagProvider, svf.config.PollingIntervalInMinutes)
 }

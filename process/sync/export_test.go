@@ -175,6 +175,11 @@ func (boot *MetaBootstrap) GetNotarizedInfo(
 	}
 }
 
+// SyncAccountsDBs -
+func (boot *MetaBootstrap) SyncAccountsDBs(key []byte, id string) error {
+	return boot.syncAccountsDBs(key, id)
+}
+
 // ProcessReceivedHeader -
 func (boot *baseBootstrap) ProcessReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	boot.processReceivedHeader(headerHandler, headerHash)

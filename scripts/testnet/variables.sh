@@ -65,8 +65,14 @@ export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
 
+# EXTRA_KEYS if set to 1, extra keys will be added to the generated keys
+export EXTRA_KEYS=1
+
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
+# ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
+export ROUNDS_PER_EPOCH=0
 
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
@@ -177,3 +183,6 @@ export VALIDATOR_KEY_PEM_FILE="validatorKey.pem"
 
 # MULTI_KEY_PEM_FILE is the pem file name when running multi key mode, with all managed
 export MULTI_KEY_PEM_FILE="allValidatorsKeys.pem"
+
+# EXTRA_KEY_PEM_FILE is the pem file name when running multi key mode, with all extra managed
+export EXTRA_KEY_PEM_FILE="extraValidatorsKeys.pem"

@@ -89,6 +89,17 @@ func NewStakingSmartContract(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.CorrectFirstQueuedFlag,
+		common.ValidatorToDelegationFlag,
+		common.StakingV2Flag,
+		common.CorrectLastUnJailedFlag,
+		common.CorrectJailedNotUnStakedEmptyQueueFlag,
+		common.StakeFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	minStakeValue, okValue := big.NewInt(0).SetString(args.StakingSCConfig.MinStakeValue, conversionBase)
 	if !okValue || minStakeValue.Cmp(zero) <= 0 {
@@ -223,7 +234,7 @@ func (s *stakingSC) numSpareNodes() int64 {
 }
 
 func (s *stakingSC) canStake() bool {
-	if s.enableEpochsHandler.IsStakingV4Started() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return true
 	}
 
@@ -333,7 +344,7 @@ func (s *stakingSC) unJailV1(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) unJail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsStakeFlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakeFlag) {
 		return s.unJailV1(args)
 	}
 
@@ -409,7 +420,7 @@ func (s *stakingSC) jail(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 }
 
 func (s *stakingSC) get(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("function deprecated")
 		return vmcommon.UserError
 	}
@@ -552,7 +563,7 @@ func (s *stakingSC) activeStakingFor(stakingData *StakedDataV2_0) {
 }
 
 func (s *stakingSC) processStake(blsKey []byte, registrationData *StakedDataV2_0, addFirst bool) error {
-	if s.enableEpochsHandler.IsStakingV4Started() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return s.processStakeV2(registrationData)
 	}
 
@@ -572,7 +583,7 @@ func (s *stakingSC) processStakeV2(registrationData *StakedDataV2_0) error {
 }
 
 func (s *stakingSC) unStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if s.enableEpochsHandler.IsStakingV4Started() {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 		return s.unStakeV2(args)
 	}
 
@@ -740,7 +751,7 @@ func (s *stakingSC) isStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) tryRemoveJailedNodeFromStaked(registrationData *StakedDataV2_0) {
-	if !s.enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectJailedNotUnStakedEmptyQueueFlag) {
 		s.removeAndSetUnstaked(registrationData)
 		return
 	}
@@ -791,7 +802,7 @@ func (s *stakingSC) updateConfigMinNodes(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) updateConfigMaxNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -896,7 +907,7 @@ func (s *stakingSC) getBLSKeyStatus(args *vmcommon.ContractCallInput) vmcommon.R
 }
 
 func (s *stakingSC) getTotalNumberOfRegisteredNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -935,14 +946,14 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	passedNonce := currentNonce - stakedData.UnStakedNonce
 	if passedNonce >= s.unBondPeriod {
-		if s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(zero.Bytes())
 		} else {
 			s.eei.Finish([]byte("0"))
 		}
 	} else {
 		remaining := s.unBondPeriod - passedNonce
-		if s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+		if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 			s.eei.Finish(big.NewInt(0).SetUint64(remaining).Bytes())
 		} else {
 			s.eei.Finish([]byte(strconv.Itoa(int(remaining))))
@@ -953,7 +964,7 @@ func (s *stakingSC) getRemainingUnbondPeriod(args *vmcommon.ContractCallInput) v
 }
 
 func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -992,7 +1003,7 @@ func (s *stakingSC) setOwnersOnAddresses(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		s.eei.AddReturnMessage("invalid method to call")
 		return vmcommon.UserError
 	}
@@ -1020,7 +1031,7 @@ func (s *stakingSC) getOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 }
 
 func (s *stakingSC) changeOwnerAndRewardAddress(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !s.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) {
 		return vmcommon.UserError
 	}
 	if !bytes.Equal(args.CallerAddr, s.stakeAccessAddr) {

@@ -19,7 +19,6 @@ func GetGeneralConfig() config.Config {
 			SignatureLength: 48,
 		},
 		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus:     5,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
 			MaxStateTrieLevelInMemory:   5,
@@ -50,20 +49,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		AccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "AccountsTrieCheckpoints",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10000,
@@ -72,20 +57,6 @@ func GetGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerAccountsTrie/MainDB",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrieCheckpoints",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -142,6 +113,11 @@ func GetGeneralConfig() config.Config {
 				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
+			DNSV2Addresses: []string{
+				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
 			MaxNumAddressesInTransferRole: 100,
 		},
 		EpochStartConfig: GetEpochStartConfig(),
@@ -169,6 +145,7 @@ func GetGeneralConfig() config.Config {
 			ChainID:                  "undefined",
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
+			SetGuardianEpochsDelay:   20,
 		},
 		Marshalizer: config.MarshalizerConfig{
 			Type:           TestMarshalizer,
@@ -261,11 +238,13 @@ func CreateDummyEconomicsConfig() config.EconomicsConfig {
 					MaxGasLimitPerMetaMiniBlock: "15000000000",
 					MaxGasLimitPerTx:            "1500000000",
 					MinGasLimit:                 "50000",
+					ExtraGasLimitGuardedTx:      "50000",
 				},
 			},
-			MinGasPrice:      "1000000000",
-			GasPerDataByte:   "1500",
-			GasPriceModifier: 1,
+			MinGasPrice:            "1000000000",
+			GasPerDataByte:         "1500",
+			GasPriceModifier:       1,
+			MaxGasPriceSetGuardian: "100000",
 		},
 	}
 }

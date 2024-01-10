@@ -18,6 +18,9 @@ type NodesCoordinatorStub struct {
 	ConsensusGroupSizeCalled                 func(shardID uint32) int
 	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
+	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
+	GetOwnPublicKeyCalled                    func() []byte
+	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
 	GetNumTotalEligibleCalled                func() uint64
 }
 
@@ -166,8 +169,11 @@ func (ncm *NodesCoordinatorStub) ShuffleOutForEpoch(_ uint32) {
 }
 
 // GetConsensusWhitelistedNodes return the whitelisted nodes allowed to send consensus messages, for each of the shards
-func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(_ uint32) (map[string]struct{}, error) {
-	panic("not implemented")
+func (ncm *NodesCoordinatorStub) GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error) {
+	if ncm.GetConsensusWhitelistedNodesCalled != nil {
+		return ncm.GetConsensusWhitelistedNodesCalled(epoch)
+	}
+	return nil, nil
 }
 
 // GetSelectedPublicKeys -
@@ -185,7 +191,18 @@ func (ncm *NodesCoordinatorStub) GetValidatorWithPublicKey(publicKey []byte) (no
 
 // GetOwnPublicKey -
 func (ncm *NodesCoordinatorStub) GetOwnPublicKey() []byte {
+	if ncm.GetOwnPublicKeyCalled != nil {
+		return ncm.GetOwnPublicKeyCalled()
+	}
 	return []byte("key")
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (ncm *NodesCoordinatorStub) GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error) {
+	if ncm.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return ncm.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

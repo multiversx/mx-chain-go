@@ -39,11 +39,13 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 			PathManager:                   args.PathManagerHandler,
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              args.NodeTypeProvider,
-			CurrentEpoch:                  args.CurrentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			SnapshotsEnabled:              args.SnapshotsEnabled,
 			ManagedPeersHolder:            args.ManagedPeersHolder,
+			CurrentEpoch:                  args.CurrentEpoch,
+			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            args.NodeProcessingMode,
+			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
+			StateStatsHandler:             args.StateStatsHandler,
 		},
 	)
 	if err != nil {

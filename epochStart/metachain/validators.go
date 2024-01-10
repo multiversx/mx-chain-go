@@ -2,7 +2,9 @@ package metachain
 
 import (
 	"bytes"
+	"encoding/hex"
 	"sort"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -11,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/compatibility"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -67,6 +70,13 @@ func NewValidatorInfoCreator(args ArgsNewValidatorInfoCreator) (*validatorInfoCr
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.DeterministicSortOnValidatorsInfoFixFlag,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	vic := &validatorInfoCreator{
@@ -131,9 +141,8 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.Validato
 
 	validatorCopy := make([]state.ValidatorInfoHandler, len(validatorsInfo))
 	copy(validatorCopy, validatorsInfo)
-	sort.Slice(validatorCopy, func(a, b int) bool {
-		return bytes.Compare(validatorCopy[a].GetPublicKey(), validatorCopy[b].GetPublicKey()) < 0
-	})
+
+	vic.sortValidators(validatorCopy)
 
 	for index, validator := range validatorCopy {
 		shardValidatorInfo := createShardValidatorInfo(validator)
@@ -149,8 +158,46 @@ func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.Validato
 	return miniBlock, nil
 }
 
+func (vic *validatorInfoCreator) sortValidators(validators []state.ValidatorInfoHandler) {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag) {
+		vic.deterministicSortValidators(validators)
+		return
+	}
+
+	vic.legacySortValidators(validators)
+}
+
+func (vic *validatorInfoCreator) deterministicSortValidators(validators []state.ValidatorInfoHandler) {
+	sort.SliceStable(validators, func(a, b int) bool {
+		result := bytes.Compare(validators[a].GetPublicKey(), validators[b].GetPublicKey())
+		if result != 0 {
+			return result < 0
+		}
+
+		aValidatorString := validators[a].GoString()
+		bValidatorString := validators[b].GoString()
+		// possible issues as we have 2 entries with the same public key. Print & assure deterministic sorting
+		log.Warn("found 2 entries in validatorInfoCreator.deterministicSortValidators with the same public key",
+			"validator a", aValidatorString, "validator b", bValidatorString)
+
+		// since the GoString will include all fields, we do not need to marshal the struct again. Strings comparison will
+		// suffice in this case.
+		return aValidatorString < bValidatorString
+	})
+}
+
+func (vic *validatorInfoCreator) legacySortValidators(validators []state.ValidatorInfoHandler) {
+	swap := func(a, b int) {
+		validators[a], validators[b] = validators[b], validators[a]
+	}
+	less := func(a, b int) bool {
+		return bytes.Compare(validators[a].GetPublicKey(), validators[b].GetPublicKey()) < 0
+	}
+	compatibility.SortSlice(swap, less, len(validators))
+}
+
 func (vic *validatorInfoCreator) getShardValidatorInfoData(shardValidatorInfo *state.ShardValidatorInfo) ([]byte, error) {
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		return vic.getShardValidatorInfoHash(shardValidatorInfo)
 	}
 
@@ -228,7 +275,7 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 
 		_, ok := hashesToMiniBlocks[string(receivedMbHash)]
 		if !ok {
-			// TODO: add display debug prints of mini blocks contents
+			vic.printAllMiniBlocks(createdMiniBlocks, miniBlocks)
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
 		}
 	}
@@ -240,6 +287,50 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 	return nil
 }
 
+func (vic *validatorInfoCreator) printAllMiniBlocks(created []*block.MiniBlock, received []*block.MiniBlock) {
+	log.Debug("validatorInfoCreator.printAllMiniBlocks - printing created")
+	for i, mb := range created {
+		if mb == nil {
+			log.Warn("nil miniblock found in printAllMiniBlocks, range on created", "index", i)
+			continue
+		}
+
+		vic.printMiniBlock(mb, i)
+	}
+
+	log.Debug("validatorInfoCreator.printAllMiniBlocks - printing received")
+	for i, mb := range received {
+		if mb == nil {
+			log.Warn("nil miniblock found in printAllMiniBlocks, range on received", "index", i)
+			continue
+		}
+
+		vic.printMiniBlock(mb, i)
+	}
+}
+
+func (vic *validatorInfoCreator) printMiniBlock(mb *block.MiniBlock, index int) {
+	hashes := make([]string, 0, len(mb.TxHashes))
+	for _, hash := range mb.TxHashes {
+		hashes = append(hashes, hex.EncodeToString(hash))
+	}
+
+	mbHash, err := core.CalculateHash(vic.marshalizer, vic.hasher, mb)
+	if err != nil {
+		log.Warn("error computing hash in validatorInfoCreator.printMiniBlock",
+			"index", index, "error", err)
+		return
+	}
+
+	txHashSeparator := "\n   "
+	log.Debug(" miniblock",
+		"hash", mbHash,
+		"type", mb.Type.String(),
+		"sender shard ID", mb.SenderShardID,
+		"receiver shard ID", mb.ReceiverShardID,
+		"hashes", txHashSeparator+strings.Join(hashes, txHashSeparator))
+}
+
 // GetLocalValidatorInfoCache returns the local validator info cache which holds all the validator info for the current epoch
 func (vic *validatorInfoCreator) GetLocalValidatorInfoCache() epochStart.ValidatorInfoCacher {
 	return vic.dataPool.CurrentEpochValidatorInfo()
@@ -247,7 +338,7 @@ func (vic *validatorInfoCreator) GetLocalValidatorInfoCache() epochStart.Validat
 
 // CreateMarshalledData creates the marshalled data to be sent to shards
 func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[string][][]byte {
-	if !vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if !vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		return nil
 	}
 
@@ -328,7 +419,7 @@ func (vic *validatorInfoCreator) setMapShardValidatorInfo(miniBlock *block.MiniB
 }
 
 func (vic *validatorInfoCreator) getShardValidatorInfo(txHash []byte) (*state.ShardValidatorInfo, error) {
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		validatorInfoCacher := vic.dataPool.CurrentEpochValidatorInfo()
 		shardValidatorInfo, err := validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
@@ -358,7 +449,7 @@ func (vic *validatorInfoCreator) SaveBlockDataToStorage(_ data.HeaderHandler, bo
 			continue
 		}
 
-		if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+		if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 			vic.saveValidatorInfo(miniBlock)
 		}
 
@@ -405,7 +496,7 @@ func (vic *validatorInfoCreator) DeleteBlockDataFromStorage(metaBlock data.Heade
 		return
 	}
 
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		vic.removeValidatorInfo(body)
 	}
 
@@ -444,7 +535,7 @@ func (vic *validatorInfoCreator) RemoveBlockDataFromPools(metaBlock data.HeaderH
 		return
 	}
 
-	if vic.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+	if vic.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 		vic.removeValidatorInfoFromPool(body)
 	}
 

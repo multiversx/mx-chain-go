@@ -6,13 +6,17 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,10 +24,10 @@ import (
 
 var errExpected = errors.New("expected error")
 
-func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) dataRetriever.TopicMessageHandler {
-	tmhs := mock.NewTopicMessageHandlerStub()
+func createMessengerStubForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) p2p.Messenger {
+	stub := &p2pmocks.MessengerStub{}
 
-	tmhs.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -35,7 +39,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	tmhs.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
+	stub.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -47,7 +51,7 @@ func createStubTopicMessageHandlerForShard(matchStrToErrOnCreate string, matchSt
 		return nil
 	}
 
-	return tmhs
+	return stub
 }
 
 func createStoreForShard() dataRetriever.StorageService {
@@ -124,6 +128,17 @@ func TestNewShardRequestersContainerFactory_NilDataPackerShouldErr(t *testing.T)
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
+func TestNewShardRequestersContainerFactory_NilStateStatsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsShard()
+	args.StateStatsHandler = nil
+	rcf, err := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, statistics.ErrNilStateStatsHandler, err)
+}
+
 func TestNewShardRequestersContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -189,7 +204,6 @@ func getArgumentsShard() storagerequesterscontainer.FactoryArgs {
 				SnapshotsGoroutineNum: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     100,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,
@@ -201,13 +215,14 @@ func getArgumentsShard() storagerequesterscontainer.FactoryArgs {
 		WorkingDirectory:         "",
 		Hasher:                   &hashingMocks.HasherMock{},
 		ShardCoordinator:         mock.NewOneShardCoordinatorMock(),
-		Messenger:                createStubTopicMessageHandlerForShard("", ""),
+		Messenger:                createMessengerStubForShard("", ""),
 		Store:                    createStoreForShard(),
 		Marshalizer:              &mock.MarshalizerMock{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
 		DataPacker:               &mock.DataPackerStub{},
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
-		SnapshotsEnabled:         true,
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateStatsHandler:        disabled.NewStateStatistics(),
 	}
 }

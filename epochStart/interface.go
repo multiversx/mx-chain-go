@@ -108,12 +108,6 @@ type PendingMiniBlocksSyncHandler interface {
 	IsInterfaceNil() bool
 }
 
-// AccountsDBSyncer defines the methods for the accounts db syncer
-type AccountsDBSyncer interface {
-	SyncAccounts(rootHash []byte) error
-	IsInterfaceNil() bool
-}
-
 // StartOfEpochMetaSyncer defines the methods to synchronize epoch start meta block from the network when nothing is known
 type StartOfEpochMetaSyncer interface {
 	SyncEpochStartMeta(waitTime time.Duration) (data.MetaHeaderHandler, error)

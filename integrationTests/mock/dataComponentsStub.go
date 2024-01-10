@@ -42,10 +42,11 @@ func (dcs *DataComponentsStub) Blockchain() data.ChainHandler {
 }
 
 // SetBlockchain -
-func (dcs *DataComponentsStub) SetBlockchain(chain data.ChainHandler) {
+func (dcs *DataComponentsStub) SetBlockchain(chain data.ChainHandler) error {
 	dcs.mutDcm.Lock()
 	dcs.BlockChain = chain
 	dcs.mutDcm.Unlock()
+	return nil
 }
 
 // StorageService -

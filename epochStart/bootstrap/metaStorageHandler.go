@@ -35,11 +35,13 @@ func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error)
 			PathManager:                   args.PathManagerHandler,
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              args.NodeTypeProvider,
-			CurrentEpoch:                  args.CurrentEpoch,
 			StorageType:                   factory.BootstrapStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			SnapshotsEnabled:              args.SnapshotsEnabled,
 			ManagedPeersHolder:            args.ManagedPeersHolder,
+			CurrentEpoch:                  args.CurrentEpoch,
+			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            args.NodeProcessingMode,
+			RepopulateTokensSupplies:      false,
+			StateStatsHandler:             args.StateStatsHandler,
 		},
 	)
 	if err != nil {

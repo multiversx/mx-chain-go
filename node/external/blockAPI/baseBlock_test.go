@@ -87,7 +87,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
-		Hash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
+		Hash: "f4add7b23eb83cf290422b0f6b770e3007b8ed3cd9683797fc90c8b4881f27bd",
 		Type: "SmartContractResultBlock",
 		Transactions: []*transaction.ApiTransactionResult{
 			{
@@ -97,7 +97,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 				Receiver:      "726376",
 				Data:          []byte("doSomething"),
 				MiniBlockType: "SmartContractResultBlock",
-				MiniBlockHash: "7630a217810d1ad3ea67e32dbff0e8f3ea6d970191f03d3c71761b3b60e57b91",
+				MiniBlockHash: "f4add7b23eb83cf290422b0f6b770e3007b8ed3cd9683797fc90c8b4881f27bd",
 			},
 		},
 		ProcessingType:        block.Normal.String(),
@@ -152,7 +152,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
-		Hash: "262b3023ca9ba61e90a60932b4db7f8b0d1dec7c2a00261cf0c5d43785f17f6f",
+		Hash: "596545f64319f2fcf8e0ebae06f40f3353d603f6070255588a48018c7b30c951",
 		Type: "ReceiptBlock",
 		Receipts: []*transaction.ApiReceipt{
 			{
@@ -230,8 +230,12 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 		Reserved: mbhrBytes,
 	}
 
+	testHeader := &block.Header{
+		Epoch: 0,
+		Round: 37,
+	}
 	apiMB := &api.MiniBlock{}
-	err := baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, 0, apiMB, api.BlockQueryOptions{})
+	err := baseAPIBlockProc.getAndAttachTxsToMb(mbHeader, testHeader, apiMB, api.BlockQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Transactions: []*transaction.ApiTransactionResult{
@@ -244,6 +248,8 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 				Data:          []byte("refund"),
 				MiniBlockType: "TxBlock",
 				MiniBlockHash: "6d6248617368",
+				Epoch:         testHeader.GetEpoch(),
+				Round:         testHeader.GetRound(),
 			},
 		},
 	}, apiMB)
@@ -252,11 +258,14 @@ func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlock(t *testing.T) {
 func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T) {
 	t.Parallel()
 
-	testEpoch := uint32(7)
+	testHeader := &block.Header{
+		Epoch: 7,
+		Round: 140,
+	}
 
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
-	storageService := genericMocks.NewChainStorerMock(testEpoch)
+	storageService := genericMocks.NewChainStorerMock(testHeader.GetEpoch())
 	processor := createBaseBlockProcessor()
 	processor.marshalizer = marshalizer
 	processor.store = storageService
@@ -308,7 +317,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 				!bytes.Equal(logsKeys[2], []byte{0xcc}) {
 				return nil
 			}
-			if epoch != testEpoch {
+			if epoch != testHeader.GetEpoch() {
 				return nil
 			}
 
@@ -331,7 +340,7 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	// Now let's test the loading of transaction and logs
 	miniblockHeader := &block.MiniBlockHeader{Hash: miniblockHash}
 	miniblockOnApi := &api.MiniBlock{}
-	err := processor.getAndAttachTxsToMb(miniblockHeader, testEpoch, miniblockOnApi, api.BlockQueryOptions{WithLogs: true})
+	err := processor.getAndAttachTxsToMb(miniblockHeader, testHeader, miniblockOnApi, api.BlockQueryOptions{WithLogs: true})
 
 	require.Nil(t, err)
 	require.Len(t, miniblockOnApi.Transactions, 3)
@@ -341,6 +350,10 @@ func TestBaseBlock_getAndAttachTxsToMbShouldIncludeLogsAsSpecified(t *testing.T)
 	require.Equal(t, "first", miniblockOnApi.Transactions[0].Logs.Events[0].Identifier)
 	require.Nil(t, miniblockOnApi.Transactions[1].Logs)
 	require.Equal(t, "third", miniblockOnApi.Transactions[2].Logs.Events[0].Identifier)
+	for _, tx := range miniblockOnApi.Transactions {
+		require.Equal(t, testHeader.GetRound(), tx.Round)
+		require.Equal(t, testHeader.GetEpoch(), tx.Epoch)
+	}
 }
 
 func TestExtractExecutedTxHashes(t *testing.T) {

@@ -30,7 +30,10 @@ copyConfig() {
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/nodesSetup.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/*.pem ./node/config #there might be more .pem files there
   if [[ $MULTI_KEY_NODES -eq 1 ]]; then
-    mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      if [[ $EXTRA_KEYS -eq 1 ]]; then
+        cat $NODEDIR/config/testKeys/"${EXTRA_KEY_PEM_FILE}" >> ./node/config/"$MULTI_KEY_PEM_FILE"
+      fi
   fi
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
@@ -78,6 +81,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/prefs.toml ./node/config
   cp $NODEDIR/config/external.toml ./node/config
   cp $NODEDIR/config/p2p.toml ./node/config
+  cp $NODEDIR/config/fullArchiveP2P.toml ./node/config
   cp $NODEDIR/config/enableEpochs.toml ./node/config
   cp $NODEDIR/config/enableRounds.toml ./node/config
   cp $NODEDIR/config/systemSmartContractsConfig.toml ./node/config
@@ -110,6 +114,13 @@ updateNodeConfig() {
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
 		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
 		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
+	fi
+
+	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
+    sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_observer.toml
+    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_observer.toml
+	  sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_validator.toml
+    sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
 	fi
 
   cp nodesSetup_edit.json nodesSetup.json

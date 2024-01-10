@@ -1,19 +1,15 @@
 package notifier
 
 import (
-	"encoding/hex"
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	nodeData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-core-go/websocketOutportDriver"
-	outportSenderData "github.com/multiversx/mx-chain-core-go/websocketOutportDriver/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+// TODO: remove custom http event notifier integration in the following iterations
 
 var log = logger.GetOrCreate("outport/eventNotifier")
 
@@ -23,32 +19,17 @@ const (
 	finalizedEventsEndpoint = "/events/finalized"
 )
 
-// RevertBlock holds revert event data
-type RevertBlock struct {
-	Hash  string `json:"hash"`
-	Nonce uint64 `json:"nonce"`
-	Round uint64 `json:"round"`
-	Epoch uint32 `json:"epoch"`
-}
-
-// FinalizedBlock holds finalized block data
-type FinalizedBlock struct {
-	Hash string `json:"hash"`
-}
-
 type eventNotifier struct {
-	httpClient      httpClientHandler
-	marshalizer     marshal.Marshalizer
-	hasher          hashing.Hasher
-	pubKeyConverter core.PubkeyConverter
+	httpClient     httpClientHandler
+	marshalizer    marshal.Marshalizer
+	blockContainer BlockContainerHandler
 }
 
 // ArgsEventNotifier defines the arguments needed for event notifier creation
 type ArgsEventNotifier struct {
-	HttpClient      httpClientHandler
-	Marshaller      marshal.Marshalizer
-	Hasher          hashing.Hasher
-	PubKeyConverter core.PubkeyConverter
+	HttpClient     httpClientHandler
+	Marshaller     marshal.Marshalizer
+	BlockContainer BlockContainerHandler
 }
 
 // NewEventNotifier creates a new instance of the eventNotifier
@@ -60,10 +41,9 @@ func NewEventNotifier(args ArgsEventNotifier) (*eventNotifier, error) {
 	}
 
 	return &eventNotifier{
-		httpClient:      args.HttpClient,
-		marshalizer:     args.Marshaller,
-		hasher:          args.Hasher,
-		pubKeyConverter: args.PubKeyConverter,
+		httpClient:     args.HttpClient,
+		marshalizer:    args.Marshaller,
+		blockContainer: args.BlockContainer,
 	}, nil
 }
 
@@ -74,29 +54,20 @@ func checkEventNotifierArgs(args ArgsEventNotifier) error {
 	if check.IfNil(args.Marshaller) {
 		return ErrNilMarshaller
 	}
-	if check.IfNil(args.Hasher) {
-		return ErrNilHasher
-	}
-	if check.IfNil(args.PubKeyConverter) {
-		return ErrNilPubKeyConverter
+	if check.IfNilReflect(args.BlockContainer) {
+		return ErrNilBlockContainerHandler
 	}
 
 	return nil
 }
 
 // SaveBlock converts block data in order to be pushed to subscribers
-func (en *eventNotifier) SaveBlock(args *outport.ArgsSaveBlockData) error {
-	log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.HeaderHash)
-	if args.TransactionsPool == nil {
-		return ErrNilTransactionsPool
+func (en *eventNotifier) SaveBlock(args *outport.OutportBlock) error {
+	if args.BlockData != nil {
+		log.Debug("eventNotifier: SaveBlock called at block", "block hash", args.BlockData.HeaderHash)
 	}
 
-	argsSaveBlock := outportSenderData.ArgsSaveBlock{
-		HeaderType:        core.GetHeaderType(args.Header),
-		ArgsSaveBlockData: websocketOutportDriver.PrepareArgsSaveBlock(*args),
-	}
-
-	err := en.httpClient.Post(pushEventEndpoint, argsSaveBlock)
+	err := en.httpClient.Post(pushEventEndpoint, args)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.SaveBlock while posting block data", err)
 	}
@@ -105,20 +76,8 @@ func (en *eventNotifier) SaveBlock(args *outport.ArgsSaveBlockData) error {
 }
 
 // RevertIndexedBlock converts revert data in order to be pushed to subscribers
-func (en *eventNotifier) RevertIndexedBlock(header nodeData.HeaderHandler, _ nodeData.BodyHandler) error {
-	blockHash, err := core.CalculateHash(en.marshalizer, en.hasher, header)
-	if err != nil {
-		return fmt.Errorf("%w in eventNotifier.RevertIndexedBlock while computing the block hash", err)
-	}
-
-	revertBlock := RevertBlock{
-		Hash:  hex.EncodeToString(blockHash),
-		Nonce: header.GetNonce(),
-		Round: header.GetRound(),
-		Epoch: header.GetEpoch(),
-	}
-
-	err = en.httpClient.Post(revertEventsEndpoint, revertBlock)
+func (en *eventNotifier) RevertIndexedBlock(blockData *outport.BlockData) error {
+	err := en.httpClient.Post(revertEventsEndpoint, blockData)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.RevertIndexedBlock while posting event data", err)
 	}
@@ -127,11 +86,7 @@ func (en *eventNotifier) RevertIndexedBlock(header nodeData.HeaderHandler, _ nod
 }
 
 // FinalizedBlock converts finalized block data in order to push it to subscribers
-func (en *eventNotifier) FinalizedBlock(headerHash []byte) error {
-	finalizedBlock := FinalizedBlock{
-		Hash: hex.EncodeToString(headerHash),
-	}
-
+func (en *eventNotifier) FinalizedBlock(finalizedBlock *outport.FinalizedBlock) error {
 	err := en.httpClient.Post(finalizedEventsEndpoint, finalizedBlock)
 	if err != nil {
 		return fmt.Errorf("%w in eventNotifier.FinalizedBlock while posting event data", err)
@@ -141,23 +96,28 @@ func (en *eventNotifier) FinalizedBlock(headerHash []byte) error {
 }
 
 // SaveRoundsInfo returns nil
-func (en *eventNotifier) SaveRoundsInfo(_ []*outport.RoundInfo) error {
+func (en *eventNotifier) SaveRoundsInfo(_ *outport.RoundsInfo) error {
 	return nil
 }
 
 // SaveValidatorsRating returns nil
-func (en *eventNotifier) SaveValidatorsRating(_ string, _ []*outport.ValidatorRatingInfo) error {
+func (en *eventNotifier) SaveValidatorsRating(_ *outport.ValidatorsRating) error {
 	return nil
 }
 
 // SaveValidatorsPubKeys returns nil
-func (en *eventNotifier) SaveValidatorsPubKeys(_ map[uint32][][]byte, _ uint32) error {
+func (en *eventNotifier) SaveValidatorsPubKeys(_ *outport.ValidatorsPubKeys) error {
 	return nil
 }
 
 // SaveAccounts does nothing
-func (en *eventNotifier) SaveAccounts(_ uint64, _ map[string]*outport.AlteredAccount, _ uint32) error {
+func (en *eventNotifier) SaveAccounts(_ *outport.Accounts) error {
 	return nil
+}
+
+// GetMarshaller returns internal marshaller
+func (en *eventNotifier) GetMarshaller() marshal.Marshalizer {
+	return en.marshalizer
 }
 
 // IsInterfaceNil returns whether the interface is nil
@@ -167,5 +127,15 @@ func (en *eventNotifier) IsInterfaceNil() bool {
 
 // Close returns nil
 func (en *eventNotifier) Close() error {
+	return nil
+}
+
+// RegisterHandler will do nothing
+func (en *eventNotifier) RegisterHandler(_ func() error, _ string) error {
+	return nil
+}
+
+// SetCurrentSettings will do nothing
+func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
 	return nil
 }

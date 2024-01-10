@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/cmd/seednode/api"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	p2pDebug "github.com/multiversx/mx-chain-go/debug/p2p"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/facade"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
@@ -97,6 +98,13 @@ VERSION:
 	}
 
 	p2pConfigurationFile = "./config/p2p.toml"
+
+	// p2pPrometheusMetrics defines a flag for p2p prometheus metrics
+	// If enabled, it will open a new route, /debug/metrics/prometheus, where p2p prometheus metrics will be available
+	p2pPrometheusMetrics = cli.BoolFlag{
+		Name:  "p2p-prometheus-metrics",
+		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
+	}
 )
 
 var log = logger.GetOrCreate("main")
@@ -113,6 +121,7 @@ func main() {
 		logSaveFile,
 		configurationFile,
 		p2pKeyPemFile,
+		p2pPrometheusMetrics,
 	}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
@@ -259,19 +268,29 @@ func createNode(
 
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            marshalizer,
-		ListenAddress:         p2p.ListenAddrWithIp4AndTcp,
 		P2pConfig:             p2pConfig,
 		SyncTimer:             &p2pFactory.LocalSyncTimer{},
 		PreferredPeersHolder:  disabled.NewPreferredPeersHolder(),
-		NodeOperationMode:     p2p.NormalOperation,
 		PeersRatingHandler:    disabled.NewDisabledPeersRatingHandler(),
 		ConnectionWatcherType: "disabled",
 		P2pPrivateKey:         p2pKey,
 		P2pSingleSigner:       p2pSingleSigner,
 		P2pKeyGenerator:       p2pKeyGen,
+		NetworkType:           p2p.MainNetwork,
+		Logger:                logger.GetOrCreate("seed/p2p"),
 	}
 
-	return p2pFactory.NewNetworkMessenger(arg)
+	netMessenger, err := p2pFactory.NewNetworkMessenger(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	err = netMessenger.SetDebugger(p2pDebug.NewP2PDebugger(netMessenger.ID()))
+	if err != nil {
+		return nil, err
+	}
+
+	return netMessenger, err
 }
 
 func displayMessengerInfo(messenger p2p.Messenger) {
@@ -339,14 +358,15 @@ func checkExpectedPeerCount(p2pConfig p2pConfig.P2PConfig) error {
 func startRestServices(ctx *cli.Context, marshalizer marshal.Marshalizer) {
 	restApiInterface := ctx.GlobalString(restApiInterfaceFlag.Name)
 	if restApiInterface != facade.DefaultRestPortOff {
-		go startGinServer(restApiInterface, marshalizer)
+		p2pPrometheusMetricsEnabled := ctx.GlobalBool(p2pPrometheusMetrics.Name)
+		go startGinServer(restApiInterface, marshalizer, p2pPrometheusMetricsEnabled)
 	} else {
 		log.Info("rest api is disabled")
 	}
 }
 
-func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer) {
-	err := api.Start(restApiInterface, marshalizer)
+func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer, p2pPrometheusMetricsEnabled bool) {
+	err := api.Start(restApiInterface, marshalizer, p2pPrometheusMetricsEnabled)
 	if err != nil {
 		log.LogIfError(err)
 	}

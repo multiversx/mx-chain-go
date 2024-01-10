@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/display"
@@ -21,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,14 +30,16 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -84,21 +88,23 @@ type baseProcessor struct {
 	mutProcessDebugger      sync.RWMutex
 	processDebugger         process.Debugger
 	processStatusHandler    common.ProcessStatusHandler
+	managedPeersHolder      common.ManagedPeersHolder
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler
 
-	appStatusHandler       core.AppStatusHandler
-	stateCheckpointModulus uint
-	blockProcessor         blockProcessor
-	txCounter              *transactionCounter
+	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
+	txCounter        *transactionCounter
 
 	outportHandler      outport.OutportHandler
 	outportDataProvider outport.DataProviderOutport
 	historyRepo         dblookupext.HistoryRepository
 	epochNotifier       process.EpochNotifier
 	enableEpochsHandler common.EnableEpochsHandler
+	roundNotifier       process.RoundNotifier
 	enableRoundsHandler process.EnableRoundsHandler
 	vmContainerFactory  process.VirtualMachinesContainerFactory
 	vmContainer         process.VirtualMachinesContainer
@@ -215,7 +221,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
 func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -416,8 +422,8 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	}
 }
 
-// checkProcessorNilParameters will check the input parameters for nil values
-func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
+// checkProcessorParameters will check the input parameters values
+func checkProcessorParameters(arguments ArgBaseProcessor) error {
 
 	for key := range arguments.AccountsDB {
 		if check.IfNil(arguments.AccountsDB[key]) {
@@ -502,10 +508,21 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EpochNotifier()) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
+	enableEpochsHandler := arguments.CoreComponents.EnableEpochsHandler()
+	if check.IfNil(enableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arguments.EnableRoundsHandler) {
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.ScheduledMiniBlocksFlag,
+		common.StakingV2Flag,
+	})
+	if err != nil {
+		return err
+	}
+	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
+		return process.ErrNilRoundNotifier
+	}
+	if check.IfNil(arguments.CoreComponents.EnableRoundsHandler()) {
 		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.StatusCoreComponents) {
@@ -534,6 +551,12 @@ func checkProcessorNilParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ReceiptsRepository) {
 		return process.ErrNilReceiptsRepository
+	}
+	if check.IfNil(arguments.BlockProcessingCutoffHandler) {
+		return process.ErrNilBlockProcessingCutoffHandler
+	}
+	if check.IfNil(arguments.ManagedPeersHolder) {
+		return process.ErrNilManagedPeersHolder
 	}
 
 	return nil
@@ -661,7 +684,7 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -837,7 +860,7 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -1034,7 +1057,7 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return body, nil
 	}
 
@@ -1376,9 +1399,9 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 }
 
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
-	log.Debug("baseProcessor.setFinalizedBlockInIndexer", "finalized header hash", hdrHash)
+	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
 
-	bp.outportHandler.FinalizedBlock(hdrHash)
+	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{ShardID: bp.shardCoordinator.SelfId(), HeaderHash: hdrHash})
 }
 
 func (bp *baseProcessor) updateStateStorage(
@@ -1389,14 +1412,6 @@ func (bp *baseProcessor) updateStateStorage(
 ) {
 	if !accounts.IsPruningEnabled() {
 		return
-	}
-
-	// TODO generate checkpoint on a trigger
-	if bp.stateCheckpointModulus != 0 {
-		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
-			log.Debug("trie checkpoint", "currRootHash", currRootHash)
-			accounts.SetStateCheckpoint(currRootHash)
-		}
 	}
 
 	if bytes.Equal(prevRootHash, currRootHash) {
@@ -1673,7 +1688,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	// waiting for late broadcast of mini blocks and transactions to be done and received
 	time.Sleep(waitTime)
 
-	bp.txCoordinator.RequestMiniBlocks(headerHandler)
+	bp.txCoordinator.RequestMiniBlocksAndTransactions(headerHandler)
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
@@ -1685,7 +1700,7 @@ func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeade
 	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, intraMiniBlocks, logs)
 	if err != nil {
 		logLevel := logger.LogError
-		if errors.IsClosingError(err) {
+		if core.IsClosingError(err) {
 			logLevel = logger.LogDebug
 		}
 		log.Log(logLevel, "historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
@@ -1733,9 +1748,9 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	iteratorChannels := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash)
+	err = userAccountsDb.GetAllLeaves(iteratorChannels, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	if err != nil {
 		return err
 	}
@@ -1748,8 +1763,19 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeAccounts := 0
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
+
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:              bp.hasher,
+		Marshaller:          bp.marshalizer,
+		EnableEpochsHandler: bp.enableEpochsHandler,
+	}
+	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
+	if err != nil {
+		return err
+	}
+
 	for leaf := range iteratorChannels.LeavesChan {
-		userAccount, errUnmarshal := unmarshalUserAccount(leaf.Key(), leaf.Value(), bp.marshalizer)
+		userAccount, errUnmarshal := bp.unmarshalUserAccount(accountCreator, leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			numCodeLeaves++
 			totalSizeCodeLeaves += len(leaf.Value())
@@ -1762,9 +1788,9 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 			if len(rh) != 0 {
 				dataTrie := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-					ErrChan:    make(chan error, 1),
+					ErrChan:    errChan.NewErrChanWrapper(),
 				}
-				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh)
+				errDataTrieGet := userAccountsDb.GetAllLeaves(dataTrie, context.Background(), rh, parsers.NewMainTrieLeafParser())
 				if errDataTrieGet != nil {
 					continue
 				}
@@ -1774,7 +1800,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 					currentSize += len(lf.Value())
 				}
 
-				err = common.GetErrorFromChanNonBlocking(dataTrie.ErrChan)
+				err = dataTrie.ErrChan.ReadFromChanNonBlocking()
 				if err != nil {
 					return err
 				}
@@ -1790,7 +1816,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		balanceSum.Add(balanceSum, userAccount.GetBalance())
 	}
 
-	err = common.GetErrorFromChanNonBlocking(iteratorChannels.ErrChan)
+	err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
 	if err != nil {
 		return err
 	}
@@ -1819,14 +1845,23 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	return nil
 }
 
-func unmarshalUserAccount(address []byte, userAccountsBytes []byte, marshalizer marshal.Marshalizer) (state.UserAccountHandler, error) {
-	userAccount, err := state.NewUserAccount(address)
+func (bp *baseProcessor) unmarshalUserAccount(
+	accountCreator state.AccountFactory,
+	address []byte,
+	userAccountsBytes []byte,
+) (state.UserAccountHandler, error) {
+	account, err := accountCreator.CreateAccount(address)
 	if err != nil {
 		return nil, err
 	}
-	err = marshalizer.Unmarshal(userAccount, userAccountsBytes)
+	err = bp.marshalizer.Unmarshal(account, userAccountsBytes)
 	if err != nil {
 		return nil, err
+	}
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	return userAccount, nil
@@ -1995,7 +2030,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 }
 
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return 0
 	}
 

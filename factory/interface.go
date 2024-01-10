@@ -30,7 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -121,6 +121,7 @@ type CoreComponentsHolder interface {
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
 	EnableRoundsHandler() process.EnableRoundsHandler
+	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
@@ -150,6 +151,7 @@ type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
 	StatusMetrics() external.StatusMetricsHandler
 	PersistentStatusHandler() PersistentStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 
@@ -165,7 +167,6 @@ type CryptoParamsHolder interface {
 	PrivateKey() crypto.PrivateKey
 	PublicKeyString() string
 	PublicKeyBytes() []byte
-	PrivateKeyBytes() []byte
 }
 
 // CryptoComponentsHolder holds the crypto components
@@ -215,7 +216,7 @@ type MiniBlockProvider interface {
 // DataComponentsHolder holds the data components
 type DataComponentsHolder interface {
 	Blockchain() data.ChainHandler
-	SetBlockchain(chain data.ChainHandler)
+	SetBlockchain(chain data.ChainHandler) error
 	StorageService() dataRetriever.StorageService
 	Datapool() dataRetriever.PoolsHolder
 	MiniBlocksProvider() MiniBlockProvider
@@ -247,6 +248,9 @@ type NetworkComponentsHolder interface {
 	PeerHonestyHandler() PeerHonestyHandler
 	PreferredPeersHolderHandler() PreferredPeersHolderHandler
 	PeersRatingHandler() p2p.PeersRatingHandler
+	PeersRatingMonitor() p2p.PeersRatingMonitor
+	FullArchiveNetworkMessenger() p2p.Messenger
+	FullArchivePreferredPeersHolderHandler() PreferredPeersHolderHandler
 	IsInterfaceNil() bool
 }
 
@@ -256,9 +260,10 @@ type NetworkComponentsHandler interface {
 	NetworkComponentsHolder
 }
 
-// TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
-type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResults, error)
+// TransactionEvaluator defines the transaction evaluator actions
+type TransactionEvaluator interface {
+	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool
 }
 
@@ -267,6 +272,7 @@ type ProcessComponentsHolder interface {
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
 	ShardCoordinator() sharding.Coordinator
 	InterceptorsContainer() process.InterceptorsContainer
+	FullArchiveInterceptorsContainer() process.InterceptorsContainer
 	ResolversContainer() dataRetriever.ResolversContainer
 	RequestersFinder() dataRetriever.RequestersFinder
 	RoundHandler() consensus.RoundHandler
@@ -286,8 +292,9 @@ type ProcessComponentsHolder interface {
 	TxLogsProcessor() process.TransactionLogProcessorDatabase
 	HeaderConstructionValidator() process.HeaderConstructionValidator
 	PeerShardMapper() process.NetworkShardingCollector
+	FullArchivePeerShardMapper() process.NetworkShardingCollector
 	FallbackHeaderValidator() process.FallbackHeaderValidator
-	TransactionSimulatorProcessor() TransactionSimulatorProcessor
+	APITransactionEvaluator() TransactionEvaluator
 	WhiteListHandler() process.WhiteListHandler
 	WhiteListerVerifiedTxs() process.WhiteListHandler
 	HistoryRepository() dblookupext.HistoryRepository
@@ -325,6 +332,8 @@ type StateComponentsHolder interface {
 	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
+	MissingTrieNodesNotifier() common.MissingTrieNodesNotifier
+	Close() error
 	IsInterfaceNil() bool
 }
 
@@ -332,6 +341,7 @@ type StateComponentsHolder interface {
 type StatusComponentsHolder interface {
 	OutportHandler() outport.OutportHandler
 	SoftwareVersionChecker() statistics.SoftwareVersionChecker
+	ManagedPeersMonitor() common.ManagedPeersMonitor
 	IsInterfaceNil() bool
 }
 
@@ -340,8 +350,9 @@ type StatusComponentsHandler interface {
 	ComponentHandler
 	StatusComponentsHolder
 	// SetForkDetector should be set before starting Polling for updates
-	SetForkDetector(forkDetector process.ForkDetector)
+	SetForkDetector(forkDetector process.ForkDetector) error
 	StartPolling() error
+	ManagedPeersMonitor() common.ManagedPeersMonitor
 }
 
 // HeartbeatV2Monitor monitors the cache of heartbeatV2 messages
@@ -373,7 +384,7 @@ type ConsensusWorker interface {
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
-	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
+	ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	// Extend does an extension for the subround with subroundId
 	Extend(subroundId int)
 	// GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -444,6 +455,7 @@ type BootstrapComponentsHolder interface {
 	VersionedHeaderFactory() factory.VersionedHeaderFactory
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
+	GuardedAccountHandler() process.GuardedAccountHandler
 	NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory
 	IsInterfaceNil() bool
 }

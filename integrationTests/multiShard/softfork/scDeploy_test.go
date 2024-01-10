@@ -2,14 +2,15 @@ package softfork
 
 import (
 	"encoding/hex"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
@@ -29,11 +30,13 @@ func TestScDeploy(t *testing.T) {
 	relayedTxEnableEpoch := uint32(0)
 	penalizedTooMuchGasEnableEpoch := uint32(0)
 	roundsPerEpoch := uint64(10)
+	scProcessorV2EnableEpoch := integrationTests.UnreachableEpoch
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.SCDeployEnableEpoch = deployEnableEpoch
 	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
 	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
+	enableEpochs.SCProcessorV2EnableEpoch = scProcessorV2EnableEpoch
 	enableEpochs.StakingV4Step1EnableEpoch = integrationTests.StakingV4Step1EnableEpoch
 	enableEpochs.StakingV4Step2EnableEpoch = integrationTests.StakingV4Step2EnableEpoch
 	enableEpochs.StakingV4Step3EnableEpoch = integrationTests.StakingV4Step3EnableEpoch
@@ -119,7 +122,7 @@ func TestScDeploy(t *testing.T) {
 }
 
 func deploySc(t *testing.T, nodes []*integrationTests.TestProcessorNode) []byte {
-	scCode, err := ioutil.ReadFile("./testdata/answer.wasm")
+	scCode, err := os.ReadFile("./testdata/answer.wasm")
 	require.Nil(t, err)
 
 	node := nodes[0]

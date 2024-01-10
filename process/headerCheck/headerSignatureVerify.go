@@ -30,7 +30,7 @@ type ArgsHeaderSigVerifier struct {
 	FallbackHeaderValidator process.FallbackHeaderValidator
 }
 
-//HeaderSigVerifier is component used to check if a header is valid
+// HeaderSigVerifier is component used to check if a header is valid
 type HeaderSigVerifier struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher

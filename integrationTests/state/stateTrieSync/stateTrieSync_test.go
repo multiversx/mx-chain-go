@@ -11,22 +11,24 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-v1_4-go/config"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +53,7 @@ func createTestProcessorNodeAndTrieStorage(
 		TrieStore:            mainStorer,
 		GasScheduleMap:       createTestGasMap(),
 	})
-	_ = node.Messenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
+	_ = node.MainMessenger.CreateTopic(common.ConsensusTopic+node.ShardCoordinator.CommunicationIdentifier(node.ShardCoordinator.SelfId()), true)
 
 	return node, mainStorer
 }
@@ -84,17 +86,17 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := nResolver.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 10000
 	for i := 0; i < numTrieLeaves; i++ {
@@ -107,7 +109,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
 
 	tss := statistics.NewTrieSyncStatistics()
@@ -205,17 +207,17 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := nResolver.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	// we have tested even with the 1000000 value and found out that it worked in a reasonable amount of time ~3.5 minutes
 	numTrieLeaves := 100000
 	for i := 0; i < numTrieLeaves; i++ {
@@ -228,7 +230,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
 	assert.Equal(t, numTrieLeaves, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 
 	tss := statistics.NewTrieSyncStatistics()
 	arg := trie.ArgTrieSyncer{
@@ -252,7 +254,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 	go func() {
 		// sudden close of the resolver node after just 2 seconds
 		time.Sleep(time.Second * 2)
-		_ = nResolver.Messenger.Close()
+		nResolver.Close()
 		log.Info("resolver node closed, the requester should soon fail in error")
 	}()
 
@@ -313,12 +315,12 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 		_ = trieStorageRequester.DestroyUnit()
 		_ = trieStorageResolver.DestroyUnit()
 
-		_ = nRequester.Messenger.Close()
-		_ = nResolver.Messenger.Close()
+		nRequester.Close()
+		nResolver.Close()
 	}()
 
 	time.Sleep(time.Second)
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 
 	time.Sleep(integrationTests.SyncDelay)
@@ -329,16 +331,16 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	rootHash, _ := accState.RootHash()
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	for range leavesChannel.LeavesChan {
 	}
 	require.Nil(t, err)
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
 
 	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
@@ -346,7 +348,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
 	assert.Nil(t, err)
 
-	err = userAccSyncer.SyncAccounts(rootHash)
+	err = userAccSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
 	assert.Nil(t, err)
 
 	_ = nRequester.AccntState.RecreateTrie(rootHash)
@@ -357,15 +359,15 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 
 	leavesChannel = &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash)
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
 	assert.Nil(t, err)
 	numLeaves := 0
 	for range leavesChannel.LeavesChan {
 		numLeaves++
 	}
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
@@ -392,6 +394,10 @@ func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.User
 	assert.Nil(t, err)
 
 	return acc.GetRootHash()
+}
+
+type snapshotWatcher interface {
+	IsSnapshotInProgress() bool
 }
 
 func TestSyncMissingSnapshotNodes(t *testing.T) {
@@ -451,7 +457,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	nRequester := nodes[0]
 	nResolver := nodes[1]
 
-	err := nRequester.ConnectTo(nResolver)
+	err := nRequester.ConnectOnMain(nResolver)
 	require.Nil(t, err)
 	time.Sleep(integrationTests.SyncDelay)
 
@@ -465,14 +471,14 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 		time.Sleep(integrationTests.StepDelay)
 	}
 
-	resolverTrie := nResolver.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := nResolver.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	accState := nResolver.AccntState
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 	rootHash, _ := accState.RootHash()
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
 	require.Equal(t, numAccounts+numSystemAccounts, numLeaves)
 
-	requesterTrie := nRequester.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
 
 	copyPartialState(t, nResolver, nRequester, dataTrieRootHashes)
@@ -486,10 +492,13 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	err = nRequester.AccntState.StartSnapshotIfNeeded()
 	assert.Nil(t, err)
 
-	tsm := nRequester.TrieStorageManagers[trieFactory.UserAccountTrie]
+	tsm := nRequester.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	_ = tsm.PutInEpoch([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), 0)
-	nRequester.AccntState.SnapshotState(rootHash)
-	for tsm.IsPruningBlocked() {
+	nRequester.AccntState.SnapshotState(rootHash, nRequester.EpochNotifier.CurrentEpoch())
+	sw, ok := nRequester.AccntState.(snapshotWatcher)
+	assert.True(t, ok)
+
+	for sw.IsSnapshotInProgress() {
 		time.Sleep(time.Millisecond * 100)
 	}
 	_ = nRequester.AccntState.RecreateTrie(rootHash)
@@ -504,12 +513,12 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 }
 
 func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTests.TestProcessorNode, dataTriesRootHashes [][]byte) {
-	resolverTrie := sourceNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie))
+	resolverTrie := sourceNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	hashes, _ := resolverTrie.GetAllHashes()
 	assert.NotEqual(t, 0, len(hashes))
 
 	hashes = append(hashes, getDataTriesHashes(t, resolverTrie, dataTriesRootHashes)...)
-	destStorage := destinationNode.TrieContainer.Get([]byte(trieFactory.UserAccountTrie)).GetStorageManager()
+	destStorage := destinationNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String())).GetStorageManager()
 
 	for i, hash := range hashes {
 		if i%1000 == 0 {
@@ -559,9 +568,15 @@ func addAccountsToState(t *testing.T, numAccounts int, numDataTrieLeaves int, ac
 func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 	leavesChannel := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    make(chan error, 1),
+		ErrChan:    errChan.NewErrChanWrapper(),
 	}
-	err := tr.GetAllLeavesOnChannel(leavesChannel, context.Background(), rootHash, keyBuilder.NewDisabledKeyBuilder())
+	err := tr.GetAllLeavesOnChannel(
+		leavesChannel,
+		context.Background(),
+		rootHash,
+		keyBuilder.NewDisabledKeyBuilder(),
+		parsers.NewMainTrieLeafParser(),
+	)
 	require.Nil(t, err)
 
 	numLeaves := 0
@@ -569,7 +584,7 @@ func getNumLeaves(t *testing.T, tr common.Trie, rootHash []byte) int {
 		numLeaves++
 	}
 
-	err = common.GetErrorFromChanNonBlocking(leavesChannel.ErrChan)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
 	require.Nil(t, err)
 
 	return numLeaves
@@ -581,16 +596,16 @@ func getUserAccountSyncerArgs(node *integrationTests.TestProcessorNode, version 
 		ArgsNewBaseAccountsSyncer: syncer.ArgsNewBaseAccountsSyncer{
 			Hasher:                            integrationTests.TestHasher,
 			Marshalizer:                       integrationTests.TestMarshalizer,
-			TrieStorageManager:                node.TrieStorageManagers[trieFactory.UserAccountTrie],
+			TrieStorageManager:                node.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 			RequestHandler:                    node.RequestHandler,
 			Timeout:                           common.TimeoutGettingTrieNodes,
 			Cacher:                            node.DataPool.TrieNodes(),
 			MaxTrieLevelInMemory:              200,
 			MaxHardCapForMissingNodes:         5000,
 			TrieSyncerVersion:                 version,
-			StorageMarker:                     storageMarker.NewTrieStorageMarker(),
 			UserAccountsSyncStatisticsHandler: statistics.NewTrieSyncStatistics(),
 			AppStatusHandler:                  integrationTests.TestAppStatusHandler,
+			EnableEpochsHandler:               node.EnableEpochsHandler,
 		},
 		ShardId:                0,
 		Throttler:              thr,

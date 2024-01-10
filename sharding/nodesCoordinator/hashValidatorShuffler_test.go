@@ -2934,7 +2934,7 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 		if epoch == orderedConfigs[(i+1)%len(orderedConfigs)].EpochEnable {
 			i++
 		}
-		shuffler.UpdateShufflerConfig(epoch)
+		shuffler.updateShufflerConfig(epoch)
 		require.Equal(t, orderedConfigs[i], shuffler.activeNodesConfig)
 	}
 }

@@ -14,13 +14,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
-	triesFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/update"
 )
 
@@ -37,6 +38,7 @@ type ArgsNewStateImport struct {
 	TrieStorageManagers map[string]common.StorageManager
 	HardforkStorer      update.HardforkStorer
 	AddressConverter    core.PubkeyConverter
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type stateImport struct {
@@ -56,6 +58,7 @@ type stateImport struct {
 	storageConfig       config.StorageConfig
 	trieStorageManagers map[string]common.StorageManager
 	addressConverter    core.PubkeyConverter
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -75,6 +78,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.AddressConverter) {
 		return nil, update.ErrNilAddressConverter
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
 
 	st := &stateImport{
 		genesisHeaders:               make(map[uint32]data.HeaderHandler),
@@ -91,6 +97,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		shardID:                      args.ShardID,
 		hardforkStorer:               args.HardforkStorer,
 		addressConverter:             args.AddressConverter,
+		enableEpochsHandler:          args.EnableEpochsHandler,
 	}
 
 	return st, nil
@@ -271,10 +278,20 @@ func (si *stateImport) importMiniBlocks(identifier string, keys [][]byte) error 
 	return nil
 }
 
-func newAccountCreator(accType Type) (state.AccountFactory, error) {
+func newAccountCreator(
+	accType Type,
+	hasher hashing.Hasher,
+	marshaller marshal.Marshalizer,
+	handler common.EnableEpochsHandler,
+) (state.AccountFactory, error) {
 	switch accType {
 	case UserAccount:
-		return factory.NewAccountCreator(), nil
+		args := factory.ArgsAccountCreator{
+			Hasher:              hasher,
+			Marshaller:          marshaller,
+			EnableEpochsHandler: handler,
+		}
+		return factory.NewAccountCreator(args)
 	case ValidatorAccount:
 		return factory.NewPeerAccountCreator(), nil
 	}
@@ -292,12 +309,12 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		return trieForShard, nil
 	}
 
-	trieStorageManager := si.trieStorageManagers[triesFactory.UserAccountTrie]
+	trieStorageManager := si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()]
 	if accType == ValidatorAccount {
-		trieStorageManager = si.trieStorageManagers[triesFactory.PeerAccountTrie]
+		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +346,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[triesFactory.UserAccountTrie], si.marshalizer, si.hasher, maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
 		return err
 	}
@@ -359,7 +376,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 			err = update.ErrKeyTypeMismatch
 			break
 		}
-
+		// TODO this will not work for a partially migrated trie
 		err = dataTrie.Update(address, value)
 		if err != nil {
 			break
@@ -387,12 +404,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	return nil
 }
 
-func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.AccountsDBImporter, common.Trie, error) {
-	accountFactory, err := newAccountCreator(accType)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactory state.AccountFactory) (state.AccountsDBImporter, common.Trie, error) {
 	currentTrie, err := si.getTrie(shardID, accType)
 	if err != nil {
 		return nil, nil, err
@@ -406,10 +418,8 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 				Marshaller:            si.marshalizer,
 				AccountFactory:        accountFactory,
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-				ProcessingMode:        common.Normal,
-				ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-				AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 				AddressConverter:      si.addressConverter,
+				SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -431,10 +441,8 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32) (state.Accoun
 		Marshaller:            si.marshalizer,
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 		AddressConverter:      si.addressConverter,
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB
@@ -456,7 +464,12 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 		return si.importDataTrie(identifier, shId, keys)
 	}
 
-	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId)
+	accountFactory, err := newAccountCreator(accType, si.hasher, si.marshalizer, si.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId, accountFactory)
 	if err != nil {
 		return err
 	}
@@ -504,7 +517,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 			break
 		}
 
-		err = si.unMarshalAndSaveAccount(accType, address, marshaledData, accountsDB, mainTrie)
+		err = si.unMarshalAndSaveAccount(address, accountFactory, marshaledData, accountsDB, mainTrie)
 		if err != nil {
 			break
 		}
@@ -518,12 +531,13 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 }
 
 func (si *stateImport) unMarshalAndSaveAccount(
-	accType Type,
-	address, buffer []byte,
+	address []byte,
+	accountCreator state.AccountFactory,
+	buffer []byte,
 	accountsDB state.AccountsDBImporter,
 	mainTrie common.Trie,
 ) error {
-	account, err := NewEmptyAccount(accType, address)
+	account, err := accountCreator.CreateAccount(address)
 	if err != nil {
 		return err
 	}

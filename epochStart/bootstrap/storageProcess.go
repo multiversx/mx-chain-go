@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	factoryDataPool "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -149,10 +149,10 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.closeTrieComponents()
 	sesb.storageService = disabled.NewChainStorer()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		sesb.flagsConfig.SnapshotsEnabled,
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
+		sesb.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -167,7 +167,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	}
 
 	metablockProcessor, err := NewStorageEpochStartMetaBlockProcessor(
-		sesb.messenger,
+		sesb.mainMessenger,
 		sesb.requestHandler,
 		sesb.coreComponentsHolder.InternalMarshalizer(),
 		sesb.coreComponentsHolder.Hasher(),
@@ -180,7 +180,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		CoreComponentsHolder:    sesb.coreComponentsHolder,
 		CryptoComponentsHolder:  sesb.cryptoComponentsHolder,
 		RequestHandler:          sesb.requestHandler,
-		Messenger:               sesb.messenger,
+		Messenger:               sesb.mainMessenger,
 		ShardCoordinator:        sesb.shardCoordinator,
 		EconomicsData:           sesb.economicsData,
 		WhitelistHandler:        sesb.whiteListHandler,
@@ -245,14 +245,15 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		WorkingDirectory:         sesb.importDbConfig.ImportDBWorkingDir,
 		Hasher:                   sesb.coreComponentsHolder.Hasher(),
 		ShardCoordinator:         shardCoordinator,
-		Messenger:                sesb.messenger,
+		Messenger:                sesb.mainMessenger,
 		Store:                    sesb.store,
 		Marshalizer:              sesb.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter: sesb.coreComponentsHolder.Uint64ByteSliceConverter(),
 		DataPacker:               dataPacker,
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
-		SnapshotsEnabled:         sesb.flagsConfig.SnapshotsEnabled,
+		EnableEpochsHandler:      sesb.coreComponentsHolder.EnableEpochsHandler(),
+		StateStatsHandler:        sesb.stateStatsHandler,
 	}
 
 	var requestersContainerFactory dataRetriever.RequestersContainerFactory
@@ -328,7 +329,8 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", sesb.baseData.numberOfShards, "shardId", sesb.baseData.shardId)
 
-	err = sesb.messenger.CreateTopic(common.ConsensusTopic+sesb.shardCoordinator.CommunicationIdentifier(sesb.shardCoordinator.SelfId()), true)
+	consensusTopic := common.ConsensusTopic + sesb.shardCoordinator.CommunicationIdentifier(sesb.shardCoordinator.SelfId())
+	err = sesb.mainMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}

@@ -3,6 +3,7 @@ package pruning
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -94,6 +95,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
+		ps.stateStatsHandler.IncrSnapshotCache()
 		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
@@ -104,7 +106,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
 			}
 
@@ -115,6 +117,9 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 			Value:    ps.activePersisters[idx].epoch,
 			HasValue: true,
 		}
+
+		ps.stateStatsHandler.IncrSnapshotPersister(epoch.Value)
+
 		return val, epoch, nil
 	}
 
@@ -162,6 +167,23 @@ func (ps *triePruningStorer) GetLatestStorageEpoch() (uint32, error) {
 	}
 
 	return ps.activePersisters[currentEpochIndex].epoch, nil
+}
+
+// RemoveFromAllActiveEpochs removes the data associated to the given key from both cache and epochs storers
+func (ps *triePruningStorer) RemoveFromAllActiveEpochs(key []byte) error {
+	var err error
+	ps.cacher.Remove(key)
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	for _, pd := range ps.activePersisters {
+		err = pd.persister.Remove(key)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

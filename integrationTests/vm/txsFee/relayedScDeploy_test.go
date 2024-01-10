@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -10,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -27,8 +26,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(1962)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(50000))
@@ -36,7 +34,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -47,7 +45,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(28440)
+	expectedBalanceRelayer := big.NewInt(2530)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -55,7 +53,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(21560), accumulatedFees)
+	require.Equal(t, big.NewInt(47470), accumulatedFees)
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
@@ -68,7 +66,6 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(500)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -79,7 +76,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	scCodeBytes = append(scCodeBytes, []byte("aaaaa")...)
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, scCodeBytes)
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -89,7 +86,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(31830)
+	expectedBalanceRelayer := big.NewInt(17030)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -97,7 +94,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(18170), accumulatedFees)
+	require.Equal(t, big.NewInt(32970), accumulatedFees)
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
@@ -110,7 +107,6 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(500)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -119,7 +115,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -129,7 +125,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(31930)
+	expectedBalanceRelayer := big.NewInt(17130)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -137,7 +133,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(18070), accumulatedFees)
+	require.Equal(t, big.NewInt(32870), accumulatedFees)
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
@@ -150,7 +146,6 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(0)
-	gasPrice := uint64(10)
 	gasLimit := uint64(570)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
@@ -159,7 +154,7 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 	userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
 
-	rtxData := utils.PrepareRelayerTxData(userTx)
+	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 	rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(0, big.NewInt(0), relayerAddr, sndAddr, gasPrice, rTxGasLimit, rtxData)
 
@@ -170,7 +165,7 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalanceRelayer := big.NewInt(31230)
+	expectedBalanceRelayer := big.NewInt(16430)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
 	// check balance inner tx sender
@@ -178,5 +173,5 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(18770), accumulatedFees)
+	require.Equal(t, big.NewInt(33570), accumulatedFees)
 }

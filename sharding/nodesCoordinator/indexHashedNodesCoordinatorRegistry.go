@@ -74,7 +74,7 @@ func (ihnc *indexHashedNodesCoordinator) saveState(key []byte, epoch uint32) err
 
 // NodesCoordinatorToRegistry will export the nodesCoordinator data to the registry
 func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry(epoch uint32) NodesCoordinatorRegistryHandler {
-	if epoch >= ihnc.stakingV4Step2EnableEpoch {
+	if epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.StakingV4Step2Flag) {
 		log.Debug("indexHashedNodesCoordinator.NodesCoordinatorToRegistry called with auction registry", "epoch", epoch)
 		return ihnc.nodesCoordinatorToRegistryWithAuction()
 	}

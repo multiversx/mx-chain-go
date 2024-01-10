@@ -3,28 +3,30 @@ package mock
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
+	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetTotalStakedValueHandler                  func(ctx context.Context) (*api.StakeValues, error)
 	GetDirectStakedListHandler                  func(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                    func(ctx context.Context) ([]*api.Delegator, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRoundCalled                       func(round uint64, options api.BlockQueryOptions) (*api.Block, error)
-	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error)
+	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
 	GetTransactionHandler                       func(hash string, withEvents bool) (*transaction.ApiTransactionResult, error)
 	GetInternalShardBlockByNonceCalled          func(format common.ApiOutputFormat, nonce uint64) (interface{}, error)
 	GetInternalShardBlockByHashCalled           func(format common.ApiOutputFormat, hash string) (interface{}, error)
@@ -42,6 +44,11 @@ type ApiResolverStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
+	GetManagedKeysCountCalled                   func() int
+	GetManagedKeysCalled                        func() []string
+	GetEligibleManagedKeysCalled                func() ([]string, error)
+	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
 }
 
 // GetTransaction -
@@ -81,7 +88,7 @@ func (ars *ApiResolverStub) GetBlockByRound(round uint64, options api.BlockQuery
 }
 
 // GetAlteredAccountsForBlock -
-func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*outportcore.AlteredAccount, error) {
+func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	if ars.GetAlteredAccountsForBlockCalled != nil {
 		return ars.GetAlteredAccountsForBlockCalled(options)
 	}
@@ -90,12 +97,12 @@ func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAcc
 }
 
 // ExecuteSCQuery -
-func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	if ars.ExecuteSCQueryHandler != nil {
 		return ars.ExecuteSCQueryHandler(query)
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 // StatusMetrics -
@@ -113,6 +120,14 @@ func (ars *ApiResolverStub) ComputeTransactionGasLimit(tx *transaction.Transacti
 		return ars.ComputeTransactionGasLimitHandler(tx)
 	}
 
+	return nil, nil
+}
+
+// SimulateTransactionExecution -
+func (ars *ApiResolverStub) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	if ars.SimulateTransactionExecutionHandler != nil {
+		return ars.SimulateTransactionExecutionHandler(tx)
+	}
 	return nil, nil
 }
 
@@ -276,6 +291,46 @@ func (ars *ApiResolverStub) GetInternalStartOfEpochValidatorsInfo(epoch uint32) 
 	}
 
 	return nil, nil
+}
+
+// GetManagedKeysCount -
+func (ars *ApiResolverStub) GetManagedKeysCount() int {
+	if ars.GetManagedKeysCountCalled != nil {
+		return ars.GetManagedKeysCountCalled()
+	}
+	return 0
+}
+
+// GetManagedKeys -
+func (ars *ApiResolverStub) GetManagedKeys() []string {
+	if ars.GetManagedKeysCalled != nil {
+		return ars.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
+// GetEligibleManagedKeys -
+func (ars *ApiResolverStub) GetEligibleManagedKeys() ([]string, error) {
+	if ars.GetEligibleManagedKeysCalled != nil {
+		return ars.GetEligibleManagedKeysCalled()
+	}
+	return make([]string, 0), nil
+}
+
+// GetWaitingManagedKeys -
+func (ars *ApiResolverStub) GetWaitingManagedKeys() ([]string, error) {
+	if ars.GetWaitingManagedKeysCalled != nil {
+		return ars.GetWaitingManagedKeysCalled()
+	}
+	return make([]string, 0), nil
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (ars *ApiResolverStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	if ars.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return ars.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
 }
 
 // Close -

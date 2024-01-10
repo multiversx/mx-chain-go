@@ -34,6 +34,7 @@ type MetaChainSystemSCsCost struct {
 	DelegationMgrOps      uint64
 	ValidatorToDelegation uint64
 	GetAllNodeStates      uint64
+	GetActiveFund         uint64
 	FixWaitingListSize    uint64
 }
 
@@ -55,6 +56,8 @@ type BuiltInCost struct {
 	ESDTNFTAddUri            uint64
 	ESDTNFTUpdateAttributes  uint64
 	ESDTNFTMultiTransfer     uint64
+	TrieLoadPerNode          uint64
+	TrieStorePerNode         uint64
 }
 
 // GasCost holds all the needed gas costs for system smart contracts

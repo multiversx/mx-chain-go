@@ -124,11 +124,15 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	peerType := wr.presenter.GetPeerType()
+	peerSubType := wr.presenter.GetPeerSubType()
 	chainID := wr.presenter.GetChainID()
 
 	nodeTypeAndListDisplay := instanceType
 	if peerType != string(common.ObserverList) && !strings.Contains(peerType, invalidKey) {
 		nodeTypeAndListDisplay += fmt.Sprintf(" - %s", peerType)
+	}
+	if peerSubType == core.FullHistoryObserver.String() {
+		nodeTypeAndListDisplay += " - full archive"
 	}
 	shardIdStr := fmt.Sprintf("%d", shardId)
 	if shardId == uint64(core.MetachainShardId) {
@@ -174,6 +178,17 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	wr.instanceInfo.Rows = rows
 }
 
+func (wr *WidgetsRender) getTrieSyncProgress() string {
+	syncPercentageOut := statusNotApplicable
+
+	syncPercentage := wr.presenter.GetTrieSyncProcessedPercentage()
+	if syncPercentage.HasValue {
+		syncPercentageOut = "~" + fmt.Sprint(syncPercentage.Value) + "%"
+	}
+
+	return syncPercentageOut
+}
+
 func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	// 10 rows and one column
 	numRows := 10
@@ -190,7 +205,9 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 	case isNodeSyncingTrie:
 		syncingStr = statusSyncing
 		bytesReceived := wr.presenter.GetTrieSyncNumBytesReceived()
-		statusMessage = fmt.Sprintf("Trie sync: %d nodes, %s state size", nodesProcessed, core.ConvertBytes(bytesReceived))
+		syncPercentageOut := wr.getTrieSyncProgress()
+
+		statusMessage = fmt.Sprintf("Trie sync: %d nodes, progress %s, %s state size", nodesProcessed, syncPercentageOut, core.ConvertBytes(bytesReceived))
 	case synchronizedRound < currentRound:
 		syncingStr = statusSyncing
 

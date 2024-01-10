@@ -12,7 +12,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
@@ -129,15 +128,19 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	numMetachainNodes := 1
 
 	genesisFile := "smartcontracts.json"
-	nodes, _ := integrationTests.CreateNodesWithFullGenesis(
+	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.ChangeUsernameEnableEpoch = integrationTests.UnreachableEpoch
+	nodes, _ := integrationTests.CreateNodesWithFullGenesisCustomEnableEpochs(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
 		genesisFile,
+		enableEpochsConfig,
 	)
 
 	for _, node := range nodes {
-		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
@@ -273,11 +276,11 @@ func checkUserNamesAreSetCorrectly(
 				continue
 			}
 
-			vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+			vmOutput, _, _ := node.SCQueryService.ExecuteQuery(scQuery)
 
 			require.NotNil(t, vmOutput)
-			require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
-			require.Equal(t, len(vmOutput.ReturnData), 1)
+			require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+			require.Equal(t, 1, len(vmOutput.ReturnData))
 			assert.True(t, bytes.Equal(player.Address, vmOutput.ReturnData[0]))
 		}
 	}
@@ -302,7 +305,7 @@ func checkUserNamesAreDeleted(
 			dnsAcc, _ := acnt.(state.UserAccountHandler)
 
 			keyFromTrie := "value_state" + string(keccak.NewKeccak().Compute(userName))
-			value, _, err := dnsAcc.DataTrie().(common.Trie).Get([]byte(keyFromTrie))
+			value, _, err := dnsAcc.RetrieveValue([]byte(keyFromTrie))
 			assert.Nil(t, err)
 			assert.Nil(t, value)
 		}

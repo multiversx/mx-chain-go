@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -26,9 +27,10 @@ type DataComponentsFactoryArgs struct {
 	Core                          factory.CoreComponentsHolder
 	StatusCore                    factory.StatusCoreComponentsHolder
 	Crypto                        factory.CryptoComponentsHolder
+	FlagsConfigs                  config.ContextFlagsConfig
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
-	SnapshotsEnabled              bool
+	NodeProcessingMode            common.NodeProcessingMode
 }
 
 type dataComponentsFactory struct {
@@ -38,9 +40,10 @@ type dataComponentsFactory struct {
 	core                          factory.CoreComponentsHolder
 	statusCore                    factory.StatusCoreComponentsHolder
 	crypto                        factory.CryptoComponentsHolder
+	flagsConfig                   config.ContextFlagsConfig
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
-	snapshotsEnabled              bool
+	nodeProcessingMode            common.NodeProcessingMode
 }
 
 // dataComponents struct holds the data components
@@ -61,26 +64,11 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Core) {
 		return nil, errors.ErrNilCoreComponents
 	}
-	if check.IfNil(args.Core.PathHandler()) {
-		return nil, errors.ErrNilPathHandler
-	}
-	if check.IfNil(args.Core.EpochStartNotifierWithConfirm()) {
-		return nil, errors.ErrNilEpochStartNotifier
-	}
-	if check.IfNil(args.Core.EconomicsData()) {
-		return nil, errors.ErrNilEconomicsHandler
-	}
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
-	if check.IfNil(args.StatusCore.AppStatusHandler()) {
-		return nil, errors.ErrNilAppStatusHandler
-	}
 	if check.IfNil(args.Crypto) {
 		return nil, errors.ErrNilCryptoComponents
-	}
-	if check.IfNil(args.Crypto.ManagedPeersHolder()) {
-		return nil, errors.ErrNilManagedPeersHolder
 	}
 
 	return &dataComponentsFactory{
@@ -91,7 +79,8 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		statusCore:                    args.StatusCore,
 		currentEpoch:                  args.CurrentEpoch,
 		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		snapshotsEnabled:              args.SnapshotsEnabled,
+		flagsConfig:                   args.FlagsConfigs,
+		nodeProcessingMode:            args.NodeProcessingMode,
 		crypto:                        args.Crypto,
 	}, nil
 }
@@ -181,8 +170,10 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			CurrentEpoch:                  dcf.currentEpoch,
 			StorageType:                   storageFactory.ProcessStorageService,
 			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
-			SnapshotsEnabled:              dcf.snapshotsEnabled,
+			NodeProcessingMode:            dcf.nodeProcessingMode,
+			RepopulateTokensSupplies:      dcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:             dcf.statusCore.StateStatsHandler(),
 		})
 	if err != nil {
 		return nil, err

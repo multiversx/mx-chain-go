@@ -39,6 +39,8 @@ type SystemEIStub struct {
 	ReturnMessage                       string
 	ProcessBuiltInFunctionCalled        func(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
+	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
+	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
 }
 
 // AddLogEntry -
@@ -103,6 +105,16 @@ func (s *SystemEIStub) UseGas(gas uint64) error {
 		return s.UseGasCalled(gas)
 	}
 	return nil
+}
+
+// GetTotalSentToUser -
+func (s *SystemEIStub) GetTotalSentToUser(_ []byte) *big.Int {
+	return big.NewInt(0)
+}
+
+// GetLogs -
+func (s *SystemEIStub) GetLogs() []*vmcommon.LogEntry {
+	return make([]*vmcommon.LogEntry, 0)
 }
 
 // SetGasProvided -
@@ -278,6 +290,24 @@ func (s *SystemEIStub) CleanStorageUpdates() {
 	if s.CleanStorageUpdatesCalled != nil {
 		s.CleanStorageUpdatesCalled()
 	}
+}
+
+// SetOwnerOperatingOnAccount -
+func (s *SystemEIStub) SetOwnerOperatingOnAccount(newOwner []byte) error {
+	if s.SetOwnerOperatingOnAccountCalled != nil {
+		return s.SetOwnerOperatingOnAccountCalled(newOwner)
+	}
+
+	return nil
+}
+
+// UpdateCodeDeployerAddress -
+func (s *SystemEIStub) UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error {
+	if s.UpdateCodeDeployerAddressCalled != nil {
+		return s.UpdateCodeDeployerAddressCalled(scAddress, newOwner)
+	}
+
+	return nil
 }
 
 // ProcessBuiltInFunction -

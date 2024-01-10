@@ -1,13 +1,14 @@
 package external_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -25,11 +26,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var expectedErr = errors.New("expected error")
+
 func createMockArgs() external.ArgNodeApiResolver {
 	return external.ArgNodeApiResolver{
 		SCQueryService:           &mock.SCQueryServiceStub{},
 		StatusMetricsHandler:     &testscommon.StatusMetricsStub{},
-		TxCostHandler:            &mock.TransactionCostEstimatorMock{},
+		APITransactionEvaluator:  &mock.TransactionCostEstimatorMock{},
 		TotalStakedValueHandler:  &mock.StakeValuesProcessorStub{},
 		DirectStakedListHandler:  &mock.DirectStakedListProcessorStub{},
 		DelegatedListHandler:     &mock.DelegatedListProcessorStub{},
@@ -40,6 +43,8 @@ func createMockArgs() external.ArgNodeApiResolver {
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
+		ManagedPeersMonitor:      &testscommon.ManagedPeersMonitorStub{},
+		NodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
 	}
 }
 
@@ -69,11 +74,11 @@ func TestNewNodeApiResolver_NilTransactionCostEstimator(t *testing.T) {
 	t.Parallel()
 
 	arg := createMockArgs()
-	arg.TxCostHandler = nil
+	arg.APITransactionEvaluator = nil
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, nar)
-	assert.Equal(t, external.ErrNilTransactionCostHandler, err)
+	assert.Equal(t, external.ErrNilAPITransactionEvaluator, err)
 }
 
 func TestNewNodeApiResolver_NilTotalStakedValueHandler(t *testing.T) {
@@ -120,6 +125,17 @@ func TestNewNodeApiResolver_NilGasSchedules(t *testing.T) {
 	assert.Equal(t, external.ErrNilGasScheduler, err)
 }
 
+func TestNewNodeApiResolver_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgs()
+	arg.NodesCoordinator = nil
+	nar, err := external.NewNodeApiResolver(arg)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilNodesCoordinator, err)
+}
+
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -127,7 +143,7 @@ func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	nar, err := external.NewNodeApiResolver(arg)
 
 	assert.Nil(t, err)
-	assert.False(t, check.IfNil(nar))
+	assert.NotNil(t, nar)
 }
 
 func TestNodeApiResolver_CloseShouldReturnNil(t *testing.T) {
@@ -155,14 +171,14 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	arg := createMockArgs()
 	wasCalled := false
 	arg.SCQueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, info common.BlockInfo, e error) {
 			wasCalled = true
-			return &vmcommon.VMOutput{}, nil
+			return &vmcommon.VMOutput{}, info, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
 
-	_, _ = nar.ExecuteSCQuery(&process.SCQuery{
+	_, _, _ = nar.ExecuteSCQuery(&process.SCQuery{
 		ScAddress: []byte{0},
 		FuncName:  "",
 	})
@@ -675,4 +691,204 @@ func TestNodeApiResolver_GetGasConfigs(t *testing.T) {
 
 	_ = nar.GetGasConfigs()
 	require.True(t, wasCalled)
+}
+
+func TestNodeApiResolver_GetManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	providedCount := 100
+	args := createMockArgs()
+	args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+		GetManagedKeysCountCalled: func() int {
+			return providedCount
+		},
+	}
+	nar, err := external.NewNodeApiResolver(args)
+	require.NoError(t, err)
+
+	count := nar.GetManagedKeysCount()
+	require.Equal(t, providedCount, count)
+}
+
+func TestNodeApiResolver_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedKeys := [][]byte{
+		[]byte("pk1"),
+		[]byte("pk2"),
+	}
+	expectedKeys := []string{
+		"pk1",
+		"pk2",
+	}
+	args := createMockArgs()
+	args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+		GetManagedKeysCalled: func() [][]byte {
+			return providedKeys
+		},
+	}
+	args.ValidatorPubKeyConverter = &testscommon.PubkeyConverterStub{
+		SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+			return string(pkBytes)
+		},
+	}
+	nar, err := external.NewNodeApiResolver(args)
+	require.NoError(t, err)
+
+	keys := nar.GetManagedKeys()
+	require.Equal(t, expectedKeys, keys)
+}
+
+func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("monitor error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+			GetEligibleManagedKeysCalled: func() ([][]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		keys, err := nar.GetEligibleManagedKeys()
+		require.Equal(t, expectedErr, err)
+		require.Nil(t, keys)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := [][]byte{
+			[]byte("key1"),
+			[]byte("key2"),
+		}
+		expectedKeys := []string{
+			"key1",
+			"key2",
+		}
+		args := createMockArgs()
+		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+			GetEligibleManagedKeysCalled: func() ([][]byte, error) {
+				return providedKeys, nil
+			},
+		}
+		args.ValidatorPubKeyConverter = &testscommon.PubkeyConverterStub{
+			SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+				return string(pkBytes)
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		keys, err := nar.GetEligibleManagedKeys()
+		require.NoError(t, err)
+		require.Equal(t, expectedKeys, keys)
+	})
+}
+
+func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("monitor error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+			GetWaitingManagedKeysCalled: func() ([][]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		keys, err := nar.GetWaitingManagedKeys()
+		require.Equal(t, expectedErr, err)
+		require.Nil(t, keys)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := [][]byte{
+			[]byte("key1"),
+			[]byte("key2"),
+		}
+		expectedKeys := []string{
+			"key1",
+			"key2",
+		}
+		args := createMockArgs()
+		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+			GetWaitingManagedKeysCalled: func() ([][]byte, error) {
+				return providedKeys, nil
+			},
+		}
+		args.ValidatorPubKeyConverter = &testscommon.PubkeyConverterStub{
+			SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+				return string(pkBytes)
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		keys, err := nar.GetWaitingManagedKeys()
+		require.NoError(t, err)
+		require.Equal(t, expectedKeys, keys)
+	})
+}
+
+func TestNodeApiResolver_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid public key should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeyStr := "abcde"
+		args := createMockArgs()
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+				require.Fail(t, "should have not been called")
+				return 0, nil
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+		require.Error(t, err)
+		require.Equal(t, uint32(0), epochsLeft)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeyStr := "abcdef"
+		providedPublicKey, _ := hex.DecodeString(providedKeyStr)
+		expectedEpochsLeft := uint32(5)
+		args := createMockArgs()
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+				require.True(t, bytes.Equal(providedPublicKey, publicKey))
+				return expectedEpochsLeft, nil
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+		require.NoError(t, err)
+		require.Equal(t, expectedEpochsLeft, epochsLeft)
+	})
+}
+
+func TestNodeApiResolver_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	nar, _ := external.NewNodeApiResolver(external.ArgNodeApiResolver{})
+	require.True(t, nar.IsInterfaceNil())
+
+	arg := createMockArgs()
+	nar, _ = external.NewNodeApiResolver(arg)
+	require.False(t, nar.IsInterfaceNil())
 }

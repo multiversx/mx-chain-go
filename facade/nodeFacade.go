@@ -12,10 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -25,7 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/txsimulator/data"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -35,7 +36,7 @@ import (
 const DefaultRestInterface = "localhost:8080"
 
 // DefaultRestPortOff is the default value that should be passed if it is desired
-//  to start the node without a REST endpoint available
+// to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
@@ -44,7 +45,6 @@ var log = logger.GetOrCreate("facade")
 type ArgNodeFacade struct {
 	Node                   NodeHandler
 	ApiResolver            ApiResolver
-	TxSimulatorProcessor   TransactionSimulatorProcessor
 	RestAPIServerDebugMode bool
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
@@ -59,7 +59,6 @@ type nodeFacade struct {
 	node                   NodeHandler
 	apiResolver            ApiResolver
 	syncer                 ntp.SyncTimer
-	txSimulatorProc        TransactionSimulatorProcessor
 	config                 config.FacadeConfig
 	apiRoutesConfig        config.ApiRoutesConfig
 	endpointsThrottlers    map[string]core.Throttler
@@ -68,8 +67,6 @@ type nodeFacade struct {
 	accountsState          state.AccountsAdapter
 	peerState              state.AccountsAdapter
 	blockchain             chainData.ChainHandler
-	ctx                    context.Context
-	cancelFunc             func()
 }
 
 // NewNodeFacade creates a new Facade with a NodeWrapper
@@ -79,9 +76,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
-	}
-	if check.IfNil(arg.TxSimulatorProcessor) {
-		return nil, ErrNilTransactionSimulatorProcessor
 	}
 	if len(arg.ApiRoutesConfig.APIPackages) == 0 {
 		return nil, ErrNoApiRoutesConfig
@@ -106,7 +100,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		node:                   arg.Node,
 		apiResolver:            arg.ApiResolver,
 		restAPIServerDebugMode: arg.RestAPIServerDebugMode,
-		txSimulatorProc:        arg.TxSimulatorProcessor,
 		wsAntifloodConfig:      arg.WsAntifloodConfig,
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
@@ -115,7 +108,6 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		peerState:              arg.PeerState,
 		blockchain:             arg.Blockchain,
 	}
-	nf.ctx, nf.cancelFunc = context.WithCancel(context.Background())
 
 	return nf, nil
 }
@@ -171,7 +163,7 @@ func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
 // The API will start on the DefaultRestInterface value unless a correct value is passed or
-//  the value is explicitly set to off, in which case it will not start at all
+// the value is explicitly set to off, in which case it will not start at all
 func (nf *nodeFacade) RestApiInterface() string {
 	if nf.config.RestApiInterface == "" {
 		return DefaultRestInterface
@@ -237,6 +229,11 @@ func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQu
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
+// GetGuardianData returns the guardian data for the provided address
+func (nf *nodeFacade) GetGuardianData(address string, options apiData.AccountQueryOptions) (apiData.GuardianData, apiData.BlockInfo, error) {
+	return nf.node.GetGuardianData(address, options)
+}
+
 // GetAllESDTTokens returns all the esdt tokens for a given address
 func (nf *nodeFacade) GetAllESDTTokens(address string, options apiData.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
@@ -268,23 +265,8 @@ func (nf *nodeFacade) getContextForApiTrieRangeOperations() (context.Context, co
 }
 
 // CreateTransaction creates a transaction from all needed fields
-func (nf *nodeFacade) CreateTransaction(
-	nonce uint64,
-	value string,
-	receiver string,
-	receiverUsername []byte,
-	sender string,
-	senderUsername []byte,
-	gasPrice uint64,
-	gasLimit uint64,
-	txData []byte,
-	signatureHex string,
-	chainID string,
-	version uint32,
-	options uint32,
-) (*transaction.Transaction, []byte, error) {
-
-	return nf.node.CreateTransaction(nonce, value, receiver, receiverUsername, sender, senderUsername, gasPrice, gasLimit, txData, signatureHex, chainID, version, options)
+func (nf *nodeFacade) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
+	return nf.node.CreateTransaction(txArgs)
 }
 
 // ValidateTransaction will validate a transaction
@@ -298,7 +280,7 @@ func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transacti
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
-func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*state.ValidatorApiResponse, error) {
+func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return nf.node.ValidatorStatisticsApi()
 }
 
@@ -313,8 +295,8 @@ func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint
 }
 
 // SimulateTransactionExecution will simulate a transaction's execution and will return the results
-func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResults, error) {
-	return nf.txSimulatorProc.ProcessTx(tx)
+func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+	return nf.apiResolver.SimulateTransactionExecution(tx)
 }
 
 // GetTransaction gets the transaction with a specified hash
@@ -435,13 +417,13 @@ func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
-	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
+func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, apiData.BlockInfo, error) {
+	vmOutput, blockInfo, err := nf.apiResolver.ExecuteSCQuery(query)
 	if err != nil {
-		return nil, err
+		return nil, apiData.BlockInfo{}, err
 	}
 
-	return nf.convertVmOutputToApiResponse(vmOutput), nil
+	return nf.convertVmOutputToApiResponse(vmOutput), queryBlockInfoToApiResource(blockInfo), nil
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application
@@ -484,6 +466,11 @@ func (nf *nodeFacade) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
 	return nf.node.GetPeerInfo(pid)
 }
 
+// GetConnectedPeersRatingsOnMainNetwork returns the connected peers ratings on the main network
+func (nf *nodeFacade) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
+	return nf.node.GetConnectedPeersRatingsOnMainNetwork()
+}
+
 // GetThrottlerForEndpoint returns the throttler for a given endpoint if found
 func (nf *nodeFacade) GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool) {
 	if !nf.wsAntifloodConfig.WebServerAntifloodEnabled {
@@ -512,7 +499,7 @@ func (nf *nodeFacade) GetBlockByRound(round uint64, options apiData.BlockQueryOp
 }
 
 // GetAlteredAccountsForBlock returns the altered accounts for a given block
-func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*outport.AlteredAccount, error) {
+func (nf *nodeFacade) GetAlteredAccountsForBlock(options apiData.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error) {
 	return nf.apiResolver.GetAlteredAccountsForBlock(options)
 }
 
@@ -567,8 +554,6 @@ func (nf *nodeFacade) GetInternalMiniBlockByHash(format common.ApiOutputFormat, 
 func (nf *nodeFacade) Close() error {
 	log.LogIfError(nf.apiResolver.Close())
 
-	nf.cancelFunc()
-
 	return nil
 }
 
@@ -598,6 +583,36 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 // VerifyProof verifies the given Merkle proof
 func (nf *nodeFacade) VerifyProof(rootHash string, address string, proof [][]byte) (bool, error) {
 	return nf.node.VerifyProof(rootHash, address, proof)
+}
+
+// IsDataTrieMigrated returns true if the data trie for the given address is migrated
+func (nf *nodeFacade) IsDataTrieMigrated(address string, options apiData.AccountQueryOptions) (bool, error) {
+	return nf.node.IsDataTrieMigrated(address, options)
+}
+
+// GetManagedKeysCount returns the number of managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetManagedKeysCount() int {
+	return nf.apiResolver.GetManagedKeysCount()
+}
+
+// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+func (nf *nodeFacade) GetManagedKeys() []string {
+	return nf.apiResolver.GetManagedKeys()
+}
+
+// GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetEligibleManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetEligibleManagedKeys()
+}
+
+// GetWaitingManagedKeys returns the waiting managed keys when node is running in multikey mode
+func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
+	return nf.apiResolver.GetWaitingManagedKeys()
+}
+
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (nf *nodeFacade) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	return nf.apiResolver.GetWaitingEpochsLeftForPublicKey(publicKey)
 }
 
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
@@ -662,10 +677,11 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		}
 
 		logs = append(logs, &vm.LogEntryApi{
-			Identifier: originalLog.Identifier,
-			Address:    logAddress,
-			Topics:     originalLog.Topics,
-			Data:       originalLog.Data,
+			Identifier:     originalLog.Identifier,
+			Address:        logAddress,
+			Topics:         originalLog.Topics,
+			Data:           originalLog.GetFirstDataItem(),
+			AdditionalData: originalLog.Data,
 		})
 	}
 
@@ -679,6 +695,18 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		DeletedAccounts: input.DeletedAccounts,
 		TouchedAccounts: input.TouchedAccounts,
 		Logs:            logs,
+	}
+}
+
+func queryBlockInfoToApiResource(info common.BlockInfo) apiData.BlockInfo {
+	if check.IfNil(info) {
+		return apiData.BlockInfo{}
+	}
+
+	return apiData.BlockInfo{
+		Nonce:    info.GetNonce(),
+		Hash:     hex.EncodeToString(info.GetHash()),
+		RootHash: hex.EncodeToString(info.GetRootHash()),
 	}
 }
 
@@ -714,6 +742,11 @@ func (nf *nodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	}
 
 	return gasConfigs, nil
+}
+
+// P2PPrometheusMetricsEnabled returns if p2p prometheus metrics should be enabled or not on the application
+func (nf *nodeFacade) P2PPrometheusMetricsEnabled() bool {
+	return nf.config.P2PPrometheusMetricsEnabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

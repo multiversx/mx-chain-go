@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -20,7 +21,7 @@ func (sc *scProcessor) createVMDeployInput(tx data.TransactionHandler) (*vmcommo
 	vmCreateInput := &vmcommon.ContractCreateInput{}
 	vmCreateInput.ContractCode = deployData.Code
 	// when executing SC deploys we should always apply the flags
-	codeMetadata := sc.blockChainHook.ApplyFiltersOnCodeMetadata(deployData.CodeMetadata)
+	codeMetadata := sc.blockChainHook.ApplyFiltersOnSCCodeMetadata(deployData.CodeMetadata)
 	vmCreateInput.ContractCodeMetadata = codeMetadata.ToBytes()
 	vmCreateInput.VMInput = vmcommon.VMInput{}
 	err = sc.initializeVMInputFromTx(&vmCreateInput.VMInput, tx)
@@ -53,7 +54,7 @@ func isSmartContractResult(tx data.TransactionHandler) bool {
 }
 
 func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, error) {
-	if sc.enableEpochsHandler.IsSCDeployFlagEnabled() && isSmartContractResult(tx) {
+	if sc.enableEpochsHandler.IsFlagEnabled(common.SCDeployFlag) && isSmartContractResult(tx) {
 		return tx.GetGasLimit(), nil
 	}
 
@@ -77,7 +78,7 @@ func (sc *scProcessor) createVMCallInput(
 	callType := determineCallType(tx)
 	txData := string(tx.GetData())
 	if !builtInFuncCall {
-		txData = string(prependCallbackToTxDataIfAsyncCallBack(tx.GetData(), callType))
+		txData = string(prependLegacyCallbackFunctionNameToTxDataIfAsyncCallBack(tx.GetData(), callType))
 	}
 
 	function, arguments, err := sc.argsParser.ParseCallData(txData)
@@ -94,6 +95,11 @@ func (sc *scProcessor) createVMCallInput(
 	vmCallInput.Function = function
 	vmCallInput.CurrentTxHash = txHash
 	vmCallInput.GasLocked = gasLocked
+
+	gtx, ok := tx.(data.GuardedTransactionHandler)
+	if ok {
+		vmCallInput.TxGuardian = gtx.GetGuardianAddr()
+	}
 
 	scr, isSCR := tx.(*smartContractResult.SmartContractResult)
 	if isSCR {
@@ -151,7 +157,7 @@ func determineCallType(tx data.TransactionHandler) vm.CallType {
 	return vm.DirectCall
 }
 
-func prependCallbackToTxDataIfAsyncCallBack(txData []byte, callType vm.CallType) []byte {
+func prependLegacyCallbackFunctionNameToTxDataIfAsyncCallBack(txData []byte, callType vm.CallType) []byte {
 	if callType == vm.AsynchronousCallBack {
 		return append([]byte("callBack"), txData...)
 	}

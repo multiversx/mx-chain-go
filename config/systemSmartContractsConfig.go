@@ -35,7 +35,7 @@ type ESDTSystemSCConfig struct {
 }
 
 // GovernanceSystemSCConfigV1 holds the initial set of values that were used to initialise the
-//  governance system smart contract at genesis time
+// governance system smart contract at genesis time
 type GovernanceSystemSCConfigV1 struct {
 	NumNodes         int64
 	ProposalCost     string
@@ -45,19 +45,20 @@ type GovernanceSystemSCConfigV1 struct {
 }
 
 // GovernanceSystemSCConfigActive defines the set of configuration values used by the governance
-//  system smart contract once it activates
+// system smart contract once it activates
 type GovernanceSystemSCConfigActive struct {
 	ProposalCost     string
-	MinQuorum        string
-	MinPassThreshold string
-	MinVetoThreshold string
+	LostProposalFee  string
+	MinQuorum        float64
+	MinPassThreshold float64
+	MinVetoThreshold float64
 }
 
 // GovernanceSystemSCConfig defines the set of constants to initialize the governance system smart contract
 type GovernanceSystemSCConfig struct {
-	V1                      GovernanceSystemSCConfigV1
-	Active                  GovernanceSystemSCConfigActive
-	FirstWhitelistedAddress string
+	V1           GovernanceSystemSCConfigV1
+	Active       GovernanceSystemSCConfigActive
+	OwnerAddress string
 }
 
 // DelegationManagerSystemSCConfig defines a set of constants to initialize the delegation manager system smart contract

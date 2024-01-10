@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -14,8 +15,11 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.GenesisShardCoordinator) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilShardCoordinator)
 	}
-	if check.IfNil(args.Messenger) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	if check.IfNil(args.MainMessenger) {
+		return fmt.Errorf("%s on main network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
+	}
+	if check.IfNil(args.FullArchiveMessenger) {
+		return fmt.Errorf("%s on full archive network: %w", baseErrorMessage, epochStart.ErrNilMessenger)
 	}
 	if check.IfNil(args.EconomicsData) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilEconomicsData)
@@ -112,6 +116,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.CryptoComponentsHolder.ManagedPeersHolder()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilManagedPeersHolder)
+	}
+	if check.IfNil(args.StateStatsHandler) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, statistics.ErrNilStateStatsHandler)
 	}
 	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory)

@@ -3,7 +3,7 @@ package middleware
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -64,9 +64,9 @@ func (rlm *responseLoggerMiddleware) logRequestAndResponse(c *gin.Context, durat
 
 	if c.Request.Body != nil {
 		reqBody := c.Request.Body
-		reqBodyBytes, err := ioutil.ReadAll(reqBody)
+		reqBodyBytes, err := io.ReadAll(reqBody)
 		if err != nil {
-			log.Error(err.Error())
+			log.Debug(err.Error())
 			return
 		}
 

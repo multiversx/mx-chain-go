@@ -3,8 +3,13 @@ package trie
 import (
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -29,25 +34,11 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	}
 }
 
-// PruningBlockingOperations -
-func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uint32 {
-	ts, _ := tsm.StorageManager.(*trieStorageManager)
-	return ts.pruningBlockingOps
-}
-
 // WaitForOperationToComplete -
 func WaitForOperationToComplete(tsm common.StorageManager) {
 	for tsm.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
 	}
-}
-
-// GetFromCheckpoint -
-func (tsm *trieStorageManager) GetFromCheckpoint(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	return tsm.checkpointsStorer.Get(key)
 }
 
 // CreateSmallTestTrieAndStorageManager -
@@ -75,11 +66,14 @@ func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
 
 // WriteInChanNonBlocking -
 func WriteInChanNonBlocking(errChan chan error, err error) {
-	writeInChanNonBlocking(errChan, err)
+	select {
+	case errChan <- err:
+	default:
+	}
 }
 
 type StorageManagerExtensionStub struct {
-	*testscommon.StorageManagerStub
+	*storageManager.StorageManagerStub
 }
 
 // IsBaseTrieStorageManager -
@@ -97,4 +91,23 @@ func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 // NewBaseIterator -
 func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
 	return newBaseIterator(trie)
+}
+
+// GetDefaultTrieStorageManagerParameters -
+func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
+	generalCfg := config.TrieStorageManagerConfig{
+		PruningBufferLen:      1000,
+		SnapshotsBufferLen:    10,
+		SnapshotsGoroutineNum: 1,
+	}
+
+	return NewTrieStorageManagerArgs{
+		MainStorer:     testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		Hasher:         &testscommon.KeccakMock{},
+		GeneralConfig:  generalCfg,
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     dataRetriever.UserAccountsUnit.String(),
+		StatsCollector: statistics.NewStateStatistics(),
+	}
 }
