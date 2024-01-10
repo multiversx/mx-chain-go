@@ -7,16 +7,16 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators/disabled"
 )
 
-type delegatedListHandlerFactory struct {
+type delegatedListProcessorFactory struct {
 }
 
-// NewDelegatedListHandlerFactory create a new delegated list handler
-func NewDelegatedListHandlerFactory() *delegatedListHandlerFactory {
-	return &delegatedListHandlerFactory{}
+// NewDelegatedListProcessorFactory create a new delegated list handler
+func NewDelegatedListProcessorFactory() *delegatedListProcessorFactory {
+	return &delegatedListProcessorFactory{}
 }
 
-// CreateDelegatedListHandler will create a new instance of DirectStakedListHandler
-func (d *delegatedListHandlerFactory) CreateDelegatedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
+// CreateDelegatedListProcessorHandler will create a new instance of delegated list processor for regular/normal chain
+func (d *delegatedListProcessorFactory) CreateDelegatedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
 	if args.ShardID != core.MetachainShardId {
 		return disabled.NewDisabledDelegatedListProcessor(), nil
 	}
@@ -25,6 +25,6 @@ func (d *delegatedListHandlerFactory) CreateDelegatedListHandler(args trieIterat
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (d *delegatedListHandlerFactory) IsInterfaceNil() bool {
+func (d *delegatedListProcessorFactory) IsInterfaceNil() bool {
 	return d == nil
 }

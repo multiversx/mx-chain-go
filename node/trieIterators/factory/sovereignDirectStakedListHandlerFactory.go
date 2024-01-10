@@ -8,13 +8,13 @@ import (
 type sovereignDirectStakedListHandlerFactory struct {
 }
 
-// NewSovereignDirectStakedListHandlerFactory create a new sovereign direct staked list handler
-func NewSovereignDirectStakedListHandlerFactory() *sovereignDirectStakedListHandlerFactory {
+// NewSovereignDirectStakedListProcessorFactory creates a new sovereign direct staked list handler
+func NewSovereignDirectStakedListProcessorFactory() *sovereignDirectStakedListHandlerFactory {
 	return &sovereignDirectStakedListHandlerFactory{}
 }
 
-// CreateDirectStakedListHandler will create a new instance of DirectStakedListHandler
-func (ds *sovereignDirectStakedListHandlerFactory) CreateDirectStakedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error) {
+// CreateDirectStakedListProcessorHandler creates a new instance of DirectStakedListHandler
+func (ds *sovereignDirectStakedListHandlerFactory) CreateDirectStakedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error) {
 	return trieIterators.NewDirectStakedListProcessor(args)
 }
 

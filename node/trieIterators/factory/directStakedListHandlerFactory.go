@@ -7,16 +7,16 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators/disabled"
 )
 
-type directStakedListHandlerFactory struct {
+type directStakedListProcessorFactory struct {
 }
 
-// NewDirectStakedListHandlerFactory create a new direct staked list handler
-func NewDirectStakedListHandlerFactory() *directStakedListHandlerFactory {
-	return &directStakedListHandlerFactory{}
+// NewDirectStakedListProcessorFactory create a new direct staked list handler
+func NewDirectStakedListProcessorFactory() *directStakedListProcessorFactory {
+	return &directStakedListProcessorFactory{}
 }
 
-// CreateDirectStakedListHandler will create a new instance of DirectStakedListHandler
-func (ds *directStakedListHandlerFactory) CreateDirectStakedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error) {
+// CreateDirectStakedListProcessorHandler will create a new instance of direct staked list processor for regular/normal chain
+func (ds *directStakedListProcessorFactory) CreateDirectStakedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error) {
 	if args.ShardID != core.MetachainShardId {
 		return disabled.NewDisabledDirectStakedListProcessor(), nil
 	}
@@ -25,6 +25,6 @@ func (ds *directStakedListHandlerFactory) CreateDirectStakedListHandler(args tri
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (ds *directStakedListHandlerFactory) IsInterfaceNil() bool {
+func (ds *directStakedListProcessorFactory) IsInterfaceNil() bool {
 	return ds == nil
 }

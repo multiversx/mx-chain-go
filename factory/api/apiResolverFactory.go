@@ -56,22 +56,22 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs                 *config.Configs
-	CoreComponents          factory.CoreComponentsHolder
-	DataComponents          factory.DataComponentsHolder
-	StateComponents         factory.StateComponentsHolder
-	BootstrapComponents     factory.BootstrapComponentsHolder
-	CryptoComponents        factory.CryptoComponentsHolder
-	ProcessComponents       factory.ProcessComponentsHolder
-	StatusCoreComponents    factory.StatusCoreComponentsHolder
-	StatusComponents        factory.StatusComponentsHolder
-	GasScheduleNotifier     common.GasScheduleNotifierAPI
-	Bootstrapper            process.Bootstrapper
-	AllowVMQueriesChan      chan struct{}
-	ProcessingMode          common.NodeProcessingMode
-	ChainRunType            common.ChainRunType
-	DelegatedListHandler    trieIteratorsFactory.DelegatedListHandler
-	DirectStakedListHandler trieIteratorsFactory.DirectStakedListHandler
+	Configs                        *config.Configs
+	CoreComponents                 factory.CoreComponentsHolder
+	DataComponents                 factory.DataComponentsHolder
+	StateComponents                factory.StateComponentsHolder
+	BootstrapComponents            factory.BootstrapComponentsHolder
+	CryptoComponents               factory.CryptoComponentsHolder
+	ProcessComponents              factory.ProcessComponentsHolder
+	StatusCoreComponents           factory.StatusCoreComponentsHolder
+	StatusComponents               factory.StatusComponentsHolder
+	GasScheduleNotifier            common.GasScheduleNotifierAPI
+	Bootstrapper                   process.Bootstrapper
+	AllowVMQueriesChan             chan struct{}
+	ProcessingMode                 common.NodeProcessingMode
+	ChainRunType                   common.ChainRunType
+	DelegatedListFactoryHandler    trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryHandler trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 }
 
 type scQueryServiceArgs struct {
@@ -118,11 +118,11 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 
-	if check.IfNilReflect(args.DelegatedListHandler) {
-		return nil, factory.ErrorNilDelegatedListHandler
+	if check.IfNilReflect(args.DelegatedListFactoryHandler) {
+		return nil, factory.ErrNilDelegatedListFactory
 	}
-	if check.IfNilReflect(args.DirectStakedListHandler) {
-		return nil, factory.ErrorNilDirectStakedListHandler
+	if check.IfNilReflect(args.DirectStakedListFactoryHandler) {
+		return nil, factory.ErrNilDirectStakedListFactory
 	}
 
 	argsSCQuery := &scQueryServiceArgs{
@@ -212,12 +212,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	directStakedListHandler, err := args.DirectStakedListHandler.CreateDirectStakedListHandler(argsProcessors)
+	directStakedListHandler, err := args.DirectStakedListFactoryHandler.CreateDirectStakedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	delegatedListHandler, err := args.DelegatedListHandler.CreateDelegatedListHandler(argsProcessors)
+	delegatedListHandler, err := args.DelegatedListFactoryHandler.CreateDelegatedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}

@@ -11,30 +11,29 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDelegatedListHandlerFactory(t *testing.T) {
+func TestNewDelegatedListProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	delegatedListHandlerFactory := trieIteratorsFactory.NewDelegatedListHandlerFactory()
+	delegatedListHandlerFactory := trieIteratorsFactory.NewDelegatedListProcessorFactory()
 	require.False(t, delegatedListHandlerFactory.IsInterfaceNil())
 }
 
-func TestDelegatedListHandlerFactory_CreateDelegatedListHandler_Disabled(t *testing.T) {
+func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler_Disabled(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID: 0,
 	}
 
-	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListHandlerFactory().CreateDelegatedListHandler(args)
+	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*disabled.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
+	require.Equal(t, "*disabled.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
 }
 
-func TestDelegatedListHandlerFactory_CreateDelegatedListHandler_DelegatedListProcessor(t *testing.T) {
+func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler_DelegatedListProcessorFactory(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
@@ -47,7 +46,7 @@ func TestDelegatedListHandlerFactory_CreateDelegatedListHandler_DelegatedListPro
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListHandlerFactory().CreateDelegatedListHandler(args)
+	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
+	require.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
 }

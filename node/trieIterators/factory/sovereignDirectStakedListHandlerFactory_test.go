@@ -11,14 +11,13 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignDirectStakedListHandlerFactory(t *testing.T) {
 	t.Parallel()
 
-	directStakedListHandlerFactory := trieIteratorsFactory.NewDirectStakedListHandlerFactory()
+	directStakedListHandlerFactory := trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory()
 	require.False(t, directStakedListHandlerFactory.IsInterfaceNil())
 }
 
@@ -35,7 +34,7 @@ func TestSovereignDirectStakedListHandlerFactory_CreateDirectStakedListHandler_D
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	sovereignDirectStakedListHandler, err := trieIteratorsFactory.NewSovereignDirectStakedListHandlerFactory().CreateDirectStakedListHandler(args)
+	sovereignDirectStakedListHandler, err := trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.directStakedListProcessor", fmt.Sprintf("%T", sovereignDirectStakedListHandler))
+	require.Equal(t, "*trieIterators.directStakedListProcessor", fmt.Sprintf("%T", sovereignDirectStakedListHandler))
 }

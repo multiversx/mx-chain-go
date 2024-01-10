@@ -679,21 +679,21 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:                 configs.Configs,
-		CoreComponents:          currentNode.GetCoreComponents(),
-		DataComponents:          currentNode.GetDataComponents(),
-		StateComponents:         currentNode.GetStateComponents(),
-		BootstrapComponents:     currentNode.GetBootstrapComponents(),
-		CryptoComponents:        currentNode.GetCryptoComponents(),
-		ProcessComponents:       currentNode.GetProcessComponents(),
-		StatusCoreComponents:    currentNode.GetStatusCoreComponents(),
-		GasScheduleNotifier:     gasScheduleNotifier,
-		Bootstrapper:            currentNode.GetConsensusComponents().Bootstrapper(),
-		AllowVMQueriesChan:      allowVMQueriesChan,
-		StatusComponents:        currentNode.GetStatusComponents(),
-		ChainRunType:            common.ChainRunTypeSovereign,
-		DelegatedListHandler:    trieIteratorsFactory.NewSovereignDelegatedListHandlerFactory(),
-		DirectStakedListHandler: trieIteratorsFactory.NewSovereignDirectStakedListHandlerFactory(),
+		Configs:                        configs.Configs,
+		CoreComponents:                 currentNode.GetCoreComponents(),
+		DataComponents:                 currentNode.GetDataComponents(),
+		StateComponents:                currentNode.GetStateComponents(),
+		BootstrapComponents:            currentNode.GetBootstrapComponents(),
+		CryptoComponents:               currentNode.GetCryptoComponents(),
+		ProcessComponents:              currentNode.GetProcessComponents(),
+		StatusCoreComponents:           currentNode.GetStatusCoreComponents(),
+		GasScheduleNotifier:            gasScheduleNotifier,
+		Bootstrapper:                   currentNode.GetConsensusComponents().Bootstrapper(),
+		AllowVMQueriesChan:             allowVMQueriesChan,
+		StatusComponents:               currentNode.GetStatusComponents(),
+		ChainRunType:                   common.ChainRunTypeSovereign,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

@@ -11,14 +11,13 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignDelegatedListHandlerFactory(t *testing.T) {
 	t.Parallel()
 
-	sovereignDelegatedListHandlerFactory := trieIteratorsFactory.NewSovereignDelegatedListHandlerFactory()
+	sovereignDelegatedListHandlerFactory := trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory()
 	require.False(t, sovereignDelegatedListHandlerFactory.IsInterfaceNil())
 }
 
@@ -35,7 +34,7 @@ func TestSovereignDelegatedListHandlerFactory_CreateDelegatedListHandler_Delegat
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	sovereignDelegatedListHandler, err := trieIteratorsFactory.NewSovereignDelegatedListHandlerFactory().CreateDelegatedListHandler(args)
+	sovereignDelegatedListHandler, err := trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", sovereignDelegatedListHandler))
+	require.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", sovereignDelegatedListHandler))
 }

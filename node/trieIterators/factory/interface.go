@@ -5,12 +5,14 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
 )
 
-type DelegatedListHandler interface {
-	CreateDelegatedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error)
+// DelegatedListProcessorFactoryHandler can create delegated list processor handler
+type DelegatedListProcessorFactoryHandler interface {
+	CreateDelegatedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error)
 	IsInterfaceNil() bool
 }
 
-type DirectStakedListHandler interface {
-	CreateDirectStakedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error)
+// DirectStakedListProcessorFactoryHandler can create direct staked list processor handler
+type DirectStakedListProcessorFactoryHandler interface {
+	CreateDirectStakedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error)
 	IsInterfaceNil() bool
 }

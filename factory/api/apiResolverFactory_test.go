@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -109,9 +110,9 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType:            common.ChainRunTypeRegular,
-		DelegatedListHandler:    trieIteratorsFactory.NewDelegatedListHandlerFactory(),
-		DirectStakedListHandler: trieIteratorsFactory.NewDirectStakedListHandlerFactory(),
+		ChainRunType:                   common.ChainRunTypeRegular,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 	}
 }
 
@@ -285,6 +286,25 @@ func TestCreateApiResolver(t *testing.T) {
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(apiResolver))
+	})
+
+	t.Run("DelegatedListFactoryHandler nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.DelegatedListFactoryHandler = nil
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, factoryErrors.ErrNilDelegatedListFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("DirectStakedListFactoryHandler nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.DirectStakedListFactoryHandler = nil
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, factoryErrors.ErrNilDirectStakedListFactory, err)
+		require.True(t, check.IfNil(apiResolver))
 	})
 }
 

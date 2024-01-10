@@ -5,20 +5,20 @@ import (
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
 )
 
-type sovereignDelegatedListHandlerFactory struct {
+type sovereignDelegatedListProcessorFactory struct {
 }
 
-// NewSovereignDelegatedListHandlerFactory create a new sovereign delegated list handler
-func NewSovereignDelegatedListHandlerFactory() *sovereignDelegatedListHandlerFactory {
-	return &sovereignDelegatedListHandlerFactory{}
+// NewSovereignDelegatedListProcessorFactory creates a new sovereign delegated list handler
+func NewSovereignDelegatedListProcessorFactory() *sovereignDelegatedListProcessorFactory {
+	return &sovereignDelegatedListProcessorFactory{}
 }
 
-// CreateDelegatedListHandler will create a new instance of DirectStakedListHandler
-func (sd *sovereignDelegatedListHandlerFactory) CreateDelegatedListHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
+// CreateDelegatedListProcessorHandler creates a new instance of DirectStakedListHandler
+func (sd *sovereignDelegatedListProcessorFactory) CreateDelegatedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
 	return trieIterators.NewDelegatedListProcessor(args)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (sd *sovereignDelegatedListHandlerFactory) IsInterfaceNil() bool {
+func (sd *sovereignDelegatedListProcessorFactory) IsInterfaceNil() bool {
 	return sd == nil
 }

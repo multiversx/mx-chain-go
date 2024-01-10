@@ -11,30 +11,29 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDirectStakedListHandlerFactory(t *testing.T) {
+func TestNewDirectStakedListProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	directStakedListHandlerFactory := trieIteratorsFactory.NewDirectStakedListHandlerFactory()
+	directStakedListHandlerFactory := trieIteratorsFactory.NewDirectStakedListProcessorFactory()
 	require.False(t, directStakedListHandlerFactory.IsInterfaceNil())
 }
 
-func TestDirectStakedListHandlerFactory_CreateDirectStakedListHandler_Disabled(t *testing.T) {
+func TestDirectStakedListProcessorFactory_CreateDirectStakedListProcessor_Disabled(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
 		ShardID: 0,
 	}
 
-	directStakedListHandler, err := trieIteratorsFactory.NewDirectStakedListHandlerFactory().CreateDirectStakedListHandler(args)
+	directStakedListHandler, err := trieIteratorsFactory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*disabled.directStakedListProcessor", fmt.Sprintf("%T", directStakedListHandler))
+	require.Equal(t, "*disabled.directStakedListProcessor", fmt.Sprintf("%T", directStakedListHandler))
 }
 
-func TestDirectStakedListHandlerFactory_CreateDirectStakedListHandler_DirectStakedListProcessor(t *testing.T) {
+func TestDirectStakedListProcessorFactory_CreateDirectStakedListProcessor_DirectStakedListProcessorFactory(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
@@ -47,7 +46,7 @@ func TestDirectStakedListHandlerFactory_CreateDirectStakedListHandler_DirectStak
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
 
-	directStakedListHandler, err := trieIteratorsFactory.NewDirectStakedListHandlerFactory().CreateDirectStakedListHandler(args)
+	directStakedListHandler, err := trieIteratorsFactory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.directStakedListProcessor", fmt.Sprintf("%T", directStakedListHandler))
+	require.Equal(t, "*trieIterators.directStakedListProcessor", fmt.Sprintf("%T", directStakedListHandler))
 }

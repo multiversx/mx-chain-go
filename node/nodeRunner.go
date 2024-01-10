@@ -707,22 +707,22 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:                 configs,
-		CoreComponents:          currentNode.coreComponents,
-		DataComponents:          currentNode.dataComponents,
-		StateComponents:         currentNode.stateComponents,
-		BootstrapComponents:     currentNode.bootstrapComponents,
-		CryptoComponents:        currentNode.cryptoComponents,
-		ProcessComponents:       currentNode.processComponents,
-		StatusCoreComponents:    currentNode.statusCoreComponents,
-		GasScheduleNotifier:     gasScheduleNotifier,
-		Bootstrapper:            currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:      allowVMQueriesChan,
-		StatusComponents:        currentNode.statusComponents,
-		ProcessingMode:          common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:            common.ChainRunTypeRegular,
-		DelegatedListHandler:    trieIteratorsFactory.NewDelegatedListHandlerFactory(),
-		DirectStakedListHandler: trieIteratorsFactory.NewDirectStakedListHandlerFactory(),
+		Configs:                        configs,
+		CoreComponents:                 currentNode.coreComponents,
+		DataComponents:                 currentNode.dataComponents,
+		StateComponents:                currentNode.stateComponents,
+		BootstrapComponents:            currentNode.bootstrapComponents,
+		CryptoComponents:               currentNode.cryptoComponents,
+		ProcessComponents:              currentNode.processComponents,
+		StatusCoreComponents:           currentNode.statusCoreComponents,
+		GasScheduleNotifier:            gasScheduleNotifier,
+		Bootstrapper:                   currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:             allowVMQueriesChan,
+		StatusComponents:               currentNode.statusComponents,
+		ProcessingMode:                 common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:                   common.ChainRunTypeRegular,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
