@@ -1541,6 +1541,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress_WrongChainId(t *testing.T) {
 	n, err := node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithProcessComponents(processComponents))
+	require.Nil(t, err)
 
 	tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
 	require.Nil(t, tokenResult)
