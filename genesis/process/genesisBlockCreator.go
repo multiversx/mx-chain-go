@@ -89,11 +89,11 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
 
 	// TODO remove duplicate code found in update/factory/exportHandlerFactory.go
-	keysStorer, err := createStorer(gbc.arg.HardForkConfig.ImportKeysStorageConfig, importFolder)
+	keysStorer, err := gbc.createStorer(gbc.arg.HardForkConfig.ImportKeysStorageConfig, importFolder)
 	if err != nil {
 		return fmt.Errorf("%w while creating keys storer", err)
 	}
-	keysVals, err := createStorer(gbc.arg.HardForkConfig.ImportStateStorageConfig, importFolder)
+	keysVals, err := gbc.createStorer(gbc.arg.HardForkConfig.ImportStateStorageConfig, importFolder)
 	if err != nil {
 		return fmt.Errorf("%w while creating keys-values storer", err)
 	}
@@ -127,11 +127,11 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 	return nil
 }
 
-func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+func (gbc *genesisBlockCreator) createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 
-	persisterFactory, err := factory.NewPersisterFactory(storageConfig.DB)
+	persisterFactory, err := gbc.arg.Core.PersisterFactory().CreatePersisterHandler(storageConfig.DB)
 	if err != nil {
 		return nil, err
 	}

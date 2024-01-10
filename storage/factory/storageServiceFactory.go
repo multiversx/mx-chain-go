@@ -56,6 +56,7 @@ type StorageServiceFactory struct {
 	snapshotsEnabled              bool
 	repopulateTokensSupplies      bool
 	stateStatsHandler             common.StateStatisticsHandler
+	persisterFactory              storage.PersisterFactoryHandler
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -73,6 +74,7 @@ type StorageServiceFactoryArgs struct {
 	NodeProcessingMode            common.NodeProcessingMode
 	RepopulateTokensSupplies      bool
 	StateStatsHandler             common.StateStatisticsHandler
+	PersisterFactory              storage.PersisterFactoryHandler
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -109,6 +111,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
 		stateStatsHandler:             args.StateStatsHandler,
+		persisterFactory:              args.PersisterFactory,
 	}, nil
 }
 
@@ -127,6 +130,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.StateStatsHandler) {
 		return statistics.ErrNilStateStatsHandler
+	}
+	if check.IfNil(args.PersisterFactory) {
+		return storage.ErrNilPersisterFactory
 	}
 
 	return nil
@@ -279,7 +285,7 @@ func (psf *StorageServiceFactory) createStaticStorageUnit(
 	dbPath := psf.pathManager.PathForStatic(shardID, storageConf.DB.FilePath) + dbPathSuffix
 	storageUnitDBConf.FilePath = dbPath
 
-	persisterCreator, err := NewPersisterFactory(storageConf.DB)
+	persisterCreator, err := psf.persisterFactory.CreatePersisterHandler(storageConf.DB)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +565,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		NumOfActivePersisters: numOfActivePersisters,
 	}
 
-	persisterFactory, err := NewPersisterFactory(storageConfig.DB)
+	persisterFactory, err := psf.persisterFactory.CreatePersisterHandler(storageConfig.DB)
 	if err != nil {
 		return pruning.StorerArgs{}, err
 	}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -18,6 +19,7 @@ const cacheSize = 10
 type ArgsNewOpenStorageUnits struct {
 	BootstrapDataProvider     BootstrapDataProviderHandler
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
+	PersisterFactory          storage.PersisterFactoryHandler
 	DefaultEpochString        string
 	DefaultShardString        string
 }
@@ -25,6 +27,7 @@ type ArgsNewOpenStorageUnits struct {
 type openStorageUnits struct {
 	bootstrapDataProvider     BootstrapDataProviderHandler
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
+	persisterFactory          storage.PersisterFactoryHandler
 	defaultEpochString        string
 	defaultShardString        string
 }
@@ -37,12 +40,16 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 	if check.IfNil(args.LatestStorageDataProvider) {
 		return nil, storage.ErrNilLatestStorageDataProvider
 	}
+	if check.IfNil(args.PersisterFactory) {
+		return nil, errors.ErrNilPersisterFactory
+	}
 
 	o := &openStorageUnits{
 		defaultEpochString:        args.DefaultEpochString,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
 		latestStorageDataProvider: args.LatestStorageDataProvider,
+		persisterFactory:          args.PersisterFactory,
 	}
 
 	return o, nil
@@ -55,7 +62,7 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 		return nil, err
 	}
 
-	persisterFactory, err := NewPersisterFactory(dbConfig)
+	persisterFactory, err := o.persisterFactory.CreatePersisterHandler(dbConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +117,7 @@ func (o *openStorageUnits) OpenDB(dbConfig config.DBConfig, shardID uint32, epoc
 	parentDir := o.latestStorageDataProvider.GetParentDirectory()
 	pathWithoutShard := o.getPathWithoutShard(parentDir, epoch)
 	persisterPath := o.getPersisterPath(pathWithoutShard, fmt.Sprintf("%d", shardID), dbConfig)
-	persisterFactory, err := NewPersisterFactory(dbConfig)
+	persisterFactory, err := o.persisterFactory.CreatePersisterHandler(dbConfig)
 	if err != nil {
 		return nil, err
 	}

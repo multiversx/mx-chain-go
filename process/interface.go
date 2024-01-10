@@ -1183,6 +1183,7 @@ type CoreComponentsHolder interface {
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	PersisterFactory() storage.PersisterFactoryHandler
 	IsInterfaceNil() bool
 }
 

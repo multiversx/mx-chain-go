@@ -8,18 +8,38 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/disabled"
 )
 
-// persisterFactory is the factory which will handle creating new databases
-type persisterFactory struct {
-	dbConfigHandler storage.DBConfigHandler
+type persisterFactoryHandler struct {
+	maxRetriesToCreateDB         uint32
+	sleepTimeBetweenRetriesInSec uint32
 }
 
-// NewPersisterFactory will return a new instance of persister factory
-func NewPersisterFactory(config config.DBConfig) (*persisterFactory, error) {
+func NewPersisterFactoryHandler(maxRetries, sleepTime uint32) *persisterFactoryHandler {
+	return &persisterFactoryHandler{
+		maxRetriesToCreateDB:         maxRetries,
+		sleepTimeBetweenRetriesInSec: sleepTime,
+	}
+}
+
+func (pfh *persisterFactoryHandler) CreatePersisterHandler(config config.DBConfig) (storage.PersisterCreator, error) {
 	dbConfigHandler := NewDBConfigHandler(config)
 
 	return &persisterFactory{
-		dbConfigHandler: dbConfigHandler,
+		dbConfigHandler:              dbConfigHandler,
+		maxRetriesToCreateDB:         pfh.maxRetriesToCreateDB,
+		sleepTimeBetweenRetriesInSec: pfh.sleepTimeBetweenRetriesInSec,
 	}, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (pfh *persisterFactoryHandler) IsInterfaceNil() bool {
+	return pfh == nil
+}
+
+// persisterFactory is the factory which will handle creating new databases
+type persisterFactory struct {
+	maxRetriesToCreateDB         uint32
+	sleepTimeBetweenRetriesInSec uint32
+	dbConfigHandler              storage.DBConfigHandler
 }
 
 // CreateWithRetries will return a new instance of a DB with a given path

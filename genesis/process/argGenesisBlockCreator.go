@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/update"
 )
 
@@ -29,6 +30,7 @@ type coreComponentsHandler interface {
 	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
 	EnableEpochsHandler() common.EnableEpochsHandler
+	PersisterFactory() storage.PersisterFactoryHandler
 	IsInterfaceNil() bool
 }
 

@@ -98,7 +98,8 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		MaxOpenFiles:      10,
 	}
 
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
+	pfh := storageFactory.NewPersisterFactoryHandler(10, 1)
+	persisterFactory, err := pfh.CreatePersisterHandler(dbConfig)
 	panicIfError("Create persister factory", err)
 
 	persister, err := persisterFactory.CreateWithRetries(tempDir)

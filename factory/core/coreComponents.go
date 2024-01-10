@@ -108,6 +108,7 @@ type coreComponents struct {
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
+	persisterFactory              storage.PersisterFactoryHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -332,6 +333,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	persisterFactory := storageFactory.NewPersisterFactoryHandler(
+		ccf.config.PersisterCreatorConfig.MaxRetriesToCreateDB,
+		ccf.config.PersisterCreatorConfig.SleepTimeBetweenRetriesInSec,
+	)
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -367,6 +373,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
+		persisterFactory:              persisterFactory,
 	}, nil
 }
 

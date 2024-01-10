@@ -109,6 +109,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 			ShardCoordinator: sesb.shardCoordinator,
 			Marshalizer:      sesb.coreComponentsHolder.InternalMarshalizer(),
 			PathManager:      sesb.coreComponentsHolder.PathHandler(),
+			PersisterFactory: sesb.coreComponentsHolder.PersisterFactory(),
 		},
 	)
 	if err != nil {

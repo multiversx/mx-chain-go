@@ -501,11 +501,11 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		}
 	}()
 
-	keysStorer, err = createStorer(e.exportStateKeysConfig, e.exportFolder)
+	keysStorer, err = e.createStorer(e.exportStateKeysConfig, e.exportFolder)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating keys storer", err)
 	}
-	keysVals, err = createStorer(e.exportStateStorageConfig, e.exportFolder)
+	keysVals, err = e.createStorer(e.exportStateStorageConfig, e.exportFolder)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating keys-values storer", err)
 	}
@@ -604,11 +604,11 @@ func (e *exportHandlerFactory) createInterceptors() error {
 	return nil
 }
 
-func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
+func (e *exportHandlerFactory) createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 
-	persisterFactory, err := storageFactory.NewPersisterFactory(storageConfig.DB)
+	persisterFactory, err := e.coreComponents.PersisterFactory().CreatePersisterHandler(storageConfig.DB)
 	if err != nil {
 		return nil, err
 	}

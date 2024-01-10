@@ -232,6 +232,9 @@ var ErrNilMessenger = errors.New("nil messenger")
 // ErrNilMiniBlocksProvider signals a nil miniBlocks provider
 var ErrNilMiniBlocksProvider = errors.New("nil miniBlocks provider")
 
+// ErrNilPersisterFactory signals a nil persister factory
+var ErrNilPersisterFactory = errors.New("nil persister factory")
+
 // ErrNilMultiSigner signals that a nil multi-signer was provided
 var ErrNilMultiSigner = errors.New("nil multi signer")
 

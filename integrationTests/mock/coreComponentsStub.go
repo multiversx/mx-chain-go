@@ -54,6 +54,7 @@ type CoreComponentsStub struct {
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
 	HardforkTriggerPubKeyField         []byte
 	EnableEpochsHandlerField           common.EnableEpochsHandler
+	PersisterFactoryField              storage.PersisterFactoryHandler
 }
 
 // Create -
@@ -257,6 +258,11 @@ func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccs.EnableEpochsHandlerField
+}
+
+// PersisterFactory -
+func (ccs *CoreComponentsStub) PersisterFactory() storage.PersisterFactoryHandler {
+	return ccs.PersisterFactoryField
 }
 
 // IsInterfaceNil -

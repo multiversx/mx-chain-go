@@ -39,6 +39,6 @@ func NewShardIDProvider(numShards int32) (storage.ShardIDProvider, error) {
 }
 
 // NewShardedPersister is a constructor for sharded persister based on provided db type
-func NewShardedPersister(path string, persisterCreator storage.PersisterCreator, idPersister storage.ShardIDProvider) (s storage.Persister, err error) {
+func NewShardedPersister(path string, persisterCreator storage.BasePersisterCreator, idPersister storage.ShardIDProvider) (s storage.Persister, err error) {
 	return sharded.NewShardedPersister(path, persisterCreator, idPersister)
 }

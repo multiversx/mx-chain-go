@@ -192,8 +192,8 @@ type ShardIDProvider interface {
 	IsInterfaceNil() bool
 }
 
-// PersisterCreator defines the behavour of a component which is able to create a persister
-type PersisterCreator = types.PersisterCreator
+// BasePersisterCreator defines the behavour of a component which is able to create a persister
+type BasePersisterCreator = types.PersisterCreator
 
 // DBConfigHandler defines the behaviour of a component that will handle db config
 type DBConfigHandler interface {
@@ -210,8 +210,14 @@ type ManagedPeersHolder interface {
 
 // PersisterFactoryHandler defines the behaviour of a component which is able to create persisters
 type PersisterFactoryHandler interface {
+	CreatePersisterHandler(config config.DBConfig) (PersisterCreator, error)
+	IsInterfaceNil() bool
+}
+
+type PersisterCreator interface {
 	Create(path string) (Persister, error)
 	CreateWithRetries(path string) (Persister, error)
+	CreateDisabled() Persister
 	IsInterfaceNil() bool
 }
 

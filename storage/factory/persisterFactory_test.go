@@ -46,6 +46,32 @@ func TestPersisterFactory_Create(t *testing.T) {
 	})
 }
 
+func TestPersisterFactory_CreateWithRetries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid file path, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		p, err := pf.CreateWithRetries("")
+		require.Nil(t, p)
+		require.Equal(t, storage.ErrInvalidFilePath, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		dir := t.TempDir()
+
+		p, err := pf.CreateWithRetries(dir)
+		require.NotNil(t, p)
+		require.Nil(t, err)
+	})
+}
+
 func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 	t.Parallel()
 

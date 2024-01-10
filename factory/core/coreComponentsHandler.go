@@ -155,6 +155,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if mcc.minTransactionVersion == 0 {
 		return errors.ErrInvalidTransactionVersion
 	}
+	if check.IfNil(mcc.persisterFactory) {
+		return errors.ErrNilPersisterFactory
+	}
 
 	return nil
 }
@@ -579,6 +582,18 @@ func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandl
 	}
 
 	return mcc.coreComponents.enableEpochsHandler
+}
+
+// PersisterFactory returns the persister factory component
+func (mcc *managedCoreComponents) PersisterFactory() storage.PersisterFactoryHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.persisterFactory
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
