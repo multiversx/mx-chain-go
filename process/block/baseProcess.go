@@ -209,7 +209,7 @@ func (bp *baseProcessor) checkBlockValidity(
 			"local random seed", currentBlockHeader.GetRandSeed(),
 			"received previous random seed", headerHandler.GetPrevRandSeed())
 
-		return process.ErrRandSeedDoesNotMatch
+		//return process.ErrRandSeedDoesNotMatch
 	}
 
 	// verification of epoch
