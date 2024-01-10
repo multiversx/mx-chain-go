@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +30,6 @@ func TestCreateNode(t *testing.T) {
 		nil)
 
 	require.NotNil(t, err)
-	require.Equal(t, node.ErrNilNodeFactory, err)
+	require.Equal(t, errors.ErrNilNode, err)
 	require.Nil(t, nodeHandler)
 }

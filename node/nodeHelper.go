@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	globalErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -60,7 +61,7 @@ func CreateNode(
 	extraOptions ...Option,
 ) (NodeHandler, error) {
 	if check.IfNil(nodeFactory) {
-		return nil, ErrNilNodeFactory
+		return nil, globalErrors.ErrNilNode
 	}
 
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())

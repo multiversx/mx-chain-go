@@ -1222,7 +1222,8 @@ func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shard
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
-		node.WithProcessComponents(processComponents))
+		node.WithProcessComponents(processComponents),
+	)
 
 	value, err := n.GetAllIssuedESDTs(core.FungibleESDT, context.Background())
 	assert.Nil(t, err)
