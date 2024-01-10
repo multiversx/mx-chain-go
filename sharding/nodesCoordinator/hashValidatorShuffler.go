@@ -72,7 +72,6 @@ type randHashShuffler struct {
 	availableNodesConfigs     []config.MaxNodesChangeConfig
 	mutShufflerParams         sync.RWMutex
 	validatorDistributor      ValidatorsDistributor
-	flagBalanceWaitingLists   atomic.Flag
 	enableEpochsHandler       common.EnableEpochsHandler
 	stakingV4Step2EnableEpoch uint32
 	flagStakingV4Step2        atomic.Flag
