@@ -695,6 +695,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch,
 		},
+		common.DynamicESDTFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.NFTStopCreateEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.NFTStopCreateEnableEpoch,
+		},
 	}
 }
 
