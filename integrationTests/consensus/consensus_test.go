@@ -245,12 +245,6 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		enableEpochsConfig,
 	)
 
-	for shardID := range nodes {
-		for _, n := range nodes[shardID] {
-			n.ChainHandler.SetCurrentAggregatedSignatureAndBitmap([]byte("sig"), []byte("bitmap"))
-		}
-	}
-
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
@@ -299,6 +293,7 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		runFullConsensusTest(t, blsConsensusType, 1, integrationTests.UnreachableEpoch)
 	})
 	t.Run("after consensus propagation changes", func(t *testing.T) {
+		_ = logger.SetLogLevel("*:DEBUG,consensus:TRACE")
 		runFullConsensusTest(t, blsConsensusType, 1, 0)
 	})
 }

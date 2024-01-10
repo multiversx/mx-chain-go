@@ -93,12 +93,6 @@ func testConsensusWithInvalidSigners(consensusPropagationChangesFlagActive bool)
 
 		nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType, consensusPropagationChangesFlagActive)
 
-		for shardID := range nodes {
-			for _, n := range nodes[shardID] {
-				n.ChainHandler.SetCurrentAggregatedSignatureAndBitmap([]byte("sig"), []byte("bitmap"))
-			}
-		}
-
 		defer func() {
 			for shardID := range nodes {
 				for _, n := range nodes[shardID] {

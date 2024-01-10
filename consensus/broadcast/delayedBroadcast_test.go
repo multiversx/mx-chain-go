@@ -1514,9 +1514,9 @@ func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing
 		providedHash := []byte("hdr hash")
 		dbb.InterceptedHeaderData("", providedHash, &block.HeaderV2{
 			Header: &block.Header{},
-			Proof: &block.Proof{
-				PreviousPubkeysBitmap:       []byte("bitmap"),
-				PreviousAggregatedSignature: []byte("agg sig"),
+			PreviousHeaderProof: &block.PreviousHeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte("agg sig"),
 			},
 		})
 		cnsMsg := &consensus.Message{
