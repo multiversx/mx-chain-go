@@ -259,6 +259,11 @@ func (ccs *CoreComponentsStub) EnableEpochsHandler() common.EnableEpochsHandler 
 	return ccs.EnableEpochsHandlerField
 }
 
+// IncreaseRoundChan -
+func (ccm *CoreComponentsStub) IncreaseRoundChan() chan<- uint64 {
+	return nil
+}
+
 // IsInterfaceNil -
 func (ccs *CoreComponentsStub) IsInterfaceNil() bool {
 	return ccs == nil

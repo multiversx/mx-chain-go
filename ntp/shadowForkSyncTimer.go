@@ -8,23 +8,31 @@ import (
 
 type ShadowForkSyncTimer struct {
 	lastTime    time.Time
+	lastNtpTime time.Time
 	currentTime time.Time
 	mut         sync.RWMutex
 }
 
 // NewShadowForkSyncTimer -
-func NewShadowForkSyncTimer(initialTime time.Time, increaseChan <-chan bool) *ShadowForkSyncTimer {
-	sfst := &ShadowForkSyncTimer{lastTime: initialTime, currentTime: initialTime}
+func NewShadowForkSyncTimer(initialTime time.Time, increaseChan chan uint64) *ShadowForkSyncTimer {
+	sfst := &ShadowForkSyncTimer{lastTime: initialTime, currentTime: initialTime, lastNtpTime: time.Now()}
 	go func(sfst *ShadowForkSyncTimer) {
+		setRound := false
 		for {
 			select {
 			//case <-time.After(time.Second * 2):
 			//	log.Debug("NewShadowForkSyncTimer from time.After")
-			case <-increaseChan:
-				log.Debug("NewShadowForkSyncTimer from chan")
+			case round := <-increaseChan:
+				log.Debug("NewShadowForkSyncTimer from chan", "round", round)
+				if !setRound {
+					sfst.lastTime = sfst.lastTime.Add(time.Second * time.Duration(6*(round-1)))
+					sfst.currentTime = sfst.lastTime
+					log.Info("NewShadowForkSyncTimer set lastTime", "lastTime", sfst.lastTime, "round", round, "currentTime", sfst.currentTime)
+					setRound = true
+				}
 			}
 			log.Debug("NewShadowForkSyncTimer increase time")
-			sfst.IncreaseTime(time.Millisecond * 5990)
+			sfst.IncreaseTime(time.Second * 6)
 		}
 	}(sfst)
 	return sfst
@@ -57,7 +65,12 @@ func (sfst *ShadowForkSyncTimer) FormattedCurrentTime() string {
 func (sfst *ShadowForkSyncTimer) CurrentTime() time.Time {
 	sfst.mut.RLock()
 	defer sfst.mut.RUnlock()
-	sfst.currentTime = sfst.currentTime.Add(time.Millisecond * 1)
+	diff := time.Now().Sub(sfst.lastNtpTime)
+	if diff > time.Millisecond*5990 {
+		diff = 0
+	}
+	sfst.currentTime = sfst.lastTime.Add(diff)
+	//	log.Info("ShadowForkSyncTimer CurrentTime", "diff", diff, "lastNtpTime", sfst.lastNtpTime, "lastTime", sfst.lastTime, "currentTime", sfst.currentTime)
 	return sfst.currentTime
 }
 
@@ -70,7 +83,7 @@ func (sfst *ShadowForkSyncTimer) IsInterfaceNil() bool {
 func (sfst *ShadowForkSyncTimer) IncreaseTime(duration time.Duration) {
 	sfst.mut.Lock()
 	defer sfst.mut.Unlock()
-
+	sfst.lastNtpTime = time.Now()
 	sfst.lastTime = sfst.lastTime.Add(duration)
 	sfst.currentTime = sfst.lastTime
 	log.Info("ShadowForkSyncTimer IncreaseTime", "lastTime", sfst.lastTime)

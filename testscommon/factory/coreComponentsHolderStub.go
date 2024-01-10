@@ -370,6 +370,11 @@ func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsH
 	return nil
 }
 
+// IncreaseRoundChan -
+func (stub *CoreComponentsHolderStub) IncreaseRoundChan() chan<- uint64 {
+	return nil
+}
+
 // RoundNotifier -
 func (stub *CoreComponentsHolderStub) RoundNotifier() process.RoundNotifier {
 	if stub.RoundNotifierCalled != nil {

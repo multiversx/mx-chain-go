@@ -258,6 +258,11 @@ func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler 
 	return ccm.EnableEpochsHandlerField
 }
 
+// IncreaseRoundChan -
+func (ccm *CoreComponentsMock) IncreaseRoundChan() chan<- uint64 {
+	return nil
+}
+
 // IsInterfaceNil -
 func (ccm *CoreComponentsMock) IsInterfaceNil() bool {
 	return ccm == nil

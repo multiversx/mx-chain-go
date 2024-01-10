@@ -259,7 +259,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
-	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
+	areAllSignaturesCollected := numSigs > sr.ConsensusGroupSize()*2/3
 
 	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
 

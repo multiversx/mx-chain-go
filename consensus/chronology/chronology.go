@@ -160,6 +160,7 @@ func (chr *chronology) startRound(ctx context.Context) {
 // updateRound updates rounds and subrounds depending on the current time and the finished tasks
 func (chr *chronology) updateRound() {
 	oldRoundIndex := chr.roundHandler.Index()
+	//log.Info("updateRound", "oldRoundIndex", oldRoundIndex, "roundHandler", chr.roundHandler.Index(), "syncTimer", chr.syncTimer.CurrentTime())
 	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.roundHandler.Index() {
