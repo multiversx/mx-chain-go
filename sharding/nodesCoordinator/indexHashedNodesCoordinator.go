@@ -98,7 +98,6 @@ type indexHashedNodesCoordinator struct {
 	enableEpochsHandler             common.EnableEpochsHandler
 	validatorInfoCacher             epochStart.ValidatorInfoCacher
 	genesisNodesSetupHandler        GenesisNodesSetupHandler
-	stakingV4Step2EnableEpoch       uint32
 	flagStakingV4Step2              atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 	flagStakingV4Started            atomicFlags.Flag
