@@ -22,12 +22,12 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
-	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/pathmanager"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/persister"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1053,7 +1053,8 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	fmt.Println(testDir)
 	args := getDefaultArgs()
 
-	persisterFactory, err := factory.NewPersisterFactory(config.DBConfig{
+	pfh := persister.NewPersisterFactory()
+	persisterFactory, err := pfh.CreatePersisterHandler(config.DBConfig{
 		FilePath:          filepath.Join(testDir, dbName),
 		Type:              "LvlDBSerial",
 		MaxBatchSize:      100,

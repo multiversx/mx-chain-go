@@ -18,6 +18,7 @@ func createMockArgsOpenStorageUnits() ArgsNewOpenStorageUnits {
 	return ArgsNewOpenStorageUnits{
 		BootstrapDataProvider:     &mock.BootStrapDataProviderStub{},
 		LatestStorageDataProvider: &mock.LatestStorageDataProviderStub{},
+		PersisterFactory:          NewPersisterFactoryHandler(2, 1),
 		DefaultEpochString:        "Epoch",
 		DefaultShardString:        "Shard",
 	}

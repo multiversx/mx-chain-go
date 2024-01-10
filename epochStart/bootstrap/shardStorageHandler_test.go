@@ -55,6 +55,7 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 
 	assert.False(t, check.IfNil(shardStorage))
@@ -80,6 +81,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -111,6 +113,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -165,6 +168,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 			args.nodeProcessingMode,
 			args.managedPeersHolder,
 			disabled.NewStateStatistics(),
+			newPersisterFactory(),
 		)
 		shardStorage.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -220,6 +224,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 
 	hash1 := []byte("hash1")
@@ -332,6 +337,7 @@ func TestShardStorageHandler_getCrossProcessedMiniBlockHeadersDestMe(t *testing.
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shardHeader := &block.Header{
 		Nonce:            100,
@@ -365,6 +371,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledErrorG
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	meta := &block.MetaBlock{
 		Nonce:      100,
@@ -396,6 +403,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledNoSche
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 
@@ -424,6 +432,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledWrongH
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 
@@ -459,6 +468,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduled(t *te
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 	processedMiniBlocks, pendingMiniBlocks, err := shardStorage.getProcessedAndPendingMiniBlocksWithScheduled(scenario.metaBlock, scenario.headers, scenario.shardHeader, true)
@@ -640,6 +650,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksErrorGettingEpochSt
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	meta := &block.MetaBlock{
 		Nonce:      100,
@@ -676,6 +687,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksMissingHeader(t *te
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -715,6 +727,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWrongHeader(t *test
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
@@ -759,6 +772,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNilMetaBlock(t *tes
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
@@ -805,6 +819,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNoProcessedNoPendin
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
@@ -847,6 +862,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithProcessedAndPen
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 	processedMiniBlocks, pendingMiniBlocks, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(scenario.metaBlock, scenario.headers)
@@ -878,6 +894,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledGetSha
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 
 	headers := map[string]data.HeaderHandler{}
@@ -912,6 +929,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledMissin
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -954,6 +972,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongT
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1003,6 +1022,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1047,6 +1067,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduled(t *te
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1096,6 +1117,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduledErrorUpda
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1139,6 +1161,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduled(t *testi
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
 		disabled.NewStateStatistics(),
+		newPersisterFactory(),
 	)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"

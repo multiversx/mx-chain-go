@@ -798,6 +798,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 		e.stateStatsHandler,
+		e.coreComponentsHolder.PersisterFactory(),
 	)
 	if err != nil {
 		return err
@@ -968,6 +969,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
 		e.stateStatsHandler,
+		e.coreComponentsHolder.PersisterFactory(),
 	)
 	if err != nil {
 		return err
@@ -1156,6 +1158,7 @@ func (e *epochStartBootstrap) createStorageService(
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
 			StateStatsHandler:             e.stateStatsHandler,
+			PersisterFactory:              e.coreComponentsHolder.PersisterFactory(),
 		})
 	if err != nil {
 		return nil, err

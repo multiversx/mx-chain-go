@@ -1,4 +1,4 @@
-package storage
+package persister
 
 import (
 	"github.com/multiversx/mx-chain-go/storage"

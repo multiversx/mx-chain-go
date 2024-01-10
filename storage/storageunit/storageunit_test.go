@@ -6,15 +6,21 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/stretchr/testify/assert"
 )
+
+func createPersisterFactory(config config.DBConfig) (storage.PersisterCreator, error) {
+	pfh := factory.NewPersisterFactoryHandler(2, 1)
+	return pfh.CreatePersisterHandler(config)
+}
 
 func TestNewStorageUnit(t *testing.T) {
 	t.Parallel()
@@ -87,7 +93,7 @@ func TestNewDB(t *testing.T) {
 			MaxOpenFiles:      10,
 		}
 
-		persisterFactory, err := factory.NewPersisterFactory(dbConfig)
+		persisterFactory, err := createPersisterFactory(dbConfig)
 		assert.Nil(t, err)
 
 		db, err := persisterFactory.CreateWithRetries(path)
@@ -106,7 +112,7 @@ func TestNewDB(t *testing.T) {
 			MaxOpenFiles:      10,
 		}
 
-		persisterFactory, err := factory.NewPersisterFactory(dbConfig)
+		persisterFactory, err := createPersisterFactory(dbConfig)
 		assert.Nil(t, err)
 
 		db, err := persisterFactory.CreateWithRetries(path)
@@ -142,7 +148,7 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 			MaxBatchSize:      dbConfig.MaxBatchSize,
 			MaxOpenFiles:      dbConfig.MaxOpenFiles,
 		}
-		persisterFactory, err := factory.NewPersisterFactory(dbConf)
+		persisterFactory, err := createPersisterFactory(dbConf)
 		assert.Nil(t, err)
 
 		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig, persisterFactory)
@@ -163,7 +169,7 @@ func TestNewStorageUnitFromConf(t *testing.T) {
 			MaxBatchSize:      dbConfig.MaxBatchSize,
 			MaxOpenFiles:      dbConfig.MaxOpenFiles,
 		}
-		persisterFactory, err := factory.NewPersisterFactory(dbConf)
+		persisterFactory, err := createPersisterFactory(dbConf)
 		assert.Nil(t, err)
 
 		unit, err := storageunit.NewStorageUnitFromConf(cacheConfig, dbConfig, persisterFactory)
@@ -185,7 +191,7 @@ func TestNewStorageCacherAdapter(t *testing.T) {
 
 	cacher := &mock.AdaptedSizedLruCacheStub{}
 	db := &mock.PersisterStub{}
-	storedDataFactory := &storage.StoredDataFactoryStub{}
+	storedDataFactory := &storageMock.StoredDataFactoryStub{}
 	marshaller := &marshallerMock.MarshalizerStub{}
 
 	t.Run("nil parameter should error", func(t *testing.T) {

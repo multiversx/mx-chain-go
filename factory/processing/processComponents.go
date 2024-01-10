@@ -1530,6 +1530,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
 			StateStatsHandler:             pcf.statusCoreComponents.StateStatsHandler(),
+			PersisterFactory:              pcf.coreData.PersisterFactory(),
 		},
 	)
 	if err != nil {

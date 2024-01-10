@@ -34,6 +34,7 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField        core.NodeTypeProviderHandler
 	ProcessStatusHandlerInstance common.ProcessStatusHandler
 	HardforkTriggerPubKeyField   []byte
+	PersisterFactoryField        storage.PersisterFactoryHandler
 	mutCore                      sync.RWMutex
 }
 
@@ -153,6 +154,11 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // HardforkTriggerPubKey -
 func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 	return ccm.HardforkTriggerPubKeyField
+}
+
+// PersisterFactory -
+func (ccm *CoreComponentsMock) PersisterFactory() storage.PersisterFactoryHandler {
+	return ccm.PersisterFactoryField
 }
 
 // IsInterfaceNil -

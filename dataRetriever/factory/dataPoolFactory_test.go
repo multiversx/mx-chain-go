@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/require"
@@ -159,5 +160,6 @@ func getGoodArgs() ArgsDataPool {
 		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		PathManager:      &testscommon.PathManagerStub{},
+		PersisterFactory: factory.NewPersisterFactoryHandler(2, 1),
 	}
 }

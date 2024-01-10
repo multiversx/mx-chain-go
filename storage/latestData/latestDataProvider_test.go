@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/persister"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -152,6 +153,7 @@ func getLatestDataProviderArgs() ArgsLatestDataProvider {
 		GeneralConfig:         config.Config{},
 		BootstrapDataProvider: &mock.BootStrapDataProviderStub{},
 		DirectoryReader:       &mock.DirectoryReaderStub{},
+		PersisterFactory:      persister.NewPersisterFactory(),
 		ParentDir:             "db",
 		DefaultEpochString:    "Epoch",
 		DefaultShardString:    "Shard",
