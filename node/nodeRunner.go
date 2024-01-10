@@ -949,11 +949,6 @@ func (nr *nodeRunner) CreateManagedHeartbeatV2Components(
 	return managedHeartbeatV2Components, nil
 }
 
-//func (nr *nodeRunner) CreateNodeFactory() (NodeFactory, error) {
-//	nf := NewNodeFactory()
-//	return nf, nil
-//}
-
 func waitForSignal(
 	sigs chan os.Signal,
 	chanStopNodeProcess chan endProcess.ArgEndProcess,

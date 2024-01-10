@@ -8,19 +8,14 @@ func NewSovereignNodeFactory() *sovereignNodeFactory {
 	return &sovereignNodeFactory{}
 }
 
-// CreateNewNode will create a new NodeHandler
+// CreateNewNode creates a new sovereign node
 func (snf *sovereignNodeFactory) CreateNewNode(opts ...Option) (NodeHandler, error) {
 	nd, err := NewNode(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	snd, err := NewSovereignNode(nd)
-	if err != nil {
-		return nil, err
-	}
-
-	return snd, nil
+	return NewSovereignNode(nd)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

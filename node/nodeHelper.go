@@ -2,6 +2,7 @@ package node
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -55,10 +56,13 @@ func CreateNode(
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
-	factoryNode NodeFactory,
+	nodeFactory NodeFactory,
 	extraOptions ...Option,
-
 ) (NodeHandler, error) {
+	if check.IfNil(nodeFactory) {
+		return nil, ErrNilNodeFactory
+	}
+
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := createAndAttachPeerDenialEvaluators(networkComponents, processComponents)
@@ -103,7 +107,7 @@ func CreateNode(
 	}
 	options = append(options, extraOptions...)
 
-	nd, err = factoryNode.CreateNewNode(options...)
+	nd, err = nodeFactory.CreateNewNode(options...)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}

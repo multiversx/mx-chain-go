@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -36,7 +37,8 @@ import (
 const DefaultRestInterface = "localhost:8080"
 
 // DefaultRestPortOff is the default value that should be passed if it is desired
-//  to start the node without a REST endpoint available
+//
+//	to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
@@ -72,7 +74,7 @@ type nodeFacade struct {
 // NewNodeFacade creates a new Facade with a NodeWrapper
 func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.Node) {
-		return nil, ErrNilNode
+		return nil, errors.ErrNilNode
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver
@@ -163,7 +165,8 @@ func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
 // The API will start on the DefaultRestInterface value unless a correct value is passed or
-//  the value is explicitly set to off, in which case it will not start at all
+//
+//	the value is explicitly set to off, in which case it will not start at all
 func (nf *nodeFacade) RestApiInterface() string {
 	if nf.config.RestApiInterface == "" {
 		return DefaultRestInterface

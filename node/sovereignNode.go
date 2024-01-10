@@ -2,18 +2,21 @@ package node
 
 import (
 	"context"
+
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type sovereignNode struct {
 	*Node
 }
 
-// NewSovereignNode creates a new sovereignNode instance
+// NewSovereignNode creates a new sovereign node instance
 func NewSovereignNode(node *Node) (*sovereignNode, error) {
-	if node == nil {
-		return nil, ErrNilNode
+	if check.IfNil(node) {
+		return nil, errors.ErrNilNode
 	}
 
 	return &sovereignNode{
