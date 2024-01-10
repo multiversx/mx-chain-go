@@ -14,14 +14,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSovereignDirectStakedListHandlerFactory(t *testing.T) {
+func TestNewSovereignDirectStakedListProcessorFactory(t *testing.T) {
 	t.Parallel()
 
 	directStakedListHandlerFactory := trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory()
 	require.False(t, directStakedListHandlerFactory.IsInterfaceNil())
 }
 
-func TestSovereignDirectStakedListHandlerFactory_CreateDirectStakedListHandler_DirectStakedListProcessor(t *testing.T) {
+func TestSovereignDirectStakedListHandlerFactory_CreateDirectStakedListProcessorHandler_DirectStakedListHandlerFactory(t *testing.T) {
 	t.Parallel()
 
 	args := trieIterators.ArgTrieIteratorProcessor{
