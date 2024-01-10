@@ -1061,7 +1061,7 @@ func (ihnc *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) (uint32, bool) {
 	pubKey := ihnc.selfPubKey
 	selfShard := ihnc.shardIDAsObserver
-	epNodesConfig, ok := ihnc.nodesConfig[ihnc.currentEpoch]
+	epNodesConfig, ok := ihnc.getNodesConfig(ihnc.currentEpoch)
 	if ok {
 		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,
