@@ -35,12 +35,12 @@ func checkStakingV4MaxNodesChangeCfg(enableEpochsCfg EnableEpochs, numOfShards u
 			if idx == 0 {
 				return fmt.Errorf("found config change in MaxNodesChangeEnableEpoch for StakingV4Step3EnableEpoch = %d, but %w ",
 					enableEpochsCfg.StakingV4Step3EnableEpoch, errNoMaxNodesConfigBeforeStakingV4)
-			} else {
-				prevMaxNodesChange := maxNodesChangeCfg[idx-1]
-				err := checkMaxNodesChangedCorrectly(prevMaxNodesChange, currMaxNodesChangeCfg, numOfShards)
-				if err != nil {
-					return err
-				}
+			}
+
+			prevMaxNodesChange := maxNodesChangeCfg[idx-1]
+			err := checkMaxNodesChangedCorrectly(prevMaxNodesChange, currMaxNodesChangeCfg, numOfShards)
+			if err != nil {
+				return err
 			}
 
 			break
@@ -100,38 +100,5 @@ func checkMaxNodesConfig(
 			errInvalidMaxMinNodes, maxNumNodes, minNumNodesWithHysteresis)
 	}
 
-	numShards := nodesSetup.NumberOfShards()
-	waitingListPerShard := (maxNumNodes - minNumNodesWithHysteresis) / (numShards + 1)
-	if nodesToShufflePerShard > waitingListPerShard {
-		return fmt.Errorf("%w, nodesToShufflePerShard: %d, waitingListPerShard: %d",
-			errInvalidNodesToShuffle, nodesToShufflePerShard, waitingListPerShard)
-	}
-
-	if minNumNodesWithHysteresis > nodesSetup.MinNumberOfNodes() {
-		return checkHysteresis(nodesSetup, nodesToShufflePerShard)
-	}
-
 	return nil
-}
-
-func checkHysteresis(nodesSetup NodesSetupHandler, numToShufflePerShard uint32) error {
-	hysteresis := nodesSetup.GetHysteresis()
-
-	forcedWaitingListNodesPerShard := getHysteresisNodes(nodesSetup.MinNumberOfShardNodes(), hysteresis)
-	if numToShufflePerShard > forcedWaitingListNodesPerShard {
-		return fmt.Errorf("%w per shard for numToShufflePerShard: %d, forcedWaitingListNodesPerShard: %d",
-			errInvalidNodesToShuffleWithHysteresis, numToShufflePerShard, forcedWaitingListNodesPerShard)
-	}
-
-	forcedWaitingListNodesInMeta := getHysteresisNodes(nodesSetup.MinNumberOfMetaNodes(), hysteresis)
-	if numToShufflePerShard > forcedWaitingListNodesInMeta {
-		return fmt.Errorf("%w in metachain for numToShufflePerShard: %d, forcedWaitingListNodesInMeta: %d",
-			errInvalidNodesToShuffleWithHysteresis, numToShufflePerShard, forcedWaitingListNodesInMeta)
-	}
-
-	return nil
-}
-
-func getHysteresisNodes(minNumNodes uint32, hysteresis float32) uint32 {
-	return uint32(float32(minNumNodes) * hysteresis)
 }
