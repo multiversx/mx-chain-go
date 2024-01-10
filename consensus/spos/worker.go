@@ -828,29 +828,34 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 // HasEquivalentMessage returns true if an equivalent message was received before
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 	wrk.mutEquivalentMessages.RLock()
+	defer wrk.mutEquivalentMessages.RUnlock()
 	info, has := wrk.equivalentMessages[string(headerHash)]
-	wrk.mutEquivalentMessages.RUnlock()
 
 	return has && info.Validated
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash
-func (wrk *Worker) GetEquivalentProof(headerHash []byte) data.HeaderProof {
+func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
 	wrk.mutEquivalentMessages.RLock()
 	defer wrk.mutEquivalentMessages.RUnlock()
 	info, has := wrk.equivalentMessages[string(headerHash)]
 	if !has {
-		return data.HeaderProof{}
+		return data.HeaderProof{}, ErrMissingEquivalentProof
 	}
 
-	return info.Proof
+	if !info.Validated {
+		return info.Proof, ErrEquivalentProofNotValidated
+	}
+
+	return info.Proof, nil
 }
 
 // SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-func (wrk *Worker) SetValidEquivalentProof(hash string, proof data.HeaderProof) {
+func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof) {
 	wrk.mutEquivalentMessages.Lock()
 	defer wrk.mutEquivalentMessages.Unlock()
 
+	hash := string(headerHash)
 	equivalentMessage, ok := wrk.equivalentMessages[hash]
 	if !ok {
 		equivalentMessage = &consensus.EquivalentMessageInfo{

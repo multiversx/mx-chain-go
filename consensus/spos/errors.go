@@ -247,6 +247,12 @@ var ErrNilFunctionHandler = errors.New("nil function handler")
 // ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
 var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
 
+// ErrMissingEquivalentProof signals that the equivalent proof is missing
+var ErrMissingEquivalentProof = errors.New("missing equivalent proof")
+
+// ErrEquivalentProofNotValidated signals that the equivalent proof has not been validated
+var ErrEquivalentProofNotValidated = errors.New("equivalent proof not validated")
+
 // ErrNilEquivalentMessagesDebugger signals that a nil equivalent messages debugger has been provided
 var ErrNilEquivalentMessagesDebugger = errors.New("nil equivalent messages debugger")
 
