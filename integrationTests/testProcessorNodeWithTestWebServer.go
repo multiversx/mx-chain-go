@@ -212,10 +212,10 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
 	log.LogIfError(err)
 
-	directStakedListHandler, err := factory.NewDirectStakedListHandlerFactory().CreateDirectStakedListHandler(args)
+	directStakedListHandler, err := factory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	log.LogIfError(err)
 
-	delegatedListHandler, err := factory.NewDelegatedListHandlerFactory().CreateDelegatedListHandler(args)
+	delegatedListHandler, err := factory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	log.LogIfError(err)
 
 	logsFacade := &testscommon.LogsFacadeStub{}
