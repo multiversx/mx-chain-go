@@ -158,3 +158,39 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, []data.TransactionHandler{expectedTx}, txs)
 }
+
+func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
+
+	loadAccountWasCalled := false
+	saveAccountWasCalled := false
+	var systemAccountLoaded []byte
+	accountsAdapter := &state.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			loadAccountWasCalled = true
+			if systemAccountLoaded == nil { // first loaded account saved (from initSystemAccount)
+				systemAccountLoaded = address
+			}
+			return state.NewAccountWrapMock(address), nil
+		},
+		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+			saveAccountWasCalled = true
+			return nil
+		},
+	}
+	arg.Accounts = accountsAdapter
+
+	gbc, _ := NewGenesisBlockCreator(arg)
+	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
+	_, err := sgbc.CreateGenesisBlocks()
+	require.NotNil(t, err)
+
+	require.NotNil(t, sgbc)
+	require.True(t, loadAccountWasCalled)
+	require.True(t, saveAccountWasCalled)
+	require.Equal(t, systemAccountLoaded, core.SystemAccountAddress)
+}
