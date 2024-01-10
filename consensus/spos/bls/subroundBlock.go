@@ -408,10 +408,22 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
 		prevBlockProof := sr.Blockchain().GetCurrentHeaderProof()
+		consensusPropagationChangesEpoch := sr.EnableEpochsHandler().GetActivationEpoch(common.ConsensusPropagationChangesFlag)
+		isFirstHeaderAfterChange := consensusPropagationChangesEpoch > currentHeader.GetEpoch()
+		if isProofEmpty(prevBlockProof) && isFirstHeaderAfterChange {
+			prevBlockProof = data.HeaderProof{
+				AggregatedSignature: currentHeader.GetSignature(),
+				PubKeysBitmap:       currentHeader.GetPubKeysBitmap(),
+			}
+		}
 		hdr.SetPreviousAggregatedSignatureAndBitmap(prevBlockProof.AggregatedSignature, prevBlockProof.PubKeysBitmap)
 	}
 
 	return hdr, nil
+}
+
+func isProofEmpty(proof data.HeaderProof) bool {
+	return len(proof.AggregatedSignature) == 0 || len(proof.PubKeysBitmap) == 0
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received

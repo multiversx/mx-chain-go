@@ -867,7 +867,7 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.Header = &block.Header{LeaderSignature: leaderSigInHdr}
 
-	sr.CreateAndBroadcastHeaderFinalInfo([]byte("sig"), []byte("bitmap"), leaderSigInHdr)
+	sr.CreateAndBroadcastHeaderFinalInfo([]byte("sig"), []byte("bitmap"), leaderSigInHdr, []byte(sr.ConsensusGroup()[0]))
 
 	select {
 	case <-chanRcv:

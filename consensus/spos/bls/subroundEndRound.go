@@ -221,10 +221,11 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	// TODO[cleanup cns finality]: update this check
+	// TODO[cleanup cns finality]: remove if statement
 	isSenderAllowed := sr.IsNodeInConsensusGroup(messageSender)
 	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		isSenderAllowed = sr.IsNodeLeaderInCurrentRound(messageSender)
+		isSelfLeader := sr.IsNodeLeaderInCurrentRound(messageSender) && sr.ShouldConsiderSelfKeyInConsensus()
+		isSenderAllowed = isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()
 	}
 	if !isSenderAllowed { // is NOT this node leader in current round?
 		sr.PeerHonestyHandler().ChangeScore(
@@ -353,18 +354,18 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 
 // TODO[cleanup cns finality]: rename this method, as this will be done by each participant
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	if !sr.sendFinalInfo() {
+	sender, err := sr.getSender()
+	if err != nil {
 		return false
 	}
 
-	leader, err := sr.getLeader()
-	if err != nil {
+	if !sr.sendFinalInfo(sender) {
 		return false
 	}
 
 	// broadcast header
 	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(leader))
+	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, sender)
 	if err != nil {
 		log.Warn("broadcastHeader.BroadcastHeader", "error", err.Error())
 	}
@@ -390,7 +391,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
-	err = sr.broadcastBlockDataLeader()
+	err = sr.broadcastBlockDataLeader(sender)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
 	}
@@ -403,7 +404,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendFinalInfo() bool {
+func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
 	if !sr.shouldSendFinalInfo() {
 		return true
 	}
@@ -442,7 +443,7 @@ func (sr *subroundEndRound) sendFinalInfo() bool {
 		}
 
 		// Header is complete so the leader can sign it
-		leaderSignature, err := sr.signBlockHeader()
+		leaderSignature, err := sr.signBlockHeader(sender)
 		if err != nil {
 			log.Error(err.Error())
 			return false
@@ -482,7 +483,7 @@ func (sr *subroundEndRound) sendFinalInfo() bool {
 		leaderSigToBroadcast = nil
 	}
 
-	if !sr.createAndBroadcastHeaderFinalInfo(sig, bitmap, leaderSigToBroadcast) {
+	if !sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender) {
 		return false
 	}
 
@@ -676,18 +677,13 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte) bool {
-	leader, err := sr.getLeader()
-	if err != nil {
-		return false
-	}
-
+func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []byte, bitmap []byte, leaderSignature []byte, pubKey []byte) bool {
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
 		nil,
 		nil,
-		[]byte(leader),
+		pubKey,
 		nil,
 		int(MtBlockHeaderFinalInfo),
 		sr.RoundHandler().Index(),
@@ -695,14 +691,14 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo(signature []byte, 
 		bitmap,
 		signature,
 		leaderSignature,
-		sr.GetAssociatedPid([]byte(leader)),
+		sr.GetAssociatedPid(pubKey),
 		nil,
 	)
 
 	// TODO[Sorin next PR]: replace this with the delayed broadcast
-	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("createAndBroadcastHeaderFinalInfo.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("createAndSendHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 
@@ -931,7 +927,7 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 	return false, nil
 }
 
-func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
+func (sr *subroundEndRound) signBlockHeader(leader []byte) ([]byte, error) {
 	headerClone := sr.Header.ShallowClone()
 	err := headerClone.SetLeaderSignature(nil)
 	if err != nil {
@@ -943,36 +939,24 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 		return nil, err
 	}
 
-	leader, errGetLeader := sr.getLeader()
-	if errGetLeader != nil {
-		return nil, errGetLeader
-	}
-	if errGetLeader != nil {
-		return nil, errGetLeader
-	}
-
-	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, []byte(leader))
+	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, leader)
 }
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
+	// TODO: decide if we keep these metrics the same way
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
 }
 
-func (sr *subroundEndRound) broadcastBlockDataLeader() error {
+func (sr *subroundEndRound) broadcastBlockDataLeader(sender []byte) error {
 	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
 	if err != nil {
 		return err
 	}
 
-	leader, err := sr.getLeader()
-	if err != nil {
-		return err
-	}
-
 	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
-	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, []byte(leader))
+	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, sender)
 }
 
 func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
@@ -1116,19 +1100,28 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	return minIdx
 }
 
-func (sr *subroundEndRound) getLeader() (string, error) {
-	leader := sr.SelfPubKey()
-	// TODO[cleanup cns finality]: only use sr.SelfPubKey
+func (sr *subroundEndRound) getSender() ([]byte, error) {
+	// TODO[cleanup cns finality]: remove this code block
 	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		var errGetLeader error
-		leader, errGetLeader = sr.GetLeader()
+		leader, errGetLeader := sr.GetLeader()
 		if errGetLeader != nil {
 			log.Debug("GetLeader", "error", errGetLeader)
-			return "", errGetLeader
+			return nil, errGetLeader
 		}
+
+		return []byte(leader), nil
 	}
 
-	return leader, nil
+	for _, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
+			continue
+		}
+
+		return pkBytes, nil
+	}
+
+	return []byte(sr.SelfPubKey()), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

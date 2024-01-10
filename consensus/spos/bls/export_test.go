@@ -288,8 +288,8 @@ func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 }
 
 // CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
-func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte) {
-	sr.createAndBroadcastHeaderFinalInfo(signature, bitmap, leaderSignature)
+func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte, pk []byte) {
+	sr.createAndBroadcastHeaderFinalInfoForKey(signature, bitmap, leaderSignature, pk)
 }
 
 // ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
