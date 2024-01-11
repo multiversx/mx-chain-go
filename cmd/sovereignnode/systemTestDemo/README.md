@@ -32,8 +32,8 @@ INFO [2023-04-24 17:08:42.024] [..overeign-process] [0/0/106/(END_ROUND)] found 
 ```
 
 Inside this folder, there is a `main.go` script which sends a transaction to one of the subscribed sovereign addresses.
-The address is specified by `Addresses` field from `SubscribedEvents` struct where identifier = "deposit" from this config
-file `mx-chain-go/cmd/sovereignnode/config/sovereignConfig.toml`
+The address is specified by `Addresses` field from `SubscribedEvents` struct where identifier = "deposit" from this
+config file `mx-chain-go/cmd/sovereignnode/config/sovereignConfig.toml`
 
 ## How to use
 
@@ -95,8 +95,9 @@ triggers the transmission of blocks, starting from an arbitrary nonce, with inco
 Each event includes the transfer of an NFT and an ESDT token. The periodic transmission consists of 2 NFTs
 (ASH-a642d1-01 & ASH-a642d1-02) and one ESDT token (WEGLD-bd4d79).
 
-To verify the success of token transfers, you can utilize the sovereign proxy for the subscribed address where identifier = "deposit", which can be
-found in the [sovereignConfig.toml](../../sovereignnode/config/sovereignConfig.toml) file. By using the following API
+To verify the success of token transfers, you can utilize the sovereign proxy for the subscribed address where
+identifier = "deposit", which can be found in
+the [sovereignConfig.toml](../../sovereignnode/config/sovereignConfig.toml) file. By using the following API
 endpoint: `http://127.0.0.1:7950/address/:subscribed-address/esdt`, you can check the status of the token transfers.
 It's important to note that the blocks are sent with an arbitrary period between them, allowing for flexibility in the
 testing process.
