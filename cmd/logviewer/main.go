@@ -30,10 +30,13 @@ type config struct {
 	workingDir         string
 	address            string
 	logLevel           string
+	certFile           string
+	certPkFile         string
 	logSave            bool
 	useWss             bool
 	logWithCorrelation bool
 	logWithLoggerName  bool
+	withTLS            bool
 }
 
 var (
@@ -100,6 +103,23 @@ VERSION:
 		Value:       "",
 		Destination: &argsConfig.workingDir,
 	}
+	withTLS = cli.BoolFlag{
+		Name:        "with-tls",
+		Usage:       "Will use tls connection with the server",
+		Destination: &argsConfig.withTLS,
+	}
+	certFile = cli.StringFlag{
+		Name:        "cert",
+		Usage:       "Certificate file for tls connection",
+		Value:       "certificate.crt",
+		Destination: &argsConfig.certFile,
+	}
+	certPkFile = cli.StringFlag{
+		Name:        "cert-pk",
+		Usage:       "Certificate pk file for tls connection",
+		Value:       "private_key.pem",
+		Destination: &argsConfig.certPkFile,
+	}
 
 	argsConfig = &config{}
 
@@ -140,6 +160,9 @@ func initCliFlags() {
 		useWss,
 		logWithCorrelation,
 		logWithLoggerName,
+		withTLS,
+		certFile,
+		certPkFile,
 	}
 	cliApp.Authors = []cli.Author{
 		{
@@ -258,7 +281,18 @@ func openWebSocket(address string) (*websocket.Conn, error) {
 		Path:   wsLogPath,
 	}
 
-	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	dialer := websocket.DefaultDialer
+
+	if argsConfig.withTLS {
+		cert, err := loadTLSClientConfig(argsConfig.certFile, argsConfig.certPkFile)
+		if err != nil {
+			return nil, err
+		}
+
+		dialer.TLSClientConfig = cert
+	}
+
+	conn, _, err := dialer.Dial(u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
