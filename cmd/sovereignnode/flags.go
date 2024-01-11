@@ -130,6 +130,16 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for sovereign configuration.",
 		Value: "./config/sovereignConfig.toml",
 	}
+	sovereignBridgeCertificateFile = cli.StringFlag{
+		Name:  "certificate",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign outgoing bridge certificate file.",
+		Value: "./config/certificate.crt",
+	}
+	sovereignBridgeCertificatePkFile = cli.StringFlag{
+		Name:  "certificate-pk",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign outgoing bridge private key certificate file.",
+		Value: "./config/private_key.pem",
+	}
 	// port defines a flag for setting the port on which the node will listen for connections on the main network
 	port = cli.StringFlag{
 		Name: "port",
@@ -440,6 +450,8 @@ func getFlags() []cli.Flag {
 		allValidatorKeysPemFile,
 		notifierConfigFile,
 		sovereignConfigFile,
+		sovereignBridgeCertificateFile,
+		sovereignBridgeCertificatePkFile,
 		port,
 		fullArchivePort,
 		profileMode,

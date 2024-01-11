@@ -33,6 +33,12 @@ copyConfig() {
   if [[ $MULTI_KEY_NODES -eq 1 ]]; then
     mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
   fi
+
+  if [ "$SOVEREIGN_DEPLOY" = true ]; then
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/private_key.pem ./node/config
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/certificate.crt ./node/config
+  fi
+
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }

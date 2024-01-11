@@ -18,8 +18,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	"github.com/urfave/cli"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // Before merging anything into feat/chain-go-sdk, please try a "stress" system test with a local testnet and this notifier.
@@ -33,6 +35,9 @@ import (
 //   + bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(headerHandler.GetRandSeed()))
 //   + bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(headerHandler.GetRandSeed()))
 //   + outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
+//
+// If you are running with a local testnet and need the necessary certificate files to mock bridge operations, you
+// can find them(certificate.crt + private_key.pem) within testnet environment setup at ~MultiversX/testnet/node/config
 
 func main() {
 	app := cli.NewApp()
@@ -156,7 +161,17 @@ func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
 		return nil, nil, err
 	}
 
-	grpcServer := grpc.NewServer()
+	tlsConfig, err := cert.LoadTLSServerConfig(cert.FileCfg{
+		CertFile: "certificate.crt",
+		PkFile:   "private_key.pem",
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	tlsCredentials := credentials.NewTLS(tlsConfig)
+	grpcServer := grpc.NewServer(
+		grpc.Creds(tlsCredentials),
+	)
 	mockedServer := NewMockServer()
 	sovereign.RegisterBridgeTxSenderServer(grpcServer, mockedServer)
 
