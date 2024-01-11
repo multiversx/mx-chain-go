@@ -129,7 +129,11 @@ func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*confirmed
 		// confirmation.
 		err := ihp.outGoingPool.ConfirmOperation(op.hashOfHashes, op.hash)
 		if err != nil {
-			log.Debug("incomingHeaderProcessor.AddHeader.addConfirmedBridgeOpsToPool", "error", err)
+			log.Debug("incomingHeaderProcessor.AddHeader.addConfirmedBridgeOpsToPool",
+				"error", err,
+				"hashOfHashes", hex.EncodeToString(op.hashOfHashes),
+				"hash", hex.EncodeToString(op.hash),
+			)
 		}
 	}
 }
