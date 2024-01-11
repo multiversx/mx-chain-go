@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
 )
 
 const (
@@ -25,32 +23,43 @@ const (
 	topicIDDeposit          = "deposit"
 )
 
+type confirmedBridgeOp struct {
+	hashOfHashes []byte
+	hash         []byte
+}
+
 type scrInfo struct {
 	scr  *smartContractResult.SmartContractResult
 	hash []byte
 }
 
-type incomingEventsProcessor struct {
-	txPool     TransactionPool
-	marshaller marshal.Marshalizer
-	hasher     hashing.Hasher
-	pool       block.OutGoingOperationsPool
+type eventsResult struct {
+	scrs               []*scrInfo
+	confirmedBridgeOps []*confirmedBridgeOp
 }
 
-func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) ([]*scrInfo, error) {
+type incomingEventsProcessor struct {
+	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
+}
+
+func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
 	scrs := make([]*scrInfo, 0, len(events))
+	confirmedBridgeOps := make([]*confirmedBridgeOp, 0, len(events))
 
 	for idx, event := range events {
 		topics := event.GetTopics()
 
 		var scr *scrInfo
+		var confirmedOp *confirmedBridgeOp
 		var err error
 		switch string(event.GetIdentifier()) {
 		case topicIDDeposit:
 			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
 		case topicIDExecutedBridgeOp:
-			err = iep.confirmBridgeOperation(topics)
+			confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
+			confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
 		default:
 			return nil, errInvalidIncomingEventIdentifier
 		}
@@ -60,7 +69,10 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		}
 	}
 
-	return scrs, nil
+	return &eventsResult{
+		scrs:               scrs,
+		confirmedBridgeOps: confirmedBridgeOps,
+	}, nil
 }
 
 func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
@@ -114,20 +126,13 @@ func createSCRData(topics [][]byte) []byte {
 	return ret
 }
 
-func (iep *incomingEventsProcessor) addSCRsToPool(scrs []*scrInfo) {
-	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
-
-	for _, scrData := range scrs {
-		iep.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
-	}
-}
-
-func (iep *incomingEventsProcessor) confirmBridgeOperation(topics [][]byte) error {
+func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
 	if len(topics) != numExecutedBridgeOpTopics {
-		return fmt.Errorf("%w for %s", errInvalidNumTopicsIncomingEvent, topicIDExecutedBridgeOp)
+		return nil, fmt.Errorf("%w for %s", errInvalidNumTopicsIncomingEvent, topicIDExecutedBridgeOp)
 	}
 
-	hashOfHashes := topics[0]
-	hash := topics[1]
-	return iep.pool.ConfirmOperation(hashOfHashes, hash)
+	return &confirmedBridgeOp{
+		hashOfHashes: topics[0],
+		hash:         topics[1],
+	}, nil
 }
