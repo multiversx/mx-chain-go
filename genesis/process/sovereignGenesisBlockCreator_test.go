@@ -168,17 +168,19 @@ func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 
 	loadAccountWasCalled := false
 	saveAccountWasCalled := false
-	var systemAccountLoaded []byte
 	accountsAdapter := &state.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			loadAccountWasCalled = true
-			if systemAccountLoaded == nil { // first loaded account saved (from initSystemAccount)
-				systemAccountLoaded = address
+			if !loadAccountWasCalled { // first loaded account
+				loadAccountWasCalled = true
+				require.Equal(t, core.SystemAccountAddress, address)
 			}
 			return state.NewAccountWrapMock(address), nil
 		},
 		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
-			saveAccountWasCalled = true
+			if !saveAccountWasCalled { // first saved account
+				saveAccountWasCalled = true
+				require.Equal(t, core.SystemAccountAddress, account.AddressBytes())
+			}
 			return nil
 		},
 	}
@@ -192,5 +194,4 @@ func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 	require.NotNil(t, sgbc)
 	require.True(t, loadAccountWasCalled)
 	require.True(t, saveAccountWasCalled)
-	require.Equal(t, systemAccountLoaded, core.SystemAccountAddress)
 }
