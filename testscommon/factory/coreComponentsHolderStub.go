@@ -55,6 +55,7 @@ type CoreComponentsHolderStub struct {
 	HardforkTriggerPubKeyCalled         func() []byte
 	EnableEpochsHandlerCalled           func() common.EnableEpochsHandler
 	RoundNotifierCalled                 func() process.RoundNotifier
+	PersisterFactoryCalled              func() storage.PersisterFactoryHandler
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -95,6 +96,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		HardforkTriggerPubKeyCalled:         coreComponents.HardforkTriggerPubKey,
 		EnableEpochsHandlerCalled:           coreComponents.EnableEpochsHandler,
 		RoundNotifierCalled:                 coreComponents.RoundNotifier,
+		PersisterFactoryCalled:              coreComponents.PersisterFactory,
 	}
 }
 
@@ -374,6 +376,14 @@ func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsH
 func (stub *CoreComponentsHolderStub) RoundNotifier() process.RoundNotifier {
 	if stub.RoundNotifierCalled != nil {
 		return stub.RoundNotifierCalled()
+	}
+	return nil
+}
+
+// PersisterFactory -
+func (stub *CoreComponentsHolderStub) PersisterFactory() storage.PersisterFactoryHandler {
+	if stub.PersisterFactoryCalled != nil {
+		return stub.PersisterFactoryCalled()
 	}
 	return nil
 }
