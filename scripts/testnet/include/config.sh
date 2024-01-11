@@ -12,8 +12,8 @@ generateConfig() {
   if [ $USE_HARDFORK -eq 1 ]; then
     SOVEREIGN_BOOL="true"
   fi
-  pushd $TESTNETDIR/filegen
 
+  pushd $TESTNETDIR/filegen
   ./filegen \
     -output-directory $CONFIGGENERATOROUTPUTDIR               \
     -num-of-shards $SHARDCOUNT                                \
