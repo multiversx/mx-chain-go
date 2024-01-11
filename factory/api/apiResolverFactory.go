@@ -27,7 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/economics"
-	factory2 "github.com/multiversx/mx-chain-go/process/factory"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -501,12 +501,12 @@ func addSystemVMToContainer(args *scQueryElementArgs, vmContainer process.Virtua
 		return err
 	}
 
-	vmMeta, err := vmContainerMeta.Get(factory2.SystemVirtualMachine)
+	vmMeta, err := vmContainerMeta.Get(processFactory.SystemVirtualMachine)
 	if err != nil {
 		return err
 	}
 
-	err = vmContainer.Add(factory2.SystemVirtualMachine, vmMeta)
+	err = vmContainer.Add(processFactory.SystemVirtualMachine, vmMeta)
 	if err != nil {
 		return err
 	}
