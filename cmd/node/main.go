@@ -106,11 +106,6 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return errCfgOverride
 	}
 
-	errCheckEpochsCfg := config.SanityCheckEnableEpochsStakingV4(cfgs)
-	if errCheckEpochsCfg != nil {
-		return errCheckEpochsCfg
-	}
-
 	if !check.IfNil(fileLogging) {
 		timeLogLifeSpan := time.Second * time.Duration(cfgs.GeneralConfig.Logs.LogFileLifeSpanInSec)
 		sizeLogLifeSpanInMB := uint64(cfgs.GeneralConfig.Logs.LogFileLifeSpanInMB)

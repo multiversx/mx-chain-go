@@ -4,14 +4,47 @@ import (
 	"fmt"
 )
 
-// SanityCheckEnableEpochsStakingV4 checks if the enable epoch configs for stakingV4 are set correctly
-func SanityCheckEnableEpochsStakingV4(cfg *Configs) error {
-	enableEpochsCfg := cfg.EpochConfig.EnableEpochs
+// SanityCheckNodesConfig checks if the nodes limit setup is set correctly
+func SanityCheckNodesConfig(
+	nodesSetup NodesSetupHandler,
+	cfg EnableEpochs,
+) error {
+	maxNodesChange := cfg.MaxNodesChangeEnableEpoch
+	for _, maxNodesConfig := range maxNodesChange {
+		err := checkMaxNodesConfig(nodesSetup, maxNodesConfig)
+		if err != nil {
+			return fmt.Errorf("%w in MaxNodesChangeConfig at EpochEnable = %d", err, maxNodesConfig.EpochEnable)
+		}
+	}
+
+	return sanityCheckEnableEpochsStakingV4(cfg, nodesSetup.NumberOfShards())
+}
+
+func checkMaxNodesConfig(
+	nodesSetup NodesSetupHandler,
+	maxNodesConfig MaxNodesChangeConfig,
+) error {
+	nodesToShufflePerShard := maxNodesConfig.NodesToShufflePerShard
+	if nodesToShufflePerShard == 0 {
+		return errZeroNodesToShufflePerShard
+	}
+
+	maxNumNodes := maxNodesConfig.MaxNumNodes
+	minNumNodesWithHysteresis := nodesSetup.MinNumberOfNodesWithHysteresis()
+	if maxNumNodes < minNumNodesWithHysteresis {
+		return fmt.Errorf("%w, maxNumNodes: %d, minNumNodesWithHysteresis: %d",
+			errInvalidMaxMinNodes, maxNumNodes, minNumNodesWithHysteresis)
+	}
+
+	return nil
+}
+
+// sanityCheckEnableEpochsStakingV4 checks if the enable epoch configs for stakingV4 are set correctly
+func sanityCheckEnableEpochsStakingV4(enableEpochsCfg EnableEpochs, numOfShards uint32) error {
 	if !areStakingV4StepsInOrder(enableEpochsCfg) {
 		return errStakingV4StepsNotInOrder
 	}
 
-	numOfShards := cfg.GeneralConfig.GeneralSettings.GenesisMaxNumberOfShards
 	return checkStakingV4MaxNodesChangeCfg(enableEpochsCfg, numOfShards)
 }
 
@@ -64,40 +97,6 @@ func checkMaxNodesChangedCorrectly(prevMaxNodesChange MaxNodesChangeConfig, curr
 	if expectedMaxNumNodes != currMaxNodesChange.MaxNumNodes {
 		return fmt.Errorf("expected MaxNodesChangeEnableEpoch.MaxNumNodes for StakingV4Step3EnableEpoch = %d, but got %d",
 			expectedMaxNumNodes, currMaxNodesChange.MaxNumNodes)
-	}
-
-	return nil
-}
-
-// SanityCheckNodesConfig checks if the nodes limit setup is set correctly
-func SanityCheckNodesConfig(
-	nodesSetup NodesSetupHandler,
-	maxNodesChange []MaxNodesChangeConfig,
-) error {
-	for _, maxNodesConfig := range maxNodesChange {
-		err := checkMaxNodesConfig(nodesSetup, maxNodesConfig)
-		if err != nil {
-			return fmt.Errorf("%w in MaxNodesChangeConfig at EpochEnable = %d", err, maxNodesConfig.EpochEnable)
-		}
-	}
-
-	return nil
-}
-
-func checkMaxNodesConfig(
-	nodesSetup NodesSetupHandler,
-	maxNodesConfig MaxNodesChangeConfig,
-) error {
-	nodesToShufflePerShard := maxNodesConfig.NodesToShufflePerShard
-	if nodesToShufflePerShard == 0 {
-		return errZeroNodesToShufflePerShard
-	}
-
-	maxNumNodes := maxNodesConfig.MaxNumNodes
-	minNumNodesWithHysteresis := nodesSetup.MinNumberOfNodesWithHysteresis()
-	if maxNumNodes < minNumNodesWithHysteresis {
-		return fmt.Errorf("%w, maxNumNodes: %d, minNumNodesWithHysteresis: %d",
-			errInvalidMaxMinNodes, maxNumNodes, minNumNodesWithHysteresis)
 	}
 
 	return nil
