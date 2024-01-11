@@ -158,7 +158,7 @@
     FrontRunningProtectionEnableEpoch = 1
 
     # IsPayableBySCEnableEpoch represents the epoch when a new flag isPayable by SC is enabled
-    IsPayableBySCEnableEpoch = 1
+    IsPayableBySCEnableEpoch = 0
 
     # CleanUpInformativeSCRsEnableEpoch represents the epoch when the informative-only scrs are cleaned from miniblocks and logs are created from them
     CleanUpInformativeSCRsEnableEpoch = 0
