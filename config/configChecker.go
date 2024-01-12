@@ -2,7 +2,11 @@ package config
 
 import (
 	"fmt"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("config-checker")
 
 // SanityCheckNodesConfig checks if the nodes limit setup is set correctly
 func SanityCheckNodesConfig(
@@ -66,8 +70,9 @@ func checkStakingV4MaxNodesChangeCfg(enableEpochsCfg EnableEpochs, numOfShards u
 			maxNodesConfigAdaptedForStakingV4 = true
 
 			if idx == 0 {
-				return fmt.Errorf("found config change in MaxNodesChangeEnableEpoch for StakingV4Step3EnableEpoch = %d, but %w ",
-					enableEpochsCfg.StakingV4Step3EnableEpoch, errNoMaxNodesConfigBeforeStakingV4)
+				log.Warn(fmt.Errorf("found config change in MaxNodesChangeEnableEpoch for StakingV4Step3EnableEpoch = %d, but %w ",
+					enableEpochsCfg.StakingV4Step3EnableEpoch, errNoMaxNodesConfigBeforeStakingV4).Error())
+				break
 			}
 
 			prevMaxNodesChange := maxNodesChangeCfg[idx-1]

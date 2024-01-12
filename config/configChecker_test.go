@@ -125,7 +125,7 @@ func TestSanityCheckEnableEpochsStakingV4(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "6"))
 	})
 
-	t.Run("max nodes config change for StakingV4Step3EnableEpoch has no previous config change, should return error", func(t *testing.T) {
+	t.Run("max nodes config change for StakingV4Step3EnableEpoch has no previous config change, should not error", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := generateCorrectConfig()
@@ -143,8 +143,7 @@ func TestSanityCheckEnableEpochsStakingV4(t *testing.T) {
 		}
 
 		err := sanityCheckEnableEpochsStakingV4(cfg, numOfShards)
-		require.NotNil(t, err)
-		require.ErrorIs(t, err, errNoMaxNodesConfigBeforeStakingV4)
+		require.Nil(t, err)
 	})
 
 	t.Run("stakingV4 config for max nodes changed with different nodes to shuffle, should return error", func(t *testing.T) {
