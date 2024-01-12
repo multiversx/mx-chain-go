@@ -43,7 +43,6 @@ func NewShardStorageHandler(
 	nodeProcessingMode common.NodeProcessingMode,
 	managedPeersHolder common.ManagedPeersHolder,
 	stateStatsHandler common.StateStatisticsHandler,
-	persisterFactory storage.PersisterFactoryHandler,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -61,7 +60,6 @@ func NewShardStorageHandler(
 			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:            managedPeersHolder,
 			StateStatsHandler:             stateStatsHandler,
-			PersisterFactory:              persisterFactory,
 		},
 	)
 	if err != nil {

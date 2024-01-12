@@ -76,7 +76,6 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 		CreateTrieEpochRootHashStorer: true,
 		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 		StateStatsHandler:             disabledStatistics.NewStateStatistics(),
-		PersisterFactory:              NewPersisterFactoryHandler(2, 1),
 	}
 }
 

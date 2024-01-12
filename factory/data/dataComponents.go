@@ -175,7 +175,6 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			RepopulateTokensSupplies:      dcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
 			StateStatsHandler:             dcf.statusCore.StateStatsHandler(),
-			PersisterFactory:              dcf.core.PersisterFactory(),
 		})
 	if err != nil {
 		return nil, err

@@ -5,7 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -13,15 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createPersisterFactory(config config.DBConfig) (storage.PersisterCreator, error) {
-	pfh := factory.NewPersisterFactoryHandler(2, 1)
-	return pfh.CreatePersisterHandler(config)
-}
-
 func TestNewPersisterFactory(t *testing.T) {
 	t.Parallel()
 
-	pf, err := createPersisterFactory(createDefaultDBConfig())
+	pf, err := factory.NewPersisterFactory(createDefaultDBConfig())
 	require.NotNil(t, pf)
 	require.Nil(t, err)
 }
@@ -32,7 +26,7 @@ func TestPersisterFactory_Create(t *testing.T) {
 	t.Run("invalid file path, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		pf, _ := createPersisterFactory(createDefaultDBConfig())
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 
 		p, err := pf.Create("")
 		require.Nil(t, p)
@@ -42,7 +36,7 @@ func TestPersisterFactory_Create(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		pf, _ := createPersisterFactory(createDefaultDBConfig())
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 
 		dir := t.TempDir()
 
@@ -58,7 +52,7 @@ func TestPersisterFactory_CreateWithRetries(t *testing.T) {
 	t.Run("invalid file path, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		pf, _ := createPersisterFactory(createDefaultDBConfig())
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 
 		p, err := pf.CreateWithRetries("")
 		require.Nil(t, p)
@@ -68,7 +62,7 @@ func TestPersisterFactory_CreateWithRetries(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		pf, _ := createPersisterFactory(createDefaultDBConfig())
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 
 		dir := t.TempDir()
 
@@ -86,7 +80,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.LvlDB)
-		pf, _ := createPersisterFactory(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -105,7 +99,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.LvlDBSerial)
-		pf, _ := createPersisterFactory(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -124,7 +118,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.MemoryDB)
-		pf, _ := createPersisterFactory(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -143,7 +137,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 
 		dbConfig := createDefaultBasePersisterConfig()
 		dbConfig.Type = string(storageunit.MemoryDB)
-		pf, _ := createPersisterFactory(dbConfig)
+		pf, _ := factory.NewPersisterFactory(dbConfig)
 
 		dir := t.TempDir()
 		path := dir + "storer/"
@@ -160,7 +154,7 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 func TestPersisterFactory_CreateDisabled(t *testing.T) {
 	t.Parallel()
 
-	factoryInstance, err := createPersisterFactory(createDefaultDBConfig())
+	factoryInstance, err := factory.NewPersisterFactory(createDefaultDBConfig())
 	require.Nil(t, err)
 
 	persisterInstance := factoryInstance.CreateDisabled()
@@ -171,6 +165,6 @@ func TestPersisterFactory_CreateDisabled(t *testing.T) {
 func TestPersisterFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	pf, _ := createPersisterFactory(createDefaultDBConfig())
+	pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
 	require.False(t, pf.IsInterfaceNil())
 }

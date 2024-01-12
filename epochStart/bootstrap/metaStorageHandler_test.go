@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -25,10 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func newPersisterFactory() storage.PersisterFactoryHandler {
-	return factory.NewPersisterFactoryHandler(2, 1)
-}
 
 func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 	gCfg := config.Config{}
@@ -54,7 +49,6 @@ func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
 		common.Normal,
 		managedPeersHolder,
 		disabled.NewStateStatistics(),
-		newPersisterFactory(),
 	)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
@@ -87,7 +81,6 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		common.Normal,
 		managedPeersHolder,
 		disabled.NewStateStatistics(),
-		newPersisterFactory(),
 	)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
@@ -121,7 +114,6 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		common.Normal,
 		managedPeersHolder,
 		disabled.NewStateStatistics(),
-		newPersisterFactory(),
 	)
 
 	header := &block.MetaBlock{Nonce: 0}
@@ -164,7 +156,6 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		common.Normal,
 		managedPeersHolder,
 		disabled.NewStateStatistics(),
-		newPersisterFactory(),
 	)
 
 	hdr1 := &block.Header{Nonce: 1}
@@ -213,7 +204,6 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		common.Normal,
 		managedPeersHolder,
 		disabled.NewStateStatistics(),
-		newPersisterFactory(),
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -253,7 +243,6 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		common.Normal,
 		managedPeersHolder,
 		disabled.NewStateStatistics(),
-		newPersisterFactory(),
 	)
 
 	components := &ComponentsNeededForBootstrap{
@@ -310,7 +299,6 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			common.Normal,
 			managedPeersHolder,
 			disabled.NewStateStatistics(),
-			newPersisterFactory(),
 		)
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{

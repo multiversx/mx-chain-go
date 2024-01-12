@@ -165,7 +165,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	unitOpener, err := createUnitOpener(
 		bootstrapDataProvider,
 		latestStorageDataProvider,
-		bcf.coreComponents.PersisterFactory(),
 		storage.DefaultEpochString,
 		storage.DefaultShardString,
 	)
@@ -338,14 +337,12 @@ func createLatestStorageDataProvider(
 func createUnitOpener(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
-	persisterFactory storage.PersisterFactoryHandler,
 	defaultEpochString string,
 	defaultShardString string,
 ) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
-		PersisterFactory:          persisterFactory,
 		DefaultEpochString:        defaultEpochString,
 		DefaultShardString:        defaultShardString,
 	}

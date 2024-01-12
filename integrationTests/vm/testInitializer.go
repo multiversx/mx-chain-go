@@ -61,7 +61,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
-	"github.com/multiversx/mx-chain-go/testscommon/persister"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
@@ -421,7 +420,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasSchedule:              gasScheduleNotifier,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
-		PersisterFactory:         persister.NewPersisterFactory(),
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -530,7 +528,6 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		GasSchedule:              CreateMockGasScheduleNotifier(),
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
-		PersisterFactory:         persister.NewPersisterFactory(),
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, integrationtests.TestHasher)
@@ -602,7 +599,6 @@ func CreateVMAndBlockchainHookAndDataPool(
 		GasSchedule:              gasSchedule,
 		Counter:                  counter,
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
-		PersisterFactory:         persister.NewPersisterFactory(),
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -692,7 +688,6 @@ func CreateVMAndBlockchainHookMeta(
 		GasSchedule:              gasSchedule,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
-		PersisterFactory:         persister.NewPersisterFactory(),
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{})

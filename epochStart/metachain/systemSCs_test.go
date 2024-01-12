@@ -47,7 +47,6 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/persister"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -87,7 +86,7 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		MaxOpenFiles:      10,
 	}
 
-	pfh := persister.NewPersisterFactory()
+	pfh := storageMock.NewPersisterFactory()
 	persisterFactory, err := pfh.CreatePersisterHandler(dbConfig)
 	assert.Nil(t, err)
 
@@ -989,7 +988,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		GasSchedule:              gasScheduleNotifier,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
-		PersisterFactory:         persister.NewPersisterFactory(),
+		PersisterFactory:         storageMock.NewPersisterFactory(),
 	}
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)

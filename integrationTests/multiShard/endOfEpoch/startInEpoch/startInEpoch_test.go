@@ -296,7 +296,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			NodeProcessingMode:            common.Normal,
 			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
 			StateStatsHandler:             disabled.NewStateStatistics(),
-			PersisterFactory:              coreComponents.PersisterFactoryField,
 		},
 	)
 	assert.NoError(t, err)
