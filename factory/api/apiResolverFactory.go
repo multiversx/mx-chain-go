@@ -125,6 +125,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	if check.IfNilReflect(args.DirectStakedListFactoryHandler) {
 		return nil, factory.ErrNilDirectStakedListFactory
 	}
+	if check.IfNilReflect(args.TotalStakedValueFactoryHandler) {
+		return nil, factory.ErrNilTotalStakedValueFactory
+	}
 
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:         args.Configs.GeneralConfig,
