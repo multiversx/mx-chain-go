@@ -52,8 +52,8 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 	})
 }
 
-// CreateArgsSCQueryService - create the args for SC Query Service
-func CreateArgsSCQueryService(args SCQueryElementArgs) (smartContract.ArgsNewSCQueryService, error) {
+// CreateArgsSCQueryService -
+func CreateArgsSCQueryService(args SCQueryElementArgs) (*smartContract.ArgsNewSCQueryService, error) {
 	return createArgsSCQueryService(&scQueryElementArgs{
 		generalConfig:         args.GeneralConfig,
 		epochConfig:           args.EpochConfig,
