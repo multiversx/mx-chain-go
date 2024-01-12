@@ -527,12 +527,7 @@ func addSystemVMToContainerIfNeeded(args *scQueryElementArgs, vmContainer proces
 		return err
 	}
 
-	err = vmContainer.Add(processFactory.SystemVirtualMachine, vmMeta)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return vmContainer.Add(processFactory.SystemVirtualMachine, vmMeta)
 }
 
 func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (process.VirtualMachinesContainerFactory, error) {
