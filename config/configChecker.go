@@ -28,11 +28,6 @@ func checkMaxNodesConfig(
 	nodesSetup NodesSetupHandler,
 	maxNodesConfig MaxNodesChangeConfig,
 ) error {
-	nodesToShufflePerShard := maxNodesConfig.NodesToShufflePerShard
-	if nodesToShufflePerShard == 0 {
-		return errZeroNodesToShufflePerShard
-	}
-
 	maxNumNodes := maxNodesConfig.MaxNumNodes
 	minNumNodesWithHysteresis := nodesSetup.MinNumberOfNodesWithHysteresis()
 	if maxNumNodes < minNumNodesWithHysteresis {
@@ -60,7 +55,7 @@ func areStakingV4StepsInOrder(enableEpochsCfg EnableEpochs) bool {
 func checkStakingV4MaxNodesChangeCfg(enableEpochsCfg EnableEpochs, numOfShards uint32) error {
 	maxNodesChangeCfg := enableEpochsCfg.MaxNodesChangeEnableEpoch
 	if len(maxNodesChangeCfg) <= 1 {
-		return errNotEnoughMaxNodesChanges
+		return nil
 	}
 
 	maxNodesConfigAdaptedForStakingV4 := false

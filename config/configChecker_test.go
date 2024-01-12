@@ -86,7 +86,7 @@ func TestSanityCheckEnableEpochsStakingV4(t *testing.T) {
 		require.Equal(t, errStakingV4StepsNotInOrder, err)
 	})
 
-	t.Run("no previous config for max nodes change, should return error", func(t *testing.T) {
+	t.Run("no previous config for max nodes change with one entry, should not return error", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := generateCorrectConfig()
@@ -99,7 +99,7 @@ func TestSanityCheckEnableEpochsStakingV4(t *testing.T) {
 		}
 
 		err := sanityCheckEnableEpochsStakingV4(cfg, numOfShards)
-		require.Equal(t, errNotEnoughMaxNodesChanges, err)
+		require.Nil(t, err)
 	})
 
 	t.Run("no max nodes config change for StakingV4Step3EnableEpoch, should return error", func(t *testing.T) {
@@ -278,13 +278,18 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("zero nodes to shuffle per shard, should return error", func(t *testing.T) {
+	t.Run("zero nodes to shuffle per shard, should not return error", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := generateCorrectConfig()
 		cfg.MaxNodesChangeEnableEpoch = []MaxNodesChangeConfig{
 			{
 				EpochEnable:            4,
+				MaxNumNodes:            3200,
+				NodesToShufflePerShard: 0,
+			},
+			{
+				EpochEnable:            6,
 				MaxNumNodes:            3200,
 				NodesToShufflePerShard: 0,
 			},
@@ -296,9 +301,7 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 			MinNumberOfShardNodesField: 400,
 		}
 		err := SanityCheckNodesConfig(nodesSetup, cfg)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(err.Error(), errZeroNodesToShufflePerShard.Error()))
-		require.True(t, strings.Contains(err.Error(), "at EpochEnable = 4"))
+		require.Nil(t, err)
 	})
 
 	t.Run("maxNumNodes < minNumNodesWithHysteresis, should return error ", func(t *testing.T) {
