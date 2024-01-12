@@ -24,9 +24,9 @@ func (pfh *persisterFactoryHandler) CreatePersisterHandler(config config.DBConfi
 	dbConfigHandler := NewDBConfigHandler(config)
 
 	return &persisterFactory{
-		dbConfigHandler:         dbConfigHandler,
-		maxRetriesToCreateDB:    pfh.maxRetriesToCreateDB,
-		sleepTimeBetweenRetries: time.Second * time.Duration(pfh.sleepTimeBetweenRetriesInSec),
+		dbConfigHandler:              dbConfigHandler,
+		maxRetriesToCreateDB:         pfh.maxRetriesToCreateDB,
+		sleepTimeBetweenRetriesInSec: pfh.sleepTimeBetweenRetriesInSec,
 	}, nil
 }
 
@@ -37,9 +37,9 @@ func (pfh *persisterFactoryHandler) IsInterfaceNil() bool {
 
 // persisterFactory is the factory which will handle creating new databases
 type persisterFactory struct {
-	maxRetriesToCreateDB    uint32
-	sleepTimeBetweenRetries time.Duration
-	dbConfigHandler         storage.DBConfigHandler
+	maxRetriesToCreateDB         uint32
+	sleepTimeBetweenRetriesInSec uint32
+	dbConfigHandler              storage.DBConfigHandler
 }
 
 // CreateWithRetries will return a new instance of a DB with a given path
@@ -48,14 +48,15 @@ func (pf *persisterFactory) CreateWithRetries(path string) (storage.Persister, e
 	var persister storage.Persister
 	var err error
 
-	for i := uint32(0); i < pf.maxRetriesToCreateDB; i++ {
+	for i := 0; i < storage.MaxRetriesToCreateDB; i++ {
 		persister, err = pf.Create(path)
 		if err == nil {
 			return persister, nil
 		}
 		log.Warn("Create Persister failed", "path", path, "error", err)
 
-		time.Sleep(pf.sleepTimeBetweenRetries)
+		// TODO: extract this in a parameter and inject it
+		time.Sleep(storage.SleepTimeBetweenCreateDBRetries)
 	}
 
 	return nil, err

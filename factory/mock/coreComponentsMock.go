@@ -56,7 +56,6 @@ type CoreComponentsMock struct {
 	ProcessStatusHandlerInternal common.ProcessStatusHandler
 	HardforkTriggerPubKeyField   []byte
 	EnableEpochsHandlerField     common.EnableEpochsHandler
-	PersisterFactoryField        storage.PersisterFactoryHandler
 }
 
 // InternalMarshalizer -
@@ -245,11 +244,6 @@ func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
 // EnableEpochsHandler -
 func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	return ccm.EnableEpochsHandlerField
-}
-
-// PersisterFactory -
-func (ccm *CoreComponentsMock) PersisterFactory() storage.PersisterFactoryHandler {
-	return ccm.PersisterFactoryField
 }
 
 // IsInterfaceNil -
