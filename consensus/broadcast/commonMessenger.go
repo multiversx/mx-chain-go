@@ -125,7 +125,7 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte, pkB
 	for k, v := range miniBlocks {
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
-
+		log.Debug("commonMessenger.BroadcastMiniBlocks", "topic", miniBlocksTopic, "k", k, "v", v)
 		cm.broadcast(miniBlocksTopic, v, pkBytes)
 	}
 
@@ -156,6 +156,7 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 		}
 
 		for _, buff := range packets {
+			log.Debug("commonMessenger.BroadcastTransactions", "topic", topic, "len", len(v))
 			cm.broadcast(topic, buff, pkBytes)
 		}
 	}
@@ -177,7 +178,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 	extraDelayForBroadcast time.Duration,
 ) {
 	time.Sleep(extraDelayForBroadcast)
-
+	log.Debug("commonMessenger.BroadcastMiniBlocks")
 	if len(miniBlocks) > 0 {
 		err := cm.BroadcastMiniBlocks(miniBlocks, pkBytes)
 		if err != nil {
@@ -187,6 +188,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 
 	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
+	log.Debug("commonMessenger.BroadcastTransactions")
 	if len(transactions) > 0 {
 		err := cm.BroadcastTransactions(transactions, pkBytes)
 		if err != nil {

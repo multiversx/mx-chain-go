@@ -108,7 +108,10 @@ func (af *p2pAntiflood) IsOriginatorEligibleForTopic(pid core.PeerID, topic stri
 		return nil
 	}
 
-	return process.ErrOnlyValidatorsCanUseThisTopic
+	log.Info("peer is not validator and can not send messages on topic")
+	return nil
+
+	//return process.ErrOnlyValidatorsCanUseThisTopic
 }
 
 // SetTopicsForAll sets the topics which are enabled for all

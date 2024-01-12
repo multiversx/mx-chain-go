@@ -754,7 +754,7 @@ func (n *Node) addBlocksToDataPool(blocks []*api.Block) {
 
 		nrTxs, err := n.SendBulkTransactions(txList)
 		if err != nil {
-			log.Warn("SendBulkTransactions did not work", "hash", b.Hash)
+			log.Warn("SendBulkTransactions did not work", "hash", b.Hash, "err", err)
 		}
 
 		log.Info("added blocksToDataPool", "size", n.dataComponents.Datapool().BlockTxs().Len(), "round", b.Round, "hash", b.Hash, "randSeed", b.RandSeed)

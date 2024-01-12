@@ -990,6 +990,7 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 
 		if check.IfNil(tx) {
 			missingTransactionsHashes = append(missingTransactionsHashes, txHash)
+			log.Info("missing transaction", "txHash", txHash)
 		}
 	}
 

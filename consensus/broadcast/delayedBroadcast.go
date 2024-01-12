@@ -497,6 +497,7 @@ func (dbb *delayedBlockBroadcaster) broadcastBlockData(
 ) {
 	time.Sleep(delay)
 
+	log.Debug("broadcasting miniblocks")
 	err := dbb.broadcastMiniblocksData(miniBlocks, pkBytes)
 	if err != nil {
 		log.Error("broadcastBlockData.broadcastMiniblocksData", "error", err.Error())
@@ -504,6 +505,7 @@ func (dbb *delayedBlockBroadcaster) broadcastBlockData(
 
 	time.Sleep(common.ExtraDelayBetweenBroadcastMbsAndTxs)
 
+	log.Debug("broadcasting transactions")
 	err = dbb.broadcastTxsData(transactions, pkBytes)
 	if err != nil {
 		log.Error("broadcastBlockData.broadcastTxsData", "error", err.Error())
