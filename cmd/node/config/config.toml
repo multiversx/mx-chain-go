@@ -694,9 +694,8 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.3" },
-            { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.4" },
+            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
 
     [VirtualMachine.Querying]
@@ -704,9 +703,8 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
-            { StartEpoch = 0, Version = "v1.3" },
-            { StartEpoch = 1, Version = "v1.4" },
-            { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+            { StartEpoch = 0, Version = "v1.4" },
+            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
 
     [VirtualMachine.GasConfig]
