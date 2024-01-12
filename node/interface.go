@@ -1,13 +1,13 @@
 package node
 
 import (
-	"github.com/multiversx/mx-chain-go/debug"
-	"github.com/multiversx/mx-chain-go/facade"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"io"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/update"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
