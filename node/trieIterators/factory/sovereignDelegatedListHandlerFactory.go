@@ -13,7 +13,7 @@ func NewSovereignDelegatedListProcessorFactory() *sovereignDelegatedListProcesso
 	return &sovereignDelegatedListProcessorFactory{}
 }
 
-// CreateDelegatedListProcessorHandler creates a new instance of DirectStakedListHandler
+// CreateDelegatedListProcessorHandler creates a new instance of delegated list processor for sovereign chains
 func (sd *sovereignDelegatedListProcessorFactory) CreateDelegatedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DelegatedListHandler, error) {
 	return trieIterators.NewDelegatedListProcessor(args)
 }

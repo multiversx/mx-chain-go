@@ -209,7 +209,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		QueryService:       tpn.SCQueryService,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
-	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := factory.NewTotalStakedListProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	log.LogIfError(err)
 
 	directStakedListHandler, err := factory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)

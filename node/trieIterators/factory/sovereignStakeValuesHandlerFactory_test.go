@@ -9,19 +9,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSovereignDelegatedListProcessorFactory(t *testing.T) {
+func TestNewSovereignTotalStakedValueProcessorFactory(t *testing.T) {
 	t.Parallel()
 
 	sovereignDelegatedListHandlerFactory := trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory()
 	require.False(t, sovereignDelegatedListHandlerFactory.IsInterfaceNil())
 }
 
-func TestSovereignDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler(t *testing.T) {
+func TestSovereignTotalStakedValueProcessorFactory_CreateSovereignTotalStakedValueProcessorHandler(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgs(core.SovereignChainShardId)
 
-	sovereignDelegatedListHandler, err := trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
+	sovereignDelegatedListHandler, err := trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	require.Nil(t, err)
-	require.Equal(t, "*trieIterators.delegatedListProcessor", fmt.Sprintf("%T", sovereignDelegatedListHandler))
+	require.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", sovereignDelegatedListHandler))
 }

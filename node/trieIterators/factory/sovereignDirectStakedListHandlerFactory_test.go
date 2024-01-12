@@ -2,15 +2,10 @@ package factory_test
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/node/trieIterators"
-	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/node/mock"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,18 +16,10 @@ func TestNewSovereignDirectStakedListProcessorFactory(t *testing.T) {
 	require.False(t, directStakedListHandlerFactory.IsInterfaceNil())
 }
 
-func TestSovereignDirectStakedListHandlerFactory_CreateDirectStakedListProcessorHandler_DirectStakedListHandlerFactory(t *testing.T) {
+func TestSovereignDirectStakedListHandlerFactory_CreateDirectStakedListProcessorHandler(t *testing.T) {
 	t.Parallel()
 
-	args := trieIterators.ArgTrieIteratorProcessor{
-		ShardID: core.MetachainShardId,
-		Accounts: &trieIterators.AccountsWrapper{
-			Mutex:           &sync.Mutex{},
-			AccountsAdapter: &stateMock.AccountsStub{},
-		},
-		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
-		QueryService:       &mock.SCQueryServiceStub{},
-	}
+	args := createMockArgs(core.SovereignChainShardId)
 
 	sovereignDirectStakedListHandler, err := trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	require.Nil(t, err)

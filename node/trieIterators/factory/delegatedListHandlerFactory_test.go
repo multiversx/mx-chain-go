@@ -14,30 +14,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDelegatedListProcessorFactory(t *testing.T) {
-	t.Parallel()
-
-	delegatedListHandlerFactory := trieIteratorsFactory.NewDelegatedListProcessorFactory()
-	require.False(t, delegatedListHandlerFactory.IsInterfaceNil())
-}
-
-func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler_Disabled(t *testing.T) {
-	t.Parallel()
-
-	args := trieIterators.ArgTrieIteratorProcessor{
-		ShardID: 0,
-	}
-
-	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
-	require.Nil(t, err)
-	require.Equal(t, "*disabled.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
-}
-
-func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler_DelegatedListProcessorFactory(t *testing.T) {
-	t.Parallel()
-
-	args := trieIterators.ArgTrieIteratorProcessor{
-		ShardID: core.MetachainShardId,
+func createMockArgs(shardId uint32) trieIterators.ArgTrieIteratorProcessor {
+	return trieIterators.ArgTrieIteratorProcessor{
+		ShardID: shardId,
 		Accounts: &trieIterators.AccountsWrapper{
 			Mutex:           &sync.Mutex{},
 			AccountsAdapter: &stateMock.AccountsStub{},
@@ -45,6 +24,29 @@ func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler_Deleg
 		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
 		QueryService:       &mock.SCQueryServiceStub{},
 	}
+}
+
+func TestNewDelegatedListProcessorFactory(t *testing.T) {
+	t.Parallel()
+
+	delegatedListHandlerFactory := trieIteratorsFactory.NewDelegatedListProcessorFactory()
+	require.False(t, delegatedListHandlerFactory.IsInterfaceNil())
+}
+
+func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandlerDisabledProcessor(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs(0)
+
+	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
+	require.Nil(t, err)
+	require.Equal(t, "*disabled.delegatedListProcessor", fmt.Sprintf("%T", delegatedListHandler))
+}
+
+func TestDelegatedListProcessorFactory_CreateDelegatedListProcessorHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs(core.MetachainShardId)
 
 	delegatedListHandler, err := trieIteratorsFactory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	require.Nil(t, err)

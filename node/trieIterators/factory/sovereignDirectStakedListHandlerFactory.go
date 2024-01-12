@@ -13,7 +13,7 @@ func NewSovereignDirectStakedListProcessorFactory() *sovereignDirectStakedListHa
 	return &sovereignDirectStakedListHandlerFactory{}
 }
 
-// CreateDirectStakedListProcessorHandler creates a new instance of DirectStakedListHandler
+// CreateDirectStakedListProcessorHandler creates a new instance of direct staked list processor for sovereign chains
 func (ds *sovereignDirectStakedListHandlerFactory) CreateDirectStakedListProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.DirectStakedListHandler, error) {
 	return trieIterators.NewDirectStakedListProcessor(args)
 }

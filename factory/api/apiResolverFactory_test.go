@@ -113,6 +113,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		ChainRunType:                   common.ChainRunTypeRegular,
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
+		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
 	}
 }
 
@@ -304,6 +305,15 @@ func TestCreateApiResolver(t *testing.T) {
 		args.DirectStakedListFactoryHandler = nil
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilDirectStakedListFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("TotalStakedValueFactoryHandler nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.TotalStakedValueFactoryHandler = nil
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, factoryErrors.ErrNilTotalStakedValueFactory, err)
 		require.True(t, check.IfNil(apiResolver))
 	})
 }
