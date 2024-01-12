@@ -31,7 +31,6 @@ type ArgsLatestDataProvider struct {
 	GeneralConfig         config.Config
 	BootstrapDataProvider factory.BootstrapDataProviderHandler
 	DirectoryReader       storage.DirectoryReaderHandler
-	PersisterFactory      storage.PersisterFactoryHandler
 	ParentDir             string
 	DefaultEpochString    string
 	DefaultShardString    string
@@ -48,7 +47,6 @@ type latestDataProvider struct {
 	generalConfig         config.Config
 	bootstrapDataProvider factory.BootstrapDataProviderHandler
 	directoryReader       storage.DirectoryReaderHandler
-	persisterFactory      storage.PersisterFactoryHandler
 	parentDir             string
 	defaultEpochString    string
 	defaultShardString    string
@@ -62,9 +60,6 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 	if check.IfNil(args.BootstrapDataProvider) {
 		return nil, storage.ErrNilBootstrapDataProvider
 	}
-	if check.IfNil(args.PersisterFactory) {
-		return nil, storage.ErrNilPersisterFactory
-	}
 
 	return &latestDataProvider{
 		generalConfig:         args.GeneralConfig,
@@ -73,7 +68,6 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 		defaultShardString:    args.DefaultShardString,
 		defaultEpochString:    args.DefaultEpochString,
 		bootstrapDataProvider: args.BootstrapDataProvider,
-		persisterFactory:      args.PersisterFactory,
 	}, nil
 }
 
@@ -138,7 +132,7 @@ func (ldp *latestDataProvider) getEpochDirs() ([]string, error) {
 }
 
 func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string, lastEpoch uint32) (storage.LatestDataFromStorage, error) {
-	persisterCreator, err := ldp.persisterFactory.CreatePersisterHandler(ldp.generalConfig.BootstrapStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(ldp.generalConfig.BootstrapStorage.DB)
 	if err != nil {
 		return storage.LatestDataFromStorage{}, err
 	}
@@ -164,7 +158,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 			ldp.generalConfig.BootstrapStorage.DB.FilePath,
 		)
 
-		shardData := ldp.loadDataForShard(highestRoundInStoredShards, shardIdStr, persisterCreator, persisterPath)
+		shardData := ldp.loadDataForShard(highestRoundInStoredShards, shardIdStr, persisterFactory, persisterPath)
 		if shardData.successful {
 			epochStartRound = shardData.epochStartRound
 			highestRoundInStoredShards = shardData.bootstrapData.LastRound

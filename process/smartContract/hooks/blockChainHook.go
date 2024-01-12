@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -65,7 +64,6 @@ type ArgBlockChainHook struct {
 	GasSchedule              core.GasScheduleNotifier
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
-	PersisterFactory         storage.PersisterFactoryHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -83,7 +81,6 @@ type BlockChainHookImpl struct {
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
-	persisterFactory      storage.PersisterFactoryHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -129,7 +126,6 @@ func NewBlockChainHookImpl(
 		gasSchedule:              args.GasSchedule,
 		counter:                  args.Counter,
 		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
-		persisterFactory:         args.PersisterFactory,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -221,10 +217,6 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.MissingTrieNodesNotifier) {
 		return ErrNilMissingTrieNodesNotifier
 	}
-	if check.IfNil(args.PersisterFactory) {
-		return errors.ErrNilPersisterFactory
-	}
-
 	return nil
 }
 
@@ -834,7 +826,7 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
 	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
 
-	persisterFactory, err := bh.persisterFactory.CreatePersisterHandler(bh.configSCStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(bh.configSCStorage.DB)
 	if err != nil {
 		return err
 	}

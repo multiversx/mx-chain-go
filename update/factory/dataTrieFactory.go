@@ -12,10 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -32,7 +31,6 @@ type ArgsNewDataTrieFactory struct {
 	ShardCoordinator     sharding.Coordinator
 	EnableEpochsHandler  common.EnableEpochsHandler
 	StateStatsCollector  common.StateStatisticsHandler
-	PersisterFactory     storage.PersisterFactoryHandler
 	MaxTrieLevelInMemory uint
 }
 
@@ -65,14 +63,11 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	if check.IfNil(args.StateStatsCollector) {
 		return nil, statistics.ErrNilStateStatsHandler
 	}
-	if check.IfNil(args.PersisterFactory) {
-		return nil, errors.ErrNilPersisterFactory
-	}
 
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
 	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
 
-	persisterFactory, err := args.PersisterFactory.CreatePersisterHandler(args.StorageConfig.DB)
+	persisterFactory, err := factory.NewPersisterFactory(args.StorageConfig.DB)
 	if err != nil {
 		return nil, err
 	}

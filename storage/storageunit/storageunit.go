@@ -41,7 +41,7 @@ func NewCache(config CacheConfig) (storage.Cacher, error) {
 }
 
 // NewStorageUnitFromConf creates a new storage unit from a storage unit config
-func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, persisterFactory storage.PersisterCreator) (*Unit, error) {
+func NewStorageUnitFromConf(cacheConf CacheConfig, dbConf DBConfig, persisterFactory storage.PersisterFactoryHandler) (*Unit, error) {
 	return storageUnit.NewStorageUnitFromConf(cacheConf, dbConf, persisterFactory)
 }
 

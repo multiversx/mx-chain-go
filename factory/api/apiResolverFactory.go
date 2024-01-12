@@ -387,7 +387,6 @@ func createScQueryElement(
 		GasSchedule:              args.gasScheduleNotifier,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
-		PersisterFactory:         args.coreComponents.PersisterFactory(),
 	}
 
 	var apiBlockchain data.ChainHandler

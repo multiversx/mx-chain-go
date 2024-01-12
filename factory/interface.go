@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -135,7 +134,6 @@ type CoreComponentsHolder interface {
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
-	PersisterFactory() storage.PersisterFactoryHandler
 	IsInterfaceNil() bool
 }
 
@@ -212,12 +210,6 @@ type MiniBlockProvider interface {
 	GetMiniBlocks(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromPool(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
 	GetMiniBlocksFromStorer(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte)
-	IsInterfaceNil() bool
-}
-
-// PersisterFactoryHandler defines the behaviour of a component which is able to create persisters
-type PersisterFactoryHandler interface {
-	CreatePersisterHandler(config config.DBConfig) (storage.PersisterCreator, error)
 	IsInterfaceNil() bool
 }
 

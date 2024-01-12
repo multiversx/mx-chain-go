@@ -39,7 +39,6 @@ type ArgsDataPool struct {
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
 	PathManager      storage.PathManagerHandler
-	PersisterFactory storage.PersisterFactoryHandler
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -180,7 +179,7 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
 	path := args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath)
 
-	persisterFactory, err := args.PersisterFactory.CreatePersisterHandler(mainConfig.TrieSyncStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(mainConfig.TrieSyncStorage.DB)
 	if err != nil {
 		return nil, err
 	}

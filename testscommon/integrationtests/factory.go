@@ -62,9 +62,7 @@ func CreateStorer(parentDir string) storage.Storer {
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-
-	pfh := factory.NewPersisterFactoryHandler(10, 1)
-	persisterFactory, err := pfh.CreatePersisterHandler(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfig)
 	if err != nil {
 		return nil
 	}

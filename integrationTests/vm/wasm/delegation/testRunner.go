@@ -16,8 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	systemVm "github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -53,8 +53,7 @@ func RunDelegationStressTest(
 		MaxBatchSize:      45000,
 		MaxOpenFiles:      10,
 	}
-	pfh := storage.NewPersisterFactory()
-	persisterFactory, err := pfh.CreatePersisterHandler(dbConfig)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfig)
 	if err != nil {
 		return nil, err
 	}

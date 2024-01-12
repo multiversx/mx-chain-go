@@ -222,10 +222,9 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig      PeersRatingConfig
-	PoolsCleanersConfig    PoolsCleanersConfig
-	Redundancy             RedundancyConfig
-	PersisterCreatorConfig PersisterCreatorConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
+	Redundancy          RedundancyConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -630,9 +629,4 @@ type PoolsCleanersConfig struct {
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
 	MaxRoundsOfInactivityAccepted int
-}
-
-type PersisterCreatorConfig struct {
-	MaxRetriesToCreateDB         uint32
-	SleepTimeBetweenRetriesInSec uint32
 }
