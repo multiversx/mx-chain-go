@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	stateErrors "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -166,32 +167,18 @@ func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
 
-	loadAccountWasCalled := false
-	saveAccountWasCalled := false
-	accountsAdapter := &state.AccountsStub{
-		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			if !loadAccountWasCalled { // first loaded account
-				loadAccountWasCalled = true
-				require.Equal(t, core.SystemAccountAddress, address)
-			}
-			return state.NewAccountWrapMock(address), nil
-		},
-		SaveAccountCalled: func(account vmcommon.AccountHandler) error {
-			if !saveAccountWasCalled { // first saved account
-				saveAccountWasCalled = true
-				require.Equal(t, core.SystemAccountAddress, account.AddressBytes())
-			}
-			return nil
-		},
-	}
-	arg.Accounts = accountsAdapter
-
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
-	_, err := sgbc.CreateGenesisBlocks()
-	require.NotNil(t, err)
-
 	require.NotNil(t, sgbc)
-	require.True(t, loadAccountWasCalled)
-	require.True(t, saveAccountWasCalled)
+
+	acc, err := arg.Accounts.GetExistingAccount(core.SystemAccountAddress)
+	require.Nil(t, acc)
+	require.Equal(t, err, stateErrors.ErrAccNotFound)
+
+	_, err = sgbc.CreateGenesisBlocks()
+	require.Nil(t, err)
+
+	acc, err = arg.Accounts.GetExistingAccount(core.SystemAccountAddress)
+	require.NotNil(t, acc)
+	require.Nil(t, err)
 }

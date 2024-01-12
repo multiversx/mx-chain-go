@@ -36,11 +36,16 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 
 // CreateGenesisBlocks will create sovereign genesis blocks
 func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
+	err := gbc.initSystemAccount()
+	if err != nil {
+		return nil, err
+	}
+
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	err := gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +53,6 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	shardIDs := make([]uint32, 1)
 	shardIDs[0] = core.SovereignChainShardId
 	argsCreateBlock, err := gbc.createGenesisBlocksArgs(shardIDs)
-	if err != nil {
-		return nil, err
-	}
-
-	err = gbc.initSystemAccount()
 	if err != nil {
 		return nil, err
 	}
