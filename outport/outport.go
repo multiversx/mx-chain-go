@@ -289,6 +289,15 @@ func (o *outport) SaveAccounts(accounts *outportcore.Accounts) {
 	}
 }
 
+// NewTransactionHandlerInPool gets called whenever a new transaction (transaction, unsigned transaction or reward transaction)
+// was added to the pool
+func (o *outport) NewTransactionHandlerInPool(key []byte, value interface{}) {
+	// TODO: add implementation
+	//  take care of the different format this will be called:
+	//   * for the transaction cache we need to cast value to a *WrappedTransaction
+	//   * for rewards/unsigned caches we need to cast the value to a TransactionHandler interface
+}
+
 func (o *outport) saveAccountsBlocking(accounts *outportcore.Accounts, driver Driver) {
 	ch := o.monitorCompletionOnDriver("saveAccountsBlocking", driver)
 	defer close(ch)

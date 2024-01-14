@@ -319,6 +319,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		NetworkComponents:    pr.NetworkComponents,
 		StateComponents:      pr.StateComponents,
 		CryptoComponents:     pr.CryptoComponents,
+		DataComponents:       pr.DataComponents,
 		IsInImportMode:       false,
 	}
 
