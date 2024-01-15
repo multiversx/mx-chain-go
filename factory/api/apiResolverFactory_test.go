@@ -546,7 +546,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		require.NotNil(t, wasmvm)
 		require.Equal(t, "*hostCore.vmHost", fmt.Sprintf("%T", wasmvm))
 	})
-	t.Run("metachain chain should NOT add systemVM", func(t *testing.T) {
+	t.Run("regular chain for meta should only add systemVM", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(common.MetachainShardId)
