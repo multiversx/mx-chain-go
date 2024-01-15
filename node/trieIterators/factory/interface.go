@@ -17,7 +17,7 @@ type DirectStakedListProcessorFactoryHandler interface {
 	IsInterfaceNil() bool
 }
 
-// TotalStakedValueProcessorFactoryHandler can create direct staked list processor handler
+// TotalStakedValueProcessorFactoryHandler can create total staked value processor handler
 type TotalStakedValueProcessorFactoryHandler interface {
 	CreateTotalStakedValueProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.TotalStakedValueHandler, error)
 	IsInterfaceNil() bool
