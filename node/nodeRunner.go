@@ -2,7 +2,6 @@ package node
 
 import (
 	"fmt"
-	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"io"
 	"math/big"
 	"os"
@@ -56,6 +55,7 @@ import (
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
