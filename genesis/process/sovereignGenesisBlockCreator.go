@@ -36,11 +36,16 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 
 // CreateGenesisBlocks will create sovereign genesis blocks
 func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
+	err := gbc.initSystemAccount()
+	if err != nil {
+		return nil, err
+	}
+
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	err := gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +58,20 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	}
 
 	return gbc.createSovereignHeaders(argsCreateBlock)
+}
+
+func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
+	acc, err := gbc.arg.Accounts.LoadAccount(core.SystemAccountAddress)
+	if err != nil {
+		return err
+	}
+
+	err = gbc.arg.Accounts.SaveAccount(acc)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
