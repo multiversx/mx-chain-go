@@ -525,7 +525,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		require.NotNil(t, wasmvm)
 		require.Equal(t, "*hostCore.vmHost", fmt.Sprintf("%T", wasmvm))
 	})
-	t.Run("regular chain should NOT add systemVM", func(t *testing.T) {
+	t.Run("regular chain for shards should only add wasm vm", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(0)
