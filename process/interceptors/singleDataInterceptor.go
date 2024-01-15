@@ -75,7 +75,6 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
-	log.Debug("received message SDI", "topic", sdi.topic, "from", p2p.PeerIdToShortString(message.Peer()), "data", message.Data())
 	err := sdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -84,8 +83,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	interceptedData, err := sdi.factory.Create(message.Data())
 	if err != nil {
 		sdi.throttler.EndProcessing()
-
-		log.Debug("can not create object from received bytes SDI", "topic", sdi.topic, "error", err)
 
 		// this situation is so severe that we need to black list the peers
 		reason := "can not create object from received bytes, topic " + sdi.topic + ", error " + err.Error()

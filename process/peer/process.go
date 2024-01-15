@@ -80,7 +80,8 @@ type validatorStatistics struct {
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
-//  each validator actions in the consensus process
+//
+//	each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
 	if check.IfNil(arguments.PeerAdapter) {
 		return nil, process.ErrNilPeerAccountsAdapter
@@ -774,7 +775,7 @@ func (vs *validatorStatistics) computeDecrease(
 		swInner := core.NewStopWatch()
 
 		swInner.Start("ComputeValidatorsGroup")
-		log.Debug("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
+		log.Debug("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID, "previousHeaderRound", previousHeaderRound, "currentHeaderRound", currentHeaderRound)
 		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
@@ -796,6 +797,7 @@ func (vs *validatorStatistics) computeDecrease(
 		vs.mutValidatorStatistics.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
+		log.Debug("decreasing for leader", "leader", leaderPK, "round", i, "temp rating", leaderPeerAcc.GetTempRating())
 		newRating := vs.rater.ComputeDecreaseProposer(
 			shardID,
 			leaderPeerAcc.GetTempRating(),
@@ -864,7 +866,8 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 }
 
 // RevertPeerState takes the current and previous headers and undos the peer state
-//  for all of the consensus members
+//
+//	for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
@@ -919,7 +922,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
-
+		log.Debug("before checkForMissedBlocks", "prevHash", h.PrevHash, "currentHash", h.HeaderHash)
 		shardInfoErr = vs.checkForMissedBlocks(
 			h.Round,
 			prevShardData.GetRound(),
