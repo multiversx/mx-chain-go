@@ -1363,8 +1363,8 @@ func TestNode_GetESDTsWithRole_WrongChainId(t *testing.T) {
 		node.WithProcessComponents(processComponents))
 	require.Nil(t, err)
 
-	testResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
-	require.Nil(t, testResult)
+	res, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, res)
 	require.Equal(t, node.ErrMetachainOnlyEndpoint, err)
 }
 
