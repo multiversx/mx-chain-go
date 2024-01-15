@@ -21,7 +21,7 @@ func TestNewSovereignNode(t *testing.T) {
 
 		sn, err := node.NewSovereignNode(n)
 		require.Nil(t, err)
-		require.NotNil(t, sn)
+		require.False(t, sn.IsInterfaceNil())
 	})
 	t.Run("nil node should error", func(t *testing.T) {
 		t.Parallel()
