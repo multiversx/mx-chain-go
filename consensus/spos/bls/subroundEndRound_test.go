@@ -1641,9 +1641,9 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 		container := mock.InitConsensusCore()
 		messenger := &mock.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				wg.Done()
 				assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
 				wasCalled = true
+				wg.Done()
 				return nil
 			},
 		}
