@@ -49,11 +49,16 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &expectedDBConfig, conf)
 	})
-
 	t.Run("not empty dir, load default db config", func(t *testing.T) {
 		t.Parallel()
 
-		pf := factory.NewDBConfigHandler(createDefaultDBConfig())
+		testConfig := createDefaultDBConfig()
+		testConfig.BatchDelaySeconds = 37
+		testConfig.MaxBatchSize = 38
+		testConfig.MaxOpenFiles = 39
+		testConfig.ShardIDProviderType = "BinarySplit"
+		testConfig.NumShards = 4
+		pf := factory.NewDBConfigHandler(testConfig)
 
 		dirPath := t.TempDir()
 
@@ -68,13 +73,21 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 			_ = f.Close()
 		}()
 
-		expectedDBConfig := factory.GetDefaultDBConfig()
+		expectedDBConfig := &config.DBConfig{
+			FilePath:            "",
+			Type:                factory.DefaultType,
+			BatchDelaySeconds:   testConfig.BatchDelaySeconds,
+			MaxBatchSize:        testConfig.MaxBatchSize,
+			MaxOpenFiles:        testConfig.MaxOpenFiles,
+			UseTmpAsFilePath:    false,
+			ShardIDProviderType: "",
+			NumShards:           0,
+		}
 
 		conf, err := pf.GetDBConfig(dirPath)
 		require.Nil(t, err)
 		require.Equal(t, expectedDBConfig, conf)
 	})
-
 	t.Run("empty dir, load db config from main config", func(t *testing.T) {
 		t.Parallel()
 
@@ -88,7 +101,6 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &expectedDBConfig, conf)
 	})
-
 	t.Run("getDBConfig twice, should load from config file if file available", func(t *testing.T) {
 		t.Parallel()
 
