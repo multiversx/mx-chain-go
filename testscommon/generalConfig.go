@@ -437,7 +437,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		SovereignConfig: config.SovereignConfig{
-			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+			NotifierConfig: config.NotifierConfig{
 				SubscribedEvents: []config.SubscribedEvent{
 					{
 						Identifier: "bridgeOps",

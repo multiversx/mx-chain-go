@@ -434,7 +434,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
-		configs.NotifierConfig,
+		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		outGoingOperationsPool,
@@ -531,7 +531,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	sovereignWsReceiver, err := createSovereignWsReceiver(
-		configs.NotifierConfig,
+		&configs.SovereignExtraConfig.NotifierConfig,
 		incomingHeaderHandler,
 	)
 	if err != nil {
@@ -1785,7 +1785,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createIncomingHeaderProcessor(
-	config *sovereignConfig.NotifierConfig,
+	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
@@ -1812,7 +1812,7 @@ func createIncomingHeaderProcessor(
 }
 
 func createSovereignWsReceiver(
-	config *sovereignConfig.NotifierConfig,
+	config *config.NotifierConfig,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
@@ -1848,7 +1848,7 @@ func createSovereignWsReceiver(
 	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
 }
 
-func getNotifierSubscribedEvents(events []sovereignConfig.SubscribedEvent) []notifierCfg.SubscribedEvent {
+func getNotifierSubscribedEvents(events []config.SubscribedEvent) []notifierCfg.SubscribedEvent {
 	ret := make([]notifierCfg.SubscribedEvent, len(events))
 
 	for idx, event := range events {

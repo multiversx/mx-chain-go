@@ -118,12 +118,6 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config/gasSchedules",
 	}
-	// notifierConfigFile defines a flag for the path to the sovereign notifier toml configuration file
-	notifierConfigFile = cli.StringFlag{
-		Name:  "notifier-config",
-		Usage: "The `" + filePathPlaceholder + "` for sovereign notifier configuration.",
-		Value: "./config/notifierConfig.toml",
-	}
 	// sovereignConfigFile defines a flag for the path to the sovereign toml configuration file
 	sovereignConfigFile = cli.StringFlag{
 		Name:  "sovereign-config",
@@ -448,7 +442,6 @@ func getFlags() []cli.Flag {
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
-		notifierConfigFile,
 		sovereignConfigFile,
 		sovereignBridgeCertificateFile,
 		sovereignBridgeCertificatePkFile,
