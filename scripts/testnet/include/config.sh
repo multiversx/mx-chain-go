@@ -8,9 +8,9 @@ generateConfig() {
     TMP_META_OBSERVERCOUNT=0
   fi
 
-  SOVEREIGN_BOOL="false"
+  SOVEREIGN_DEPLOY=0
   if [ $USE_HARDFORK -eq 1 ]; then
-    SOVEREIGN_BOOL="true"
+    SOVEREIGN_DEPLOY=1
   fi
 
   pushd $TESTNETDIR/filegen
@@ -26,7 +26,7 @@ generateConfig() {
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
     -round-duration $ROUND_DURATION \
-    -sovereign=$SOVEREIGN_BOOL
+    -sovereign=SOVEREIGN_DEPLOY
   popd
 }
 
@@ -249,9 +249,6 @@ updateTxGenConfig() {
 updateSovereignTxGenConfig() {
   updateTxGenConfig
   pushd $TESTNETDIR/txgen/config/nodeConfig/config
-  updateTOMLValue enableEpochs.toml "SCDeployEnableEpoch" 0
-  updateTOMLValue enableEpochs.toml "BuiltInFunctionsEnableEpoch" 0
-  updateTOMLValue enableEpochs.toml "ESDTEnableEpoch" 0
 }
 
 generateProxyObserverList() {
