@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -9,11 +10,8 @@ import (
 )
 
 const (
-	dbConfigFileName         = "config.toml"
-	defaultType              = "LvlDBSerial"
-	defaultBatchDelaySeconds = 2
-	defaultMaxBatchSize      = 100
-	defaultMaxOpenFiles      = 10
+	dbConfigFileName = "config.toml"
+	defaultType      = "LvlDBSerial"
 )
 
 type dbConfigHandler struct {
@@ -42,7 +40,10 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
 	err := core.LoadTomlFile(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
-		log.Debug("GetDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
+		log.Debug("GetDBConfig: loaded db config from toml config file",
+			"config path", path,
+			"configuration", fmt.Sprintf("%+v", dbConfigFromFile),
+		)
 		return dbConfigFromFile, nil
 	}
 
@@ -50,12 +51,15 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	if !empty {
 		dbConfig := &config.DBConfig{
 			Type:              defaultType,
-			BatchDelaySeconds: defaultBatchDelaySeconds,
-			MaxBatchSize:      defaultMaxBatchSize,
-			MaxOpenFiles:      defaultMaxOpenFiles,
+			BatchDelaySeconds: dh.batchDelaySeconds,
+			MaxBatchSize:      dh.maxBatchSize,
+			MaxOpenFiles:      dh.maxOpenFiles,
 		}
 
-		log.Debug("GetDBConfig: loaded default db config")
+		log.Debug("GetDBConfig: loaded default db config",
+			"configuration", fmt.Sprintf("%+v", dbConfig),
+		)
+
 		return dbConfig, nil
 	}
 
@@ -68,7 +72,10 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		NumShards:           dh.numShards,
 	}
 
-	log.Debug("GetDBConfig: loaded db config from main config file")
+	log.Debug("GetDBConfig: loaded db config from main config file",
+		"configuration", fmt.Sprintf("%+v", dbConfig),
+	)
+
 	return dbConfig, nil
 }
 
