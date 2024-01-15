@@ -14,11 +14,11 @@ func NewSovereignTotalStakedValueProcessorFactory() *sovereignTotalStakedValuePr
 }
 
 // CreateTotalStakedValueProcessorHandler will create a new instance of total staked value processor for sovereign chain
-func (d *sovereignTotalStakedValueProcessorFactory) CreateTotalStakedValueProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.TotalStakedValueHandler, error) {
+func (f *sovereignTotalStakedValueProcessorFactory) CreateTotalStakedValueProcessorHandler(args trieIterators.ArgTrieIteratorProcessor) (external.TotalStakedValueHandler, error) {
 	return trieIterators.NewTotalStakedValueProcessor(args)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (d *sovereignTotalStakedValueProcessorFactory) IsInterfaceNil() bool {
+func (f *sovereignTotalStakedValueProcessorFactory) IsInterfaceNil() bool {
 	return d == nil
 }
