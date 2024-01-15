@@ -10,7 +10,7 @@ import (
 type totalStakedValueProcessorFactory struct {
 }
 
-// NewTotalStakedListProcessorFactory create a new total staked value handler
+// NewTotalStakedListProcessorFactory creates a new total staked value handler
 func NewTotalStakedListProcessorFactory() *totalStakedValueProcessorFactory {
 	return &totalStakedValueProcessorFactory{}
 }
