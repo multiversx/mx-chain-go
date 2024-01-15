@@ -699,7 +699,7 @@ func (txs *transactions) processTxsFromMe(
 		for _, mb := range calculatedMiniBlocks {
 			log.Debug("calculated miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
 			for _, txHash := range mb.TxHashes {
-				log.Debug("received tx", "txHash", hex.EncodeToString(txHash))
+				log.Debug("calculated tx", "txHash", hex.EncodeToString(txHash))
 			}
 		}
 
