@@ -155,7 +155,6 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 	pInfo, found = holder.providedIdentities[string(publicKeyBytes)]
 	if !found {
 		pInfo = &peerInfo{
-			handler:      common.NewRedundancyHandler(),
 			machineID:    generateRandomMachineID(),
 			nodeName:     generateNodeName(holder.defaultName, holder.defaultPeerInfoCurrentIndex),
 			nodeIdentity: holder.defaultIdentity,
@@ -163,6 +162,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 		holder.defaultPeerInfoCurrentIndex++
 	}
 
+	pInfo.handler = common.NewRedundancyHandler()
 	pInfo.pid = pid
 	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
 	pInfo.privateKey = sk

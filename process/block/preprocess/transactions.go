@@ -627,6 +627,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
+	log.Debug("processTxsFromMe", "randomness", hex.EncodeToString(randomness))
 	txs.sortTransactionsBySenderAndNonce(txsFromMe, randomness)
 
 	isShardStuckFalse := func(uint32) bool {

@@ -419,6 +419,40 @@ func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 		assert.Equal(t, testName+"-00", name)
 		assert.Equal(t, testIdentity, identity)
 	})
+	t.Run("identity provided on slave machine should not panic on increment rounds without received message", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			if r != nil {
+				assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+			}
+		}()
+
+		argsLocal := createMockArgsManagedPeersHolder()
+		argsLocal.PrefsConfig.Preferences.RedundancyLevel = 1
+		argsLocal.MaxRoundsOfInactivity = 3
+		namedIdentity := config.NamedIdentity{
+			Identity: testIdentity,
+			NodeName: testName,
+			BLSKeys:  []string{hex.EncodeToString(pkBytes0)},
+		}
+
+		argsLocal.PrefsConfig.NamedIdentity = append(argsLocal.PrefsConfig.NamedIdentity, namedIdentity)
+		holderLocal, err := keysManagement.NewManagedPeersHolder(argsLocal)
+		assert.Nil(t, err)
+
+		_ = holderLocal.AddManagedPeer(skBytes0)
+		skRecovered, err := holderLocal.GetPrivateKey(pkBytes0)
+		skBytesRecovered, _ := skRecovered.ToByteArray()
+		assert.Equal(t, skBytes0, skBytesRecovered)
+		assert.Nil(t, err)
+
+		name, identity, err := holderLocal.GetNameAndIdentity(pkBytes0)
+		assert.Nil(t, err)
+		assert.Equal(t, testName+"-00", name)
+		assert.Equal(t, testIdentity, identity)
+
+		holderLocal.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+	})
 }
 
 func TestManagedPeersHolder_GetP2PIdentity(t *testing.T) {
