@@ -83,5 +83,5 @@ func (sn *sovereignNode) GetESDTsRoles(address string, options api.AccountQueryO
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (sn *sovereignNode) IsInterfaceNil() bool {
-	return n == nil
+	return sn == nil
 }
