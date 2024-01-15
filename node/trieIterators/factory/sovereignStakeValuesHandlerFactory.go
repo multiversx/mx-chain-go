@@ -20,5 +20,5 @@ func (f *sovereignTotalStakedValueProcessorFactory) CreateTotalStakedValueProces
 
 // IsInterfaceNil checks if the underlying pointer is nil
 func (f *sovereignTotalStakedValueProcessorFactory) IsInterfaceNil() bool {
-	return d == nil
+	return f == nil
 }
