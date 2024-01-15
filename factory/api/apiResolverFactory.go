@@ -416,38 +416,32 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	var apiBlockchain data.ChainHandler
-	var accAdapter state.AccountsAdapterAPI
 	var vmFactory process.VirtualMachinesContainerFactory
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
 
-		apiBlockchain, err = blockchain.NewMetaChain(disabled.NewAppStatusHandler())
+		argsHook.BlockChain, err = blockchain.NewMetaChain(disabled.NewAppStatusHandler())
 		if err != nil {
 			return nil, err
 		}
-		argsHook.BlockChain = apiBlockchain
 
-		accAdapter, err = createNewAccountsAdapterApi(args, apiBlockchain)
+		argsHook.Accounts, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
 		if err != nil {
 			return nil, err
 		}
-		argsHook.Accounts = accAdapter
 
 		vmFactory, err = createMetaVmContainerFactory(args, argsHook)
 	} else {
-		apiBlockchain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
+		argsHook.BlockChain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
 		if err != nil {
 			return nil, err
 		}
-		argsHook.BlockChain = apiBlockchain
 
-		accAdapter, err = createNewAccountsAdapterApi(args, apiBlockchain)
+		argsHook.Accounts, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
 		if err != nil {
 			return nil, err
 		}
-		argsHook.Accounts = accAdapter
 
 		vmFactory, err = createShardVmContainerFactory(args, argsHook)
 	}
@@ -482,7 +476,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		EconomicsFee:             args.coreComponents.EconomicsData(),
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
 		MainBlockChain:           args.dataComponents.Blockchain(),
-		APIBlockChain:            apiBlockchain,
+		APIBlockChain:            argsHook.BlockChain,
 		WasmVMChangeLocker:       args.coreComponents.WasmVMChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,

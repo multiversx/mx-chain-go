@@ -287,7 +287,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 }
 
-func createMockSCQueryElementArgs() api.SCQueryElementArgs {
+func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
@@ -356,7 +356,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			DataPool: &dataRetriever.PoolsHolderMock{},
 		},
 		ProcessComponents: &mock.ProcessComponentsMock{
-			ShardCoord: &testscommon.ShardsCoordinatorMock{},
+			ShardCoord: &testscommon.ShardsCoordinatorMock{
+				CurrentShard: shardId,
+			},
 		},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			LatestGasScheduleCalled: func() map[string]map[string]uint64 {
@@ -424,7 +426,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("nil guardian handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		args.GuardedAccountHandler = nil
 		scQueryService, err := api.CreateScQueryElement(args)
 		require.Equal(t, process.ErrNilGuardedAccountHandler, err)
@@ -433,7 +435,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("DecodeAddresses fails", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		args.CoreComponents = &mock.CoreComponentsMock{
 			AddrPubKeyConv: nil,
 		}
@@ -445,7 +447,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("createBuiltinFuncs fails", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.IntMarsh = nil
 		scQueryService, err := api.CreateScQueryElement(args)
@@ -456,7 +458,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("NewCache fails", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		args.GeneralConfig.SmartContractDataPool = config.CacheConfig{
 			Type:        "LRU",
 			SizeInBytes: 1,
@@ -469,7 +471,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		args.ProcessComponents = &mock.ProcessComponentsMock{
 			ShardCoord: &testscommon.ShardsCoordinatorMock{
 				SelfIDCalled: func() uint32 {
@@ -487,7 +489,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.Hash = nil
 		scQueryService, err := api.CreateScQueryElement(args)
@@ -504,7 +506,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 	t.Run("sovereign chain should add systemVM", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		args.ChainRunType = common.ChainRunTypeSovereign
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
@@ -526,7 +528,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 	t.Run("regular chain should NOT add systemVM", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockSCQueryElementArgs()
+		args := createMockSCQueryElementArgs(0)
 		args.ChainRunType = common.ChainRunTypeRegular
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
@@ -543,5 +545,21 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, wasmvm)
 		require.Equal(t, "*hostCore.vmHost", fmt.Sprintf("%T", wasmvm))
+	})
+	t.Run("metachain chain should NOT add systemVM", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSCQueryElementArgs(common.MetachainShardId)
+		args.ChainRunType = common.MetachainShardName
+
+		argsScQueryService, err := api.CreateArgsSCQueryService(args)
+		require.Nil(t, err)
+		require.NotNil(t, argsScQueryService.VmContainer)
+
+		require.Equal(t, 1, argsScQueryService.VmContainer.Len())
+
+		svm, err := argsScQueryService.VmContainer.Get(vmFactory.SystemVirtualMachine)
+		require.Nil(t, err)
+		require.NotNil(t, svm)
 	})
 }
