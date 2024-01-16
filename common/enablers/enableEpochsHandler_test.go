@@ -106,6 +106,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ScToScLogEventEnableEpoch:                                88,
 		NFTStopCreateEnableEpoch:                                 89,
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 90,
+		MigrateDataTrieEnableEpoch:                               91,
 	}
 }
 
@@ -251,6 +252,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.True(t, handler.NFTStopCreateEnabled())
 		assert.True(t, handler.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled())
+		assert.True(t, handler.IsMigrateDataTrieEnabled())
 	})
 	t.Run("flags with == condition should not be set, the ones with >= should be set", func(t *testing.T) {
 		t.Parallel()
@@ -372,6 +374,7 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.True(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.True(t, handler.NFTStopCreateEnabled())
 		assert.True(t, handler.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled())
+		assert.True(t, handler.IsMigrateDataTrieEnabled())
 	})
 	t.Run("flags with < should be set", func(t *testing.T) {
 		t.Parallel()
@@ -488,6 +491,19 @@ func TestNewEnableEpochsHandler_EpochConfirmed(t *testing.T) {
 		assert.False(t, handler.FixDelegationChangeOwnerOnAccountEnabled())
 		assert.False(t, handler.NFTStopCreateEnabled())
 		assert.False(t, handler.FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled())
+		assert.False(t, handler.IsMigrateDataTrieEnabled())
+	})
+	t.Run("test for migrate data tries", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(90)
+		cfg := createEnableEpochsConfig()
+		handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+
+		handler.EpochConfirmed(epoch, 0)
+
+		assert.True(t, handler.IsAutoBalanceDataTriesEnabled())
+		assert.False(t, handler.IsMigrateDataTrieEnabled())
 	})
 }
 

@@ -257,6 +257,9 @@
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
     AutoBalanceDataTriesEnableEpoch = 1
 
+    # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
+    MigrateDataTrieEnableEpoch = 999999
+
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 1
 
