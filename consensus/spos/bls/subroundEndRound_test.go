@@ -1365,7 +1365,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		srEndRound.SetSelfPubKey("A")
