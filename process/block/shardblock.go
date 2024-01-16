@@ -16,6 +16,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -875,7 +876,8 @@ func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime 
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, shardHdr.GetPrevRandSeed())
+	randomness := helpers.ComputeRandomnessForTxSorting(shardHdr, sp.enableEpochsHandler)
+	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, nil, err
 	}
