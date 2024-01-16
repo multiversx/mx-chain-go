@@ -33,6 +33,7 @@ var _ closing.Closer = (*Worker)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in checkChannels method
 const sleepTime = 5 * time.Millisecond
+const redundancySingleKeySteppedIn = "single-key node stepped in"
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
@@ -557,7 +558,20 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	}
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
-	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
+
+	isMainMachineActive, redundancyReason := wrk.computeRedundancyMetrics()
+	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(isMainMachineActive))
+	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyStepInReason, redundancyReason)
+}
+
+func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
+	if !wrk.nodeRedundancyHandler.IsMainMachineActive() {
+		return false, redundancySingleKeySteppedIn
+	}
+
+	reason := wrk.consensusState.GetMultikeyRedundancyStepInReason()
+
+	return len(reason) == 0, reason
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -629,13 +630,21 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		delay := time.Millisecond * 430
 		roundStartTimeStamp := time.Now()
 
-		receivedValue := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(roundStartTimeStamp, delay, roundDuration)
+		receivedValue, redundancyReason, redundancyStatus := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
+			t,
+			roundStartTimeStamp,
+			delay,
+			roundDuration,
+			&mock.NodeRedundancyHandlerStub{},
+			&testscommon.KeysHandlerStub{})
 
 		minimumExpectedValue := uint64(delay * 100 / roundDuration)
 		assert.True(t,
 			receivedValue >= minimumExpectedValue,
 			fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
 		)
+		assert.Empty(t, redundancyReason)
+		assert.True(t, redundancyStatus)
 	})
 	t.Run("time.Since returns negative value", func(t *testing.T) {
 		// test the edgecase when the returned NTP time stored in the round handler is
@@ -646,22 +655,100 @@ func TestWorker_ProcessReceivedMessageComputeReceivedProposedBlockMetric(t *test
 		delay := time.Millisecond * 430
 		roundStartTimeStamp := time.Now().Add(time.Minute)
 
-		receivedValue := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(roundStartTimeStamp, delay, roundDuration)
+		receivedValue, redundancyReason, redundancyStatus := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
+			t,
+			roundStartTimeStamp,
+			delay,
+			roundDuration,
+			&mock.NodeRedundancyHandlerStub{},
+			&testscommon.KeysHandlerStub{})
 
 		assert.Zero(t, receivedValue)
+		assert.Empty(t, redundancyReason)
+		assert.True(t, redundancyStatus)
+	})
+	t.Run("normal operation as a single-key redundancy node", func(t *testing.T) {
+		t.Parallel()
+
+		roundDuration := time.Millisecond * 1000
+		delay := time.Millisecond * 430
+		roundStartTimeStamp := time.Now()
+
+		receivedValue, redundancyReason, redundancyStatus := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
+			t,
+			roundStartTimeStamp,
+			delay,
+			roundDuration,
+			&mock.NodeRedundancyHandlerStub{
+				IsMainMachineActiveCalled: func() bool {
+					return false
+				},
+			},
+			&testscommon.KeysHandlerStub{})
+
+		minimumExpectedValue := uint64(delay * 100 / roundDuration)
+		assert.True(t,
+			receivedValue >= minimumExpectedValue,
+			fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
+		)
+		assert.Equal(t, spos.RedundancySingleKeySteppedIn, redundancyReason)
+		assert.False(t, redundancyStatus)
+	})
+	t.Run("normal operation as a multikey-key redundancy node", func(t *testing.T) {
+		t.Parallel()
+
+		roundDuration := time.Millisecond * 1000
+		delay := time.Millisecond * 430
+		roundStartTimeStamp := time.Now()
+
+		multikeyReason := "multikey step in reason"
+		receivedValue, redundancyReason, redundancyStatus := testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
+			t,
+			roundStartTimeStamp,
+			delay,
+			roundDuration,
+			&mock.NodeRedundancyHandlerStub{},
+			&testscommon.KeysHandlerStub{
+				GetRedundancyStepInReasonCalled: func() string {
+					return multikeyReason
+				},
+			})
+
+		minimumExpectedValue := uint64(delay * 100 / roundDuration)
+		assert.True(t,
+			receivedValue >= minimumExpectedValue,
+			fmt.Sprintf("minimum expected was %d, got %d", minimumExpectedValue, receivedValue),
+		)
+		assert.Equal(t, multikeyReason, redundancyReason)
+		assert.False(t, redundancyStatus)
 	})
 }
 
 func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
+	t *testing.T,
 	roundStartTimeStamp time.Time,
 	delay time.Duration,
 	roundDuration time.Duration,
-) uint64 {
+	redundancyHandler consensus.NodeRedundancyHandler,
+	keysHandler consensus.KeysHandler,
+) (uint64, string, bool) {
 	marshaller := mock.MarshalizerMock{}
 	receivedValue := uint64(0)
+	redundancyReason := ""
+	redundancyStatus := false
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{
 		SetUInt64ValueHandler: func(key string, value uint64) {
 			receivedValue = value
+		},
+		SetStringValueHandler: func(key string, value string) {
+			if key == common.MetricRedundancyIsMainActive {
+				var err error
+				redundancyStatus, err = strconv.ParseBool(value)
+				assert.Nil(t, err)
+			}
+			if key == common.MetricRedundancyStepInReason {
+				redundancyReason = value
+			}
 		},
 	})
 	wrk.SetBlockProcessor(&testscommon.BlockProcessorStub{
@@ -687,6 +774,8 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 			return roundStartTimeStamp
 		},
 	})
+	wrk.SetRedundancyHandler(redundancyHandler)
+	wrk.SetKeysHandler(keysHandler)
 	hdr := &block.Header{
 		ChainID:         chainID,
 		PrevHash:        []byte("prev hash"),
@@ -726,7 +815,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 	}
 	_ = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
 
-	return receivedValue
+	return receivedValue, redundancyReason, redundancyStatus
 }
 
 func TestWorker_ProcessReceivedMessageInconsistentChainIDInConsensusMessageShouldErr(t *testing.T) {
