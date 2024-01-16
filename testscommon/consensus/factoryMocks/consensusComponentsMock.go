@@ -1,4 +1,4 @@
-package consensus
+package factoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"

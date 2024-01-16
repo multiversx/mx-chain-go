@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/node"
-	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/factoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/stretchr/testify/require"
@@ -31,7 +31,7 @@ func TestCreateNode(t *testing.T) {
 			getDefaultStateComponents(),
 			&mainFactoryMocks.StatusComponentsStub{},
 			&mock.HeartbeatV2ComponentsStub{},
-			&consensus.ConsensusComponentsStub{
+			&factoryMocks.ConsensusComponentsStub{
 				GroupSize: 1,
 			},
 			0,
@@ -57,7 +57,7 @@ func TestCreateNode(t *testing.T) {
 			getDefaultStateComponents(),
 			&mainFactoryMocks.StatusComponentsStub{},
 			&mock.HeartbeatV2ComponentsStub{},
-			&consensus.ConsensusComponentsStub{
+			&factoryMocks.ConsensusComponentsStub{
 				GroupSize: 1,
 			},
 			0,
