@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -89,6 +90,7 @@ type baseProcessor struct {
 	processDebugger         process.Debugger
 	processStatusHandler    common.ProcessStatusHandler
 	managedPeersHolder      common.ManagedPeersHolder
+	sentSignaturesTracker   process.SentSignaturesTracker
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -550,6 +552,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ManagedPeersHolder) {
 		return process.ErrNilManagedPeersHolder
+	}
+	if check.IfNil(arguments.SentSignaturesTracker) {
+		return process.ErrNilSentSignatureTracker
 	}
 
 	return nil
@@ -2109,4 +2114,20 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 
 	bp.nonceOfFirstCommittedBlock.HasValue = true
 	bp.nonceOfFirstCommittedBlock.Value = nonce
+}
+
+func (bp *baseProcessor) checkSentSignaturesBeforeCommitting(header data.HeaderHandler) error {
+	validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
+	if err != nil {
+		return err
+	}
+
+	validatorsPKs := make([][]byte, 0, len(validatorsGroup))
+	for _, validator := range validatorsGroup {
+		validatorsPKs = append(validatorsPKs, validator.PubKey())
+	}
+
+	bp.sentSignaturesTracker.ResetCountersManagedBlockSigners(validatorsPKs)
+
+	return nil
 }

@@ -167,6 +167,7 @@ func NewShardProcessorEmptyWith3shards(
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -558,4 +559,8 @@ func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]by
 // SetNonceOfFirstCommittedBlock -
 func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.setNonceOfFirstCommittedBlock(nonce)
+}
+
+func (bp *baseProcessor) CheckSentSignaturesBeforeCommitting(header data.HeaderHandler) error {
+	return bp.checkSentSignaturesBeforeCommitting(header)
 }

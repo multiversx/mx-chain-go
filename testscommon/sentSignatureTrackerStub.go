@@ -1,10 +1,10 @@
-package mock
+package testscommon
 
 // SentSignatureTrackerStub -
 type SentSignatureTrackerStub struct {
-	StartRoundCalled            func()
-	SignatureSentCalled         func(pkBytes []byte)
-	ReceivedActualSignersCalled func(signersPks []string)
+	StartRoundCalled                       func()
+	SignatureSentCalled                    func(pkBytes []byte)
+	ResetCountersManagedBlockSignersCalled func(signersPKs [][]byte)
 }
 
 // StartRound -
@@ -21,10 +21,10 @@ func (stub *SentSignatureTrackerStub) SignatureSent(pkBytes []byte) {
 	}
 }
 
-// ReceivedActualSigners -
-func (stub *SentSignatureTrackerStub) ReceivedActualSigners(signersPks []string) {
-	if stub.ReceivedActualSignersCalled != nil {
-		stub.ReceivedActualSignersCalled(signersPks)
+// ResetCountersManagedBlockSigners -
+func (stub *SentSignatureTrackerStub) ResetCountersManagedBlockSigners(signersPKs [][]byte) {
+	if stub.ResetCountersManagedBlockSignersCalled != nil {
+		stub.ResetCountersManagedBlockSignersCalled(signersPKs)
 	}
 }
 

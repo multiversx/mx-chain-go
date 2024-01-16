@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -41,7 +42,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	return srSignature
@@ -82,7 +83,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			nil,
 			extend,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -95,7 +96,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			sr,
 			nil,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -108,7 +109,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			sr,
 			extend,
 			nil,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -125,7 +126,7 @@ func TestNewSubroundSignature(t *testing.T) {
 		)
 
 		assert.Nil(t, srSignature)
-		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, mxErrors.ErrNilSentSignatureTracker, err)
 	})
 }
 
@@ -157,7 +158,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -191,7 +192,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -225,7 +226,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -260,7 +261,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -294,7 +295,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -328,7 +329,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.False(t, check.IfNil(srSignature))
@@ -411,7 +412,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{
+		&testscommon.SentSignatureTrackerStub{
 			SignatureSentCalled: func(pkBytes []byte) {
 				signatureSentForPks[string(pkBytes)] = struct{}{}
 			},

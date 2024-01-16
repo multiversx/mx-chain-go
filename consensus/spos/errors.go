@@ -238,8 +238,5 @@ var ErrNilSigningHandler = errors.New("nil signing handler")
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")
 
-// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
-var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
-
 // ErrNilFunctionHandler signals that a nil function handler was provided
 var ErrNilFunctionHandler = errors.New("nil function handler")

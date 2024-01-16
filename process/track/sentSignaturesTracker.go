@@ -1,11 +1,10 @@
-package spos
+package track
 
 import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 // externalPeerID is just a marker so the ResetRoundsWithoutReceivedMessages will know it is not an owned peer ID
@@ -15,11 +14,11 @@ const externalPeerID = core.PeerID("external peer id")
 type sentSignaturesTracker struct {
 	mut          sync.RWMutex
 	sentFromSelf map[string]struct{}
-	keysHandler  consensus.KeysHandler
+	keysHandler  KeysHandler
 }
 
 // NewSentSignaturesTracker will create a new instance of a tracker able to record if a signature was sent from self
-func NewSentSignaturesTracker(keysHandler consensus.KeysHandler) (*sentSignaturesTracker, error) {
+func NewSentSignaturesTracker(keysHandler KeysHandler) (*sentSignaturesTracker, error) {
 	if check.IfNil(keysHandler) {
 		return nil, ErrNilKeysHandler
 	}
@@ -44,20 +43,19 @@ func (tracker *sentSignaturesTracker) SignatureSent(pkBytes []byte) {
 	tracker.mut.Unlock()
 }
 
-// ReceivedActualSigners is called whenever a final info is received. If a signer public key did not send a signature
-// from the current host, it will call the reset rounds without received message. This is the case when another instance of a
-// multikey node (possibly running as main) broadcast only the final info as it contained the leader + a few signers
-func (tracker *sentSignaturesTracker) ReceivedActualSigners(signersPks []string) {
+// ResetCountersManagedBlockSigners is called at commit time and will call the reset rounds without received messages
+// for each managed key that actually signed a block
+func (tracker *sentSignaturesTracker) ResetCountersManagedBlockSigners(signersPKs [][]byte) {
 	tracker.mut.RLock()
 	defer tracker.mut.RUnlock()
 
-	for _, signerPk := range signersPks {
-		_, isSentFromSelf := tracker.sentFromSelf[signerPk]
+	for _, signerPk := range signersPKs {
+		_, isSentFromSelf := tracker.sentFromSelf[string(signerPk)]
 		if isSentFromSelf {
 			continue
 		}
 
-		tracker.keysHandler.ResetRoundsWithoutReceivedMessages([]byte(signerPk), externalPeerID)
+		tracker.keysHandler.ResetRoundsWithoutReceivedMessages(signerPk, externalPeerID)
 	}
 }
 

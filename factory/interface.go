@@ -308,6 +308,7 @@ type ProcessComponentsHolder interface {
 	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
+	SentSignaturesTracker() process.SentSignaturesTracker
 	IsInterfaceNil() bool
 }
 

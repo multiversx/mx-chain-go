@@ -2121,6 +2121,12 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	resetCountersManagedBlockSignersCalled := false
+	arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+		ResetCountersManagedBlockSignersCalled: func(signersPKs [][]byte) {
+			resetCountersManagedBlockSignersCalled = true
+		},
+	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	debuggerMethodWasCalled := false
@@ -2144,6 +2150,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.True(t, forkDetectorAddCalled)
 	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
 	assert.True(t, debuggerMethodWasCalled)
+	assert.True(t, resetCountersManagedBlockSignersCalled)
 	// this should sleep as there is an async call to display current hdr and block in CommitBlock
 	time.Sleep(time.Second)
 }
