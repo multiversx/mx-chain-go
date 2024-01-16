@@ -13,18 +13,18 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231123141403-12ed9f47ae5c
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231123115253-158315dc4238
-	github.com/multiversx/mx-chain-crypto-go v1.2.8
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.13
-	github.com/multiversx/mx-chain-logger-go v1.0.13
-	github.com/multiversx/mx-chain-scenario-go v1.2.1
-	github.com/multiversx/mx-chain-storage-go v1.0.13
-	github.com/multiversx/mx-chain-vm-common-go v1.5.9-0.20231123115741-c8a4816c447a
-	github.com/multiversx/mx-chain-vm-go v1.5.21-0.20231123130627-c172a6e60243
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64-0.20231123132207-6c44946e74a2
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65-0.20231123132815-44ba8c51226f
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231123133518-2b81df5658ee
+	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381
+	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231214115026-a1e7279b14f1
+	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.18-0.20231228064619-e3b0caf29058
+	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231215125130-a3bed6e76040
+	github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296
+	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20231213110622-e222ba96a9f4
+	github.com/multiversx/mx-chain-vm-common-go v1.5.10-0.20231228070003-ae14e1e0adfa
+	github.com/multiversx/mx-chain-vm-go v1.5.23-0.20231228064104-964359cb8dd3
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65-0.20231228071026-eed2cb19c216
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66-0.20231228071108-6b89bcebab14
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
