@@ -697,7 +697,12 @@ func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, err
 // SendBlockTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBlockTransactions(apiBlocks []*api.Block) (uint64, error) {
 	n.addBlocksToDataPool(apiBlocks)
-
+	if len(apiBlocks) > 1 {
+		log.Info("SendBlockTransactions error", "len", len(apiBlocks))
+	}
+	firstBlock := apiBlocks[0]
+	log.Info("SendBlockTransactions", "timestamp", firstBlock.Timestamp.String())
+	n.coreComponents.IncreaseRoundChan() <- firstBlock.Round
 	return uint64(len(apiBlocks)), nil
 }
 
@@ -749,7 +754,7 @@ func (n *Node) addBlocksToDataPool(blocks []*api.Block) {
 
 		nrTxs, err := n.SendBulkTransactions(txList)
 		if err != nil {
-			log.Warn("SendBulkTransactions did not work", "hash", b.Hash)
+			log.Warn("SendBulkTransactions did not work", "hash", b.Hash, "err", err)
 		}
 
 		log.Info("added blocksToDataPool", "size", n.dataComponents.Datapool().BlockTxs().Len(), "round", b.Round, "hash", b.Hash, "randSeed", b.RandSeed)

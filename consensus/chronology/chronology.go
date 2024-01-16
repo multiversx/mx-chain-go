@@ -24,7 +24,7 @@ var log = logger.GetOrCreate("consensus/chronology")
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
 
-const numRoundsToWaitBeforeSignalingChronologyStuck = 10
+const numRoundsToWaitBeforeSignalingChronologyStuck = 100
 const chronologyAlarmID = "chronology"
 
 // chronology defines the data needed by the chronology
@@ -160,6 +160,7 @@ func (chr *chronology) startRound(ctx context.Context) {
 // updateRound updates rounds and subrounds depending on the current time and the finished tasks
 func (chr *chronology) updateRound() {
 	oldRoundIndex := chr.roundHandler.Index()
+	//log.Info("updateRound", "oldRoundIndex", oldRoundIndex, "roundHandler", chr.roundHandler.Index(), "syncTimer", chr.syncTimer.CurrentTime())
 	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.roundHandler.Index() {

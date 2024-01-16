@@ -280,7 +280,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	err = fct.GenerateSubrounds()
 	if err != nil {
 		return nil, err

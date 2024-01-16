@@ -125,7 +125,6 @@ func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte, pkB
 	for k, v := range miniBlocks {
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
-
 		cm.broadcast(miniBlocksTopic, v, pkBytes)
 	}
 
@@ -177,7 +176,6 @@ func (cm *commonMessenger) BroadcastBlockData(
 	extraDelayForBroadcast time.Duration,
 ) {
 	time.Sleep(extraDelayForBroadcast)
-
 	if len(miniBlocks) > 0 {
 		err := cm.BroadcastMiniBlocks(miniBlocks, pkBytes)
 		if err != nil {

@@ -581,6 +581,18 @@ func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandl
 	return mcc.coreComponents.enableEpochsHandler
 }
 
+// IncreaseRoundChan returns the channel for increase round
+func (mcc *managedCoreComponents) IncreaseRoundChan() chan<- uint64 {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.increaseRoundChan
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mcc *managedCoreComponents) IsInterfaceNil() bool {
 	return mcc == nil

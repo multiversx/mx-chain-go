@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -991,6 +990,7 @@ func (txs *transactions) computeMissingTxsHashesForMiniBlock(miniBlock *block.Mi
 
 		if check.IfNil(tx) {
 			missingTransactionsHashes = append(missingTransactionsHashes, txHash)
+			log.Info("missing transaction", "txHash", txHash)
 		}
 	}
 
@@ -1468,41 +1468,11 @@ func (txs *transactions) computeSortedTxs(
 	log.Debug("computeSortedTxs.GetSortedTransactions", "randomness", hex.EncodeToString(randomness), "txs", len(txShardPool.Keys()))
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
-	newRandomness := randomness
-	if !check.IfNil(txs.blockTxs) {
-		log.Debug("computeSortedTxs", "len", txs.blockTxs.Len())
-
-		keys := txs.blockTxs.Keys()
-
-		sort.Slice(keys, func(i, j int) bool {
-			return hex.EncodeToString(keys[i]) < hex.EncodeToString(keys[j])
-		})
-
-		if len(keys) > 0 {
-			currentKey := keys[0]
-			log.Debug("computeSortedTxs", "key", string(currentKey))
-
-			b, ok := txs.blockTxs.Get(currentKey)
-			if !ok {
-				log.Error("computeSortedTxs - error", "key", string(currentKey))
-			} else {
-				var apiBlock *api.Block
-
-				apiBlock, ok := b.(*api.Block)
-				if ok {
-					newRandomness = []byte(apiBlock.PrevRandSeed)
-					log.Debug("computeSortedTxs", "newRandomness", newRandomness)
-				}
-			}
-			txs.blockTxs.Remove(currentKey)
-		}
-	}
-
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
-	txs.sortTransactionsBySenderAndNonce(selectedTxs, newRandomness)
+	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
-	log.Debug("computeSortedTxs", "selectedTxs", len(selectedTxs), "remainingTxs", len(remainingTxs), "randomness", newRandomness)
+	log.Debug("computeSortedTxs", "selectedTxs", len(selectedTxs), "remainingTxs", len(remainingTxs), "randomness", randomness)
 
 	return selectedTxs, remainingTxs, nil
 }

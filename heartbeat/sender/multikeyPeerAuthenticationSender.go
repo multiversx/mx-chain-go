@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat"
 )
 
-const delayedBroadcast = 200 * time.Millisecond
+const delayedBroadcast = 100 * time.Millisecond
 
 // argMultikeyPeerAuthenticationSender represents the arguments for the peer authentication sender
 type argMultikeyPeerAuthenticationSender struct {

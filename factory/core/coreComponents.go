@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -108,6 +109,7 @@ type coreComponents struct {
 	processStatusHandler          common.ProcessStatusHandler
 	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
+	increaseRoundChan             chan uint64
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -175,8 +177,45 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	syncer := ntp.NewSyncTime(ccf.config.NTPConfig, nil)
-	syncer.StartSyncingTime()
+	genesisTimeStamp := "1596117600"
+	i, err := strconv.ParseInt(genesisTimeStamp, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+
+	currentTimeMilis := time.Now().UnixMilli()
+
+	time.Sleep(time.Duration(6000-currentTimeMilis%6000) * time.Millisecond)
+
+	log.Info("AfterSleep", "time", time.Now())
+	tm := time.Unix(i, 0)
+	log.Info("tm", "time", tm)
+	increaseChan := make(chan uint64)
+	var syncTimer ntp.SyncTimer
+	syncTimer = ntp.NewShadowForkSyncTimer(tm, increaseChan)
+
+	//go func() {
+	//	log.Info("sleeping for 100 seconds")
+	//	time.Sleep(100 * time.Second)
+	//	sleepMiliseconds := int64(4000)
+	//	round := uint64(0)
+	//	for {
+	//		currentTimeMilis = time.Now().UnixMilli()
+	//		sleepDuration := time.Duration(sleepMiliseconds-currentTimeMilis%sleepMiliseconds) * time.Millisecond
+	//		time.Sleep(sleepDuration)
+	//		log.Debug("sleeping for", "miliseconds", sleepDuration)
+	//		increaseChan <- round
+	//		round++
+	//	}
+	//}()
+
+	var syncer ntp.SyncTimer
+
+	//syncer = ntp.NewSyncTime(ccf.config.NTPConfig, nil)
+	//syncer.StartSyncingTime()
+
+	syncer = syncTimer
+
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -367,6 +406,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
 		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
+		increaseRoundChan:             increaseChan,
 	}, nil
 }
 
