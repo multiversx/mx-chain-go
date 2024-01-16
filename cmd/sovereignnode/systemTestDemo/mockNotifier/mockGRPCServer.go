@@ -73,7 +73,7 @@ func generateRandomHashes(bridgeOps *sovereign.BridgeOperations) []string {
 
 func logTxHashes(hashes []string) {
 	for _, hash := range hashes {
-		log.Info("generated tx", "hash", hash)
+		log.Info("mocked bridge sender generated tx", "hash", hash)
 	}
 }
 

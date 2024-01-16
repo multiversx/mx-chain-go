@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -16,6 +17,7 @@ const (
 	minTopicsInTransferEvent  = 4
 	numTransferTopics         = 3
 	numExecutedBridgeOpTopics = 2
+	minNumEventDataTokens     = 4
 )
 
 const (
@@ -26,6 +28,12 @@ const (
 type confirmedBridgeOp struct {
 	hashOfHashes []byte
 	hash         []byte
+}
+
+type eventData struct {
+	nonce                uint64
+	functionCallWithArgs []byte
+	gasLimit             uint64
 }
 
 type scrInfo struct {
@@ -86,14 +94,21 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 			errInvalidNumTopicsIncomingEvent, len(topics))
 	}
 
-	eventNonce := big.NewInt(0).SetBytes(event.GetData())
+	receivedEventData, err := getEventData(event.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	scrData := createSCRData(topics)
+	scrData = append(scrData, receivedEventData.functionCallWithArgs...)
 	scr := &smartContractResult.SmartContractResult{
-		Nonce:          eventNonce.Uint64(),
+		Nonce:          receivedEventData.nonce,
 		OriginalTxHash: nil, // TODO:  Implement this in MX-14321 task
 		RcvAddr:        topics[0],
 		SndAddr:        core.ESDTSCAddress,
-		Data:           createSCRData(topics),
+		Data:           scrData,
 		Value:          big.NewInt(0),
+		GasLimit:       receivedEventData.gasLimit,
 	}
 
 	hash, err := core.CalculateHash(iep.marshaller, iep.hasher, scr)
@@ -104,6 +119,34 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 	return &scrInfo{
 		scr:  scr,
 		hash: hash,
+	}, nil
+}
+
+func getEventData(data []byte) (*eventData, error) {
+	if len(data) == 0 {
+		return nil, errEmptyLogData
+	}
+
+	tokens := strings.Split(string(data), "@")
+	numTokens := len(tokens)
+	if numTokens < minNumEventDataTokens {
+		return nil, fmt.Errorf("%w, expected min num tokens: %d, received num tokens: %d",
+			errInvalidNumTokensOnLogData, minNumEventDataTokens, numTokens)
+	}
+
+	// TODO: Add validity checks
+	eventNonce := big.NewInt(0).SetBytes([]byte(tokens[0]))
+	gasLimit := big.NewInt(0).SetBytes([]byte(tokens[numTokens-1]))
+
+	functionCallWithArgs := []byte("@" + tokens[1])
+	for i := 2; i < numTokens-1; i++ {
+		functionCallWithArgs = append(functionCallWithArgs, []byte("@"+tokens[i])...)
+	}
+
+	return &eventData{
+		nonce:                eventNonce.Uint64(),
+		gasLimit:             gasLimit.Uint64(),
+		functionCallWithArgs: functionCallWithArgs,
 	}, nil
 }
 

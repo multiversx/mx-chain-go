@@ -244,6 +244,13 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 		return nil, err
 	}
 
+	nonce := big.NewInt(int64(ct)).Bytes()
+	gasLimit := big.NewInt(69327).Bytes()
+	dummyFuncWithArgsAndGas := []byte("@0a@@66756e6332@61726731@")
+
+	logData := append(nonce, dummyFuncWithArgsAndGas...)
+	logData = append(logData, gasLimit...)
+
 	return []*outport.LogData{
 		{
 			Log: &transaction.Log{
@@ -253,7 +260,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 						Address:    subscribedAddr,
 						Identifier: []byte("deposit"),
 						Topics:     topics,
-						Data:       big.NewInt(int64(ct)).Bytes(),
+						Data:       logData,
 					},
 				},
 			},

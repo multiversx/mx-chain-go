@@ -12,4 +12,8 @@ var errInvalidEventType = errors.New("incoming event is not of type transaction 
 
 var errInvalidNumTopicsIncomingEvent = errors.New("received invalid number of topics in incoming event")
 
+var errEmptyLogData = errors.New("empty logs data in incoming event")
+
+var errInvalidNumTokensOnLogData = errors.New("received invalid number of tokens in topic data of incoming event")
+
 var errInvalidIncomingEventIdentifier = errors.New("received invalid/unknown incoming event identifier")

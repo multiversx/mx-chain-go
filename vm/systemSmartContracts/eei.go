@@ -301,6 +301,11 @@ func (host *vmContext) ProcessBuiltInFunction(
 		return errors.New(vmOutput.ReturnMessage)
 	}
 
+	//TODO: should only work for sovereign - move to sovereignEei?
+	for _, logEntry := range vmOutput.Logs {
+		host.AddLogEntry(logEntry)
+	}
+
 	// add the SCR for the builtin function
 	return host.Transfer(destination, sender, value, input, gasLimit)
 }
