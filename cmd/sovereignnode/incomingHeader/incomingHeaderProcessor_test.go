@@ -60,8 +60,9 @@ func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.Inc
 			},
 			IncomingEvents: []*transaction.Event{
 				{
-					Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
-					Data:   createEventData(),
+					Topics:     [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+					Data:       createEventData(),
+					Identifier: []byte(topicIDDeposit),
 				},
 			},
 		}
@@ -235,12 +236,12 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			{
 				Identifier: []byte(topicIDDeposit),
 				Topics:     [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
-				Data:   createEventData(),
+				Data:       createEventData(),
 			},
 			{
 				Identifier: []byte(topicIDDeposit),
 				Topics:     [][]byte{[]byte("addr")},
-				Data:   createEventData(),
+				Data:       createEventData(),
 			},
 		}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
@@ -314,7 +315,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 				{
 					Identifier: []byte(topicIDDeposit),
 					Topics:     [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
-					Data:   createEventData(),
+					Data:       createEventData(),
 				},
 			},
 		}
