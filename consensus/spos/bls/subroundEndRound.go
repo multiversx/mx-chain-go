@@ -189,7 +189,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if sr.IsSelfLeaderInCurrentRound() {
+	if sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound() {
 		return false
 	}
 
@@ -589,12 +589,23 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	if !(isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()) {
+		return
+	}
+
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("createAndBroadcastInvalidSigners.GetLeader", "error", errGetLeader)
+		return
+	}
+
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
 		nil,
 		nil,
-		[]byte(sr.SelfPubKey()),
+		[]byte(leader),
 		nil,
 		int(MtInvalidSigners),
 		sr.RoundHandler().Index(),
@@ -602,7 +613,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		nil,
 		nil,
-		sr.CurrentPid(),
+		sr.GetAssociatedPid([]byte(leader)),
 		invalidSigners,
 	)
 
