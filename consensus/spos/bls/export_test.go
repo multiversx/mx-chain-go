@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
@@ -99,7 +100,7 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+	return fct.generateStartRoundSubround(&subRounds.SubRoundStartExtraSignersHolderMock{})
 }
 
 // GenerateBlockSubroundV1 generates the instance of subround Block V1 and added it to the chronology subrounds list
@@ -114,22 +115,22 @@ func (fct *factory) GenerateBlockSubroundV2() error {
 
 // GenerateSignatureSubroundV1 generates the instance of subround Signature V1 and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubroundV1() error {
-	return fct.generateSignatureSubroundV1()
+	return fct.generateSignatureSubroundV1(&subRounds.SubRoundSignatureExtraSignersHolderMock{})
 }
 
 // GenerateSignatureSubroundV2 generates the instance of subround Signature V2 and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubroundV2() error {
-	return fct.generateSignatureSubroundV2()
+	return fct.generateSignatureSubroundV2(&subRounds.SubRoundSignatureExtraSignersHolderMock{})
 }
 
 // GenerateEndRoundSubroundV1 generates the instance of subround EndRound V1 and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubroundV1() error {
-	return fct.generateEndRoundSubroundV1()
+	return fct.generateEndRoundSubroundV1(&subRounds.SubRoundEndExtraSignersHolderMock{})
 }
 
 // GenerateEndRoundSubroundV2 generates the instance of subround EndRound V2 and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubroundV2() error {
-	return fct.generateEndRoundSubroundV2()
+	return fct.generateEndRoundSubroundV2(&subRounds.SubRoundEndExtraSignersHolderMock{})
 }
 
 // AppStatusHandler gets the app status handler object
@@ -381,4 +382,9 @@ func (sr *subroundEndRound) GetProcessedHeaderHash() []byte {
 // GetMessageToVerifySig gets the message on which the signature should be verified
 func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
 	return sr.getMessageToVerifySig()
+}
+
+// DoSovereignEndRoundJob -
+func (sr *sovereignSubRoundEnd) DoSovereignEndRoundJob(ctx context.Context) bool {
+	return sr.doSovereignEndRoundJob(ctx)
 }

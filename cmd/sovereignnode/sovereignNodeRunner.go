@@ -36,7 +36,9 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignPool "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -62,8 +64,10 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -77,6 +81,9 @@ import (
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
+	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
+	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
@@ -423,10 +430,14 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
+	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
+
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
-		configs.NotifierConfig,
+		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
+		outGoingOperationsPool,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -441,6 +452,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
+		outGoingOperationsPool,
 	)
 	if err != nil {
 		return true, err
@@ -476,6 +488,18 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
+	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&bridgeCfg.ClientConfig{
+		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
+		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
+		CertificateCfg: cert.FileCfg{
+			CertFile: snr.configs.SovereignExtraConfig.OutGoingBridgeCertificate.CertificatePath,
+			PkFile:   snr.configs.SovereignExtraConfig.OutGoingBridgeCertificate.CertificatePkPath,
+		},
+	})
+	if err != nil {
+		return true, err
+	}
+
 	managedConsensusComponents, err := snr.CreateManagedConsensusComponents(
 		managedCoreComponents,
 		managedNetworkComponents,
@@ -485,6 +509,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		outGoingOperationsPool,
+		outGoingBridgeOpHandler,
 	)
 	if err != nil {
 		return true, err
@@ -505,7 +531,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	sovereignWsReceiver, err := createSovereignWsReceiver(
-		configs.NotifierConfig,
+		&configs.SovereignExtraConfig.NotifierConfig,
 		incomingHeaderHandler,
 	)
 	if err != nil {
@@ -514,8 +540,12 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating node structure")
 
-	extraOption := func(n *node.Node) error {
+	extraOptionNotifierReceiver := func(n *node.Node) error {
 		n.AddClosableComponent(sovereignWsReceiver)
+		return nil
+	}
+	extraOptionOutGoingBridgeSender := func(n *node.Node) error {
+		n.AddClosableComponent(outGoingBridgeOpHandler)
 		return nil
 	}
 	currentNode, err := node.CreateNode(
@@ -533,7 +563,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
-		extraOption,
+		extraOptionNotifierReceiver,
+		extraOptionOutGoingBridgeSender,
 	)
 	if err != nil {
 		return true, err
@@ -831,6 +862,8 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	outGoingOperationsPool block.OutGoingOperationsPool,
+	outGoingBridgeOpHandler bls.BridgeOperationsHandler,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -839,6 +872,16 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	}
 
 	scheduledProcessor, err := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	extraSignersHolder, err := createOutGoingTxDataSigners(cryptoComponents.ConsensusSigningHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(outGoingOperationsPool, outGoingBridgeOpHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -859,6 +902,8 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		ShouldDisableWatchdog: snr.configs.FlagsConfig.DisableConsensusWatchdog,
 		ConsensusModel:        consensus.ConsensusModelV2,
 		ChainRunType:          common.ChainRunTypeSovereign,
+		ExtraSignersHolder:    extraSignersHolder,
+		SubRoundEndV2Creator:  sovSubRoundEndCreator,
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -876,6 +921,44 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 	return managedConsensusComponents, nil
+}
+
+func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.ExtraSignersHolder, error) {
+	extraSignerHandler := signingHandler.ShallowClone()
+	startRoundExtraSignersHolder := bls.NewSubRoundStartExtraSignersHolder()
+	startRoundExtraSigner, err := bls.NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return nil, err
+	}
+	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	signRoundExtraSignersHolder := bls.NewSubRoundSignatureExtraSignersHolder()
+	signRoundExtraSigner, err := bls.NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return nil, err
+	}
+	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	endRoundExtraSignersHolder := bls.NewSubRoundEndExtraSignersHolder()
+	endRoundExtraSigner, err := bls.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
+	if err != nil {
+		return nil, err
+	}
+	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	return bls.NewExtraSignersHolder(
+		startRoundExtraSignersHolder,
+		signRoundExtraSignersHolder,
+		endRoundExtraSignersHolder)
 }
 
 // CreateManagedHeartbeatV2Components is the managed heartbeatV2 components factory
@@ -1117,6 +1200,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1198,6 +1282,17 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
+	if err != nil {
+		return nil, err
+	}
+
+	err = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
+	if err != nil {
+		return nil, err
+	}
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
@@ -1233,6 +1328,8 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
+		OutGoingOperationsPool:                outGoingOperationsPool,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1688,9 +1785,10 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 }
 
 func createIncomingHeaderProcessor(
-	config *sovereignConfig.NotifierConfig,
+	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
+	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1707,13 +1805,14 @@ func createIncomingHeaderProcessor(
 		Marshaller:                      marshaller,
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
+		OutGoingOperationsPool:          outGoingOperationsPool,
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 }
 
 func createSovereignWsReceiver(
-	config *sovereignConfig.NotifierConfig,
+	config *config.NotifierConfig,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
@@ -1749,7 +1848,7 @@ func createSovereignWsReceiver(
 	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
 }
 
-func getNotifierSubscribedEvents(events []sovereignConfig.SubscribedEvent) []notifierCfg.SubscribedEvent {
+func getNotifierSubscribedEvents(events []config.SubscribedEvent) []notifierCfg.SubscribedEvent {
 	ret := make([]notifierCfg.SubscribedEvent, len(events))
 
 	for idx, event := range events {

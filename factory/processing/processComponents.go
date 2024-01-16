@@ -172,6 +172,8 @@ type ProcessComponentsFactoryArgs struct {
 	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	OutGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 type processComponentsFactory struct {
@@ -216,6 +218,8 @@ type processComponentsFactory struct {
 	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
+	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	outGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -261,6 +265,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
+		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
+		outGoingOperationsPool:                args.OutGoingOperationsPool,
 	}, nil
 }
 
@@ -290,13 +296,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:             pcf.coreData.InternalMarshalizer(),
-		Hasher:                  pcf.coreData.Hasher(),
-		NodesCoordinator:        pcf.nodesCoordinator,
-		MultiSigContainer:       pcf.crypto.MultiSignerContainer(),
-		SingleSigVerifier:       pcf.crypto.BlockSigner(),
-		KeyGen:                  pcf.crypto.BlockSignKeyGen(),
-		FallbackHeaderValidator: fallbackHeaderValidator,
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		NodesCoordinator:             pcf.nodesCoordinator,
+		MultiSigContainer:            pcf.crypto.MultiSignerContainer(),
+		SingleSigVerifier:            pcf.crypto.BlockSigner(),
+		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
+		FallbackHeaderValidator:      fallbackHeaderValidator,
+		ExtraHeaderSigVerifierHolder: pcf.extraHeaderSigVerifierHolder,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -2109,6 +2116,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.TxPreProcessorCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
+	}
+	if check.IfNil(args.ExtraHeaderSigVerifierHolder) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
 
 	return nil

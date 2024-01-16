@@ -118,17 +118,21 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config/gasSchedules",
 	}
-	// notifierConfigFile defines a flag for the path to the sovereign notifier toml configuration file
-	notifierConfigFile = cli.StringFlag{
-		Name:  "notifier-config",
-		Usage: "The `" + filePathPlaceholder + "` for sovereign notifier configuration.",
-		Value: "./config/notifierConfig.toml",
-	}
 	// sovereignConfigFile defines a flag for the path to the sovereign toml configuration file
 	sovereignConfigFile = cli.StringFlag{
 		Name:  "sovereign-config",
 		Usage: "The `" + filePathPlaceholder + "` for sovereign configuration.",
 		Value: "./config/sovereignConfig.toml",
+	}
+	sovereignBridgeCertificateFile = cli.StringFlag{
+		Name:  "certificate",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign outgoing bridge certificate file.",
+		Value: "./config/certificate.crt",
+	}
+	sovereignBridgeCertificatePkFile = cli.StringFlag{
+		Name:  "certificate-pk",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign outgoing bridge private key certificate file.",
+		Value: "./config/private_key.pem",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections on the main network
 	port = cli.StringFlag{
@@ -438,8 +442,9 @@ func getFlags() []cli.Flag {
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
-		notifierConfigFile,
 		sovereignConfigFile,
+		sovereignBridgeCertificateFile,
+		sovereignBridgeCertificatePkFile,
 		port,
 		fullArchivePort,
 		profileMode,
