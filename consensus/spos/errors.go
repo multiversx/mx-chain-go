@@ -240,3 +240,6 @@ var ErrNilKeysHandler = errors.New("nil keys handler")
 
 // ErrNilFunctionHandler signals that a nil function handler was provided
 var ErrNilFunctionHandler = errors.New("nil function handler")
+
+// ErrWrongHashForHeader signals that the hash of the header is not the expected one
+var ErrWrongHashForHeader = errors.New("wrong hash for header")

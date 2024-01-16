@@ -935,6 +935,65 @@ func TestManagedPeersHolder_IsMultiKeyMode(t *testing.T) {
 	})
 }
 
+func TestManagedPeersHolder_GetRedundancyStepInReason(t *testing.T) {
+	t.Parallel()
+
+	t.Run("main machine mode", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		assert.Empty(t, holder.GetRedundancyStepInReason())
+	})
+	t.Run("redundancy machine mode but no managed keys", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		assert.Empty(t, holder.GetRedundancyStepInReason())
+	})
+	t.Run("redundancy machine mode with one managed key, main active", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
+
+		assert.Empty(t, holder.GetRedundancyStepInReason())
+	})
+	t.Run("redundancy machine mode with one managed key, main inactive", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
+		for i := 0; i < args.MaxRoundsOfInactivity+1; i++ {
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+		}
+
+		assert.Equal(t, keysManagement.RedundancyReasonForOneKey, holder.GetRedundancyStepInReason())
+	})
+	t.Run("redundancy machine mode with 2 managed keys, main active", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
+		_ = holder.AddManagedPeer(skBytes1)
+
+		assert.Empty(t, holder.GetRedundancyStepInReason())
+	})
+	t.Run("redundancy machine mode with 2 managed keys, main inactive", func(t *testing.T) {
+		args := createMockArgsManagedPeersHolder()
+		args.MaxRoundsOfInactivity = 2
+		holder, _ := keysManagement.NewManagedPeersHolder(args)
+		_ = holder.AddManagedPeer(skBytes0)
+		_ = holder.AddManagedPeer(skBytes1)
+
+		for i := 0; i < args.MaxRoundsOfInactivity+1; i++ {
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+			holder.IncrementRoundsWithoutReceivedMessages(pkBytes1)
+		}
+
+		expectedReason := fmt.Sprintf(keysManagement.RedundancyReasonForMultipleKeys, 2)
+		assert.Equal(t, expectedReason, holder.GetRedundancyStepInReason())
+	})
+}
+
 func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 	defer func() {
 		r := recover()
@@ -984,10 +1043,12 @@ func TestManagedPeersHolder_ParallelOperationsShouldNotPanic(t *testing.T) {
 				_, _ = holder.GetNextPeerAuthenticationTime(pkBytes0)
 			case 13:
 				holder.SetNextPeerAuthenticationTime(pkBytes0, time.Now())
+			case 14:
+				_ = holder.GetRedundancyStepInReason()
 			}
 
 			wg.Done()
-		}(i % 14)
+		}(i % 15)
 	}
 
 	wg.Wait()
