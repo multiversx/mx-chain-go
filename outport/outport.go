@@ -8,6 +8,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -292,10 +296,32 @@ func (o *outport) SaveAccounts(accounts *outportcore.Accounts) {
 // NewTransactionHandlerInPool gets called whenever a new transaction (transaction, unsigned transaction or reward transaction)
 // was added to the pool
 func (o *outport) NewTransactionHandlerInPool(key []byte, value interface{}) {
-	// TODO: add implementation
-	//  take care of the different format this will be called:
-	//   * for the transaction cache we need to cast value to a *WrappedTransaction
-	//   * for rewards/unsigned caches we need to cast the value to a TransactionHandler interface
+	if check.IfNilReflect(value) {
+		return
+	}
+
+	switch t := value.(type) {
+	case *txcache.WrappedTransaction:
+		tx, isTransaction := t.Tx.(*transaction.Transaction)
+		if !isTransaction {
+			log.Warn("programming error in NewTransactionHandlerInPool, improper value",
+				"value type", fmt.Sprintf("%T", value),
+				"value.Tx type", fmt.Sprintf("%T", t.Tx))
+			return
+		}
+
+		// TODO something with the transaction and remove the following line
+		_ = tx
+	case *rewardTx.RewardTx:
+		// TODO something with the reward transaction
+		_ = t
+	case *smartContractResult.SmartContractResult:
+		// TODO something with the smart contract result transaction
+		_ = t
+	default:
+		log.Warn("programming error in NewTransactionHandlerInPool, improper value",
+			"value type", fmt.Sprintf("%T", value))
+	}
 }
 
 func (o *outport) saveAccountsBlocking(accounts *outportcore.Accounts, driver Driver) {
