@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -5167,6 +5168,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		StartTime:             time.Time{},
 		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
+		ChanStopProcess:       make(chan endProcess.ArgEndProcess, 1),
 	}
 }
 
@@ -5193,6 +5195,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		BlockTrack:                           &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:                 &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:                           &testscommon.RequestHandlerStub{},
+		RequestedItemsHandlerInternal:        &testscommon.RequestedItemsHandlerStub{},
 		TxLogsProcess:                        &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:             &mock.HeaderValidatorStub{},
 		MainPeerMapper:                       &p2pmocks.NetworkShardingCollectorStub{},
@@ -5202,6 +5205,8 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
 		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
+		ESDTDataStorageHandlerForAPIInternal: &testscommon.EsdtStorageHandlerStub{},
+		ResContainer:                         &dataRetrieverMock.ResolversContainerStub{},
 	}
 }
 
@@ -5217,11 +5222,12 @@ func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
 			return []byte("root hash")
 		},
 	}
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
 
 	return &nodeMockFactory.DataComponentsMock{
 		BlockChain: chainHandler,
 		Store:      &mockStorage.ChainStorerStub{},
-		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
+		DataPool:   dataPool,
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
 }
