@@ -1,12 +1,15 @@
 package node_test
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +21,7 @@ func TestCreateNode(t *testing.T) {
 
 		nodeHandler, err := node.CreateNode(
 			&config.Config{},
-			getDefaultStatusCoreComponents(),
+			&factory.StatusCoreComponentsStub{},
 			getDefaultBootstrapComponents(),
 			getDefaultCoreComponents(),
 			getDefaultCryptoComponents(),
@@ -26,9 +29,11 @@ func TestCreateNode(t *testing.T) {
 			getDefaultNetworkComponents(),
 			getDefaultProcessComponents(),
 			getDefaultStateComponents(),
-			getDefaultStatusComponents(),
-			getDefaultHeartbeatV2Components(),
-			getDefaultConsensusComponents(),
+			&mainFactoryMocks.StatusComponentsStub{},
+			&mock.HeartbeatV2ComponentsStub{},
+			&consensus.ConsensusComponentsStub{
+				GroupSize: 1,
+			},
 			0,
 			false,
 			nil)
@@ -42,7 +47,7 @@ func TestCreateNode(t *testing.T) {
 
 		nodeHandler, err := node.CreateNode(
 			&config.Config{},
-			getDefaultStatusCoreComponents(),
+			&factory.StatusCoreComponentsStub{},
 			getDefaultBootstrapComponents(),
 			getDefaultCoreComponents(),
 			getDefaultCryptoComponents(),
@@ -51,8 +56,10 @@ func TestCreateNode(t *testing.T) {
 			getDefaultProcessComponents(),
 			getDefaultStateComponents(),
 			&mainFactoryMocks.StatusComponentsStub{},
-			getDefaultHeartbeatV2Components(),
-			getDefaultConsensusComponents(),
+			&mock.HeartbeatV2ComponentsStub{},
+			&consensus.ConsensusComponentsStub{
+				GroupSize: 1,
+			},
 			0,
 			false,
 			node.NewSovereignNodeFactory())

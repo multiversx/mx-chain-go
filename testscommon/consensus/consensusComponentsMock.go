@@ -1,4 +1,4 @@
-package factory
+package consensus
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"

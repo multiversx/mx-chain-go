@@ -47,13 +47,11 @@ func (scs *StatusComponentsStub) ManagedPeersMonitor() common.ManagedPeersMonito
 }
 
 func (scs *StatusComponentsStub) SetForkDetector(forkDetector process.ForkDetector) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (scs *StatusComponentsStub) StartPolling() error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 // String -

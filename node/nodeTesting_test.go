@@ -13,7 +13,6 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	mocks "github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	factoryMock "github.com/multiversx/mx-chain-go/node/mock/factory"
@@ -23,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -430,23 +428,5 @@ func getDefaultNetworkComponents() *factoryMock.NetworkComponentsMock {
 		PeerBlackList:                    &mock.PeerBlackListHandlerStub{},
 		PubKeyCacherField:                &testscommon.TimeCacheStub{},
 		FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
-	}
-}
-
-func getDefaultStatusCoreComponents() *factoryMocks.StatusCoreComponentsStub {
-	return &factoryMocks.StatusCoreComponentsStub{}
-}
-
-func getDefaultStatusComponents() *mainFactoryMocks.StatusComponentsStub {
-	return &mainFactoryMocks.StatusComponentsStub{}
-}
-
-func getDefaultHeartbeatV2Components() *mocks.HeartbeatV2ComponentsStub {
-	return &mocks.HeartbeatV2ComponentsStub{}
-}
-
-func getDefaultConsensusComponents() *factoryMock.ConsensusComponentsStub {
-	return &factoryMock.ConsensusComponentsStub{
-		GroupSize: 1,
 	}
 }
