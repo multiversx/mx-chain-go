@@ -167,6 +167,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	err = pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
@@ -451,6 +456,44 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		blockProcessor:         blockProcessor,
 		vmFactoryForProcessing: vmFactory,
 	}, nil
+}
+
+func (pcf *processComponentsFactory) addSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
+	//TODO: refactor this with creators and runTypeComponents
+	if pcf.chainRunType != common.ChainRunTypeSovereign {
+		return nil
+	}
+
+	metaStorage := pcf.config.SmartContractsStorage
+	metaStorage.DB.FilePath = metaStorage.DB.FilePath + "_meta"
+
+	vmFactoryMeta, err := pcf.createVMFactoryMeta(
+		pcf.state.AccountsAdapter(),
+		builtInFuncFactory.BuiltInFunctionContainer(),
+		metaStorage,
+		builtInFuncFactory.NFTStorageHandler(),
+		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+	)
+	if err != nil {
+		return err
+	}
+
+	vmContainerMeta, err := vmFactoryMeta.Create()
+	if err != nil {
+		return err
+	}
+
+	vmMeta, err := vmContainerMeta.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	err = vmContainer.Add(factory.SystemVirtualMachine, vmMeta)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (pcf *processComponentsFactory) createTransactionCoordinator(
