@@ -817,6 +817,42 @@ func (sp *shardProcessor) CreateBlock(
 	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
 	defer sp.processStatusHandler.SetIdle()
 
+	blockTxs := sp.dataPool.BlockTxs()
+	prevRandSeed := shardHdr.GetPrevRandSeed()
+	randSeed := shardHdr.GetRandSeed()
+	if !check.IfNil(blockTxs) {
+		log.Debug("CreateBlock", "len", blockTxs.Len())
+
+		keys := blockTxs.Keys()
+
+		sort.Slice(keys, func(i, j int) bool {
+			return hex.EncodeToString(keys[i]) < hex.EncodeToString(keys[j])
+		})
+
+		if len(keys) > 0 {
+			currentKey := keys[0]
+			log.Debug("CreateBlock", "key", string(currentKey))
+
+			b, ok := blockTxs.Get(currentKey)
+			if !ok {
+				log.Error("CreateBlock - error", "key", string(currentKey))
+			} else {
+				var apiBlock *api.Block
+
+				apiBlock, ok := b.(*api.Block)
+				if ok {
+					prevRandSeed, _ = hex.DecodeString(apiBlock.PrevRandSeed)
+					randSeed, _ = hex.DecodeString(apiBlock.RandSeed)
+					log.Debug("CreateBlock", "prevRandSeed", prevRandSeed, "randSeed", randSeed)
+				}
+			}
+			blockTxs.Remove(currentKey)
+		}
+	}
+
+	_ = shardHdr.SetPrevRandSeed(prevRandSeed)
+	_ = shardHdr.SetRandSeed(randSeed)
+
 	err := sp.createBlockStarted()
 	if err != nil {
 		return nil, nil, err
