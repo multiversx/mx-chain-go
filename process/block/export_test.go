@@ -561,6 +561,7 @@ func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.setNonceOfFirstCommittedBlock(nonce)
 }
 
-func (bp *baseProcessor) CheckSentSignaturesBeforeCommitting(header data.HeaderHandler) error {
-	return bp.checkSentSignaturesBeforeCommitting(header)
+// CheckSentSignaturesAtCommitTime -
+func (bp *baseProcessor) CheckSentSignaturesAtCommitTime(header data.HeaderHandler) error {
+	return bp.checkSentSignaturesAtCommitTime(header)
 }

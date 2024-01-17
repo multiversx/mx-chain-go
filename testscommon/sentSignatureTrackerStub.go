@@ -2,9 +2,9 @@ package testscommon
 
 // SentSignatureTrackerStub -
 type SentSignatureTrackerStub struct {
-	StartRoundCalled                       func()
-	SignatureSentCalled                    func(pkBytes []byte)
-	ResetCountersManagedBlockSignersCalled func(signersPKs [][]byte)
+	StartRoundCalled                         func()
+	SignatureSentCalled                      func(pkBytes []byte)
+	ResetCountersForManagedBlockSignerCalled func(signerPk []byte)
 }
 
 // StartRound -
@@ -21,10 +21,10 @@ func (stub *SentSignatureTrackerStub) SignatureSent(pkBytes []byte) {
 	}
 }
 
-// ResetCountersManagedBlockSigners -
-func (stub *SentSignatureTrackerStub) ResetCountersManagedBlockSigners(signersPKs [][]byte) {
-	if stub.ResetCountersManagedBlockSignersCalled != nil {
-		stub.ResetCountersManagedBlockSignersCalled(signersPKs)
+// ResetCountersForManagedBlockSigner -
+func (stub *SentSignatureTrackerStub) ResetCountersForManagedBlockSigner(signerPk []byte) {
+	if stub.ResetCountersForManagedBlockSignerCalled != nil {
+		stub.ResetCountersForManagedBlockSignerCalled(signerPk)
 	}
 }
 

@@ -3131,7 +3131,7 @@ func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 	assert.Equal(t, numCalls/2, values[lastValRead]+noValues)
 }
 
-func TestBaseProcessor_CheckSentSignaturesBeforeCommitting(t *testing.T) {
+func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("expected error")
@@ -3143,14 +3143,14 @@ func TestBaseProcessor_CheckSentSignaturesBeforeCommitting(t *testing.T) {
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
-			ResetCountersManagedBlockSignersCalled: func(signersPKs [][]byte) {
+			ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
 				assert.Fail(t, "should have not called ResetCountersManagedBlockSigners")
 			},
 		}
 		arguments.NodesCoordinator = nodesCoordinatorInstance
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.CheckSentSignaturesBeforeCommitting(&block.Header{})
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -3166,14 +3166,14 @@ func TestBaseProcessor_CheckSentSignaturesBeforeCommitting(t *testing.T) {
 		resetCountersCalled := make([][]byte, 0)
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
-			ResetCountersManagedBlockSignersCalled: func(signersPKs [][]byte) {
-				resetCountersCalled = append(resetCountersCalled, signersPKs...)
+			ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+				resetCountersCalled = append(resetCountersCalled, signerPk)
 			},
 		}
 		arguments.NodesCoordinator = nodesCoordinatorInstance
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.CheckSentSignaturesBeforeCommitting(&block.Header{})
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
 		assert.Nil(t, err)
 
 		assert.Equal(t, [][]byte{validator0.PubKey(), validator1.PubKey(), validator2.PubKey()}, resetCountersCalled)

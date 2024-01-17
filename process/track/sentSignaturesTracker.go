@@ -43,20 +43,18 @@ func (tracker *sentSignaturesTracker) SignatureSent(pkBytes []byte) {
 	tracker.mut.Unlock()
 }
 
-// ResetCountersManagedBlockSigners is called at commit time and will call the reset rounds without received messages
-// for each managed key that actually signed a block
-func (tracker *sentSignaturesTracker) ResetCountersManagedBlockSigners(signersPKs [][]byte) {
+// ResetCountersForManagedBlockSigner is called at commit time and will call the reset rounds without received messages
+// for the provided key that actually signed a block
+func (tracker *sentSignaturesTracker) ResetCountersForManagedBlockSigner(signerPk []byte) {
 	tracker.mut.RLock()
 	defer tracker.mut.RUnlock()
 
-	for _, signerPk := range signersPKs {
-		_, isSentFromSelf := tracker.sentFromSelf[string(signerPk)]
-		if isSentFromSelf {
-			continue
-		}
-
-		tracker.keysHandler.ResetRoundsWithoutReceivedMessages(signerPk, externalPeerID)
+	_, isSentFromSelf := tracker.sentFromSelf[string(signerPk)]
+	if isSentFromSelf {
+		return
 	}
+
+	tracker.keysHandler.ResetRoundsWithoutReceivedMessages(signerPk, externalPeerID)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

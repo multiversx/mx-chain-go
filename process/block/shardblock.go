@@ -988,7 +988,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
-	errNotCritical := sp.checkSentSignaturesBeforeCommitting(headerHandler)
+	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
 	}

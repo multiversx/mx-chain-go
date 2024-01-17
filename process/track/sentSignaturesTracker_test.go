@@ -37,13 +37,11 @@ func TestSentSignaturesTracker_IsInterfaceNil(t *testing.T) {
 	assert.False(t, tracker.IsInterfaceNil())
 }
 
-func TestSentSignaturesTracker_ResetCountersManagedBlockSigners(t *testing.T) {
+func TestSentSignaturesTracker_ResetCountersForManagedBlockSigner(t *testing.T) {
 	t.Parallel()
 
 	pk1 := []byte("pk1")
 	pk2 := []byte("pk2")
-	pk3 := []byte("pk3")
-	pk4 := []byte("pk4")
 
 	t.Run("empty map should call remove", func(t *testing.T) {
 		t.Parallel()
@@ -56,13 +54,12 @@ func TestSentSignaturesTracker_ResetCountersManagedBlockSigners(t *testing.T) {
 			},
 		}
 
-		signers := [][]byte{pk1, pk2}
 		tracker, _ := NewSentSignaturesTracker(keysHandler)
-		tracker.ResetCountersManagedBlockSigners(signers)
+		tracker.ResetCountersForManagedBlockSigner(pk1)
 
-		assert.Equal(t, [][]byte{pk1, pk2}, pkBytesSlice)
+		assert.Equal(t, [][]byte{pk1}, pkBytesSlice)
 	})
-	t.Run("should call remove only for the public keys that did not sent signatures from self", func(t *testing.T) {
+	t.Run("should call remove only for the public key that did not sent signatures from self", func(t *testing.T) {
 		t.Parallel()
 
 		pkBytesSlice := make([][]byte, 0)
@@ -73,21 +70,21 @@ func TestSentSignaturesTracker_ResetCountersManagedBlockSigners(t *testing.T) {
 			},
 		}
 
-		signers := [][]byte{pk1, pk2, pk3, pk4}
 		tracker, _ := NewSentSignaturesTracker(keysHandler)
 		tracker.SignatureSent(pk1)
-		tracker.SignatureSent(pk3)
 
-		tracker.ResetCountersManagedBlockSigners(signers)
-		assert.Equal(t, [][]byte{pk2, pk4}, pkBytesSlice)
+		tracker.ResetCountersForManagedBlockSigner(pk1)
+		tracker.ResetCountersForManagedBlockSigner(pk2)
+		assert.Equal(t, [][]byte{pk2}, pkBytesSlice)
 
 		t.Run("after reset, all should be called", func(t *testing.T) {
 			tracker.StartRound()
 
-			tracker.ResetCountersManagedBlockSigners(signers)
+			tracker.ResetCountersForManagedBlockSigner(pk1)
+			tracker.ResetCountersForManagedBlockSigner(pk2)
 			assert.Equal(t, [][]byte{
-				pk2, pk4, // from the previous test
-				pk1, pk2, pk3, pk4, // from this call
+				pk2,      // from the previous test
+				pk1, pk2, // from this call
 			}, pkBytesSlice)
 		})
 	})

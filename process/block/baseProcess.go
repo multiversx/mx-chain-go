@@ -2116,18 +2116,15 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.nonceOfFirstCommittedBlock.Value = nonce
 }
 
-func (bp *baseProcessor) checkSentSignaturesBeforeCommitting(header data.HeaderHandler) error {
+func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
 	validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
 	if err != nil {
 		return err
 	}
 
-	validatorsPKs := make([][]byte, 0, len(validatorsGroup))
 	for _, validator := range validatorsGroup {
-		validatorsPKs = append(validatorsPKs, validator.PubKey())
+		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner(validator.PubKey())
 	}
-
-	bp.sentSignaturesTracker.ResetCountersManagedBlockSigners(validatorsPKs)
 
 	return nil
 }

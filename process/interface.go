@@ -1345,6 +1345,6 @@ type Debugger interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	ResetCountersManagedBlockSigners(signersPKs [][]byte)
+	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }

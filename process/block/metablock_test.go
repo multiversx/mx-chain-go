@@ -1042,10 +1042,10 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	resetCountersManagedBlockSignersCalled := false
+	resetCountersForManagedBlockSignerCalled := false
 	arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
-		ResetCountersManagedBlockSignersCalled: func(signersPKs [][]byte) {
-			resetCountersManagedBlockSignersCalled = true
+		ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+			resetCountersForManagedBlockSignerCalled = true
 		},
 	}
 
@@ -1089,7 +1089,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
 	assert.True(t, debuggerMethodWasCalled)
-	assert.True(t, resetCountersManagedBlockSignersCalled)
+	assert.True(t, resetCountersForManagedBlockSignerCalled)
 	// this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
 }
