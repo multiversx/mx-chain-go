@@ -77,7 +77,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "unsupported type <struct> when trying to set the value <provided value>")
+		require.ErrorContains(t, err, "unsupported type <string> when trying to set the value of type <struct>")
 	})
 
 	t.Run("should error when setting invalid uint32", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid uint32> to kind <uint32>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid uint32' of type <string> to kind <uint32>")
 	})
 
 	t.Run("should error when setting invalid uint64", func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid uint64> to kind <uint64>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid uint64' of type <string> to kind <uint64>")
 	})
 
 	t.Run("should error when setting invalid float32", func(t *testing.T) {
@@ -116,7 +116,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid float32> to kind <float32>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid float32' of type <string> to kind <float32>")
 	})
 
 	t.Run("should error when setting invalid float64", func(t *testing.T) {
@@ -129,7 +129,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid float64> to kind <float64>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid float64' of type <string> to kind <float64>")
 	})
 
 	t.Run("should error when setting invalid int64", func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid int64> to kind <int64>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid int64' of type <string> to kind <int64>")
 	})
 
 	t.Run("should error when setting invalid int64", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid int64> to kind <int64>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid int64' of type <string> to kind <int64>")
 	})
 
 	t.Run("should error when setting invalid int", func(t *testing.T) {
@@ -168,7 +168,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid int> to kind <int>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid int' of type <string> to kind <int>")
 	})
 
 	t.Run("should error when setting invalid bool", func(t *testing.T) {
@@ -181,7 +181,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.ErrorContains(t, err, "cannot cast field <invalid bool> to kind <bool>")
+		require.ErrorContains(t, err, "cannot cast value 'invalid bool' of type <string> to kind <bool>")
 	})
 
 	t.Run("should error if the field is un-settable / unexported", func(t *testing.T) {
@@ -279,7 +279,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.StoragePruning.FullArchiveNumActivePersisters = 37
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.StoragePruning.FullArchiveNumActivePersisters)
@@ -293,7 +293,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.HeartbeatV2.MinPeersThreshold = 37.0
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%f", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.MinPeersThreshold)
@@ -307,7 +307,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends = 37.0
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%f", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.PeerAuthenticationTimeThresholdBetweenSends)
@@ -321,7 +321,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.Debug.InterceptorResolver.DebugLineExpiration = 37
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.Debug.InterceptorResolver.DebugLineExpiration)
@@ -335,7 +335,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.Hardfork.GenesisTime = 37
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.Hardfork.GenesisTime)
@@ -349,7 +349,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.TrieSyncStorage.SizeInBytes = 37
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.TrieSyncStorage.SizeInBytes)
@@ -362,7 +362,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg := &config.Config{}
 		cfg.StoragePruning.AccountsTrieCleanOldEpochsData = false
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%v", true))
+		err := AdaptStructureValueBasedOnPath(cfg, path, true)
 		require.NoError(t, err)
 
 		require.True(t, cfg.StoragePruning.AccountsTrieCleanOldEpochsData)
@@ -376,7 +376,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg.StoragePruning.FullArchiveNumActivePersisters = uint32(50)
 		expectedNewValue := uint32(37)
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.StoragePruning.FullArchiveNumActivePersisters)
@@ -390,7 +390,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg.Antiflood.NumConcurrentResolverJobs = int32(50)
 		expectedNewValue := int32(37)
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.Antiflood.NumConcurrentResolverJobs)
@@ -418,7 +418,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		cfg.Hardfork.ExportKeysStorageConfig.DB.MaxBatchSize = 10
 		expectedNewValue := 37
 
-		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
 		require.Equal(t, expectedNewValue, cfg.Hardfork.ExportKeysStorageConfig.DB.MaxBatchSize)
