@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
 	mathRand "math/rand"
 	"strings"
 	"sync"
@@ -42,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
