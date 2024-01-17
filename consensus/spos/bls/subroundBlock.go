@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/debug"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -563,17 +564,20 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	startTime := sr.RoundTimeStamp
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
+		debug.PROCESS_TRACER.HaveTimeQueried()
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}
 
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
+	debug.PROCESS_TRACER.Start()
 	err := sr.BlockProcessor().ProcessBlock(
 		sr.Header,
 		sr.Body,
 		remainingTimeInCurrentRound,
 	)
+	debug.PROCESS_TRACER.Stop()
 
 	if cnsDta.RoundIndex < sr.RoundHandler().Index() {
 		log.Debug("canceled round, round index has been changed",

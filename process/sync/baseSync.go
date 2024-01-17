@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
@@ -644,12 +645,16 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	startTime := time.Now()
 	waitTime := boot.processWaitTime
+	startProcessBlockTime := time.Now()
+
 	haveTime := func() time.Duration {
+		debug.PROCESS_TRACER.HaveTimeQueried()
 		return waitTime - time.Since(startTime)
 	}
 
-	startProcessBlockTime := time.Now()
+	debug.PROCESS_TRACER.Start()
 	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
+	debug.PROCESS_TRACER.Stop()
 	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
