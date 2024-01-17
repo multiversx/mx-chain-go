@@ -1,6 +1,7 @@
 package processor
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -15,6 +16,11 @@ import (
 
 var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 
+type excludedInterval struct {
+	low  uint64
+	high uint64
+}
+
 // HdrInterceptorProcessor is the processor used when intercepting headers
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
@@ -24,6 +30,7 @@ type HdrInterceptorProcessor struct {
 	enableEpochsHandler common.EnableEpochsHandler
 	registeredHandlers  []func(topic string, hash []byte, data interface{})
 	mutHandlers         sync.RWMutex
+	hfExcludedIntervals map[uint32][]*excludedInterval
 }
 
 // NewHdrInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -44,12 +51,40 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 		return nil, process.ErrNilEnableEpochsHandler
 	}
 
+	hfExcludedIntervals := map[uint32][]*excludedInterval{
+		0: {
+			{
+				low:  1870267,
+				high: 1927500,
+			},
+		},
+		1: {
+			{
+				low:  1870268,
+				high: 1927500,
+			},
+		},
+		2: {
+			{
+				low:  1870268,
+				high: 1927500,
+			},
+		},
+		core.MetachainShardId: {
+			{
+				low:  1870268,
+				high: 1927500,
+			},
+		},
+	}
+
 	return &HdrInterceptorProcessor{
 		headers:             argument.Headers,
 		proofs:              argument.Proofs,
 		blackList:           argument.BlockBlackList,
 		enableEpochsHandler: argument.EnableEpochsHandler,
 		registeredHandlers:  make([]func(topic string, hash []byte, data interface{}), 0),
+		hfExcludedIntervals: hfExcludedIntervals,
 	}, nil
 }
 
@@ -64,6 +99,26 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 	isBlackListed := hip.blackList.Has(string(interceptedHdr.Hash()))
 	if isBlackListed {
 		return process.ErrHeaderIsBlackListed
+	}
+
+	err := hip.checkDevnetHardfork(interceptedHdr.HeaderHandler())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (hip *HdrInterceptorProcessor) checkDevnetHardfork(hdr data.HeaderHandler) error {
+	round := hdr.GetRound()
+	shardID := hdr.GetShardID()
+
+	excludedIntervals := hip.hfExcludedIntervals[shardID]
+	for _, interval := range excludedIntervals {
+		if round >= interval.low && round <= interval.high {
+			return fmt.Errorf("header is in excluded range, shard %d, round %d, low %d, high %d",
+				hdr.GetShardID(), hdr.GetRound(), interval.low, interval.high)
+		}
 	}
 
 	return nil
