@@ -61,6 +61,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
@@ -262,6 +263,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
+		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)

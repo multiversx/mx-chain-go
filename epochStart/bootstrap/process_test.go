@@ -2386,7 +2386,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	transactions := testscommon.NewShardedDataCacheNotifierMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return transactions
