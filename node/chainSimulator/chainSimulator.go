@@ -69,7 +69,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:           args.NumOfShards,
 		OriginalConfigsPath:   args.PathToInitialConfig,
-		GenesisTimeStamp:      args.GenesisTimestamp,
+		GenesisTimeStamp:      computeStartTimeBaseOnInitialRound(args),
 		RoundDurationInMillis: args.RoundDurationInMillis,
 		TempDir:               args.TempDir,
 		MinNodesPerShard:      args.MinNodesPerShard,
@@ -115,6 +115,10 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		"temporary path", args.TempDir)
 
 	return nil
+}
+
+func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
+	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
 }
 
 func (s *simulator) createTestNode(

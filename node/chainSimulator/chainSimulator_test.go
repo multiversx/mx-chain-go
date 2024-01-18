@@ -45,7 +45,7 @@ func TestNewChainSimulator(t *testing.T) {
 }
 
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
-	startTime := time.Now().Unix() + 6*200000000
+	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
