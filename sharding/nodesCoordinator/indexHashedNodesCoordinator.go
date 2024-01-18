@@ -285,6 +285,9 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
 	log.Debug("getNodesConfig: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID(), "nc shard ID", nodesConfig.shardID)
 
+	ihnc.nodesConfig[epoch] = nodesConfig
+	log.Debug("getNodesConfig: put nodes config in nodesConfig map", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID(), "nc shard ID", nodesConfig.shardID)
+
 	return nodesConfig, true
 }
 
