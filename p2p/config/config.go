@@ -11,6 +11,9 @@ type P2PTransportConfig = config.TransportConfig
 // P2PTCPTransport will hold the P2P TCP transport config
 type P2PTCPTransport = config.TCPProtocolConfig
 
+// P2PResourceLimiterConfig will hold the P2P resource limiter configs
+type P2PResourceLimiterConfig = config.ResourceLimiterConfig
+
 // NodeConfig will hold basic p2p settings
 type NodeConfig = config.NodeConfig
 

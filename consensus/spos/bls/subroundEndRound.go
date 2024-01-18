@@ -29,6 +29,7 @@ type subroundEndRound struct {
 	processingThresholdPercentage int
 	displayStatistics             func()
 	mutProcessingEndRound         sync.Mutex
+	sentSignatureTracker          spos.SentSignaturesTracker
 	getMessageToVerifySigFunc     func() []byte
 
 	extraSignersHolder SubRoundEndExtraSignersHolder
@@ -41,6 +42,7 @@ func NewSubroundEndRound(
 	processingThresholdPercentage int,
 	displayStatistics func(),
 	extraSignersHolder SubRoundEndExtraSignersHolder,
+	sentSignatureTracker spos.SentSignaturesTracker,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -48,17 +50,28 @@ func NewSubroundEndRound(
 	if err != nil {
 		return nil, err
 	}
+	if extend == nil {
+		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
+	}
+	if check.IfNil(appStatusHandler) {
+		return nil, spos.ErrNilAppStatusHandler
+	}
+	if check.IfNil(sentSignatureTracker) {
+		return nil, spos.ErrNilSentSignatureTracker
+	}
+
 	if check.IfNil(extraSignersHolder) {
 		return nil, errors.ErrNilEndRoundExtraSignersHolder
 	}
 
 	srEndRound := subroundEndRound{
-		baseSubround,
-		processingThresholdPercentage,
-		displayStatistics,
-		sync.Mutex{},
-		nil,
-		extraSignersHolder,
+		Subround:                      baseSubround,
+		processingThresholdPercentage: processingThresholdPercentage,
+		displayStatistics:             displayStatistics,
+		appStatusHandler:              appStatusHandler,
+		mutProcessingEndRound:         sync.Mutex{},
+		sentSignatureTracker:          sentSignatureTracker,
+		extraSignersHolder
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -121,6 +134,9 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		"PubKeysBitmap", cnsDta.PubKeysBitmap,
 		"AggregateSignature", cnsDta.AggregateSignature,
 		"LeaderSignature", cnsDta.LeaderSignature)
+
+	signers := computeSignersPublicKeys(sr.ConsensusGroup(), cnsDta.PubKeysBitmap)
+	sr.sentSignatureTracker.ReceivedActualSigners(signers)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -940,15 +956,16 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	return false
 }
 
-func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
+// computeSignersPublicKeys will extract from the provided consensus group slice only the strings that matched with the bitmap
+func computeSignersPublicKeys(consensusGroup []string, bitmap []byte) []string {
 	nbBitsBitmap := len(bitmap) * 8
-	consensusGroup := sr.ConsensusGroup()
 	consensusGroupSize := len(consensusGroup)
 	size := consensusGroupSize
-
 	if consensusGroupSize > nbBitsBitmap {
 		size = nbBitsBitmap
 	}
+
+	result := make([]string, 0, len(consensusGroup))
 
 	for i := 0; i < size; i++ {
 		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
@@ -957,6 +974,16 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 		}
 
 		pubKey := consensusGroup[i]
+		result = append(result, pubKey)
+	}
+
+	return result
+}
+
+func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
+	consensusGroup := sr.ConsensusGroup()
+	signers := computeSignersPublicKeys(consensusGroup, bitmap)
+	for _, pubKey := range signers {
 		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
 		if err != nil {
 			return err

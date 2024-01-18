@@ -663,10 +663,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
 	}
 
+	maxRoundsOfInactivity := int(pcf.prefConfigs.Preferences.RedundancyLevel) * pcf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		RedundancyLevel:    pcf.prefConfigs.Preferences.RedundancyLevel,
-		Messenger:          pcf.network.NetworkMessenger(),
-		ObserverPrivateKey: observerBLSPrivateKey,
+		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		Messenger:             pcf.network.NetworkMessenger(),
+		ObserverPrivateKey:    observerBLSPrivateKey,
 	}
 	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
 	if err != nil {
@@ -1630,11 +1631,12 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			EpochStartNotifier:            manualEpochStartNotifier,
 			NodeTypeProvider:              pcf.coreData.NodeTypeProvider(),
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			StorageType:                   storageFactory.ProcessStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:             pcf.statusCoreComponents.StateStatsHandler(),
 			ChainRunType:                  pcf.chainRunType,
 		},
 	)
@@ -1689,6 +1691,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1718,6 +1721,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)

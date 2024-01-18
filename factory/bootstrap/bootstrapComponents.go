@@ -203,9 +203,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:   bcf.coreComponents,
-		CryptoComponentsHolder: bcf.cryptoComponents,
-		MainMessenger:          bcf.networkComponents.NetworkMessenger(), FullArchiveMessenger: bcf.networkComponents.FullArchiveNetworkMessenger(),
+		CoreComponentsHolder:             bcf.coreComponents,
+		CryptoComponentsHolder:           bcf.cryptoComponents,
+		MainMessenger:                    bcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:             bcf.networkComponents.FullArchiveNetworkMessenger(),
 		GeneralConfig:                    bcf.config,
 		PrefsConfig:                      bcf.prefConfig.Preferences,
 		FlagsConfig:                      bcf.flagsConfig,
@@ -225,6 +226,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		ScheduledSCRsStorer:              nil, // will be updated after sync from network
 		TrieSyncStatisticsProvider:       tss,
 		NodeProcessingMode:               common.GetNodeProcessingMode(&bcf.importDbConfig),
+		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 		ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
 	}

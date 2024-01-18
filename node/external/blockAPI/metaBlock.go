@@ -162,8 +162,6 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		return nil, err
 	}
 
-	headerEpoch := blockHeader.Epoch
-
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
 	for _, mb := range blockHeader.MiniBlockHeaders {
@@ -181,7 +179,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = mbp.getAndAttachTxsToMb(&miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -237,6 +235,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		SoftwareVersion:        hex.EncodeToString(blockHeader.GetSoftwareVersion()),
 		ReceiptsHash:           hex.EncodeToString(blockHeader.GetReceiptsHash()),
 		Reserved:               blockHeader.GetReserved(),
+		RandSeed:               hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:           hex.EncodeToString(blockHeader.GetPrevRandSeed()),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiMetaBlock)

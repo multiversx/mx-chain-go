@@ -6,9 +6,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -93,6 +95,17 @@ func TestNewVMContext_NilEnableEpochsHandler(t *testing.T) {
 	assert.Nil(t, vmCtx)
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
 	assert.True(t, check.IfNil(vmCtx))
+}
+
+func TestNewVMContext_InvalidEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultEeiArgs()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	vmCtx, err := NewVMContext(args)
+
+	assert.Nil(t, vmCtx)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewVMContext(t *testing.T) {

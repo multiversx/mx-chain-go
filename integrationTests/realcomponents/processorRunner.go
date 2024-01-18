@@ -133,7 +133,6 @@ func (pr *ProcessorRunner) createCryptoComponents(tb testing.TB) {
 		ActivateBLSPubKeyMessageVerification: false,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		NoKeyProvided:                        true,
 		P2pKeyPemFileName:                    "",
 	}
 

@@ -3,6 +3,7 @@ package bls
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -15,6 +16,8 @@ import (
 
 type subroundSignature struct {
 	*spos.Subround
+	appStatusHandler     core.AppStatusHandler
+	sentSignatureTracker spos.SentSignaturesTracker
 
 	extraSignersHolder   SubRoundSignatureExtraSignersHolder
 	getMessageToSignFunc func() []byte
@@ -25,6 +28,7 @@ func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	extraSignersHolder SubRoundSignatureExtraSignersHolder,
+	sentSignatureTracker spos.SentSignaturesTracker,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -32,13 +36,20 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
+	if extend == nil {
+		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
+	}
 	if check.IfNil(extraSignersHolder) {
 		return nil, errors.ErrNilSignatureRoundExtraSignersHolder
 	}
+	if check.IfNil(sentSignatureTracker) {
+		return nil, spos.ErrNilSentSignatureTracker
+	}
 
 	srSignature := subroundSignature{
-		Subround:           baseSubround,
-		extraSignersHolder: extraSignersHolder,
+		Subround:             baseSubround,
+		extraSignersHolder:   extraSignersHolder,
+		sentSignatureTracker: sentSignatureTracker,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -65,9 +76,6 @@ func checkNewSubroundSignatureParams(
 
 // doSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
-	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsMultiKeyInConsensusGroup() {
-		return true
-	}
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
@@ -76,9 +84,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound()
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 
-	if isSelfLeader || sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+	if isSelfLeader || isSelfInConsensusGroup {
 		selfIndex, err := sr.SelfConsensusGroupIndex()
 		if err != nil {
 			log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
@@ -438,6 +447,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 
 			numMultiKeysSignaturesSent++
 		}
+		sr.sentSignatureTracker.SignatureSent(pkBytes)
 
 		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
 		ok := sr.completeSignatureSubRound(pk, selfIndex, processedHeaderHash, isLeader)

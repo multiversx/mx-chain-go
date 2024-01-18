@@ -10,6 +10,10 @@ void bigIntSetInt64(bigInt destination, long long value);
 long long bigIntGetInt64(bigInt reference);
 void bigIntFinishUnsigned(bigInt reference);
 
+void init()
+{
+}
+
 long long fibonacci(long long n) {
   if (n == 0) return 0;
   if (n == 1) return 1;

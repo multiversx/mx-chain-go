@@ -103,7 +103,7 @@ func TestFeeHandler(t *testing.T) {
 	require.Equal(t, uint64(0), handler.MinGasPrice())
 	require.Equal(t, uint64(0), handler.MinGasLimit())
 	require.Equal(t, uint64(0), handler.ExtraGasLimitGuardedTx())
-	require.Equal(t, uint64(0), handler.MaxGasPriceSetGuardian())
+	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasPriceSetGuardian())
 	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerBlock(0))
 	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerMiniBlock(0))
 	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerBlockForSafeCrossShard())

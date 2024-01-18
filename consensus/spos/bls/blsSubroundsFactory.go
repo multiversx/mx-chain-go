@@ -20,9 +20,9 @@ type factory struct {
 	consensusState *spos.ConsensusState
 	worker         spos.WorkerHandler
 
-	appStatusHandler     core.AppStatusHandler
-	outportHandler       outport.OutportHandler
-	chainID              []byte
+	appStatusHandler      core.AppStatusHandler
+	outportHandler        outport.OutportHandler
+	sentSignaturesTracker spos.SentSignaturesTrackerchainID[]byte
 	currentPid           core.PeerID
 	consensusModel       consensus.ConsensusModel
 	enableEpochHandler   common.EnableEpochsHandler
@@ -38,6 +38,7 @@ func NewSubroundsFactory(
 	chainID []byte,
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
+	sentSignaturesTracker spos.SentSignaturesTracker,
 	consensusModel consensus.ConsensusModel,
 	enableEpochHandler common.EnableEpochsHandler,
 	extraSignersHolder ExtraSignersHolder,
@@ -49,6 +50,7 @@ func NewSubroundsFactory(
 		worker,
 		chainID,
 		appStatusHandler,
+		sentSignaturesTracker,
 		enableEpochHandler,
 		extraSignersHolder,
 		subRoundEndV2Creator,
@@ -58,16 +60,17 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
-		consensusCore:        consensusDataContainer,
-		consensusState:       consensusState,
-		worker:               worker,
-		appStatusHandler:     appStatusHandler,
-		chainID:              chainID,
-		currentPid:           currentPid,
-		consensusModel:       consensusModel,
-		enableEpochHandler:   enableEpochHandler,
-		extraSignersHolder:   extraSignersHolder,
-		subRoundEndV2Creator: subRoundEndV2Creator,
+		consensusCore:         consensusDataContainer,
+		consensusState:        consensusState,
+		worker:                worker,
+		appStatusHandler:      appStatusHandler,
+		chainID:               chainID,
+		currentPid:            currentPid,
+		sentSignaturesTracker: sentSignaturesTracker,
+		consensusModel:        consensusModel,
+		enableEpochHandler:    enableEpochHandler,
+		extraSignersHolder:    extraSignersHolder,
+		subRoundEndV2Creator:  subRoundEndV2Creator,
 	}
 
 	return &fct, nil
@@ -79,6 +82,7 @@ func checkNewFactoryParams(
 	worker spos.WorkerHandler,
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
+	sentSignaturesTracker spos.SentSignaturesTracker,
 	enableEpochHandler common.EnableEpochsHandler,
 	extraSignersHolder ExtraSignersHolder,
 	subRoundEndV2Creator SubRoundEndV2Creator,
@@ -95,6 +99,9 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(appStatusHandler) {
 		return spos.ErrNilAppStatusHandler
+	}
+	if check.IfNil(sentSignaturesTracker) {
+		return spos.ErrNilSentSignatureTracker
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
@@ -199,6 +206,7 @@ func (fct *factory) generateStartRoundSubround(extraSignersHolder SubRoundStartE
 		processingThresholdPercent,
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
+		fct.sentSignaturesTracker,
 		extraSignersHolder,
 	)
 	if err != nil {
@@ -335,6 +343,7 @@ func (fct *factory) generateSignatureSubround(extraSignersHolder SubRoundSignatu
 		subround,
 		fct.worker.Extend,
 		extraSignersHolder,
+		fct.sentSignaturesTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -393,6 +402,7 @@ func (fct *factory) generateEndRoundSubround(extraSignersHolder SubRoundEndExtra
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
 		extraSignersHolder,
+		fct.sentSignaturesTracker,
 	)
 	if err != nil {
 		return nil, err

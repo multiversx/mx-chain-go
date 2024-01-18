@@ -78,7 +78,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -88,7 +88,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -335,7 +335,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 	for _, node := range nodes {
 		node.EconomicsData.SetGasPerDataByte(0)
-		node.EconomicsData.SetMinGasLimit(0)
+		node.EconomicsData.SetMinGasLimit(0, 0)
 		node.EconomicsData.SetMinGasPrice(0)
 	}
 
@@ -414,7 +414,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -424,7 +424,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -643,7 +643,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool(
-		"./testdata/delegate-mock/delegate.wasm",
+		"./testdata/delegate-mock/output/delegate.wasm",
 		delegateSCOwner,
 		0,
 		big.NewInt(50),
@@ -922,7 +922,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 
 	// deploy the smart contracts
 	_ = putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -932,7 +932,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),

@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-go/common"
@@ -49,18 +48,16 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	adaptivity              bool
-	nodesShard              uint32
-	nodesMeta               uint32
-	shardHysteresis         uint32
-	metaHysteresis          uint32
-	activeNodesConfig       config.MaxNodesChangeConfig
-	availableNodesConfigs   []config.MaxNodesChangeConfig
-	mutShufflerParams       sync.RWMutex
-	validatorDistributor    ValidatorsDistributor
-	flagBalanceWaitingLists atomic.Flag
-	flagWaitingListFix      atomic.Flag
-	enableEpochsHandler     common.EnableEpochsHandler
+	adaptivity            bool
+	nodesShard            uint32
+	nodesMeta             uint32
+	shardHysteresis       uint32
+	metaHysteresis        uint32
+	activeNodesConfig     config.MaxNodesChangeConfig
+	availableNodesConfigs []config.MaxNodesChangeConfig
+	mutShufflerParams     sync.RWMutex
+	validatorDistributor  ValidatorsDistributor
+	enableEpochsHandler   common.EnableEpochsHandler
 }
 
 // NewHashValidatorsShuffler creates a validator shuffler that uses a hash between validator key and a given
@@ -71,6 +68,13 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.BalanceWaitingListsFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	var configs []config.MaxNodesChangeConfig
@@ -124,22 +128,22 @@ func (rhs *randHashShuffler) UpdateParams(
 
 // UpdateNodeLists shuffles the nodes and returns the lists with the new nodes configuration
 // The function needs to ensure that:
-//      1.  Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
-//      2.  The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
-//          pools and leaving nodes list (if remaining nodes can still sustain the shard)
-//      3.  shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
-//      4.  Old waiting nodes list for each shard will be added to the remaining eligible nodes list
-//      5.  The new nodes are equally distributed among the existing shards into waiting lists
-//      6.  The shuffled out nodes are distributed among the existing shards into waiting lists.
-//          We may have three situations:
-//          a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
-//              we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
-//              that will be split.
-//          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
-//              execute the shard merge
-//          c)  No change in the number of shards then nothing extra needs to be done
+//  1. Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
+//  2. The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
+//     pools and leaving nodes list (if remaining nodes can still sustain the shard)
+//  3. shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
+//  4. Old waiting nodes list for each shard will be added to the remaining eligible nodes list
+//  5. The new nodes are equally distributed among the existing shards into waiting lists
+//  6. The shuffled out nodes are distributed among the existing shards into waiting lists.
+//     We may have three situations:
+//     a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
+//     we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
+//     that will be split.
+//     b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
+//     execute the shard merge
+//     c)  No change in the number of shards then nothing extra needs to be done
 func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
-	rhs.UpdateShufflerConfig(args.Epoch)
+	rhs.updateShufflerConfig(args.Epoch)
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
 	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
@@ -180,8 +184,8 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		nbShards:                args.NbShards,
 		distributor:             rhs.validatorDistributor,
 		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
-		flagBalanceWaitingLists: rhs.flagBalanceWaitingLists.IsSet(),
-		flagWaitingListFix:      rhs.flagWaitingListFix.IsSet(),
+		flagBalanceWaitingLists: rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.BalanceWaitingListsFlag, args.Epoch),
+		flagWaitingListFix:      rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.WaitingListFixFlag, args.Epoch),
 	})
 }
 
@@ -757,8 +761,8 @@ func sortKeys(nodes map[uint32][]Validator) []uint32 {
 	return keys
 }
 
-// UpdateShufflerConfig updates the shuffler config according to the current epoch.
-func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
+// updateShufflerConfig updates the shuffler config according to the current epoch.
+func (rhs *randHashShuffler) updateShufflerConfig(epoch uint32) {
 	rhs.mutShufflerParams.Lock()
 	defer rhs.mutShufflerParams.Unlock()
 	rhs.activeNodesConfig.NodesToShufflePerShard = rhs.nodesShard
@@ -774,11 +778,6 @@ func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32) {
 		"epochEnable", rhs.activeNodesConfig.EpochEnable,
 		"maxNodesToShufflePerShard", rhs.activeNodesConfig.NodesToShufflePerShard,
 	)
-
-	rhs.flagBalanceWaitingLists.SetValue(epoch >= rhs.enableEpochsHandler.BalanceWaitingListsEnableEpoch())
-	log.Debug("balanced waiting lists", "enabled", rhs.flagBalanceWaitingLists.IsSet())
-	rhs.flagWaitingListFix.SetValue(epoch >= rhs.enableEpochsHandler.WaitingListFixEnableEpoch())
-	log.Debug("waiting list fix", "enabled", rhs.flagWaitingListFix.IsSet())
 }
 
 func (rhs *randHashShuffler) sortConfigs() {

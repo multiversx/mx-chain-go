@@ -28,6 +28,7 @@ var _ PublicKeysSelector = (*indexHashedNodesCoordinator)(nil)
 const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
+	minEpochsToWait         = uint32(1)
 )
 
 // TODO: move this to config parameters
@@ -95,6 +96,7 @@ type indexHashedNodesCoordinator struct {
 	nodeTypeProvider              NodeTypeProviderHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	validatorInfoCacher           epochStart.ValidatorInfoCacher
+	genesisNodesSetupHandler      GenesisNodesSetupHandler
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -140,6 +142,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		isFullArchive:                 arguments.IsFullArchive,
 		enableEpochsHandler:           arguments.EnableEpochsHandler,
 		validatorInfoCacher:           arguments.ValidatorInfoCacher,
+		genesisNodesSetupHandler:      arguments.GenesisNodesSetupHandler,
 	}
 
 	ihnc.loadingFromDisk.Store(false)
@@ -223,8 +226,18 @@ func checkNilArguments(arguments ArgNodesCoordinator) error {
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+		common.WaitingListFixFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(arguments.ValidatorInfoCacher) {
 		return ErrNilValidatorInfoCacher
+	}
+	if check.IfNil(arguments.GenesisNodesSetupHandler) {
+		return ErrNilGenesisNodesSetupHandler
 	}
 
 	return nil
@@ -1233,7 +1246,7 @@ func (ihnc *indexHashedNodesCoordinator) createValidatorInfoFromBody(
 }
 
 func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte, epoch uint32) (*state.ShardValidatorInfo, error) {
-	if epoch >= ihnc.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, epoch) {
 		shardValidatorInfo, err := ihnc.validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
 			return nil, err
@@ -1252,6 +1265,62 @@ func (ihnc *indexHashedNodesCoordinator) getShardValidatorInfoData(txHash []byte
 }
 
 func (ihnc *indexHashedNodesCoordinator) updateEpochFlags(epoch uint32) {
-	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.WaitingListFixEnableEpoch())
+	ihnc.flagWaitingListFix.SetValue(epoch >= ihnc.enableEpochsHandler.GetActivationEpoch(common.WaitingListFixFlag))
 	log.Debug("indexHashedNodesCoordinator: waiting list fix", "enabled", ihnc.flagWaitingListFix.IsSet())
+}
+
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (ihnc *indexHashedNodesCoordinator) GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error) {
+	if len(publicKey) == 0 {
+		return 0, ErrNilPubKey
+	}
+
+	currentEpoch := ihnc.enableEpochsHandler.GetCurrentEpoch()
+
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[currentEpoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, currentEpoch)
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	for shardId, shardWaiting := range nodesConfig.waitingMap {
+		epochsLeft, err := ihnc.searchWaitingEpochsLeftForPublicKeyInShard(publicKey, shardId, shardWaiting)
+		if err != nil {
+			continue
+		}
+
+		return epochsLeft, err
+	}
+
+	return 0, ErrKeyNotFoundInWaitingList
+}
+
+func (ihnc *indexHashedNodesCoordinator) searchWaitingEpochsLeftForPublicKeyInShard(publicKey []byte, shardId uint32, shardWaiting []Validator) (uint32, error) {
+	for idx, val := range shardWaiting {
+		if !bytes.Equal(val.PubKey(), publicKey) {
+			continue
+		}
+
+		minHysteresisNodes := ihnc.getMinHysteresisNodes(shardId)
+		if minHysteresisNodes == 0 {
+			return minEpochsToWait, nil
+		}
+
+		return uint32(idx)/minHysteresisNodes + minEpochsToWait, nil
+	}
+
+	return 0, ErrKeyNotFoundInWaitingList
+}
+
+func (ihnc *indexHashedNodesCoordinator) getMinHysteresisNodes(shardId uint32) uint32 {
+	if shardId == common.MetachainShardId {
+		return ihnc.genesisNodesSetupHandler.MinMetaHysteresisNodes()
+	}
+
+	return ihnc.genesisNodesSetupHandler.MinShardHysteresisNodes()
 }

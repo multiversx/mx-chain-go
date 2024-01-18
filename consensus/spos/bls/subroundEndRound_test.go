@@ -60,6 +60,7 @@ func initSubroundEndRoundWithContainer(
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	return srEndRound
@@ -70,18 +71,88 @@ func initSubroundEndRound(appStatusHandler core.AppStatusHandler) bls.SubroundEn
 	return initSubroundEndRoundWithContainer(container, appStatusHandler, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilSubroundShouldFail(t *testing.T) {
+func TestNewSubroundEndRound(t *testing.T) {
 	t.Parallel()
-	srEndRound, err := bls.NewSubroundEndRound(
-		nil,
-		extend,
-		bls.ProcessingThresholdPercent,
-		displayStatistics,
-		&subRounds.SubRoundEndExtraSignersHolderMock{},
+
+	container := mock.InitConsensusCore()
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	assert.True(t, check.IfNil(srEndRound))
-	assert.Equal(t, spos.ErrNilSubround, err)
+	t.Run("nil subround should error", func(t *testing.T) {
+		t.Parallel()
+
+		srEndRound, err := bls.NewSubroundEndRound(
+			nil,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			&subRounds.SubRoundEndExtraSignersHolderMock{},
+			&mock.SentSignatureTrackerStub{},
+		)
+
+		assert.Nil(t, srEndRound)
+		assert.Equal(t, spos.ErrNilSubround, err)
+	})
+	t.Run("nil extend function handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		srEndRound, err := bls.NewSubroundEndRound(
+			sr,
+			nil,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			&statusHandler.AppStatusHandlerStub{},
+			&mock.SentSignatureTrackerStub{},
+		)
+
+		assert.Nil(t, srEndRound)
+		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
+	})
+	t.Run("nil app status handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		srEndRound, err := bls.NewSubroundEndRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			nil,
+			&mock.SentSignatureTrackerStub{},
+		)
+
+		assert.Nil(t, srEndRound)
+		assert.Equal(t, spos.ErrNilAppStatusHandler, err)
+	})
+	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
+		t.Parallel()
+
+		srEndRound, err := bls.NewSubroundEndRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			&statusHandler.AppStatusHandlerStub{},
+			nil,
+		)
+
+		assert.Nil(t, srEndRound)
+		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+	})
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.T) {
@@ -114,6 +185,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -150,6 +222,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -187,6 +260,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -223,6 +297,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -259,6 +334,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -295,6 +371,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -331,6 +408,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
@@ -835,8 +913,17 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
 		HeaderHash: []byte("X"),
 		PubKey:     []byte("A"),
 	}
+
+	sentTrackerInterface := sr.GetSentSignatureTracker()
+	sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
+	receivedActualSignersCalled := false
+	sentTracker.ReceivedActualSignersCalled = func(signersPks []string) {
+		receivedActualSignersCalled = true
+	}
+
 	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
 	assert.True(t, res)
+	assert.True(t, receivedActualSignersCalled)
 }
 
 func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinalInfoIsNotValid(t *testing.T) {
@@ -1591,6 +1678,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&mock.SentSignatureTrackerStub{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {
