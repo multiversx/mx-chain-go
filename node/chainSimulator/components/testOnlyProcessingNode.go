@@ -38,6 +38,7 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
+	InitialRound           int64
 	GasScheduleFilename    string
 	NumShards              uint32
 	ShardIDStr             string
@@ -93,6 +94,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		WorkingDir:          args.Configs.FlagsConfig.WorkingDir,
 		GasScheduleFilename: args.GasScheduleFilename,
 		NodesSetupPath:      args.Configs.ConfigurationPathsHolder.Nodes,
+		InitialRound:        args.InitialRound,
 	})
 	if err != nil {
 		return nil, err

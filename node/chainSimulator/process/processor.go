@@ -143,6 +143,7 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 
 	prevHash = creator.nodeHandler.GetChainHandler().GetGenesisHeaderHash()
 	prevRandSeed = creator.nodeHandler.GetChainHandler().GetGenesisHeader().GetRandSeed()
+	round = uint64(creator.nodeHandler.GetCoreComponents().RoundHandler().Index()) - 1
 
 	return
 }

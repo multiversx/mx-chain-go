@@ -45,7 +45,7 @@ func TestNewChainSimulator(t *testing.T) {
 }
 
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
-	startTime := time.Now().Unix()
+	startTime := time.Now().Unix() + 6*200000000
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
@@ -58,13 +58,14 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
+		InitialRound:           200000000,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
 	time.Sleep(time.Second)
 
-	err = chainSimulator.GenerateBlocks(10)
+	err = chainSimulator.GenerateBlocks(30)
 	require.Nil(t, err)
 
 	err = chainSimulator.Close()

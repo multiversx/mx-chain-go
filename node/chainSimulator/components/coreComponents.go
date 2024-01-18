@@ -83,6 +83,7 @@ type ArgsCoreComponentsHolder struct {
 	RoundsConfig        config.RoundConfig
 	EconomicsConfig     config.EconomicsConfig
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
+	InitialRound        int64
 	NodesSetupPath      string
 	GasScheduleFilename string
 	NumShards           uint32
@@ -146,7 +147,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	}
 
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
-	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration)
+	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration, args.InitialRound)
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)

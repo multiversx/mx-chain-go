@@ -28,6 +28,7 @@ type ArgsChainSimulator struct {
 	MinNodesPerShard       uint32
 	MetaChainMinNodes      uint32
 	GenesisTimestamp       int64
+	InitialRound           int64
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
 	ApiInterface           components.APIConfigurator
@@ -88,7 +89,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(outputConfigs.Configs, shardIDStr, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck)
+		node, errCreate := s.createTestNode(outputConfigs.Configs, shardIDStr, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck, args.InitialRound)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -122,6 +123,7 @@ func (s *simulator) createTestNode(
 	gasScheduleFilename string,
 	apiInterface components.APIConfigurator,
 	bypassTxSignatureCheck bool,
+	initialRound int64,
 ) (process.NodeHandler, error) {
 	args := components.ArgsTestOnlyProcessingNode{
 		Configs:                *configs,
@@ -132,6 +134,7 @@ func (s *simulator) createTestNode(
 		ShardIDStr:             shardIDStr,
 		APIInterface:           apiInterface,
 		BypassTxSignatureCheck: bypassTxSignatureCheck,
+		InitialRound:           initialRound,
 	}
 
 	return components.NewTestOnlyProcessingNode(args)

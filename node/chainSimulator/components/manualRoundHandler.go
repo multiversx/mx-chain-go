@@ -12,10 +12,11 @@ type manualRoundHandler struct {
 }
 
 // NewManualRoundHandler returns a manual round handler instance
-func NewManualRoundHandler(genesisTimeStamp int64, roundDuration time.Duration) *manualRoundHandler {
+func NewManualRoundHandler(genesisTimeStamp int64, roundDuration time.Duration, initialRound int64) *manualRoundHandler {
 	return &manualRoundHandler{
 		genesisTimeStamp: genesisTimeStamp,
 		roundDuration:    roundDuration,
+		index:            initialRound,
 	}
 }
 
