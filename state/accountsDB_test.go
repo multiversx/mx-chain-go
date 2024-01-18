@@ -560,6 +560,12 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 
 		oldAccBytes, _ := args.Marshaller.Marshal(oldAcc)
 
+		oldCodeEntry := &state.CodeEntry{
+			Code:          codeData,
+			NumReferences: 2,
+		}
+		oldCodeEntryBytes, _ := args.Marshaller.Marshal(oldCodeEntry)
+
 		putCalled := false
 
 		getCalls := 0
@@ -571,7 +577,7 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 				}
 
 				getCalls++
-				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
+				return common.NewTrieLeafHolder(oldCodeEntryBytes, 0, core.NotSpecified), nil
 			},
 			UpdateCalled: func(key, value []byte) error {
 				return nil
@@ -588,6 +594,9 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 						return nil
 					},
 				}
+			},
+			DeleteCalled: func(key []byte) error {
+				return nil
 			},
 		}
 
@@ -672,6 +681,10 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 					},
 				}
 			},
+			DeleteCalled: func(key []byte) error {
+				require.Fail(t, "remove should not be called")
+				return nil
+			},
 		}
 
 		args.Trie = ts
@@ -689,7 +702,103 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		require.True(t, updateCalled)
 	})
 
-	t.Run("save code directly to storage if remove code leaf flag is activated", func(t *testing.T) {
+	t.Run("old account not migrated, should update old code references in trie and new code in storer, and then revert should work", func(t *testing.T) {
+		t.Parallel()
+
+		codeData := []byte("codeData")
+
+		args := createMockAccountsDBArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.MigrateCodeLeafFlag
+			},
+		}
+		oldCodeDataHash := args.Hasher.Compute(string(codeData))
+
+		adr := make([]byte, 32)
+		oldAcc := stateMock.NewAccountWrapMock(adr)
+		oldAcc.SetCodeHash(oldCodeDataHash)
+		oldAcc.SetCode(codeData)
+
+		oldAccVersion := core.NotSpecified
+		oldAcc.SetVersion(uint8(oldAccVersion))
+
+		oldAccBytes, _ := args.Marshaller.Marshal(oldAcc)
+
+		oldCodeEntry := &state.CodeEntry{
+			Code:          codeData,
+			NumReferences: 2,
+		}
+		oldCodeEntryBytes, _ := args.Marshaller.Marshal(oldCodeEntry)
+		oldCodeEntry.NumReferences--
+		oldCodeEntryBytes2, _ := args.Marshaller.Marshal(oldCodeEntry)
+		oldCodeEntry.NumReferences++ // for revert
+		oldCodeEntryBytes3, _ := args.Marshaller.Marshal(oldCodeEntry)
+
+		putCalled := false
+
+		getCalls := 0
+		updateCalls := 0
+
+		ts := &trieMock.TrieStub{
+			GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+				if getCalls == 0 {
+					getCalls++
+					return common.NewTrieLeafHolder(oldAccBytes, 1, oldAccVersion), nil
+				}
+
+				return common.NewTrieLeafHolder(oldCodeEntryBytes, 0, core.NotSpecified), nil
+			},
+			UpdateCalled: func(key, value []byte) error {
+				if updateCalls == 0 {
+					updateCalls++
+					require.Equal(t, oldCodeEntryBytes2, value)
+					return nil
+				}
+
+				// for revert operation
+				require.Equal(t, oldCodeEntryBytes3, value)
+				return nil
+			},
+			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+				return nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{
+					PutCalled: func(key, value []byte) error {
+						putCalled = true
+						require.Equal(t, key, oldCodeDataHash)
+						require.Equal(t, value, codeData)
+						return nil
+					},
+				}
+			},
+			DeleteCalled: func(key []byte) error {
+				require.Fail(t, "remove should not be called")
+				return nil
+			},
+		}
+
+		args.Trie = ts
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		adr = make([]byte, 32)
+		account := stateMock.NewAccountWrapMock(adr)
+		account.SetVersion(uint8(core.WithoutCodeLeaf))
+
+		err = adb.SaveAccount(account)
+		require.Nil(t, err)
+		require.True(t, putCalled)
+
+		assert.Equal(t, 2, adb.JournalLen())
+
+		err = adb.RevertToSnapshot(1)
+		require.Nil(t, err)
+	})
+
+	t.Run("save code directly to storage if remove code leaf flag is activated, will delete old key since num references is set to 1", func(t *testing.T) {
 		t.Parallel()
 
 		codeData := []byte("codeData")
@@ -710,13 +819,14 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		oldAccBytes, _ := args.Marshaller.Marshal(oldAcc)
 
 		putCalled := false
+		deleteCalled := false
 		updateWithVersionCalled := false
 		ts := &trieMock.TrieStub{
 			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, codeDataHash) {
 					codeEntry := state.CodeEntry{
 						Code:          codeData,
-						NumReferences: 2,
+						NumReferences: 1, // will remove old key from trie
 					}
 					codeEntryBytes, _ := args.Marshaller.Marshal(codeEntry)
 					return common.NewTrieLeafHolder(codeEntryBytes, 0, core.NotSpecified), nil
@@ -741,6 +851,10 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 					},
 				}
 			},
+			DeleteCalled: func(key []byte) error {
+				deleteCalled = true
+				return nil
+			},
 		}
 
 		args.Trie = ts
@@ -755,6 +869,7 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 		err = adb.SaveAccount(account)
 		require.Nil(t, err)
 		require.True(t, putCalled)
+		require.True(t, deleteCalled)
 
 		require.True(t, updateWithVersionCalled)
 		require.Equal(t, uint8(core.WithoutCodeLeaf), account.GetVersion())
@@ -766,29 +881,97 @@ func TestAccountsDB_SaveAccountWithCodeToStorage(t *testing.T) {
 func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := false
-	marshaller := &marshallerMock.MarshalizerMock{}
-	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
-			serializedAcc, err := marshaller.Marshal(stateMock.AccountWrapMock{})
-			return common.NewTrieLeafHolder(serializedAcc, 0, core.NotSpecified), err
-		},
-		DeleteCalled: func(key []byte) error {
-			wasCalled = true
-			return nil
-		},
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{}
-		},
-	}
+	t.Run("remove account from trie should work", func(t *testing.T) {
+		t.Parallel()
 
-	adr := make([]byte, 32)
-	adb := generateAccountDBFromTrie(trieStub)
+		wasCalled := false
+		marshaller := &marshallerMock.MarshalizerMock{}
+		trieStub := &trieMock.TrieStub{
+			GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+				serializedAcc, err := marshaller.Marshal(stateMock.AccountWrapMock{})
+				return common.NewTrieLeafHolder(serializedAcc, 0, core.NotSpecified), err
+			},
+			DeleteCalled: func(key []byte) error {
+				wasCalled = true
+				return nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
+		}
 
-	err := adb.RemoveAccount(adr)
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
-	assert.Equal(t, 2, adb.JournalLen())
+		adr := make([]byte, 32)
+		adb := generateAccountDBFromTrie(trieStub)
+
+		err := adb.RemoveAccount(adr)
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+		assert.Equal(t, 2, adb.JournalLen())
+	})
+
+	t.Run("should remove also from storage if account was migrated to WithoutCodeLeaf version", func(t *testing.T) {
+		t.Parallel()
+
+		codeData := []byte("codeData")
+
+		args := createMockAccountsDBArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.MigrateCodeLeafFlag
+			},
+		}
+		oldCodeDataHash := args.Hasher.Compute(string(codeData))
+
+		adr := make([]byte, 32)
+		acc := stateMock.NewAccountWrapMock(adr)
+		acc.SetCodeHash(oldCodeDataHash)
+		acc.SetCode(codeData)
+
+		accVersion := core.WithoutCodeLeaf
+		acc.SetVersion(uint8(accVersion))
+
+		accBytes, _ := args.Marshaller.Marshal(acc)
+
+		codeEntry := &state.CodeEntry{
+			Code:          codeData,
+			NumReferences: 1,
+		}
+		codeEntryBytes, _ := args.Marshaller.Marshal(codeEntry)
+
+		wasCalled := false
+		removeCalled := false
+		trieStub := &trieMock.TrieStub{
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				if bytes.Equal(key, oldCodeDataHash) {
+					return common.NewTrieLeafHolder(codeEntryBytes, 0, core.NotSpecified), nil
+				}
+
+				return common.NewTrieLeafHolder(accBytes, 0, accVersion), nil
+			},
+			DeleteCalled: func(key []byte) error {
+				wasCalled = true
+				return nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{
+					RemoveCalled: func(b []byte) error {
+						removeCalled = true
+						return nil
+					},
+				}
+			},
+		}
+
+		args.Trie = trieStub
+
+		adb, err := state.NewAccountsDB(args)
+		require.Nil(t, err)
+
+		err = adb.RemoveAccount(adr)
+		assert.Nil(t, err)
+		assert.True(t, wasCalled)
+		assert.True(t, removeCalled)
+	})
 }
 
 // ------- LoadAccount

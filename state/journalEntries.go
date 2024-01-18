@@ -95,8 +95,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 func (jea *journalEntryCode) revertNewCodeEntry() error {
 	if jea.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
 		jea.newCodeVersion == uint8(core.WithoutCodeLeaf) {
-		// do not update old code entry since num references is not used anymore
-		return nil
+		return jea.trie.GetStorageManager().Remove(jea.newCodeHash)
 	}
 
 	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
