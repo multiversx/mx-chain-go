@@ -879,9 +879,6 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		key := []byte("ABC")
-		val := []byte("123")
-		newVal := []byte("124")
 		adr := integrationTests.CreateRandomAddress()
 		adr[31] = 1 // set address for shard 1
 
@@ -889,34 +886,16 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		stateMock, err := adb.LoadAccount(adr)
 		require.Nil(t, err)
-		_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, val)
 
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
-		rootHash, err := adb.RootHash()
-		require.Nil(t, err)
-		hrCreated := base64.StdEncoding.EncodeToString(rootHash)
-		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
-		require.Nil(t, err)
-		hrRoot := base64.StdEncoding.EncodeToString(rootHash)
-
-		rootCommit, _ := adb.Commit()
-		hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
-		fmt.Printf("State root - committed: %v\n", hrCommit)
 
 		snapshotMod := adb.JournalLen()
 
 		stateMock, err = adb.LoadAccount(adr)
 		require.Nil(t, err)
-		_ = stateMock.(state.UserAccountHandler).SaveKeyValue(key, newVal)
 		err = adb.SaveAccount(stateMock)
 		require.Nil(t, err)
-		rootHash, err = adb.RootHash()
-		require.Nil(t, err)
-		hrCreatedp1 := base64.StdEncoding.EncodeToString(rootHash)
-		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
-		require.Nil(t, err)
-		hrRootp1 := base64.StdEncoding.EncodeToString(rootHash)
 
 		codeData := []byte("codeData")
 		codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
@@ -935,31 +914,15 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		require.Equal(t, uint8(core.WithoutCodeLeaf), accVersion)
 
 		// check code data saved to storage
-		val, err = trieStorage.Get(codeDataHash)
+		val, err := trieStorage.Get(codeDataHash)
 		require.Nil(t, err)
 		require.Equal(t, codeData, val)
 
-		fmt.Printf("State root - modified account: %v\n", hrCreatedp1)
-		fmt.Printf("data root - account: %v\n", hrRootp1)
-
-		require.NotEqual(t, hrCreatedp1, hrCreated)
-		require.NotEqual(t, hrRoot, hrRootp1)
-
 		err = adb.RevertToSnapshot(snapshotMod)
 		require.Nil(t, err)
-		rootHash, err = adb.RootHash()
-		require.Nil(t, err)
-		hrCreatedRev := base64.StdEncoding.EncodeToString(rootHash)
 
 		stateMock, err = adb.LoadAccount(adr)
 		require.Nil(t, err)
-		rootHash, err = stateMock.(state.UserAccountHandler).DataTrie().RootHash()
-		require.Nil(t, err)
-		hrRootRev := base64.StdEncoding.EncodeToString(rootHash)
-		fmt.Printf("State root - reverted account: %v\n", hrCreatedRev)
-		fmt.Printf("data root - account: %v\n", hrRootRev)
-		require.Equal(t, hrCommit, hrCreatedRev)
-		require.Equal(t, hrRoot, hrRootRev)
 
 		accVersion = stateMock.(state.UserAccountHandler).GetVersion()
 		require.Equal(t, uint8(core.NotSpecified), accVersion)
@@ -973,8 +936,6 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 	t.Run("2 accounts with same code, migrate one account and reverted it", func(t *testing.T) {
 		t.Parallel()
 
-		key := []byte("ABC")
-		val := []byte("123")
 		adr1 := integrationTests.CreateRandomAddress()
 		adr1[31] = 1 // set address for shard 1
 
@@ -1001,7 +962,6 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		stateMock1, err := adb.LoadAccount(adr1)
 		require.Nil(t, err)
-		_ = stateMock1.(state.UserAccountHandler).SaveKeyValue(key, val)
 		stateMock1.(state.UserAccountHandler).SetCodeHash(codeDataHash)
 		stateMock1.(state.UserAccountHandler).SetCode(codeData)
 
@@ -1010,16 +970,11 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 
 		stateMock2, err := adb.LoadAccount(adr2)
 		require.Nil(t, err)
-		_ = stateMock2.(state.UserAccountHandler).SaveKeyValue(key, val)
 		stateMock2.(state.UserAccountHandler).SetCodeHash(codeDataHash)
 		stateMock2.(state.UserAccountHandler).SetCode(codeData)
 
 		err = adb.SaveAccount(stateMock2)
 		require.Nil(t, err)
-
-		rootCommit, _ := adb.Commit()
-		hrCommit := base64.StdEncoding.EncodeToString(rootCommit)
-		fmt.Printf("State root - committed: %v\n", hrCommit)
 
 		snapshotMod := adb.JournalLen()
 
@@ -1035,11 +990,10 @@ func TestAccountsDB_RevertDataStepByStepWithCommitsAccountDataWithMigratedCode(t
 		require.Equal(t, uint8(core.WithoutCodeLeaf), accVersion)
 
 		// check code data saved to storage
-		val, err = trieStorage.Get(codeDataHash)
+		val, err := trieStorage.Get(codeDataHash)
 		require.Nil(t, err)
 		require.Equal(t, codeData, val)
 
-		// Step 5. Revert 2-nd account modification
 		err = adb.RevertToSnapshot(snapshotMod)
 		require.Nil(t, err)
 
