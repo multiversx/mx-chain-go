@@ -909,7 +909,7 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 		assert.Equal(t, 2, adb.JournalLen())
 	})
 
-	t.Run("should remove also from storage if account was migrated to WithoutCodeLeaf version", func(t *testing.T) {
+	t.Run("should not update code entry if account was migrated", func(t *testing.T) {
 		t.Parallel()
 
 		codeData := []byte("codeData")
@@ -938,8 +938,6 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 		}
 		codeEntryBytes, _ := args.Marshaller.Marshal(codeEntry)
 
-		wasCalled := false
-		removeCalled := false
 		trieStub := &trieMock.TrieStub{
 			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, oldCodeDataHash) {
@@ -949,13 +947,17 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 				return common.NewTrieLeafHolder(accBytes, 0, accVersion), nil
 			},
 			DeleteCalled: func(key []byte) error {
-				wasCalled = true
+				if bytes.Equal(key, oldCodeDataHash) {
+					require.Fail(t, "should not call remove code hash")
+					return nil
+				}
+
 				return nil
 			},
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &storageManager.StorageManagerStub{
 					RemoveCalled: func(b []byte) error {
-						removeCalled = true
+						require.Fail(t, "should not be called")
 						return nil
 					},
 				}
@@ -969,8 +971,6 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 
 		err = adb.RemoveAccount(adr)
 		assert.Nil(t, err)
-		assert.True(t, wasCalled)
-		assert.True(t, removeCalled)
 	})
 }
 
