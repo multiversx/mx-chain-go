@@ -35,10 +35,13 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
-   # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
-   # the activation of the configured guardian.
-   # Make sure that this is greater than the unbonding period!
-   SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+    # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
+    # the activation of the configured guardian.
+    # Make sure that this is greater than the unbonding period!
+    SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+
+[HardwareRequirements]
+    CPUFlags = ["sse4_1", "sse4_2"]
 
 [Versions]
     DefaultVersion = "default"
