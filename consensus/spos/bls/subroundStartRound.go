@@ -13,7 +13,6 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/disabled"
 )
@@ -55,7 +54,7 @@ func NewSubroundStartRound(
 		return nil, fmt.Errorf("%w for resetConsensusMessages function", spos.ErrNilFunctionHandler)
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, errors.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 
 	srStartRound := subroundStartRound{

@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -49,7 +48,7 @@ func NewSubroundEndRound(
 		return nil, spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, errors.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 
 	srEndRound := subroundEndRound{

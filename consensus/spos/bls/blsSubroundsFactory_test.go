@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
@@ -455,7 +454,7 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, errors.ErrNilSentSignatureTracker, err)
+	assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {

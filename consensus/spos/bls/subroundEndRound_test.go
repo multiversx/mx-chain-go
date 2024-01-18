@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -147,7 +146,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 		)
 
 		assert.Nil(t, srEndRound)
-		assert.Equal(t, mxErrors.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 }
 

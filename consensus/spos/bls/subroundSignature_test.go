@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -126,7 +125,7 @@ func TestNewSubroundSignature(t *testing.T) {
 		)
 
 		assert.Nil(t, srSignature)
-		assert.Equal(t, mxErrors.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 }
 

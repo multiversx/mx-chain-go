@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -81,7 +80,7 @@ func checkNewFactoryParams(
 		return spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignaturesTracker) {
-		return errors.ErrNilSentSignatureTracker
+		return ErrNilSentSignatureTracker
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
