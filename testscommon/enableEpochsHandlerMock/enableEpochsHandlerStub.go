@@ -103,14 +103,6 @@ func (stub *EnableEpochsHandlerStub) GetCurrentEpoch() uint32 {
 	return 0
 }
 
-// IsConsensusModelV2Enabled -
-func (stub *EnableEpochsHandlerStub) IsConsensusModelV2Enabled() bool {
-	stub.RLock()
-	defer stub.RUnlock()
-
-	return stub.IsConsensusModelV2EnabledField
-}
-
 // IsInterfaceNil -
 func (stub *EnableEpochsHandlerStub) IsInterfaceNil() bool {
 	return stub == nil

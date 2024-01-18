@@ -29,6 +29,7 @@ type subroundEndRound struct {
 	processingThresholdPercentage int
 	displayStatistics             func()
 	mutProcessingEndRound         sync.Mutex
+	appStatusHandler              core.AppStatusHandler
 	sentSignatureTracker          spos.SentSignaturesTracker
 	getMessageToVerifySigFunc     func() []byte
 
@@ -42,6 +43,7 @@ func NewSubroundEndRound(
 	processingThresholdPercentage int,
 	displayStatistics func(),
 	extraSignersHolder SubRoundEndExtraSignersHolder,
+	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
@@ -71,7 +73,7 @@ func NewSubroundEndRound(
 		appStatusHandler:              appStatusHandler,
 		mutProcessingEndRound:         sync.Mutex{},
 		sentSignatureTracker:          sentSignatureTracker,
-		extraSignersHolder
+		extraSignersHolder:            extraSignersHolder,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -286,7 +288,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 }
 
 func (sr *subroundEndRound) getHeaderHashToVerifySig(cnsMsg *consensus.Message) []byte {
-	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+	if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
 		return cnsMsg.ProcessedHeaderHash
 	}
 
@@ -620,7 +622,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 }
 
 func (sr *subroundEndRound) generateBitmap() []byte {
-	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+	if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
 		processedHeaderHash := sr.getMessageToVerifySigFunc()
 		return sr.GenerateBitmapForHash(SrSignature, processedHeaderHash)
 	}
@@ -700,7 +702,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 }
 
 func (sr *subroundEndRound) getProcessedHeaderHash() []byte {
-	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+	if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
 		return sr.getMessageToVerifySigFunc()
 	}
 

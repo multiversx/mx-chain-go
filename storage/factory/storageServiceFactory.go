@@ -311,9 +311,19 @@ func (psf *StorageServiceFactory) createAndAddStorageUnitsForSovereign(
 	extendedShardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB)
 	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB.FilePath) + shardID
 	extendedShardHdrHashNonceConfig.FilePath = dbPath
+
+	extendedHeaderConfig := psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage
+	dbConfigExtendedHeader := NewDBConfigHandler(extendedHeaderConfig.DB)
+	extendedHeaderPersisterCreator, err := NewPersisterFactory(dbConfigExtendedHeader)
+	if err != nil {
+		return err
+	}
+
 	extendedShardHdrHashNonceUnit, err := storageunit.NewStorageUnitFromConf(
 		GetCacherFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache),
-		extendedShardHdrHashNonceConfig)
+		extendedShardHdrHashNonceConfig,
+		extendedHeaderPersisterCreator,
+	)
 	if err != nil {
 		return fmt.Errorf("%w for ExtendedShardHdrNonceHashStorage", err)
 	}

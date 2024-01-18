@@ -60,6 +60,7 @@ func initSubroundEndRoundWithContainer(
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -91,6 +92,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	t.Run("nil subround should error", func(t *testing.T) {
@@ -102,6 +104,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			&subRounds.SubRoundEndExtraSignersHolderMock{},
+			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
 		)
 
@@ -116,6 +119,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			nil,
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
+			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
 		)
@@ -131,6 +135,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			extend,
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
+			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			nil,
 			&mock.SentSignatureTrackerStub{},
 		)
@@ -146,6 +151,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			extend,
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
+			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
 		)
@@ -185,6 +191,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -222,6 +229,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -260,6 +268,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -297,6 +306,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -334,6 +344,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -371,6 +382,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -408,6 +420,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -1678,6 +1691,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		bls.ProcessingThresholdPercent,
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
+		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
 	)
 
@@ -1719,9 +1733,7 @@ func TestSubroundEndRound_GetHeaderHashToVerifySigShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusModelV2EnabledField: false,
-		}
+		enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
 
 		cnsData := consensus.Message{
@@ -1738,9 +1750,7 @@ func TestSubroundEndRound_GetHeaderHashToVerifySigShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusModelV2EnabledField: true,
-		}
+		enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusModelV2Flag)
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
 
 		cnsData := consensus.Message{
@@ -1761,9 +1771,7 @@ func TestSubroundEndRound_GenerateBitmapShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusModelV2EnabledField: false,
-		}
+		enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
 
 		_ = sr.SetJobDone("A", bls.SrSignature, true)
@@ -1782,9 +1790,7 @@ func TestSubroundEndRound_GenerateBitmapShouldWork(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusModelV2EnabledField: true,
-		}
+		enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusModelV2Flag)
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
 
 		_ = sr.SetJobDone("A", bls.SrSignature, true)
@@ -1812,9 +1818,7 @@ func TestSubroundEndRound_GetProcessedHeaderHashInSubroundEndRoundShouldWork(t *
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusModelV2EnabledField: false,
-		}
+		enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
 
 		sr.Data = []byte("X")
@@ -1827,9 +1831,7 @@ func TestSubroundEndRound_GetProcessedHeaderHashInSubroundEndRoundShouldWork(t *
 
 		container := mock.InitConsensusCore()
 
-		enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsConsensusModelV2EnabledField: true,
-		}
+		enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusModelV2Flag)
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, enableEpochHandler)
 
 		sr.Data = []byte("X")

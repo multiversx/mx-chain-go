@@ -99,6 +99,7 @@ func initSubroundStartRoundWithContainerAndSigners(container spos.ConsensusCoreH
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&mock.SentSignatureTrackerStub{},
 		extraSignersHolder,
 	)
 
@@ -130,6 +131,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	t.Run("nil subround should error", func(t *testing.T) {
@@ -158,6 +160,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			&mock.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -174,6 +177,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			nil,
 			resetConsensusMessages,
 			&mock.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -190,6 +194,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			nil,
 			&mock.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -206,6 +211,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			nil,
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -335,6 +341,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilExtraSignersHolderShouldFail
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
+		&mock.SentSignatureTrackerStub{},
 		nil,
 	)
 	require.Nil(t, srStartRound)
@@ -675,6 +682,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -684,6 +692,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&mock.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)

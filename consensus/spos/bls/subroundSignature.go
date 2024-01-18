@@ -27,6 +27,7 @@ type subroundSignature struct {
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
+	appStatusHandler core.AppStatusHandler,
 	extraSignersHolder SubRoundSignatureExtraSignersHolder,
 	sentSignatureTracker spos.SentSignaturesTracker,
 ) (*subroundSignature, error) {
@@ -45,11 +46,15 @@ func NewSubroundSignature(
 	if check.IfNil(sentSignatureTracker) {
 		return nil, spos.ErrNilSentSignatureTracker
 	}
+	if check.IfNil(appStatusHandler) {
+		return nil, spos.ErrNilAppStatusHandler
+	}
 
 	srSignature := subroundSignature{
 		Subround:             baseSubround,
 		extraSignersHolder:   extraSignersHolder,
 		sentSignatureTracker: sentSignatureTracker,
+		appStatusHandler:     appStatusHandler,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -188,7 +193,7 @@ func (sr *subroundSignature) completeSignatureSubRound(
 	}
 
 	if shouldWaitForAllSigsAsync {
-		if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+		if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
 			sr.AddProcessedHeadersHashes(processedHeaderHash, index)
 		}
 
@@ -199,7 +204,7 @@ func (sr *subroundSignature) completeSignatureSubRound(
 }
 
 func (sr *subroundSignature) getProcessedHeaderHash() []byte {
-	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+	if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
 		return sr.getMessageToSignFunc()
 	}
 
@@ -280,7 +285,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
-	if sr.EnableEpochHandler().IsConsensusModelV2Enabled() {
+	if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
 		sr.AddProcessedHeadersHashes(cnsDta.ProcessedHeaderHash, index)
 	}
 

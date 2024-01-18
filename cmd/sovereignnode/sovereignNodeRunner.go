@@ -769,9 +769,16 @@ func (snr *sovereignNodeRunner) createApiFacade(
 
 func (snr *sovereignNodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.StatusCoreComponentsHolder) (shared.UpgradeableHttpServerHandler, error) {
 	if check.IfNil(managedStatusCoreComponents) {
-		return nil, node.ErrNilStatusHandler
+		return nil, node.ErrNilCoreComponents
 	}
-	initialFacade, err := initial.NewInitialNodeFacade(snr.configs.FlagsConfig.RestApiInterface, snr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
+
+	argsInitialNodeFacade := initial.ArgInitialNodeFacade{
+		ApiInterface:                snr.configs.FlagsConfig.RestApiInterface,
+		PprofEnabled:                snr.configs.FlagsConfig.EnablePprof,
+		P2PPrometheusMetricsEnabled: snr.configs.FlagsConfig.P2PPrometheusMetricsEnabled,
+		StatusMetricsHandler:        managedStatusCoreComponents.StatusMetrics(),
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(argsInitialNodeFacade)
 	if err != nil {
 		return nil, err
 	}
@@ -1601,13 +1608,13 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
+		PrefsConfig:                          *configs.PreferencesConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            core.NewKeyLoader(),
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
-		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 

@@ -93,7 +93,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                       75,
 		MaxBlockchainHookCountersEnableEpoch:                     76,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:                77,
-		ConsensusModelV2EnableEpoch:                       77,
+		ConsensusModelV2EnableEpoch:                              77,
 		AlwaysSaveTokenMetaDataEnableEpoch:                       78,
 		RuntimeCodeSizeFixEnableEpoch:                            79,
 		RelayedNonceFixEnableEpoch:                               80,
@@ -412,7 +412,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ChangeOwnerAddressCrossShardThroughSCEnableEpoch, handler.GetActivationEpoch(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
 	require.Equal(t, cfg.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch, handler.GetActivationEpoch(common.FixGasRemainingForSaveKeyValueFlag))
 	require.Equal(t, cfg.CurrentRandomnessOnSortingEnableEpoch, handler.GetActivationEpoch(common.CurrentRandomnessOnSortingFlag))
-	require.Equal( TODO: CHECK HERE CONSENSUS V2)
+	require.Equal(t, cfg.ConsensusModelV2EnableEpoch, handler.GetActivationEpoch(common.ConsensusModelV2Flag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

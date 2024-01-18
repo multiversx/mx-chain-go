@@ -22,12 +22,13 @@ type factory struct {
 
 	appStatusHandler      core.AppStatusHandler
 	outportHandler        outport.OutportHandler
-	sentSignaturesTracker spos.SentSignaturesTrackerchainID[]byte
-	currentPid           core.PeerID
-	consensusModel       consensus.ConsensusModel
-	enableEpochHandler   common.EnableEpochsHandler
-	extraSignersHolder   ExtraSignersHolder
-	subRoundEndV2Creator SubRoundEndV2Creator
+	sentSignaturesTracker spos.SentSignaturesTracker
+	chainID               []byte
+	currentPid            core.PeerID
+	consensusModel        consensus.ConsensusModel
+	enableEpochHandler    common.EnableEpochsHandler
+	extraSignersHolder    ExtraSignersHolder
+	subRoundEndV2Creator  SubRoundEndV2Creator
 }
 
 // NewSubroundsFactory creates a new factory object
@@ -342,6 +343,7 @@ func (fct *factory) generateSignatureSubround(extraSignersHolder SubRoundSignatu
 	subroundSignatureInstance, err := NewSubroundSignature(
 		subround,
 		fct.worker.Extend,
+		fct.appStatusHandler,
 		extraSignersHolder,
 		fct.sentSignaturesTracker,
 	)
@@ -402,6 +404,7 @@ func (fct *factory) generateEndRoundSubround(extraSignersHolder SubRoundEndExtra
 		spos.MaxThresholdPercent,
 		fct.worker.DisplayStatistics,
 		extraSignersHolder,
+		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
 	)
 	if err != nil {
