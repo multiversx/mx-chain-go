@@ -31,7 +31,10 @@ copyConfig() {
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/nodesSetup.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/*.pem ./node/config #there might be more .pem files there
   if [[ $MULTI_KEY_NODES -eq 1 ]]; then
-    mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      if [[ $EXTRA_KEYS -eq 1 ]]; then
+        cat $NODEDIR/config/testKeys/"${EXTRA_KEY_PEM_FILE}" >> ./node/config/"$MULTI_KEY_PEM_FILE"
+      fi
   fi
 
   if [ "$SOVEREIGN_DEPLOY" = true ]; then

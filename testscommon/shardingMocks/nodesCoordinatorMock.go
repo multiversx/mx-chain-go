@@ -278,6 +278,11 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 	return weights, nil
 }
 
+// GetWaitingEpochsLeftForPublicKey always returns 0
+func (ncm *NodesCoordinatorMock) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
+	return 0, nil
+}
+
 // EpochStartPrepare -
 func (ncm *NodesCoordinatorMock) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
 

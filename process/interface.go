@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -29,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -155,7 +155,7 @@ type InterceptorThrottler interface {
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
-	RequestMiniBlocks(header data.HeaderHandler)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
 	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
@@ -324,7 +324,7 @@ type TransactionLogProcessorDatabase interface {
 
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
-	GetLatestValidators() map[string]*accounts.ValidatorApiResponse
+	GetLatestValidators() map[string]*validator.ValidatorStatistics
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -699,6 +699,10 @@ type feeHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
+	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
+	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -1210,6 +1214,7 @@ type CryptoComponentsHolder interface {
 // StatusCoreComponentsHolder holds the status core components
 type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 

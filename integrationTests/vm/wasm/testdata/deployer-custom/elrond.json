@@ -1,6 +1,0 @@
-{
-    "language": "clang",
-    "source_files": [
-        "deployer-custom.c"
-    ]
-}

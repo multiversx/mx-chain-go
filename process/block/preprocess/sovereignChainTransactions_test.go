@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	state2 "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -188,9 +189,7 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 	t.Run("CreateAndProcessMiniBlocks should work", func(t *testing.T) {
 		t.Parallel()
 		args := createDefaultTransactionsProcessorArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 		args.TxProcessor = &testscommon.TxProcessorMock{
 			VerifyTransactionCalled: func(tx *transaction.Transaction) error {
 				return nil

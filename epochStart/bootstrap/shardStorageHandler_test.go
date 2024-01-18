@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -53,6 +54,7 @@ func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 
 	assert.False(t, check.IfNil(shardStorage))
@@ -77,6 +79,7 @@ func TestShardStorageHandler_SaveDataToStorageShardDataNotFound(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 
 	components := &ComponentsNeededForBootstrap{
@@ -107,6 +110,7 @@ func TestShardStorageHandler_SaveDataToStorageMissingHeader(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 
 	components := &ComponentsNeededForBootstrap{
@@ -160,6 +164,7 @@ func testShardWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber
 			args.nodeTypeProvider,
 			args.nodeProcessingMode,
 			args.managedPeersHolder,
+			disabled.NewStateStatistics(),
 			common.ChainRunTypeRegular)
 		shardStorage.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -214,6 +219,7 @@ func TestShardStorageHandler_SaveDataToStorage(t *testing.T) {
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 
 	hash1 := []byte("hash1")
@@ -325,6 +331,7 @@ func TestShardStorageHandler_getCrossProcessedMiniBlockHeadersDestMe(t *testing.
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shardHeader := &block.Header{
 		Nonce:            100,
@@ -357,6 +364,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledErrorG
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	meta := &block.MetaBlock{
 		Nonce:      100,
@@ -387,6 +395,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledNoSche
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 
@@ -414,6 +423,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduledWrongH
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 
@@ -448,6 +458,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithScheduled(t *te
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 	processedMiniBlocks, pendingMiniBlocks, err := shardStorage.getProcessedAndPendingMiniBlocksWithScheduled(scenario.metaBlock, scenario.headers, scenario.shardHeader, true)
@@ -628,6 +639,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksErrorGettingEpochSt
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	meta := &block.MetaBlock{
 		Nonce:      100,
@@ -663,6 +675,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksMissingHeader(t *te
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -701,6 +714,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWrongHeader(t *test
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
@@ -744,6 +758,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNilMetaBlock(t *tes
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
@@ -789,6 +804,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksNoProcessedNoPendin
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	lastFinishedHeaders := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlockHash), []byte("headerHash"))
 	lastFinishedHeaders[0].FirstPendingMetaBlock = []byte(firstPendingMeta)
@@ -830,6 +846,7 @@ func TestShardStorageHandler_getProcessedAndPendingMiniBlocksWithProcessedAndPen
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	scenario := createPendingAndProcessedMiniBlocksScenario()
 	processedMiniBlocks, pendingMiniBlocks, firstPendingMetaBlockHash, err := shardStorage.getProcessedAndPendingMiniBlocks(scenario.metaBlock, scenario.headers)
@@ -860,6 +877,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledGetSha
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 
 	headers := map[string]data.HeaderHandler{}
@@ -893,6 +911,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledMissin
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -934,6 +953,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongT
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -982,6 +1002,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1025,6 +1046,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduled(t *te
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1073,6 +1095,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduledErrorUpda
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"
@@ -1115,6 +1138,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithScheduled(t *testi
 		args.nodeTypeProvider,
 		args.nodeProcessingMode,
 		args.managedPeersHolder,
+		disabled.NewStateStatistics(),
 		common.ChainRunTypeRegular)
 	shard0HeaderHash := "shard0 header hash"
 	lastFinishedMetaBlock := "last finished meta block"

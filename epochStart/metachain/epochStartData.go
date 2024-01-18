@@ -73,6 +73,12 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.MiniBlockPartialExecutionFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	e := &epochStartData{
 		marshalizer:         args.Marshalizer,
@@ -481,7 +487,7 @@ func (e *epochStartData) updateIndexesOfProcessedTxs(
 }
 
 func (e *epochStartData) setIndexOfFirstAndLastTxProcessed(mbHeader *block.MiniBlockHeader, indexOfFirstTxProcessed int32, indexOfLastTxProcessed int32) {
-	if e.epochStartTrigger.Epoch() < e.enableEpochsHandler.MiniBlockPartialExecutionEnableEpoch() {
+	if e.epochStartTrigger.Epoch() < e.enableEpochsHandler.GetActivationEpoch(common.MiniBlockPartialExecutionFlag) {
 		return
 	}
 	err := mbHeader.SetIndexOfFirstTxProcessed(indexOfFirstTxProcessed)

@@ -60,6 +60,8 @@ type GenesisNodesSetupHandler interface {
 	GetHysteresis() float32
 	GetAdaptivity() bool
 	MinNumberOfNodesWithHysteresis() uint32
+	MinShardHysteresisNodes() uint32
+	MinMetaHysteresisNodes() uint32
 	IsInterfaceNil() bool
 }
 

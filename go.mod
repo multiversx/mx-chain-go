@@ -3,7 +3,7 @@ module github.com/multiversx/mx-chain-go
 go 1.20
 
 require (
-	github.com/beevik/ntp v0.3.0
+	github.com/beevik/ntp v1.3.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/pprof v1.4.0
@@ -13,24 +13,25 @@ require (
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.8
-	github.com/multiversx/mx-chain-core-go v1.2.17-0.20231204120455-9672e1a91430
-	github.com/multiversx/mx-chain-crypto-go v1.2.8
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.14-0.20231005101216-4cb6f3eeaf05
-	github.com/multiversx/mx-chain-logger-go v1.0.13
-	github.com/multiversx/mx-chain-scenario-go v1.2.1
-	github.com/multiversx/mx-chain-storage-go v1.0.13
-	github.com/multiversx/mx-chain-vm-common-go v1.5.6-0.20230929122105-486b4b0c27fa
-	github.com/multiversx/mx-chain-vm-go v1.5.10
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.61
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.62
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.88
+	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381
+	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240118082734-5d14fce4dfd7
+	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.18-0.20231228064619-e3b0caf29058
+	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231215125130-a3bed6e76040
+	github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296
+	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20231213110622-e222ba96a9f4
+	github.com/multiversx/mx-chain-vm-common-go v1.5.10-0.20240118083736-94a1dd3500d1
+	github.com/multiversx/mx-chain-vm-go v1.5.23-0.20231228064104-964359cb8dd3
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65-0.20231228071026-eed2cb19c216
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66-0.20231228071108-6b89bcebab14
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus/client_golang v1.14.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
-	golang.org/x/crypto v0.12.0
+	golang.org/x/crypto v0.14.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -140,7 +141,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
-	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
@@ -176,14 +176,14 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.14.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
+	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
-	google.golang.org/grpc v1.59.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/grpc v1.60.1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
