@@ -3,7 +3,6 @@ package overridableConfig
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/stretchr/testify/require"
@@ -83,40 +82,7 @@ func TestOverrideConfigValues(t *testing.T) {
 		require.Equal(t, uint32(37), configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch)
 	})
 
-	t.Run("prefs from file should work for config.toml", func(t *testing.T) {
-		t.Parallel()
-
-		generalConfig, err := common.LoadMainConfig("../../cmd/node/config/prefs.toml")
-		if err != nil {
-			require.NoError(t, err)
-		}
-
-		preferencesConfig, err := common.LoadPreferencesConfig("../../cmd/node/config/prefs.toml")
-		if err != nil {
-			require.NoError(t, err)
-		}
-
-		require.NotNil(t, preferencesConfig.Preferences.OverridableConfigTomlValues)
-
-		configs := &config.Configs{
-			GeneralConfig: generalConfig,
-		}
-
-		errCfgOverride := OverrideConfigValues(preferencesConfig.Preferences.OverridableConfigTomlValues, configs)
-		if errCfgOverride != nil {
-			require.NoError(t, errCfgOverride)
-		}
-
-		require.Equal(t, len(configs.GeneralConfig.VirtualMachine.Execution.WasmVMVersions), 1)
-		require.Equal(t, configs.GeneralConfig.VirtualMachine.Execution.WasmVMVersions[0].StartEpoch, uint32(0))
-		require.Equal(t, configs.GeneralConfig.VirtualMachine.Execution.WasmVMVersions[0].Version, "1.5")
-
-		require.Equal(t, len(configs.GeneralConfig.VirtualMachine.Querying.WasmVMVersions), 1)
-		require.Equal(t, configs.GeneralConfig.VirtualMachine.Querying.WasmVMVersions[0].StartEpoch, uint32(0))
-		require.Equal(t, configs.GeneralConfig.VirtualMachine.Querying.WasmVMVersions[0].Version, "1.5")
-	})
-
-	t.Run("go struct should work for config.toml", func(t *testing.T) {
+	t.Run("should work for go struct overwrite", func(t *testing.T) {
 		t.Parallel()
 
 		configs := &config.Configs{

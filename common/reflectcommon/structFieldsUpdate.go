@@ -108,7 +108,7 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 		}
 		//Check if the newValue fits inside the unsigned int value
 		if !fitsWithinUnsignedIntegerRange(reflectVal, value.Type()) {
-			return fmt.Errorf("value '%s' does not fit within the range of %s", reflectVal, value.Type())
+			return fmt.Errorf("value '%s' does not fit within the range of <%s>", reflectVal, value.Type())
 		}
 
 		convertedValue := reflectVal.Convert(value.Type())
@@ -120,7 +120,7 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 		}
 		//Check if the newValue fits inside the unsigned int value
 		if !fitsWithinFloatRange(reflectVal, value.Type()) {
-			return fmt.Errorf("value '%s' does not fit within the range of %s", reflectVal, value.Type())
+			return fmt.Errorf("value '%s' does not fit within the range of <%s>", reflectVal, value.Type())
 		}
 
 		convertedValue := reflectVal.Convert(value.Type())
@@ -296,9 +296,9 @@ func getMaxUint(targetType reflect.Type) uint64 {
 func getMinFloat(targetType reflect.Type) float64 {
 	switch targetType.Kind() {
 	case reflect.Float32:
-		return math.SmallestNonzeroFloat32
+		return -math.MaxFloat32
 	case reflect.Float64:
-		return math.SmallestNonzeroFloat64
+		return -math.MaxFloat64
 	default:
 		return 0
 	}

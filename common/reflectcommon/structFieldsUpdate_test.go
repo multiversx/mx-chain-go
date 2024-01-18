@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/toml"
 	"github.com/stretchr/testify/require"
 )
 
@@ -423,6 +425,555 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		require.Equal(t, expectedNewValue, cfg.Hardfork.ExportKeysStorageConfig.DB.MaxBatchSize)
 	})
+
+	t.Run("should work and override int8 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI8.Int8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[0].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[0].Value, int64(testConfig.Int8.Value))
+	})
+
+	t.Run("should error int8 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI8.Int8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[1].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=128)' does not fit within the range of <int8>")
+	})
+
+	t.Run("should work and override int8 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI8.Int8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[2].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[2].Value, int64(testConfig.Int8.Value))
+	})
+
+	t.Run("should error int8 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI8.Int8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[3].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=-129)' does not fit within the range of <int8>")
+	})
+
+	t.Run("should work and override int16 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI16.Int16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[4].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[4].Value, int64(testConfig.Int16.Value))
+	})
+
+	t.Run("should error int16 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI16.Int16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[5].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=32768)' does not fit within the range of <int16>")
+	})
+
+	t.Run("should work and override int16 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI16.Int16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[6].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[6].Value, int64(testConfig.Int16.Value))
+	})
+
+	t.Run("should error int16 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI16.Int16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[7].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=-32769)' does not fit within the range of <int16>")
+	})
+
+	t.Run("should work and override int32 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI32.Int32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[8].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[8].Value, int64(testConfig.Int32.Value))
+	})
+
+	t.Run("should error int32 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI32.Int32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[9].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=2147483648)' does not fit within the range of <int32>")
+	})
+
+	t.Run("should work and override int32 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI32.Int32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[10].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[10].Value, int64(testConfig.Int32.Value))
+	})
+
+	t.Run("should error int32 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI32.Int32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[11].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=-2147483649)' does not fit within the range of <int32>")
+	})
+
+	t.Run("should work and override int64 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI64.Int64.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[12].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[12].Value, int64(testConfig.Int64.Value))
+	})
+
+	t.Run("should work and override int64 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigI64.Int64.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[13].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[13].Value, int64(testConfig.Int64.Value))
+	})
+
+	t.Run("should work and override uint8 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU8.Uint8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[14].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[14].Value, int64(testConfig.Uint8.Value))
+	})
+
+	t.Run("should error uint8 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU8.Uint8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[15].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=256)' does not fit within the range of <uint8>")
+	})
+
+	t.Run("should error uint8 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU8.Uint8.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[16].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=-256)' does not fit within the range of <uint8>")
+	})
+
+	t.Run("should work and override uint16 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU16.Uint16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[17].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[17].Value, int64(testConfig.Uint16.Value))
+	})
+
+	t.Run("should error uint16 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU16.Uint16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[18].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=65536)' does not fit within the range of <uint16>")
+	})
+
+	t.Run("should error uint16 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU16.Uint16.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[19].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=-65536)' does not fit within the range of <uint16>")
+	})
+
+	t.Run("should work and override uint32 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU32.Uint32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[20].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[20].Value, int64(testConfig.Uint32.Value))
+	})
+
+	t.Run("should error uint32 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU32.Uint32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[21].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=4294967296)' does not fit within the range of <uint32>")
+	})
+
+	t.Run("should error uint32 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU32.Uint32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[22].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(int64=-4294967296)' does not fit within the range of <uint32>")
+	})
+
+	t.Run("should work and override uint64 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU64.Uint64.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[23].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[23].Value, int64(testConfig.Uint64.Value))
+	})
+
+	t.Run("should error uint64 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigU64.Uint64.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[24].Value)
+		require.ErrorContains(t, err, "value '%!s(int64=-9223372036854775808)' does not fit within the range of <uint64>")
+	})
+
+	t.Run("should work and override float32 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigF32.Float32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[25].Value)
+		require.NoError(t, err)
+		require.Equal(t, testConfig.Float32.Value, float32(3.4))
+	})
+
+	t.Run("should error float32 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigF32.Float32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[26].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(float64=3.4e+39)' does not fit within the range of <float32>")
+	})
+
+	t.Run("should work and override float32 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigF32.Float32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[27].Value)
+		require.NoError(t, err)
+		require.Equal(t, testConfig.Float32.Value, float32(-3.4))
+	})
+
+	t.Run("should error float32 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigF32.Float32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[28].Value)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, "value '%!s(float64=-3.4e+40)' does not fit within the range of <float32>")
+	})
+
+	t.Run("should work and override float64 value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigF64.Float64.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[29].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[29].Value, testConfig.Float64.Value)
+	})
+
+	t.Run("should work and override float64 negative value", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigF64.Float64.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[30].Value)
+		require.NoError(t, err)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[30].Value, testConfig.Float64.Value)
+	})
+
+	t.Run("should work and override struct", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigStruct.ConfigStruct.Description"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[31].Value)
+		require.NoError(t, err)
+		require.Equal(t, testConfig.TestConfigStruct.ConfigStruct.Description.Number, uint32(11))
+	})
+
+	t.Run("should work and override nested struct", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigNestedStruct.ConfigNestedStruct"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[32].Value)
+		require.NoError(t, err)
+		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Text, "Overwritten text")
+		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.Public, false)
+		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[0].Text, "Overwritten Text1")
+	})
+
+}
+
+func loadTestConfig(filepath string) (*toml.Config, error) {
+	cfg := &toml.Config{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+func loadOverrideConfig(filepath string) (*toml.OverrideConfig, error) {
+	cfg := &toml.OverrideConfig{}
+	err := core.LoadTomlFile(cfg, filepath)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 func BenchmarkAdaptStructureValueBasedOnPath(b *testing.B) {

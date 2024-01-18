@@ -1,0 +1,49 @@
+[TestConfigI8]
+    [TestConfigI8.Int8]
+        Value = -8
+
+[TestConfigI16]
+    [TestConfigI16.Int16]
+        Value = -16
+
+[TestConfigI32]
+    [TestConfigI8.Int32]
+        Value = -32
+
+[TestConfigI64]
+    [TestConfigI64.Int64]
+        Value = -64
+
+[TestConfigU8]
+    [TestConfigU8.Uint8]
+        Value = 8
+
+[TestConfigU16]
+    [TestConfigU16.Uint16]
+        Value = 16
+
+[TestConfigU32]
+    [TestConfigU32.Uint32]
+        Value = 32
+
+[TestConfigU64]
+    [TestConfigU64.Uint64]
+        Value = 64
+
+[TestConfigF32]
+    [TestConfigF32.Float32]
+        Value = -32.32
+
+[TestConfigF64]
+    [TestConfigF64.Float64]
+        Value = 64.64
+
+[TestConfigStruct]
+    [TestConfigStruct.ConfigStruct]
+        Title = "Config Struct"
+        Description = { Number = 32 }
+
+[TestConfigNestedStruct]
+    [TestConfigNestedStruct.ConfigNestedStruct]
+        Text = "Config Nested Struct"
+        Mesage = { Public = true, MessageDescription = [{ Text = "Text1" }, { Text = "Text2"}] }
