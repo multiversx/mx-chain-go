@@ -234,7 +234,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = TestMarshalizer

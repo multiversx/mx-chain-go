@@ -2,6 +2,7 @@ package stateTrie
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
@@ -24,11 +25,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	esdtCommon "github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
@@ -2340,6 +2343,221 @@ func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testin
 	val, err := tsm.Get([]byte(lastSnapshotStartedKey))
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
+}
+
+func TestMigrateDataTrieBuiltinFunc(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	t.Run("migrate shard 0 system account", func(t *testing.T) {
+		shardId := byte(0)
+		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
+		migrateDataTrieBuiltInFunc(t, nodes, shardId, core.SystemAccountAddress, nonce, round, idxProposers)
+		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
+
+		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
+		require.True(t, len(valuesAfterMigration) > 0)
+		for i := range valuesBeforeMigration {
+			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
+		}
+	})
+	t.Run("migrate shard 0 user account", func(t *testing.T) {
+		shardId := byte(0)
+		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		migrationAddress := nodes[shardId].OwnAccount.Address
+		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
+		migrateDataTrieBuiltInFunc(t, nodes, shardId, migrationAddress, nonce, round, idxProposers)
+		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
+
+		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
+		require.True(t, len(valuesAfterMigration) > 0)
+		for i := range valuesBeforeMigration {
+			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
+		}
+	})
+	t.Run("migrate shard 1 system account", func(t *testing.T) {
+		shardId := byte(1)
+		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
+		migrateDataTrieBuiltInFunc(t, nodes, shardId, core.SystemAccountAddress, nonce, round, idxProposers)
+		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, core.SystemAccountAddress)
+
+		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
+		require.True(t, len(valuesAfterMigration) > 0)
+		for i := range valuesBeforeMigration {
+			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
+		}
+	})
+	t.Run("migrate shard 1 user account", func(t *testing.T) {
+		shardId := byte(1)
+		nodes, idxProposers, nonce, round := startNodesAndIssueToken(t, 2, shardId)
+		defer func() {
+			for _, n := range nodes {
+				n.Close()
+			}
+		}()
+
+		migrationAddress := nodes[shardId].OwnAccount.Address
+		valuesBeforeMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
+		migrateDataTrieBuiltInFunc(t, nodes, shardId, nodes[shardId].OwnAccount.Address, nonce, round, idxProposers)
+		valuesAfterMigration := getValuesFromAccount(t, nodes[shardId].AccntState, migrationAddress)
+
+		require.Equal(t, len(valuesBeforeMigration), len(valuesAfterMigration))
+		require.True(t, len(valuesAfterMigration) > 0)
+		for i := range valuesBeforeMigration {
+			require.Equal(t, valuesBeforeMigration[i], valuesAfterMigration[i])
+		}
+	})
+}
+
+func getValuesFromAccount(t *testing.T, adb state.AccountsAdapter, address []byte) [][]byte {
+	account, err := adb.GetExistingAccount(address)
+	require.Nil(t, err)
+
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err = account.(state.UserAccountHandler).GetAllLeaves(chLeaves, context.Background())
+	require.Nil(t, err)
+
+	values := make([][]byte, 0)
+	for leaf := range chLeaves.LeavesChan {
+		values = append(values, leaf.Value())
+	}
+
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+	require.Nil(t, err)
+
+	return values
+}
+
+func migrateDataTrieBuiltInFunc(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	shardId byte,
+	migrationAddress []byte,
+	nonce uint64,
+	round uint64,
+	idxProposers []int,
+) {
+	require.True(t, nodes[shardId].EnableEpochsHandler.IsAutoBalanceDataTriesEnabled())
+	isMigrated := getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
+	require.False(t, isMigrated)
+
+	integrationTests.CreateAndSendTransactionWithSenderAccount(nodes[shardId], nodes, big.NewInt(0), nodes[shardId].OwnAccount, getDestAccountAddress(migrationAddress, shardId), core.BuiltInFunctionMigrateDataTrie, 1000000)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagate := 5
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
+
+	isMigrated = getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
+	require.True(t, isMigrated)
+}
+
+func startNodesAndIssueToken(
+	t *testing.T,
+	numOfShards int,
+	issuerShardId byte,
+) ([]*integrationTests.TestProcessorNode, []int, uint64, uint64) {
+	nodesPerShard := 1
+	numMetachainNodes := 1
+
+	enableEpochs := config.EnableEpochs{
+		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
+		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		StakingV2EnableEpoch:                        integrationTests.UnreachableEpoch,
+		AutoBalanceDataTriesEnableEpoch:             1,
+	}
+	nodes := integrationTests.CreateNodesWithEnableEpochs(
+		numOfShards,
+		nodesPerShard,
+		numMetachainNodes,
+		enableEpochs,
+	)
+
+	roundsPerEpoch := uint64(5)
+	for _, node := range nodes {
+		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
+	}
+
+	idxProposers := make([]int, numOfShards+1)
+	for i := 0; i < numOfShards; i++ {
+		idxProposers[i] = i * nodesPerShard
+	}
+	idxProposers[numOfShards] = numOfShards * nodesPerShard
+
+	integrationTests.DisplayAndStartNodes(nodes)
+
+	initialVal := int64(10000000000)
+	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	nonce++
+
+	// send token issue
+	initialSupply := int64(10000000000)
+	ticker := "TCK"
+	esdtCommon.IssueTestTokenWithIssuerAccount(nodes, nodes[issuerShardId].OwnAccount, initialSupply, ticker)
+
+	time.Sleep(time.Second)
+	nrRoundsToPropagate := 8
+	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
+	time.Sleep(time.Second)
+
+	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
+
+	esdtCommon.CheckAddressHasTokens(t, nodes[issuerShardId].OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
+
+	return nodes, idxProposers, nonce, round
+}
+
+func getDestAccountAddress(migrationAddress []byte, shardId byte) []byte {
+	if bytes.Equal(migrationAddress, core.SystemAccountAddress) && shardId == 0 {
+		systemAccountAddress := bytes.Repeat([]byte{255}, 30)
+		systemAccountAddress = append(systemAccountAddress, []byte{0, 0}...)
+		return systemAccountAddress
+	}
+
+	return migrationAddress
+}
+
+func getAddressMigrationStatus(t *testing.T, adb state.AccountsAdapter, address []byte) bool {
+	account, err := adb.LoadAccount(address)
+	require.Nil(t, err)
+
+	userAccount, ok := account.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	isMigrated, err := userAccount.DataTrie().IsMigratedToLatestVersion()
+	require.Nil(t, err)
+
+	return isMigrated
 }
 
 func addDataTriesForAccountsStartingWithIndex(
