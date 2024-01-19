@@ -6,11 +6,11 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/klauspost/cpuid/v2"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/hostParameters"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
 	"github.com/multiversx/mx-chain-go/node"
@@ -130,7 +130,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
 
-	err = checkHardwareRequirements(cfgs.GeneralConfig.HardwareRequirements)
+	err = checkHardwareRequirements()
 	if err != nil {
 		return fmt.Errorf("Hardware Requirements checks failed: %s", err.Error())
 	}
@@ -308,24 +308,10 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	return fileLogging, nil
 }
 
-func checkHardwareRequirements(cfg config.HardwareRequirementsConfig) error {
-	hpg := hostParameters.NewHostParameterGetter("")
-	hostInfo := hpg.GetHostInfo()
-
-	for _, cpuFlag := range cfg.CPUFlags {
-		if !contains(hostInfo.CPUFlags, cpuFlag) {
-			return fmt.Errorf("CPU Flag %s not available", cpuFlag)
-		}
+func checkHardwareRequirements() error {
+	if !cpuid.CPU.Supports(cpuid.SSE4, cpuid.SSE42) {
+		return fmt.Errorf("CPU Flags: Streaming SIMD Extensions 4 requied")
 	}
 
 	return nil
-}
-
-func contains(list []string, s string) bool {
-	for _, item := range list {
-		if item == s {
-			return true
-		}
-	}
-	return false
 }

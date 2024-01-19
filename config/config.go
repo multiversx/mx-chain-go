@@ -190,16 +190,15 @@ type Config struct {
 	PublicKeyPIDSignature CacheConfig
 	PeerHonesty           CacheConfig
 
-	Antiflood            AntifloodConfig
-	WebServerAntiflood   WebServerAntifloodConfig
-	ResourceStats        ResourceStatsConfig
-	HeartbeatV2          HeartbeatV2Config
-	ValidatorStatistics  ValidatorStatisticsConfig
-	GeneralSettings      GeneralSettingsConfig
-	Consensus            ConsensusConfig
-	StoragePruning       StoragePruningConfig
-	LogsAndEvents        LogsAndEventsConfig
-	HardwareRequirements HardwareRequirementsConfig
+	Antiflood           AntifloodConfig
+	WebServerAntiflood  WebServerAntifloodConfig
+	ResourceStats       ResourceStatsConfig
+	HeartbeatV2         HeartbeatV2Config
+	ValidatorStatistics ValidatorStatisticsConfig
+	GeneralSettings     GeneralSettingsConfig
+	Consensus           ConsensusConfig
+	StoragePruning      StoragePruningConfig
+	LogsAndEvents       LogsAndEventsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -284,11 +283,6 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
-}
-
-// HardwareRequirementsConfig will hold the hardware requirements config
-type HardwareRequirementsConfig struct {
-	CPUFlags []string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
