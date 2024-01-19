@@ -454,7 +454,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, errorsErd.ErrSignatureMismatch) ||
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) ||
-		errors.Is(err, crypto.ErrAggSigNotValid) {
+		errors.Is(err, crypto.ErrAggSigNotValid) ||
+		errors.Is(err, ErrEquivalentMessageAlreadyReceived) {
 		return false
 	}
 
@@ -725,12 +726,17 @@ func (wrk *Worker) Close() error {
 	return nil
 }
 
-// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
-func (wrk *Worker) ResetConsensusMessages() {
+// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
+func (wrk *Worker) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
 	wrk.consensusMessageValidator.resetConsensusMessages()
 
 	wrk.mutEquivalentMessages.Lock()
-	wrk.equivalentMessages = make(map[string]*consensus.EquivalentMessageInfo)
+	for hash := range wrk.equivalentMessages {
+		if hash == string(currentHash) || hash == string(prevHash) {
+			continue
+		}
+		delete(wrk.equivalentMessages, hash)
+	}
 	wrk.mutEquivalentMessages.Unlock()
 }
 
@@ -831,6 +837,7 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 	wrk.mutEquivalentMessages.RLock()
 	defer wrk.mutEquivalentMessages.RUnlock()
+
 	info, has := wrk.equivalentMessages[string(headerHash)]
 
 	return has && info.Validated
@@ -840,6 +847,7 @@ func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
 	wrk.mutEquivalentMessages.RLock()
 	defer wrk.mutEquivalentMessages.RUnlock()
+
 	info, has := wrk.equivalentMessages[string(headerHash)]
 	if !has {
 		return data.HeaderProof{}, ErrMissingEquivalentProof

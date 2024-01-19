@@ -22,21 +22,18 @@ type subroundStartRound struct {
 	outportMutex sync.RWMutex
 	*spos.Subround
 	processingThresholdPercentage int
-	executeStoredMessages         func()
-	resetConsensusMessages        func()
 
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
+	worker               spos.WorkerHandler
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
 func NewSubroundStartRound(
 	baseSubround *spos.Subround,
-	extend func(subroundId int),
 	processingThresholdPercentage int,
-	executeStoredMessages func(),
-	resetConsensusMessages func(),
 	sentSignatureTracker spos.SentSignaturesTracker,
+	worker spos.WorkerHandler,
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -44,31 +41,24 @@ func NewSubroundStartRound(
 	if err != nil {
 		return nil, err
 	}
-	if extend == nil {
-		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
-	}
-	if executeStoredMessages == nil {
-		return nil, fmt.Errorf("%w for executeStoredMessages function", spos.ErrNilFunctionHandler)
-	}
-	if resetConsensusMessages == nil {
-		return nil, fmt.Errorf("%w for resetConsensusMessages function", spos.ErrNilFunctionHandler)
-	}
 	if check.IfNil(sentSignatureTracker) {
 		return nil, spos.ErrNilSentSignatureTracker
+	}
+	if check.IfNil(worker) {
+		return nil, spos.ErrNilWorker
 	}
 
 	srStartRound := subroundStartRound{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
-		executeStoredMessages:         executeStoredMessages,
-		resetConsensusMessages:        resetConsensusMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
 		sentSignatureTracker:          sentSignatureTracker,
 		outportMutex:                  sync.RWMutex{},
+		worker:                        worker,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
-	srStartRound.Extend = extend
+	srStartRound.Extend = worker.Extend
 	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
@@ -109,7 +99,15 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.RoundTimeStamp = sr.RoundHandler().TimeStamp()
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
-	sr.resetConsensusMessages()
+	// reset the consensus messages, but still keep the proofs for current hash and previous hash
+	currentHash := sr.Blockchain().GetCurrentBlockHeaderHash()
+	prevHash := make([]byte, 0)
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) {
+		prevHash = currentHeader.GetPrevHash()
+	}
+	sr.worker.ResetConsensusMessages(currentHash, prevHash)
+
 	return true
 }
 
@@ -227,7 +225,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	// execute stored messages which were received in this new round but before this initialisation
-	go sr.executeStoredMessages()
+	go sr.worker.ExecuteStoredMessages()
 
 	return true
 }

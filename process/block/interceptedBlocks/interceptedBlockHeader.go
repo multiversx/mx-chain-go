@@ -82,17 +82,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	// TODO[cleanup cns finality]: remove this
-	if !inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, inHdr.hdr.GetEpoch()) {
-		return inHdr.verifySignatures()
-	}
-
-	previousAggregatedSignature, previousBitmap := inHdr.hdr.GetPreviousAggregatedSignatureAndBitmap()
-	if len(previousAggregatedSignature) == 0 || len(previousBitmap) == 0 {
-		return inHdr.verifySignatures()
-	}
-
-	return inHdr.sigVerifier.VerifySignatureForHash(inHdr.hdr, inHdr.hdr.GetPrevHash(), previousBitmap, previousAggregatedSignature)
+	return inHdr.verifySignatures()
 }
 
 func (inHdr *InterceptedHeader) verifySignatures() error {

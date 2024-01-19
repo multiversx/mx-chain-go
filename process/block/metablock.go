@@ -2017,6 +2017,9 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.Nonce = shardHdr.GetNonce()
 		shardData.PrevRandSeed = shardHdr.GetPrevRandSeed()
 		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
+		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, shardHdr.GetEpoch()) {
+			_, shardData.PubKeysBitmap = shardHdr.GetPreviousAggregatedSignatureAndBitmap()
+		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
 		if err != nil {

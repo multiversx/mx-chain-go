@@ -753,7 +753,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
-	wrk.ResetConsensusMessages()
+	wrk.ResetConsensusMessages(nil, nil)
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 0, len(equivalentMessages))
 }

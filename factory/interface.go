@@ -395,8 +395,8 @@ type ConsensusWorker interface {
 	ExecuteStoredMessages()
 	// DisplayStatistics method displays statistics of worker at the end of the round
 	DisplayStatistics()
-	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
-	ResetConsensusMessages()
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
+	ResetConsensusMessages(currentHash []byte, prevHash []byte)
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// HasEquivalentMessage returns true if an equivalent message was received before

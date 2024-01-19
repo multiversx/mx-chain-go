@@ -385,9 +385,13 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
+	bitmap := previousHeader.GetPubKeysBitmap()
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, previousHeader.GetEpoch()) {
+		_, bitmap = previousHeader.GetPreviousAggregatedSignatureAndBitmap()
+	}
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		consensusGroup,
-		previousHeader.GetPubKeysBitmap(),
+		bitmap,
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
 		previousHeader.GetShardID(),
 	)

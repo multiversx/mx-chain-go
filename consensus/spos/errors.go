@@ -241,9 +241,6 @@ var ErrNilKeysHandler = errors.New("nil keys handler")
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
-// ErrNilFunctionHandler signals that a nil function handler was provided
-var ErrNilFunctionHandler = errors.New("nil function handler")
-
 // ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
 var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
 

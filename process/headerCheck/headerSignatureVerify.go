@@ -12,6 +12,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -31,6 +32,7 @@ type ArgsHeaderSigVerifier struct {
 	KeyGen                  crypto.KeyGenerator
 	FallbackHeaderValidator process.FallbackHeaderValidator
 	EnableEpochsHandler     common.EnableEpochsHandler
+	HeadersPool             dataRetriever.HeadersPool
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -43,6 +45,7 @@ type HeaderSigVerifier struct {
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
 	enableEpochsHandler     common.EnableEpochsHandler
+	headersPool             dataRetriever.HeadersPool
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -61,6 +64,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
 		enableEpochsHandler:     arguments.EnableEpochsHandler,
+		headersPool:             arguments.HeadersPool,
 	}, nil
 }
 
@@ -98,6 +102,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.HeadersPool) {
+		return process.ErrNilHeadersDataPool
 	}
 
 	return nil
@@ -142,7 +149,7 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler, pub
 		return nil, err
 	}
 
-	err = hsv.verifyConsensusSize(consensusPubKeys, header)
+	err = hsv.verifyConsensusSize(consensusPubKeys, header, pubKeysBitmap)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +178,16 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 		return err
 	}
 
-	return hsv.VerifySignatureForHash(header, hash, header.GetPubKeysBitmap(), header.GetSignature())
+	bitmap := header.GetPubKeysBitmap()
+	sig := header.GetSignature()
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, headerCopy.GetEpoch()) {
+		headerCopy, hash, sig, bitmap, err = hsv.getPrevHeaderInfo(headerCopy)
+		if err != nil {
+			return err
+		}
+	}
+
+	return hsv.VerifySignatureForHash(headerCopy, hash, bitmap, sig)
 }
 
 // VerifySignatureForHash will check if signature is correct for the provided hash
@@ -187,6 +203,27 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	}
 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
+}
+
+func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, []byte, error) {
+	sig, bitmap := currentHeader.GetPreviousAggregatedSignatureAndBitmap()
+	hash := currentHeader.GetPrevHash()
+	prevHeader, err := hsv.headersPool.GetHeaderByHash(hash)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	headerCopy, err := hsv.copyHeaderWithoutSig(prevHeader)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	hash, err = core.CalculateHash(hsv.marshalizer, hsv.hasher, headerCopy)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return headerCopy, hash, sig, bitmap, nil
 }
 
 // VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
@@ -208,9 +245,8 @@ func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler
 	return nil
 }
 
-func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
+func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler, bitmap []byte) error {
 	consensusSize := len(consensusPubKeys)
-	bitmap := header.GetPubKeysBitmap()
 
 	expectedBitmapSize := consensusSize / 8
 	if consensusSize%8 != 0 {
@@ -318,6 +354,11 @@ func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, head
 }
 
 func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
+	// TODO[cleanup cns finality]: consider removing this method
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+		return nil
+	}
+
 	headerCopy, err := hsv.copyHeaderWithoutLeaderSig(header)
 	if err != nil {
 		return err

@@ -2,7 +2,6 @@ package bls_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -24,19 +23,8 @@ const currentPid = core.PeerID("pid")
 
 const roundTimeDuration = 100 * time.Millisecond
 
-func displayStatistics() {
-}
-
-func extend(subroundId int) {
-	fmt.Println(subroundId)
-}
-
 // executeStoredMessages tries to execute all the messages received which are valid for execution
 func executeStoredMessages() {
-}
-
-// resetConsensusMessages resets at the start of each round, all the previous consensus messages received
-func resetConsensusMessages() {
 }
 
 func initRoundHandlerMock() *mock.RoundHandlerMock {

@@ -149,11 +149,9 @@ func (fct *factory) generateStartRoundSubround() error {
 
 	subroundStartRoundInstance, err := NewSubroundStartRound(
 		subround,
-		fct.worker.Extend,
 		processingThresholdPercent,
-		fct.worker.ExecuteStoredMessages,
-		fct.worker.ResetConsensusMessages,
 		fct.sentSignaturesTracker,
+		fct.worker,
 	)
 	if err != nil {
 		return err

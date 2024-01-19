@@ -35,6 +35,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 		KeyGen:                  &mock.SingleSignKeyGenMock{},
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		HeadersPool:             &mock.HeadersCacherStub{},
 	}
 }
 

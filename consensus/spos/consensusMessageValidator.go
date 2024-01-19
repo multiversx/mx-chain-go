@@ -443,6 +443,11 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 			len(cnsMsg.AggregateSignature))
 	}
 
+	// TODO[cleanup cns finality]: remove this
+	if cmv.enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+		return nil
+	}
+
 	if len(cnsMsg.LeaderSignature) != cmv.signatureSize {
 		return fmt.Errorf("%w : received leader signature from consensus topic has an invalid size: %d",
 			ErrInvalidSignatureSize,
