@@ -95,6 +95,11 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 
 	assert.Equal(t, []byte(nil), accountsApi.GetStackDebugFirstEntry())
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrieFromEpoch(nil))
+
+	assert.Nil(t, accountsApi.SetSyncer(nil))
+	assert.Nil(t, accountsApi.StartSnapshotIfNeeded())
+	assert.Nil(t, accountsApi.MigrateCodeLeaf(nil))
 }
 
 func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {

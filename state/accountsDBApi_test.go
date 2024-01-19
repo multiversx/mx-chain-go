@@ -210,6 +210,16 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	assert.Equal(t, state.ErrOperationNotPermitted, err)
 }
 
+func TestAccountsDBApi_NotUsedMethods(t *testing.T) {
+	t.Parallel()
+
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{}, createBlockInfoProviderStub(dummyRootHash))
+
+	require.Nil(t, accountsApi.SetSyncer(nil))
+	require.Nil(t, accountsApi.StartSnapshotIfNeeded())
+	require.Nil(t, accountsApi.MigrateCodeLeaf(nil))
+}
+
 func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	t.Parallel()
 

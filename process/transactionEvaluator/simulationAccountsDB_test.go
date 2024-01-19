@@ -97,6 +97,9 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 
 	_, err = simAccountsDB.RecreateAllTries(nil)
 	require.NoError(t, err)
+
+	err = simAccountsDB.MigrateCodeLeaf(nil)
+	require.NoError(t, err)
 }
 
 func TestReadOnlyAccountsDB_ReadOperationsShouldWork(t *testing.T) {

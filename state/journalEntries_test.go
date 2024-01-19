@@ -14,6 +14,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
@@ -30,6 +31,14 @@ func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 0, 0)
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
+}
+
+func TestNewJournalEntryCode_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &marshallerMock.MarshalizerMock{}, nil, 0, 0)
+	assert.True(t, check.IfNil(entry))
+	assert.Equal(t, state.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
@@ -85,6 +94,47 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Nil(t, acc)
 	assert.True(t, updateCalled)
+}
+
+func TestJournalEntryCode_MigratedCodeLeaf(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not update if old and new core have been migrated", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := &marshallerMock.MarshalizerMock{}
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.MigrateCodeLeafFlag
+			},
+		}
+
+		trieStub := &trieMock.TrieStub{
+			GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+				require.Fail(t, "should not have been called")
+				return nil, nil
+			},
+			UpdateCalled: func(key, value []byte) error {
+				require.Fail(t, "should not have been called")
+				return nil
+			},
+		}
+		entry, _ := state.NewJournalEntryCode(
+			&state.CodeEntry{},
+			nil,
+			[]byte("newHash"),
+			trieStub,
+			marshalizer,
+			enableEpochsHandler,
+			uint8(core.WithoutCodeLeaf), uint8(core.WithoutCodeLeaf),
+		)
+
+		acc, err := entry.Revert()
+		assert.Nil(t, err)
+		assert.Nil(t, acc)
+	})
+
 }
 
 func TestNewJournalEntryAccount_NilAccountShouldErr(t *testing.T) {
