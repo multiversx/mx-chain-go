@@ -158,7 +158,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, isLeader bool)
 	}
 
 	// TODO[cleanup cns finality]: remove the isLeader check. Once the flag will be enabled, all participants will have to wait for signatures.
-	shouldWaitForAllSigsAsync := isLeader || sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
+	shouldWaitForAllSigsAsync := isLeader || sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch())
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
 	}
@@ -188,7 +188,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 	}
 
 	// TODO[cleanup cns finality]: remove the leader checks. Once the flag will be enabled, all participants will have to wait for signatures.
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() && !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() && !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
 		return false
 	}
 
@@ -278,7 +278,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
-	if isSubroundFinished && !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	if isSubroundFinished && !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
 		if isSelfLeader {
 			log.Debug("step 2: signatures",
 				"received", numSigs,
@@ -294,9 +294,9 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return true
 	}
 
-	// TODO[cleanup cns finality]: remove L272-L296
+	// TODO[cleanup cns finality]: remove above lines
 	isJobDoneByConsensusNodeAfterPropagationChanges := isSelfInConsensusGroup && selfJobDone && multiKeyJobDone && isSignatureCollectionDone
-	if isJobDoneByConsensusNodeAfterPropagationChanges && sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	if isJobDoneByConsensusNodeAfterPropagationChanges && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
@@ -307,6 +307,14 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 
 		return true
+	}
+
+	if !isSelfInConsensusGroup {
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+
+		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	}
 
 	return false

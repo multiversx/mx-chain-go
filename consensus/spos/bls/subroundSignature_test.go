@@ -713,6 +713,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenSignatur
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
 	}
 
+	sr.Header = &block.HeaderV2{}
 	assert.True(t, sr.DoSignatureConsensusCheck())
 }
 
@@ -754,7 +755,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(
 
 		container := mock.InitConsensusCore()
 		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.ConsensusPropagationChangesFlag {
 					return flagActive
 				}
@@ -776,6 +777,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(
 			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
 		}
 
+		sr.Header = &block.HeaderV2{}
 		assert.Equal(t, expectedResult, sr.DoSignatureConsensusCheck())
 	}
 }
@@ -819,6 +821,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
 	}
 
+	sr.Header = &block.HeaderV2{}
 	assert.True(t, sr.DoSignatureConsensusCheck())
 }
 
@@ -844,5 +847,6 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 		nil,
 	)
 
+	sr.Header = &block.HeaderV2{}
 	assert.False(t, sr.ReceivedSignature(cnsMsg))
 }
