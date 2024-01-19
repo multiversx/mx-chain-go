@@ -123,6 +123,11 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
+	err = imh.sigVerifier.VerifyPreviousBlockProof(imh.hdr)
+	if err != nil {
+		return err
+	}
+
 	return imh.integrityVerifier.Verify(imh.hdr)
 }
 

@@ -127,6 +127,8 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		ConsensusService:     args.ConsensusService,
 		PeerSignatureHandler: args.PeerSignatureHandler,
 		EnableEpochsHandler:  args.EnableEpochsHandler,
+		Marshaller:           args.Marshalizer,
+		ShardCoordinator:     args.ShardCoordinator,
 		SignatureSize:        args.SignatureSize,
 		PublicKeySize:        args.PublicKeySize,
 		HeaderHashSize:       args.Hasher.Size(),
@@ -504,6 +506,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
+	err = wrk.headerSigVerifier.VerifyPreviousBlockProof(header)
+	if err != nil {
+		return fmt.Errorf("%w : verify previous block proof for received header from consensus topic failed",
+			err)
+	}
+
 	wrk.processReceivedHeaderMetric(cnsMsg)
 
 	errNotCritical := wrk.forkDetector.AddHeader(header, headerHash, process.BHProposed, nil, nil)
@@ -798,13 +806,7 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 		return ErrNilHeader
 	}
 
-	header := wrk.consensusState.Header
-	headerHash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, header)
-	if err != nil {
-		return err
-	}
-
-	return wrk.headerSigVerifier.VerifySignatureForHash(header, headerHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
+	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {

@@ -892,12 +892,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	}()
 
 	if currHeader.GetNonce() > 1 {
-		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevHeaderRootHash)
+		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevHeaderRootHash, currHeader)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err = boot.setCurrentBlockInfo(nil, nil, nil)
+		err = boot.setCurrentBlockInfo(nil, nil, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -1029,6 +1029,7 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	headerHash []byte,
 	header data.HeaderHandler,
 	rootHash []byte,
+	nextHeader data.HeaderHandler,
 ) error {
 
 	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(header, rootHash)
@@ -1038,7 +1039,7 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
-	if header == nil {
+	if check.IfNil(header) {
 		boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
 			AggregatedSignature: nil,
 			PubKeysBitmap:       nil,
@@ -1047,7 +1048,8 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 		return nil
 	}
 
-	sig, bitmap := header.GetPreviousAggregatedSignatureAndBitmap()
+	// the proof of the header is on the header that is rolling back from
+	sig, bitmap := nextHeader.GetPreviousAggregatedSignatureAndBitmap()
 	boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
 		AggregatedSignature: sig,
 		PubKeysBitmap:       bitmap,
