@@ -547,8 +547,13 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 		return
 	}
 
+	proof := sr.Blockchain().GetCurrentHeaderProof()
+	if !isProofEmpty(proof) {
+		return
+	}
+
 	prevAggSig, prevBitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
-	proof := data.HeaderProof{
+	proof = data.HeaderProof{
 		AggregatedSignature: prevAggSig,
 		PubKeysBitmap:       prevBitmap,
 	}
