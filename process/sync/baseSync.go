@@ -892,12 +892,12 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	}()
 
 	if currHeader.GetNonce() > 1 {
-		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevHeaderRootHash, currHeader)
+		err = boot.setCurrentBlockInfo(prevHeaderHash, prevHeader, prevHeaderRootHash)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		err = boot.setCurrentBlockInfo(nil, nil, nil, nil)
+		err = boot.setCurrentBlockInfo(nil, nil, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -1002,12 +1002,6 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	sig, bitmap := currHeader.GetPreviousAggregatedSignatureAndBitmap()
-	boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
-		AggregatedSignature: sig,
-		PubKeysBitmap:       bitmap,
-	})
-
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
 		scheduledInfo := &process.ScheduledInfo{
@@ -1029,7 +1023,6 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	headerHash []byte,
 	header data.HeaderHandler,
 	rootHash []byte,
-	nextHeader data.HeaderHandler,
 ) error {
 
 	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(header, rootHash)
@@ -1038,22 +1031,6 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	}
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
-	if check.IfNil(header) {
-		boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
-			AggregatedSignature: nil,
-			PubKeysBitmap:       nil,
-		})
-
-		return nil
-	}
-
-	// the proof of the header is on the header that is rolling back from
-	sig, bitmap := nextHeader.GetPreviousAggregatedSignatureAndBitmap()
-	boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
-		AggregatedSignature: sig,
-		PubKeysBitmap:       bitmap,
-	})
 
 	return nil
 }
