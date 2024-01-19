@@ -10,8 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
-	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
+	mge "github.com/multiversx/mx-chain-scenario-go/scenario/exporter"
+	scenmodel "github.com/multiversx/mx-chain-scenario-go/scenario/model"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -70,7 +70,7 @@ func CreateTransactionsFromScenariosTxs(scenariosTxs []*mge.Transaction) (transa
 		endpointName := scenariosTx.GetCallFunction()
 		args := scenariosTx.GetCallArguments()
 		if len(esdtTransfers) != 0 {
-			data = mgutil.CreateMultiTransferData(scenariosTx.GetReceiverAddress(), esdtTransfers, endpointName, args)
+			data = scenmodel.CreateMultiTransferData(scenariosTx.GetReceiverAddress(), esdtTransfers, endpointName, args)
 		} else {
 			data = createData(endpointName, args)
 		}

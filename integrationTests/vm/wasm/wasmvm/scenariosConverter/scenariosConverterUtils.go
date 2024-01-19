@@ -8,8 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
+	mge "github.com/multiversx/mx-chain-scenario-go/scenario/exporter"
+	scenmodel "github.com/multiversx/mx-chain-scenario-go/scenario/model"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +77,7 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, sc
 
 		var expectedData []byte
 		if len(expectedEsdtTransfers) != 0 {
-			expectedData = mgutil.CreateMultiTransferData(expectedReceiver, expectedEsdtTransfers, expectedCallFunction, expectedCallArguments)
+			expectedData = scenmodel.CreateMultiTransferData(expectedReceiver, expectedEsdtTransfers, expectedCallFunction, expectedCallArguments)
 			require.Equal(t, expectedSender, transactions[i].GetRcvAddr())
 		} else {
 			require.Equal(t, expectedReceiver, transactions[i].GetRcvAddr())
