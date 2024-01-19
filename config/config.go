@@ -109,6 +109,11 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// GatewayMetricsConfig will hold the configuration for gateway endpoint configuration
+type GatewayMetricsConfig struct {
+	URL string
+}
+
 // HeartbeatV2Config will hold the configuration for heartbeat v2
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
@@ -211,6 +216,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	GatewayMetricsConfig  GatewayMetricsConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
 	Logs                  LogsConfig

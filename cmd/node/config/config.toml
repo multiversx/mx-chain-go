@@ -821,6 +821,10 @@
     StableTagLocation = "https://api.github.com/repos/multiversx/mx-chain-go/releases/latest"
     PollingIntervalInMinutes = 65
 
+[GatewayMetricsConfig]
+    # TODO: set this to gateway URL based on testnet/devnet/mainnet env
+    URL = ""
+
 [LogsAndEvents]
     SaveInStorageEnabled = false
     [LogsAndEvents.TxLogsStorage.Cache]
