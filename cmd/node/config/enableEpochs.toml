@@ -258,7 +258,7 @@
     AutoBalanceDataTriesEnableEpoch = 1
 
     # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
-    MigrateDataTrieEnableEpoch = 999999
+    MigrateDataTrieEnableEpoch = 1
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 1
