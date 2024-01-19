@@ -310,7 +310,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 
 func checkHardwareRequirements() error {
 	if !cpuid.CPU.Supports(cpuid.SSE4, cpuid.SSE42) {
-		return fmt.Errorf("CPU Flags: Streaming SIMD Extensions 4 requied")
+		return fmt.Errorf("CPU Flags: Streaming SIMD Extensions 4 required")
 	}
 
 	return nil
