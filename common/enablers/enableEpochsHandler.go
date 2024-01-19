@@ -185,6 +185,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.GovernanceEnableEpoch,
 		},
+		common.GovernanceFixesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.GovernanceFixesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.GovernanceFixesEnableEpoch,
+		},
 		common.DelegationManagerFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DelegationManagerEnableEpoch

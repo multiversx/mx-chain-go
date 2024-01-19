@@ -1,4 +1,4 @@
-//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf  --gogoslick_out=. governance.proto
+//go:generate protoc -I=. -I=$GOPATH/src -I=$GOPATH/src/github.com/gogo/protobuf/protobuf --gogoslick_out=. governance.proto
 package systemSmartContracts
 
 import (
@@ -398,7 +398,8 @@ func (g *governanceContract) vote(args *vmcommon.ContractCallInput) vmcommon.Ret
 		string(args.Arguments[1]),
 		totalVotingPower,
 		totalStake,
-		true)
+		true,
+		nil)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -465,7 +466,8 @@ func (g *governanceContract) delegateVote(args *vmcommon.ContractCallInput) vmco
 		string(args.Arguments[1]),
 		votePower,
 		userStake,
-		false)
+		false,
+		args.CallerAddr)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -524,9 +526,10 @@ func (g *governanceContract) addUserVote(
 	totalVotingPower *big.Int,
 	totalStake *big.Int,
 	direct bool,
+	scAddress []byte,
 ) error {
 	nonce := big.NewInt(0).SetBytes(nonceAsBytes)
-	err := g.updateUserVoteList(address, nonce.Uint64(), direct)
+	err := g.updateUserVoteList(address, nonce.Uint64(), direct, scAddress)
 	if err != nil {
 		return err
 	}
@@ -545,7 +548,7 @@ func (g *governanceContract) addUserVote(
 	return g.saveGeneralProposal(proposal.CommitHash, proposal)
 }
 
-func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, direct bool) error {
+func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, direct bool, scAddress []byte) error {
 	userVoteList, err := g.getUserVotes(address)
 	if err != nil {
 		return err
@@ -557,9 +560,16 @@ func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, di
 			return err
 		}
 	} else {
-		userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
-		if err != nil {
-			return err
+		if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+			userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
+			if err != nil {
+				return err
+			}
+		} else {
+			userVoteList.DelegatedWithAddress, err = addNewNonceV2(userVoteList.DelegatedWithAddress, scAddress, nonce)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -574,6 +584,20 @@ func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {
 	}
 
 	nonceList = append(nonceList, newNonce)
+	return nonceList, nil
+}
+
+func addNewNonceV2(nonceList []*DelegatedWithAddress, newDelegatedAddress []byte, newNonce uint64) ([]*DelegatedWithAddress, error) {
+	for _, delegatedStruct := range nonceList {
+		if newNonce == delegatedStruct.Nonce && bytes.Equal(delegatedStruct.DelegatedAddress, newDelegatedAddress) {
+			return nil, vm.ErrDoubleVote
+		}
+	}
+
+	nonceList = append(nonceList, &DelegatedWithAddress{
+		Nonce:            newNonce,
+		DelegatedAddress: newDelegatedAddress,
+	})
 	return nonceList, nil
 }
 
@@ -1010,7 +1034,7 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 	return validatorData.TotalStakeValue, nil
 }
 
-func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedList) error {
+func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedListV2) error {
 	marshaledData, err := g.marshalizer.Marshal(votedList)
 	if err != nil {
 		return err
@@ -1020,10 +1044,11 @@ func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVot
 	return nil
 }
 
-func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedList, error) {
-	onGoingList := &OngoingVotedList{
-		Direct:    make([]uint64, 0),
-		Delegated: make([]uint64, 0),
+func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedListV2, error) {
+	onGoingList := &OngoingVotedListV2{
+		Direct:               make([]uint64, 0),
+		Delegated:            make([]uint64, 0),
+		DelegatedWithAddress: make([]*DelegatedWithAddress, 0),
 	}
 	marshaledData := g.eei.GetStorage(address)
 	if len(marshaledData) == 0 {

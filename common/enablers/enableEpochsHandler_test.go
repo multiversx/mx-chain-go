@@ -326,6 +326,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.DoubleKeyProtectionEnableEpoch, handler.GetActivationEpoch(common.DoubleKeyProtectionFlag))
 	require.Equal(t, cfg.ESDTEnableEpoch, handler.GetActivationEpoch(common.ESDTFlag))
 	require.Equal(t, cfg.GovernanceEnableEpoch, handler.GetActivationEpoch(common.GovernanceFlag))
+	require.Equal(t, cfg.GovernanceFixesEnableEpoch, handler.GetActivationEpoch(common.GovernanceFixesFlag))
 	require.Equal(t, cfg.DelegationManagerEnableEpoch, handler.GetActivationEpoch(common.DelegationManagerFlag))
 	require.Equal(t, cfg.DelegationSmartContractEnableEpoch, handler.GetActivationEpoch(common.DelegationSmartContractFlag))
 	require.Equal(t, cfg.CorrectLastUnjailedEnableEpoch, handler.GetActivationEpoch(common.CorrectLastUnJailedFlag))

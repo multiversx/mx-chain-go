@@ -64,6 +64,9 @@
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 5
 
+    # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled
+    GovernanceFixesEnableEpoch = 6
+
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
     DelegationManagerEnableEpoch = 1

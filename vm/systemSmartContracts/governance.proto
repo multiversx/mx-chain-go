@@ -52,6 +52,17 @@ message OngoingVotedList {
     repeated uint64 Delegated = 2 [(gogoproto.jsontag) = "Delegated"];
 }
 
+message OngoingVotedListV2 {
+    repeated uint64 Direct = 1 [(gogoproto.jsontag) = "Direct"];
+    repeated uint64 Delegated = 2 [(gogoproto.jsontag) = "Delegated"];
+    repeated DelegatedWithAddress DelegatedWithAddress = 3 [(gogoproto.jsontag) = "DelegatedWithAddress"];
+}
+
+message DelegatedWithAddress {
+    uint64 Nonce = 1;
+    bytes  DelegatedAddress  = 2 [(gogoproto.jsontag) = "DelegatedAddress"];
+}
+
 message DelegatedSCVoteInfo {
     bytes TotalPower = 1 [(gogoproto.jsontag) = "TotalPower", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes UsedPower  = 2 [(gogoproto.jsontag) = "UsedPower", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
