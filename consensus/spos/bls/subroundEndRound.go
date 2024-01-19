@@ -773,9 +773,14 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
+	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		return false
+	}
+
 	sr.mutEquivalentProofsCriticalSection.Lock()
 	defer sr.mutEquivalentProofsCriticalSection.Unlock()
-	hasFinalInfo := sr.worker.HasEquivalentMessage(cnsDta.BlockHeaderHash)
+	hasFinalInfo := sr.worker.HasEquivalentMessage(headerHash)
 
 	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.RoundHandler().Index() || hasFinalInfo
 	if shouldNotCommitBlock {
@@ -798,7 +803,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
+	err = sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
