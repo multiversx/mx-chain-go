@@ -89,6 +89,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if args.GeneralConfig.EpochStartConfig.MinNumConnectedPeersToStart < minNumConnectedPeers {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNotEnoughNumConnectedPeers)
 	}
+	if args.GeneralConfig.EpochStartConfig.NumNodesConfigEpochsToStore < minNumEpochsToStore {
+		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrInvalidNumberOfNodesConfigsEpochsToStore)
+	}
 	if check.IfNil(args.ArgumentsParser) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, epochStart.ErrNilArgumentsParser)
 	}

@@ -70,7 +70,7 @@ func (n *nodesCoordinator) GetValidatorWithPublicKey(_ []byte) (validator nodesC
 }
 
 // LoadState -
-func (n *nodesCoordinator) LoadState(_ []byte) error {
+func (n *nodesCoordinator) LoadState(_ []byte, _ uint32) error {
 	return nil
 }
 

@@ -375,6 +375,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+
+	err = e.saveEpochStartMetaToStaticStorer()
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.GetEpoch(), "nonce", e.epochStartMeta.GetNonce())
 	e.setEpochStartMetrics()
 
@@ -401,6 +407,16 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) saveEpochStartMetaToStaticStorer() error {
+	marshalledHeader, err := e.coreComponentsHolder.InternalMarshalizer().Marshal(e.epochStartMeta)
+	if err != nil {
+		return err
+	}
+
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(e.epochStartMeta.GetEpoch()))...)
+	return e.storageService.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
 }
 
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
@@ -689,6 +705,12 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+
+	err = e.saveMiniblocksToStaticStorer(miniBlocks)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	e.saveSelfShardId()
@@ -734,6 +756,62 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	return parameters, nil
 }
 
+func (e *epochStartBootstrap) saveMiniblocksToStaticStorer(miniBlocks []*block.MiniBlock) error {
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.Type != block.PeerBlock {
+			continue
+		}
+
+		marshalledMiniBlock, err := e.coreComponentsHolder.InternalMarshalizer().Marshal(miniBlock)
+		if err != nil {
+			return err
+		}
+
+		miniBlockHash := e.coreComponentsHolder.Hasher().Compute(string(marshalledMiniBlock))
+		err = e.storageService.Put(dataRetriever.EpochStartStaticUnit, miniBlockHash, marshalledMiniBlock)
+		if err != nil {
+			return err
+		}
+
+		log.Debug("saveMiniblocksToStaticStorer: peer miniblock", "miniBlockHash", miniBlockHash)
+
+		if e.epochStartMeta.GetEpoch() >= e.coreComponentsHolder.EnableEpochsHandler().GetActivationEpoch(common.RefactorPeersMiniBlocksFlag) {
+			err = e.saveValidatorsInfoToStaticStorer(miniBlock)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (e *epochStartBootstrap) saveValidatorsInfoToStaticStorer(miniBlock *block.MiniBlock) error {
+	currentEpochValidatorInfoPool := e.dataPool.CurrentEpochValidatorInfo()
+	if check.IfNil(currentEpochValidatorInfoPool) {
+		return epochStart.ErrNilCurrentEpochValidatorsInfoPool
+	}
+
+	for _, txHash := range miniBlock.TxHashes {
+		validatorInfo, err := currentEpochValidatorInfoPool.GetValidatorInfo(txHash)
+		if err != nil {
+			return err
+		}
+
+		marshalledValidatorInfo, err := e.coreComponentsHolder.InternalMarshalizer().Marshal(validatorInfo)
+		if err != nil {
+			return err
+		}
+
+		err = e.storageService.Put(dataRetriever.EpochStartStaticUnit, txHash, marshalledValidatorInfo)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (e *epochStartBootstrap) saveSelfShardId() {
 	if e.baseData.shardId != core.AllShardId {
 		return
@@ -753,20 +831,28 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
+
+	epochStartStaticStorer, err := e.storageService.GetStorer(dataRetriever.EpochStartStaticUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:            e.dataPool,
-		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:      e.requestHandler,
-		ChanceComputer:      e.rater,
-		GenesisNodesConfig:  e.genesisNodesConfig,
-		NodeShuffler:        e.nodeShuffler,
-		Hasher:              e.coreComponentsHolder.Hasher(),
-		PubKey:              pubKey,
-		ShardIdAsObserver:   shardId,
-		ChanNodeStop:        e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:    e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:       e.prefsConfig.FullArchive,
-		EnableEpochsHandler: e.coreComponentsHolder.EnableEpochsHandler(),
+		DataPool:               e.dataPool,
+		Marshalizer:            e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:         e.requestHandler,
+		ChanceComputer:         e.rater,
+		GenesisNodesConfig:     e.genesisNodesConfig,
+		NodeShuffler:           e.nodeShuffler,
+		Hasher:                 e.coreComponentsHolder.Hasher(),
+		PubKey:                 pubKey,
+		ShardIdAsObserver:      shardId,
+		ChanNodeStop:           e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:       e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:          e.prefsConfig.FullArchive,
+		EnableEpochsHandler:    e.coreComponentsHolder.EnableEpochsHandler(),
+		NumStoredEpochs:        e.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore,
+		EpochStartStaticStorer: epochStartStaticStorer,
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

@@ -140,7 +140,7 @@ func (ncm *NodesCoordinatorStub) SetNodesPerShards(_ map[uint32][]nodesCoordinat
 }
 
 // LoadState -
-func (ncm *NodesCoordinatorStub) LoadState(_ []byte) error {
+func (ncm *NodesCoordinatorStub) LoadState(_ []byte, _ uint32) error {
 	return nil
 }
 

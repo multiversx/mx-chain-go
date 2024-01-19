@@ -29,3 +29,8 @@ func (rm *NodesCoordinatorCacheMock) Get(key []byte) (value interface{}, ok bool
 	}
 	return nil, false
 }
+
+// IsInterfaceNil -
+func (rm *NodesCoordinatorCacheMock) IsInterfaceNil() bool {
+	return rm == nil
+}

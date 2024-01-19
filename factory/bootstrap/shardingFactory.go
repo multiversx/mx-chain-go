@@ -23,6 +23,9 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+const consensusGroupCacheSize = 25000
+const nodesConfigCacheSize = 10
+
 // CreateShardCoordinator is the shard coordinator factory
 func CreateShardCoordinator(
 	nodesConfig sharding.GenesisNodesSetupHandler,
@@ -113,6 +116,8 @@ func CreateNodesCoordinator(
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
+	numStoredEpochs uint32,
+	epochStartStaticStorer storage.Storer,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if check.IfNil(nodeShufflerOut) {
 		return nil, errErd.ErrNilShuffleOutCloser
@@ -161,6 +166,8 @@ func CreateNodesCoordinator(
 		return nil, errWaitingValidators
 	}
 
+	leavingValidators := make(map[uint32][]nodesCoordinator.Validator)
+
 	currentEpoch := startEpoch
 	if bootstrapParameters.NodesConfig() != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig()
@@ -178,6 +185,12 @@ func CreateNodesCoordinator(
 			if err != nil {
 				return nil, err
 			}
+
+			leaving := epochsConfig.LeavingValidators
+			leavingValidators, err = nodesCoordinator.SerializableValidatorsToValidators(leaving)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -186,7 +199,12 @@ func CreateNodesCoordinator(
 		return nil, err
 	}
 
-	consensusGroupCache, err := cache.NewLRUCache(25000)
+	consensusGroupCache, err := cache.NewLRUCache(consensusGroupCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	nodesConfigCache, err := cache.NewLRUCache(nodesConfigCacheSize)
 	if err != nil {
 		return nil, err
 	}
@@ -208,6 +226,7 @@ func CreateNodesCoordinator(
 		NbShards:                 nbShards,
 		EligibleNodes:            eligibleValidators,
 		WaitingNodes:             waitingValidators,
+		LeavingNodes:             leavingValidators,
 		SelfPublicKey:            pubKeyBytes,
 		ConsensusGroupCache:      consensusGroupCache,
 		ShuffledOutHandler:       shuffledOutHandler,
@@ -218,6 +237,9 @@ func CreateNodesCoordinator(
 		IsFullArchive:            prefsConfig.FullArchive,
 		EnableEpochsHandler:      enableEpochsHandler,
 		ValidatorInfoCacher:      validatorInfoCacher,
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         nodesConfigCache,
+		EpochStartStaticStorer:   epochStartStaticStorer,
 		GenesisNodesSetupHandler: nodesConfig,
 	}
 

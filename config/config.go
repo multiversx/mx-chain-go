@@ -94,6 +94,7 @@ type EpochStartConfig struct {
 	MaxShuffledOutRestartThreshold    float64
 	MinNumConnectedPeersToStart       int
 	MinNumOfPeersToConsiderBlockValid int
+	NumNodesConfigEpochsToStore       uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -156,8 +157,9 @@ type Config struct {
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
 
-	BootstrapStorage StorageConfig
-	MetaBlockStorage StorageConfig
+	BootstrapStorage        StorageConfig
+	MetaBlockStorage        StorageConfig
+	EpochStartStaticStorage StorageConfig
 
 	AccountsTrieStorage      StorageConfig
 	PeerAccountsTrieStorage  StorageConfig

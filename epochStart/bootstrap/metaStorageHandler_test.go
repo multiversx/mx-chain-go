@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -248,6 +249,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 	components := &ComponentsNeededForBootstrap{
 		EpochStartMetaBlock: &block.MetaBlock{Nonce: 3},
 		PreviousEpochStart:  &block.MetaBlock{Nonce: 2},
+		NodesConfig:         &nodesCoordinator.NodesCoordinatorRegistry{},
 	}
 
 	err := mtStrHandler.SaveDataToStorage(components)

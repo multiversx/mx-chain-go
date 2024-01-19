@@ -46,7 +46,7 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		return err
 	}
 
-	ihnc.removeOlderEpochs(epoch, nodesCoordinatorStoredEpochs)
+	ihnc.removeOlderEpochs(epoch, ihnc.numStoredEpochs)
 
 	return nil
 }
@@ -54,7 +54,7 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 // IsEpochInConfig checks whether the specified epoch is already in map
 func (ihnc *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
 	ihnc.mutNodesConfig.RLock()
-	_, exists := ihnc.nodesConfig[epoch]
+	_, exists := ihnc.getNodesConfig(epoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	return exists

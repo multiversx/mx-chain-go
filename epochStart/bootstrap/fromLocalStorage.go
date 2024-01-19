@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -264,15 +263,8 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
-	d, err := storer.SearchFirst(ncInternalkey)
-	if err != nil {
-		log.Debug("getLastBootstrapData", "key", ncInternalkey, "error", err)
-		return nil, nil, err
-	}
-
-	config := &nodesCoordinator.NodesCoordinatorRegistry{}
-	err = json.Unmarshal(d, config)
+	numEpochsToSave := e.generalConfig.EpochStartConfig.NumNodesConfigEpochsToStore
+	config, err := nodesCoordinator.GetNodesCoordinatorRegistry(bootstrapData.NodesCoordinatorConfigKey, storer, bootstrapData.LastHeader.GetEpoch(), numEpochsToSave)
 	if err != nil {
 		return nil, nil, err
 	}

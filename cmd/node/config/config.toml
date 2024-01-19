@@ -183,6 +183,19 @@
         MaxBatchSize = 100
         MaxOpenFiles = 10
 
+[EpochStartStaticStorage]
+    [EpochStartStaticStorage.Cache]
+        Name = "EpochStartStaticStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 104857600 #100MB
+    [EpochStartStaticStorage.DB]
+        FilePath = "EpochStartStaticData"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [TxStorage]
     [TxStorage.Cache]
         Name = "TxStorage"
@@ -626,6 +639,9 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
+
+    # NumNodesConfigEpochsToStore defines the number of epochs nodes config to keep in storage
+    NumNodesConfigEpochsToStore = 4
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

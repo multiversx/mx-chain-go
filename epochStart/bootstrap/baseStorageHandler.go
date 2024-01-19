@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -11,11 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 type miniBlocksInfo struct {
@@ -57,33 +54,6 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 	}
 
 	return sliceToRet, nil
-}
-
-func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
-	metaBlock data.HeaderHandler,
-	nodesConfig *nodesCoordinator.NodesCoordinatorRegistry,
-) ([]byte, error) {
-	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
-
-	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
-	registryBytes, err := json.Marshal(nodesConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	bootstrapUnit, err := bsh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bootstrapUnit.Put(key, registryBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("saving nodes coordinator config", "key", key)
-
-	return metaBlock.GetPrevRandSeed(), nil
 }
 
 func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler) ([]byte, error) {

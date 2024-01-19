@@ -97,6 +97,9 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -194,6 +197,8 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -270,6 +275,8 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -346,6 +353,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -401,6 +411,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -470,6 +483,9 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -556,10 +572,14 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
-	nc, _ := NewIndexHashedNodesCoordinator(arguments)
+	nc, err := NewIndexHashedNodesCoordinator(arguments)
+	assert.Nil(t, err)
 	ihnc, err := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
 	assert.Nil(t, err)
 
@@ -863,6 +883,8 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 		IsFullArchive:            false,
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)

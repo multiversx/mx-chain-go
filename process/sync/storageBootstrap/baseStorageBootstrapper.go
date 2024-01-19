@@ -395,15 +395,16 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}
 
-	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey)
-	if err != nil {
-		log.Debug("cannot load nodes coordinator state", "error", err.Error())
-		return err
-	}
-
 	err = st.epochStartTrigger.LoadState(bootInfos[0].EpochStartTriggerConfigKey)
 	if err != nil {
 		log.Debug("cannot load epoch start trigger state", "error", err.Error())
+		return err
+	}
+
+	lastEpoch := st.epochStartTrigger.MetaEpoch()
+	err = st.nodesCoordinator.LoadState(bootInfos[0].NodesCoordinatorConfigKey, lastEpoch)
+	if err != nil {
+		log.Debug("cannot load nodes coordinator state", "error", err.Error())
 		return err
 	}
 

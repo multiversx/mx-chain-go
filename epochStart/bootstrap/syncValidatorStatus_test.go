@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -301,12 +302,14 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:        &shardingMocks.NodeShufflerMock{},
-		PubKey:              []byte("public key"),
-		ShardIdAsObserver:   0,
-		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:       false,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodeShuffler:           &shardingMocks.NodeShufflerMock{},
+		PubKey:                 []byte("public key"),
+		ShardIdAsObserver:      0,
+		ChanNodeStop:           endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:       &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:          false,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NumStoredEpochs:        4,
+		EpochStartStaticStorer: &storageMocks.StorerStub{},
 	}
 }

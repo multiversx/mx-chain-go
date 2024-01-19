@@ -1193,7 +1193,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	marshalizedHeader, err := mp.marshalizer.Marshal(header)
+	marshalledHeader, err := mp.marshalizer.Marshal(header)
 	if err != nil {
 		return err
 	}
@@ -1207,9 +1207,9 @@ func (mp *metaProcessor) CommitBlock(
 	// must be called before commitEpochStart
 	rewardsTxs := mp.getRewardsTxs(header, body)
 
-	mp.commitEpochStart(header, body)
-	headerHash := mp.hasher.Compute(string(marshalizedHeader))
-	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
+	mp.commitEpochStart(header, marshalledHeader, body)
+	headerHash := mp.hasher.Compute(string(marshalledHeader))
+	mp.saveMetaHeader(header, headerHash, marshalledHeader)
 	mp.saveBody(body, header, headerHash)
 
 	err = mp.commitAll(headerHandler)
@@ -1561,8 +1561,9 @@ func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body
 	return rewardsTx
 }
 
-func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
+func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, marshalledHeader []byte, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
+		mp.saveEpochStartInfoToStaticStorage(header, marshalledHeader, body)
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
@@ -1572,6 +1573,38 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
 			mp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
+	}
+}
+
+func (mp *metaProcessor) saveEpochStartInfoToStaticStorage(header data.HeaderHandler, marshalledHeader []byte, body *block.Body) {
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(header.GetEpoch()))...)
+	err := mp.store.Put(dataRetriever.EpochStartStaticUnit, epochStartBootstrapKey, marshalledHeader)
+	if err != nil {
+		log.Warn("saveEpochStartInfoToStaticStorage.Put header", "error", err.Error())
+		return
+	}
+
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", header.GetEpoch())
+
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		if body.MiniBlocks[i].Type != block.PeerBlock {
+			continue
+		}
+
+		marshalledMiniBlock, err := mp.marshalizer.Marshal(body.MiniBlocks[i])
+		if err != nil {
+			log.Warn("saveEpochStartInfoToStaticStorage.Marshal", "error", err.Error())
+			continue
+		}
+
+		miniBlockHash := mp.hasher.Compute(string(marshalledMiniBlock))
+		err = mp.store.Put(dataRetriever.EpochStartStaticUnit, miniBlockHash, marshalledMiniBlock)
+		if err != nil {
+			log.Warn("saveEpochStartInfoToStaticStorage.Put miniblock", "error", err.Error())
+			continue
+		}
+
+		log.Debug("saveEpochStartInfoToStaticStorage: peer miniblock", "miniBlockHash", miniBlockHash)
 	}
 }
 

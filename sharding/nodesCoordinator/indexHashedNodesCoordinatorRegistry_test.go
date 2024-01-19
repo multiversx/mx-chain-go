@@ -2,10 +2,21 @@ package nodesCoordinator
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
+	"github.com/multiversx/mx-chain-go/sharding/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,7 +94,7 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 	assert.Nil(t, err)
 
 	delete(nodesCoordinator.nodesConfig, 0)
-	err = nodesCoordinator.LoadState(key)
+	err = nodesCoordinator.LoadState(key, 0)
 	assert.Nil(t, err)
 
 	actualConfig := nodesCoordinator.nodesConfig[0]
@@ -151,7 +162,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 	nc := nodesCoordinator.nodesConfig
 
 	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.EpochsConfig))
+	require.Equal(t, numStoredEpochs, len(ncr.EpochsConfig))
 
 	for epochStr := range ncr.EpochsConfig {
 		epoch, err := strconv.Atoi(epochStr)
@@ -214,5 +225,404 @@ func TestIndexHashedNodesCoordinator_serializableValidatorArrayToValidatorArray(
 		valArray, err := serializableValidatorArrayToValidatorArray(sValidators)
 		assert.Nil(t, err)
 		assert.True(t, sameValidators(validatorsArray, valArray))
+	}
+}
+
+func TestIndexHashedNodesCoordinator_GetNodesCoordinatorRegistry(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil storer, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), nil, 1, numStoredEpochs)
+		require.Nil(t, nodesConfig)
+		require.Equal(t, ErrNilBootStorer, err)
+	})
+
+	t.Run("getting from old key, should work", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"2": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+			},
+			CurrentEpoch: 10,
+		}
+
+		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
+
+		storer := &mock.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				switch {
+				case bytes.Equal(epoch10Key, key):
+					return nil, errors.New("first get error")
+				default:
+					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+					return nodesConfigRegistryBytes, nil
+				}
+			},
+		}
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numStoredEpochs)
+		require.Nil(t, err)
+		require.Equal(t, nodesConfigRegistry, nodesConfig)
+	})
+
+	t.Run("getting from old key, should also save configuration with new keys", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {{PubKey: []byte("pubKey1")}},
+						"1": {{PubKey: []byte("pubKey1")}},
+						"2": {{PubKey: []byte("pubKey1")}},
+					},
+				},
+				"9": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {{PubKey: []byte("pubKey2")}},
+						"1": {{PubKey: []byte("pubKey2")}},
+						"2": {{PubKey: []byte("pubKey2")}},
+					},
+				},
+				"8": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {{PubKey: []byte("pubKey3")}},
+						"1": {{PubKey: []byte("pubKey3")}},
+						"2": {{PubKey: []byte("pubKey3")}},
+					},
+				},
+			},
+			CurrentEpoch: 10,
+		}
+
+		epoch10Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(10))...)
+		epoch9Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(9))...)
+		epoch8Key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(fmt.Sprint(8))...)
+
+		numPutCalls := uint32(0)
+		storer := &mock.StorerStub{
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				switch {
+				case bytes.Equal(epoch10Key, key):
+					return nil, errors.New("first get error")
+				default:
+					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+					return nodesConfigRegistryBytes, nil
+				}
+			},
+			PutCalled: func(key, data []byte) error {
+				switch {
+				case bytes.Equal(epoch10Key, key):
+					numPutCalls++
+					return nil
+				case bytes.Equal(epoch9Key, key):
+					numPutCalls++
+					return nil
+				case bytes.Equal(epoch8Key, key):
+					numPutCalls++
+					return nil
+				default:
+					return errors.New("put error")
+				}
+			},
+		}
+
+		numOfEpochsToKeep := uint32(3)
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numOfEpochsToKeep)
+		require.Nil(t, err)
+		require.Equal(t, nodesConfigRegistry, nodesConfig)
+		require.Equal(t, numOfEpochsToKeep, numPutCalls)
+	})
+
+	t.Run("getting each key separatelly by epoch, should work", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+						"2": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+			},
+			CurrentEpoch: 10,
+		}
+
+		storer := &mock.StorerStub{
+			GetCalled: func(key []byte) (b []byte, err error) {
+				return nil, errors.New("get failed")
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				switch {
+				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):
+					nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+					return nodesConfigRegistryBytes, nil
+				default:
+					return nil, errors.New("invalid key")
+				}
+			},
+		}
+
+		nodesConfig, err := GetNodesCoordinatorRegistry([]byte("key"), storer, 10, numStoredEpochs)
+		require.Nil(t, err)
+		require.Equal(t, nodesConfigRegistry, nodesConfig)
+	})
+}
+
+func TestIndexHashedNodesCoordinator_SaveNodesCoordinatorRegistry(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil nodes config, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		err := SaveNodesCoordinatorRegistry(nil, &mock.StorerStub{})
+		require.Equal(t, ErrNilNodesCoordinatorRegistry, err)
+	})
+
+	t.Run("nil storer, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			CurrentEpoch: 10,
+		}
+
+		err := SaveNodesCoordinatorRegistry(nodesConfigRegistry, nil)
+		require.Equal(t, ErrNilBootStorer, err)
+	})
+
+	t.Run("failed to put into storer", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			CurrentEpoch: 10,
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"val1": {
+							{
+								PubKey: []byte("pubKey1"),
+							},
+						},
+					},
+				},
+			},
+		}
+
+		expectedErr := errors.New("expected error")
+		storer := &mock.StorerStub{
+			PutCalled: func(key, data []byte) error {
+				return expectedErr
+			},
+		}
+
+		err := SaveNodesCoordinatorRegistry(nodesConfigRegistry, storer)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		nodesConfigRegistry := &NodesCoordinatorRegistry{
+			CurrentEpoch: 10,
+			EpochsConfig: map[string]*EpochValidators{
+				"10": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {{PubKey: []byte("pubKey1")}},
+						"1": {{PubKey: []byte("pubKey1")}},
+						"2": {{PubKey: []byte("pubKey1")}},
+					},
+				},
+				"9": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {{PubKey: []byte("pubKey2")}},
+						"1": {{PubKey: []byte("pubKey2")}},
+						"2": {{PubKey: []byte("pubKey2")}},
+					},
+				},
+				"8": {
+					EligibleValidators: map[string][]*SerializableValidator{
+						"0": {{PubKey: []byte("pubKey3")}},
+						"1": {{PubKey: []byte("pubKey3")}},
+						"2": {{PubKey: []byte("pubKey3")}},
+					},
+				},
+			},
+		}
+
+		putCalls := 0
+		storer := &mock.StorerStub{
+			PutCalled: func(key, data []byte) error {
+				switch {
+				case strings.Contains(string(key), common.NodesCoordinatorRegistryKeyPrefix):
+					putCalls++
+					return nil
+				default:
+					return errors.New("invalid key")
+				}
+			},
+		}
+
+		err := SaveNodesCoordinatorRegistry(nodesConfigRegistry, storer)
+		require.Nil(t, err)
+		require.Equal(t, 3, putCalls)
+	})
+}
+
+func TestIndexHashedNodesCoordinator_SaveLoadNodesCoordinatorRegistry(t *testing.T) {
+	t.Parallel()
+
+	epochKey := []byte(fmt.Sprint(1))
+
+	args := createArguments()
+	args.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+	args.BootStorer = genericMocks.NewStorerMockWithEpoch(1)
+	ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+	eligibleMap := createDummyNodesMap(10, 3, "eligible")
+	waitingMap := createDummyNodesMap(10, 3, "waiting")
+	leavingMap := createDummyNodesMap(10, 3, "leaving")
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 1)
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 2)
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 3)
+	_ = ihnc.setNodesPerShards(eligibleMap, waitingMap, leavingMap, 4)
+
+	expectedNodesConfig, ok := ihnc.nodesConfig[1]
+	require.True(t, ok)
+	require.NotNil(t, expectedNodesConfig)
+
+	err := ihnc.saveState(epochKey)
+	assert.Nil(t, err)
+
+	delete(ihnc.nodesConfig, 1)
+	err = ihnc.LoadState(epochKey, 1)
+	assert.Nil(t, err)
+
+	actualConfig, ok := ihnc.nodesConfig[1]
+	require.True(t, ok)
+
+	assert.Equal(t, expectedNodesConfig.shardID, expectedNodesConfig.shardID)
+	assert.Equal(t, expectedNodesConfig.nbShards, expectedNodesConfig.nbShards)
+	assert.True(t, sameValidatorsMaps(expectedNodesConfig.eligibleMap, actualConfig.eligibleMap))
+	assert.True(t, sameValidatorsMaps(expectedNodesConfig.waitingMap, actualConfig.waitingMap))
+	assert.True(t, sameValidatorsMaps(expectedNodesConfig.leavingMap, actualConfig.leavingMap))
+}
+
+func createEpochStartStaticStorerMock(epoch uint32) storage.Storer {
+	return &mock.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			var data []byte
+
+			switch string(key) {
+			case common.EpochStartStaticBlockKeyPrefix + fmt.Sprint(epoch):
+				data, _ = json.Marshal(&block.MetaBlock{
+					Epoch: epoch,
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHeaderHash1"),
+							Type: block.PeerBlock,
+						},
+						{
+							Hash: []byte("mbHeaderHash2"),
+							Type: block.InvalidBlock,
+						},
+					},
+				})
+			case "mbHeaderHash1":
+				data, _ = json.Marshal(&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+						[]byte("txHash5"),
+					},
+				})
+			case "mbHeaderHash2":
+				data, _ = json.Marshal(&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("txHash3"),
+					},
+					Type: block.TxBlock,
+				})
+			case "txHash1":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey1"),
+					ShardId:    0,
+					List:       "eligible",
+					Index:      0,
+					TempRating: 10,
+				})
+			case "txHash2":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey2"),
+					ShardId:    1,
+					List:       "eligible",
+					Index:      1,
+					TempRating: 11,
+				})
+			case "txHash3":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey3"),
+					ShardId:    core.MetachainShardId,
+					List:       "eligible",
+					Index:      2,
+					TempRating: 12,
+				})
+			case "txHash4":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey4"),
+					ShardId:    0,
+					List:       "eligible",
+					Index:      3,
+					TempRating: 13,
+				})
+			case "txHash5":
+				data, _ = json.Marshal(&state.ShardValidatorInfo{
+					PublicKey:  []byte("pubKey5"),
+					ShardId:    1,
+					List:       "eligible",
+					Index:      4,
+					TempRating: 14,
+				})
+			}
+
+			return data, nil
+		},
 	}
 }

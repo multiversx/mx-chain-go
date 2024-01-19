@@ -22,6 +22,7 @@ type ArgNodesCoordinator struct {
 	NbShards                 uint32
 	EligibleNodes            map[uint32][]Validator
 	WaitingNodes             map[uint32][]Validator
+	LeavingNodes             map[uint32][]Validator
 	SelfPublicKey            []byte
 	Epoch                    uint32
 	StartEpoch               uint32
@@ -32,5 +33,8 @@ type ArgNodesCoordinator struct {
 	IsFullArchive            bool
 	EnableEpochsHandler      common.EnableEpochsHandler
 	ValidatorInfoCacher      epochStart.ValidatorInfoCacher
+	NumStoredEpochs          uint32
+	NodesConfigCache         Cacher
+	EpochStartStaticStorer   storage.Storer
 	GenesisNodesSetupHandler GenesisNodesSetupHandler
 }

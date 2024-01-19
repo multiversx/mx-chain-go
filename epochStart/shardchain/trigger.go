@@ -22,9 +22,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -85,6 +86,7 @@ type trigger struct {
 	metaHdrStorage                storage.Storer
 	triggerStorage                storage.Storer
 	metaNonceHdrStorage           storage.Storer
+	epochStartStaticStorage       storage.Storer
 
 	uint64Converter typeConverters.Uint64ByteSliceConverter
 
@@ -221,6 +223,11 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
+	epochStartStaticStorage, err := args.Storage.GetStorer(dataRetriever.EpochStartStaticUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 
 	t := &trigger{
@@ -260,6 +267,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
+		epochStartStaticStorage:       epochStartStaticStorage,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -982,6 +990,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.epochStartShardHeader = shardHdr
 	finishedStartOfEpochMetaHdrs := t.getAllFinishedStartOfEpochMetaHdrs()
 
+	err := t.saveEpochStartInfoToStaticStorer()
+	if err != nil {
+		log.Warn("SetProcessed: failed to save epoch start info to static storage", "error", err)
+	}
+
 	t.epochStartNotifier.NotifyAll(shardHdr)
 
 	t.mapHashHdr = make(map[string]data.HeaderHandler)
@@ -1082,6 +1095,124 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	t.isEpochStart = true
 	t.newEpochHdrReceived = true
 	log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
+
+	return nil
+}
+
+// this has to be run under trigger mutex
+func (t *trigger) saveEpochStartInfoToStaticStorer() error {
+	epoch := t.metaEpoch
+
+	epochStartMetablock, err := t.saveEpochStartBlockToStaticStorer(epoch)
+	if err != nil {
+		log.Debug("saveEpochStartBlockToStaticStorage failed", "error", err.Error())
+		return err
+	}
+
+	err = t.savePeerMiniBlocksToStaticStorer(epochStartMetablock)
+	if err != nil {
+		log.Debug("savePeerMiniBlocksToStaticStorer failed", "error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+func (t *trigger) saveEpochStartBlockToStaticStorer(epoch uint32) (data.HeaderHandler, error) {
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	marshalledMetaBlock, err := t.metaHdrStorage.Get([]byte(epochStartIdentifier))
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartMetablock := &block.MetaBlock{}
+	err = t.marshaller.Unmarshal(epochStartMetablock, marshalledMetaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
+	err = t.epochStartStaticStorage.Put(epochStartBootstrapKey, marshalledMetaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("saveEpochStartInfoToStaticStorage: put metaBlock into epochStartStaticStorage", "epoch", epoch)
+
+	return epochStartMetablock, nil
+}
+
+func (t *trigger) fetchAndSavePeerMiniBlockToStaticStorer(
+	mbHeader data.MiniBlockHeaderHandler,
+) (*block.MiniBlock, error) {
+	miniBlockHash := mbHeader.GetHash()
+	value, ok := t.miniBlocksPool.Get(miniBlockHash)
+	if !ok {
+		log.Warn("failed to get miniblock from pool", "miniblock hash", miniBlockHash)
+		return nil, fmt.Errorf("failed to get miniblock from cache")
+	}
+
+	miniBlock, ok := value.(*block.MiniBlock)
+	if !ok {
+		return nil, errors.ErrWrongTypeAssertion
+	}
+
+	marshalledMiniBlock, err := t.marshaller.Marshal(miniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	err = t.epochStartStaticStorage.Put(miniBlockHash, marshalledMiniBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug("saveEpochStartInfoToStaticStorage: put miniBlock into epochStartStaticStorage", "miniBlockHash", miniBlockHash)
+
+	return miniBlock, nil
+}
+
+func (t *trigger) fetchAndSaveValidatorInfoToStaticStorer(validatorInfoHash []byte) error {
+	validatorInfo, err := t.currentEpochValidatorInfoPool.GetValidatorInfo(validatorInfoHash)
+	if err != nil {
+		return err
+	}
+
+	validatorInfoMarshalled, err := t.marshaller.Marshal(validatorInfo)
+	if err != nil {
+		return err
+	}
+
+	err = t.epochStartStaticStorage.Put(validatorInfoHash, validatorInfoMarshalled)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("saveEpochStartInfoToStaticStorage: put validatorInfo into epochStartStaticStorage", "validatorInfo hash", validatorInfoHash)
+
+	return nil
+}
+
+func (t *trigger) savePeerMiniBlocksToStaticStorer(header data.HeaderHandler) error {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() != int32(block.PeerBlock) {
+			continue
+		}
+
+		miniBlock, err := t.fetchAndSavePeerMiniBlockToStaticStorer(miniBlockHeader)
+		if err != nil {
+			return err
+		}
+
+		if header.GetEpoch() >= t.enableEpochsHandler.GetActivationEpoch(common.RefactorPeersMiniBlocksFlag) {
+			for _, txHash := range miniBlock.TxHashes {
+				err := t.fetchAndSaveValidatorInfoToStaticStorer(txHash)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
 
 	return nil
 }

@@ -23,6 +23,7 @@ import (
 )
 
 const consensusGroupCacheSize = 50
+const nodesConfigCacheSize = 10
 
 type syncValidatorStatus struct {
 	miniBlocksSyncer    epochStart.PendingMiniBlocksSyncHandler
@@ -38,19 +39,21 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool            dataRetriever.PoolsHolder
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	RequestHandler      process.RequestHandler
-	ChanceComputer      nodesCoordinator.ChanceComputer
-	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
-	NodeShuffler        nodesCoordinator.NodesShuffler
-	PubKey              []byte
-	ShardIdAsObserver   uint32
-	ChanNodeStop        chan endProcess.ArgEndProcess
-	NodeTypeProvider    NodeTypeProviderHandler
-	IsFullArchive       bool
-	EnableEpochsHandler common.EnableEpochsHandler
+	DataPool               dataRetriever.PoolsHolder
+	Marshalizer            marshal.Marshalizer
+	Hasher                 hashing.Hasher
+	RequestHandler         process.RequestHandler
+	ChanceComputer         nodesCoordinator.ChanceComputer
+	GenesisNodesConfig     sharding.GenesisNodesSetupHandler
+	NodeShuffler           nodesCoordinator.NodesShuffler
+	PubKey                 []byte
+	ShardIdAsObserver      uint32
+	ChanNodeStop           chan endProcess.ArgEndProcess
+	NodeTypeProvider       NodeTypeProviderHandler
+	IsFullArchive          bool
+	EnableEpochsHandler    common.EnableEpochsHandler
+	NumStoredEpochs        uint32
+	EpochStartStaticStorer storage.Storer
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -108,6 +111,11 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		return nil, err
 	}
 
+	nodesConfigCache, err := cache.NewLRUCache(nodesConfigCacheSize)
+	if err != nil {
+		return nil, err
+	}
+
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
@@ -122,6 +130,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		NbShards:                 args.GenesisNodesConfig.NumberOfShards(),
 		EligibleNodes:            eligibleValidators,
 		WaitingNodes:             waitingValidators,
+		LeavingNodes:             nil, // no leaving nodes at genesis
 		SelfPublicKey:            args.PubKey,
 		ConsensusGroupCache:      consensusGroupCache,
 		ShuffledOutHandler:       disabled.NewShuffledOutHandler(),
@@ -130,6 +139,9 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		IsFullArchive:            args.IsFullArchive,
 		EnableEpochsHandler:      args.EnableEpochsHandler,
 		ValidatorInfoCacher:      s.dataPool.CurrentEpochValidatorInfo(),
+		NumStoredEpochs:          args.NumStoredEpochs,
+		NodesConfigCache:         nodesConfigCache,
+		EpochStartStaticStorer:   args.EpochStartStaticStorer,
 		GenesisNodesSetupHandler: s.genesisNodesConfig,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)

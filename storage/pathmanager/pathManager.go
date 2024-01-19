@@ -2,6 +2,7 @@ package pathmanager
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/multiversx/mx-chain-go/storage"
@@ -61,6 +62,17 @@ func (pm *PathManager) PathForStatic(shardId string, identifier string) string {
 	path := pm.staticPathTemplate
 	path = strings.Replace(path, storage.PathShardPlaceholder, shardId, 1)
 	path = strings.Replace(path, storage.PathIdentifierPlaceholder, identifier, 1)
+
+	return path
+}
+
+// PathForStaticCrossData will return the path for a static storer
+func (pm *PathManager) PathForStaticCrossData(identifier string) string {
+	path := filepath.Join(
+		pm.databasePath,
+		storage.DefaultStaticDbString,
+		identifier,
+	)
 
 	return path
 }

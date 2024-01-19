@@ -95,6 +95,7 @@ type StorerWithPutInEpoch interface {
 type PathManagerHandler interface {
 	PathForEpoch(shardId string, epoch uint32, identifier string) string
 	PathForStatic(shardId string, identifier string) string
+	PathForStaticCrossData(identifier string) string
 	DatabasePath() string
 	IsInterfaceNil() bool
 }

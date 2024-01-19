@@ -202,6 +202,7 @@ func GetEpochStartConfig() config.EpochStartConfig {
 		MinShuffledOutRestartThreshold:    0.1,
 		MinNumConnectedPeersToStart:       2,
 		MinNumOfPeersToConsiderBlockValid: 2,
+		NumNodesConfigEpochsToStore:       4,
 	}
 }
 

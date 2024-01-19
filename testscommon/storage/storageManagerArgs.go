@@ -4,9 +4,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -14,7 +14,7 @@ import (
 func GetStorageManagerArgs() trie.NewTrieStorageManagerArgs {
 	return trie.NewTrieStorageManagerArgs{
 		MainStorer:  testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer: &mock.MarshalizerMock{},
+		Marshalizer: &marshallerMock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 		GeneralConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,

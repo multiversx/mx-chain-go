@@ -35,6 +35,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const numStoredEpochs = 4
+
 func createDummyNodesList(nbNodes uint32, suffix string) []Validator {
 	list := make([]Validator, 0)
 	hasher := sha256.NewSha256()
@@ -86,6 +88,7 @@ func createArguments() ArgNodesCoordinator {
 	nbShards := uint32(1)
 	eligibleMap := createDummyNodesMap(10, nbShards, "eligible")
 	waitingMap := createDummyNodesMap(3, nbShards, "waiting")
+	leavingMap := createDummyNodesMap(1, nbShards, "leaving")
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           10,
 		NodesMeta:            10,
@@ -111,6 +114,7 @@ func createArguments() ArgNodesCoordinator {
 		NbShards:                nbShards,
 		EligibleNodes:           eligibleMap,
 		WaitingNodes:            waitingMap,
+		LeavingNodes:            leavingMap,
 		SelfPublicKey:           []byte("test"),
 		ConsensusGroupCache:     &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
@@ -121,6 +125,9 @@ func createArguments() ArgNodesCoordinator {
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	return arguments
@@ -210,6 +217,33 @@ func TestNewIndexHashedNodesCoordinator_NilEnableEpochsHandlerShouldErr(t *testi
 	require.Nil(t, ihnc)
 }
 
+func TestNewIndexHashedNodesCoordinator_InvalidNumStoredEpochsShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.NumStoredEpochs = 0
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrInvalidNumberOfStoredEpochs, err)
+	require.Nil(t, ihnc)
+}
+
+func TestNewIndexHashedNodesCoordinator_NilNodesConfigCacherShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.NodesConfigCache = nil
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrNilNodesConfigCacher, err)
+	require.Nil(t, ihnc)
+}
+
+func TestNewIndexHashedNodesCoordinator_NilEpochStartStaticStorerShouldErr(t *testing.T) {
+	arguments := createArguments()
+	arguments.EpochStartStaticStorer = nil
+	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+
+	require.Equal(t, ErrNilEpochStartStaticStorer, err)
+	require.Nil(t, ihnc)
+}
+
 func TestNewIndexHashedNodesCoordinator_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
 	arguments := createArguments()
 	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
@@ -264,6 +298,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 
 	eligibleMap := createDummyNodesMap(10, 3, "eligible")
 	waitingMap := createDummyNodesMap(3, 3, "waiting")
+	leavingMap := createDummyNodesMap(1, 3, "leaving")
 
 	shufflerArgs := &NodesShufflerArgs{
 		NodesShard:           10,
@@ -291,6 +326,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		NbShards:                 1,
 		EligibleNodes:            eligibleMap,
 		WaitingNodes:             waitingMap,
+		LeavingNodes:             leavingMap,
 		SelfPublicKey:            []byte("key"),
 		ConsensusGroupCache:      &mock.NodesCoordinatorCacheMock{},
 		ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
@@ -298,6 +334,9 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -306,6 +345,12 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 
 	readEligible := ihnc.nodesConfig[arguments.Epoch].eligibleMap[0]
 	require.Equal(t, eligibleMap[0], readEligible)
+
+	readWaiting := ihnc.nodesConfig[arguments.Epoch].waitingMap[0]
+	require.Equal(t, waitingMap[0], readWaiting)
+
+	readLeaving := ihnc.nodesConfig[arguments.Epoch].leavingMap[0]
+	require.Equal(t, leavingMap[0], readLeaving)
 }
 
 //------- ComputeValidatorsGroup
@@ -359,6 +404,9 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -434,6 +482,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -495,6 +546,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -584,6 +638,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -656,6 +713,9 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -721,6 +781,9 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -795,6 +858,9 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -846,6 +912,9 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -987,6 +1056,9 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -1072,6 +1144,9 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -1152,6 +1227,9 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -1514,6 +1592,9 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 			IsRefactorPeersMiniBlocksFlagEnabledField: true,
 		},
 		ValidatorInfoCacher:      dataPool.NewCurrentEpochValidatorInfoPool(),
+		NumStoredEpochs:          numStoredEpochs,
+		NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+		EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 	}
 
@@ -1738,6 +1819,23 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 
 	arguments := createArguments()
 	arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           2,
+		NodesMeta:            1,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+	}
+	nodesShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	arguments.Shuffler = nodesShuffler
+
+	arguments.EpochStartStaticStorer = createEpochStartStaticStorerMock(0)
+
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
@@ -1783,6 +1881,16 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 
 	allNodesList := make([]string, 0)
 	for _, nodesList := range nodesEpoch1 {
+		for _, nodeKey := range nodesList {
+			allNodesList = append(allNodesList, string(nodeKey))
+		}
+	}
+
+	nodesEpoch0, err := ihnc.GetAllEligibleValidatorsPublicKeys(0)
+	require.Nil(t, err)
+
+	// add also epoch0 into all nodes list since we are getting also from storage
+	for _, nodesList := range nodesEpoch0 {
 		for _, nodeKey := range nodesList {
 			allNodesList = append(allNodesList, string(nodeKey))
 		}
@@ -2510,6 +2618,9 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 				CurrentEpoch: 1,
 			},
 			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+			NumStoredEpochs:          numStoredEpochs,
+			NodesConfigCache:         &mock.NodesCoordinatorCacheMock{},
+			EpochStartStaticStorer:   genericMocks.NewStorerMock(),
 			GenesisNodesSetupHandler: &mock.NodesSetupMock{},
 		}
 
@@ -2577,6 +2688,9 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			NumStoredEpochs:         numStoredEpochs,
+			NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+			EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 			GenesisNodesSetupHandler: &mock.NodesSetupMock{
 				MinShardHysteresisNodesCalled: func() uint32 {
 					return 0
@@ -2661,6 +2775,9 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			EnableEpochsHandler:     &mock.EnableEpochsHandlerMock{},
 			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			NumStoredEpochs:         numStoredEpochs,
+			NodesConfigCache:        &mock.NodesCoordinatorCacheMock{},
+			EpochStartStaticStorer:  genericMocks.NewStorerMock(),
 			GenesisNodesSetupHandler: &mock.NodesSetupMock{
 				MinShardHysteresisNodesCalled: func() uint32 {
 					return 2
@@ -2712,5 +2829,148 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 		epochsLeft, err = ihnc.GetWaitingEpochsLeftForPublicKey([]byte("pk4_meta"))
 		require.NoError(t, err)
 		require.Equal(t, uint32(3), epochsLeft)
+	})
+}
+
+func TestIndexHashedNodesCoordinator_GetNodesConfig(t *testing.T) {
+	t.Parallel()
+
+	t.Run("will find in nodesConfig", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArguments()
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(0)
+		require.True(t, ok)
+		require.NotNil(t, nc)
+	})
+
+	t.Run("will not find in nodes config cacher", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				return nil, false
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.False(t, ok)
+		require.Nil(t, nc)
+	})
+
+	t.Run("will find in nodes config cacher, but failed to cast to byte array", func(t *testing.T) {
+		t.Parallel()
+
+		type testStruct struct{}
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				return testStruct{}, true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.False(t, ok)
+		require.Nil(t, nc)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(2)
+
+		args := createArguments()
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				require.Equal(t, []byte(fmt.Sprint(epoch)), key)
+
+				return &epochNodesConfig{}, true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		nc, ok := ihnc.getNodesConfig(epoch)
+		require.True(t, ok)
+		require.NotNil(t, nc)
+	})
+
+	t.Run("should work with old epochs", func(t *testing.T) {
+		t.Parallel()
+
+		epochKey := []byte(fmt.Sprint(1))
+
+		args := createArguments()
+
+		shufflerArgs := &NodesShufflerArgs{
+			NodesShard:           2,
+			NodesMeta:            1,
+			Hysteresis:           hysteresis,
+			Adaptivity:           adaptivity,
+			ShuffleBetweenShards: shuffleBetweenShards,
+			MaxNodesEnableConfig: nil,
+			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		}
+		nodesShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+		require.Nil(t, err)
+
+		args.Shuffler = nodesShuffler
+
+		args.EpochStartStaticStorer = createEpochStartStaticStorerMock(1)
+		args.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+		args.BootStorer = genericMocks.NewStorerMockWithEpoch(1)
+
+		wasCalled := false
+		args.NodesConfigCache = &mock.NodesCoordinatorCacheMock{
+			PutCalled: func(key []byte, value interface{}, sieInBytes int) (evicted bool) {
+				require.Equal(t, epochKey, key)
+				wasCalled = true
+
+				return true
+			},
+		}
+		ihnc, _ := NewIndexHashedNodesCoordinator(args)
+
+		eligibleMap := createDummyNodesMap(10, 3, "eligible")
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 1)
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 3)
+		_ = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, 4)
+
+		epochNodesConfig, ok := ihnc.getNodesConfig(1)
+		require.True(t, ok)
+		require.NotNil(t, epochNodesConfig)
+
+		err = ihnc.saveState([]byte("key"))
+		require.Nil(t, err)
+
+		epochNodesConfig, ok = ihnc.nodesConfig[2]
+		require.True(t, ok)
+		require.NotNil(t, epochNodesConfig)
+
+		ihnc.removeOlderEpochs(4, 3)
+
+		epochNodesConfig, ok = ihnc.nodesConfig[1]
+		require.False(t, ok)
+		require.Nil(t, epochNodesConfig)
+
+		// will manage to get it from storage
+		epochNodesConfig, ok = ihnc.getNodesConfig(1)
+		require.True(t, ok)
+		require.NotNil(t, epochNodesConfig)
+
+		require.True(t, wasCalled)
 	})
 }

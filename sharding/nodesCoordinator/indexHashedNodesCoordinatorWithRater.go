@@ -103,6 +103,6 @@ func (ihnc *indexHashedNodesCoordinatorWithRater) ValidatorsWeights(validators [
 }
 
 // LoadState loads the nodes coordinator state from the used boot storage
-func (ihnc *indexHashedNodesCoordinatorWithRater) LoadState(key []byte) error {
-	return ihnc.baseLoadState(key)
+func (ihnc *indexHashedNodesCoordinatorWithRater) LoadState(key []byte, epoch uint32) error {
+	return ihnc.baseLoadState(key, epoch)
 }

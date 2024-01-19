@@ -326,6 +326,9 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 // ErrNilTrieSyncStatistics signals that nil trie sync statistics has been provided
 var ErrNilTrieSyncStatistics = errors.New("nil trie sync statistics")
 
+// ErrInvalidNumberOfNodesConfigsEpochsToStore signals that an invalid number of stored epochs has been provided
+var ErrInvalidNumberOfNodesConfigsEpochsToStore = errors.New("invalid number of nodes configs epochs to store")
+
 // ErrNilManagedPeersHolder signals that a nil managed peers holder has been provided
 var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 

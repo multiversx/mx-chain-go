@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -737,4 +738,127 @@ func TestTrigger_AddMissingValidatorsInfo(t *testing.T) {
 	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["b"])
 	assert.Equal(t, uint32(1), epochStartTrigger.mapMissingValidatorsInfo["c"])
 	epochStartTrigger.mutMissingValidatorsInfo.RUnlock()
+}
+
+func TestTrigger_SaveEpochStartInfoToStaticStorage(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(3)
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.Epoch = epoch
+
+	mbHeaderHash1 := []byte("mbHeaderHash1")
+	epochStartHeader := &block.MetaBlock{
+		Nonce: 100,
+		Round: 100,
+		Epoch: epoch,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash: mbHeaderHash1,
+				Type: block.PeerBlock,
+			},
+			{
+				Hash: []byte("mbHeaderHash3"),
+				Type: block.TxBlock,
+			},
+		},
+	}
+	headerBytes, _ := args.Marshalizer.Marshal(epochStartHeader)
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+	mb := &block.MiniBlock{
+		TxHashes: [][]byte{txHash1, txHash2},
+		Type:     block.PeerBlock,
+	}
+
+	validatorInfo1 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pubKey1"),
+		ShardId:    0,
+		List:       "eligible",
+		Index:      1,
+		TempRating: 11,
+	}
+	validatorInfo2 := &state.ShardValidatorInfo{
+		PublicKey:  []byte("pubKey2"),
+		ShardId:    0,
+		List:       "eligible",
+		Index:      2,
+		TempRating: 12,
+	}
+
+	putCalls := 0
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			if unitType == dataRetriever.MetaBlockUnit {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) (bytes []byte, err error) {
+						return headerBytes, nil
+					},
+				}, nil
+			}
+
+			if unitType == dataRetriever.EpochStartStaticUnit {
+				return &storageStubs.StorerStub{
+					PutCalled: func(key, data []byte) error {
+						switch putCalls {
+						case 0:
+							epochStartBootstrapKey := append([]byte(common.EpochStartStaticBlockKeyPrefix), []byte(fmt.Sprint(epoch))...)
+							require.Equal(t, epochStartBootstrapKey, key)
+						case 1:
+							require.Equal(t, mbHeaderHash1, key)
+						case 2:
+							require.Equal(t, txHash1, key)
+						case 3:
+							require.Equal(t, txHash2, key)
+						}
+
+						putCalls++
+						return nil
+					},
+				}, nil
+			}
+
+			return &storageStubs.StorerStub{}, nil
+		},
+	}
+
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return &testscommon.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					if bytes.Equal(key, mbHeaderHash1) {
+						return mb, true
+					}
+
+					return nil, false
+				},
+			}
+		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &vic.ValidatorInfoCacherStub{
+				GetValidatorInfoCalled: func(validatorInfoHash []byte) (*state.ShardValidatorInfo, error) {
+					if bytes.Equal(validatorInfoHash, txHash1) {
+						return validatorInfo1, nil
+					} else if bytes.Equal(validatorInfoHash, txHash2) {
+						return validatorInfo2, nil
+					}
+
+					return nil, fmt.Errorf("not found")
+				},
+			}
+		},
+	}
+
+	epochStartTrigger, err := NewEpochStartTrigger(args)
+	require.Nil(t, err)
+	require.NotNil(t, epochStartTrigger)
+
+	err = epochStartTrigger.SaveEpochStartInfoToStaticStorer()
+	require.Nil(t, err)
+	require.Equal(t, 4, putCalls)
 }

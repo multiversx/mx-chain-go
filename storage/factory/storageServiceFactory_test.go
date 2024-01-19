@@ -39,6 +39,7 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 			ScheduledSCRsStorage:       createMockStorageConfig("ScheduledSCRsStorage"),
 			BootstrapStorage:           createMockStorageConfig("BootstrapStorage"),
 			MiniBlocksStorage:          createMockStorageConfig("MiniBlocksStorage"),
+			EpochStartStaticStorage:    createMockStorageConfig("EpochStartStaticStorage"),
 			MetaBlockStorage:           createMockStorageConfig("MetaBlockStorage"),
 			MetaHdrNonceHashStorage:    createMockStorageConfig("MetaHdrNonceHashStorage"),
 			BlockHeaderStorage:         createMockStorageConfig("BlockHeaderStorage"),
@@ -399,6 +400,16 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Equal(t, expectedErrForCacheString+" for LogsAndEvents.TxLogsStorage", err.Error())
 		assert.True(t, check.IfNil(storageService))
 	})
+	t.Run("wrong config for bootstrap static storage should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.Config.EpochStartStaticStorage.Cache.Type = ""
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		assert.Equal(t, expectedErrForCacheString+" for EpochStartStaticStorage", err.Error())
+		assert.True(t, check.IfNil(storageService))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -408,7 +419,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 23
+		expectedStorers := 24
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -430,7 +441,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		numDBLookupExtensionUnits := 6
-		expectedStorers := 23 - numDBLookupExtensionUnits
+		expectedStorers := 24 - numDBLookupExtensionUnits
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -444,7 +455,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 23 // we still have a storer for trie epoch root hash
+		expectedStorers := 24 // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
 		_ = storageService.CloseAll()
 	})
@@ -458,7 +469,7 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
-		expectedStorers := 23
+		expectedStorers := 24
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -516,6 +527,16 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		assert.Equal(t, expectedErrForCacheString+" for LogsAndEvents.TxLogsStorage", err.Error())
 		assert.True(t, check.IfNil(storageService))
 	})
+	t.Run("wrong config for Bootstrap static storage should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.Config.EpochStartStaticStorage.Cache.Type = ""
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForMeta()
+		assert.Equal(t, expectedErrForCacheString+" for EpochStartStaticStorage", err.Error())
+		assert.True(t, check.IfNil(storageService))
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -527,7 +548,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 23 - missingStorers + numShardHdrStorage
+		expectedStorers := 24 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
@@ -550,7 +571,7 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
 		numShardHdrStorage := 3
-		expectedStorers := 23 - missingStorers + numShardHdrStorage
+		expectedStorers := 24 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
 
 		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)

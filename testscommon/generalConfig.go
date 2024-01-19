@@ -63,6 +63,7 @@ func GetGeneralConfig() config.Config {
 			RoundsPerEpoch:                    10,
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
+			NumNodesConfigEpochsToStore:       4,
 		},
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
@@ -300,6 +301,16 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("BootstrapData"),
+				Type:              string(storageunit.MemoryDB),
+				BatchDelaySeconds: 1,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		EpochStartStaticStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("EpochStartStaticData"),
 				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 1,
 				MaxBatchSize:      6,

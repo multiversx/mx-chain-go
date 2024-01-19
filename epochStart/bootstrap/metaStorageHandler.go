@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 )
@@ -126,7 +127,12 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	nodesCoordinatorConfigKey, err := msh.saveNodesCoordinatorRegistry(components.EpochStartMetaBlock, components.NodesConfig)
+	bootstrapStorer, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
+	nodesCoordinatorConfigKey := components.EpochStartMetaBlock.GetPrevRandSeed()
+	err = nodesCoordinator.SaveNodesCoordinatorRegistry(components.NodesConfig, bootstrapStorer)
 	if err != nil {
 		return err
 	}
