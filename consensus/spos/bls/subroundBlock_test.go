@@ -447,8 +447,29 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("should work, consensus propagation changes flag enabled", func(t *testing.T) {
 		t.Parallel()
+
+		providedSignature := []byte("provided signature")
+		providedBitmap := []byte("provided bitmap")
+		providedHeadr := &block.HeaderV2{
+			Header: &block.Header{
+				Signature:     []byte("signature"),
+				PubKeysBitmap: []byte("bitmap"),
+			},
+		}
+
 		container := mock.InitConsensusCore()
-		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return providedHeadr
+			},
+			GetCurrentHeaderProofCalled: func() data.HeaderProof {
+				return data.HeaderProof{
+					AggregatedSignature: providedSignature,
+					PubKeysBitmap:       providedBitmap,
+				}
+			},
+		}
+		sr := *initSubroundBlock(chainHandler, container, &statusHandler.AppStatusHandlerStub{})
 
 		providedLeaderSignature := []byte("leader signature")
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
@@ -465,27 +486,12 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				return 1
 			},
 		})
-		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-
-		providedSignature := []byte("provided signature")
-		providedBitmap := []byte("provided bitmap")
-		providedHeadr := &block.HeaderV2{
-			Header: &block.Header{
-				Signature:     []byte("signature"),
-				PubKeysBitmap: []byte("bitmap"),
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.ConsensusPropagationChangesFlag
 			},
 		}
-		container.SetBlockchain(&testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return providedHeadr
-			},
-			GetCurrentHeaderProofCalled: func() data.HeaderProof {
-				return data.HeaderProof{
-					AggregatedSignature: providedSignature,
-					PubKeysBitmap:       providedBitmap,
-				}
-			},
-		})
+		container.SetEnableEpochsHandler(enableEpochsHandler)
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
@@ -683,77 +689,6 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.False(t, r)
 	})
-	t.Run("header with proof before flag activation should error", func(t *testing.T) {
-		t.Parallel()
-
-		container := mock.InitConsensusCore()
-		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
-			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				hdr := &block.HeaderV2{}
-				_ = container.Marshalizer().Unmarshal(hdr, dta)
-				return hdr
-			},
-		})
-		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		blkBody := &block.Body{}
-		hdr := &block.HeaderV2{
-			Header:              &block.Header{},
-			PreviousHeaderProof: &block.PreviousHeaderProof{},
-		}
-		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
-		sr.Data = nil
-		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
-		assert.False(t, r)
-	})
-	t.Run("header without proof after flag activation should error", func(t *testing.T) {
-		t.Parallel()
-
-		container := mock.InitConsensusCore()
-		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
-			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				hdr := &block.HeaderV2{}
-				_ = container.Marshalizer().Unmarshal(hdr, dta)
-				return hdr
-			},
-		})
-		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		blkBody := &block.Body{}
-		hdr := &block.HeaderV2{
-			Header:              &block.Header{},
-			PreviousHeaderProof: nil,
-		}
-		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
-		sr.Data = nil
-		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
-		assert.False(t, r)
-	})
-	t.Run("header without leader sig after flag activation should error", func(t *testing.T) {
-		t.Parallel()
-
-		container := mock.InitConsensusCore()
-		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
-			DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-				hdr := &block.HeaderV2{}
-				_ = container.Marshalizer().Unmarshal(hdr, dta)
-				return hdr
-			},
-		})
-		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-		blkBody := &block.Body{}
-		hdr := &block.HeaderV2{
-			Header: &block.Header{},
-			PreviousHeaderProof: &block.PreviousHeaderProof{
-				PubKeysBitmap:       []byte{0, 1, 1, 1},
-				AggregatedSignature: []byte("sig"),
-			},
-		}
-		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
-		sr.Data = nil
-		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
-		assert.False(t, r)
-	})
 	t.Run("header with proof after flag activation should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -765,8 +700,22 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			return hdr
 		}
 		container.SetBlockProcessor(blockProcessor)
-		container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.ConsensusPropagationChangesFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+		wasSetCurrentHeaderProofCalled := false
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
+				wasSetCurrentHeaderProofCalled = true
+			},
+		}
+		sr := *initSubroundBlock(chainHandler, container, &statusHandler.AppStatusHandlerStub{})
 		blkBody := &block.Body{}
 		hdr := &block.HeaderV2{
 			Header:                   createDefaultHeader(),
@@ -783,6 +732,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		sr.Data = nil
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.True(t, r)
+		assert.True(t, wasSetCurrentHeaderProofCalled)
 	})
 }
 
@@ -917,7 +867,12 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 		return hdr
 	}
 
-	container.SetEnableEpochsHandler(enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.ConsensusPropagationChangesFlag
+		},
+	}
+	container.SetEnableEpochsHandler(enableEpochsHandler)
 
 	providedLeaderSignature := []byte("leader signature")
 	wasVerifySingleSignatureCalled := false

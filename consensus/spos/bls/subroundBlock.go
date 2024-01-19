@@ -100,6 +100,12 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	// This must be done after createBlock, in order to have the proper epoch set
+	wasSetProofOk := sr.addProofOnHeader(header)
+	if !wasSetProofOk {
+		return false
+	}
+
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
@@ -146,25 +152,9 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 		return false
 	}
 
-	var signatureShare []byte
-	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		leaderIndex, err := sr.ConsensusGroupIndex(leader)
-		if err != nil {
-			log.Debug("sendBlock.SelfConsensusGroupIndex: leader not in consensus group")
-			return false
-		}
-
-		headerHash := sr.Hasher().Compute(string(marshalizedHeader))
-		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
-			headerHash,
-			uint16(leaderIndex),
-			header.GetEpoch(),
-			[]byte(leader),
-		)
-		if err != nil {
-			log.Debug("sendBlock.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false
-		}
+	signatureShare, ok := sr.getSignatureShare(leader, header, marshalizedHeader)
+	if !ok {
+		return false
 	}
 
 	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
@@ -176,6 +166,33 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	return true
+}
+
+func (sr *subroundBlock) getSignatureShare(leader string, header data.HeaderHandler, marshalledHeader []byte) ([]byte, bool) {
+	// TODO[cleanup cns finality]: remove this
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+		return nil, true
+	}
+
+	leaderIndex, err := sr.ConsensusGroupIndex(leader)
+	if err != nil {
+		log.Debug("getSignatureShare.ConsensusGroupIndex: leader not in consensus group")
+		return nil, false
+	}
+
+	headerHash := sr.Hasher().Compute(string(marshalledHeader))
+	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		headerHash,
+		uint16(leaderIndex),
+		header.GetEpoch(),
+		[]byte(leader),
+	)
+	if err != nil {
+		log.Debug("getSignatureShare.CreateSignatureShareForPublicKey", "error", err.Error())
+		return nil, false
+	}
+
+	return signatureShare, true
 }
 
 func (sr *subroundBlock) couldBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
@@ -406,20 +423,40 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	if sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
-		prevBlockProof := sr.Blockchain().GetCurrentHeaderProof()
-		consensusPropagationChangesEpoch := sr.EnableEpochsHandler().GetActivationEpoch(common.ConsensusPropagationChangesFlag)
-		isFirstHeaderAfterChange := consensusPropagationChangesEpoch > currentHeader.GetEpoch()
-		if isProofEmpty(prevBlockProof) && isFirstHeaderAfterChange {
-			prevBlockProof = data.HeaderProof{
-				AggregatedSignature: currentHeader.GetSignature(),
-				PubKeysBitmap:       currentHeader.GetPubKeysBitmap(),
-			}
-		}
-		hdr.SetPreviousAggregatedSignatureAndBitmap(prevBlockProof.AggregatedSignature, prevBlockProof.PubKeysBitmap)
+	return hdr, nil
+}
+
+func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
+	// TODO[cleanup cns finality]: remove this
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+		return true
 	}
 
-	return hdr, nil
+	prevBlockProof := sr.Blockchain().GetCurrentHeaderProof()
+	if !isProofEmpty(prevBlockProof) {
+		header.SetPreviousAggregatedSignatureAndBitmap(prevBlockProof.AggregatedSignature, prevBlockProof.PubKeysBitmap)
+		return true
+	}
+
+	// this may happen in 2 cases:
+	// 1. on the very first block, after consensus propagation changes flag activation
+	// in this case, we set the previous proof as signature and bitmap from the previous header
+	// 2. current node is leader in the first block after sync
+	// in this case, we won't set the proof, return false and wait for the next round to receive a proof
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		log.Debug("addProofOnHeader.GetCurrentBlockHeader, nil current header")
+		return false
+	}
+
+	isFlagEnabledForCurrentHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, currentHeader.GetEpoch())
+	if !isFlagEnabledForCurrentHeader {
+		header.SetPreviousAggregatedSignatureAndBitmap(currentHeader.GetSignature(), currentHeader.GetPubKeysBitmap())
+		return true
+	}
+
+	log.Debug("leader after sync, no proof for current header, will wait one round")
+	return false
 }
 
 func isProofEmpty(proof data.HeaderProof) bool {
@@ -479,6 +516,8 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
+	sr.saveProofForPreviousHeaderIfNeeded()
+
 	log.Debug("step 1: block body and header have been received",
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
@@ -496,30 +535,34 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) verifyPreviousBlockProof() bool {
-	previousAggregatedSignature, previousBitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
-	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
-	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
-	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag)
-	isHeaderForOlderEpoch := sr.Header.GetEpoch() < sr.EnableEpochsHandler().GetCurrentEpoch()
-	if isFlagEnabled && !hasProof && !isHeaderForOlderEpoch {
-		log.Debug("received header without proof after flag activation")
-		return false
-	}
-	if !isFlagEnabled && hasProof {
-		log.Debug("received header with proof before flag activation")
-		return false
-	}
-	if isFlagEnabled && !hasLeaderSignature && !isHeaderForOlderEpoch {
-		log.Debug("received header without leader signature after flag activation")
-		return false
+func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		log.Debug("saveProofForPreviousHeaderIfNeeded, nil current header")
+		return
 	}
 
-	return true
+	// TODO[cleanup cns finality]: remove this
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, currentHeader.GetEpoch()) {
+		return
+	}
+
+	proof := sr.Blockchain().GetCurrentHeaderProof()
+	if !isProofEmpty(proof) {
+		return
+	}
+
+	prevAggSig, prevBitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
+	proof = data.HeaderProof{
+		AggregatedSignature: prevAggSig,
+		PubKeysBitmap:       prevBitmap,
+	}
+	sr.Blockchain().SetCurrentHeaderProof(proof)
 }
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) error {
-	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	// TODO[cleanup cns finality]: remove
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
 		return nil
 	}
 
@@ -558,7 +601,7 @@ func (sr *subroundBlock) verifyLeaderSignature(
 	blockHeaderHash []byte,
 	signature []byte,
 ) bool {
-	if !sr.EnableEpochsHandler().IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
 		return true
 	}
 
@@ -576,7 +619,7 @@ func (sr *subroundBlock) verifyLeaderSignature(
 }
 
 func (sr *subroundBlock) isInvalidHeaderOrData() bool {
-	return sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil || !sr.verifyPreviousBlockProof()
+	return sr.Data == nil || check.IfNil(sr.Header) || sr.Header.CheckFieldsForNil() != nil
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
@@ -660,6 +703,8 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
 		return false
 	}
+
+	sr.saveProofForPreviousHeaderIfNeeded()
 
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.Header.GetNonce(),

@@ -77,8 +77,13 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
+	err = inHdr.sigVerifier.VerifyPreviousBlockProof(inHdr.hdr)
+	if err != nil {
+		return err
+	}
+
 	// TODO[cleanup cns finality]: remove this
-	if !inHdr.enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	if !inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, inHdr.hdr.GetEpoch()) {
 		return inHdr.verifySignatures()
 	}
 

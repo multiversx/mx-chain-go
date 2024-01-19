@@ -2,12 +2,10 @@ package interceptedBlocks
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -306,42 +304,6 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
-}
-
-func TestCheckHeaderHandler_FlagEnabledAndNoProofShouldError(t *testing.T) {
-	t.Parallel()
-
-	hdr := createDefaultHeaderHandler()
-
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-	assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-	assert.True(t, strings.Contains(err.Error(), "received header without proof after flag activation"))
-}
-
-func TestCheckHeaderHandler_FlagNotEnabledAndProofShouldError(t *testing.T) {
-	t.Parallel()
-
-	hdr := createDefaultHeaderHandler()
-	hdr.GetPreviousAggregatedSignatureAndBitmapCalled = func() ([]byte, []byte) {
-		return []byte("sig"), []byte("bitmap")
-	}
-
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
-	assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-	assert.True(t, strings.Contains(err.Error(), "received header with proof before flag activation"))
-}
-
-func TestCheckHeaderHandler_FlagEnabledAndLeaderSignatureShouldError(t *testing.T) {
-	t.Parallel()
-
-	hdr := createDefaultHeaderHandler()
-	hdr.GetPreviousAggregatedSignatureAndBitmapCalled = func() ([]byte, []byte) {
-		return []byte("sig"), []byte{0, 1, 1, 1}
-	}
-
-	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag))
-	assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-	assert.True(t, strings.Contains(err.Error(), "received header without leader signature after flag activation"))
 }
 
 func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {

@@ -446,12 +446,6 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 
-	sig, bitmap := header.GetPreviousAggregatedSignatureAndBitmap()
-	st.blkc.SetCurrentHeaderProof(data.HeaderProof{
-		AggregatedSignature: sig,
-		PubKeysBitmap:       bitmap,
-	})
-
 	return nil
 }
 
@@ -468,11 +462,6 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(nil)
-
-	st.blkc.SetCurrentHeaderProof(data.HeaderProof{
-		AggregatedSignature: nil,
-		PubKeysBitmap:       nil,
-	})
 }
 
 func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) error {

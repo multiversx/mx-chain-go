@@ -1002,12 +1002,6 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	sig, bitmap := currHeader.GetPreviousAggregatedSignatureAndBitmap()
-	boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
-		AggregatedSignature: sig,
-		PubKeysBitmap:       bitmap,
-	})
-
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
 		scheduledInfo := &process.ScheduledInfo{
@@ -1037,21 +1031,6 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	}
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
-
-	if header == nil {
-		boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
-			AggregatedSignature: nil,
-			PubKeysBitmap:       nil,
-		})
-
-		return nil
-	}
-
-	sig, bitmap := header.GetPreviousAggregatedSignatureAndBitmap()
-	boot.chainHandler.SetCurrentHeaderProof(data.HeaderProof{
-		AggregatedSignature: sig,
-		PubKeysBitmap:       bitmap,
-	})
 
 	return nil
 }
