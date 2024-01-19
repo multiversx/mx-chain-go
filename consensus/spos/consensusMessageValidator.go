@@ -7,10 +7,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -19,6 +22,8 @@ type consensusMessageValidator struct {
 	consensusService     ConsensusService
 	peerSignatureHandler crypto.PeerSignatureHandler
 	enableEpochsHandler  common.EnableEpochsHandler
+	marshaller           marshal.Marshalizer
+	shardCoordinator     sharding.Coordinator
 
 	signatureSize       int
 	publicKeySize       int
@@ -36,6 +41,8 @@ type ArgsConsensusMessageValidator struct {
 	ConsensusService     ConsensusService
 	PeerSignatureHandler crypto.PeerSignatureHandler
 	EnableEpochsHandler  common.EnableEpochsHandler
+	Marshaller           marshal.Marshalizer
+	ShardCoordinator     sharding.Coordinator
 	SignatureSize        int
 	PublicKeySize        int
 	HeaderHashSize       int
@@ -54,6 +61,8 @@ func NewConsensusMessageValidator(args ArgsConsensusMessageValidator) (*consensu
 		consensusService:     args.ConsensusService,
 		peerSignatureHandler: args.PeerSignatureHandler,
 		enableEpochsHandler:  args.EnableEpochsHandler,
+		marshaller:           args.Marshaller,
+		shardCoordinator:     args.ShardCoordinator,
 		signatureSize:        args.SignatureSize,
 		publicKeySize:        args.PublicKeySize,
 		chainID:              args.ChainID,
@@ -75,6 +84,12 @@ func checkArgsConsensusMessageValidator(args ArgsConsensusMessageValidator) erro
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.Marshaller) {
+		return ErrNilMarshalizer
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return ErrNilShardCoordinator
 	}
 	if args.ConsensusState == nil {
 		return ErrNilConsensusState
@@ -248,7 +263,13 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidityForMessageTyp
 func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity(cnsMsg *consensus.Message) error {
 	// TODO[cleanup cns finality]: remove this
 	isInvalidSigShare := cnsMsg.SignatureShare != nil
-	if cmv.enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+
+	header, err := process.UnmarshalHeader(cmv.shardCoordinator.SelfId(), cmv.marshaller, cnsMsg.Header)
+	if err != nil {
+		return err
+	}
+
+	if cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
 		isInvalidSigShare = cnsMsg.SignatureShare == nil
 	}
 
@@ -319,8 +340,19 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 }
 
 func (cmv *consensusMessageValidator) checkMessageWithBlockHeaderValidity(cnsMsg *consensus.Message) error {
+	// TODO[cleanup cns finality]: remove this
+	isInvalidSigShare := cnsMsg.SignatureShare != nil
+
+	header, err := process.UnmarshalHeader(cmv.shardCoordinator.SelfId(), cmv.marshaller, cnsMsg.Header)
+	if err != nil {
+		return err
+	}
+
+	if cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+		isInvalidSigShare = cnsMsg.SignatureShare == nil
+	}
 	isMessageInvalid := cnsMsg.Body != nil ||
-		cnsMsg.SignatureShare != nil ||
+		isInvalidSigShare ||
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
 		cnsMsg.LeaderSignature != nil ||

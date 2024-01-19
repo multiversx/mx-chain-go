@@ -1,6 +1,7 @@
 package headerCheck
 
 import (
+	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -28,6 +30,7 @@ type ArgsHeaderSigVerifier struct {
 	SingleSigVerifier       crypto.SingleSigner
 	KeyGen                  crypto.KeyGenerator
 	FallbackHeaderValidator process.FallbackHeaderValidator
+	EnableEpochsHandler     common.EnableEpochsHandler
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -39,6 +42,7 @@ type HeaderSigVerifier struct {
 	singleSigVerifier       crypto.SingleSigner
 	keyGen                  crypto.KeyGenerator
 	fallbackHeaderValidator process.FallbackHeaderValidator
+	enableEpochsHandler     common.EnableEpochsHandler
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -56,6 +60,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		singleSigVerifier:       arguments.SingleSigVerifier,
 		keyGen:                  arguments.KeyGen,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
+		enableEpochsHandler:     arguments.EnableEpochsHandler,
 	}, nil
 }
 
@@ -90,6 +95,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.FallbackHeaderValidator) {
 		return process.ErrNilFallbackHeaderValidator
+	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -179,6 +187,25 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	}
 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
+}
+
+// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
+func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
+	previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
+	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
+	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
+	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch())
+	if isFlagEnabled && !hasProof {
+		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
+	}
+	if !isFlagEnabled && hasProof {
+		return fmt.Errorf("%w, received header with proof before flag activation", process.ErrInvalidHeader)
+	}
+	if isFlagEnabled && !hasLeaderSignature {
+		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
+	}
+
+	return nil
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler) error {
