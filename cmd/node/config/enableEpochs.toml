@@ -287,6 +287,9 @@
     # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
     FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 3
 
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 4
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

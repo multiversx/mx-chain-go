@@ -515,6 +515,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
 		common.ScheduledMiniBlocksFlag,
 		common.StakingV2Flag,
+		common.CurrentRandomnessOnSortingFlag,
 	})
 	if err != nil {
 		return err

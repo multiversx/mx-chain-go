@@ -1524,7 +1524,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			EpochStartNotifier:            manualEpochStartNotifier,
 			NodeTypeProvider:              pcf.coreData.NodeTypeProvider(),
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			StorageType:                   storageFactory.ProcessStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,

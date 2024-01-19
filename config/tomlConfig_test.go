@@ -839,6 +839,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
     FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
 
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 92
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -950,6 +953,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			NFTStopCreateEnableEpoch:                                 89,
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
+			CurrentRandomnessOnSortingEnableEpoch:                    92,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
