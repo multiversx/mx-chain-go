@@ -123,6 +123,7 @@ type HeaderSigVerifier interface {
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
+	VerifyPreviousBlockProof(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

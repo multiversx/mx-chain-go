@@ -235,7 +235,11 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 	t.Parallel()
 
 	arg := createDefaultShardArgumentWithV2Support()
-	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusPropagationChangesFlag)
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.ConsensusPropagationChangesFlag
+		},
+	}
 	wasVerifySignatureForHashCalled := false
 	providedPrevBitmap := []byte{1, 1, 1, 1}
 	providedPrevSig := []byte("provided sig")
