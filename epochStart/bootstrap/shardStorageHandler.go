@@ -125,12 +125,8 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	}
 
 	components.NodesConfig.CurrentEpoch = components.ShardHeader.GetEpoch()
-	bootstrapStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if err != nil {
-		return err
-	}
 	nodesCoordinatorConfigKey := components.EpochStartMetaBlock.GetPrevRandSeed()
-	err = nodesCoordinator.SaveNodesCoordinatorRegistry(components.NodesConfig, bootstrapStorer)
+	err = nodesCoordinator.SaveNodesCoordinatorRegistry(components.NodesConfig, bootStorer)
 	if err != nil {
 		return err
 	}
