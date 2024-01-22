@@ -127,15 +127,12 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	bootstrapStorer, err := msh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if err != nil {
-		return err
-	}
 	nodesCoordinatorConfigKey := components.EpochStartMetaBlock.GetPrevRandSeed()
-	err = nodesCoordinator.SaveNodesCoordinatorRegistry(components.NodesConfig, bootstrapStorer)
+	err = nodesCoordinator.SaveNodesCoordinatorRegistry(components.NodesConfig, bootStorer)
 	if err != nil {
 		return err
 	}
+	nodesCoordinator.DisplayNodesCoordinatorRegistry(components.NodesConfig)
 
 	lastCrossNotarizedHeader, err := msh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {

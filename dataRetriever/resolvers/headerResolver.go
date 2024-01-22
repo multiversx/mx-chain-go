@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dataRetriever/resolvers")
@@ -157,6 +157,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	}
 
 	hdrRes.DebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
+	log.Trace("request data", "value", rd.GetValue(), "epoch", rd.GetEpoch(), "fromConnectedPeer", fromConnectedPeer.Pretty())
 
 	return hdrRes.Send(buff, message.Peer(), source)
 }

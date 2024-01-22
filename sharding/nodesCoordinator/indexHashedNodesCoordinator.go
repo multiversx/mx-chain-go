@@ -175,7 +175,9 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		currentConfig.waitingMap,
 		currentConfig.leavingMap,
 		make(map[uint32][]Validator),
-		currentConfig.nbShards)
+		currentConfig.nbShards,
+		currentConfig.shardID,
+	)
 
 	ihnc.epochStartRegistrationHandler.RegisterHandler(ihnc)
 
@@ -260,16 +262,31 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	if ok {
 		enc, ok := value.(*epochNodesConfig)
 		if ok {
+			log.Debug("getNodesConfig: manage to find nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
+			displayNodesConfiguration(
+				enc.eligibleMap,
+				enc.waitingMap,
+				enc.leavingMap,
+				make(map[uint32][]Validator),
+				enc.nbShards,
+				enc.shardID,
+			)
+
 			return enc, ok
 		}
 	}
 
 	nodesConfig, err := ihnc.nodesConfigFromStaticStorer(epoch)
 	if err != nil {
+		log.Error("getNodesConfig: could not get nodes config from static storer", "epoch", epoch, "error", err.Error())
 		return nil, false
 	}
 
 	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
+	log.Debug("getNodesConfig: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID(), "nc shard ID", nodesConfig.shardID)
+
+	ihnc.nodesConfig[epoch] = nodesConfig
+	log.Debug("getNodesConfig: put nodes config in nodesConfig map", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID(), "nc shard ID", nodesConfig.shardID)
 
 	return nodesConfig, true
 }
@@ -325,6 +342,8 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	}
 
 	ihnc.nodesConfig[epoch] = nodesConfig
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
+	log.Debug("setNodesPerShards: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
 
 	ihnc.numTotalEligible = numTotalEligible
 	ihnc.setNodeType(isCurrentNodeValidator)
@@ -627,6 +646,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		ihnc.mutNodesConfig.RUnlock()
 		return
 	}
+	log.Debug("EpochStartPrepare: previousConfig", "shardID", previousConfig.shardID)
 
 	// TODO: remove the copy if no changes are done to the maps
 	copiedPrevious := &epochNodesConfig{}
@@ -697,7 +717,9 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		resUpdateNodes.Waiting,
 		leavingNodesMap,
 		stillRemainingNodesMap,
-		newNodesConfig.nbShards)
+		newNodesConfig.nbShards,
+		newNodesConfig.shardID,
+	)
 
 	ihnc.mutSavedStateKey.Lock()
 	ihnc.savedStateKey = randomness
@@ -1042,7 +1064,7 @@ func (ihnc *indexHashedNodesCoordinator) createPublicKeyToValidatorMap(
 func (ihnc *indexHashedNodesCoordinator) computeShardForSelfPublicKey(nodesConfig *epochNodesConfig) (uint32, bool) {
 	pubKey := ihnc.selfPubKey
 	selfShard := ihnc.shardIDAsObserver
-	epNodesConfig, ok := ihnc.nodesConfig[ihnc.currentEpoch]
+	epNodesConfig, ok := ihnc.getNodesConfig(ihnc.currentEpoch)
 	if ok {
 		log.Trace("computeShardForSelfPublicKey found existing config",
 			"shard", epNodesConfig.shardID,

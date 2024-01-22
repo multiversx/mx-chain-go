@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -124,7 +125,7 @@ func (ihnc *indexHashedNodesCoordinator) nodesConfigFromValidatorsInfo(
 	validatorsInfo []*state.ShardValidatorInfo,
 ) (*epochNodesConfig, error) {
 	epoch := metaBlock.GetEpoch()
-	randomness := metaBlock.GetRandSeed()
+	randomness := metaBlock.GetPrevRandSeed()
 
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorsInfo)
 	if err != nil {
@@ -212,6 +213,8 @@ func GetNodesCoordinatorRegistry(
 		return nil, ErrNilBootStorer
 	}
 
+	log.Debug(string(debug.Stack()))
+
 	minEpoch := 0
 	if lastEpoch >= numStoredEpochs {
 		minEpoch = int(lastEpoch) - int(numStoredEpochs) + 1
@@ -240,10 +243,14 @@ func GetNodesCoordinatorRegistry(
 		}
 	}
 
-	return &NodesCoordinatorRegistry{
+	nc := &NodesCoordinatorRegistry{
 		EpochsConfig: epochsConfig,
 		CurrentEpoch: lastEpoch,
-	}, nil
+	}
+
+	DisplayNodesCoordinatorRegistry(nc)
+
+	return nc, nil
 }
 
 func setEpochConfigPerEpoch(
@@ -343,6 +350,19 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte, lastEpoch uin
 	displayNodesConfigInfo(nodesConfig)
 	ihnc.mutNodesConfig.Lock()
 	ihnc.nodesConfig = nodesConfig
+	for epoch, nConfig := range nodesConfig {
+		ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nConfig, 0)
+		log.Debug("baseLoadState: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
+
+		displayNodesConfiguration(
+			nConfig.eligibleMap,
+			nConfig.waitingMap,
+			nConfig.leavingMap,
+			make(map[uint32][]Validator),
+			nConfig.nbShards,
+			nConfig.shardID,
+		)
+	}
 	ihnc.mutNodesConfig.Unlock()
 
 	return nil
@@ -357,12 +377,43 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	}
 }
 
+func (ihnc *indexHashedNodesCoordinator) checkInitialSaveState(key []byte) error {
+	registry := ihnc.NodesCoordinatorToRegistry()
+
+	for epoch := range registry.EpochsConfig {
+		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(epoch)...)
+		_, err := ihnc.bootStorer.Get(ncInternalkey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
 	registry := ihnc.NodesCoordinatorToRegistry()
 
 	err := SaveNodesCoordinatorRegistry(registry, ihnc.bootStorer)
 	if err != nil {
 		return err
+	}
+
+	nodesConfig, err := ihnc.registryToNodesCoordinator(registry)
+	if err != nil {
+		return err
+	}
+
+	for epoch, nConfig := range nodesConfig {
+		log.Debug("saveState: nodes config", "epoch", epoch)
+		displayNodesConfiguration(
+			nConfig.eligibleMap,
+			nConfig.waitingMap,
+			nConfig.leavingMap,
+			make(map[uint32][]Validator),
+			nConfig.nbShards,
+			nConfig.shardID,
+		)
 	}
 
 	return nil
@@ -387,6 +438,7 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
 		epochNodesData, ok := ihnc.getNodesConfig(epoch)
 		if !ok {
+			log.Debug("NodesCoordinatorToRegistry: did not find nodes config", "epoch", epoch)
 			continue
 		}
 
@@ -407,6 +459,8 @@ func SaveNodesCoordinatorRegistry(
 	if nodesConfig == nil {
 		return ErrNilNodesCoordinatorRegistry
 	}
+
+	log.Debug(string(debug.Stack()))
 
 	for epoch, config := range nodesConfig.EpochsConfig {
 		epochsConfig := make(map[string]*EpochValidators)
@@ -433,6 +487,8 @@ func SaveNodesCoordinatorRegistry(
 
 		log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 	}
+
+	DisplayNodesCoordinatorRegistry(nodesConfig)
 
 	return nil
 }
