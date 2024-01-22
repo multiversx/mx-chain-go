@@ -482,10 +482,10 @@ func TestBranchNode_tryGet(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
-	assert.Equal(t, []byte("dog"), val)
+	tld, err := bn.tryGet(key, 0, nil)
+	assert.Equal(t, []byte("dog"), tld.Value())
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), maxDepth)
+	assert.Equal(t, uint32(1), tld.Depth())
 }
 
 func TestBranchNode_tryGetEmptyKey(t *testing.T) {
@@ -494,10 +494,10 @@ func TestBranchNode_tryGetEmptyKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	var key []byte
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tld, err := bn.tryGet(key, 0, nil)
 	assert.Nil(t, err)
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
@@ -506,10 +506,10 @@ func TestBranchNode_tryGetChildPosOutOfRange(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tld, err := bn.tryGet(key, 0, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestBranchNode_tryGetNilChild(t *testing.T) {
@@ -518,10 +518,10 @@ func TestBranchNode_tryGetNilChild(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	nilChildKey := []byte{3}
 
-	val, maxDepth, err := bn.tryGet(nilChildKey, 0, nil)
+	tld, err := bn.tryGet(nilChildKey, 0, nil)
 	assert.Nil(t, err)
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
@@ -536,10 +536,10 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := collapsedBn.tryGet(key, 0, db)
-	assert.Equal(t, []byte("dog"), val)
+	tld, err := collapsedBn.tryGet(key, 0, db)
+	assert.Equal(t, []byte("dog"), tld.Value())
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), maxDepth)
+	assert.Equal(t, uint32(1), tld.Depth())
 }
 
 func TestBranchNode_tryGetEmptyNode(t *testing.T) {
@@ -549,10 +549,10 @@ func TestBranchNode_tryGetEmptyNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tld, err := bn.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestBranchNode_tryGetNilNode(t *testing.T) {
@@ -562,10 +562,10 @@ func TestBranchNode_tryGetNilNode(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
+	tld, err := bn.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestBranchNode_getNext(t *testing.T) {
@@ -660,8 +660,8 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
-	val, _, _ := newBn.tryGet(key, 0, db)
-	assert.Equal(t, []byte("dogs"), val)
+	tld, _ := newBn.tryGet(key, 0, db)
+	assert.Equal(t, []byte("dogs"), tld.Value())
 }
 
 func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
@@ -859,8 +859,8 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
-	val, _, err := newBn.tryGet(key, 0, db)
-	assert.Nil(t, val)
+	tld, err := newBn.tryGet(key, 0, db)
+	assert.Nil(t, tld.Value())
 	assert.Nil(t, err)
 }
 

@@ -107,3 +107,8 @@ func (spss *SnapshotPruningStorerStub) RemoveFromAllActiveEpochs(key []byte) err
 
 	return spss.Remove(key)
 }
+
+// IsInterfaceNil -
+func (spss *SnapshotPruningStorerStub) IsInterfaceNil() bool {
+	return spss == nil
+}

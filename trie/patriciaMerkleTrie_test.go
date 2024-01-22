@@ -138,8 +138,8 @@ func TestPatriciaMerkleTree_Get(t *testing.T) {
 	tr, val := initTrieMultipleValues(10000)
 
 	for i := range val {
-		v, _, _ := tr.Get(val[i])
-		assert.Equal(t, val[i], v)
+		tld, _ := tr.Get(val[i])
+		assert.Equal(t, val[i], tld.Value())
 	}
 }
 
@@ -148,9 +148,9 @@ func TestPatriciaMerkleTree_GetEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	val, _, err := tr.Get([]byte("dog"))
+	tld, err := tr.Get([]byte("dog"))
 	assert.Nil(t, err)
-	assert.Nil(t, val)
+	assert.Nil(t, tld.Value())
 }
 
 func TestPatriciaMerkleTree_Update(t *testing.T) {
@@ -161,8 +161,8 @@ func TestPatriciaMerkleTree_Update(t *testing.T) {
 	newVal := []byte("doge")
 	_ = tr.Update([]byte("dog"), newVal)
 
-	val, _, _ := tr.Get([]byte("dog"))
-	assert.Equal(t, newVal, val)
+	tld, _ := tr.Get([]byte("dog"))
+	assert.Equal(t, newVal, tld.Value())
 }
 
 func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
@@ -173,8 +173,8 @@ func TestPatriciaMerkleTree_UpdateEmptyVal(t *testing.T) {
 
 	_ = tr.Update([]byte("doe"), []byte{})
 
-	v, _, _ := tr.Get([]byte("doe"))
-	assert.Equal(t, empty, v)
+	tld, _ := tr.Get([]byte("doe"))
+	assert.Equal(t, empty, tld.Value())
 }
 
 func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
@@ -184,8 +184,8 @@ func TestPatriciaMerkleTree_UpdateNotExisting(t *testing.T) {
 
 	_ = tr.Update([]byte("does"), []byte("this"))
 
-	v, _, _ := tr.Get([]byte("does"))
-	assert.Equal(t, []byte("this"), v)
+	tld, _ := tr.Get([]byte("does"))
+	assert.Equal(t, []byte("this"), tld.Value())
 }
 
 func TestPatriciaMerkleTree_Delete(t *testing.T) {
@@ -196,8 +196,8 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 
 	_ = tr.Delete([]byte("doe"))
 
-	v, _, _ := tr.Get([]byte("doe"))
-	assert.Equal(t, empty, v)
+	tld, _ := tr.Get([]byte("doe"))
+	assert.Equal(t, empty, tld.Value())
 }
 
 func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
@@ -258,9 +258,9 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 			err := tr.Update([]byte(strconv.Itoa(index)), []byte(strconv.Itoa(index)))
 			assert.Nil(t, err)
 
-			val, _, err := tr.Get([]byte(strconv.Itoa(index)))
+			tld, err := tr.Get([]byte(strconv.Itoa(index)))
 			assert.Nil(t, err)
-			assert.Equal(t, []byte(strconv.Itoa(index)), val)
+			assert.Equal(t, []byte(strconv.Itoa(index)), tld.Value())
 
 			wg.Done()
 		}(i)
@@ -332,8 +332,8 @@ func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
 	err := tr.Commit()
 	assert.Nil(t, err)
 
-	val, _, err := tr.Get([]byte("dog"))
-	assert.Equal(t, []byte("puppy"), val)
+	tld, err := tr.Get([]byte("dog"))
+	assert.Equal(t, []byte("puppy"), tld.Value())
 	assert.Nil(t, err)
 }
 
@@ -947,15 +947,15 @@ func TestPatriciaMerkleTree_GetValueReturnsTrieDepth(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_, depth, err := tr.Get([]byte("doe"))
+	tld, err := tr.Get([]byte("doe"))
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(1), depth)
-	_, depth, err = tr.Get([]byte("dog"))
+	assert.Equal(t, uint32(1), tld.Depth())
+	tld, err = tr.Get([]byte("dog"))
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(3), depth)
-	_, depth, err = tr.Get([]byte("ddog"))
+	assert.Equal(t, uint32(3), tld.Depth())
+	tld, err = tr.Get([]byte("ddog"))
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(3), depth)
+	assert.Equal(t, uint32(3), tld.Depth())
 }
 
 func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
@@ -977,7 +977,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 			operation := idx % numFunctions
 			switch operation {
 			case 0:
-				_, _, err := tr.Get([]byte("dog"))
+				_, err := tr.Get([]byte("dog"))
 				assert.Nil(t, err)
 			case 1:
 				err := tr.Update([]byte("doe"), []byte("alt"))
@@ -1636,7 +1636,7 @@ func BenchmarkPatriciaMerkleTree_Get(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = tr.Get(values[i%nrValuesInTrie])
+		_, _ = tr.Get(values[i%nrValuesInTrie])
 	}
 }
 
@@ -1655,7 +1655,7 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, _ = tr.Get(values[i%nrValuesInTrie])
+		_, _ = tr.Get(values[i%nrValuesInTrie])
 	}
 }
 

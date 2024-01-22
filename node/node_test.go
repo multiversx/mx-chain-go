@@ -853,7 +853,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		&trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil)
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, nil, core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -1094,10 +1094,10 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 				wg := &sync.WaitGroup{}
 				wg.Add(1)
 				go func() {
-					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...))
+					trieLeaf := keyValStorage.NewKeyValStorage(esdtKey, append(marshalledData, suffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 
-					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					trieLeaf = keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					wg.Done()
 					close(leavesChannels.LeavesChan)

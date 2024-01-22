@@ -48,7 +48,7 @@ func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte, version
 			return nil, err
 		}
 
-		return keyValStorage.NewKeyValStorage(data.Key, data.Value), nil
+		return keyValStorage.NewKeyValStorage(data.Key, data.Value, version), nil
 	}
 
 	suffix := append(trieKey, tlp.address...)
@@ -57,7 +57,7 @@ func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte, version
 		return nil, err
 	}
 
-	return keyValStorage.NewKeyValStorage(trieKey, value), nil
+	return keyValStorage.NewKeyValStorage(trieKey, value, version), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

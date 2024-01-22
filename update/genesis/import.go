@@ -419,6 +419,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				AccountFactory:        accountFactory,
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 				AddressConverter:      si.addressConverter,
+				EnableEpochsHandler:   si.enableEpochsHandler,
 				SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
@@ -442,6 +443,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      si.addressConverter,
+		EnableEpochsHandler:   si.enableEpochsHandler,
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)

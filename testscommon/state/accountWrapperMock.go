@@ -31,6 +31,7 @@ type AccountWrapMock struct {
 	Balance           *big.Int
 	guarded           bool
 	trackableDataTrie state.DataTrieTracker
+	version           uint8
 
 	SetNonceWithJournalCalled    func(nonce uint64) error           `json:"-"`
 	SetCodeHashWithJournalCalled func(codeHash []byte) error        `json:"-"`
@@ -226,6 +227,16 @@ func (awm *AccountWrapMock) GetNonce() uint64 {
 // IsGuarded -
 func (awm *AccountWrapMock) IsGuarded() bool {
 	return awm.guarded
+}
+
+// SetVersion -
+func (awm *AccountWrapMock) SetVersion(version uint8) {
+	awm.version = version
+}
+
+// GetVersion -
+func (awm *AccountWrapMock) GetVersion() uint8 {
+	return awm.version
 }
 
 // GetAllLeaves -

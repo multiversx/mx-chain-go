@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -204,6 +205,7 @@ func createAccountAdapter(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 	adb, err := state.NewAccountsDB(args)

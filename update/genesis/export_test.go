@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -293,7 +294,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 				pacB, _ := mm.Marshal(valInfo)
 
 				go func() {
-					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB, core.NotSpecified)
 					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
 					close(channels.LeavesChan)
 				}()
@@ -342,7 +343,7 @@ func TestStateExport_ExportTrieShouldExportNodesSetupJson(t *testing.T) {
 				pacB, _ := mm.Marshal(valInfo)
 
 				go func() {
-					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB)
+					channels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("test"), pacB, core.NotSpecified)
 					close(channels.LeavesChan)
 					channels.ErrChan.Close()
 				}()

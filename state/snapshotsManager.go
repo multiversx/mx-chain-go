@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -283,6 +284,14 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 			continue
 		}
 
+		if len(userAccount.GetCodeHash()) != 0 && leaf.Version() == core.WithoutCodeLeaf {
+			err = sm.snapshotAccountCode(userAccount.GetCodeHash(), epoch, trieStorageManager)
+			if err != nil {
+				iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
+				return
+			}
+		}
+
 		if len(userAccount.GetRootHash()) == 0 {
 			continue
 		}
@@ -297,6 +306,29 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 		address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
 		trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 	}
+}
+
+func (sm *snapshotsManager) snapshotAccountCode(
+	codeHash []byte,
+	epoch uint32,
+	tsm common.StorageManager,
+) error {
+	storer, ok := tsm.(snapshotPruningStorer)
+	if !ok {
+		return fmt.Errorf("invalid storer, type is %T", tsm)
+	}
+
+	code, _, err := storer.GetFromOldEpochsWithoutAddingToCache(codeHash)
+	if err != nil {
+		return err
+	}
+
+	err = storer.PutInEpochWithoutCache(codeHash, code, epoch)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (sm *snapshotsManager) syncMissingNodes(missingNodesChan chan []byte, errChan common.BufferedErrChan, stats *snapshotStatistics, syncer AccountsDBSyncer) {

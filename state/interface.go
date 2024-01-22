@@ -18,8 +18,9 @@ type AccountFactory interface {
 
 // Updater set a new value for a key, implemented by trie
 type Updater interface {
-	Get(key []byte) ([]byte, uint32, error)
+	Get(key []byte) (common.TrieLeafHolder, error)
 	Update(key, value []byte) error
+	GetStorageManager() common.StorageManager
 	IsInterfaceNil() bool
 }
 
@@ -49,6 +50,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	MigrateCodeLeaf(account vmcommon.AccountHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -119,6 +121,8 @@ type baseAccountHandler interface {
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
 	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SetVersion(uint8)
+	GetVersion() uint8
 	IsInterfaceNil() bool
 }
 
@@ -244,6 +248,8 @@ type UserAccountHandler interface {
 	GetUserName() []byte
 	IsGuarded() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
+	SetVersion(version uint8)
+	GetVersion() uint8
 	vmcommon.AccountHandler
 }
 
@@ -262,6 +268,12 @@ type DataTrieTracker interface {
 type SignRate interface {
 	GetNumSuccess() uint32
 	GetNumFailure() uint32
+}
+
+type snapshotPruningStorer interface {
+	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
+	GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error)
+	IsInterfaceNil() bool
 }
 
 // StateStatsHandler defines the behaviour needed to handler state statistics

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -27,6 +28,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		AccountFactory:        &mockState.AccountsFactoryStub{},
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
 	}
 }

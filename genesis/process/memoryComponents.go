@@ -33,6 +33,7 @@ func createAccountAdapter(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      addressConverter,
+		EnableEpochsHandler:   enableEpochsHandler,
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 

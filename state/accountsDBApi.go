@@ -258,6 +258,11 @@ func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte, _ common.
 	return accountsDB.innerAccountsAdapter.GetCode(codeHash), blockInfo, nil
 }
 
+// MigrateCodeLeaf returns nil
+func (accountsDB *accountsDBApi) MigrateCodeLeaf(_ vmcommon.AccountHandler) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (accountsDB *accountsDBApi) IsInterfaceNil() bool {
 	return accountsDB == nil

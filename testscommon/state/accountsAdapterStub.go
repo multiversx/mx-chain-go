@@ -39,6 +39,7 @@ type AccountsStub struct {
 	CloseCalled                   func() error
 	SetSyncerCalled               func(syncer state.AccountsDBSyncer) error
 	StartSnapshotIfNeededCalled   func() error
+	MigrateCodeLeafCalled         func(account vmcommon.AccountHandler) error
 }
 
 // CleanCache -
@@ -255,6 +256,15 @@ func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.Roo
 	}
 
 	return nil, nil, nil
+}
+
+// MigrateCodeLeaf -
+func (as *AccountsStub) MigrateCodeLeaf(account vmcommon.AccountHandler) error {
+	if as.MigrateCodeLeafCalled != nil {
+		return as.MigrateCodeLeafCalled(account)
+	}
+
+	return nil
 }
 
 // Close -

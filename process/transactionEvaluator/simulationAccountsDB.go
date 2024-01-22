@@ -172,6 +172,11 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// MigrateCodeLeaf -
+func (r *simulationAccountsDB) MigrateCodeLeaf(_ vmcommon.AccountHandler) error {
+	return nil
+}
+
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil

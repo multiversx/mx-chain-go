@@ -275,6 +275,9 @@
     # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
     DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
 
+    # MigrateCodeLeafEnableEpoch represents the epoch when migrate code leaf feature will be enabled
+    MigrateCodeLeafEnableEpoch = 3
+
     # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
     ScToScLogEventEnableEpoch = 3
 

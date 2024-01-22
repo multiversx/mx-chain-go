@@ -485,6 +485,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   enableEpochsHandler,
 		SnapshotsManager:      snapshotsManager,
 	}
 	adb, _ := state.NewAccountsDB(args)

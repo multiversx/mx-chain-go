@@ -996,5 +996,6 @@ const (
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
+	MigrateCodeLeafFlag                                core.EnableEpochFlag = "MigrateCodeLeafFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

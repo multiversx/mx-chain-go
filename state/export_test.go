@@ -32,7 +32,7 @@ func GetCode(account baseAccountHandler) []byte {
 }
 
 // GetCodeEntry -
-func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer) (*CodeEntry, error) {
+func GetCodeEntry(codeHash []byte, trie Updater, marshalizer marshal.Marshalizer, enableEpochHandler common.EnableEpochsHandler) (*CodeEntry, error) {
 	return getCodeEntry(codeHash, trie, marshalizer)
 }
 
@@ -84,6 +84,18 @@ func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
 	defer sm.mutex.RUnlock()
 
 	return sm.lastSnapshot.rootHash, sm.lastSnapshot.epoch
+}
+
+// SnapshotUserAccountDataTrie -
+func (sm *snapshotsManager) SnapshotUserAccountDataTrie(
+	mainTrieRootHash []byte,
+	iteratorChannels *common.TrieIteratorChannels,
+	missingNodesChannel chan []byte,
+	stats common.SnapshotStatisticsHandler,
+	epoch uint32,
+	trieStorageManager common.StorageManager,
+) {
+	sm.snapshotUserAccountDataTrie(mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 }
 
 // NewNilSnapshotsManager -

@@ -124,12 +124,12 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
-	var val []byte
+	var tld common.TrieLeafHolder
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, _, err = trie.Get(keyVal)
+		tld, err = trie.Get(keyVal)
 		require.Nil(t, err)
-		require.Equal(t, keyVal, val)
+		require.Equal(t, keyVal, tld.Value())
 	}
 
 	assert.Equal(t, uint64(numKeysValues), d.NumLeaves())
@@ -201,11 +201,11 @@ func TestDepthFirstTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	trie, _ = trie.Recreate(roothash)
 	require.False(t, check.IfNil(trie))
 
-	var val []byte
+	var tld common.TrieLeafHolder
 	for i := 0; i < numKeysValues; i++ {
 		keyVal := hasherMock.Compute(fmt.Sprintf("%d", i))
-		val, _, err = trie.Get(keyVal)
+		tld, err = trie.Get(keyVal)
 		require.Nil(t, err)
-		require.Equal(t, keyVal, val)
+		require.Equal(t, keyVal, tld.Value())
 	}
 }

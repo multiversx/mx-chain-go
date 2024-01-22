@@ -282,9 +282,9 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	tr2, err := tr1.Recreate(h1)
 	require.Nil(t, err)
 
-	valRecov, _, err := tr2.Get(key)
+	tld, err := tr2.Get(key)
 	require.Nil(t, err)
-	require.Equal(t, value, valRecov)
+	require.Equal(t, value, tld.Value())
 }
 
 func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *testing.T) {
@@ -1078,6 +1078,7 @@ func createAccounts(
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		SnapshotsManager:      snapshotsManager,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -2025,12 +2026,12 @@ func checkCodeConsistency(
 		tr := shardNode.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 
 		if codeMap[code] != 0 {
-			val, _, err := tr.Get(codeHash)
+			tld, err := tr.Get(codeHash)
 			require.Nil(t, err)
-			require.NotNil(t, val)
+			require.NotNil(t, tld.Value())
 
 			var codeEntry state.CodeEntry
-			err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, val)
+			err = integrationTests.TestMarshalizer.Unmarshal(&codeEntry, tld.Value())
 			require.Nil(t, err)
 
 			require.Equal(t, uint32(codeMap[code]), codeEntry.NumReferences)
@@ -2534,6 +2535,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		SnapshotsManager:      snapshotsManager,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)

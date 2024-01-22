@@ -296,23 +296,29 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
+func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.TrieStorageInteractor) (leafHolder common.TrieLeafHolder, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
-		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
+		return common.NewTrieLeafHolder(nil, currentDepth, 0), fmt.Errorf("tryGet error %w", err)
 	}
+
+	version, err := en.getVersion()
+	if err != nil {
+		return common.NewTrieLeafHolder(nil, currentDepth, 0), err
+	}
+
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, currentDepth, nil
+		return common.NewTrieLeafHolder(nil, currentDepth, version), nil
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, currentDepth, nil
+		return common.NewTrieLeafHolder(nil, currentDepth, version), nil
 	}
 	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return nil, currentDepth, err
+		return common.NewTrieLeafHolder(nil, currentDepth, version), err
 	}
 
 	return en.child.tryGet(key, currentDepth+1, db)

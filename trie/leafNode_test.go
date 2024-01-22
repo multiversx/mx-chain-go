@@ -237,10 +237,10 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
-	assert.Equal(t, []byte("dog"), val)
+	tld, err := ln.tryGet(key, 0, nil)
+	assert.Equal(t, []byte("dog"), tld.Value())
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
@@ -249,10 +249,10 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	val, maxDepth, err := ln.tryGet(wrongKey, 0, nil)
-	assert.Nil(t, val)
+	tld, err := ln.tryGet(wrongKey, 0, nil)
+	assert.Nil(t, tld.Value())
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
@@ -261,10 +261,10 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	key := []byte("dog")
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tld, err := ln.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
@@ -273,10 +273,10 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tld, err := ln.tryGet(key, 0, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Nil(t, tld.Value())
+	assert.Equal(t, uint32(0), tld.Depth())
 }
 
 func TestLeafNode_getNext(t *testing.T) {
@@ -326,8 +326,8 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _, _ := newNode.tryGet([]byte(key), 0, nil)
-	assert.Equal(t, []byte(expectedVal), val)
+	tld, _ := newNode.tryGet([]byte(key), 0, nil)
+	assert.Equal(t, []byte(expectedVal), tld.Value())
 }
 
 func TestLeafNode_insertAtDifferentKey(t *testing.T) {
@@ -345,8 +345,8 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
-	val, _, _ := newNode.tryGet(nodeKey, 0, nil)
-	assert.Equal(t, nodeVal, val)
+	tld, _ := newNode.tryGet(nodeKey, 0, nil)
+	assert.Equal(t, nodeVal, tld.Value())
 	assert.IsType(t, &branchNode{}, newNode)
 }
 

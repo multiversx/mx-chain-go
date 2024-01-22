@@ -1,23 +1,36 @@
 package state_test
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateTest "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	trieMocks "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
@@ -505,5 +518,89 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 
 		assert.True(t, putInEpochWithoutCacheCalled)
 		assert.True(t, removeFromAllActiveEpochsCalled)
+	})
+}
+
+func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should sync account code", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+
+		codeHash := []byte("codeHash")
+		codeData := []byte("codeData")
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetCodeHash(codeHash)
+
+		accountBytes, err := args.Marshaller.Marshal(account)
+		require.Nil(t, err)
+
+		args.AccountFactory = &stateTest.AccountsFactoryStub{
+			CreateAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
+				return account, nil
+			},
+		}
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.NoError(t, err)
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		providedEpoch := uint32(2)
+		missingNodesCh := make(chan []byte, 10)
+
+		storageArgs := storage.GetStorageManagerArgs()
+
+		putInEpochWithoutCacheCalled := false
+		storer := &trieMocks.SnapshotPruningStorerStub{
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
+				require.Equal(t, codeHash, key)
+
+				return codeData, core.OptionalUint32{}, nil
+			},
+			PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
+				assert.Fail(t, "should have not been called")
+				return nil
+			},
+			PutInEpochWithoutCacheCalled: func(key, data []byte, epoch uint32) error {
+				putInEpochWithoutCacheCalled = true
+
+				require.Equal(t, codeHash, key)
+				require.Equal(t, codeData, data)
+				require.Equal(t, providedEpoch, epoch)
+
+				return nil
+			},
+		}
+		storer.MemDbMock = testscommon.NewMemDbMock()
+		storageArgs.MainStorer = storer
+		tsm, err := trie.NewTrieStorageManager(storageArgs)
+		require.Nil(t, err)
+
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, &testscommon.KeccakMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 1)
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+		_ = tr.Commit()
+
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		err = tr.GetAllLeavesOnChannel(iteratorChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+		require.Nil(t, err)
+
+		sm.SnapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesCh, &trieMocks.MockStatistics{}, providedEpoch, tsm)
+
+		err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
+		require.Nil(t, err)
+
+		require.True(t, putInEpochWithoutCacheCalled)
 	})
 }

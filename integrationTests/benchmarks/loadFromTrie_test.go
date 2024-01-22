@@ -72,7 +72,7 @@ func timeTrieRecreate(tries []*keyForTrie, depth int) {
 func timeTrieLoad(t *testing.T, tries []*keyForTrie, depth int) {
 	startTime := time.Now()
 	for j := range tries {
-		_, _, err := tries[j].tr.Get(tries[j].key)
+		_, err := tries[j].tr.Get(tries[j].key)
 		require.Nil(t, err)
 		tries[j] = nil
 	}
@@ -118,8 +118,8 @@ func generateTriesWithMaxDepth(
 func insertKeysIntoTrie(t *testing.T, tr common.Trie, numTrieLevels int, numChildrenPerBranch int) []byte {
 	key := insertInTrie(tr, numTrieLevels, numChildrenPerBranch)
 
-	_, depth, _ := tr.Get(key)
-	require.Equal(t, uint32(numTrieLevels), depth+1)
+	tld, _ := tr.Get(key)
+	require.Equal(t, uint32(numTrieLevels), tld.Depth()+1)
 	_ = tr.Commit()
 	return key
 }

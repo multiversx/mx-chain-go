@@ -36,6 +36,8 @@ type StateUserAccountHandlerStub struct {
 	GetUserNameCalled           func() []byte
 	IsGuardedCalled             func() bool
 	GetAllLeavesCalled          func(leavesChannels *common.TrieIteratorChannels, ctx context.Context) error
+	SetVersionCalled            func(version uint8)
+	GetVersionCalled            func() uint8
 }
 
 // AddressBytes -
@@ -245,6 +247,22 @@ func (aas *StateUserAccountHandlerStub) GetAllLeaves(leavesChannels *common.Trie
 	}
 
 	return nil
+}
+
+// SetVersion -
+func (aas *StateUserAccountHandlerStub) SetVersion(version uint8) {
+	if aas.SetVersionCalled != nil {
+		aas.SetVersionCalled(version)
+	}
+}
+
+// GetVersion -
+func (aas *StateUserAccountHandlerStub) GetVersion() uint8 {
+	if aas.GetVersionCalled != nil {
+		return aas.GetVersionCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil -

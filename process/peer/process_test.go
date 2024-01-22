@@ -1991,7 +1991,7 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, _ context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
-				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
+				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0, core.NotSpecified)
 				close(ch.LeavesChan)
 				ch.ErrChan.Close()
 			}()
@@ -2053,8 +2053,8 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 		if bytes.Equal(rootHash, hash) {
 			go func() {
-				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0, core.NotSpecified)
+				ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta, core.NotSpecified)
 				close(ch.LeavesChan)
 				ch.ErrChan.Close()
 			}()
@@ -2128,8 +2128,8 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {
-					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0, core.NotSpecified)
+					ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta, core.NotSpecified)
 					close(ch.LeavesChan)
 					ch.ErrChan.Close()
 				}()
@@ -2575,8 +2575,8 @@ func updateArgumentsWithNeeded(arguments peer.ArgValidatorStatisticsProcessor) {
 	peerAdapter := getAccountsMock()
 	peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 		go func() {
-			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0)
-			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta)
+			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytes0, marshalizedPa0, core.NotSpecified)
+			ch.LeavesChan <- keyValStorage.NewKeyValStorage(addrBytesMeta, marshalizedPaMeta, core.NotSpecified)
 			close(ch.LeavesChan)
 			ch.ErrChan.Close()
 		}()

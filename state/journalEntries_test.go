@@ -6,8 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -17,7 +19,7 @@ import (
 func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, &marshallerMock.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), nil, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 0, 0)
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilUpdater, err)
 }
@@ -25,7 +27,7 @@ func TestNewJournalEntryCode_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, nil)
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, nil, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 0, 0)
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrNilMarshalizer, err)
 }
@@ -33,7 +35,7 @@ func TestNewJournalEntryCode_NilMarshalizerShouldErr(t *testing.T) {
 func TestNewJournalEntryCode_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &marshallerMock.MarshalizerMock{})
+	entry, err := state.NewJournalEntryCode(&state.CodeEntry{}, []byte("code hash"), []byte("code hash"), &trieMock.TrieStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 0, 0)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
@@ -42,7 +44,7 @@ func TestJournalEntryCode_OldHashAndNewHashAreNil(t *testing.T) {
 	t.Parallel()
 
 	trieStub := &trieMock.TrieStub{}
-	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &marshallerMock.MarshalizerMock{})
+	entry, _ := state.NewJournalEntryCode(&state.CodeEntry{}, nil, nil, trieStub, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 0, 0)
 
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
@@ -60,9 +62,9 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 
 	updateCalled := false
 	trieStub := &trieMock.TrieStub{
-		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+		GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
 			serializedCodeEntry, err := marshalizer.Marshal(codeEntry)
-			return serializedCodeEntry, 0, err
+			return common.NewTrieLeafHolder(serializedCodeEntry, 0, core.NotSpecified), err
 		},
 		UpdateCalled: func(key, value []byte) error {
 			updateCalled = true
@@ -75,6 +77,8 @@ func TestJournalEntryCode_OldHashIsNilAndNewHashIsNotNil(t *testing.T) {
 		[]byte("newHash"),
 		trieStub,
 		marshalizer,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		0, 0,
 	)
 
 	acc, err := entry.Revert()

@@ -1962,8 +1962,8 @@ func TestBlockChainHookImpl_GetESDTToken(t *testing.T) {
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				addressHandler := stateMock.NewAccountWrapMock(address)
 				addressHandler.SetDataTrie(&trie.TrieStub{
-					GetCalled: func(_ []byte) ([]byte, uint32, error) {
-						return make([]byte, 0), 0, nil
+					GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+						return common.NewTrieLeafHolder(make([]byte, 0), 0, core.NotSpecified), nil
 					},
 				})
 

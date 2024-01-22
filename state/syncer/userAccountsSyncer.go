@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
@@ -257,6 +258,13 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			continue
 		}
 
+		if len(accountData.CodeHash) != 0 && leaf.Version() == core.WithoutCodeLeaf {
+			err := u.syncAccountCode(accountData.CodeHash, &wg, ctx, leavesChannels.ErrChan)
+			if err != nil {
+				return err
+			}
+		}
+
 		if common.IsEmptyTrie(accountData.RootHash) {
 			continue
 		}
@@ -285,6 +293,50 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	}
 
 	wg.Wait()
+
+	return nil
+}
+
+func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup, ctx context.Context, errChan common.BufferedErrChan) error {
+	u.throttler.StartProcessing()
+	wg.Add(1)
+
+	waitTimeBetweenChecks := time.Millisecond * 100
+
+	go func(codeHash []byte) {
+		defer u.throttler.EndProcessing()
+
+		for {
+			codeData, ok := u.cacher.Get(codeHash)
+			if ok {
+				code, ok := codeData.([]byte)
+				if !ok {
+					errChan.WriteInChanNonBlocking(errors.ErrWrongTypeAssertion)
+					break
+				}
+
+				err := u.trieStorageManager.Put(codeHash, code)
+				if err == nil {
+					break
+				}
+
+				log.Trace("failed to get code from storage", "codeHash", codeHash, "error", err.Error())
+			}
+
+			u.requestHandler.RequestTrieNodes(u.shardId, [][]byte{codeHash}, factory.AccountTrieNodesTopic)
+
+			log.Trace("requested trie node", "codeHash", codeHash)
+
+			select {
+			case <-time.After(waitTimeBetweenChecks):
+				continue
+			case <-ctx.Done():
+				break
+			}
+		}
+
+		wg.Done()
+	}(codeHash)
 
 	return nil
 }

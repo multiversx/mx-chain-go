@@ -587,6 +587,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		AccountFactory:        accountFactory,
 		StoragePruningManager: storagePruning,
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
+		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 

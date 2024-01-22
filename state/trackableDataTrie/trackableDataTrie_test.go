@@ -91,9 +91,9 @@ func TestTrackableDataTrie_SaveKeyValue(t *testing.T) {
 				assert.Fail(t, "should not have saved directly in the trie")
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				assert.Fail(t, "should not have saved directly in the trie")
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, 0), nil
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
@@ -122,11 +122,11 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		newTrieValue := []byte("new trie value")
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(trieKey []byte) ([]byte, uint32, error) {
+			GetCalled: func(trieKey []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(trieKey, key) {
-					return trieValue, 0, nil
+					return common.NewTrieLeafHolder(trieValue, 0, core.NotSpecified), nil
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(identifier, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
@@ -164,11 +164,11 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		value = append(value, identifier...)
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, expectedKey) {
-					return value, 0, nil
+					return common.NewTrieLeafHolder(value, 0, core.NotSpecified), nil
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -196,14 +196,14 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		hasher := &hashingMocks.HasherMock{}
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, expectedKey) {
-					return value, 0, nil
+					return common.NewTrieLeafHolder(value, 0, core.NotSpecified), nil
 				}
 				if bytes.Equal(key, hasher.Compute(string(expectedKey))) {
 					assert.Fail(t, "this should not have been called")
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -233,16 +233,16 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			UpdateCalled: func(key, value []byte) error {
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, hasher.Compute(string(expectedKey))) {
 					serializedVal, _ := marshaller.Marshal(&dataTrieValue.TrieLeafData{
 						Value:   expectedVal,
 						Key:     expectedKey,
 						Address: identifier,
 					})
-					return serializedVal, 0, nil
+					return common.NewTrieLeafHolder(serializedVal, 0, core.NotSpecified), nil
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -265,8 +265,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 		errExpected := errors.New("expected err")
 		keyExpected := []byte("key")
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, errExpected
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), errExpected
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
@@ -290,8 +290,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			UpdateCalled: func(key, value []byte) error {
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -325,8 +325,8 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			UpdateCalled: func(key, value []byte) error {
 				return nil
 			},
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 		}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -370,8 +370,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			RecreateCalled: func(root []byte) (common.Trie, error) {
 				recreateCalled = true
 				return &trieMock.TrieStub{
-					GetCalled: func(_ []byte) ([]byte, uint32, error) {
-						return nil, 0, nil
+					GetCalled: func(_ []byte) (common.TrieLeafHolder, error) {
+						return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 					},
 					UpdateWithVersionCalled: func(_, _ []byte, _ core.TrieNodeVersion) error {
 						return nil
@@ -412,11 +412,11 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		serializedTrieVal, _ := marshaller.Marshal(trieVal)
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, expectedKey) {
-					return value, 0, nil
+					return common.NewTrieLeafHolder(value, 0, core.NotSpecified), nil
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
@@ -464,11 +464,11 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		updateCalled := false
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, expectedKey) {
-					return expectedVal, 0, nil
+					return common.NewTrieLeafHolder(expectedVal, 0, core.NotSpecified), nil
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 				assert.Equal(t, expectedKey, key)
@@ -525,11 +525,11 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		serializedNewTrieVal, _ := marshaller.Marshal(newTrieVal)
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(key, hasher.Compute(string(expectedKey))) {
-					return serializedOldTrieVal, 0, nil
+					return common.NewTrieLeafHolder(serializedOldTrieVal, 0, core.NotSpecified), nil
 				}
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
@@ -578,8 +578,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		serializedNewTrieVal, _ := marshaller.Marshal(newTrieVal)
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
@@ -617,8 +617,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		val := []byte("value")
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 				return nil
@@ -640,8 +640,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		expectedKey := []byte("key")
 		updateCalled := false
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return []byte("value"), 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder([]byte("value"), 0, core.NotSpecified), nil
 			},
 			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, expectedKey, key)
@@ -666,8 +666,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		expectedKey := []byte("key")
 		deleteCalled := false
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, expectedKey, key)
@@ -693,12 +693,12 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		expectedKey := []byte("key")
 		deleteCalled := false
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(hasher.Compute(string(expectedKey)), key) {
-					return []byte("value"), 0, nil
+					return common.NewTrieLeafHolder([]byte("value"), 0, core.NotSpecified), nil
 				}
 
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
@@ -728,12 +728,12 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		expectedKey := []byte("key")
 		deleteCalled := 0
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
 				if bytes.Equal(expectedKey, key) {
-					return []byte("value"), 0, nil
+					return common.NewTrieLeafHolder([]byte("value"), 0, core.NotSpecified), nil
 				}
 
-				return nil, 0, nil
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			DeleteCalled: func(key []byte) error {
 				assert.Equal(t, expectedKey, key)
@@ -770,8 +770,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		updateCalled := false
 
 		trie := &trieMock.TrieStub{
-			GetCalled: func(key []byte) ([]byte, uint32, error) {
-				return nil, 0, nil
+			GetCalled: func(key []byte) (common.TrieLeafHolder, error) {
+				return common.NewTrieLeafHolder(nil, 0, core.NotSpecified), nil
 			},
 			UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 				assert.Equal(t, expectedKey, key)

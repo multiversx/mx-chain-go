@@ -906,6 +906,7 @@ func createAccountsDB(
 		AccountFactory:        accountFactory,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 	adb, _ := state.NewAccountsDB(args)

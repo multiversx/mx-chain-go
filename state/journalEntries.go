@@ -7,15 +7,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type journalEntryCode struct {
-	oldCodeEntry *CodeEntry
-	oldCodeHash  []byte
-	newCodeHash  []byte
-	trie         Updater
-	marshalizer  marshal.Marshalizer
+	oldCodeEntry        *CodeEntry
+	oldCodeHash         []byte
+	newCodeHash         []byte
+	trie                Updater
+	marshalizer         marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
+	oldCodeVersion      uint8
+	newCodeVersion      uint8
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
@@ -25,6 +29,9 @@ func NewJournalEntryCode(
 	newCodeHash []byte,
 	trie Updater,
 	marshalizer marshal.Marshalizer,
+	enableEpochsHandler common.EnableEpochsHandler,
+	oldCodeVersion uint8,
+	newCodeVersion uint8,
 ) (*journalEntryCode, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
@@ -32,13 +39,19 @@ func NewJournalEntryCode(
 	if check.IfNil(marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
+	}
 
 	return &journalEntryCode{
-		oldCodeEntry: oldCodeEntry,
-		oldCodeHash:  oldCodeHash,
-		newCodeHash:  newCodeHash,
-		trie:         trie,
-		marshalizer:  marshalizer,
+		oldCodeEntry:        oldCodeEntry,
+		oldCodeHash:         oldCodeHash,
+		newCodeHash:         newCodeHash,
+		trie:                trie,
+		marshalizer:         marshalizer,
+		enableEpochsHandler: enableEpochsHandler,
+		oldCodeVersion:      oldCodeVersion,
+		newCodeVersion:      newCodeVersion,
 	}, nil
 }
 
@@ -66,6 +79,11 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
+	if jea.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
+		jea.oldCodeVersion == uint8(core.WithoutCodeLeaf) {
+		return nil
+	}
+
 	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
@@ -75,6 +93,11 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 }
 
 func (jea *journalEntryCode) revertNewCodeEntry() error {
+	if jea.enableEpochsHandler.IsFlagEnabled(common.MigrateCodeLeafFlag) &&
+		jea.newCodeVersion == uint8(core.WithoutCodeLeaf) {
+		return nil
+	}
+
 	newCodeEntry, err := getCodeEntry(jea.newCodeHash, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
