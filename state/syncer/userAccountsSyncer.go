@@ -259,10 +259,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		}
 
 		if len(accountData.CodeHash) != 0 && leaf.Version() == core.WithoutCodeLeaf {
-			err := u.syncAccountCode(accountData.CodeHash, &wg, ctx, leavesChannels.ErrChan)
-			if err != nil {
-				return err
-			}
+			u.syncAccountCode(accountData.CodeHash, &wg, ctx, leavesChannels.ErrChan)
 		}
 
 		if common.IsEmptyTrie(accountData.RootHash) {
@@ -297,7 +294,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 	return nil
 }
 
-func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup, ctx context.Context, errChan common.BufferedErrChan) error {
+func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup, ctx context.Context, errChan common.BufferedErrChan) {
 	u.throttler.StartProcessing()
 	wg.Add(1)
 
@@ -320,7 +317,7 @@ func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup
 					break
 				}
 
-				log.Trace("failed to get code from storage", "codeHash", codeHash, "error", err.Error())
+				log.Trace("failed to put code into storage", "codeHash", codeHash, "error", err.Error())
 			}
 
 			u.requestHandler.RequestTrieNodes(u.shardId, [][]byte{codeHash}, factory.AccountTrieNodesTopic)
@@ -337,8 +334,6 @@ func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup
 
 		wg.Done()
 	}(codeHash)
-
-	return nil
 }
 
 func (u *userAccountsSyncer) printDataTrieStatistics() {

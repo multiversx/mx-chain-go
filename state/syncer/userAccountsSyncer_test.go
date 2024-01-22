@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
@@ -161,7 +162,7 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	})
 }
 
-func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
+func TestUserAccountsSyncer_SyncAccountDataTries_WithCodeLeaf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("failed to decode code data", func(t *testing.T) {
@@ -211,6 +212,95 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 		_ = tr.UpdateWithVersion([]byte("ddog"), accountBytes, core.WithoutCodeLeaf)
 		_ = tr.Commit()
 
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		allLeavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		err = tr.GetAllLeavesOnChannel(allLeavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+		require.Nil(t, err)
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		leavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: allLeavesChannels.LeavesChan,
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		err = s.SyncAccountDataTries(leavesChannels, ctx)
+		require.Nil(t, err)
+
+		err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
+		require.Equal(t, commonErrors.ErrWrongTypeAssertion, err)
+
+		require.GreaterOrEqual(t, atomic.LoadUint32(&requestWasCalled), uint32(1))
+	})
+
+	t.Run("failed to put to storage first time", func(t *testing.T) {
+		t.Parallel()
+
+		key := []byte("accRootHash")
+
+		codeHash := []byte("accCodeHash")
+		codeData := []byte("accCodeData")
+
+		args := getDefaultUserAccountsSyncerArgs()
+
+		numCalls := uint32(0)
+		args.Cacher = &testscommon.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				if atomic.LoadUint32(&numCalls) == 1 {
+					return codeData, true
+				}
+
+				atomic.AddUint32(&numCalls, 1)
+
+				return nil, false
+			},
+		}
+
+		requestWasCalled := uint32(0)
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestTrieNodesCalled: func(destShardID uint32, hashes [][]byte, topic string) {
+				atomic.AddUint32(&requestWasCalled, 1)
+			},
+		}
+
+		putCalls := uint32(0)
+		args.TrieStorageManager = &storageManager.StorageManagerStub{
+			PutCalled: func(b1, b2 []byte) error {
+				if atomic.LoadUint32(&putCalls) == 0 {
+					atomic.AddUint32(&putCalls, 1)
+					return errors.New("expected err")
+				}
+
+				atomic.AddUint32(&putCalls, 1)
+
+				return nil
+			},
+		}
+
+		s, err := syncer.NewUserAccountsSyncer(args)
+		require.Nil(t, err)
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+		account.SetRootHash(key)
+		account.SetCodeHash(codeHash)
+
+		accountBytes, err := args.Marshalizer.Marshal(account)
+		require.Nil(t, err)
+
+		tr := emptyTrie()
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.UpdateWithVersion([]byte("ddog"), accountBytes, core.WithoutCodeLeaf)
+		_ = tr.Commit()
+
 		leavesChannels := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
 			ErrChan:    errChan.NewErrChanWrapper(),
@@ -232,6 +322,7 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 		require.Nil(t, err)
 
 		require.GreaterOrEqual(t, atomic.LoadUint32(&requestWasCalled), uint32(1))
+		require.GreaterOrEqual(t, atomic.LoadUint32(&putCalls), uint32(1))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -296,6 +387,9 @@ func TestUserAccountsSyncer_SyncAccounts_WithCodeLeaf(t *testing.T) {
 		cancel()
 
 		err = s.SyncAccountDataTries(leavesChannels, ctx)
+		require.Nil(t, err)
+
+		err = leavesChannels.ErrChan.ReadFromChanNonBlocking()
 		require.Nil(t, err)
 
 		require.GreaterOrEqual(t, atomic.LoadUint32(&requestWasCalled), uint32(1))
