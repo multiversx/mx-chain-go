@@ -18,6 +18,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -928,7 +929,8 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
+	randomness := helpers.ComputeRandomnessForTxSorting(metaBlock, mp.enableEpochsHandler)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, err
 	}
@@ -1093,6 +1095,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			false)
 
 		if createErr != nil {
+			mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 			return nil, 0, 0, createErr
 		}
 
@@ -2031,6 +2034,8 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 	}
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
 	for hdrHash, headerInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
 		if !headerInfo.usedInBlock {
 			continue
@@ -2080,7 +2085,6 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 
 		shardInfo = append(shardInfo, &shardData)
 	}
-	mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	log.Debug("created shard data",
 		"size", len(shardInfo),

@@ -110,6 +110,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		NFTStopCreateEnableEpoch:                                 92,
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
+		CurrentRandomnessOnSortingEnableEpoch:                    95,
 	}
 }
 
@@ -297,6 +298,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.NFTStopCreateFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixGasRemainingForSaveKeyValueFlag))
 	require.True(t, handler.IsFlagEnabled(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
+	require.True(t, handler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -407,6 +409,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.NFTStopCreateEnableEpoch, handler.GetActivationEpoch(common.NFTStopCreateFlag))
 	require.Equal(t, cfg.ChangeOwnerAddressCrossShardThroughSCEnableEpoch, handler.GetActivationEpoch(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
 	require.Equal(t, cfg.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch, handler.GetActivationEpoch(common.FixGasRemainingForSaveKeyValueFlag))
+	require.Equal(t, cfg.CurrentRandomnessOnSortingEnableEpoch, handler.GetActivationEpoch(common.CurrentRandomnessOnSortingFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

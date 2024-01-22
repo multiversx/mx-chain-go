@@ -695,6 +695,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch,
 		},
+		common.CurrentRandomnessOnSortingFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch,
+		},
 	}
 }
 
