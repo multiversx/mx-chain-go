@@ -130,7 +130,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 	cfgs.FlagsConfig.BaseVersion = baseVersion
 	cfgs.FlagsConfig.Version = version
 
-	err = checkHardwareRequirements()
+	err = checkHardwareRequirements(cfgs.GeneralConfig.HardwareRequirements)
 	if err != nil {
 		return fmt.Errorf("Hardware Requirements checks failed: %s", err.Error())
 	}
@@ -308,10 +308,32 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	return fileLogging, nil
 }
 
-func checkHardwareRequirements() error {
-	if !cpuid.CPU.Supports(cpuid.SSE4, cpuid.SSE42) {
+func checkHardwareRequirements(cfg config.HardwareRequirementsConfig) error {
+	cpuFlags, err := parseFeatures(cfg.CPUFlags)
+	if err != nil {
+		return err
+	}
+
+	if !cpuid.CPU.Supports(cpuFlags...) {
 		return fmt.Errorf("CPU Flags: Streaming SIMD Extensions 4 required")
 	}
 
 	return nil
+}
+
+func parseFeatures(features []string) ([]cpuid.FeatureID, error) {
+	flags := make([]cpuid.FeatureID, 0)
+
+	for _, cpuFlag := range features {
+		switch cpuFlag {
+		case "sse4_1":
+			flags = append(flags, cpuid.SSE4)
+		case "sse4_2":
+			flags = append(flags, cpuid.SSE42)
+		default:
+			return nil, fmt.Errorf("CPU Flags: cpu flag %s not found", cpuFlag)
+		}
+	}
+
+	return flags, nil
 }
