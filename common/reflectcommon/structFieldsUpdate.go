@@ -124,7 +124,7 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 
 		return trySetStructValue(value, structVal)
 	default:
-		return fmt.Errorf("unsupported type <%s> when trying to set the value <%s>", valueKind, newValue)
+		return fmt.Errorf("unsupported type <%s> when trying to set the value '%v' of type <%s>", valueKind, newValue, reflect.TypeOf(newValue))
 	}
 	return nil
 }
@@ -314,14 +314,16 @@ func fitsWithinFloatRange(value reflect.Value, targetType reflect.Type) bool {
 
 func getMinInt(targetType reflect.Type) (int64, error) {
 	switch targetType.Kind() {
-	case reflect.Int, reflect.Int64:
+	case reflect.Int:
+		return math.MinInt, nil
+	case reflect.Int64:
 		return math.MinInt64, nil
 	case reflect.Int8:
-		return int64(math.MinInt8), nil
+		return math.MinInt8, nil
 	case reflect.Int16:
-		return int64(math.MinInt16), nil
+		return math.MinInt16, nil
 	case reflect.Int32:
-		return int64(math.MinInt32), nil
+		return math.MinInt32, nil
 	default:
 		return 0, fmt.Errorf("target type is not integer")
 	}
@@ -329,14 +331,16 @@ func getMinInt(targetType reflect.Type) (int64, error) {
 
 func getMaxInt(targetType reflect.Type) (int64, error) {
 	switch targetType.Kind() {
-	case reflect.Int, reflect.Int64:
+	case reflect.Int:
+		return math.MaxInt, nil
+	case reflect.Int64:
 		return math.MaxInt64, nil
 	case reflect.Int8:
-		return int64(math.MaxInt8), nil
+		return math.MaxInt8, nil
 	case reflect.Int16:
-		return int64(math.MaxInt16), nil
+		return math.MaxInt16, nil
 	case reflect.Int32:
-		return int64(math.MaxInt32), nil
+		return math.MaxInt32, nil
 	default:
 		return 0, fmt.Errorf("target type is not integer")
 	}
@@ -344,14 +348,16 @@ func getMaxInt(targetType reflect.Type) (int64, error) {
 
 func getMaxUint(targetType reflect.Type) (uint64, error) {
 	switch targetType.Kind() {
-	case reflect.Uint, reflect.Uint64:
+	case reflect.Uint:
+		return math.MaxUint, nil
+	case reflect.Uint64:
 		return math.MaxUint64, nil
 	case reflect.Uint8:
-		return uint64(math.MaxUint8), nil
+		return math.MaxUint8, nil
 	case reflect.Uint16:
-		return uint64(math.MaxUint16), nil
+		return math.MaxUint16, nil
 	case reflect.Uint32:
-		return uint64(math.MaxUint32), nil
+		return math.MaxUint32, nil
 	default:
 		return 0, fmt.Errorf("taget type is not unsigned integer")
 	}

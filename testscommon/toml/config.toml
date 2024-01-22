@@ -47,3 +47,6 @@
     [TestConfigNestedStruct.ConfigNestedStruct]
         Text = "Config Nested Struct"
         Mesage = { Public = true, MessageDescription = [{ Text = "Text1" }, { Text = "Text2"}] }
+
+[TestMap]
+    Value = { "key" = 0 }

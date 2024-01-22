@@ -2,6 +2,7 @@ package reflectcommon
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -434,6 +435,77 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.Equal(t, err.Error(), "unable to cast value '1' of type <int> to type <string>")
+	})
+
+	t.Run("should error for unsupported type", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := make(map[string]int)
+		expectedNewValue["first"] = 1
+		expectedNewValue["second"] = 2
+
+		path := "TestMap.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.Equal(t, err.Error(), "unsupported type <map> when trying to set the value 'map[first:1 second:2]' of type <map[string]int>")
+	})
+
+	t.Run("should error fit signed for target type not int", func(t *testing.T) {
+		t.Parallel()
+
+		newValue := 10
+		reflectNewValue := reflect.ValueOf(newValue)
+		targetType := reflect.TypeOf("string")
+
+		res := FitsWithinSignedIntegerRange(reflectNewValue, targetType)
+		require.False(t, res)
+	})
+
+	t.Run("should error fit signed for value not int and target type int", func(t *testing.T) {
+		t.Parallel()
+
+		newValue := "value"
+		reflectNewValue := reflect.ValueOf(newValue)
+		targetType := reflect.TypeOf(10)
+
+		res := FitsWithinSignedIntegerRange(reflectNewValue, targetType)
+		require.False(t, res)
+	})
+
+	t.Run("should error fit unsigned for target type not uint", func(t *testing.T) {
+		t.Parallel()
+
+		newValue := uint(10)
+		reflectNewValue := reflect.ValueOf(newValue)
+		targetType := reflect.TypeOf("string")
+
+		res := FitsWithinUnsignedIntegerRange(reflectNewValue, targetType)
+		require.False(t, res)
+	})
+
+	t.Run("should error fit unsigned for value not uint and target type uint", func(t *testing.T) {
+		t.Parallel()
+
+		newValue := "value"
+		reflectNewValue := reflect.ValueOf(newValue)
+		targetType := reflect.TypeOf(uint(10))
+
+		res := FitsWithinUnsignedIntegerRange(reflectNewValue, targetType)
+		require.False(t, res)
+	})
+
+	t.Run("should error fit float for target type not float", func(t *testing.T) {
+		t.Parallel()
+
+		newValue := float32(10)
+		reflectNewValue := reflect.ValueOf(newValue)
+		targetType := reflect.TypeOf("string")
+
+		res := FitsWithinFloatRange(reflectNewValue, targetType)
+		require.False(t, res)
 	})
 
 	t.Run("should work and override int8 value", func(t *testing.T) {
@@ -962,6 +1034,21 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, err.Error(), "field <Nr> not found or cannot be set")
 	})
 
+	t.Run("should error with different types", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigStruct.ConfigStruct.Description"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[33].Value)
+		require.Equal(t, err.Error(), "unable to cast value '11' of type <string> to type <uint32>")
+	})
+
 	t.Run("should work and override nested struct", func(t *testing.T) {
 		t.Parallel()
 
@@ -973,7 +1060,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct"
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[33].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[34].Value)
 		require.NoError(t, err)
 		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Text, "Overwritten text")
 		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.Public, false)
@@ -991,7 +1078,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct"
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[33].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[34].Value)
 		require.NoError(t, err)
 		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Text, "Overwritten text")
 		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.Public, false)
@@ -1009,7 +1096,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[34].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[35].Value)
 		require.NoError(t, err)
 		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[0].Text, "Overwritten Text1")
 		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[1].Text, "Overwritten Text2")
@@ -1049,13 +1136,30 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		var newValue = []toml.MessageDescriptionInts{
-			{Value: 10},
-			{Value: 20},
+		var newValue = []toml.MessageDescriptionOtherName{
+			{Value: "10"},
+			{Value: "20"},
 		}
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, newValue)
 		require.Equal(t, err.Error(), "field <Value> not found or cannot be set")
+	})
+
+	t.Run("should error on slice when override different struct types", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
+
+		var newValue = []toml.MessageDescriptionOtherType{
+			{Text: 10},
+			{Text: 20},
+		}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, newValue)
+		require.Equal(t, err.Error(), "unable to cast value '10' of type <int> to type <string>")
 	})
 
 	t.Run("should work on slice and override struct", func(t *testing.T) {

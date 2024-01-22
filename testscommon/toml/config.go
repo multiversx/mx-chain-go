@@ -13,6 +13,7 @@ type Config struct {
 	TestConfigF64
 	TestConfigStruct
 	TestConfigNestedStruct
+	TestMap
 }
 
 type TestConfigI8 struct {
@@ -126,6 +127,14 @@ type MessageDescription struct {
 	Text string
 }
 
-type MessageDescriptionInts struct {
-	Value int
+type MessageDescriptionOtherType struct {
+	Text int
+}
+
+type MessageDescriptionOtherName struct {
+	Value string
+}
+
+type TestMap struct {
+	Value map[string]int
 }

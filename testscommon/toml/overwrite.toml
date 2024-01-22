@@ -30,8 +30,9 @@ OverridableConfigTomlValues = [
     { File = "config.toml", Path = "TestConfigF32.Float32", Value = -3.4e+40 },
     { File = "config.toml", Path = "TestConfigF64.Float64", Value = 1.7e+308 },
     { File = "config.toml", Path = "TestConfigF64.Float64", Value = -1.7e+308 },
-    { File = "config.toml", Path = "TestConfigStruct.ConfigStruct", Value = { Number = 11 } },
-    { File = "config.toml", Path = "TestConfigStruct.ConfigStruct", Value = { Nr = 222 } },
+    { File = "config.toml", Path = "TestConfigStruct.ConfigStruct.Description", Value = { Number = 11 } },
+    { File = "config.toml", Path = "TestConfigStruct.ConfigStruct.Description", Value = { Nr = 222 } },
+    { File = "config.toml", Path = "TestConfigStruct.ConfigStruct.Description", Value = { Number = "11" } },
     { File = "config.toml", Path = "TestConfigNestedStruct.ConfigNestedStruct", Value = { Text = "Overwritten text", Message = { Public = false, MessageDescription = [{ Text = "Overwritten Text1" }] } } },
     { File = "config.toml", Path = "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription", Value = [{ Text = "Overwritten Text1" }, { Text = "Overwritten Text2" }] },
 ]
