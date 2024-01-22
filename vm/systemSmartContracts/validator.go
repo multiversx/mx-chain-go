@@ -1064,17 +1064,14 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		}
 	}
 
-	v.activateStakingFor(
-		blsKeys,
-		registrationData,
-		validatorConfig.NodePrice,
-		registrationData.RewardAddress,
-		args.CallerAddr,
-	)
-
-	if v.isNumberOfNodesTooHigh(registrationData) {
-		v.eei.AddReturnMessage("number of nodes is too high")
-		return vmcommon.UserError
+	if !v.isNumberOfNodesTooHigh(registrationData) {
+		v.activateStakingFor(
+			blsKeys,
+			registrationData,
+			validatorConfig.NodePrice,
+			registrationData.RewardAddress,
+			args.CallerAddr,
+		)
 	}
 
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)
