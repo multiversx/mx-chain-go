@@ -14,6 +14,18 @@ staking, governance, guardians, and more.
 
 ## Sovereign Chain Architecture
 
+The architecture for a sovereign chain connected to a main chain (which could be mainnet, devnet, testnet, or another
+local testnet) requires two additional services for its operation. This setup ensures that the nodes within the
+sovereign network are responsible for listening to, monitoring real-time blocks from the main chain, and relaying
+transactions to it.
+
+This represents the complete architecture for a sovereign chain that maintains an active connection with a main chain.
+The connection, monitoring, and bridging tasks are handled by the nodes within the sovereign network.
+
+Therefore, the following information is pertinent if you wish to run your sovereign chain "attached" to another chain.
+However, if your goal is to experiment with a simple local network of sovereign nodes, these steps can be omitted, and
+you can directly start your network following the steps in the `Running the Sovereign Chain` chapter.
+
 Each sovereign shard requires two additional services for its operation:
 
 1. **Notifier Service**: An observer on the main chain for a specific shard(in which your sc bridge is deployed). Set up
@@ -21,7 +33,7 @@ Each sovereign shard requires two additional services for its operation:
    observer functions as the event notifier for the sovereign chain, it's important to enable the data export
    feature before starting it. To enable data export for the observer service, first locate the `external.toml` file
    within the observer's directory, specifically in `cmd/node/config`. Then, update the configuration to enable the
-   feature by setting it to `true`::
+   feature by setting it to `true`:
 
 ```toml
 [[HostDriversConfig]]
@@ -101,7 +113,7 @@ export SHARD_CONSENSUS_SIZE=2
 
 ### Sovereign chain connection with notifier
 
-Once the observer is operational, it will begin exporting, sending data, and notifying your local sovereign chain. To
+Once the observer is operational, it will begin exporting data and notifying your local sovereign chain. To
 establish this connection, configure your sovereign chain to communicate with the observer. This is done in
 the `cmd/sovereignnode/config/sovereignConfig.toml` file under the `[NotifierConfig.WebSocket]` section:
 
@@ -149,3 +161,48 @@ experimentation goals:
    GasLimitSettings = [
        {EnableEpoch = 0, MaxGasLimitPerBlock = "1500000000", ...
 ```
+
+## Running the Sovereign Chain
+
+Execute the following scripts in `scripts/testnet`:
+
+1. Initialize prerequisites (**first time only**):
+
+```bash
+./prerequisites.sh
+```
+
+2. Clean up any previous data:
+
+```bash
+./clean.sh
+```
+
+3. Configure the chain:
+
+```bash
+./config.sh
+```
+
+4. Start the sovereign chain:
+
+```bash
+./sovereignStart.sh
+```
+
+A local proxy (`localhost:7950`) will be instantiated, mirroring the functionality of the MultiversX proxy. Use it to
+interact with the chain, like querying blocks, account balances, sending transactions, deploying smart contracts, etc.
+[Here](https://github.com/multiversx/mx-chain-proxy-go) you can find all the available queries.
+
+The TLS certificate (`certificate.crt`) and its associated private key (`private_key.pem`) needed for the bridge service
+can be found in `~MultiversX/testnet/node/config`
+
+To stop the sovereign chain(among with the proxy), run:
+
+```bash
+./stop.sh
+```
+
+### Wallet for Testing
+
+Inside `~MultiversX/testnet/node/config`, you'll find a funded wallet (`walletKey.pem`) for experimentation.
