@@ -394,6 +394,7 @@ type EnableEpochsHandler interface {
 	IsChangeUsernameEnabled() bool
 	IsConsistentTokensValuesLengthCheckEnabled() bool
 	IsAutoBalanceDataTriesEnabled() bool
+	IsMigrateDataTrieEnabled() bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabled() bool
 	FixDelegationChangeOwnerOnAccountEnabled() bool
 	NFTStopCreateEnabled() bool
