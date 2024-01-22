@@ -53,9 +53,7 @@ func displayNodesConfiguration(
 	leaving map[uint32][]Validator,
 	actualRemaining map[uint32][]Validator,
 	nbShards uint32,
-	shardID uint32,
 ) {
-	log.Debug("displayNodesConfiguration: shard", "shardID", shardID)
 	for shard := uint32(0); shard <= nbShards; shard++ {
 		shardID := shard
 		if shardID == nbShards {
@@ -78,38 +76,6 @@ func displayNodesConfiguration(
 			log.Debug("actually remaining", "pk", pk, "shardID", shardID)
 		}
 	}
-}
-
-func DisplayNodesCoordinatorRegistry(
-	nodesConfig *NodesCoordinatorRegistry,
-) {
-	log.Debug("DisplayNodesCoordinatorRegistry: START")
-	for epoch, epochValidators := range nodesConfig.EpochsConfig {
-		log.Debug("DisplayNodesCoordinatorRegistry: epoch", "epoch", epoch)
-
-		nConfig, err := epochValidatorsToEpochNodesConfig(epochValidators)
-		if err != nil {
-			log.Error("DisplayNodesCoordinatorRegistry: failed to convert epoch validators", "error", err.Error())
-			return
-		}
-
-		nbShards := uint32(len(nConfig.eligibleMap))
-		if nbShards < 2 {
-			log.Error("DisplayNodesCoordinatorRegistry: invalid num shards", "error", ErrInvalidNumberOfShards)
-			return
-		}
-		nConfig.nbShards = nbShards - 1
-
-		displayNodesConfiguration(
-			nConfig.eligibleMap,
-			nConfig.waitingMap,
-			nConfig.leavingMap,
-			make(map[uint32][]Validator),
-			nConfig.nbShards,
-			nConfig.shardID,
-		)
-	}
-	log.Debug("DisplayNodesCoordinatorRegistry: END")
 }
 
 // SerializableValidatorsToValidators creates the validator map from serializable validator map

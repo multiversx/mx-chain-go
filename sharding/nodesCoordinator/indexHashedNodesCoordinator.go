@@ -176,7 +176,6 @@ func NewIndexHashedNodesCoordinator(args ArgNodesCoordinator) (*indexHashedNodes
 		currentConfig.leavingMap,
 		make(map[uint32][]Validator),
 		currentConfig.nbShards,
-		currentConfig.shardID,
 	)
 
 	ihnc.epochStartRegistrationHandler.RegisterHandler(ihnc)
@@ -262,16 +261,6 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 	if ok {
 		enc, ok := value.(*epochNodesConfig)
 		if ok {
-			log.Debug("getNodesConfig: manage to find nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
-			displayNodesConfiguration(
-				enc.eligibleMap,
-				enc.waitingMap,
-				enc.leavingMap,
-				make(map[uint32][]Validator),
-				enc.nbShards,
-				enc.shardID,
-			)
-
 			return enc, ok
 		}
 	}
@@ -646,7 +635,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		ihnc.mutNodesConfig.RUnlock()
 		return
 	}
-	log.Debug("EpochStartPrepare: previousConfig", "shardID", previousConfig.shardID)
 
 	// TODO: remove the copy if no changes are done to the maps
 	copiedPrevious := &epochNodesConfig{}
@@ -718,7 +706,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		leavingNodesMap,
 		stillRemainingNodesMap,
 		newNodesConfig.nbShards,
-		newNodesConfig.shardID,
 	)
 
 	ihnc.mutSavedStateKey.Lock()

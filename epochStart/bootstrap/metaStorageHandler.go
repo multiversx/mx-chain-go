@@ -132,7 +132,6 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	if err != nil {
 		return err
 	}
-	nodesCoordinator.DisplayNodesCoordinatorRegistry(components.NodesConfig)
 
 	lastCrossNotarizedHeader, err := msh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {

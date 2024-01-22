@@ -3,7 +3,6 @@ package nodesCoordinator
 import (
 	"encoding/json"
 	"fmt"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -213,8 +212,6 @@ func GetNodesCoordinatorRegistry(
 		return nil, ErrNilBootStorer
 	}
 
-	log.Debug(string(debug.Stack()))
-
 	minEpoch := 0
 	if lastEpoch >= numStoredEpochs {
 		minEpoch = int(lastEpoch) - int(numStoredEpochs) + 1
@@ -243,14 +240,10 @@ func GetNodesCoordinatorRegistry(
 		}
 	}
 
-	nc := &NodesCoordinatorRegistry{
+	return &NodesCoordinatorRegistry{
 		EpochsConfig: epochsConfig,
 		CurrentEpoch: lastEpoch,
-	}
-
-	DisplayNodesCoordinatorRegistry(nc)
-
-	return nc, nil
+	}, nil
 }
 
 func setEpochConfigPerEpoch(
@@ -377,43 +370,12 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 	}
 }
 
-func (ihnc *indexHashedNodesCoordinator) checkInitialSaveState(key []byte) error {
-	registry := ihnc.NodesCoordinatorToRegistry()
-
-	for epoch := range registry.EpochsConfig {
-		ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), []byte(epoch)...)
-		_, err := ihnc.bootStorer.Get(ncInternalkey)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (ihnc *indexHashedNodesCoordinator) saveState(key []byte) error {
 	registry := ihnc.NodesCoordinatorToRegistry()
 
 	err := SaveNodesCoordinatorRegistry(registry, ihnc.bootStorer)
 	if err != nil {
 		return err
-	}
-
-	nodesConfig, err := ihnc.registryToNodesCoordinator(registry)
-	if err != nil {
-		return err
-	}
-
-	for epoch, nConfig := range nodesConfig {
-		log.Debug("saveState: nodes config", "epoch", epoch)
-		displayNodesConfiguration(
-			nConfig.eligibleMap,
-			nConfig.waitingMap,
-			nConfig.leavingMap,
-			make(map[uint32][]Validator),
-			nConfig.nbShards,
-			nConfig.shardID,
-		)
 	}
 
 	return nil
@@ -438,7 +400,6 @@ func (ihnc *indexHashedNodesCoordinator) NodesCoordinatorToRegistry() *NodesCoor
 	for epoch := uint32(minEpoch); epoch <= lastEpoch; epoch++ {
 		epochNodesData, ok := ihnc.getNodesConfig(epoch)
 		if !ok {
-			log.Debug("NodesCoordinatorToRegistry: did not find nodes config", "epoch", epoch)
 			continue
 		}
 
@@ -459,8 +420,6 @@ func SaveNodesCoordinatorRegistry(
 	if nodesConfig == nil {
 		return ErrNilNodesCoordinatorRegistry
 	}
-
-	log.Debug(string(debug.Stack()))
 
 	for epoch, config := range nodesConfig.EpochsConfig {
 		epochsConfig := make(map[string]*EpochValidators)
@@ -487,8 +446,6 @@ func SaveNodesCoordinatorRegistry(
 
 		log.Debug("saving nodes coordinator config", "key", ncInternalkey)
 	}
-
-	DisplayNodesCoordinatorRegistry(nodesConfig)
 
 	return nil
 }
