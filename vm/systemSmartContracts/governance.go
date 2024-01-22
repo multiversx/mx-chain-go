@@ -1035,7 +1035,26 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 }
 
 func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedListV2) error {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return g.saveUserVotesV1(address, votedList)
+	}
+
 	marshaledData, err := g.marshalizer.Marshal(votedList)
+	if err != nil {
+		return err
+	}
+	g.eei.SetStorage(address, marshaledData)
+
+	return nil
+}
+
+func (g *governanceContract) saveUserVotesV1(address []byte, votedList *OngoingVotedListV2) error {
+	votedListV1 := &OngoingVotedList{
+		Direct:    votedList.Direct,
+		Delegated: votedList.Delegated,
+	}
+
+	marshaledData, err := g.marshalizer.Marshal(votedListV1)
 	if err != nil {
 		return err
 	}
