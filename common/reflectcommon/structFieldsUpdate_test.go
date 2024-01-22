@@ -647,9 +647,24 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigI32.Int32.Value"
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[8].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[17].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[8].Value, int64(testConfig.Int32.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[17].Value, int64(testConfig.Int32.Value))
+	})
+
+	t.Run("should work and override int32 value with uint16", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := uint16(10)
+
+		path := "TestConfigI32.Int32.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.NoError(t, err)
+		require.Equal(t, int32(expectedNewValue), testConfig.Int32.Value)
 	})
 
 	t.Run("should error int32 value", func(t *testing.T) {

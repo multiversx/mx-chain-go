@@ -240,12 +240,9 @@ func isIntegerType(value reflect.Type) bool {
 }
 
 func fitsWithinSignedIntegerRange(value reflect.Value, targetType reflect.Type) bool {
-	min, err := getMinInt(targetType)
-	if err != nil {
-		return false
-	}
-	max, err := getMaxInt(targetType)
-	if err != nil {
+	min, errMin := getMinInt(targetType)
+	max, errMax := getMaxInt(targetType)
+	if errMin != nil || errMax != nil {
 		return false
 	}
 
@@ -300,12 +297,9 @@ func isFloatType(value reflect.Type) bool {
 }
 
 func fitsWithinFloatRange(value reflect.Value, targetType reflect.Type) bool {
-	min, err := getMinFloat(targetType)
-	if err != nil {
-		return false
-	}
-	max, err := getMaxFloat(targetType)
-	if err != nil {
+	min, errMin := getMinFloat(targetType)
+	max, errMax := getMaxFloat(targetType)
+	if errMin != nil || errMax != nil {
 		return false
 	}
 
