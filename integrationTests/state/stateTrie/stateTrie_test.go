@@ -2469,7 +2469,7 @@ func migrateDataTrieBuiltInFunc(
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagate := 5
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagate, nonce, round, idxProposers)
 
 	isMigrated = getAddressMigrationStatus(t, nodes[shardId].AccntState, migrationAddress)
 	require.True(t, isMigrated)
