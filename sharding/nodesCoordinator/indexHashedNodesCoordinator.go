@@ -271,13 +271,15 @@ func (ihnc *indexHashedNodesCoordinator) getNodesConfig(epoch uint32) (*epochNod
 		return nil, false
 	}
 
-	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
-	log.Debug("getNodesConfig: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID(), "nc shard ID", nodesConfig.shardID)
-
-	ihnc.nodesConfig[epoch] = nodesConfig
-	log.Debug("getNodesConfig: put nodes config in nodesConfig map", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID(), "nc shard ID", nodesConfig.shardID)
+	ihnc.putNodesConfig(epoch, nodesConfig)
 
 	return nodesConfig, true
+}
+
+// it has to be used under mutex
+func (ihnc *indexHashedNodesCoordinator) putNodesConfig(epoch uint32, nodesConfig *epochNodesConfig) {
+	ihnc.nodesConfig[epoch] = nodesConfig
+	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
 }
 
 // setNodesPerShards loads the distribution of nodes per shard into the nodes management component
@@ -330,9 +332,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		return err
 	}
 
-	ihnc.nodesConfig[epoch] = nodesConfig
-	ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nodesConfig, 0)
-	log.Debug("setNodesPerShards: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
+	ihnc.putNodesConfig(epoch, nodesConfig)
 
 	ihnc.numTotalEligible = numTotalEligible
 	ihnc.setNodeType(isCurrentNodeValidator)
@@ -1299,7 +1299,7 @@ func (ihnc *indexHashedNodesCoordinator) GetWaitingEpochsLeftForPublicKey(public
 	currentEpoch := ihnc.enableEpochsHandler.GetCurrentEpoch()
 
 	ihnc.mutNodesConfig.RLock()
-	nodesConfig, ok := ihnc.nodesConfig[currentEpoch]
+	nodesConfig, ok := ihnc.getNodesConfig(currentEpoch)
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
