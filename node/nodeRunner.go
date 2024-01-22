@@ -26,10 +26,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
@@ -49,11 +52,16 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -381,6 +389,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
 		return true, err
@@ -718,7 +727,9 @@ func (nr *nodeRunner) createApiFacade(
 		Bootstrapper:          currentNode.consensusComponents.Bootstrapper(),
 		AllowVMQueriesChan:    allowVMQueriesChan,
 		StatusComponents:      currentNode.statusComponents,
+		ProcessingMode:        common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		BlockChainHookCreator: currentNode.runTypeComponents.BlockChainHookHandlerCreator(),
+		ChainRunType:          common.ChainRunTypeRegular,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1223,32 +1234,43 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                 *configs.GeneralConfig,
-		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            *configs.PreferencesConfig,
-		ImportDBConfig:         *configs.ImportDbConfig,
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nodesCoordinator,
-		Data:                   dataComponents,
-		CoreData:               coreComponents,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		BootstrapComponents:    bootstrapComponents,
-		StatusComponents:       statusComponents,
-		StatusCoreComponents:   statusCoreComponents,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         configs.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		FlagsConfig:            *configs.FlagsConfig,
-		RunTypeComponents:      runTypeComponents,
+		Config:                                *configs.GeneralConfig,
+		EpochConfig:                           *configs.EpochConfig,
+		PrefConfigs:                           *configs.PreferencesConfig,
+		ImportDBConfig:                        *configs.ImportDbConfig,
+		AccountsParser:                        accountsParser,
+		SmartContractParser:                   smartContractParser,
+		GasSchedule:                           gasScheduleNotifier,
+		NodesCoordinator:                      nodesCoordinator,
+		Data:                                  dataComponents,
+		CoreData:                              coreComponents,
+		Crypto:                                cryptoComponents,
+		State:                                 stateComponents,
+		Network:                               networkComponents,
+		BootstrapComponents:                   bootstrapComponents,
+		StatusComponents:                      statusComponents,
+		StatusCoreComponents:                  statusCoreComponents,
+		RequestedItemsHandler:                 requestedItemsHandler,
+		WhiteListHandler:                      whiteListRequest,
+		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
+		MaxRating:                             configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                        configs.SystemSCConfig,
+		ImportStartHandler:                    importStartHandler,
+		HistoryRepo:                           historyRepository,
+		FlagsConfig:                           *configs.FlagsConfig,
+		TxExecutionOrderHandler:               txExecutionOrderHandler,
+		ChainRunType:                          common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		RunTypeComponents:                     runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1368,16 +1390,18 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		PrefConfig:           *nr.configs.PreferencesConfig,
-		ImportDbConfig:       *nr.configs.ImportDbConfig,
-		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
-		RunTypeComponents:    runTypeComponents,
+		Config:                           *nr.configs.GeneralConfig,
+		PrefConfig:                       *nr.configs.PreferencesConfig,
+		ImportDbConfig:                   *nr.configs.ImportDbConfig,
+		FlagsConfig:                      *nr.configs.FlagsConfig,
+		WorkingDir:                       nr.configs.FlagsConfig.DbDir,
+		CoreComponents:                   coreComponents,
+		CryptoComponents:                 cryptoComponents,
+		NetworkComponents:                networkComponents,
+		StatusCoreComponents:             statusCoreComponents,
+		RunTypeComponents:                runTypeComponents,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1446,16 +1470,18 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *nr.configs.EpochConfig,
-		RoundConfig:         *nr.configs.RoundConfig,
-		ImportDbConfig:      *nr.configs.ImportDbConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                   *nr.configs.GeneralConfig,
+		ConfigPathsHolder:        *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:              *nr.configs.EpochConfig,
+		RoundConfig:              *nr.configs.RoundConfig,
+		ImportDbConfig:           *nr.configs.ImportDbConfig,
+		RatingsConfig:            *nr.configs.RatingsConfig,
+		EconomicsConfig:          *nr.configs.EconomicsConfig,
+		NodesFilename:            nr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:      chanStopNodeProcess,
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewRatingsDataFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1518,6 +1544,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
+		PrefsConfig:                          *configs.PreferencesConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            core.NewKeyLoader(),

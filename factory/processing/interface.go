@@ -1,6 +1,7 @@
 package processing
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -49,5 +50,10 @@ type ForkDetectorCreator interface {
 // RequestHandlerCreator defines the resolver requester factory handler
 type RequestHandlerCreator interface {
 	CreateRequestHandler(resolverRequestArgs requestHandlers.RequestHandlerArgs) (process.RequestHandler, error)
+}
+
+// GenesisMetaBlockChecker should handle genesis meta block checks after creation
+type GenesisMetaBlockChecker interface {
+	SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, validatorStatsRootHash []byte) error
 	IsInterfaceNil() bool
 }

@@ -41,7 +41,7 @@ type AccountsAdapter interface {
 	RecreateTrieFromEpoch(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
-	SnapshotState(rootHash []byte)
+	SnapshotState(rootHash []byte, epoch uint32)
 	SetStateCheckpoint(rootHash []byte)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
@@ -51,6 +51,30 @@ type AccountsAdapter interface {
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// SnapshotsManager defines the methods for the snapshot manager
+type SnapshotsManager interface {
+	SnapshotState(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
+	SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager)
+	StartSnapshotAfterRestartIfNeeded(trieStorageManager common.StorageManager) error
+	IsSnapshotInProgress() bool
+	SetSyncer(syncer AccountsDBSyncer) error
+	IsInterfaceNil() bool
+}
+
+// StateMetrics defines the methods for the state metrics
+type StateMetrics interface {
+	UpdateMetricsOnSnapshotStart()
+	UpdateMetricsOnSnapshotCompletion(stats common.SnapshotStatisticsHandler)
+	GetSnapshotMessage() string
+	IsInterfaceNil() bool
+}
+
+// IteratorChannelsProvider defines the methods for the iterator channels provider
+type IteratorChannelsProvider interface {
+	GetIteratorChannels() *common.TrieIteratorChannels
 	IsInterfaceNil() bool
 }
 
@@ -159,7 +183,8 @@ type DataTrie interface {
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//  with some extra features like signing statistics or rating information
+//
+//	with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte

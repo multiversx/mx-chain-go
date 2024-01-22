@@ -811,6 +811,15 @@ func TestEnableEpochConfig(t *testing.T) {
     # DeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when the deterministic sorting on validators info is enabled
     DeterministicSortOnValidatorsInfoEnableEpoch = 66
 
+    # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 64
+
+	# ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	ScToScLogEventEnableEpoch = 88
+
+    # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
+    NFTStopCreateEnableEpoch = 89
+
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 69
 
@@ -882,7 +891,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixOOGReturnCodeEnableEpoch:                       46,
 			RemoveNonUpdatedStorageEnableEpoch:                47,
 			OptimizeNFTStoreEnableEpoch:                       48,
-			CreateNFTThroughExecByCallerEnableEpoch:            49,
+			CreateNFTThroughExecByCallerEnableEpoch:           49,
 			StopDecreasingValidatorRatingWhenStuckEnableEpoch: 50,
 			FrontRunningProtectionEnableEpoch:                 51,
 			IsPayableBySCEnableEpoch:                          52,
@@ -905,22 +914,22 @@ func TestEnableEpochConfig(t *testing.T) {
 			ESDTMetadataContinuousCleanupEnableEpoch:          69,
 			MiniBlockPartialExecutionEnableEpoch:              70,
 			FixAsyncCallBackArgsListEnableEpoch:               71,
-			FixOldTokenLiquidityEnableEpoch:                   72,
-			RuntimeMemStoreLimitEnableEpoch:                   73,
-			SetSenderInEeiOutputTransferEnableEpoch:           74,
-			RefactorPeersMiniBlocksEnableEpoch:                75,
-			MaxBlockchainHookCountersEnableEpoch:              76,
-			WipeSingleNFTLiquidityDecreaseEnableEpoch:         77,
-			AlwaysSaveTokenMetaDataEnableEpoch:                78,
-			RuntimeCodeSizeFixEnableEpoch:                     79,
-			RelayedNonceFixEnableEpoch:                        80,
-			SetGuardianEnableEpoch:                            81,
-			AutoBalanceDataTriesEnableEpoch:                   82,
-			KeepExecOrderOnCreatedSCRsEnableEpoch:             83,
-			MultiClaimOnDelegationEnableEpoch:                 84,
-			ChangeUsernameEnableEpoch:                         85,
-			ConsistentTokensValuesLengthCheckEnableEpoch:      86,
-			FixDelegationChangeOwnerOnAccountEnableEpoch:      87,
+			FixOldTokenLiquidityEnableEpoch:                   72, RuntimeMemStoreLimitEnableEpoch: 73,
+			SetSenderInEeiOutputTransferEnableEpoch:      74,
+			RefactorPeersMiniBlocksEnableEpoch:           75,
+			MaxBlockchainHookCountersEnableEpoch:         76,
+			WipeSingleNFTLiquidityDecreaseEnableEpoch:    77,
+			AlwaysSaveTokenMetaDataEnableEpoch:           78,
+			RuntimeCodeSizeFixEnableEpoch:                79,
+			RelayedNonceFixEnableEpoch:                   80,
+			SetGuardianEnableEpoch:                       81,
+			AutoBalanceDataTriesEnableEpoch:              82,
+			KeepExecOrderOnCreatedSCRsEnableEpoch:        83,
+			MultiClaimOnDelegationEnableEpoch:            84,
+			ChangeUsernameEnableEpoch:                    85,
+			ConsistentTokensValuesLengthCheckEnableEpoch: 86,
+			FixDelegationChangeOwnerOnAccountEnableEpoch: 87,
+			ScToScLogEventEnableEpoch:                    88, NFTStopCreateEnableEpoch: 89,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -933,8 +942,9 @@ func TestEnableEpochConfig(t *testing.T) {
 					NodesToShufflePerShard: 80,
 				},
 			},
-			DeterministicSortOnValidatorsInfoEnableEpoch: 66,
-			ConsensusModelV2EnableEpoch:                  69,
+			DeterministicSortOnValidatorsInfoEnableEpoch:    66,
+			DynamicGasCostForDataTrieStorageLoadEnableEpoch: 64,
+			ConsensusModelV2EnableEpoch:                     69,
 			BLSMultiSignerEnableEpoch: []MultiSignerConfig{
 				{
 					EnableEpoch: 0,

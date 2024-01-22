@@ -2,6 +2,7 @@ package parsing
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -392,6 +393,8 @@ func (ap *accountsParser) setScrsTxsPool(
 ) {
 	for _, id := range indexingData {
 		for txHash, tx := range id.ScrsTxs {
+			hexEncodedTxHash := hex.EncodeToString([]byte(txHash))
+
 			senderShardID := shardCoordinator.ComputeId(tx.GetSndAddr())
 			receiverShardID := shardCoordinator.ComputeId(tx.GetRcvAddr())
 
@@ -401,11 +404,11 @@ func (ap *accountsParser) setScrsTxsPool(
 			}
 			scrTx.GasLimit = uint64(0)
 
-			txsPoolPerShard[senderShardID].SmartContractResults[txHash] = &outportcore.SCRInfo{
+			txsPoolPerShard[senderShardID].SmartContractResults[hexEncodedTxHash] = &outportcore.SCRInfo{
 				SmartContractResult: scrTx,
 				FeeInfo:             &outportcore.FeeInfo{Fee: big.NewInt(0)},
 			}
-			txsPoolPerShard[receiverShardID].SmartContractResults[txHash] = &outportcore.SCRInfo{
+			txsPoolPerShard[receiverShardID].SmartContractResults[hexEncodedTxHash] = &outportcore.SCRInfo{
 				SmartContractResult: scrTx,
 				FeeInfo:             &outportcore.FeeInfo{Fee: big.NewInt(0)},
 			}
@@ -430,33 +433,51 @@ func (ap *accountsParser) setTxsPoolAndMiniBlocks(
 			senderShardID = shardCoordinator.ComputeId(txHandler.GetSndAddr())
 		}
 
-		txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
+		err := ap.setTxPoolAndMiniBlock(txsPoolPerShard, miniBlocks, txHandler, senderShardID, receiverShardID)
 		if err != nil {
 			return err
 		}
+	}
 
-		tx, ok := txHandler.(*transactionData.Transaction)
-		if !ok {
-			continue
-		}
-		tx.Signature = []byte(common.GenesisTxSignatureString)
-		tx.GasLimit = uint64(0)
+	return nil
+}
 
-		txsPoolPerShard[senderShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
-			Transaction: tx,
-			FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
-		}
+func (ap *accountsParser) setTxPoolAndMiniBlock(
+	txsPoolPerShard map[uint32]*outportcore.TransactionPool,
+	miniBlocks []*block.MiniBlock,
+	txHandler coreData.TransactionHandler,
+	senderShardID, receiverShardID uint32,
+) error {
+	txHash, err := core.CalculateHash(ap.marshalizer, ap.hasher, txHandler)
+	if err != nil {
+		return err
+	}
 
-		txsPoolPerShard[receiverShardID].Transactions[string(txHash)] = &outportcore.TxInfo{
-			Transaction: tx,
-			FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0)},
-		}
+	tx, ok := txHandler.(*transactionData.Transaction)
+	if !ok {
+		return nil
+	}
+	tx.Signature = []byte(common.GenesisTxSignatureString)
+	tx.GasLimit = uint64(0)
 
-		for _, miniBlock := range miniBlocks {
-			if senderShardID == miniBlock.GetSenderShardID() &&
-				receiverShardID == miniBlock.GetReceiverShardID() {
-				miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-			}
+	txsPoolPerShard[senderShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
+		Transaction: tx,
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0),
+			InitialPaidFee: big.NewInt(0),
+		},
+	}
+
+	txsPoolPerShard[receiverShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
+		Transaction: tx,
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0),
+			InitialPaidFee: big.NewInt(0),
+		},
+	}
+
+	for _, miniBlock := range miniBlocks {
+		if senderShardID == miniBlock.GetSenderShardID() &&
+			receiverShardID == miniBlock.GetReceiverShardID() {
+			miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
 		}
 	}
 

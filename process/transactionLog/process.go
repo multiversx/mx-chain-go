@@ -36,7 +36,8 @@ type txLogProcessor struct {
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
-//  and saving them into the injected storage
+//
+//	and saving them into the injected storage
 func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	storer := args.Storer
 	if check.IfNil(storer) && args.SaveInStorageEnabled {
@@ -153,10 +154,11 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 
 	for _, logEntry := range logEntries {
 		txLog.Events = append(txLog.Events, &transaction.Event{
-			Identifier: logEntry.Identifier,
-			Address:    logEntry.Address,
-			Topics:     logEntry.Topics,
-			Data:       logEntry.Data,
+			Identifier:     logEntry.Identifier,
+			Address:        logEntry.Address,
+			Topics:         logEntry.Topics,
+			Data:           logEntry.GetFirstDataItem(),
+			AdditionalData: logEntry.Data,
 		})
 	}
 

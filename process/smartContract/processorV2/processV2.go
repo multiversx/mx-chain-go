@@ -296,7 +296,7 @@ func (sc *scProcessor) ExecuteSmartContractTransaction(
 		txHash := sc.computeTxHashUnsafe(tx)
 		log.Debug(fmt.Sprintf("scProcessor.ExecuteSmartContractTransaction(): execution took > %s", executeDurationAlarmThreshold), "tx hash", txHash, "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
 	} else {
-		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()))
+		log.Trace("scProcessor.ExecuteSmartContractTransaction()", "sc", tx.GetRcvAddr(), "duration", duration, "returnCode", returnCode, "err", err, "data", string(tx.GetData()), "retMessage", string(failureContext.returnMessage))
 	}
 
 	return returnCode, err
@@ -1646,7 +1646,7 @@ func createNewLogFromSCR(txHandler data.TransactionHandler) *vmcommon.LogEntry {
 		Identifier: []byte(generalSCRIdentifier),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr()},
-		Data:       txHandler.GetData(),
+		Data:       [][]byte{txHandler.GetData()},
 	}
 	if len(returnMessage) > 0 {
 		newLog.Topics = append(newLog.Topics, returnMessage)
@@ -1666,7 +1666,7 @@ func createNewLogFromSCRIfError(txHandler data.TransactionHandler) *vmcommon.Log
 		Identifier: []byte(signalError),
 		Address:    txHandler.GetSndAddr(),
 		Topics:     [][]byte{txHandler.GetRcvAddr(), returnMessage},
-		Data:       txHandler.GetData(),
+		Data:       [][]byte{txHandler.GetData()},
 	}
 
 	return newLog

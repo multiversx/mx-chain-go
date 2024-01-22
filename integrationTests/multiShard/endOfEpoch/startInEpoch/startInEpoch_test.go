@@ -148,7 +148,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < uint32(numOfShards); i++ {
@@ -164,9 +164,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		GetRoundDurationCalled: func() uint64 {
 			return 4000
 		},
-		GetChainIdCalled: func() string {
-			return string(integrationTests.ChainID)
-		},
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return 1
 		},
@@ -175,9 +172,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		NumberOfShardsCalled: func() uint32 {
 			return uint32(numOfShards)
-		},
-		GetMinTransactionVersionCalled: func() uint32 {
-			return integrationTests.MinTransactionVersion
 		},
 	}
 
@@ -269,8 +263,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
-		AdditionalStorageServiceCreator: additionalStorageServiceFactory,
+		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		AdditionalStorageServiceCreator:  additionalStorageServiceFactory,
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

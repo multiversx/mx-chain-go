@@ -8,11 +8,11 @@ import (
 
 // BlockChainHookHandlerFactoryMock -
 type BlockChainHookHandlerFactoryMock struct {
-	CreateBlockChainHookHandlerCalled func(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error)
+	CreateBlockChainHookHandlerCalled func(args hooks.ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error)
 }
 
 // CreateBlockChainHookHandler -
-func (b *BlockChainHookHandlerFactoryMock) CreateBlockChainHookHandler(args hooks.ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+func (b *BlockChainHookHandlerFactoryMock) CreateBlockChainHookHandler(args hooks.ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 	if b.CreateBlockChainHookHandlerCalled != nil {
 		return b.CreateBlockChainHookHandlerCalled(args)
 	}

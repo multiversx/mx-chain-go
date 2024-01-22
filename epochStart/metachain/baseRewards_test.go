@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -1195,8 +1196,9 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 				return 63
 			},
 		},
-		UserAccountsDB:      userAccountsDB,
-		EnableEpochsHandler: enableEpochsHandler,
+		UserAccountsDB:        userAccountsDB,
+		EnableEpochsHandler:   enableEpochsHandler,
+		ExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 }
 

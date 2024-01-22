@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -27,12 +28,13 @@ func TestShardScheduledTxsExecutionFactory_CreateScheduledTxsExecutionHandler(t 
 	require.Nil(t, stxeh)
 
 	stxeh, err = stef.CreateScheduledTxsExecutionHandler(ScheduledTxsExecutionFactoryArgs{
-		TxProcessor:      &testscommon.TxProcessorMock{},
-		TxCoordinator:    &testscommon.TransactionCoordinatorMock{},
-		Storer:           &genericMocks.StorerMock{},
-		Marshalizer:      &testscommon.ProtoMarshalizerMock{},
-		Hasher:           &testscommon.HasherStub{},
-		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
+		TxProcessor:             &testscommon.TxProcessorMock{},
+		TxCoordinator:           &testscommon.TransactionCoordinatorMock{},
+		Storer:                  &genericMocks.StorerMock{},
+		Marshalizer:             &testscommon.ProtoMarshalizerMock{},
+		Hasher:                  &testscommon.HasherStub{},
+		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
+		TxExecutionOrderHandler: &common.TxExecutionOrderHandlerStub{},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, stxeh)

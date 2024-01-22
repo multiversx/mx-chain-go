@@ -175,9 +175,9 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/$DIR_NAME$VALIDATOR_INDEX
 
   local node_command="./node \
-        -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
-        -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR -config ./config/config_validator.toml"
+        --port $PORT --profile-mode --log-save --log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service --rest-api-interface localhost:$RESTAPIPORT \
+        --sk-index $KEY_INDEX \
+        --working-directory $WORKING_DIR --config-external ./config/external_validator.toml --config ./config/config_validator.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then

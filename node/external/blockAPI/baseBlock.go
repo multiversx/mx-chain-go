@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/transaction/status"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -51,7 +52,7 @@ type baseAPIBlockProcessor struct {
 	historyRepo                  dblookupext.HistoryRepository
 	hasher                       hashing.Hasher
 	addressPubKeyConverter       core.PubkeyConverter
-	txStatusComputer             transaction.StatusComputerHandler
+	txStatusComputer             status.StatusComputerHandler
 	apiTransactionHandler        APITransactionHandler
 	logsFacade                   logsFacade
 	receiptsRepository           receiptsRepository

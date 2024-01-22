@@ -151,15 +151,26 @@ type ProcessComponentsFactoryArgs struct {
 	HistoryRepo            dblookupext.HistoryRepository
 	FlagsConfig            config.ContextFlagsConfig
 
-	Data                 factory.DataComponentsHolder
-	CoreData             factory.CoreComponentsHolder
-	Crypto               factory.CryptoComponentsHolder
-	State                factory.StateComponentsHolder
-	Network              factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	RunTypeComponents    factory.RunTypeComponentsHolder
+	Data                    factory.DataComponentsHolder
+	CoreData                factory.CoreComponentsHolder
+	Crypto                  factory.CryptoComponentsHolder
+	State                   factory.StateComponentsHolder
+	Network                 factory.NetworkComponentsHolder
+	BootstrapComponents     factory.BootstrapComponentsHolder
+	StatusComponents        factory.StatusComponentsHolder
+	StatusCoreComponents    factory.StatusCoreComponentsHolder
+	TxExecutionOrderHandler common.TxExecutionOrderHandler
+
+	ChainRunType                          common.ChainRunType
+	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
+	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker               GenesisMetaBlockChecker
+	RequesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
+	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
+	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
+	RunTypeComponents                     factory.RunTypeComponentsHolder
 }
 
 type processComponentsFactory struct {
@@ -185,15 +196,26 @@ type processComponentsFactory struct {
 	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
 
-	data                 factory.DataComponentsHolder
-	coreData             factory.CoreComponentsHolder
-	crypto               factory.CryptoComponentsHolder
-	state                factory.StateComponentsHolder
-	network              factory.NetworkComponentsHolder
-	bootstrapComponents  factory.BootstrapComponentsHolder
-	statusComponents     factory.StatusComponentsHolder
-	statusCoreComponents factory.StatusCoreComponentsHolder
-	runTypeComponents    factory.RunTypeComponentsHolder
+	data                    factory.DataComponentsHolder
+	coreData                factory.CoreComponentsHolder
+	crypto                  factory.CryptoComponentsHolder
+	state                   factory.StateComponentsHolder
+	network                 factory.NetworkComponentsHolder
+	bootstrapComponents     factory.BootstrapComponentsHolder
+	statusComponents        factory.StatusComponentsHolder
+	statusCoreComponents    factory.StatusCoreComponentsHolder
+	txExecutionOrderHandler common.TxExecutionOrderHandler
+
+	chainRunType                          common.ChainRunType
+	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
+	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker               GenesisMetaBlockChecker
+	requesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
+	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
+	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
+	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
+	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
+	runTypeComponents                     factory.RunTypeComponentsHolder
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -204,32 +226,42 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                 args.Config,
-		epochConfig:            args.EpochConfig,
-		prefConfigs:            args.PrefConfigs,
-		importDBConfig:         args.ImportDBConfig,
-		accountsParser:         args.AccountsParser,
-		smartContractParser:    args.SmartContractParser,
-		gasSchedule:            args.GasSchedule,
-		nodesCoordinator:       args.NodesCoordinator,
-		data:                   args.Data,
-		coreData:               args.CoreData,
-		crypto:                 args.Crypto,
-		state:                  args.State,
-		network:                args.Network,
-		bootstrapComponents:    args.BootstrapComponents,
-		statusComponents:       args.StatusComponents,
-		requestedItemsHandler:  args.RequestedItemsHandler,
-		whiteListHandler:       args.WhiteListHandler,
-		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
-		maxRating:              args.MaxRating,
-		systemSCConfig:         args.SystemSCConfig,
-		importStartHandler:     args.ImportStartHandler,
-		historyRepo:            args.HistoryRepo,
-		epochNotifier:          args.CoreData.EpochNotifier(),
-		statusCoreComponents:   args.StatusCoreComponents,
-		flagsConfig:            args.FlagsConfig,
-		runTypeComponents:      args.RunTypeComponents,
+		config:                                args.Config,
+		epochConfig:                           args.EpochConfig,
+		prefConfigs:                           args.PrefConfigs,
+		importDBConfig:                        args.ImportDBConfig,
+		accountsParser:                        args.AccountsParser,
+		smartContractParser:                   args.SmartContractParser,
+		gasSchedule:                           args.GasSchedule,
+		nodesCoordinator:                      args.NodesCoordinator,
+		data:                                  args.Data,
+		coreData:                              args.CoreData,
+		crypto:                                args.Crypto,
+		state:                                 args.State,
+		network:                               args.Network,
+		bootstrapComponents:                   args.BootstrapComponents,
+		statusComponents:                      args.StatusComponents,
+		requestedItemsHandler:                 args.RequestedItemsHandler,
+		whiteListHandler:                      args.WhiteListHandler,
+		whiteListerVerifiedTxs:                args.WhiteListerVerifiedTxs,
+		maxRating:                             args.MaxRating,
+		systemSCConfig:                        args.SystemSCConfig,
+		importStartHandler:                    args.ImportStartHandler,
+		historyRepo:                           args.HistoryRepo,
+		epochNotifier:                         args.CoreData.EpochNotifier(),
+		statusCoreComponents:                  args.StatusCoreComponents,
+		flagsConfig:                           args.FlagsConfig,
+		runTypeComponents:                     args.RunTypeComponents,
+		shardCoordinatorFactory:               args.ShardCoordinatorFactory,
+		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
+		txExecutionOrderHandler:               args.TxExecutionOrderHandler,
+		requesterContainerFactoryCreator:      args.RequesterContainerFactoryCreator,
+		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
+		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
+		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
+		txPreprocessorCreator:                 args.TxPreProcessorCreator,
+		chainRunType:                          args.ChainRunType,
 	}, nil
 }
 
@@ -346,16 +378,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		log.Warn("cannot index genesis accounts", "error", err)
 	}
 
-	genesisBlock, ok := genesisBlocks[core.MetachainShardId]
-	if !ok {
-		return nil, errors.New("genesis meta block does not exist")
-	}
-
-	genesisMetaBlock, ok := genesisBlock.(data.MetaHeaderHandler)
-	if !ok {
-		return nil, errors.New("genesis meta block invalid")
-	}
-
 	err = pcf.setGenesisHeader(genesisBlocks)
 	if err != nil {
 		return nil, err
@@ -371,7 +393,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
+	err = pcf.genesisMetaBlockChecker.SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -737,12 +759,13 @@ func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (proce
 	}
 
 	args := preprocess.ScheduledTxsExecutionFactoryArgs{
-		TxProcessor:      &disabled.TxProcessor{},
-		TxCoordinator:    &disabled.TxCoordinator{},
-		Storer:           scheduledSCRSStorer,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Hasher:           pcf.coreData.Hasher(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		TxProcessor:             &disabled.TxProcessor{},
+		TxCoordinator:           &disabled.TxCoordinator{},
+		Storer:                  scheduledSCRSStorer,
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
 	return pcf.runTypeComponents.ScheduledTxsExecutionCreator().CreateScheduledTxsExecutionHandler(args)
@@ -866,32 +889,36 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
-		Core:                 pcf.coreData,
-		Data:                 pcf.data,
-		GenesisTime:          uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
-		StartEpochNum:        pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-		Accounts:             pcf.state.AccountsAdapter(),
-		InitialNodesSetup:    pcf.coreData.GenesisNodesSetup(),
-		Economics:            pcf.coreData.EconomicsData(),
-		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
-		AccountsParser:       pcf.accountsParser,
-		SmartContractParser:  pcf.smartContractParser,
-		ValidatorAccounts:    pcf.state.PeerAccounts(),
-		GasSchedule:          pcf.gasSchedule,
-		VirtualMachineConfig: genesisVmConfig,
+
+		GenesisTime:   uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
+		StartEpochNum: pcf.bootstrapComponents.EpochBootstrapParams().Epoch(), Data: pcf.data,
+		Core:              pcf.coreData,
+		Accounts:          pcf.state.AccountsAdapter(),
+		ValidatorAccounts: pcf.state.PeerAccounts(), InitialNodesSetup: pcf.coreData.GenesisNodesSetup(),
+		Economics:           pcf.coreData.EconomicsData(),
+		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+		AccountsParser:      pcf.accountsParser,
+		SmartContractParser: pcf.smartContractParser,
+
+		GasSchedule: pcf.gasSchedule,
+
 		TxLogsProcessor:      pcf.txLogsProcessor,
-		HardForkConfig:       pcf.config.Hardfork,
-		TrieStorageManagers:  pcf.state.TrieStorageManagers(),
-		SystemSCConfig:       *pcf.systemSCConfig,
-		BlockSignKeyGen:      pcf.crypto.BlockSignKeyGen(),
-		GenesisString:        pcf.config.GeneralSettings.GenesisString,
-		GenesisNodePrice:     genesisNodePrice,
-		RoundConfig:          &pcf.roundConfig,
-		EpochConfig:          &pcf.epochConfig,
-		RunTypeComponents:    pcf.runTypeComponents,
+		VirtualMachineConfig: genesisVmConfig, HardForkConfig: pcf.config.Hardfork,
+		TrieStorageManagers: pcf.state.TrieStorageManagers(),
+		SystemSCConfig:      *pcf.systemSCConfig, RoundConfig: &pcf.roundConfig,
+		EpochConfig:             &pcf.epochConfig,
+		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
+		HistoryRepository:       pcf.historyRepo,
+		GenesisNodePrice:        genesisNodePrice,
+		GenesisString:           pcf.config.GeneralSettings.GenesisString,
+		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
+		RunTypeComponents:       pcf.runTypeComponents,
+		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
+		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
+		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 	}
 
-	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
+	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1385,7 +1412,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                payloadValidator,
 	}
-	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
+	resolversContainerFactory, err := pcf.shardResolversContainerFactoryCreator.CreateShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1451,7 +1478,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return requesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
+		return pcf.requesterContainerFactoryCreator.CreateRequesterContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1670,9 +1697,10 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            nodeOperationMode,
+		IncomingHeaderSubscriber:     pcf.incomingHeaderSubscriber,
 	}
 
-	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
+	interceptorContainerFactory, err := pcf.interceptorsContainerFactoryCreator.CreateInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1833,6 +1861,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
+		ShardCoordinatorFactory:          pcf.shardCoordinatorFactory,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -1989,6 +2018,30 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStatusCoreComponents)
+	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
+	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
+	}
+	if check.IfNil(args.GenesisBlockCreatorFactory) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
+	}
+	if check.IfNil(args.GenesisMetaBlockChecker) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
+	}
+	if check.IfNil(args.RequesterContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
+	}
+	if check.IfNil(args.InterceptorsContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
+	}
+	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
+	}
+	if check.IfNil(args.TxPreProcessorCreator) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeComponents)
