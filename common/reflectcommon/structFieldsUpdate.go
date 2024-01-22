@@ -76,58 +76,43 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 	valueKind := value.Kind()
 
 	errFunc := func() error {
-		return fmt.Errorf("cannot cast value '%s' of type <%s> to kind <%s>", newValue, reflect.TypeOf(newValue), valueKind)
+		return fmt.Errorf("unable to cast value '%v' of type <%s> to type <%s>", newValue, reflect.TypeOf(newValue), valueKind)
 	}
 
 	switch valueKind {
 	case reflect.Invalid:
 		return errFunc()
 	case reflect.Bool:
-		boolVal, err := newValue.(bool)
-		if !err {
+		boolVal, ok := newValue.(bool)
+		if !ok {
 			return errFunc()
 		}
 
 		value.SetBool(boolVal)
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		reflectVal := reflect.ValueOf(newValue)
-		if !reflectVal.Type().ConvertibleTo(value.Type()) {
+		intVal, ok := convertToSignedInteger(value, newValue)
+		if !ok {
 			return errFunc()
 		}
-		//Check if the newValue fits inside the signed int value
-		if !fitsWithinSignedIntegerRange(reflectVal, value.Type()) {
-			return fmt.Errorf("value '%s' does not fit within the range of <%s>", reflectVal, value.Type())
-		}
 
-		convertedValue := reflectVal.Convert(value.Type())
-		value.Set(convertedValue)
+		value.Set(*intVal)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		reflectVal := reflect.ValueOf(newValue)
-		if !reflectVal.Type().ConvertibleTo(value.Type()) {
+		uintVal, ok := convertToUnsignedInteger(value, newValue)
+		if !ok {
 			return errFunc()
 		}
-		//Check if the newValue fits inside the unsigned int value
-		if !fitsWithinUnsignedIntegerRange(reflectVal, value.Type()) {
-			return fmt.Errorf("value '%s' does not fit within the range of <%s>", reflectVal, value.Type())
-		}
 
-		convertedValue := reflectVal.Convert(value.Type())
-		value.Set(convertedValue)
+		value.Set(*uintVal)
 	case reflect.Float32, reflect.Float64:
-		reflectVal := reflect.ValueOf(newValue)
-		if !reflectVal.Type().ConvertibleTo(value.Type()) {
+		floatVal, ok := convertToFloat(value, newValue)
+		if !ok {
 			return errFunc()
 		}
-		//Check if the newValue fits inside the unsigned int value
-		if !fitsWithinFloatRange(reflectVal, value.Type()) {
-			return fmt.Errorf("value '%s' does not fit within the range of <%s>", reflectVal, value.Type())
-		}
 
-		convertedValue := reflectVal.Convert(value.Type())
-		value.Set(convertedValue)
+		value.Set(*floatVal)
 	case reflect.String:
-		strVal, err := newValue.(string)
-		if !err {
+		strVal, ok := newValue.(string)
+		if !ok {
 			return errFunc()
 		}
 
@@ -168,7 +153,7 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 func trySetStructValue(value *reflect.Value, newValue reflect.Value) error {
 	switch newValue.Kind() {
 	case reflect.Invalid:
-		return fmt.Errorf("invalid newValue kind <%s>", newValue.Kind())
+		return fmt.Errorf("invalid new value kind")
 	case reflect.Map: // overwrite with value read from toml file
 		return updateStructFromMap(value, newValue)
 	case reflect.Struct: // overwrite with go struct
@@ -214,103 +199,182 @@ func updateStructFromStruct(value *reflect.Value, newValue reflect.Value) error 
 	return nil
 }
 
+func convertToSignedInteger(value *reflect.Value, newValue interface{}) (*reflect.Value, bool) {
+	var reflectVal = reflect.ValueOf(newValue)
+
+	if !isIntegerType(reflectVal.Type()) {
+		return nil, false
+	}
+
+	if !fitsWithinSignedIntegerRange(reflectVal, value.Type()) {
+		return nil, false
+	}
+
+	convertedVal := reflectVal.Convert(value.Type())
+	return &convertedVal, true
+}
+
+func convertToUnsignedInteger(value *reflect.Value, newValue interface{}) (*reflect.Value, bool) {
+	var reflectVal = reflect.ValueOf(newValue)
+
+	if !isIntegerType(reflectVal.Type()) {
+		return nil, false
+	}
+
+	if !fitsWithinUnsignedIntegerRange(reflectVal, value.Type()) {
+		return nil, false
+	}
+
+	convertedVal := reflectVal.Convert(value.Type())
+	return &convertedVal, true
+}
+
+func isIntegerType(value reflect.Type) bool {
+	switch value.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return true
+	default:
+		return false
+	}
+}
+
 func fitsWithinSignedIntegerRange(value reflect.Value, targetType reflect.Type) bool {
-	min := getMinInt(targetType)
-	max := getMaxInt(targetType)
+	min, err := getMinInt(targetType)
+	if err != nil {
+		return false
+	}
+	max, err := getMaxInt(targetType)
+	if err != nil {
+		return false
+	}
 
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return value.Int() >= min && value.Int() <= max
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return value.Uint() <= uint64(max)
-	default:
-		return false
 	}
+
+	return false
 }
 
 func fitsWithinUnsignedIntegerRange(value reflect.Value, targetType reflect.Type) bool {
-	max := getMaxUint(targetType)
+	max, err := getMaxUint(targetType)
+	if err != nil {
+		return false
+	}
 
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return value.Int() >= 0 && uint64(value.Int()) <= max
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return value.Uint() <= math.MaxUint
+		return value.Uint() <= max
+	}
+
+	return false
+}
+
+func convertToFloat(value *reflect.Value, newValue interface{}) (*reflect.Value, bool) {
+	var reflectVal = reflect.ValueOf(newValue)
+
+	if !isFloatType(reflectVal.Type()) {
+		return nil, false
+	}
+
+	if !fitsWithinFloatRange(reflectVal, value.Type()) {
+		return nil, false
+	}
+
+	convertedVal := reflectVal.Convert(value.Type())
+	return &convertedVal, true
+}
+
+func isFloatType(value reflect.Type) bool {
+	switch value.Kind() {
+	case reflect.Float32, reflect.Float64:
+		return true
 	default:
 		return false
 	}
 }
 
 func fitsWithinFloatRange(value reflect.Value, targetType reflect.Type) bool {
-	min := getMinFloat(targetType)
-	max := getMaxFloat(targetType)
+	min, err := getMinFloat(targetType)
+	if err != nil {
+		return false
+	}
+	max, err := getMaxFloat(targetType)
+	if err != nil {
+		return false
+	}
 
 	return value.Float() >= min && value.Float() <= max
 }
 
-func getMinInt(targetType reflect.Type) int64 {
+func getMinInt(targetType reflect.Type) (int64, error) {
 	switch targetType.Kind() {
 	case reflect.Int, reflect.Int64:
-		return math.MinInt64
+		return math.MinInt64, nil
 	case reflect.Int8:
-		return int64(math.MinInt8)
+		return int64(math.MinInt8), nil
 	case reflect.Int16:
-		return int64(math.MinInt16)
+		return int64(math.MinInt16), nil
 	case reflect.Int32:
-		return int64(math.MinInt32)
+		return int64(math.MinInt32), nil
 	default:
-		return 0
+		return 0, fmt.Errorf("target type is not integer")
 	}
 }
 
-func getMaxInt(targetType reflect.Type) int64 {
+func getMaxInt(targetType reflect.Type) (int64, error) {
 	switch targetType.Kind() {
 	case reflect.Int, reflect.Int64:
-		return math.MaxInt64
+		return math.MaxInt64, nil
 	case reflect.Int8:
-		return int64(math.MaxInt8)
+		return int64(math.MaxInt8), nil
 	case reflect.Int16:
-		return int64(math.MaxInt16)
+		return int64(math.MaxInt16), nil
 	case reflect.Int32:
-		return int64(math.MaxInt32)
+		return int64(math.MaxInt32), nil
 	default:
-		return 0
+		return 0, fmt.Errorf("target type is not integer")
 	}
 }
 
-func getMaxUint(targetType reflect.Type) uint64 {
+func getMaxUint(targetType reflect.Type) (uint64, error) {
 	switch targetType.Kind() {
 	case reflect.Uint, reflect.Uint64:
-		return math.MaxUint64
+		return math.MaxUint64, nil
 	case reflect.Uint8:
-		return uint64(math.MaxUint8)
+		return uint64(math.MaxUint8), nil
 	case reflect.Uint16:
-		return uint64(math.MaxUint16)
+		return uint64(math.MaxUint16), nil
 	case reflect.Uint32:
-		return uint64(math.MaxUint32)
+		return uint64(math.MaxUint32), nil
 	default:
-		return 0
+		return 0, fmt.Errorf("taget type is not unsigned integer")
 	}
 }
 
-func getMinFloat(targetType reflect.Type) float64 {
+func getMinFloat(targetType reflect.Type) (float64, error) {
 	switch targetType.Kind() {
 	case reflect.Float32:
-		return -math.MaxFloat32
+		return -math.MaxFloat32, nil
 	case reflect.Float64:
-		return -math.MaxFloat64
+		return -math.MaxFloat64, nil
 	default:
-		return 0
+		return 0, fmt.Errorf("target type is not float")
 	}
 }
 
-func getMaxFloat(targetType reflect.Type) float64 {
+func getMaxFloat(targetType reflect.Type) (float64, error) {
 	switch targetType.Kind() {
 	case reflect.Float32:
-		return math.MaxFloat32
+		return math.MaxFloat32, nil
 	case reflect.Float64:
-		return math.MaxFloat64
+		return math.MaxFloat64, nil
 	default:
-		return 0
+		return 0, fmt.Errorf("target type is not float")
 	}
 }

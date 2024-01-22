@@ -125,3 +125,7 @@ type Message struct {
 type MessageDescription struct {
 	Text string
 }
+
+type MessageDescriptionInts struct {
+	Value int
+}
