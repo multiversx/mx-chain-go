@@ -325,12 +325,8 @@ func parseFeatures(features []string) ([]cpuid.FeatureID, error) {
 	flags := make([]cpuid.FeatureID, 0)
 
 	for _, cpuFlag := range features {
-		switch cpuFlag {
-		case "sse4_1":
-			flags = append(flags, cpuid.SSE4)
-		case "sse4_2":
-			flags = append(flags, cpuid.SSE42)
-		default:
+		featureID := cpuid.ParseFeature(cpuFlag)
+		if featureID == cpuid.UNKNOWN {
 			return nil, fmt.Errorf("CPU Flags: cpu flag %s not found", cpuFlag)
 		}
 	}

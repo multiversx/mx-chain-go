@@ -41,7 +41,7 @@
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
 [HardwareRequirements]
-    CPUFlags = ["sse4_1", "sse4_2"]
+    CPUFlags = ["SSE4", "SSE42"]
 
 [Versions]
     DefaultVersion = "default"
