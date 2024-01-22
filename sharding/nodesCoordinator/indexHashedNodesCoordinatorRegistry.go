@@ -343,19 +343,6 @@ func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte, lastEpoch uin
 	displayNodesConfigInfo(nodesConfig)
 	ihnc.mutNodesConfig.Lock()
 	ihnc.nodesConfig = nodesConfig
-	for epoch, nConfig := range nodesConfig {
-		ihnc.nodesConfigCacher.Put([]byte(fmt.Sprint(epoch)), nConfig, 0)
-		log.Debug("baseLoadState: put nodes config in cache", "epoch", epoch, "shard ID", ihnc.shuffledOutHandler.CurrentShardID())
-
-		displayNodesConfiguration(
-			nConfig.eligibleMap,
-			nConfig.waitingMap,
-			nConfig.leavingMap,
-			make(map[uint32][]Validator),
-			nConfig.nbShards,
-			nConfig.shardID,
-		)
-	}
 	ihnc.mutNodesConfig.Unlock()
 
 	return nil
