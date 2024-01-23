@@ -22,6 +22,7 @@ import (
 const unJailedFunds = "unJailFunds"
 const unStakeUnBondPauseKey = "unStakeUnBondPause"
 const minPercentage = 0.0001
+const numberOfNodesTooHigh = "number of nodes too high, no new nodes activated"
 
 var zero = big.NewInt(0)
 
@@ -1072,6 +1073,13 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 			registrationData.RewardAddress,
 			args.CallerAddr,
 		)
+	} else {
+		entry := &vmcommon.LogEntry{
+			Identifier: []byte(args.Function),
+			Address:    args.RecipientAddr,
+			Topics:     [][]byte{[]byte(numberOfNodesTooHigh)},
+		}
+		v.eei.AddLogEntry(entry)
 	}
 
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)

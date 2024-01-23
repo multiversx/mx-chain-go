@@ -1215,6 +1215,12 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 		return vmOutput.ReturnCode
 	}
 
+	allLogs := d.eei.GetLogs()
+	if tooManyNodesLogs(allLogs) {
+		d.eei.AddReturnMessage(numberOfNodesTooHigh)
+		return vmcommon.UserError
+	}
+
 	err = d.updateDelegationStatusAfterStake(status, vmOutput.ReturnData, args.Arguments)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1224,6 +1230,19 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	d.createAndAddLogEntry(args, args.Arguments...)
 
 	return vmcommon.Ok
+}
+
+func tooManyNodesLogs(logEntries []*vmcommon.LogEntry) bool {
+	for _, logEntry := range logEntries {
+		if len(logEntry.Topics) > 1 {
+			continue
+		}
+		if !bytes.Equal(logEntry.Topics[0], []byte(numberOfNodesTooHigh)) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (d *delegation) updateDelegationStatusAfterStake(
