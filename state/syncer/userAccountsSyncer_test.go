@@ -224,7 +224,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries_WithCodeLeaf(t *testing.T) {
 		require.Nil(t, err)
 
 		ctx, cancel := context.WithCancel(context.TODO())
-		cancel()
+		defer cancel()
 
 		leavesChannels := &common.TrieIteratorChannels{
 			LeavesChan: allLeavesChannels.LeavesChan,
