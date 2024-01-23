@@ -10,8 +10,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -72,16 +77,6 @@ func TestNewPeerAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilStoragePruningManager, err)
 	})
-	t.Run("nil process status handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockAccountsDBArgs()
-		args.ProcessStatusHandler = nil
-
-		adb, err := state.NewPeerAccountsDB(args)
-		assert.True(t, check.IfNil(adb))
-		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -101,18 +96,36 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 	args.Trie = &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{
-				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler, _ uint32) {
+				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, leavesChan *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
 					snapshotCalled = true
+					stats.SnapshotFinished()
 				},
 			}
 		},
 	}
+
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           &marshallerMock.MarshalizerMock{},
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &testState.StateMetricsStub{},
+		AccountFactory:       args.AccountFactory,
+		ChannelsProvider:     iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
+	args.SnapshotsManager = snapshotsManager
+
 	adb, err := state.NewPeerAccountsDB(args)
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
 
-	adb.SnapshotState([]byte("rootHash"))
+	adb.SnapshotState([]byte("rootHash"), 0)
+	for adb.IsSnapshotInProgress() {
+		time.Sleep(10 * time.Millisecond)
+	}
 	assert.True(t, snapshotCalled)
 }
 
@@ -137,31 +150,8 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(adb))
 
-	adb.SnapshotState([]byte("rootHash"))
+	adb.SnapshotState([]byte("rootHash"), 0)
 	assert.False(t, snapshotCalled)
-}
-
-func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	checkpointCalled := false
-	args := createMockAccountsDBArgs()
-	args.Trie = &trieMock.TrieStub{
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, _ common.SnapshotStatisticsHandler) {
-					checkpointCalled = true
-				},
-			}
-		},
-	}
-	adb, err := state.NewPeerAccountsDB(args)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(adb))
-
-	adb.SetStateCheckpoint([]byte("rootHash"))
-	assert.True(t, checkpointCalled)
 }
 
 func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
@@ -332,42 +322,6 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 
 	rootHash := []byte("rootHash")
 	expectedErr := errors.New("expected error")
-	t.Run("epoch 0", func(t *testing.T) {
-		putCalled := false
-		trieStub := &trieMock.TrieStub{
-			RootCalled: func() ([]byte, error) {
-				return rootHash, nil
-			},
-			GetStorageManagerCalled: func() common.StorageManager {
-				return &storageManager.StorageManagerStub{
-					ShouldTakeSnapshotCalled: func() bool {
-						return true
-					},
-					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, nil
-					},
-					PutCalled: func(key []byte, val []byte) error {
-						assert.Equal(t, []byte(common.ActiveDBKey), key)
-						assert.Equal(t, []byte(common.ActiveDBVal), val)
-
-						putCalled = true
-
-						return nil
-					},
-				}
-			},
-		}
-
-		args := createMockAccountsDBArgs()
-		args.Trie = trieStub
-		adb, _ := state.NewPeerAccountsDB(args)
-		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
-		assert.Nil(t, err)
-		err = adb.StartSnapshotIfNeeded()
-		assert.Nil(t, err)
-
-		assert.True(t, putCalled)
-	})
 	t.Run("epoch 0, GetLatestStorageEpoch errors should not put", func(t *testing.T) {
 		trieStub := &trieMock.TrieStub{
 			RootCalled: func() ([]byte, error) {
@@ -399,7 +353,6 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 		assert.Nil(t, err)
 	})
 	t.Run("in import DB mode", func(t *testing.T) {
-		putCalled := false
 		trieStub := &trieMock.TrieStub{
 			RootCalled: func() ([]byte, error) {
 				return rootHash, nil
@@ -412,28 +365,31 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 					GetLatestStorageEpochCalled: func() (uint32, error) {
 						return 1, nil
 					},
-					PutCalled: func(key []byte, val []byte) error {
-						assert.Equal(t, []byte(common.ActiveDBKey), key)
-						assert.Equal(t, []byte(common.ActiveDBVal), val)
-
-						putCalled = true
-
-						return nil
+					GetFromCurrentEpochCalled: func(i []byte) ([]byte, error) {
+						return nil, expectedErr
 					},
 				}
 			},
 		}
 
 		args := createMockAccountsDBArgs()
-		args.ProcessingMode = common.ImportDb
+		args.SnapshotsManager, _ = state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+			ProcessingMode:       common.ImportDb,
+			Marshaller:           &marshallerMock.MarshalizerMock{},
+			AddressConverter:     &testscommon.PubkeyConverterMock{},
+			ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+			StateMetrics:         &testState.StateMetricsStub{},
+			AccountFactory:       args.AccountFactory,
+			ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+			LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+			StateStatsHandler:    statistics.NewStateStatistics(),
+		})
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)
 		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
 		assert.Nil(t, err)
 		err = adb.StartSnapshotIfNeeded()
 		assert.Nil(t, err)
-
-		assert.True(t, putCalled)
 	})
 }
 
@@ -463,7 +419,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 						activeDBWasPut = true
 					}
 
-					if string(key) == state.LastSnapshotStarted {
+					if string(key) == lastSnapshotMarker.LastSnapshot {
 						lastSnapshotStartedWasPut = true
 					}
 
@@ -476,12 +432,12 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 	args.Trie = trieStub
 
 	adb, _ := state.NewPeerAccountsDB(args)
-	adb.SnapshotState([]byte("roothash"))
+	adb.SnapshotState([]byte("roothash"), 0)
 	time.Sleep(time.Second)
 
 	mut.RLock()
 	defer mut.RUnlock()
-	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
 }
 

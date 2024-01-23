@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -53,13 +54,13 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
 		},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledField:                              true,
-			IsCorrectLastUnJailedFlagEnabledField:                true,
-			IsCorrectFirstQueuedFlagEnabledField:                 true,
-			IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField: true,
-			IsValidatorToDelegationFlagEnabledField:              true,
-		},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.StakeFlag,
+			common.CorrectLastUnJailedFlag,
+			common.CorrectFirstQueuedFlag,
+			common.CorrectJailedNotUnStakedEmptyQueueFlag,
+			common.ValidatorToDelegationFlag,
+		),
 	}
 }
 
@@ -146,6 +147,17 @@ func TestNewStakingSmartContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, stakingSmartContract)
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewStakingSmartContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestStakingSC_ExecuteInit(t *testing.T) {
@@ -1004,7 +1016,7 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	args := createMockStakingScArguments()
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakeFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.StakeFlag)
 	args.StakingAccessAddr = stakingAccessAddress
 	args.Eei = eei
 	args.StakingSCConfig.NumRoundsWithoutBleed = 100
@@ -1109,8 +1121,8 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
-	enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField = false
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
+	enableEpochsHandler.RemoveActiveFlags(common.CorrectJailedNotUnStakedEmptyQueueFlag)
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1251,7 +1263,11 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			eei.blockChainHook = blockChainHook
 			args := createStakingSCArgs(eei, stakingAccessAddress, stakeValue, maxStakedNodesNumber)
 			enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-			enableEpochsHandler.IsCorrectJailedNotUnStakedEmptyQueueFlagEnabledField = tt.flagJailedRemoveEnabled
+			if tt.flagJailedRemoveEnabled {
+				enableEpochsHandler.AddActiveFlags(common.CorrectJailedNotUnStakedEmptyQueueFlag)
+			} else {
+				enableEpochsHandler.RemoveActiveFlags(common.CorrectJailedNotUnStakedEmptyQueueFlag)
+			}
 			stakingSmartContract, _ := NewStakingSmartContract(args)
 
 			for i := 0; i < tt.stakedNodesNumber; i++ {
@@ -1309,7 +1325,7 @@ func createStakingSCArgs(eei *vmContext, stakingAccessAddress []byte, stakeValue
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = uint64(maxStakedNodesNumber)
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.Eei = eei
 	return args
 }
@@ -1333,7 +1349,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1461,7 +1477,7 @@ func TestStakingSc_ExecuteStakeUnStakeJailCombinations(t *testing.T) {
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -1771,7 +1787,7 @@ func TestStakingSc_updateConfigMaxNodesOK(t *testing.T) {
 	stakingAccessAddress := []byte("stakingAccessAddress")
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 40
@@ -1843,7 +1859,7 @@ func TestStakingSC_SetOwnersOnAddressesWrongCallerShouldErr(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -1867,7 +1883,7 @@ func TestStakingSC_SetOwnersOnAddressesWrongArgumentsShouldErr(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -1892,7 +1908,7 @@ func TestStakingSC_SetOwnersOnAddressesShouldWork(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -1931,7 +1947,7 @@ func TestStakingSC_SetOwnersOnAddressesEmptyArgsShouldWork(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -1976,7 +1992,7 @@ func TestStakingSC_GetOwnerWrongCallerShouldErr(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -2000,7 +2016,7 @@ func TestStakingSC_GetOwnerWrongArgumentsShouldErr(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -2024,7 +2040,7 @@ func TestStakingSC_GetOwnerShouldWork(t *testing.T) {
 
 	args := createMockStakingScArguments()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	blockChainHook := &mock.BlockChainHookStub{}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
@@ -2074,7 +2090,7 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -2222,7 +2238,7 @@ func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
 	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -2284,7 +2300,7 @@ func TestStakingSc_UnStakeNodeWhenMaxNumIsMoreShouldNotStakeFromWaiting(t *testi
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
 	args.MinNumNodes = 1
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	args.Eei = eei
 	stakingSmartContract, _ := NewStakingSmartContract(args)
 
@@ -2327,14 +2343,14 @@ func TestStakingSc_ChangeRewardAndOwnerAddress(t *testing.T) {
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("secondKey"))
 	doStake(t, sc, stakingAccessAddress, stakerAddress, []byte("thirddKey"))
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 
 	arguments := CreateVmContractCallInput()
 	arguments.Function = "changeOwnerAndRewardAddress"
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 	eei.returnMessage = ""
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
@@ -2386,16 +2402,16 @@ func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		flag bool
+		name        string
+		flagEnabled bool
 	}{
 		{
-			name: "BeforeFix",
-			flag: false,
+			name:        "BeforeFix",
+			flagEnabled: false,
 		},
 		{
-			name: "AfterFix",
-			flag: true,
+			name:        "AfterFix",
+			flagEnabled: true,
 		},
 	}
 
@@ -2431,7 +2447,11 @@ func TestStakingSc_RemoveFromWaitingListFirst(t *testing.T) {
 			args.Marshalizer = marshalizer
 			args.Eei = eei
 			enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-			enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = tt.flag
+			if tt.flagEnabled {
+				enableEpochsHandler.AddActiveFlags(common.CorrectFirstQueuedFlag)
+			} else {
+				enableEpochsHandler.RemoveActiveFlags(common.CorrectFirstQueuedFlag)
+			}
 			sc, _ := NewStakingSmartContract(args)
 			err := sc.removeFromWaitingList(firstBLS)
 
@@ -2481,7 +2501,7 @@ func TestStakingSc_RemoveFromWaitingListSecondThatLooksLikeFirstBeforeFix(t *tes
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.CorrectFirstQueuedFlag)
 	sc, _ := NewStakingSmartContract(args)
 
 	err := sc.removeFromWaitingList(secondBLS)
@@ -2630,7 +2650,7 @@ func TestStakingSc_InsertAfterLastJailedBeforeFix(t *testing.T) {
 	args.Marshalizer = marshalizer
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.CorrectFirstQueuedFlag)
 	sc, _ := NewStakingSmartContract(args)
 	err := sc.insertAfterLastJailed(waitingListHead, jailedBLS)
 	assert.Nil(t, err)
@@ -2800,7 +2820,7 @@ func TestStakingSc_fixWaitingListQueueSize(t *testing.T) {
 		sc, eei, marshalizer, _ := makeWrongConfigForWaitingBlsKeysList(t, waitingBlsKeys)
 		alterWaitingListLength(t, eei, marshalizer)
 		enableEpochsHandler, _ := sc.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+		enableEpochsHandler.RemoveActiveFlags(common.CorrectFirstQueuedFlag)
 		eei.SetGasProvided(500000000)
 
 		arguments := CreateVmContractCallInput()
@@ -3249,13 +3269,13 @@ func TestStakingSc_fixMissingNodeOnQueue(t *testing.T) {
 
 	eei.returnMessage = ""
 	enableEpochsHandler, _ := sc.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.CorrectFirstQueuedFlag)
 	retCode := sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)
 	assert.Equal(t, "invalid method to call", eei.returnMessage)
 
 	eei.returnMessage = ""
-	enableEpochsHandler.IsCorrectFirstQueuedFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.CorrectFirstQueuedFlag)
 	arguments.CallValue = big.NewInt(10)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)

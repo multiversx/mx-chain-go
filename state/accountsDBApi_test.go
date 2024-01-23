@@ -195,7 +195,7 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RevertToSnapshot(0))
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrie(nil))
+	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrieFromEpoch(nil))
 
 	buff, err := accountsApi.CommitInEpoch(0, 0)
 	assert.Nil(t, buff)
@@ -208,6 +208,22 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	resultedMap, err := accountsApi.RecreateAllTries(nil)
 	assert.Nil(t, resultedMap)
 	assert.Equal(t, state.ErrOperationNotPermitted, err)
+}
+
+func TestAccountsDBApi_RecreateTrie(t *testing.T) {
+	t.Parallel()
+
+	wasCalled := false
+	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			wasCalled = true
+			return nil
+		},
+	}, createBlockInfoProviderStub(dummyRootHash))
+
+	err := accountsApi.RecreateTrie(nil)
+	assert.NoError(t, err)
+	assert.True(t, wasCalled)
 }
 
 func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
@@ -224,8 +240,7 @@ func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
 
 	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
-	accountsApi.SnapshotState(nil)
-	accountsApi.SetStateCheckpoint(nil)
+	accountsApi.SnapshotState(nil, 0)
 
 	assert.Equal(t, 0, accountsApi.JournalLen())
 }

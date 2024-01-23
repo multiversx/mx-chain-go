@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -616,9 +617,7 @@ func TestIsProcessedHeaderHashSizeValid_ShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.EnableEpochHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsConsensusModelV2EnabledField: true,
-	}
+	consensusMessageValidatorArgs.EnableEpochHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusModelV2Flag)
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	cnsMsg := &consensus.Message{
@@ -651,9 +650,7 @@ func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsNotEn
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.EnableEpochHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsConsensusModelV2EnabledField: false,
-	}
+	consensusMessageValidatorArgs.EnableEpochHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	cnsMsg := &consensus.Message{
@@ -677,9 +674,7 @@ func TestIsProcessedHeaderHashSizeValid_ShouldNotFailWhenConsensusModelV2IsEnabl
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.EnableEpochHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsConsensusModelV2EnabledField: true,
-	}
+	consensusMessageValidatorArgs.EnableEpochHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ConsensusModelV2Flag)
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	cnsMsg := &consensus.Message{

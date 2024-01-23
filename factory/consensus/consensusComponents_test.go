@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
@@ -43,6 +44,7 @@ import (
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,7 +106,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &testscommon.CacherStub{}
 				},
 				HeadersCalled: func() retriever.HeadersPool {
-					return &testsMocks.HeadersCacherStub{}
+					return &testscommon.HeadersCacherStub{}
 				},
 			},
 			BlockChain: &testscommon.ChainHandlerStub{
@@ -170,6 +172,10 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ScheduledProcessor:    &consensusMocks.ScheduledProcessorStub{},
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
+		ChainRunType:          common.ChainRunTypeRegular,
+		ConsensusModel:        consensus.ConsensusModelV1,
+		ExtraSignersHolder:    &subRoundsHolder.ExtraSignersHolderMock{},
+		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
 		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{
 			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{
 				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
@@ -426,6 +432,26 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
+	})
+	t.Run("nil extraSignersHolder, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.ExtraSignersHolder = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilExtraSignersHolder, err)
+	})
+	t.Run("nil SubRoundEndV2Creator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.SubRoundEndV2Creator = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilSubRoundEndV2Creator, err)
 	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()

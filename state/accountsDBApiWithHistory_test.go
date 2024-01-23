@@ -80,8 +80,7 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 
 	accountsApi.PruneTrie(nil, 0, state.NewPruningHandler(state.EnableDataRemoval))
 	accountsApi.CancelPrune(nil, 0)
-	accountsApi.SnapshotState(nil)
-	accountsApi.SetStateCheckpoint(nil)
+	accountsApi.SnapshotState(nil, 0)
 
 	assert.Equal(t, false, accountsApi.IsPruningEnabled())
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, nil, nil))

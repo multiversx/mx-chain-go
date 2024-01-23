@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package badcontracts
 
@@ -20,13 +19,13 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
-	err := context.DeploySC("../testdata/bad-misc/bad.wasm", "")
+	err := context.DeploySC("../testdata/bad-misc/output/bad.wasm", "")
 	require.Nil(t, err)
 
 	err = context.ExecuteSC(&context.Owner, "memoryFault")
 	require.Equal(t, fmt.Errorf("execution failed"), err)
 	err = context.ExecuteSC(&context.Owner, "divideByZero")
-	require.Nil(t, err)
+	require.Equal(t, fmt.Errorf("execution failed"), err)
 
 	err = context.ExecuteSC(&context.Owner, "badGetOwner1")
 	require.Equal(t, fmt.Errorf("bad bounds (upper)"), err)
@@ -87,7 +86,7 @@ func Test_BadFunctionNames_NoPanic(t *testing.T) {
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
-	err := context.DeploySC("../testdata/bad-functionNames/badFunctionNames.wasm", "")
+	err := context.DeploySC("../testdata/bad-functionNames/output/badFunctionNames.wasm", "")
 	require.Equal(t, fmt.Errorf("invalid contract code"), err)
 }
 
@@ -95,15 +94,12 @@ func Test_BadReservedFunctions(t *testing.T) {
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
-	err := context.DeploySC("../testdata/bad-reservedFunctions/function-ClaimDeveloperRewards.wasm", "")
+	err := context.DeploySC("../testdata/bad-reservedFunctions/function-ClaimDeveloperRewards/output/bad.wasm", "")
 	require.Equal(t, fmt.Errorf("invalid contract code"), err)
 
-	err = context.DeploySC("../testdata/bad-reservedFunctions/function-ChangeOwnerAddress.wasm", "")
+	err = context.DeploySC("../testdata/bad-reservedFunctions/function-ChangeOwnerAddress/output/bad.wasm", "")
 	require.Equal(t, fmt.Errorf("invalid contract code"), err)
 
-	err = context.DeploySC("../testdata/bad-reservedFunctions/function-asyncCall.wasm", "")
+	err = context.DeploySC("../testdata/bad-reservedFunctions/function-asyncCall/output/bad.wasm", "")
 	require.Equal(t, fmt.Errorf("invalid contract code"), err)
-
-	err = context.DeploySC("../testdata/bad-reservedFunctions/function-foobar.wasm", "")
-	require.Nil(t, err)
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -52,6 +53,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -61,7 +64,9 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -69,12 +74,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -145,6 +148,9 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 				TCP: p2pConfig.P2PTCPTransport{
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
+			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -239,6 +245,9 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
 			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
+			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
 			Enabled: false,
@@ -265,6 +274,9 @@ func CreateMessengerWithNoDiscoveryAndPeersRatingHandler(peersRatingHanlder p2p.
 				TCP: p2pConfig.P2PTCPTransport{
 					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
 				},
+			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type: p2p.DefaultWithScaleResourceLimiter,
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -378,7 +390,6 @@ func CreateMemUnit() storage.Storer {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
 	persist, _ := database.NewlruDB(10000000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
-
 	return unit
 }
 
@@ -412,17 +423,11 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 	if err != nil {
 		fmt.Println("err creating main storer" + err.Error())
 	}
-	checkpointsStorer, _, err := testStorage.CreateTestingTriePruningStorer(coordinator, notifier)
-	if err != nil {
-		fmt.Println("err creating checkpoints storer" + err.Error())
-	}
 
 	args := testcommonStorage.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
-	args.CheckpointsStorer = checkpointsStorer
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size()))
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -435,7 +440,6 @@ func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	args.MainStorer = store
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size()))
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
@@ -465,16 +469,27 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	accountFactory, _ := getAccountFactory(accountType, enableEpochsHandler)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
+
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           TestMarshalizer,
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &testStorage.StateMetricsStub{},
+		AccountFactory:       accountFactory,
+		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
+
 	args := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                sha256.NewSha256(),
 		Marshaller:            TestMarshalizer,
 		AccountFactory:        accountFactory,
 		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      snapshotsManager,
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -725,7 +740,12 @@ func CreateFullGenesisBlocks(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:       &roundsConfig,
+		RoundConfig:             &roundsConfig,
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		RunTypeComponents: runTypeComponents,
 	}
 
@@ -830,6 +850,10 @@ func CreateGenesisMetaBlock(
 		EpochConfig: &config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:            common.ChainRunTypeRegular,
 		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{},
 	}
 
@@ -842,7 +866,7 @@ func CreateGenesisMetaBlock(
 		newDataPool := dataRetrieverMock.CreatePoolsHolder(1, shardCoordinator.SelfId())
 
 		newBlkc, _ := blockchain.NewMetaChain(&statusHandlerMock.AppStatusHandlerStub{})
-		trieStorage, _ := CreateTrieStorageManager(CreateMemUnit())
+		trieStorage, _ := CreateTrieStorageManager(testscommon.CreateMemUnit())
 		newAccounts, _ := CreateAccountsDBWithEnableEpochsHandler(UserAccount, trieStorage, coreComponents.EnableEpochsHandler())
 
 		argsMetaGenesis.ShardCoordinator = newShardCoordinator
@@ -1047,7 +1071,6 @@ func CreateNewDefaultTrie() common.Trie {
 	args := testcommonStorage.GetStorageManagerArgs()
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
-	args.CheckpointHashesHolder = hashesHolder.NewCheckpointHashesHolder(10000000, uint64(TestHasher.Size()))
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
@@ -1580,58 +1603,6 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 	return nodes, hardforkStarter
 }
 
-// CreateNodesWithCustomStateCheckpointModulus creates multiple nodes in different shards with custom stateCheckpointModulus
-func CreateNodesWithCustomStateCheckpointModulus(
-	numOfShards int,
-	nodesPerShard int,
-	numMetaChainNodes int,
-	stateCheckpointModulus uint,
-) []*TestProcessorNode {
-	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
-	connectableNodes := make([]Connectable, len(nodes))
-
-	enableEpochsConfig := GetDefaultEnableEpochsConfig()
-	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
-
-	scm := &IntWrapper{
-		Value: stateCheckpointModulus,
-	}
-
-	idx := 0
-	for shardId := uint32(0); shardId < uint32(numOfShards); shardId++ {
-		for j := 0; j < nodesPerShard; j++ {
-			n := NewTestProcessorNode(ArgTestProcessorNode{
-				MaxShards:              uint32(numOfShards),
-				NodeShardId:            shardId,
-				TxSignPrivKeyShardId:   shardId,
-				StateCheckpointModulus: scm,
-				EpochsConfig:           enableEpochsConfig,
-			})
-
-			nodes[idx] = n
-			connectableNodes[idx] = n
-			idx++
-		}
-	}
-
-	for i := 0; i < numMetaChainNodes; i++ {
-		metaNode := NewTestProcessorNode(ArgTestProcessorNode{
-			MaxShards:              uint32(numOfShards),
-			NodeShardId:            core.MetachainShardId,
-			TxSignPrivKeyShardId:   0,
-			StateCheckpointModulus: scm,
-			EpochsConfig:           enableEpochsConfig,
-		})
-		idx = i + numOfShards*nodesPerShard
-		nodes[idx] = metaNode
-		connectableNodes[idx] = metaNode
-	}
-
-	ConnectNodes(connectableNodes)
-
-	return nodes
-}
-
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node
 func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 	for _, n := range nodes {
@@ -1659,9 +1630,9 @@ func DisplayAndStartNodes(nodes []*TestProcessorNode) {
 // SetEconomicsParameters will set maxGasLimitPerBlock, minGasPrice and minGasLimits to provided nodes
 func SetEconomicsParameters(nodes []*TestProcessorNode, maxGasLimitPerBlock uint64, minGasPrice uint64, minGasLimit uint64) {
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock)
+		n.EconomicsData.SetMaxGasLimitPerBlock(maxGasLimitPerBlock, 0)
 		n.EconomicsData.SetMinGasPrice(minGasPrice)
-		n.EconomicsData.SetMinGasLimit(minGasLimit)
+		n.EconomicsData.SetMinGasLimit(minGasLimit, 0)
 	}
 }
 
@@ -2703,4 +2674,42 @@ func PrepareRelayedTxDataV2(innerTx *transaction.Transaction) []byte {
 		Bytes(innerTx.Signature)
 
 	return txData.ToBytes()
+}
+
+var charsPool = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
+
+// GenerateTrieKeysForMaxLevel generates a list of keys that will fill a trie until the given level is reached
+func GenerateTrieKeysForMaxLevel(numTrieLevels int, numChildrenPerBranch int) [][]byte {
+	keys := make([][]byte, 0)
+
+	keyLength := 32
+	hexKeyLength := keyLength * 2
+	if numTrieLevels == 1 {
+		hexKey := generateRandHexString(hexKeyLength)
+		key, _ := hex.DecodeString(hexKey)
+		keys = append(keys, key)
+
+		return keys
+	}
+
+	for i := 0; i < numTrieLevels-1; i++ {
+		for j := 0; j < numChildrenPerBranch-1; j++ {
+			hexKey := generateRandHexString(hexKeyLength-numTrieLevels) + strings.Repeat(charsPool[j], numTrieLevels-i) + strings.Repeat("F", i)
+			key, _ := hex.DecodeString(hexKey)
+			keys = append(keys, key)
+		}
+	}
+
+	return keys
+}
+
+func generateRandHexString(size int) string {
+	buff := make([]string, size)
+	lenCharsPoolBig := big.NewInt(int64(len(charsPool)))
+	for i := 0; i < size; i++ {
+		randomIndexBig, _ := rand.Int(rand.Reader, lenCharsPoolBig)
+		buff[i] = charsPool[randomIndexBig.Int64()]
+	}
+
+	return strings.Join(buff, "")
 }

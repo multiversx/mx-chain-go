@@ -14,8 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -29,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -114,6 +115,12 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
+// ExtendedHeaderValidatorHandler defines extended header validator functionality
+type ExtendedHeaderValidatorHandler interface {
+	Hash() []byte
+	GetExtendedHeader() data.ShardHeaderExtendedHandler
+}
+
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
@@ -149,7 +156,7 @@ type InterceptorThrottler interface {
 
 // TransactionCoordinator is an interface to coordinate transaction processing using multiple processors
 type TransactionCoordinator interface {
-	RequestMiniBlocks(header data.HeaderHandler)
+	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
 	RequestBlockTransactions(body *block.Body)
 	IsDataPreparedForProcessing(haveTime func() time.Duration) error
 
@@ -318,7 +325,7 @@ type TransactionLogProcessorDatabase interface {
 
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
-	GetLatestValidators() map[string]*accounts.ValidatorApiResponse
+	GetLatestValidators() map[string]*validator.ValidatorStatistics
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -456,7 +463,7 @@ type VirtualMachinesContainer interface {
 type VirtualMachinesContainerFactory interface {
 	Create() (VirtualMachinesContainer, error)
 	Close() error
-	BlockChainHookImpl() BlockChainHookHandler
+	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
 }
 
@@ -539,6 +546,12 @@ type BlockChainHookHandler interface {
 	GetCounterValues() map[string]uint64
 	IsInterfaceNil() bool
 	IsBuiltinFunctionName(functionName string) bool
+}
+
+// BlockChainHookWithAccountsAdapter defines an extension of BlockChainHookHandler with the AccountsAdapter exposed
+type BlockChainHookWithAccountsAdapter interface {
+	BlockChainHookHandler
+	GetAccountsAdapter() state.AccountsAdapter
 }
 
 // Interceptor defines what a data interceptor should do
@@ -687,6 +700,10 @@ type feeHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
+	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
+	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
+	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -778,6 +795,8 @@ type SCQuery struct {
 	Arguments      [][]byte
 	SameScState    bool
 	ShouldBeSynced bool
+	BlockNonce     core.OptionalUint64
+	BlockHash      []byte
 }
 
 // GasHandler is able to perform some gas calculation
@@ -918,7 +937,7 @@ type PeerValidatorMapper interface {
 
 // SCQueryService defines how data should be get from a SC account
 type SCQueryService interface {
-	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteQuery(query *SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeScCallGasLimit(tx *transaction.Transaction) (uint64, error)
 	Close() error
 	IsInterfaceNil() bool
@@ -1196,6 +1215,7 @@ type CryptoComponentsHolder interface {
 // StatusCoreComponentsHolder holds the status core components
 type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 
@@ -1332,6 +1352,23 @@ type PeerAuthenticationPayloadValidator interface {
 type Debugger interface {
 	SetLastCommittedBlockRound(round uint64)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// IncomingHeaderSubscriber defines a subscriber to incoming headers
+type IncomingHeaderSubscriber interface {
+	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ExtraHeaderSigVerifierHandler defines the required properties of an extra header sig verifier for additional data
+type ExtraHeaderSigVerifierHandler interface {
+	VerifyAggregatedSignature(header data.HeaderHandler, multiSigVerifier crypto.MultiSigner, pubKeysSigners [][]byte) error
+	VerifyLeaderSignature(header data.HeaderHandler, leaderPubKey crypto.PublicKey) error
+	RemoveLeaderSignature(header data.HeaderHandler) error
+	RemoveAllSignatures(header data.HeaderHandler) error
+	Identifier() string
 	IsInterfaceNil() bool
 }
 

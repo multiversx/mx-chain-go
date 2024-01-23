@@ -112,6 +112,7 @@ func (sender *heartbeatSender) execute() error {
 		return err
 	}
 
+	log.Debug("sending heartbeat message", "key", pkBytes)
 	sender.mainMessenger.Broadcast(sender.topic, msgBytes)
 	sender.fullArchiveMessenger.Broadcast(sender.topic, msgBytes)
 

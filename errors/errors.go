@@ -611,6 +611,99 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
 var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
+// ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
+var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")
+
+// ErrNilShardCoordinatorFactory signals that a nil shard coordinator factory has been provided
+var ErrNilShardCoordinatorFactory = errors.New("nil shard coordinator factory provided")
+
+// ErrNilGenesisBlockFactory signals that a nil genesis block factory has been provided
+var ErrNilGenesisBlockFactory = errors.New("nil genesis block factory has been provided")
+
+// ErrNilNodesSetupFactory signals that a nil nodes setup factory has been provided
+var ErrNilNodesSetupFactory = errors.New("nil nodes setup factory provided")
+
+// ErrNilRatingsDataFactory signals that a nil ratings data factory has been provided
+var ErrNilRatingsDataFactory = errors.New("nil ratings data factory provided")
+
+// ErrNilGenesisMetaBlockChecker signals that a nil genesis meta block checker has been provided
+var ErrNilGenesisMetaBlockChecker = errors.New("nil genesis meta block checker has been provided")
+
+// ErrGenesisMetaBlockDoesNotExist signals that genesis meta block does not exist
+var ErrGenesisMetaBlockDoesNotExist = errors.New("genesis meta block does not exist")
+
+// ErrInvalidGenesisMetaBlock signals that genesis meta block should be of type meta header handler
+var ErrInvalidGenesisMetaBlock = errors.New("genesis meta block invalid, should be of type meta header handler")
+
+// ErrGenesisMetaBlockOnSovereign signals that genesis meta block was found on sovereign chain
+var ErrGenesisMetaBlockOnSovereign = errors.New("genesis meta block was found on sovereign chain")
+
+// ErrNilShardRequesterContainerFactory signals that a nil shard requester container factory has been provided
+var ErrNilShardRequesterContainerFactory = errors.New("nil shard shard requester container factory provided")
+
+// ErrNilRequesterContainerFactoryCreator signals that a nil requester container factory creator has been provided
+var ErrNilRequesterContainerFactoryCreator = errors.New("nil requester container factory creator provided")
+
+// ErrNilInterceptorsContainerFactoryCreator signals that a nil interceptors container factory creator has been provided
+var ErrNilInterceptorsContainerFactoryCreator = errors.New("nil interceptors container factory creator has been provided")
+
+// ErrNilShardInterceptorsContainerFactory signals that a nil shard interceptors container factory has been provided
+var ErrNilShardInterceptorsContainerFactory = errors.New("nil shard interceptors container factory has been provided")
+
+// ErrNilIncomingHeaderSubscriber signals that a nil incoming header subscriber has been provided
+var ErrNilIncomingHeaderSubscriber = errors.New("nil incoming header subscriber has been provided")
+
+// ErrNilShardResolversContainerFactory signals that a nil shard resolvers container factory has been provided
+var ErrNilShardResolversContainerFactory = errors.New("nil shard resolvers container factory has been provided")
+
+// ErrNilShardResolversContainerFactoryCreator signals that a nil shard resolvers container factory creator has been provided
+var ErrNilShardResolversContainerFactoryCreator = errors.New("nil shard resolvers container factory creator has been provided")
+
+// ErrInvalidReceivedExtendedShardHeader signals that an invalid extended shard header has been intercepted when requested
+var ErrInvalidReceivedExtendedShardHeader = errors.New("invalid extended shard header has been intercepted")
+
+// ErrNilTxPreProcessorCreator signals that a nil tx pre-processor creator has been provided
+var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor creator has been provided")
+
+// ErrNilOutgoingOperationsFormatter signals that a nil outgoing operations formatter has been provided
+var ErrNilOutgoingOperationsFormatter = errors.New("nil outgoing operations formatter has been provided")
+
+// ErrNilOutGoingOperationsPool signals that a nil outgoing operations pool has been provided
+var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has been provided")
+
+// ErrNilExtraSubRoundSigner signals that a nil extra subround signer has been provided
+var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been provided")
+
+// ErrNilStartRoundExtraSignersHolder signals that a nil start round extra signers holder has been provided
+var ErrNilStartRoundExtraSignersHolder = errors.New("nil start round extra signers holder has been provided")
+
+// ErrNilSignatureRoundExtraSignersHolder signals that a nil signature round extra signers holder has been provided
+var ErrNilSignatureRoundExtraSignersHolder = errors.New("nil signature round extra signers holder has been provided")
+
+// ErrNilEndRoundExtraSignersHolder signals that a nil end round extra signers holder has been provided
+var ErrNilEndRoundExtraSignersHolder = errors.New("nil end round extra signers holder has been provided")
+
+// ErrExtraSignerIdAlreadyExists signals that an extra signer with the same id has been already registered
+var ErrExtraSignerIdAlreadyExists = errors.New("an extra signer with the same id has been already registered")
+
+// ErrNilExtraHeaderSigVerifierHolder signals that a nil extra sig verifier holder has been provided
+var ErrNilExtraHeaderSigVerifierHolder = errors.New("nil extra sig verifier holder has been provided")
+
+// ErrNilConsensusMessage signals that a nil consensus message has been provided
+var ErrNilConsensusMessage = errors.New("nil consensus message has been provided")
+
+// ErrNilExtraSignersHolder signals that a nil extra signers holder has been provided
+var ErrNilExtraSignersHolder = errors.New("nil extra signer holder has been provided")
+
+// ErrNilSubRoundEndV2Creator signals that a nil sub round end v2 creator has been provided
+var ErrNilSubRoundEndV2Creator = errors.New("nil sub round end v2 creator has been provided")
+
+// ErrNilBridgeOpHandler signals that a nil bridge operation handler has been provided
+var ErrNilBridgeOpHandler = errors.New("nil bridge operation handler has been provided")
+
+// ErrOutGoingOperationsNotFound signals that an outgoing operation could not be found
+var ErrOutGoingOperationsNotFound = errors.New("outgoing operation could not be found")
+
 // ErrInvalidTypeConversion signals that a type conversion has failed
 var ErrInvalidTypeConversion = errors.New("invalid type conversion")
 

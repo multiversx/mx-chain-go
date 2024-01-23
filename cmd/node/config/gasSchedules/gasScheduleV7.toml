@@ -19,7 +19,7 @@
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
-    TrieLoadPerNode          = 20000
+    TrieLoadPerNode          = 100000
     TrieStorePerNode         = 50000
 
 [MetaChainSystemSCsCost]
@@ -813,3 +813,16 @@
     MaxBuiltInCallsPerTx = 100
     MaxNumberOfTransfersPerTx = 250
     MaxNumberOfTrieReadsPerTx = 1500
+
+# Quadratic, Linear and Constant are the coefficients for a quadratic func. Separate variables are used for the
+# sign of each coefficient, 0 meaning positive and 1 meaning negative
+# The current values for the coefficients were computed based on benchmarking.
+# For the given coefficients, the minimum of the function must not be lower than MinimumGasCost
+[DynamicStorageLoad]
+    QuadraticCoefficient = 688
+    SignOfQuadratic = 0
+    LinearCoefficient = 31858
+    SignOfLinear = 0
+    ConstantCoefficient = 15287
+    SignOfConstant = 0
+    MinimumGasCost = 10000

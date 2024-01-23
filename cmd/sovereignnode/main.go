@@ -232,19 +232,17 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 	}
 	log.Debug("config", "file", configurationPaths.RoundActivation)
 
-	sovereignNotifierPath := ctx.GlobalString(notifierConfigFile.Name)
-	sovereignNotifierConfig, err := sovereignConfig.LoadSovereignNotifierConfig(sovereignNotifierPath)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("config", "file", sovereignNotifierPath)
-
 	sovereignExtraConfigPath := ctx.GlobalString(sovereignConfigFile.Name)
 	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig(sovereignExtraConfigPath)
 	if err != nil {
 		return nil, err
 	}
 	log.Debug("config", "file", sovereignExtraConfigPath)
+
+	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
+		CertificatePath:   ctx.GlobalString(sovereignBridgeCertificateFile.Name),
+		CertificatePkPath: ctx.GlobalString(sovereignBridgeCertificatePkFile.Name),
+	}
 	generalConfig.SovereignConfig = *sovereignExtraConfig
 
 	if ctx.IsSet(port.Name) {
@@ -278,7 +276,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 			EpochConfig:              epochConfig,
 			RoundConfig:              roundConfig,
 		},
-		NotifierConfig: sovereignNotifierConfig,
+		SovereignExtraConfig: sovereignExtraConfig,
 	}, nil
 }
 

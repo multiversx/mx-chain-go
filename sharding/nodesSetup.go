@@ -126,6 +126,39 @@ func (ns *NodesSetup) processConfig() error {
 
 	ns.nrOfNodes = 0
 	ns.nrOfMetaChainNodes = 0
+	err = ns.processInitialNodes()
+	if err != nil {
+		return err
+	}
+
+	if ns.ConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
+	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
+		return ErrMinNodesPerShardSmallerThanConsensusSize
+	}
+	if ns.nrOfNodes < ns.MinNodesPerShard {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
+	}
+
+	if ns.MetaChainConsensusGroupSize < 1 {
+		return ErrNegativeOrZeroConsensusGroupSize
+	}
+	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
+		return ErrMinNodesPerShardSmallerThanConsensusSize
+	}
+
+	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
+	if ns.nrOfNodes < totalMinNodes {
+		return ErrNodesSizeSmallerThanMinNoOfNodes
+	}
+
+	return nil
+}
+
+func (ns *NodesSetup) processInitialNodes() error {
+	var err error
+
 	for i := 0; i < len(ns.InitialNodes); i++ {
 		pubKey := ns.InitialNodes[i].PubKey
 		ns.InitialNodes[i].pubKey, err = ns.validatorPubkeyConverter.Decode(pubKey)
@@ -158,28 +191,6 @@ func (ns *NodesSetup) processConfig() error {
 		ns.InitialNodes[i].initialRating = initialRating
 
 		ns.nrOfNodes++
-	}
-
-	if ns.ConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
-	}
-	if ns.MinNodesPerShard < ns.ConsensusGroupSize {
-		return ErrMinNodesPerShardSmallerThanConsensusSize
-	}
-	if ns.nrOfNodes < ns.MinNodesPerShard {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
-	}
-
-	if ns.MetaChainConsensusGroupSize < 1 {
-		return ErrNegativeOrZeroConsensusGroupSize
-	}
-	if ns.MetaChainMinNodes < ns.MetaChainConsensusGroupSize {
-		return ErrMinNodesPerShardSmallerThanConsensusSize
-	}
-
-	totalMinNodes := ns.MetaChainMinNodes + ns.MinNodesPerShard
-	if ns.nrOfNodes < totalMinNodes {
-		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 
 	return nil
@@ -380,6 +391,11 @@ func (ns *NodesSetup) GetShardIDForPubKey(pubKey []byte) (uint32, error) {
 // GetStartTime returns the start time
 func (ns *NodesSetup) GetStartTime() int64 {
 	return ns.StartTime
+}
+
+// SetStartTime sets internal start time with provided value
+func (ns *NodesSetup) SetStartTime(startTime int64) {
+	ns.StartTime = startTime
 }
 
 // GetRoundDuration returns the round duration

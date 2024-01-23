@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -51,7 +50,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
 	gasPrice := uint64(1)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(1962)
 	transferOnCalls := big.NewInt(50)
 
 	scCode := wasm.GetSCCode("../testdata/misc/fib_wasm/output/fib_wasm.wasm")
@@ -82,7 +81,7 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(99999101)
+	expectedBalance := big.NewInt(99997990)
 
 	vm.TestAccount(
 		t,
@@ -218,7 +217,7 @@ func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
 		testContext.Accounts,
 		ownerAddressBytes,
 		ownerNonce+2,
-		big.NewInt(99999100))
+		big.NewInt(99997989))
 
 	vm.TestAccount(
 		t,

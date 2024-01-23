@@ -3,9 +3,11 @@ package processProxy
 import (
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
@@ -74,7 +76,6 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 
 	proxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
 
-	var err error
 	err = proxy.createProcessorV1()
 	if err != nil {
 		return nil, err
@@ -167,7 +168,7 @@ func (proxy *scProcessorProxy) EpochConfirmed(_ uint32, _ uint64) {
 	proxy.mutRc.Lock()
 	defer proxy.mutRc.Unlock()
 
-	if proxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
+	if proxy.args.EnableEpochsHandler.IsFlagEnabled(common.SCProcessorV2Flag) {
 		proxy.setActiveProcessorV2()
 		return
 	}

@@ -113,7 +113,7 @@ func NewShardProcessorEmptyWith3shards(
 		RoundField:                &mock.RoundHandlerMock{},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
 		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
 	}
@@ -562,4 +562,8 @@ func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 // CalculateHeaderHash -
 func (schv *sovereignChainHeaderValidator) CalculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
 	return schv.calculateHeaderHashFunc(headerHandler)
+}
+
+func (scbp *sovereignChainBlockProcessor) CreateAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
+	return scbp.createAndSetOutGoingMiniBlock(headerHandler, createdBlockBody)
 }

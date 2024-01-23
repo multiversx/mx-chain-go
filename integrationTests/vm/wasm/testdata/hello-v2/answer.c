@@ -1,5 +1,15 @@
 void int64finish(long long value);
 
-void getUltimateAnswer() {
+void init()
+{
+}
+
+void upgrade()
+{
+    init();
+}
+
+void getUltimateAnswer()
+{
     int64finish(42);
 }

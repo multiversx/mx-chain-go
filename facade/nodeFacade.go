@@ -16,6 +16,7 @@ import (
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -27,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -36,7 +36,7 @@ import (
 const DefaultRestInterface = "localhost:8080"
 
 // DefaultRestPortOff is the default value that should be passed if it is desired
-//  to start the node without a REST endpoint available
+// to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
@@ -163,7 +163,7 @@ func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
 // The API will start on the DefaultRestInterface value unless a correct value is passed or
-//  the value is explicitly set to off, in which case it will not start at all
+// the value is explicitly set to off, in which case it will not start at all
 func (nf *nodeFacade) RestApiInterface() string {
 	if nf.config.RestApiInterface == "" {
 		return DefaultRestInterface
@@ -280,7 +280,7 @@ func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transacti
 }
 
 // ValidatorStatisticsApi will return the statistics for all validators
-func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
+func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return nf.node.ValidatorStatisticsApi()
 }
 
@@ -412,13 +412,13 @@ func (nf *nodeFacade) GetDelegatorsList() ([]*apiData.Delegator, error) {
 }
 
 // ExecuteSCQuery retrieves data from existing SC trie
-func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
-	vmOutput, err := nf.apiResolver.ExecuteSCQuery(query)
+func (nf *nodeFacade) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, apiData.BlockInfo, error) {
+	vmOutput, blockInfo, err := nf.apiResolver.ExecuteSCQuery(query)
 	if err != nil {
-		return nil, err
+		return nil, apiData.BlockInfo{}, err
 	}
 
-	return nf.convertVmOutputToApiResponse(vmOutput), nil
+	return nf.convertVmOutputToApiResponse(vmOutput), queryBlockInfoToApiResource(blockInfo), nil
 }
 
 // PprofEnabled returns if profiling mode should be active or not on the application
@@ -605,6 +605,11 @@ func (nf *nodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nf.apiResolver.GetWaitingManagedKeys()
 }
 
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (nf *nodeFacade) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	return nf.apiResolver.GetWaitingEpochsLeftForPublicKey(publicKey)
+}
+
 func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm.VMOutputApi {
 	outputAccounts := make(map[string]*vm.OutputAccountApi)
 	for key, acc := range input.OutputAccounts {
@@ -667,10 +672,11 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		}
 
 		logs = append(logs, &vm.LogEntryApi{
-			Identifier: originalLog.Identifier,
-			Address:    logAddress,
-			Topics:     originalLog.Topics,
-			Data:       originalLog.Data,
+			Identifier:     originalLog.Identifier,
+			Address:        logAddress,
+			Topics:         originalLog.Topics,
+			Data:           originalLog.GetFirstDataItem(),
+			AdditionalData: originalLog.Data,
 		})
 	}
 
@@ -684,6 +690,18 @@ func (nf *nodeFacade) convertVmOutputToApiResponse(input *vmcommon.VMOutput) *vm
 		DeletedAccounts: input.DeletedAccounts,
 		TouchedAccounts: input.TouchedAccounts,
 		Logs:            logs,
+	}
+}
+
+func queryBlockInfoToApiResource(info common.BlockInfo) apiData.BlockInfo {
+	if check.IfNil(info) {
+		return apiData.BlockInfo{}
+	}
+
+	return apiData.BlockInfo{
+		Nonce:    info.GetNonce(),
+		Hash:     hex.EncodeToString(info.GetHash()),
+		RootHash: hex.EncodeToString(info.GetRootHash()),
 	}
 }
 
@@ -719,6 +737,11 @@ func (nf *nodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	}
 
 	return gasConfigs, nil
+}
+
+// P2PPrometheusMetricsEnabled returns if p2p prometheus metrics should be enabled or not on the application
+func (nf *nodeFacade) P2PPrometheusMetricsEnabled() bool {
+	return nf.config.P2PPrometheusMetricsEnabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

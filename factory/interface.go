@@ -161,6 +161,7 @@ type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
 	StatusMetrics() external.StatusMetricsHandler
 	PersistentStatusHandler() PersistentStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 

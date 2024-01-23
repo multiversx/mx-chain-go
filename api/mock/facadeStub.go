@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -17,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // FacadeStub is the mock implementation of a node router handler
@@ -34,9 +34,9 @@ type FacadeStub struct {
 	ValidateTransactionHandler                  func(tx *transaction.Transaction) error
 	ValidateTransactionForSimulationHandler     func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
-	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler                  func() (map[string]*accounts.ValidatorApiResponse, error)
+	ValidatorStatisticsHandler                  func() (map[string]*validator.ValidatorStatistics, error)
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                            func() map[string]interface{}
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
@@ -93,6 +93,8 @@ type FacadeStub struct {
 	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
+	P2PPrometheusMetricsEnabledCalled           func() bool
 }
 
 // GetTokenSupply -
@@ -326,12 +328,12 @@ func (f *FacadeStub) ValidateTransactionForSimulation(tx *transaction.Transactio
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
-func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
+func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return f.ValidatorStatisticsHandler()
 }
 
 // ExecuteSCQuery is a mock implementation.
-func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, error) {
+func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
 	return f.ExecuteSCQueryHandler(query)
 }
 
@@ -608,6 +610,22 @@ func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
 		return f.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (f *FacadeStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	if f.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return f.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
+}
+
+// P2PPrometheusMetricsEnabled -
+func (f *FacadeStub) P2PPrometheusMetricsEnabled() bool {
+	if f.P2PPrometheusMetricsEnabledCalled != nil {
+		return f.P2PPrometheusMetricsEnabledCalled()
+	}
+	return false
 }
 
 // Close -

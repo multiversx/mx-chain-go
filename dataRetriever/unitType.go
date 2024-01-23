@@ -45,14 +45,10 @@ const (
 	RoundHdrHashDataUnit UnitType = 19
 	// UserAccountsUnit is the user accounts storage unit identifier
 	UserAccountsUnit UnitType = 20
-	// UserAccountsCheckpointsUnit is the user accounts checkpoints storage unit identifier
-	UserAccountsCheckpointsUnit UnitType = 21
 	// PeerAccountsUnit is the peer accounts storage unit identifier
-	PeerAccountsUnit UnitType = 22
-	// PeerAccountsCheckpointsUnit is the peer accounts checkpoints storage unit identifier
-	PeerAccountsCheckpointsUnit UnitType = 23
+	PeerAccountsUnit UnitType = 21
 	// ScheduledSCRsUnit is the scheduled SCRs storage unit identifier
-	ScheduledSCRsUnit UnitType = 24
+	ScheduledSCRsUnit UnitType = 22
 	// ExtendedShardHeadersNonceHashDataUnit is the extended shard headers nonce-hash pair data unit identifier
 	ExtendedShardHeadersNonceHashDataUnit UnitType = 25
 	// ExtendedShardHeadersUnit is the extended shard headers storage unit identifier
@@ -114,12 +110,8 @@ func (ut UnitType) String() string {
 		return "RoundHdrHashDataUnit"
 	case UserAccountsUnit:
 		return "UserAccountsUnit"
-	case UserAccountsCheckpointsUnit:
-		return "UserAccountsCheckpointsUnit"
 	case PeerAccountsUnit:
 		return "PeerAccountsUnit"
-	case PeerAccountsCheckpointsUnit:
-		return "PeerAccountsCheckpointsUnit"
 	case ScheduledSCRsUnit:
 		return "ScheduledSCRsUnit"
 	case ExtendedShardHeadersNonceHashDataUnit:

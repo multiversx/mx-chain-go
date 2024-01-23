@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -37,6 +38,8 @@ type preProcessorsContainerFactory struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	txExecutionOrderHandler      common.TxExecutionOrderHandler
+	txPreprocessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
@@ -60,6 +63,8 @@ type ArgPreProcessorsContainerFactory struct {
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	TxExecutionOrderHandler      common.TxExecutionOrderHandler
+	TxPreProcessorCreator        preprocess.TxPreProcessorCreator
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -89,6 +94,8 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
+		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
+		txPreprocessorCreator:        args.TxPreProcessorCreator,
 	}, nil
 }
 
@@ -140,11 +147,10 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 		TxTypeHandler:                ppcf.txTypeHandler,
 		ScheduledTxsExecutionHandler: ppcf.scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
-	txPreprocessor, err := preprocess.NewTransactionPreprocessor(args)
-
-	return txPreprocessor, err
+	return ppcf.txPreprocessorCreator.CreateTxPreProcessor(args)
 }
 
 func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
@@ -164,6 +170,7 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		ppcf.balanceComputation,
 		ppcf.enableEpochsHandler,
 		ppcf.processedMiniBlocksTracker,
+		ppcf.txExecutionOrderHandler,
 	)
 
 	return scrPreprocessor, err
@@ -231,6 +238,12 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 	}
 	if check.IfNil(args.ProcessedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(args.TxPreProcessorCreator) {
+		return errors.ErrNilTxPreProcessorCreator
 	}
 
 	return nil

@@ -26,10 +26,14 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
+	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
@@ -49,11 +53,17 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -381,6 +391,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
 		return true, err
@@ -437,6 +448,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedBootstrapComponents,
 		managedProcessComponents,
+		managedStatusCoreComponents,
 	)
 	if err != nil {
 		return true, err
@@ -567,6 +579,7 @@ func addSyncersToAccountsDB(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) error {
 	selfId := bootstrapComponents.ShardCoordinator().SelfId()
 	if selfId == core.MetachainShardId {
@@ -576,6 +589,7 @@ func addSyncersToAccountsDB(
 			dataComponents,
 			stateComponents,
 			processComponents,
+			statusCoreComponents,
 		)
 		if err != nil {
 			return err
@@ -599,6 +613,7 @@ func addSyncersToAccountsDB(
 		stateComponents,
 		bootstrapComponents,
 		processComponents,
+		statusCoreComponents,
 	)
 	if err != nil {
 		return err
@@ -618,6 +633,7 @@ func getUserAccountSyncer(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
 	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
@@ -635,6 +651,7 @@ func getUserAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
+			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
@@ -651,6 +668,7 @@ func getValidatorAccountSyncer(
 	dataComponents mainFactory.DataComponentsHolder,
 	stateComponents mainFactory.StateComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
 	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
@@ -663,6 +681,7 @@ func getValidatorAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
+			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 	}
@@ -676,6 +695,7 @@ func getBaseAccountSyncerArgs(
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	storageManager common.StorageManager,
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
@@ -706,18 +726,20 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:               configs,
-		CoreComponents:        currentNode.coreComponents,
-		DataComponents:        currentNode.dataComponents,
-		StateComponents:       currentNode.stateComponents,
-		BootstrapComponents:   currentNode.bootstrapComponents,
-		CryptoComponents:      currentNode.cryptoComponents,
-		ProcessComponents:     currentNode.processComponents,
-		StatusCoreComponents:  currentNode.statusCoreComponents,
-		GasScheduleNotifier:   gasScheduleNotifier,
-		Bootstrapper:          currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:    allowVMQueriesChan,
-		StatusComponents:      currentNode.statusComponents,
+		Configs:              configs,
+		CoreComponents:       currentNode.coreComponents,
+		DataComponents:       currentNode.dataComponents,
+		StateComponents:      currentNode.stateComponents,
+		BootstrapComponents:  currentNode.bootstrapComponents,
+		CryptoComponents:     currentNode.cryptoComponents,
+		ProcessComponents:    currentNode.processComponents,
+		StatusCoreComponents: currentNode.statusCoreComponents,
+		GasScheduleNotifier:  gasScheduleNotifier,
+		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:   allowVMQueriesChan,
+		StatusComponents:     currentNode.statusComponents,
+		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:         common.ChainRunTypeRegular,
 		BlockChainHookCreator: currentNode.runTypeComponents.BlockChainHookHandlerCreator(),
 	}
 
@@ -736,8 +758,9 @@ func (nr *nodeRunner) createApiFacade(
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: flagsConfig.RestApiInterface,
-			PprofEnabled:     flagsConfig.EnablePprof,
+			RestApiInterface:            flagsConfig.RestApiInterface,
+			PprofEnabled:                flagsConfig.EnablePprof,
+			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
 		},
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
@@ -768,7 +791,14 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 	if check.IfNil(managedStatusCoreComponents) {
 		return nil, ErrNilStatusHandler
 	}
-	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
+
+	argsInitialNodeFacade := initial.ArgInitialNodeFacade{
+		ApiInterface:                nr.configs.FlagsConfig.RestApiInterface,
+		PprofEnabled:                nr.configs.FlagsConfig.EnablePprof,
+		P2PPrometheusMetricsEnabled: nr.configs.FlagsConfig.P2PPrometheusMetricsEnabled,
+		StatusMetricsHandler:        managedStatusCoreComponents.StatusMetrics(),
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(argsInitialNodeFacade)
 	if err != nil {
 		return nil, err
 	}
@@ -888,6 +918,8 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
 		RunTypeComponents:     runTypeComponents,
+		ExtraSignersHolder:    bls.NewEmptyExtraSignersHolder(),
+		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
 	}
 
 	consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -1223,31 +1255,43 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
+	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                 *configs.GeneralConfig,
-		EpochConfig:            *configs.EpochConfig,
-		PrefConfigs:            *configs.PreferencesConfig,
-		ImportDBConfig:         *configs.ImportDbConfig,
-		AccountsParser:         accountsParser,
-		SmartContractParser:    smartContractParser,
-		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nodesCoordinator,
-		Data:                   dataComponents,
-		CoreData:               coreComponents,
-		Crypto:                 cryptoComponents,
-		State:                  stateComponents,
-		Network:                networkComponents,
-		BootstrapComponents:    bootstrapComponents,
-		StatusComponents:       statusComponents,
-		StatusCoreComponents:   statusCoreComponents,
-		RequestedItemsHandler:  requestedItemsHandler,
-		WhiteListHandler:       whiteListRequest,
-		WhiteListerVerifiedTxs: whiteListerVerifiedTxs,
-		MaxRating:              configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:         configs.SystemSCConfig,
-		ImportStartHandler:     importStartHandler,
-		HistoryRepo:            historyRepository,
-		FlagsConfig:            *configs.FlagsConfig,
+		Config:                                *configs.GeneralConfig,
+		EpochConfig:                           *configs.EpochConfig,
+		PrefConfigs:                           *configs.PreferencesConfig,
+		ImportDBConfig:                        *configs.ImportDbConfig,
+		AccountsParser:                        accountsParser,
+		SmartContractParser:                   smartContractParser,
+		GasSchedule:                           gasScheduleNotifier,
+		NodesCoordinator:                      nodesCoordinator,
+		Data:                                  dataComponents,
+		CoreData:                              coreComponents,
+		Crypto:                                cryptoComponents,
+		State:                                 stateComponents,
+		Network:                               networkComponents,
+		BootstrapComponents:                   bootstrapComponents,
+		StatusComponents:                      statusComponents,
+		StatusCoreComponents:                  statusCoreComponents,
+		RequestedItemsHandler:                 requestedItemsHandler,
+		WhiteListHandler:                      whiteListRequest,
+		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
+		MaxRating:                             configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:                        configs.SystemSCConfig,
+		ImportStartHandler:                    importStartHandler,
+		HistoryRepo:                           historyRepository,
+		FlagsConfig:                           *configs.FlagsConfig,
+		TxExecutionOrderHandler:               txExecutionOrderHandler,
+		ChainRunType:                          common.ChainRunTypeRegular,
+		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
+		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
 		RunTypeComponents:      runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
@@ -1368,16 +1412,18 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		PrefConfig:           *nr.configs.PreferencesConfig,
-		ImportDbConfig:       *nr.configs.ImportDbConfig,
-		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
+		Config:                           *nr.configs.GeneralConfig,
+		PrefConfig:                       *nr.configs.PreferencesConfig,
+		ImportDbConfig:                   *nr.configs.ImportDbConfig,
+		FlagsConfig:                      *nr.configs.FlagsConfig,
+		WorkingDir:                       nr.configs.FlagsConfig.DbDir,
+		CoreComponents:                   coreComponents,
+		CryptoComponents:                 cryptoComponents,
+		NetworkComponents:                networkComponents,
+		StatusCoreComponents:             statusCoreComponents,
 		RunTypeComponents:    runTypeComponents,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1446,16 +1492,18 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *nr.configs.EpochConfig,
-		RoundConfig:         *nr.configs.RoundConfig,
-		ImportDbConfig:      *nr.configs.ImportDbConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                   *nr.configs.GeneralConfig,
+		ConfigPathsHolder:        *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:              *nr.configs.EpochConfig,
+		RoundConfig:              *nr.configs.RoundConfig,
+		ImportDbConfig:           *nr.configs.ImportDbConfig,
+		RatingsConfig:            *nr.configs.RatingsConfig,
+		EconomicsConfig:          *nr.configs.EconomicsConfig,
+		NodesFilename:            nr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:      chanStopNodeProcess,
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewRatingsDataFactory(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1518,13 +1566,13 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 		AllValidatorKeysPemFileName:          allValidatorKeysPemFileName,
 		SkIndex:                              configs.FlagsConfig.ValidatorKeyIndex,
 		Config:                               *configs.GeneralConfig,
+		PrefsConfig:                          *configs.PreferencesConfig,
 		CoreComponentsHolder:                 coreComponents,
 		ActivateBLSPubKeyMessageVerification: configs.SystemSCConfig.StakingSystemSCConfig.ActivateBLSPubKeyMessageVerification,
 		KeyLoader:                            core.NewKeyLoader(),
 		ImportModeNoSigCheck:                 configs.ImportDbConfig.ImportDbNoSigCheckFlag,
 		IsInImportMode:                       configs.ImportDbConfig.IsImportDBMode,
 		EnableEpochs:                         configs.EpochConfig.EnableEpochs,
-		NoKeyProvided:                        configs.FlagsConfig.NoKeyProvided,
 		P2pKeyPemFileName:                    configs.ConfigurationPathsHolder.P2pKey,
 	}
 

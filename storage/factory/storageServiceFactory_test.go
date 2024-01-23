@@ -1,11 +1,16 @@
 package factory
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
@@ -15,7 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const numShardStoreres = 25
+const numShardStoreres = 23
 
 func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 	pathMan, err := CreatePathManagerFromSinglePathString(t.TempDir())
@@ -30,24 +35,22 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 				NumEpochsToKeep:            4,
 				ObserverCleanOldEpochsData: true,
 			},
-			ShardHdrNonceHashStorage:           createMockStorageConfig("ShardHdrNonceHashStorage"),
-			TxStorage:                          createMockStorageConfig("TxStorage"),
-			UnsignedTransactionStorage:         createMockStorageConfig("UnsignedTransactionStorage"),
-			RewardTxStorage:                    createMockStorageConfig("RewardTxStorage"),
-			ReceiptsStorage:                    createMockStorageConfig("ReceiptsStorage"),
-			ScheduledSCRsStorage:               createMockStorageConfig("ScheduledSCRsStorage"),
-			BootstrapStorage:                   createMockStorageConfig("BootstrapStorage"),
-			MiniBlocksStorage:                  createMockStorageConfig("MiniBlocksStorage"),
-			MetaBlockStorage:                   createMockStorageConfig("MetaBlockStorage"),
-			MetaHdrNonceHashStorage:            createMockStorageConfig("MetaHdrNonceHashStorage"),
-			BlockHeaderStorage:                 createMockStorageConfig("BlockHeaderStorage"),
-			AccountsTrieStorage:                createMockStorageConfig("AccountsTrieStorage"),
-			AccountsTrieCheckpointsStorage:     createMockStorageConfig("AccountsTrieCheckpointsStorage"),
-			PeerAccountsTrieStorage:            createMockStorageConfig("PeerAccountsTrieStorage"),
-			PeerAccountsTrieCheckpointsStorage: createMockStorageConfig("PeerAccountsTrieCheckpointsStorage"),
-			StatusMetricsStorage:               createMockStorageConfig("StatusMetricsStorage"),
-			PeerBlockBodyStorage:               createMockStorageConfig("PeerBlockBodyStorage"),
-			TrieEpochRootHashStorage:           createMockStorageConfig("TrieEpochRootHashStorage"),
+			ShardHdrNonceHashStorage:   createMockStorageConfig("ShardHdrNonceHashStorage"),
+			TxStorage:                  createMockStorageConfig("TxStorage"),
+			UnsignedTransactionStorage: createMockStorageConfig("UnsignedTransactionStorage"),
+			RewardTxStorage:            createMockStorageConfig("RewardTxStorage"),
+			ReceiptsStorage:            createMockStorageConfig("ReceiptsStorage"),
+			ScheduledSCRsStorage:       createMockStorageConfig("ScheduledSCRsStorage"),
+			BootstrapStorage:           createMockStorageConfig("BootstrapStorage"),
+			MiniBlocksStorage:          createMockStorageConfig("MiniBlocksStorage"),
+			MetaBlockStorage:           createMockStorageConfig("MetaBlockStorage"),
+			MetaHdrNonceHashStorage:    createMockStorageConfig("MetaHdrNonceHashStorage"),
+			BlockHeaderStorage:         createMockStorageConfig("BlockHeaderStorage"),
+			AccountsTrieStorage:        createMockStorageConfig("AccountsTrieStorage"),
+			PeerAccountsTrieStorage:    createMockStorageConfig("PeerAccountsTrieStorage"),
+			StatusMetricsStorage:       createMockStorageConfig("StatusMetricsStorage"),
+			PeerBlockBodyStorage:       createMockStorageConfig("PeerBlockBodyStorage"),
+			TrieEpochRootHashStorage:   createMockStorageConfig("TrieEpochRootHashStorage"),
 			SovereignConfig: config.SovereignConfig{
 				ExtendedShardHdrNonceHashStorage: createMockStorageConfig("ExtendedShardHdrNonceHashStorage"),
 				ExtendedShardHeaderStorage:       createMockStorageConfig("ExtendedShardHeaderStorage"),
@@ -78,10 +81,11 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 				return core.NodeTypeObserver
 			},
 		},
-		StorageType:                     ProcessStorageService,
-		CurrentEpoch:                    0,
-		CreateTrieEpochRootHashStorer:   true,
-		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		StorageType:                   ProcessStorageService,
+		CurrentEpoch:                  0,
+		CreateTrieEpochRootHashStorer: true,
+		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
+		StateStatsHandler:             disabledStatistics.NewStateStatistics(),
 		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
@@ -121,6 +125,15 @@ func TestNewStorageServiceFactory(t *testing.T) {
 		args.ShardCoordinator = nil
 		storageServiceFactory, err := NewStorageServiceFactory(args)
 		assert.Equal(t, storage.ErrNilShardCoordinator, err)
+		assert.Nil(t, storageServiceFactory)
+	})
+	t.Run("nil state statistics handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StateStatsHandler = nil
+		storageServiceFactory, err := NewStorageServiceFactory(args)
+		assert.Equal(t, statistics.ErrNilStateStatsHandler, err)
 		assert.Nil(t, storageServiceFactory)
 	})
 	t.Run("nil path manager should error", func(t *testing.T) {
@@ -294,16 +307,6 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.Equal(t, expectedErrForCacheString+" for AccountsTrieStorage", err.Error())
 		assert.True(t, check.IfNil(storageService))
 	})
-	t.Run("wrong config for AccountsTrieCheckpointsStorage should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgument(t)
-		args.Config.AccountsTrieCheckpointsStorage.Cache.Type = ""
-		storageServiceFactory, _ := NewStorageServiceFactory(args)
-		storageService, err := storageServiceFactory.CreateForShard()
-		assert.Equal(t, expectedErrForCacheString+" for AccountsTrieCheckpointsStorage", err.Error())
-		assert.True(t, check.IfNil(storageService))
-	})
 	t.Run("wrong config for PeerAccountsTrieStorage should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -312,16 +315,6 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 		storageService, err := storageServiceFactory.CreateForShard()
 		assert.Equal(t, expectedErrForCacheString+" for PeerAccountsTrieStorage", err.Error())
-		assert.True(t, check.IfNil(storageService))
-	})
-	t.Run("wrong config for PeerAccountsTrieCheckpointsStorage should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgument(t)
-		args.Config.PeerAccountsTrieCheckpointsStorage.Cache.Type = ""
-		storageServiceFactory, _ := NewStorageServiceFactory(args)
-		storageService, err := storageServiceFactory.CreateForShard()
-		assert.Equal(t, expectedErrForCacheString+" for PeerAccountsTrieCheckpointsStorage", err.Error())
 		assert.True(t, check.IfNil(storageService))
 	})
 	t.Run("wrong config for StatusMetricsStorage should error", func(t *testing.T) {
@@ -434,6 +427,13 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		assert.False(t, check.IfNil(storageService))
 		allStorers := storageService.GetAllStorers()
 		assert.Equal(t, numShardStoreres, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
 		_ = storageService.CloseAll()
 	})
 	t.Run("should work without DbLookupExtensions", func(t *testing.T) {
@@ -463,6 +463,27 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		expectedStorers := numShardStoreres // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
+		_ = storageService.CloseAll()
+	})
+	t.Run("should work for import-db", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StorageType = ImportDBStorageService
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storageService))
+		allStorers := storageService.GetAllStorers()
+		expectedStorers := 23
+		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
 		_ = storageService.CloseAll()
 	})
 }
@@ -580,6 +601,36 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		numShardHdrStorage := 3
 		expectedStorers := numShardStoreres - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		_ = storageService.CloseAll()
+	})
+	t.Run("should work for import-db", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StorageType = ImportDBStorageService
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForMeta()
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storageService))
+		allStorers := storageService.GetAllStorers()
+		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
+		numShardHdrStorage := 3
+		expectedStorers := 23 - missingStorers + numShardHdrStorage
+		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
 		_ = storageService.CloseAll()
 	})
 }

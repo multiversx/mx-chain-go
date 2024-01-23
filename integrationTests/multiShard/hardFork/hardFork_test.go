@@ -12,16 +12,22 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -489,8 +495,11 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig:       &roundConfig,
+			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},RoundConfig:       &roundConfig,
 			RunTypeComponents: componentsMock.GetRunTypeComponents(),
+			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+			TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -578,7 +587,8 @@ func createHardForkExporter(
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
 		statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabled.NewStateStatistics(),
 		}
 
 		networkComponents := integrationTests.GetDefaultNetworkComponents()
@@ -641,6 +651,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			CheckNodesOnDisk:          false,
 			NodeOperationMode:         node.NodeOperationMode,
+			ShardCoordinatorFactory:   sharding.NewMultiShardCoordinatorFactory(),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

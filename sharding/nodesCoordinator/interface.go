@@ -29,6 +29,9 @@ type NodesCoordinator interface {
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
+	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NodesCoordinatorToRegistry() *NodesCoordinatorRegistry
 	IsInterfaceNil() bool
 }
 
@@ -63,7 +66,7 @@ type NodesCoordinatorHelper interface {
 	GetChance(uint32) uint32
 }
 
-//ChanceComputer provides chance computation capabilities based on a rating
+// ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
 	//GetChance returns the chances for the rating
 	GetChance(uint32) uint32
@@ -71,7 +74,7 @@ type ChanceComputer interface {
 	IsInterfaceNil() bool
 }
 
-//Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
+// Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
 type Cacher interface {
 	// Clear is used to completely clear the cache.
 	Clear()
@@ -129,4 +132,17 @@ type EpochsConfigUpdateHandler interface {
 	NodesCoordinator
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
+}
+
+// GenesisNodesSetupHandler defines a component able to provide the genesis nodes info
+type GenesisNodesSetupHandler interface {
+	MinShardHysteresisNodes() uint32
+	MinMetaHysteresisNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinatorWithRaterFactory should create a nodes coordinator with rater
+type NodesCoordinatorWithRaterFactory interface {
+	CreateNodesCoordinatorWithRater(args *NodesCoordinatorWithRaterArgs) (NodesCoordinator, error)
+	IsInterfaceNil() bool
 }

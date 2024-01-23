@@ -48,6 +48,7 @@ type GenesisNodesSetupHandler interface {
 	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
 	InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
 	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	SetStartTime(startTime int64)
 	GetStartTime() int64
 	GetRoundDuration() uint64
 	GetShardConsensusGroupSize() uint32
@@ -59,5 +60,19 @@ type GenesisNodesSetupHandler interface {
 	GetHysteresis() float32
 	GetAdaptivity() bool
 	MinNumberOfNodesWithHysteresis() uint32
+	MinShardHysteresisNodes() uint32
+	MinMetaHysteresisNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// GenesisNodesSetupFactory defines a GenesisNodesSetupHandler factory behavior
+type GenesisNodesSetupFactory interface {
+	CreateNodesSetup(args *NodesSetupArgs) (GenesisNodesSetupHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ShardCoordinatorFactory defines a Coordinator factory behavior
+type ShardCoordinatorFactory interface {
+	CreateShardCoordinator(numberOfShards, selfId uint32) (Coordinator, error)
 	IsInterfaceNil() bool
 }

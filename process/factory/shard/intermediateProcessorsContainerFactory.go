@@ -15,26 +15,28 @@ import (
 )
 
 type intermediateProcessorsContainerFactory struct {
-	shardCoordinator    sharding.Coordinator
-	marshalizer         marshal.Marshalizer
-	hasher              hashing.Hasher
-	pubkeyConverter     core.PubkeyConverter
-	store               dataRetriever.StorageService
-	poolsHolder         dataRetriever.PoolsHolder
-	economicsFee        process.FeeHandler
-	enableEpochsHandler common.EnableEpochsHandler
+	shardCoordinator      sharding.Coordinator
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	pubkeyConverter       core.PubkeyConverter
+	store                 dataRetriever.StorageService
+	poolsHolder           dataRetriever.PoolsHolder
+	economicsFee          process.FeeHandler
+	enableEpochsHandler   common.EnableEpochsHandler
+	executionOrderHandler common.TxExecutionOrderHandler
 }
 
 // ArgsNewIntermediateProcessorsContainerFactory defines the argument list to create a new container factory
 type ArgsNewIntermediateProcessorsContainerFactory struct {
-	ShardCoordinator    sharding.Coordinator
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	PubkeyConverter     core.PubkeyConverter
-	Store               dataRetriever.StorageService
-	PoolsHolder         dataRetriever.PoolsHolder
-	EconomicsFee        process.FeeHandler
-	EnableEpochsHandler common.EnableEpochsHandler
+	ShardCoordinator        sharding.Coordinator
+	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	PubkeyConverter         core.PubkeyConverter
+	Store                   dataRetriever.StorageService
+	PoolsHolder             dataRetriever.PoolsHolder
+	EconomicsFee            process.FeeHandler
+	EnableEpochsHandler     common.EnableEpochsHandler
+	TxExecutionOrderHandler common.TxExecutionOrderHandler
 }
 
 // NewIntermediateProcessorsContainerFactory is responsible for creating a new intermediate processors factory object
@@ -66,16 +68,20 @@ func NewIntermediateProcessorsContainerFactory(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.TxExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
+	}
 
 	return &intermediateProcessorsContainerFactory{
-		shardCoordinator:    args.ShardCoordinator,
-		marshalizer:         args.Marshalizer,
-		hasher:              args.Hasher,
-		pubkeyConverter:     args.PubkeyConverter,
-		store:               args.Store,
-		poolsHolder:         args.PoolsHolder,
-		economicsFee:        args.EconomicsFee,
-		enableEpochsHandler: args.EnableEpochsHandler,
+		shardCoordinator:      args.ShardCoordinator,
+		marshalizer:           args.Marshalizer,
+		hasher:                args.Hasher,
+		pubkeyConverter:       args.PubkeyConverter,
+		store:                 args.Store,
+		poolsHolder:           args.PoolsHolder,
+		economicsFee:          args.EconomicsFee,
+		enableEpochsHandler:   args.EnableEpochsHandler,
+		executionOrderHandler: args.TxExecutionOrderHandler,
 	}, nil
 }
 
@@ -118,15 +124,16 @@ func (ppcm *intermediateProcessorsContainerFactory) Create() (process.Intermedia
 
 func (ppcm *intermediateProcessorsContainerFactory) createSmartContractResultsIntermediateProcessor() (process.IntermediateTransactionHandler, error) {
 	args := postprocess.ArgsNewIntermediateResultsProcessor{
-		Hasher:              ppcm.hasher,
-		Marshalizer:         ppcm.marshalizer,
-		Coordinator:         ppcm.shardCoordinator,
-		PubkeyConv:          ppcm.pubkeyConverter,
-		Store:               ppcm.store,
-		BlockType:           block.SmartContractResultBlock,
-		CurrTxs:             ppcm.poolsHolder.CurrentBlockTxs(),
-		EconomicsFee:        ppcm.economicsFee,
-		EnableEpochsHandler: ppcm.enableEpochsHandler,
+		Hasher:                  ppcm.hasher,
+		Marshalizer:             ppcm.marshalizer,
+		Coordinator:             ppcm.shardCoordinator,
+		PubkeyConv:              ppcm.pubkeyConverter,
+		Store:                   ppcm.store,
+		BlockType:               block.SmartContractResultBlock,
+		CurrTxs:                 ppcm.poolsHolder.CurrentBlockTxs(),
+		EconomicsFee:            ppcm.economicsFee,
+		EnableEpochsHandler:     ppcm.enableEpochsHandler,
+		TxExecutionOrderHandler: ppcm.executionOrderHandler,
 	}
 	irp, err := postprocess.NewIntermediateResultsProcessor(args)
 

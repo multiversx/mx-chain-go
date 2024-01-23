@@ -16,7 +16,7 @@ import (
 
 // ApiResolverStub -
 type ApiResolverStub struct {
-	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
@@ -48,6 +48,7 @@ type ApiResolverStub struct {
 	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
 }
 
 // GetTransaction -
@@ -96,12 +97,12 @@ func (ars *ApiResolverStub) GetAlteredAccountsForBlock(options api.GetAlteredAcc
 }
 
 // ExecuteSCQuery -
-func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+func (ars *ApiResolverStub) ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 	if ars.ExecuteSCQueryHandler != nil {
 		return ars.ExecuteSCQueryHandler(query)
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 // StatusMetrics -
@@ -322,6 +323,14 @@ func (ars *ApiResolverStub) GetWaitingManagedKeys() ([]string, error) {
 		return ars.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (ars *ApiResolverStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	if ars.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return ars.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
 }
 
 // Close -

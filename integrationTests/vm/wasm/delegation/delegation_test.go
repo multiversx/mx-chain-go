@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package delegation
 
@@ -24,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	systemVm "github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -33,39 +31,6 @@ import (
 var NewBalance = wasm.NewBalance
 var NewBalanceBig = wasm.NewBalanceBig
 var RequireAlmostEquals = wasm.RequireAlmostEquals
-
-func TestDelegation_Upgrade(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
-	context := wasm.SetupTestContext(t)
-	defer context.Close()
-
-	delegationWasmPathA := "../testdata/delegation/delegation_vA.wasm"
-	delegationWasmPathB := "../testdata/delegation/delegation_vB.wasm"
-	delegationInitParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@00@0080@0080"
-	delegationUpgradeParams := "0000000000000000000000000000000000000000000000000000000000000000@0080@00@0080@0080"
-
-	context.ScCodeMetadata.Upgradeable = true
-	context.GasLimit = 400000000
-
-	err := context.DeploySC(delegationWasmPathA, delegationInitParams)
-	require.Nil(t, err)
-	account, err := context.Accounts.GetExistingAccount(context.ScAddress)
-	require.Nil(t, err)
-	codeHashA := account.(state.UserAccountHandler).GetCodeHash()
-
-	context.GasLimit = 21700000
-	err = context.UpgradeSC(delegationWasmPathB, delegationUpgradeParams)
-	require.Nil(t, err)
-	account, err = context.Accounts.GetExistingAccount(context.ScAddress)
-	require.Nil(t, err)
-	codeHashB := account.(state.UserAccountHandler).GetCodeHash()
-
-	require.NotEqual(t, codeHashA, codeHashB)
-}
 
 func TestDelegation_Claims(t *testing.T) {
 	// TODO reinstate test after Wasm VM pointer fix

@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -2990,6 +2991,28 @@ func TestCreateTransaction_TxSignedWithHashNoEnabledShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrTransactionSignedWithHashIsNotEnabled, err)
 }
 
+func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
+	t.Parallel()
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(getDefaultCoreComponents()),
+		node.WithBootstrapComponents(getDefaultBootstrapComponents()),
+		node.WithProcessComponents(getDefaultProcessComponents()),
+		node.WithStateComponents(getDefaultStateComponents()),
+		node.WithCryptoComponents(getDefaultCryptoComponents()),
+	)
+
+	tx := &transaction.Transaction{
+		SndAddr:   bytes.Repeat([]byte("1"), 32),
+		RcvAddr:   bytes.Repeat([]byte("1"), 32),
+		Value:     big.NewInt(37),
+		Signature: []byte("signature"),
+		ChainID:   []byte("chainID"),
+	}
+	err := n.ValidateTransaction(tx)
+	require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+}
+
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
 	messenger := getMessenger()
 	dataPool := dataRetrieverMock.NewPoolsHolderStub()
@@ -3061,7 +3084,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 		return nil
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{}
+		return &testscommon.HeadersCacherStub{}
 	}
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
@@ -3141,7 +3164,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		return testscommon.NewShardedDataStub()
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{}
+		return &testscommon.HeadersCacherStub{}
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -3216,12 +3239,12 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		},
 	}
 
-	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*accounts.ValidatorApiResponse {
-		apiResponses := make(map[string]*accounts.ValidatorApiResponse)
+	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*validator.ValidatorStatistics {
+		apiResponses := make(map[string]*validator.ValidatorStatistics)
 
 		for _, vis := range validatorsInfo {
 			for _, vi := range vis {
-				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &accounts.ValidatorApiResponse{}
+				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &validator.ValidatorStatistics{}
 			}
 		}
 
@@ -3238,7 +3261,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	expectedData := &accounts.ValidatorApiResponse{}
+	expectedData := &validator.ValidatorStatistics{}
 	validatorsData, err := n.ValidatorStatisticsApi()
 	require.Equal(t, expectedData, validatorsData[hex.EncodeToString([]byte(keys[2][0]))])
 	require.Nil(t, err)

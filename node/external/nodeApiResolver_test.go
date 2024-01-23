@@ -1,6 +1,7 @@
 package external_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -43,6 +44,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 		ManagedPeersMonitor:      &testscommon.ManagedPeersMonitorStub{},
+		NodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
 	}
 }
 
@@ -123,6 +125,17 @@ func TestNewNodeApiResolver_NilGasSchedules(t *testing.T) {
 	assert.Equal(t, external.ErrNilGasScheduler, err)
 }
 
+func TestNewNodeApiResolver_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgs()
+	arg.NodesCoordinator = nil
+	nar, err := external.NewNodeApiResolver(arg)
+
+	assert.Nil(t, nar)
+	assert.Equal(t, external.ErrNilNodesCoordinator, err)
+}
+
 func TestNewNodeApiResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -158,14 +171,14 @@ func TestNodeApiResolver_GetDataValueShouldCall(t *testing.T) {
 	arg := createMockArgs()
 	wasCalled := false
 	arg.SCQueryService = &mock.SCQueryServiceStub{
-		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, e error) {
+		ExecuteQueryCalled: func(query *process.SCQuery) (vmOutput *vmcommon.VMOutput, info common.BlockInfo, e error) {
 			wasCalled = true
-			return &vmcommon.VMOutput{}, nil
+			return &vmcommon.VMOutput{}, info, nil
 		},
 	}
 	nar, _ := external.NewNodeApiResolver(arg)
 
-	_, _ = nar.ExecuteSCQuery(&process.SCQuery{
+	_, _, _ = nar.ExecuteSCQuery(&process.SCQuery{
 		ScAddress: []byte{0},
 		FuncName:  "",
 	})
@@ -823,6 +836,49 @@ func TestNodeApiResolver_GetWaitingManagedKeys(t *testing.T) {
 		keys, err := nar.GetWaitingManagedKeys()
 		require.NoError(t, err)
 		require.Equal(t, expectedKeys, keys)
+	})
+}
+
+func TestNodeApiResolver_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid public key should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeyStr := "abcde"
+		args := createMockArgs()
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+				require.Fail(t, "should have not been called")
+				return 0, nil
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+		require.Error(t, err)
+		require.Equal(t, uint32(0), epochsLeft)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeyStr := "abcdef"
+		providedPublicKey, _ := hex.DecodeString(providedKeyStr)
+		expectedEpochsLeft := uint32(5)
+		args := createMockArgs()
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey []byte) (uint32, error) {
+				require.True(t, bytes.Equal(providedPublicKey, publicKey))
+				return expectedEpochsLeft, nil
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		epochsLeft, err := nar.GetWaitingEpochsLeftForPublicKey(providedKeyStr)
+		require.NoError(t, err)
+		require.Equal(t, expectedEpochsLeft, epochsLeft)
 	})
 }
 

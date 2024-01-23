@@ -203,6 +203,15 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PayableBySCFlag,
+		common.DoNotReturnOldBlockInBlockchainHookFlag,
+		common.OptimizeNFTStoreFlag,
+		common.MaxBlockchainHookCountersFlag,
+	})
+	if err != nil {
+		return err
+	}
 	if check.IfNil(args.GasSchedule) || args.GasSchedule.LatestGasSchedule() == nil {
 		return process.ErrNilGasSchedule
 	}
@@ -301,7 +310,7 @@ func (bh *BlockChainHookImpl) syncIfMissingDataTrieNode(err error) {
 }
 
 func (bh *BlockChainHookImpl) processMaxReadsCounters() error {
-	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+	if !bh.enableEpochsHandler.IsFlagEnabled(common.MaxBlockchainHookCountersFlag) {
 		return nil
 	}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -326,7 +335,7 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	if nonce == hdr.GetNonce() {
 		return bh.blockChain.GetCurrentBlockHeaderHash(), nil
 	}
-	if bh.enableEpochsHandler.IsDoNotReturnOldBlockInBlockchainHookFlagEnabled() {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.DoNotReturnOldBlockInBlockchainHookFlag) {
 		return nil, process.ErrInvalidNonceRequest
 	}
 
@@ -508,7 +517,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 }
 
 func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.ContractCallInput) error {
-	if !bh.enableEpochsHandler.IsMaxBlockchainHookCountersFlagEnabled() {
+	if !bh.enableEpochsHandler.IsFlagEnabled(common.MaxBlockchainHookCountersFlag) {
 		return nil
 	}
 	if bh.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -556,7 +565,7 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 	}
 
 	metadata := vmcommon.CodeMetadataFromBytes(userAcc.GetCodeMetadata())
-	if bh.enableEpochsHandler.IsPayableBySCFlagEnabled() && bh.IsSmartContract(sndAddress) {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.PayableBySCFlag) && bh.IsSmartContract(sndAddress) {
 		return metadata.Payable || metadata.PayableBySC, nil
 	}
 
@@ -566,7 +575,7 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 // FilterCodeMetadataForUpgrade will filter the provided input bytes as a correctly constructed vmcommon.CodeMetadata bytes
 // taking into account the activation flags for the future flags. This should be used in the upgrade SC process
 func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte, error) {
-	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	isFilterCodeMetadataFlagSet := bh.enableEpochsHandler.IsFlagEnabled(common.PayableBySCFlag)
 	if !isFilterCodeMetadataFlagSet {
 		// return the raw bytes unconditioned here for backwards compatibility reasons
 		return input, nil
@@ -583,7 +592,7 @@ func (bh *BlockChainHookImpl) FilterCodeMetadataForUpgrade(input []byte) ([]byte
 
 // ApplyFiltersOnSCCodeMetadata will apply all known filters on the provided code metadata value
 func (bh *BlockChainHookImpl) ApplyFiltersOnSCCodeMetadata(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata {
-	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsPayableBySCFlagEnabled()
+	codeMetadata.PayableBySC = codeMetadata.PayableBySC && bh.enableEpochsHandler.IsFlagEnabled(common.PayableBySCFlag)
 	codeMetadata.Guarded = false
 
 	return codeMetadata
@@ -669,7 +678,7 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
-	if !bh.enableEpochsHandler.IsOptimizeNFTStoreFlagEnabled() {
+	if !bh.enableEpochsHandler.IsFlagEnabled(common.OptimizeNFTStoreFlag) {
 		return bh.returnESDTTokenByLegacyMethod(userAcc, esdtData, esdtTokenKey, nonce)
 	}
 
@@ -823,9 +832,17 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 
 	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
 	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
+
+	dbConfigHandler := factory.NewDBConfigHandler(bh.configSCStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return err
+	}
+
 	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(bh.configSCStorage.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return err
@@ -907,6 +924,11 @@ func (bh *BlockChainHookImpl) ResetCounters() {
 // GetCounterValues returns the current counter values
 func (bh *BlockChainHookImpl) GetCounterValues() map[string]uint64 {
 	return bh.counter.GetCounterValues()
+}
+
+// GetAccountsAdapter returns the managed accounts adapter
+func (bh *BlockChainHookImpl) GetAccountsAdapter() state.AccountsAdapter {
+	return bh.accounts
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -102,6 +102,62 @@ func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 	assert.Equal(t, len(header.MetaBlockHashes), len(lines))
 }
 
+func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
+	t.Parallel()
+
+	shardLines := make([]*display.LineData, 0)
+
+	extendedShardHeaderHashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
+	outGoingMbHeader := &block.OutGoingMiniBlockHeader{
+		Hash:                                  []byte("outGoingTxDataHash"),
+		OutGoingOperationsHash:                []byte("outGoingOperationsHash"),
+		AggregatedSignatureOutGoingOperations: []byte("aggregatedSig"),
+		LeaderSignatureOutGoingOperations:     []byte("leaderSig"),
+	}
+	sovChainHeader := &block.SovereignChainHeader{
+		OutGoingMiniBlockHeader:   outGoingMbHeader,
+		ExtendedShardHeaderHashes: extendedShardHeaderHashes,
+	}
+
+	args := createMockArgsTransactionCounter()
+	txCounter, _ := NewTransactionCounter(args)
+	lines := txCounter.displaySovereignChainHeader(
+		shardLines,
+		sovChainHeader,
+	)
+
+	require.Equal(t, []*display.LineData{
+		{
+			Values:              []string{"ExtendedShardHeaderHashes", "ExtendedShardHeaderHash_1", hex.EncodeToString(extendedShardHeaderHashes[0])},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "...", "..."},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "ExtendedShardHeaderHash_3", hex.EncodeToString(extendedShardHeaderHashes[2])},
+			HorizontalRuleAfter: true,
+		},
+		{
+			Values:              []string{"OutGoing mini block header", "Hash", hex.EncodeToString(outGoingMbHeader.GetHash())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "OutGoingTxDataHash", hex.EncodeToString(outGoingMbHeader.GetOutGoingOperationsHash())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetAggregatedSignatureOutGoingOperations())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
+			HorizontalRuleAfter: true,
+		},
+	}, lines)
+}
+
 func TestDisplayBlock_DisplayExtendedShardHeaderHashesIncluded(t *testing.T) {
 	t.Parallel()
 

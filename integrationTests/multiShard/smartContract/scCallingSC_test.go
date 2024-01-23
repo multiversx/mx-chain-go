@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -78,7 +78,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -88,7 +88,7 @@ func TestSCCallingIntraShard(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -335,7 +335,7 @@ func TestScDeployAndClaimSmartContractDeveloperRewards(t *testing.T) {
 
 	for _, node := range nodes {
 		node.EconomicsData.SetGasPerDataByte(0)
-		node.EconomicsData.SetMinGasLimit(0)
+		node.EconomicsData.SetMinGasLimit(0, 0)
 		node.EconomicsData.SetMinGasPrice(0)
 	}
 
@@ -414,7 +414,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -424,7 +424,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -577,7 +577,6 @@ func TestSCCallingBuiltinAndFails(t *testing.T) {
 
 	time.Sleep(time.Second)
 	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
-
 	testValue1 := vm.GetIntValueFromSC(nil, sender.AccntState, scAddress, "testValue1", nil)
 	require.NotNil(t, testValue1)
 	require.Equal(t, uint64(255), testValue1.Uint64())
@@ -644,7 +643,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool(
-		"./testdata/delegate-mock/delegate.wasm",
+		"./testdata/delegate-mock/output/delegate.wasm",
 		delegateSCOwner,
 		0,
 		big.NewInt(50),
@@ -679,7 +678,7 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
@@ -770,7 +769,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "version",
 		Arguments: [][]byte{},
 	}
-	vmOutputVersion, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
+	vmOutputVersion, _, _ := shardNode.SCQueryService.ExecuteQuery(scQueryVersion)
 	assert.NotNil(t, vmOutputVersion)
 	assert.Equal(t, len(vmOutputVersion.ReturnData), 1)
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
@@ -818,7 +817,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getNumNodes",
 		Arguments: [][]byte{},
 	}
-	vmOutput1, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
+	vmOutput1, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery1)
 	require.NotNil(t, vmOutput1)
 	require.Equal(t, len(vmOutput1.ReturnData), 1)
 	require.True(t, bytes.Equal(vmOutput1.ReturnData[0], []byte{1}))
@@ -829,7 +828,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getNodeSignature",
 		Arguments: [][]byte{stakerBLSKey},
 	}
-	vmOutput2, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
+	vmOutput2, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery2)
 	require.NotNil(t, vmOutput2)
 	require.Equal(t, len(vmOutput2.ReturnData), 1)
 	require.True(t, bytes.Equal(stakerBLSSignature, vmOutput2.ReturnData[0]))
@@ -840,7 +839,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
-	vmOutput3, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
+	vmOutput3, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery3)
 	require.NotNil(t, vmOutput3)
 	require.Equal(t, len(vmOutput3.ReturnData), 1)
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput3.ReturnData[0])) == 0)
@@ -851,7 +850,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserActiveStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
-	vmOutput4, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
+	vmOutput4, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
 	require.NotNil(t, vmOutput4)
 	require.Equal(t, len(vmOutput4.ReturnData), 1)
 	require.True(t, totalStake.Cmp(big.NewInt(0).SetBytes(vmOutput4.ReturnData[0])) == 0)
@@ -866,7 +865,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 			FuncName:  "isStaked",
 			Arguments: [][]byte{stakerBLSKey},
 		}
-		vmOutput, _ := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, _ := n.SCQueryService.ExecuteQuery(scQuery)
 
 		assert.NotNil(t, vmOutput)
 		if vmOutput != nil {
@@ -923,7 +922,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 
 	// deploy the smart contracts
 	_ = putDeploySCToDataPool(
-		"./testdata/first/first.wasm",
+		"./testdata/first/output/first.wasm",
 		firstSCOwner,
 		0,
 		big.NewInt(50),
@@ -933,7 +932,7 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	)
 	//000000000000000005005d3d53b5d0fcf07d222170978932166ee9f3972d3030
 	secondSCAddress := putDeploySCToDataPool(
-		"./testdata/second/second.wasm",
+		"./testdata/second/output/second.wasm",
 		secondSCOwner,
 		0,
 		big.NewInt(50),
@@ -984,7 +983,7 @@ func putDeploySCToDataPool(
 	nodes []*integrationTests.TestProcessorNode,
 	gasLimit uint64,
 ) []byte {
-	scCode, err := ioutil.ReadFile(fileName)
+	scCode, err := os.ReadFile(fileName)
 	if err != nil {
 		panic(fmt.Sprintf("putDeploySCToDataPool(): %s", err))
 	}

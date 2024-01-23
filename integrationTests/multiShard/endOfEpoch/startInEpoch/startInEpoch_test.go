@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -148,7 +149,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < uint32(numOfShards); i++ {
@@ -164,9 +165,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		GetRoundDurationCalled: func() uint64 {
 			return 4000
 		},
-		GetChainIdCalled: func() string {
-			return string(integrationTests.ChainID)
-		},
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return 1
 		},
@@ -175,9 +173,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		NumberOfShardsCalled: func() uint32 {
 			return uint32(numOfShards)
-		},
-		GetMinTransactionVersionCalled: func() uint32 {
-			return integrationTests.MinTransactionVersion
 		},
 	}
 
@@ -269,7 +264,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
+		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:                disabled.NewStateStatistics(),
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 		AdditionalStorageServiceCreator: additionalStorageServiceFactory,
 	}
 
@@ -285,17 +284,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                          generalConfig,
-			PrefsConfig:                     prefsConfig,
-			ShardCoordinator:                shardC,
-			PathManager:                     &testscommon.PathManagerStub{},
-			EpochStartNotifier:              notifier.NewEpochStartSubscriptionHandler(),
-			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
-			CurrentEpoch:                    0,
-			StorageType:                     factory.ProcessStorageService,
-			CreateTrieEpochRootHashStorer:   false,
-			NodeProcessingMode:              common.Normal,
-			ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+			Config:                        generalConfig,
+			PrefsConfig:                   prefsConfig,
+			ShardCoordinator:              shardC,
+			PathManager:                   &testscommon.PathManagerStub{},
+			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
+			NodeTypeProvider:              &nodeTypeProviderMock.NodeTypeProviderStub{},
+			CurrentEpoch:                  0,
+			StorageType:                   factory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer: false,
+			NodeProcessingMode:            common.Normal,
+			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
+			StateStatsHandler:             disabled.NewStateStatistics(),
 			AdditionalStorageServiceCreator: additionalStorageServiceFactory,
 		},
 	)
