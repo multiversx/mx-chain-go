@@ -14,7 +14,11 @@ sed -i 's/export USE_TXGEN=[01]/export USE_TXGEN=1/' variables.sh
 sed -i 's/export USE_PROXY=[01]/export USE_PROXY=1/' variables.sh
 sed -i 's/export USE_ELASTICSEARCH=[01]/export USE_ELASTICSEARCH=1/' variables.sh
 sed -i 's/export SOVEREIGN_DEPLOY=[01]/export SOVEREIGN_DEPLOY=1/' variables.sh
-sed -i 's/export SHARD_VALIDATORCOUNT=[0-2]/export SHARD_VALIDATORCOUNT=3/' variables.sh
+
+source variables.sh
+if [ "$SHARD_VALIDATORCOUNT" -lt 3 ]; then
+  sed -i 's/export SHARD_VALIDATORCOUNT=.*/export SHARD_VALIDATORCOUNT=3/' variables.sh
+fi
 
 echo -e "${GREEN}Generating the configuration files...${NC}"
 ./config.sh
