@@ -8,9 +8,9 @@ generateConfig() {
     TMP_META_OBSERVERCOUNT=0
   fi
 
-  SOVEREIGN_DEPLOY=0
-  if [ $USE_HARDFORK -eq 1 ]; then
-    SOVEREIGN_DEPLOY=1
+  SOVEREIGN_BOOL="false"
+  if [ $SOVEREIGN_DEPLOY -eq 1 ]; then
+    SOVEREIGN_BOOL="true"
   fi
 
   pushd $TESTNETDIR/filegen
@@ -25,7 +25,7 @@ generateConfig() {
     -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
-    -sovereign=$SOVEREIGN_DEPLOY
+    -sovereign=$SOVEREIGN_BOOL
   popd
 }
 
