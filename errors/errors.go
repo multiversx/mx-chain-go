@@ -655,3 +655,6 @@ var ErrInvalidReceivedExtendedShardHeader = errors.New("invalid extended shard h
 
 // ErrNilTxPreProcessorCreator signals that a nil tx pre-processor creator has been provided
 var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor creator has been provided")
+
+// ErrNilNode signals that a nil node was provided
+var ErrNilNode = errors.New("nil node")
