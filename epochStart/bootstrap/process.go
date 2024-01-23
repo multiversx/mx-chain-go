@@ -152,7 +152,6 @@ type epochStartBootstrap struct {
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 
 	additionalStorageServiceCreator  process.AdditionalStorageServiceCreator
-	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
@@ -192,7 +191,6 @@ type ArgsEpochStartBootstrap struct {
 	TrieSyncStatisticsProvider       common.SizeSyncStatisticsHandler
 	NodeProcessingMode               common.NodeProcessingMode
 	AdditionalStorageServiceCreator  process.AdditionalStorageServiceCreator
-	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }

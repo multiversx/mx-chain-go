@@ -550,12 +550,6 @@ var ErrNilManagedPeersMonitor = errors.New("nil managed peers monitor")
 // ErrUnimplementedConsensusModel signals an unimplemented consensus model
 var ErrUnimplementedConsensusModel = errors.New("unimplemented consensus model")
 
-// ErrUnimplementedChainRunType signals an unimplemented chain run type
-var ErrUnimplementedChainRunType = errors.New("unimplemented chain run type")
-
-// ErrIncompatibleArgumentsProvided signals that incompatible arguments were provided
-var ErrIncompatibleArgumentsProvided = errors.New("incompatible arguments provided")
-
 // ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
 

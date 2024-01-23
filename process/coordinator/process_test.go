@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -550,7 +549,6 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -654,7 +652,6 @@ func createPreProcessorContainerWithDataPool(
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -927,7 +924,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
@@ -1118,7 +1114,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1232,7 +1227,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1775,7 +1769,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1907,7 +1900,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2051,7 +2043,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2196,7 +2187,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)

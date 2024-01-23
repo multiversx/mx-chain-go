@@ -653,7 +653,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:                arg.TxExecutionOrderHandler,
 		TxPreProcessorCreator:                  arg.TxPreprocessorCreator,
-		ChainRunType:                           arg.ChainRunType,
 		SmartContractResultPreProcessorCreator: arg.RunTypeComponents.SCResultsPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)

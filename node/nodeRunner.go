@@ -729,7 +729,6 @@ func (nr *nodeRunner) createApiFacade(
 		StatusComponents:      currentNode.statusComponents,
 		ProcessingMode:        common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		BlockChainHookCreator: currentNode.runTypeComponents.BlockChainHookHandlerCreator(),
-		ChainRunType:          common.ChainRunTypeRegular,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -1262,7 +1261,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),

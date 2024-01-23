@@ -480,7 +480,6 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
@@ -708,7 +707,6 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2615,7 +2613,6 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
@@ -2729,7 +2726,6 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -3127,7 +3123,6 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -3313,7 +3308,6 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)

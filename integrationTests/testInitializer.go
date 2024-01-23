@@ -730,7 +730,6 @@ func CreateFullGenesisBlocks(
 		RoundConfig:             &roundsConfig,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		ChainRunType:            common.ChainRunTypeRegular,
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		RunTypeComponents:       runTypeComponents,
@@ -840,7 +839,6 @@ func CreateGenesisMetaBlock(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:            common.ChainRunTypeRegular,
 		RunTypeComponents:       &mainFactoryMocks.RunTypeComponentsStub{},
 	}
 

@@ -69,7 +69,6 @@ type ApiResolverArgs struct {
 	AllowVMQueriesChan    chan struct{}
 	ProcessingMode        common.NodeProcessingMode
 	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
-	ChainRunType          common.ChainRunType
 }
 
 type scQueryServiceArgs struct {

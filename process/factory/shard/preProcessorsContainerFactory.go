@@ -40,7 +40,6 @@ type preProcessorsContainerFactory struct {
 	txTypeHandler                          process.TxTypeHandler
 	scheduledTxsExecutionHandler           process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker             process.ProcessedMiniBlocksTracker
-	chainRunType                           common.ChainRunType
 	txExecutionOrderHandler                common.TxExecutionOrderHandler
 	txPreprocessorCreator                  preprocess.TxPreProcessorCreator
 	smartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator
@@ -69,7 +68,6 @@ type ArgPreProcessorsContainerFactory struct {
 	TxTypeHandler                          process.TxTypeHandler
 	ScheduledTxsExecutionHandler           process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker             process.ProcessedMiniBlocksTracker
-	ChainRunType                           common.ChainRunType
 	TxExecutionOrderHandler                common.TxExecutionOrderHandler
 	TxPreProcessorCreator                  preprocess.TxPreProcessorCreator
 	SmartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator
@@ -104,7 +102,6 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		txTypeHandler:                          args.TxTypeHandler,
 		scheduledTxsExecutionHandler:           args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:             args.ProcessedMiniBlocksTracker,
-		chainRunType:                           args.ChainRunType,
 		txExecutionOrderHandler:                args.TxExecutionOrderHandler,
 		txPreprocessorCreator:                  args.TxPreProcessorCreator,
 		smartContractResultPreProcessorCreator: args.SmartContractResultPreProcessorCreator,
