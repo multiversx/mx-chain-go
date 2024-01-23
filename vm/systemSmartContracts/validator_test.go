@@ -460,6 +460,11 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 		}
 		return nil
 	}
+	called := false
+	eei.AddLogEntryCalled = func(entry *vmcommon.LogEntry) {
+		called = true
+		assert.Equal(t, entry.Topics[0], []byte(numberOfNodesTooHigh))
+	}
 
 	key1 := []byte("Key1")
 	key2 := []byte("Key2")
@@ -470,6 +475,7 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 
 	errCode := stakingValidatorSc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
+	assert.True(t, called)
 }
 
 func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {

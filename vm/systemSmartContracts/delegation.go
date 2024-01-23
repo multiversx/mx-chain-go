@@ -1234,7 +1234,7 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 
 func tooManyNodesLogs(logEntries []*vmcommon.LogEntry) bool {
 	for _, logEntry := range logEntries {
-		if len(logEntry.Topics) > 1 {
+		if len(logEntry.Topics) != 1 {
 			continue
 		}
 		if !bytes.Equal(logEntry.Topics[0], []byte(numberOfNodesTooHigh)) {
