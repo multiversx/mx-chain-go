@@ -68,6 +68,7 @@ type ApiResolverArgs struct {
 	Bootstrapper         process.Bootstrapper
 	AllowVMQueriesChan   chan struct{}
 	ProcessingMode       common.NodeProcessingMode
+	ChainRunType         common.ChainRunType
 }
 
 type scQueryServiceArgs struct {
@@ -86,6 +87,7 @@ type scQueryServiceArgs struct {
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
 	processingMode        common.NodeProcessingMode
+	chainRunType          common.ChainRunType
 }
 
 type scQueryElementArgs struct {
@@ -105,6 +107,7 @@ type scQueryElementArgs struct {
 	workingDir            string
 	index                 int
 	processingMode        common.NodeProcessingMode
+	chainRunType          common.ChainRunType
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -127,6 +130,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		allowVMQueriesChan:    args.AllowVMQueriesChan,
 		workingDir:            apiWorkingDir,
 		processingMode:        args.ProcessingMode,
+		chainRunType:          args.ChainRunType,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -302,6 +306,7 @@ func createScQueryService(
 		workingDir:            args.workingDir,
 		index:                 0,
 		processingMode:        args.processingMode,
+		chainRunType:          args.chainRunType,
 	}
 
 	var err error

@@ -41,6 +41,7 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -735,6 +736,9 @@ func CreateFullGenesisBlocks(
 		RoundConfig:             &roundsConfig,
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -840,6 +844,8 @@ func CreateGenesisMetaBlock(
 		},
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:            common.ChainRunTypeRegular,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

@@ -632,7 +632,7 @@ func TestMetaProcessor_ProcessBlockWithNilHeaderShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.Body{}
 
-	err := mp.ProcessBlock(nil, blk, haveTime)
+	_, _, err := mp.ProcessBlock(nil, blk, haveTime)
 	assert.Equal(t, process.ErrNilBlockHeader, err)
 }
 
@@ -642,7 +642,7 @@ func TestMetaProcessor_ProcessBlockWithNilBlockBodyShouldErr(t *testing.T) {
 	arguments := createMockMetaArguments(createMockComponentHolders())
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.ProcessBlock(&block.MetaBlock{}, nil, haveTime)
+	_, _, err := mp.ProcessBlock(&block.MetaBlock{}, nil, haveTime)
 	assert.Equal(t, process.ErrNilBlockBody, err)
 }
 
@@ -653,7 +653,7 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	blk := &block.Body{}
 
-	err := mp.ProcessBlock(&block.MetaBlock{}, blk, nil)
+	_, _, err := mp.ProcessBlock(&block.MetaBlock{}, blk, nil)
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
 
@@ -679,7 +679,7 @@ func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	// should return err
-	err := mp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrAccountStateDirty)
 }
@@ -694,7 +694,7 @@ func TestMetaProcessor_ProcessWithHeaderNotFirstShouldErr(t *testing.T) {
 		Nonce: 2,
 	}
 	body := &block.Body{}
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -720,7 +720,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectNonceShouldErr(t *testing.T) {
 	}
 	body := &block.Body{}
 
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrWrongNonceInBlock, err)
 }
 
@@ -748,7 +748,7 @@ func TestMetaProcessor_ProcessWithHeaderNotCorrectPrevHashShouldErr(t *testing.T
 
 	body := &block.Body{}
 
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 	assert.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 }
 
@@ -794,7 +794,7 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	// should return err
 	mp.SetShardBlockFinality(0)
 	hdr.ShardInfo = make([]block.ShardData, 0)
-	err := mp.ProcessBlock(hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(hdr, body, haveTime)
 
 	assert.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	assert.True(t, wasCalled)
@@ -1187,35 +1187,9 @@ func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) 
 	assert.Equal(t, 0, journalEntries)
 }
 
-func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
-	expectedErr := errors.New("err")
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
-	dataComponents.Storage = initStore()
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{}
-	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
-			return nil
-		},
-	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
-			return expectedErr
-		},
-	}
-	mp, err := blproc.NewMetaProcessor(arguments)
-	require.Nil(t, err)
-	require.NotNil(t, mp)
-
-	hdr := block.MetaBlock{Nonce: 37}
-	err = mp.RevertStateToBlock(&hdr, hdr.RootHash)
-	require.Equal(t, expectedErr, err)
-}
-
 func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	recreateTrieWasCalled := false
-	revertePeerStateWasCalled := false
+	recreatePeerTrieWasCalled := false
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = initDataPool([]byte("tx_hash"))
@@ -1228,9 +1202,9 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
-			revertePeerStateWasCalled = true
+	arguments.AccountsDB[state.PeerAccountsState] = &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash []byte) error {
+			recreatePeerTrieWasCalled = true
 			return nil
 		},
 	}
@@ -1239,7 +1213,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 	hdr := block.MetaBlock{Nonce: 37}
 	err := mp.RevertStateToBlock(&hdr, hdr.RootHash)
 	assert.Nil(t, err)
-	assert.True(t, revertePeerStateWasCalled)
+	assert.True(t, recreatePeerTrieWasCalled)
 	assert.True(t, recreateTrieWasCalled)
 }
 
@@ -2602,7 +2576,7 @@ func TestMetaProcessor_ProcessBlockWrongHeaderShouldErr(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	// should return err
-	err := mp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
 }
 
@@ -2656,7 +2630,7 @@ func TestMetaProcessor_ProcessBlockNoShardHeadersReceivedShouldErr(t *testing.T)
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.ProcessBlock(&hdr, body, haveTime)
+	_, _, err := mp.ProcessBlock(&hdr, body, haveTime)
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
 
@@ -2775,7 +2749,7 @@ func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *
 	headerHandler, _ := metaProcessor.CreateNewHeader(round, 1)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 
-	_ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, _ = metaProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Equal(t, int64(2), checkRoundCt.Get())
 }
 
@@ -2881,7 +2855,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	err = headerHandler.SetAccumulatedFees(big.NewInt(0))
 	require.Nil(t, err)
 
-	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 }
 
@@ -3053,7 +3027,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	toggleCalled = false
 	calledSaveNodesCoordinator = false
 	busyIdleCalled = make([]string, 0)
-	err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
+	_, _, err = mp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 	assert.True(t, toggleCalled, calledSaveNodesCoordinator)
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important

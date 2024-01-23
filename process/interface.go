@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
@@ -38,6 +39,7 @@ import (
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
+	GetSenderAndReceiverAccounts(transaction *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -112,6 +114,12 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
+// ExtendedHeaderValidatorHandler defines extended header validator functionality
+type ExtendedHeaderValidatorHandler interface {
+	Hash() []byte
+	GetExtendedHeader() data.ShardHeaderExtendedHandler
+}
+
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
@@ -156,7 +164,7 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error)
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -234,7 +242,7 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error)
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
@@ -249,7 +257,7 @@ type PreProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error)
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlock()
@@ -282,8 +290,7 @@ type ScheduledBlockProcessor interface {
 
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
-	RevertPeerState(header data.MetaHeaderHandler) error
+	UpdatePeerState(header data.CommonHeaderHandler, cache map[string]data.CommonHeaderHandler) ([]byte, error)
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
@@ -1134,6 +1141,7 @@ type RoundNotifier interface {
 
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
+	RoundConfirmed(round uint64, timestamp uint64)
 	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }
@@ -1321,7 +1329,7 @@ type PreProcessorExecutionInfoHandler interface {
 // ProcessedMiniBlocksTracker handles tracking of processed mini blocks
 type ProcessedMiniBlocksTracker interface {
 	SetProcessedMiniBlockInfo(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo)
-	RemoveMetaBlockHash(metaBlockHash []byte)
+	RemoveHeaderHash(metaBlockHash []byte)
 	RemoveMiniBlockHash(miniBlockHash []byte)
 	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
@@ -1343,5 +1351,22 @@ type PeerAuthenticationPayloadValidator interface {
 type Debugger interface {
 	SetLastCommittedBlockRound(round uint64)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// IncomingHeaderSubscriber defines a subscriber to incoming headers
+type IncomingHeaderSubscriber interface {
+	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ExtraHeaderSigVerifierHandler defines the required properties of an extra header sig verifier for additional data
+type ExtraHeaderSigVerifierHandler interface {
+	VerifyAggregatedSignature(header data.HeaderHandler, multiSigVerifier crypto.MultiSigner, pubKeysSigners [][]byte) error
+	VerifyLeaderSignature(header data.HeaderHandler, leaderPubKey crypto.PublicKey) error
+	RemoveLeaderSignature(header data.HeaderHandler) error
+	RemoveAllSignatures(header data.HeaderHandler) error
+	Identifier() string
 	IsInterfaceNil() bool
 }

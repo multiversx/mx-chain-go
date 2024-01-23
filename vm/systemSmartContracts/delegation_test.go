@@ -146,6 +146,7 @@ func createDelegationContractAndEEI() (*delegation, *vmContext) {
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -4747,6 +4748,7 @@ func createDefaultEeiArgs() VMContextArgs {
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MultiClaimOnDelegationFlag),
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -4763,6 +4765,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
 	eei, err := NewVMContext(argsVmContext)
 	require.Nil(t, err)
@@ -4833,6 +4836,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
 	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag)
 	eei, err := NewVMContext(argsVmContext)
@@ -4914,6 +4918,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 		},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
 	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag)
 	eei, err := NewVMContext(argsVmContext)
@@ -4965,6 +4970,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		},
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
 	eei, err := NewVMContext(argsVmContext)
 	require.Nil(t, err)

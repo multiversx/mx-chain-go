@@ -243,3 +243,6 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
 // ErrNilFunctionHandler signals that a nil function handler was provided
 var ErrNilFunctionHandler = errors.New("nil function handler")
+
+// ErrNilEnableEpochHandler signals that a nil enable epoch handler has been provided
+var ErrNilEnableEpochHandler = errors.New("nil enable epoch handler")

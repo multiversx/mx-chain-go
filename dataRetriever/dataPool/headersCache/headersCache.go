@@ -35,6 +35,10 @@ func (cache *headersCache) addHeader(headerHash []byte, header data.HeaderHandle
 	}
 
 	headerShardId := header.GetShardID()
+	return cache.addHeaderByShardID(headerHash, header, headerShardId)
+}
+
+func (cache *headersCache) addHeaderByShardID(headerHash []byte, header data.HeaderHandler, headerShardId uint32) bool {
 	headerNonce := header.GetNonce()
 
 	cache.tryToDoEviction(headerShardId)

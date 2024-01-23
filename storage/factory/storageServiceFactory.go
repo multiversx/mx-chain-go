@@ -58,6 +58,7 @@ type StorageServiceFactory struct {
 	snapshotsEnabled              bool
 	repopulateTokensSupplies      bool
 	stateStatsHandler             common.StateStatisticsHandler
+	chainRunType                  common.ChainRunType
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -75,6 +76,7 @@ type StorageServiceFactoryArgs struct {
 	NodeProcessingMode            common.NodeProcessingMode
 	RepopulateTokensSupplies      bool
 	StateStatsHandler             common.StateStatisticsHandler
+	ChainRunType                  common.ChainRunType
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -111,6 +113,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
 		stateStatsHandler:             args.StateStatsHandler,
+		chainRunType:                  args.ChainRunType,
 	}, nil
 }
 
@@ -289,6 +292,46 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	return nil
 }
 
+func (psf *StorageServiceFactory) createAndAddStorageUnitsForSovereign(
+	store dataRetriever.StorageService,
+	shardID string,
+) error {
+	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
+
+	extendedHeaderUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage, disabledCustomDatabaseRemover)
+	if err != nil {
+		return err
+	}
+	extendedHeaderUnit, err := psf.createPruningPersister(extendedHeaderUnitArgs)
+	if err != nil {
+		return fmt.Errorf("%w for ExtendedShardHeaderStorage", err)
+	}
+	store.AddStorer(dataRetriever.ExtendedShardHeadersUnit, extendedHeaderUnit)
+
+	extendedShardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB)
+	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB.FilePath) + shardID
+	extendedShardHdrHashNonceConfig.FilePath = dbPath
+
+	extendedHeaderConfig := psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage
+	dbConfigExtendedHeader := NewDBConfigHandler(extendedHeaderConfig.DB)
+	extendedHeaderPersisterCreator, err := NewPersisterFactory(dbConfigExtendedHeader)
+	if err != nil {
+		return err
+	}
+
+	extendedShardHdrHashNonceUnit, err := storageunit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache),
+		extendedShardHdrHashNonceConfig,
+		extendedHeaderPersisterCreator,
+	)
+	if err != nil {
+		return fmt.Errorf("%w for ExtendedShardHdrNonceHashStorage", err)
+	}
+	store.AddStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit, extendedShardHdrHashNonceUnit)
+
+	return nil
+}
+
 // CreateForShard will return the storage service which contains all storers needed for a shard
 func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService, error) {
 	// TODO: if there will be a differentiation between the creation or opening of a DB, the DBs could be destroyed on a defer
@@ -326,6 +369,16 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	err = psf.createAndAddBaseStorageUnits(store, customDatabaseRemover, shardID)
 	if err != nil {
 		return nil, err
+	}
+
+	// TODO: (RaduChis) we should have a StorageServiceFactory interface that has only one method: Create
+	// For now, we have CreateForShard and CreateForMeta. We should split this file in multiple files like:
+	// shardStorageServiceFactory.go, sovereignStorageServiceFactory.go, metaStorageServiceFactory.go
+	if psf.chainRunType == common.ChainRunTypeSovereign {
+		err = psf.createAndAddStorageUnitsForSovereign(store, shardID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	peerAccountsUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)

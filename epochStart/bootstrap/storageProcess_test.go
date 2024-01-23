@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -11,11 +12,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	errorsErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -23,6 +27,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockStorageEpochStartBootstrapArgs(
@@ -30,10 +35,13 @@ func createMockStorageEpochStartBootstrapArgs(
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsStorageEpochStartBootstrap {
 	return ArgsStorageEpochStartBootstrap{
-		ArgsEpochStartBootstrap:    createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
-		ImportDbConfig:             config.ImportDbConfig{},
-		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
-		TimeToWaitForRequestedData: time.Second,
+		ArgsEpochStartBootstrap:          createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
+		ImportDbConfig:                   config.ImportDbConfig{},
+		ChanGracefullyClose:              make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData:       time.Second,
+		ChainRunType:                     common.ChainRunTypeRegular,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 
@@ -65,6 +73,47 @@ func TestNewStorageEpochStartBootstrap_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	t.Run("should create a main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ChainRunType = common.ChainRunTypeRegular
+
+		esb, err := createEpochStartBootstrapper(args)
+
+		require.NotNil(t, esb)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ChainRunType = common.ChainRunTypeSovereign
+
+		esb, err := createEpochStartBootstrapper(args)
+
+		require.NotNil(t, esb)
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ChainRunType = "X"
+
+		esb, err := createEpochStartBootstrapper(args)
+
+		assert.Nil(t, esb)
+		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+	})
+}
+
 func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
@@ -92,7 +141,7 @@ func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
 			return 1
 		},
 	}
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},
@@ -116,7 +165,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 			return 1
 		},
 	}
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},
@@ -493,4 +542,54 @@ func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testi
 	for _, miniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
 		assert.Equal(t, expectedShardId, miniBlock.GetSenderShardID())
 	}
+}
+
+func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	t.Run("should create a main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ChainRunType = common.ChainRunTypeRegular
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+
+		requestHandler, err := sesb.createStorageRequestHandler()
+
+		require.NotNil(t, requestHandler)
+		assert.Equal(t, "*requestHandlers.resolverRequestHandler", fmt.Sprintf("%T", requestHandler))
+		assert.Nil(t, err)
+	})
+
+	t.Run("should create a sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ChainRunType = common.ChainRunTypeSovereign
+
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+
+		requestHandler, err := sesb.createStorageRequestHandler()
+
+		require.NotNil(t, requestHandler)
+		assert.Equal(t, "*requestHandlers.sovereignResolverRequestHandler", fmt.Sprintf("%T", requestHandler))
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when chain run type is not implemented", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		sesb, _ := NewStorageEpochStartBootstrap(args)
+
+		sesb.chainRunType = "X"
+
+		requestHandler, err := sesb.createStorageRequestHandler()
+
+		assert.Nil(t, requestHandler)
+		require.True(t, errors.Is(err, errorsErd.ErrUnimplementedChainRunType))
+	})
 }

@@ -559,3 +559,12 @@ func (mp *metaProcessor) GetAllMarshalledTxs(body *block.Body) map[string][][]by
 func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.setNonceOfFirstCommittedBlock(nonce)
 }
+
+// CalculateHeaderHash -
+func (schv *sovereignChainHeaderValidator) CalculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+	return schv.calculateHeaderHashFunc(headerHandler)
+}
+
+func (scbp *sovereignChainBlockProcessor) CreateAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
+	return scbp.createAndSetOutGoingMiniBlock(headerHandler, createdBlockBody)
+}

@@ -12,9 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -77,6 +80,10 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	return fct
@@ -126,6 +133,10 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -146,6 +157,10 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -168,6 +183,10 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -190,6 +209,10 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -212,6 +235,10 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -234,6 +261,10 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -256,6 +287,10 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -278,6 +313,10 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -300,6 +339,10 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -322,6 +365,10 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -344,6 +391,10 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -366,6 +417,10 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -388,6 +443,10 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -408,6 +467,10 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -429,6 +492,10 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 		currentPid,
 		nil,
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -450,10 +517,89 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		nil,
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+}
+
+func TestFactory_NewFactoryNilEnableEpochHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		nil,
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilEnableEpochHandler, err)
+}
+
+func TestFactory_NewFactoryNilExtraSignersHolderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+		bls.NewSubRoundEndV2Creator(),
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, errors.ErrNilExtraSignersHolder, err)
+}
+
+func TestFactory_NewFactoryNilSubRoundEndV2CreatorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		nil,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, errors.ErrNilSubRoundEndV2Creator, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -479,6 +625,10 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&mock.SentSignatureTrackerStub{},
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, fct)
@@ -510,79 +660,228 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFa
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T) {
+func TestFactory_GenerateSubroundBlock(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	t.Run("should fail when new subround fails", func(t *testing.T) {
+		t.Parallel()
 
-	err := fct.GenerateBlockSubround()
+		fct := *initFactory()
+		fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+			return nil
+		}
 
-	assert.Equal(t, spos.ErrNilChannel, err)
+		err := fct.GenerateBlockSubroundV1()
+		assert.NotNil(t, err)
+
+		err = fct.GenerateBlockSubroundV2()
+		assert.NotNil(t, err)
+	})
+	t.Run("should work with v1", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		fct := *initFactoryWithContainer(container)
+
+		err := fct.GenerateBlockSubroundV1()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundBlock", fmt.Sprintf("%T", addedSubround))
+	})
+	t.Run("should work with v2", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		worker := initWorker()
+		consensusState := initConsensusState()
+
+		fct, _ := bls.NewSubroundsFactory(
+			container,
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			&mock.SentSignatureTrackerStub{},
+			consensus.ConsensusModelV2,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&subRoundsHolder.ExtraSignersHolderMock{},
+			bls.NewSubRoundEndV2Creator(),
+		)
+
+		err := fct.GenerateBlockSubroundV2()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundBlockV2", fmt.Sprintf("%T", addedSubround))
+	})
 }
 
-func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
+func TestFactory_GenerateSubroundSignature(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
-	fct := *initFactoryWithContainer(container)
-	container.SetSyncTimer(nil)
+	t.Run("should fail when new subround fails", func(t *testing.T) {
+		t.Parallel()
 
-	err := fct.GenerateBlockSubround()
+		fct := *initFactory()
+		fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+			return nil
+		}
 
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
+		err := fct.GenerateSignatureSubroundV1()
+		assert.Equal(t, spos.ErrNilChannel, err)
+
+		err = fct.GenerateSignatureSubroundV2()
+		assert.Equal(t, spos.ErrNilChannel, err)
+	})
+	t.Run("should fail when new subround Signature fails", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		fct := *initFactoryWithContainer(container)
+		container.SetSyncTimer(nil)
+
+		err := fct.GenerateSignatureSubroundV1()
+		assert.Equal(t, spos.ErrNilSyncTimer, err)
+
+		err = fct.GenerateSignatureSubroundV2()
+		assert.Equal(t, spos.ErrNilSyncTimer, err)
+	})
+	t.Run("should work with v1", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		fct := *initFactoryWithContainer(container)
+
+		err := fct.GenerateSignatureSubroundV1()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundSignature", fmt.Sprintf("%T", addedSubround))
+	})
+	t.Run("should work with v2", func(t *testing.T) {
+		t.Parallel()
+
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		worker := initWorker()
+		consensusState := initConsensusState()
+
+		fct, _ := bls.NewSubroundsFactory(
+			container,
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			&mock.SentSignatureTrackerStub{},
+			consensus.ConsensusModelV2,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&subRoundsHolder.ExtraSignersHolderMock{},
+			bls.NewSubRoundEndV2Creator(),
+		)
+
+		err := fct.GenerateSignatureSubroundV2()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundSignatureV2", fmt.Sprintf("%T", addedSubround))
+	})
 }
 
-func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testing.T) {
+func TestFactory_GenerateSubroundEndRound(t *testing.T) {
 	t.Parallel()
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+	t.Run("should fail when new subround fails", func(t *testing.T) {
+		t.Parallel()
 
-	err := fct.GenerateSignatureSubround()
+		fct := *initFactory()
+		fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
+			return nil
+		}
 
-	assert.Equal(t, spos.ErrNilChannel, err)
-}
+		err := fct.GenerateEndRoundSubroundV1()
+		assert.Equal(t, spos.ErrNilChannel, err)
 
-func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
-	t.Parallel()
+		err = fct.GenerateEndRoundSubroundV2()
+		assert.Equal(t, spos.ErrNilChannel, err)
+	})
+	t.Run("should fail when new subround EndRound fails", func(t *testing.T) {
+		t.Parallel()
 
-	container := mock.InitConsensusCore()
-	fct := *initFactoryWithContainer(container)
-	container.SetSyncTimer(nil)
+		container := mock.InitConsensusCore()
+		fct := *initFactoryWithContainer(container)
+		container.SetSyncTimer(nil)
 
-	err := fct.GenerateSignatureSubround()
+		err := fct.GenerateEndRoundSubroundV1()
+		assert.Equal(t, spos.ErrNilSyncTimer, err)
 
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
-}
+		err = fct.GenerateEndRoundSubroundV2()
+		assert.Equal(t, spos.ErrNilSyncTimer, err)
+	})
+	t.Run("should work with v1", func(t *testing.T) {
+		t.Parallel()
 
-func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testing.T) {
-	t.Parallel()
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		fct := *initFactoryWithContainer(container)
 
-	fct := *initFactory()
-	fct.Worker().(*mock.SposWorkerMock).GetConsensusStateChangedChannelsCalled = func() chan bool {
-		return nil
-	}
+		err := fct.GenerateEndRoundSubroundV1()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundEndRound", fmt.Sprintf("%T", addedSubround))
+	})
+	t.Run("should work with v2", func(t *testing.T) {
+		t.Parallel()
 
-	err := fct.GenerateEndRoundSubround()
+		var addedSubround consensus.SubroundHandler
+		container := mock.InitConsensusCore()
+		container.SetChronology(&mock.ChronologyHandlerMock{
+			AddSubroundCalled: func(handler consensus.SubroundHandler) {
+				addedSubround = handler
+			},
+		})
+		worker := initWorker()
+		consensusState := initConsensusState()
 
-	assert.Equal(t, spos.ErrNilChannel, err)
-}
+		fct, _ := bls.NewSubroundsFactory(
+			container,
+			consensusState,
+			worker,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+			&mock.SentSignatureTrackerStub{},
+			consensus.ConsensusModelV2,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&subRoundsHolder.ExtraSignersHolderMock{},
+			bls.NewSubRoundEndV2Creator(),
+		)
 
-func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
-	t.Parallel()
-
-	container := mock.InitConsensusCore()
-	fct := *initFactoryWithContainer(container)
-	container.SetSyncTimer(nil)
-
-	err := fct.GenerateEndRoundSubround()
-
-	assert.Equal(t, spos.ErrNilSyncTimer, err)
+		err := fct.GenerateEndRoundSubroundV2()
+		assert.Nil(t, err)
+		assert.Equal(t, "*bls.subroundEndRoundV2", fmt.Sprintf("%T", addedSubround))
+	})
 }
 
 func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
@@ -613,6 +912,31 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 
 	err := fct.GenerateSubrounds()
 	assert.Equal(t, outport.ErrNilDriver, err)
+}
+
+func TestFactory_GenerateSubroundsInvalidConsensusModelShouldFail(t *testing.T) {
+	t.Parallel()
+
+	worker := initWorker()
+	consensusState := initConsensusState()
+
+	fct, _ := bls.NewSubroundsFactory(
+		mock.InitConsensusCore(),
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&mock.SentSignatureTrackerStub{},
+		"invalid",
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
+	)
+	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
+
+	err := fct.GenerateSubrounds()
+	assert.ErrorIs(t, err, errors.ErrUnimplementedConsensusModel)
 }
 
 func TestFactory_SetIndexerShouldWork(t *testing.T) {

@@ -58,7 +58,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	messengerMock := &p2pmocks.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{
 		Signer: singleSignerMock,

@@ -701,6 +701,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch,
 		},
+		common.ConsensusModelV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ConsensusModelV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ConsensusModelV2EnableEpoch,
+		},
 	}
 }
 

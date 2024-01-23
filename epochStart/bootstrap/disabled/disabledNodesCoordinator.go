@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -106,6 +107,15 @@ func (n *nodesCoordinator) GetNumTotalEligible() uint64 {
 // GetWaitingEpochsLeftForPublicKey returns 0
 func (n *nodesCoordinator) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
 	return 0, nil
+}
+
+// EpochStartPrepare -
+func (n *nodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// NodesCoordinatorToRegistry -
+func (n *nodesCoordinator) NodesCoordinatorToRegistry() *nodesCoord.NodesCoordinatorRegistry {
+	return nil
 }
 
 // IsInterfaceNil -

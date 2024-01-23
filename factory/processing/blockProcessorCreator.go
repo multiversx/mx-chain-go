@@ -12,6 +12,7 @@ import (
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -33,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -71,6 +74,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 		return pcf.newShardBlockProcessor(
 			requestHandler,
 			forkDetector,
+			validatorStatisticsProcessor,
 			epochStartTrigger,
 			bootStorer,
 			headerValidator,
@@ -110,6 +114,7 @@ var log = logger.GetOrCreate("factory")
 func (pcf *processComponentsFactory) newShardBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
 	bootStorer process.BootStorer,
 	headerValidator process.HeaderConstructionValidator,
@@ -158,6 +163,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	vmContainer, err := vmFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +266,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
+	scProcessorProxy, err := processorV2.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +303,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
-		return nil, errors.New("could not create transaction statisticsProcessor: " + err.Error())
+		return nil, errors.New("could not create transaction processor: " + err.Error())
 	}
 
 	scheduledTxsExecutionHandler.SetTransactionProcessor(transactionProcessor)
@@ -320,30 +330,33 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.data.StorageService(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.data.Datapool(),
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.state.AccountsAdapter(),
-		requestHandler,
-		transactionProcessor,
-		scProcessorProxy,
-		scProcessorProxy,
-		rewardsTxProcessor,
-		pcf.coreData.EconomicsData(),
-		gasHandler,
-		blockTracker,
-		blockSizeComputationHandler,
-		balanceComputationHandler,
-		pcf.coreData.EnableEpochsHandler(),
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-		pcf.txExecutionOrderHandler,
-	)
+	argsPreProc := shard.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshaller:                   pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScProcessor:                  scProcessorProxy,
+		ScResultProcessor:            scProcessorProxy,
+		RewardsTxProcessor:           rewardsTxProcessor,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		ChainRunType:                 pcf.chainRunType,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		TxPreProcessorCreator:        pcf.txPreprocessorCreator,
+	}
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +398,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 	}
-	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	txCoordinator, err := pcf.createTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -433,16 +446,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 	}
-	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-	}
 
-	blockProcessor, err := block.NewShardProcessor(arguments)
-	if err != nil {
-		return nil, errors.New("could not create block statisticsProcessor: " + err.Error())
-	}
-
-	err = pcf.attachProcessDebugger(blockProcessor, pcf.config.Debug.Process)
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, validatorStatisticsProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -451,6 +456,106 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		blockProcessor:         blockProcessor,
 		vmFactoryForProcessing: vmFactory,
 	}, nil
+}
+
+func (pcf *processComponentsFactory) addSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
+	//TODO: refactor this with creators and runTypeComponents
+	if pcf.chainRunType != common.ChainRunTypeSovereign {
+		return nil
+	}
+
+	metaStorage := pcf.config.SmartContractsStorage
+	metaStorage.DB.FilePath = metaStorage.DB.FilePath + "_meta"
+
+	vmFactoryMeta, err := pcf.createVMFactoryMeta(
+		pcf.state.AccountsAdapter(),
+		builtInFuncFactory.BuiltInFunctionContainer(),
+		metaStorage,
+		builtInFuncFactory.NFTStorageHandler(),
+		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+	)
+	if err != nil {
+		return err
+	}
+
+	vmContainerMeta, err := vmFactoryMeta.Create()
+	if err != nil {
+		return err
+	}
+
+	vmMeta, err := vmContainerMeta.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	err = vmContainer.Add(factory.SystemVirtualMachine, vmMeta)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) createTransactionCoordinator(
+	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
+) (process.TransactionCoordinator, error) {
+	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return transactionCoordinator, nil
+	case common.ChainRunTypeSovereign:
+		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
+}
+
+func (pcf *processComponentsFactory) createBlockProcessor(
+	argumentsBaseProcessor block.ArgBaseProcessor,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+) (process.BlockProcessor, error) {
+	argShardProcessor := block.ArgShardProcessor{
+		ArgBaseProcessor: argumentsBaseProcessor,
+	}
+
+	shardProcessor, err := block.NewShardProcessor(argShardProcessor)
+	if err != nil {
+		return nil, errors.New("could not create shard block processor: " + err.Error())
+	}
+
+	err = pcf.attachProcessDebugger(shardProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pcf.chainRunType {
+	case common.ChainRunTypeRegular:
+		return shardProcessor, nil
+	case common.ChainRunTypeSovereign:
+		// TODO: Radu Chis: move this in the factory of the sovereign block processor once the refactor is completed
+
+		outgoingOpFormatter, errOpFormatter := sovereign.CreateOutgoingOperationsFormatter(
+			pcf.config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
+			pcf.coreData.AddressPubKeyConverter(),
+			pcf.coreData.RoundHandler(),
+		)
+		if errOpFormatter != nil {
+			return nil, err
+		}
+
+		return block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               shardProcessor,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			OutgoingOperationsFormatter:  outgoingOpFormatter,
+			OutGoingOperationsPool:       pcf.outGoingOperationsPool,
+		})
+	default:
+		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
+	}
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
@@ -626,28 +731,30 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.data.StorageService(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.data.Datapool(),
-		pcf.state.AccountsAdapter(),
-		requestHandler,
-		transactionProcessor,
-		scProcessorProxy,
-		pcf.coreData.EconomicsData(),
-		gasHandler,
-		blockTracker,
-		pcf.coreData.AddressPubKeyConverter(),
-		blockSizeComputationHandler,
-		balanceComputationHandler,
-		pcf.coreData.EnableEpochsHandler(),
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-		pcf.txExecutionOrderHandler,
-	)
+	argsPreProc := metachain.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshaller:                   pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScResultProcessor:            scProcessorProxy,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		TxPreProcessorCreator:        pcf.txPreprocessorCreator,
+	}
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}
@@ -898,7 +1005,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
 	if err != nil {
-		return nil, errors.New("could not create block processor: " + err.Error())
+		return nil, errors.New("could not create meta block processor: " + err.Error())
 	}
 
 	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
@@ -997,7 +1104,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		MissingTrieNodesNotifier: notifier,
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -1048,7 +1155,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, err := hooks.CreateBlockChainHook(pcf.chainRunType, argsHook)
 	if err != nil {
 		return nil, err
 	}

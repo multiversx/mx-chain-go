@@ -5,15 +5,17 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TxProcessorMock -
 type TxProcessorMock struct {
-	ProcessTransactionCalled         func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransactionCalled          func(tx *transaction.Transaction) error
-	SetBalancesToTrieCalled          func(accBalance map[string]*big.Int) (rootHash []byte, err error)
-	ProcessSmartContractResultCalled func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
+	ProcessTransactionCalled           func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransactionCalled            func(tx *transaction.Transaction) error
+	GetSenderAndReceiverAccountsCalled func(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
+	SetBalancesToTrieCalled            func(accBalance map[string]*big.Int) (rootHash []byte, err error)
+	ProcessSmartContractResultCalled   func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error)
 }
 
 // ProcessTransaction -
@@ -32,6 +34,15 @@ func (etm *TxProcessorMock) VerifyTransaction(tx *transaction.Transaction) error
 	}
 
 	return nil
+}
+
+// GetSenderAndReceiverAccounts -
+func (etm *TxProcessorMock) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	if etm.GetSenderAndReceiverAccountsCalled != nil {
+		return etm.GetSenderAndReceiverAccountsCalled(tx)
+	}
+
+	return nil, nil, nil
 }
 
 // SetBalancesToTrie -

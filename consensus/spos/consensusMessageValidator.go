@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -26,6 +27,7 @@ type consensusMessageValidator struct {
 
 	mutPkConsensusMessages sync.RWMutex
 	mapPkConsensusMessages map[string]map[consensus.MessageType]uint32
+	enableEpochHandler     common.EnableEpochsHandler
 }
 
 // ArgsConsensusMessageValidator holds the consensus message validator arguments
@@ -37,6 +39,7 @@ type ArgsConsensusMessageValidator struct {
 	PublicKeySize        int
 	HeaderHashSize       int
 	ChainID              []byte
+	EnableEpochHandler   common.EnableEpochsHandler
 }
 
 // NewConsensusMessageValidator creates a new consensusMessageValidator object
@@ -54,6 +57,7 @@ func NewConsensusMessageValidator(args ArgsConsensusMessageValidator) (*consensu
 		publicKeySize:        args.PublicKeySize,
 		chainID:              args.ChainID,
 		headerHashSize:       args.HeaderHashSize,
+		enableEpochHandler:   args.EnableEpochHandler,
 	}
 
 	cmv.publicKeyBitmapSize = cmv.getPublicKeyBitmapSize()
@@ -84,6 +88,9 @@ func checkArgsConsensusMessageValidator(args ArgsConsensusMessageValidator) erro
 	if args.SignatureSize == 0 {
 		return ErrInvalidSignatureSize
 	}
+	if check.IfNil(args.EnableEpochHandler) {
+		return ErrNilEnableEpochHandler
+	}
 
 	return nil
 }
@@ -110,10 +117,16 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 		return err
 	}
 
-	if !cmv.isBlockHeaderHashSizeValid(cnsMsg) {
+	if !cmv.isHeaderHashSizeValid(cnsMsg) {
 		return fmt.Errorf("%w : received header hash from consensus topic has an invalid size: %d",
 			ErrInvalidHeaderHashSize,
-			len(cnsMsg.BlockHeaderHash))
+			len(cnsMsg.HeaderHash))
+	}
+
+	if !cmv.isProcessedHeaderHashSizeValid(cnsMsg) {
+		return fmt.Errorf("%w : received processed header hash from consensus topic has an invalid size: %d",
+			ErrInvalidHeaderHashSize,
+			len(cnsMsg.ProcessedHeaderHash))
 	}
 
 	if len(cnsMsg.PubKey) != cmv.publicKeySize {
@@ -141,7 +154,7 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 		log.Trace("received message from consensus topic has a future round",
 			"msg type", cmv.consensusService.GetStringValue(msgType),
 			"from", cnsMsg.PubKey,
-			"header hash", cnsMsg.BlockHeaderHash,
+			"header hash", cnsMsg.HeaderHash,
 			"msg round", cnsMsg.RoundIndex,
 			"round", cmv.consensusState.RoundIndex,
 		)
@@ -155,7 +168,7 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 		log.Trace("received message from consensus topic has a past round",
 			"msg type", cmv.consensusService.GetStringValue(msgType),
 			"from", cnsMsg.PubKey,
-			"header hash", cnsMsg.BlockHeaderHash,
+			"header hash", cnsMsg.HeaderHash,
 			"msg round", cnsMsg.RoundIndex,
 			"round", cmv.consensusState.RoundIndex,
 		)
@@ -195,15 +208,32 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 	return nil
 }
 
-func (cmv *consensusMessageValidator) isBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+func (cmv *consensusMessageValidator) isHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 	isMessageWithBlockBody := cmv.consensusService.IsMessageWithBlockBody(msgType)
 
 	if isMessageWithBlockBody {
-		return cnsMsg.BlockHeaderHash == nil
+		return cnsMsg.HeaderHash == nil
 	}
 
-	return len(cnsMsg.BlockHeaderHash) == cmv.headerHashSize
+	return len(cnsMsg.HeaderHash) == cmv.headerHashSize
+}
+
+func (cmv *consensusMessageValidator) isProcessedHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	if !cmv.enableEpochHandler.IsFlagEnabled(common.ConsensusModelV2Flag) {
+		return true
+	}
+
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	isMessageWithBlockBody := cmv.consensusService.IsMessageWithBlockBody(msgType)
+	isMessageWithBlockHeader := cmv.consensusService.IsMessageWithBlockHeader(msgType)
+	isMessageWithBlockBodyAndHeader := cmv.consensusService.IsMessageWithBlockBodyAndHeader(msgType)
+
+	if isMessageWithBlockBody || isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
+		return cnsMsg.ProcessedHeaderHash == nil
+	}
+
+	return len(cnsMsg.ProcessedHeaderHash) == cmv.headerHashSize
 }
 
 func (cmv *consensusMessageValidator) checkConsensusMessageValidityForMessageType(cnsMsg *consensus.Message) error {
@@ -243,7 +273,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
 		cnsMsg.LeaderSignature != nil ||
-		cnsMsg.InvalidSigners != nil
+		cnsMsg.InvalidSigners != nil ||
+		cnsMsg.ProcessedHeaderHash != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
@@ -251,7 +282,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
 			"LeaderSignature", cnsMsg.LeaderSignature,
-			"InvalidSigners len", len(cnsMsg.InvalidSigners))
+			"InvalidSigners len", len(cnsMsg.InvalidSigners),
+			"ProcessedHeaderHash", cnsMsg.ProcessedHeaderHash)
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -280,7 +312,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
 		cnsMsg.LeaderSignature != nil ||
-		cnsMsg.InvalidSigners != nil
+		cnsMsg.InvalidSigners != nil ||
+		cnsMsg.ProcessedHeaderHash != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
@@ -289,7 +322,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
 			"LeaderSignature", cnsMsg.LeaderSignature,
-			"InvalidSigners len", len(cnsMsg.InvalidSigners))
+			"InvalidSigners len", len(cnsMsg.InvalidSigners),
+			"ProcessedHeaderHash", cnsMsg.ProcessedHeaderHash)
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,
@@ -311,7 +345,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockHeaderValidity(cnsMsg
 		cnsMsg.PubKeysBitmap != nil ||
 		cnsMsg.AggregateSignature != nil ||
 		cnsMsg.LeaderSignature != nil ||
-		cnsMsg.InvalidSigners != nil
+		cnsMsg.InvalidSigners != nil ||
+		cnsMsg.ProcessedHeaderHash != nil
 
 	if isMessageInvalid {
 		log.Trace("received message from consensus topic is invalid",
@@ -320,7 +355,8 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockHeaderValidity(cnsMsg
 			"PubKeysBitmap", cnsMsg.PubKeysBitmap,
 			"AggregateSignature", cnsMsg.AggregateSignature,
 			"LeaderSignature", cnsMsg.LeaderSignature,
-			"InvalidSigners len", len(cnsMsg.InvalidSigners))
+			"InvalidSigners len", len(cnsMsg.InvalidSigners),
+			"ProcessedHeaderHash", cnsMsg.ProcessedHeaderHash)
 
 		return fmt.Errorf("%w : received message from public key: %s from consensus topic is invalid",
 			ErrInvalidMessage,

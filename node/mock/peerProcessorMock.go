@@ -7,8 +7,7 @@ import (
 
 // ValidatorStatisticsProcessorMock -
 type ValidatorStatisticsProcessorMock struct {
-	UpdatePeerStateCalled func(header data.MetaHeaderHandler) ([]byte, error)
-	RevertPeerStateCalled func(header data.MetaHeaderHandler) error
+	UpdatePeerStateCalled func(header data.CommonHeaderHandler) ([]byte, error)
 	IsInterfaceNilCalled  func() bool
 
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
@@ -39,7 +38,7 @@ func (vsp *ValidatorStatisticsProcessorMock) PeerAccountToValidatorInfo(peerAcco
 }
 
 // UpdatePeerState -
-func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.MetaHeaderHandler, _ map[string]data.HeaderHandler) ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorMock) UpdatePeerState(header data.CommonHeaderHandler, _ map[string]data.CommonHeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
 		return vsp.UpdatePeerStateCalled(header)
 	}
@@ -87,14 +86,6 @@ func (vsp *ValidatorStatisticsProcessorMock) GetValidatorInfoForRootHash(rootHas
 		return vsp.GetValidatorInfoForRootHashCalled(rootHash)
 	}
 	return nil, nil
-}
-
-// RevertPeerState -
-func (vsp *ValidatorStatisticsProcessorMock) RevertPeerState(header data.MetaHeaderHandler) error {
-	if vsp.RevertPeerStateCalled != nil {
-		return vsp.RevertPeerStateCalled(header)
-	}
-	return nil
 }
 
 // RootHash -

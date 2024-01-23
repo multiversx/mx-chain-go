@@ -1092,7 +1092,7 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -1119,7 +1119,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -1579,7 +1579,7 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -1606,7 +1606,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+	args.Eei.(*mock.SystemEIStub).ProcessBuiltInCalled = func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 		return err
 	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
@@ -2846,7 +2846,7 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		ProcessBuiltInCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
@@ -3528,7 +3528,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		ProcessBuiltInCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
 			return localErr
 		},
@@ -3565,7 +3565,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		ProcessBuiltInCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true

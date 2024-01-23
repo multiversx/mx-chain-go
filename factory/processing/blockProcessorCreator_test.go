@@ -1,6 +1,8 @@
 package processing_test
 
 import (
+	"fmt"
+	"strings"
 	"sync"
 	"testing"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -31,33 +34,110 @@ import (
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Parallel()
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
-	require.NoError(t, err)
-	require.NotNil(t, pcf)
+	t.Run("new block processor creator for shard in regular chain should work", func(t *testing.T) {
+		t.Parallel()
 
-	_, err = pcf.Create()
-	require.NoError(t, err)
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
 
-	bp, err := pcf.NewBlockProcessor(
-		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
-		&mock.EpochStartTriggerStub{},
-		&mock.BoostrapStorerStub{},
-		&mock.ValidatorStatisticsProcessorStub{},
-		&mock.HeaderValidatorStub{},
-		&mock.BlockTrackerStub{},
-		&mock.PendingMiniBlocksHandlerStub{},
-		&sync.RWMutex{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&testscommon.ReceiptsRepositoryStub{},
-		&testscommon.BlockProcessingCutoffStub{},
-		&testscommon.MissingTrieNodesNotifierStub{},
-	)
+		pcf.SetChainRunType(common.ChainRunTypeRegular)
 
-	require.NoError(t, err)
-	require.NotNil(t, bp)
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		bp, err := pcf.NewBlockProcessor(
+			&testscommon.RequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.BlockTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+			&testscommon.BlockProcessingCutoffStub{},
+			&testscommon.MissingTrieNodesNotifierStub{})
+
+		require.NoError(t, err)
+		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))
+	})
+
+	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
+
+		pcf.SetChainRunType(common.ChainRunTypeSovereign)
+
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		bp, err := pcf.NewBlockProcessor(
+			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.ExtendedShardHeaderTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+			&testscommon.BlockProcessingCutoffStub{},
+			&testscommon.MissingTrieNodesNotifierStub{})
+
+		require.NoError(t, err)
+		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
+	})
+
+	t.Run("invalid chain id, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		args.ChainRunType = common.ChainRunTypeSovereign
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.NoError(t, err)
+		require.NotNil(t, pcf)
+
+		_, err = pcf.Create()
+		require.NoError(t, err)
+
+		pcf.SetChainRunType("invalid")
+
+		bp, err := pcf.NewBlockProcessor(
+			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
+			&mock.ForkDetectorStub{},
+			&mock.EpochStartTriggerStub{},
+			&mock.BoostrapStorerStub{},
+			&mock.ValidatorStatisticsProcessorStub{},
+			&mock.HeaderValidatorStub{},
+			&mock.ExtendedShardHeaderTrackerStub{},
+			&mock.PendingMiniBlocksHandlerStub{},
+			&sync.RWMutex{},
+			&testscommon.ScheduledTxsExecutionStub{},
+			&testscommon.ProcessedMiniBlocksTrackerStub{},
+			&testscommon.ReceiptsRepositoryStub{},
+			&testscommon.BlockProcessingCutoffStub{},
+			&testscommon.MissingTrieNodesNotifierStub{})
+
+		require.NotNil(t, err)
+		require.Nil(t, bp)
+		require.True(t, strings.Contains(err.Error(), customErrors.ErrUnimplementedChainRunType.Error()))
+		require.True(t, strings.Contains(err.Error(), "invalid"))
+	})
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {

@@ -53,7 +53,7 @@ func createStubMessengerForMeta(matchStrToErrOnCreate string, matchStrToErrOnReg
 func createDataPoolsForMeta() dataRetriever.PoolsHolder {
 	pools := &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()

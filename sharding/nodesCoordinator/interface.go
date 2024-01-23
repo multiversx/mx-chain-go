@@ -30,6 +30,8 @@ type NodesCoordinator interface {
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NodesCoordinatorToRegistry() *NodesCoordinatorRegistry
 	IsInterfaceNil() bool
 }
 
@@ -136,5 +138,11 @@ type EpochsConfigUpdateHandler interface {
 type GenesisNodesSetupHandler interface {
 	MinShardHysteresisNodes() uint32
 	MinMetaHysteresisNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinatorWithRaterFactory should create a nodes coordinator with rater
+type NodesCoordinatorWithRaterFactory interface {
+	CreateNodesCoordinatorWithRater(args *NodesCoordinatorWithRaterArgs) (NodesCoordinator, error)
 	IsInterfaceNil() bool
 }

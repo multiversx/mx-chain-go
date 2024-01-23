@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -26,10 +27,14 @@ func GetSubroundsFactory(
 	sentSignatureTracker spos.SentSignaturesTracker,
 	chainID []byte,
 	currentPid core.PeerID,
+	consensusModel consensus.ConsensusModel,
+	enableEpochHandler common.EnableEpochsHandler,
+	extraSignersHolder bls.ExtraSignersHolder,
+	subRoundEndV2Creator bls.SubRoundEndV2Creator,
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
-		subRoundFactoryBls, err := bls.NewSubroundsFactory(
+		subroundFactoryBls, err := bls.NewSubroundsFactory(
 			consensusDataContainer,
 			consensusState,
 			worker,
@@ -37,14 +42,18 @@ func GetSubroundsFactory(
 			currentPid,
 			appStatusHandler,
 			sentSignatureTracker,
+			consensusModel,
+			enableEpochHandler,
+			extraSignersHolder,
+			subRoundEndV2Creator,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		subRoundFactoryBls.SetOutportHandler(outportHandler)
+		subroundFactoryBls.SetOutportHandler(outportHandler)
 
-		return subRoundFactoryBls, nil
+		return subroundFactoryBls, nil
 	default:
 		return nil, ErrInvalidConsensusType
 	}

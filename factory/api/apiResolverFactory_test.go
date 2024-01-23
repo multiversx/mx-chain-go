@@ -108,6 +108,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
+		ChainRunType:       common.ChainRunTypeRegular,
 	}
 }
 
@@ -368,6 +369,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
+		ChainRunType:          common.ChainRunTypeRegular,
 	}
 }
 

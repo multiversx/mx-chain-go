@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -205,7 +206,7 @@ func createMockEpochStartBootstrapArgs(
 				return 1
 			},
 		},
-		GenesisNodesConfig:         &mock.NodesSetupStub{},
+		GenesisNodesConfig:         &testscommon.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
@@ -231,8 +232,10 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
+		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:                disabledStatistics.NewStateStatistics(),
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 
@@ -624,6 +627,28 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, statistics.ErrNilStateStatsHandler))
 	})
+	t.Run("nil nodes coordinator factory", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.NodesCoordinatorWithRaterFactory = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
+	})
+	t.Run("nil shard coordinator factory", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.ShardCoordinatorFactory = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+	})
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
@@ -794,7 +819,7 @@ func TestIsStartInEpochZero(t *testing.T) {
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
 		GetStartTimeCalled: func() int64 {
 			return 1000
 		},
@@ -828,7 +853,7 @@ func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) 
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},
@@ -887,7 +912,7 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 	}
 
 	args.DestinationShardAsObserver = uint32(7)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
@@ -922,7 +947,7 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 		},
 	}
 	args.DestinationShardAsObserver = desiredShardAsObserver
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
@@ -946,7 +971,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
@@ -1487,7 +1512,7 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 	roundDurationMillis := 4000
 	epochDurationMillis := 50 * int64(roundDurationMillis)
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &testscommon.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < numOfShards; i++ {
@@ -1812,7 +1837,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
@@ -1882,7 +1907,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
@@ -2025,7 +2050,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
@@ -2361,7 +2386,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	transactions := testscommon.NewShardedDataCacheNotifierMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return transactions

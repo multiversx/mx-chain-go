@@ -282,7 +282,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			break
 		}
 
-		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingScheduledTx(
+		tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
 			isShardStuck,
 			sortedTxs[index],
 			mapSCTxs,
@@ -383,7 +383,7 @@ func (txs *transactions) verifyTransaction(
 	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
 	txs.accountTxsShards.Unlock()
 
-	if err != nil {
+	if !txs.isTransactionEligibleForExecutionFunc(tx, err) {
 		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 		if isTxTargetedForDeletion {
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
@@ -408,6 +408,10 @@ func (txs *transactions) verifyTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
+}
+
+func (txs *transactions) isTransactionEligibleForExecution(_ *transaction.Transaction, err error) bool {
+	return err == nil
 }
 
 func (txs *transactions) displayProcessingResults(

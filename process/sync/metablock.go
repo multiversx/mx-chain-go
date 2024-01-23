@@ -95,6 +95,9 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base.syncStarter = &boot
 	base.getHeaderFromPool = boot.getMetaHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+	base.processAndCommitFunc = base.processAndCommit
+	base.handleScheduledRollBackToHeaderFunc = base.handleScheduledRollBackToHeader
+	base.getRootHashFromBlockFunc = base.getRootHashFromBlock
 
 	// placed in struct fields for performance reasons
 	base.headerStore, err = boot.store.GetStorer(dataRetriever.MetaBlockUnit)
@@ -107,6 +110,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
+	base.doProcessReceivedHeaderJobFunc = base.doProcessReceivedHeaderJob
 	base.init()
 
 	return &boot, nil

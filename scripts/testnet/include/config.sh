@@ -19,7 +19,8 @@ generateConfig() {
     -num-of-observers-in-metachain $TMP_META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
-    -hysteresis $HYSTERESIS
+    -hysteresis $HYSTERESIS \
+    -sovereign=$SOVEREIGN_DEPLOY
   popd
 }
 
@@ -35,6 +36,12 @@ copyConfig() {
         cat $NODEDIR/config/testKeys/"${EXTRA_KEY_PEM_FILE}" >> ./node/config/"$MULTI_KEY_PEM_FILE"
       fi
   fi
+
+  if [ "$SOVEREIGN_DEPLOY" = true ]; then
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/private_key.pem ./node/config
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/certificate.crt ./node/config
+  fi
+
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -71,6 +78,13 @@ updateSeednodeConfig() {
   popd
 }
 
+prepareElasticsearch() {
+  echo "Starting Elasticsearch Docker container..."
+  pwd
+  export ES_CONTAINER_ID=$(docker run -d -p 9200:9200 -p 9301:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
+  echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
+}
+
 copyNodeConfig() {
   pushd $TESTNETDIR
   cp $NODEDIR/config/api.toml ./node/config
@@ -79,7 +93,8 @@ copyNodeConfig() {
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
-  cp $NODEDIR/config/external.toml ./node/config
+  cp $NODEDIR/config/external.toml ./node/config/external_validator.toml
+  cp $NODEDIR/config/external.toml ./node/config/external_observer.toml
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/fullArchiveP2P.toml ./node/config
   cp $NODEDIR/config/enableEpochs.toml ./node/config
@@ -92,6 +107,18 @@ copyNodeConfig() {
   cp $NODEDIR/config/gasSchedules/*.* ./node/config/gasSchedules
 
   echo "Configuration files copied from the Node to the working directories of the executables."
+  popd
+}
+
+copySovereignNodeConfig() {
+  pushd $TESTNETDIR
+  cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./node/config
+  cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./txgen/config/nodeConfig/config
+  cp $SOVEREIGNNODEDIR/config/economics.toml ./node/config
+  cp $SOVEREIGNNODEDIR/config/economics.toml ./txgen/config
+  cp $SOVEREIGNNODEDIR/config/sovereignConfig.toml ./node/config
+
+  echo "Configuration files copied from the Sovereign Node to the working directories of the executables."
   popd
 }
 
@@ -123,6 +150,10 @@ updateNodeConfig() {
     sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
 	fi
 
+	if [ $USE_ELASTICSEARCH -eq 1 ]; then
+	  sed -i '/^\[ElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
+	fi
+
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 
@@ -143,7 +174,7 @@ copyProxyConfig() {
   cp -r $PROXYDIR/config/apiConfig ./proxy/config
 
   cp ./node/config/economics.toml ./proxy/config/
-  cp ./node/config/external.toml ./proxy/config/
+  cp ./node/config/external_validator.toml ./proxy/config/external.toml
   cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."

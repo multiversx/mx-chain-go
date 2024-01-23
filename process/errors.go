@@ -323,6 +323,9 @@ var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
 
+// ErrCrossShardMBWithoutConfirmationFromNotifier signals that miniblock was not yet notarized by notifier
+var ErrCrossShardMBWithoutConfirmationFromNotifier = errors.New("cross shard miniblock with destination current shard is not confirmed by notifier")
+
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
 
@@ -1226,3 +1229,12 @@ var ErrNilStorageService = errors.New("nil storage service")
 
 // ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
 var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
+
+// ErrNilShardBootstrap signals that a nil shard bootstrap was provided
+var ErrNilShardBootstrap = errors.New("nil shard bootstrap")
+
+// ErrNilShardStorageBootstrapper signals that a nil shard storage bootstrapper was provided
+var ErrNilShardStorageBootstrapper = errors.New("nil shard storage bootstrapper")
+
+// ErrWrongHeaderVersion signals that a wrong header version has been found
+var ErrWrongHeaderVersion = errors.New("wrong header version")
