@@ -129,6 +129,7 @@ type EnableEpochsHandlerStub struct {
 	IsChangeUsernameEnabledField                                 bool
 	IsConsistentTokensValuesLengthCheckEnabledField              bool
 	IsAutoBalanceDataTriesEnabledField                           bool
+	IsMigrateDataTrieEnabledField                                bool
 	FixDelegationChangeOwnerOnAccountEnabledField                bool
 	IsDynamicGasCostForDataTrieStorageLoadEnabledField           bool
 	IsNFTStopCreateEnabledField                                  bool
@@ -1117,6 +1118,14 @@ func (stub *EnableEpochsHandlerStub) IsAutoBalanceDataTriesEnabled() bool {
 	defer stub.RUnlock()
 
 	return stub.IsAutoBalanceDataTriesEnabledField
+}
+
+// IsMigrateDataTrieEnabled -
+func (stub *EnableEpochsHandlerStub) IsMigrateDataTrieEnabled() bool {
+	stub.RLock()
+	defer stub.RUnlock()
+
+	return stub.IsMigrateDataTrieEnabledField
 }
 
 // FixDelegationChangeOwnerOnAccountEnabled -

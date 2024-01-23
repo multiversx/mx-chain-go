@@ -100,6 +100,7 @@ type epochFlagsHolder struct {
 	changeUsernameFlag                          *atomic.Flag
 	consistentTokensValuesCheckFlag             *atomic.Flag
 	autoBalanceDataTriesFlag                    *atomic.Flag
+	migrateDataTrieFlag                         *atomic.Flag
 	fixDelegationChangeOwnerOnAccountFlag       *atomic.Flag
 	dynamicGasCostForDataTrieStorageLoadFlag    *atomic.Flag
 	nftStopCreateFlag                           *atomic.Flag
@@ -209,6 +210,7 @@ func newEpochFlagsHolder() *epochFlagsHolder {
 		nftStopCreateFlag:                           &atomic.Flag{},
 		changeOwnerAddressCrossShardThroughSCFlag:   &atomic.Flag{},
 		fixGasRemainingForSaveKeyValueFlag:          &atomic.Flag{},
+		migrateDataTrieFlag:                         &atomic.Flag{},
 	}
 }
 
@@ -738,6 +740,11 @@ func (holder *epochFlagsHolder) IsChangeUsernameEnabled() bool {
 // IsAutoBalanceDataTriesEnabled returns true if autoBalanceDataTriesFlag is enabled
 func (holder *epochFlagsHolder) IsAutoBalanceDataTriesEnabled() bool {
 	return holder.autoBalanceDataTriesFlag.IsSet()
+}
+
+// IsMigrateDataTrieEnabled returns true if the migrateDataTrieFlag is enabled
+func (holder *epochFlagsHolder) IsMigrateDataTrieEnabled() bool {
+	return holder.migrateDataTrieFlag.IsSet()
 }
 
 // FixDelegationChangeOwnerOnAccountEnabled returns true if the fix for the delegation change owner on account is enabled
