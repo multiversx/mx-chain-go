@@ -284,6 +284,10 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 
 // proposal creates a new proposal from passed arguments
 func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceDisableProposeFlag) && !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		g.eei.AddReturnMessage("proposing is disabled")
+		return vmcommon.UserError
+	}
 	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.Proposal)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")

@@ -942,6 +942,29 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
 }
 
+func TestGovernanceContract_ProposalDuringDisableFlag(t *testing.T) {
+	t.Parallel()
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag)
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+		[]byte("50"),
+		[]byte("55"),
+	}
+	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
+	retCode := gsc.Execute(callInput)
+
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "proposing is disabled"))
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
 func TestGovernanceContract_DelegateVoteMultiple(t *testing.T) {
 	t.Parallel()
 
