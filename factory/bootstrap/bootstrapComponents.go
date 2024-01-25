@@ -44,7 +44,7 @@ type BootstrapComponentsFactoryArgs struct {
 	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	RunTypeComponents    factory.RunTypeComponentsHolder
+	RunTypeComponents                factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
@@ -60,7 +60,7 @@ type bootstrapComponentsFactory struct {
 	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	runTypeComponents    factory.RunTypeComponentsHolder
+	runTypeComponents                factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponents struct {
@@ -123,7 +123,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		cryptoComponents:                 args.CryptoComponents,
 		networkComponents:                args.NetworkComponents,
 		statusCoreComponents:             args.StatusCoreComponents,
-		runTypeComponents:    args.RunTypeComponents,
+		runTypeComponents:                args.RunTypeComponents,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}, nil
@@ -240,17 +240,17 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 		ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
-		AdditionalStorageServiceCreator: bcf.runTypeComponents.AdditionalStorageServiceCreator(),
+		AdditionalStorageServiceCreator:  bcf.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
 	if bcf.importDbConfig.IsImportDBMode {
 		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
-			ArgsEpochStartBootstrap:       epochStartBootstrapArgs,
-			ImportDbConfig:                bcf.importDbConfig,
-			ChanGracefullyClose:           bcf.coreComponents.ChanStopNodeProcess(),
-			TimeToWaitForRequestedData:    bootstrap.DefaultTimeToWaitForRequestedData,
-			EpochStartBootstrapperCreator: bcf.runTypeComponents.EpochStartBootstrapperCreator(),
+			ArgsEpochStartBootstrap:          epochStartBootstrapArgs,
+			ImportDbConfig:                   bcf.importDbConfig,
+			ChanGracefullyClose:              bcf.coreComponents.ChanStopNodeProcess(),
+			TimeToWaitForRequestedData:       bootstrap.DefaultTimeToWaitForRequestedData,
+			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
 			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 			ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
 		}

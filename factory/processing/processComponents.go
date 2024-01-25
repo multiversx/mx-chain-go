@@ -160,7 +160,7 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents        factory.StatusComponentsHolder
 	StatusCoreComponents    factory.StatusCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
-	RunTypeComponents    factory.RunTypeComponentsHolder
+	RunTypeComponents       factory.RunTypeComponentsHolder
 
 	ChainRunType                          common.ChainRunType
 	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
@@ -207,7 +207,7 @@ type processComponentsFactory struct {
 	statusComponents        factory.StatusComponentsHolder
 	statusCoreComponents    factory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
-	runTypeComponents    factory.RunTypeComponentsHolder
+	runTypeComponents       factory.RunTypeComponentsHolder
 
 	chainRunType                          common.ChainRunType
 	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
@@ -255,7 +255,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochNotifier:                         args.CoreData.EpochNotifier(),
 		statusCoreComponents:                  args.StatusCoreComponents,
 		flagsConfig:                           args.FlagsConfig,
-		runTypeComponents:      args.RunTypeComponents,
+		runTypeComponents:                     args.RunTypeComponents,
 		shardCoordinatorFactory:               args.ShardCoordinatorFactory,
 		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
 		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
@@ -766,12 +766,12 @@ func (pcf *processComponentsFactory) createScheduledTxsExecutionHandler() (proce
 	}
 
 	args := preprocess.ScheduledTxsExecutionFactoryArgs{
-		TxProcessor:      &disabled.TxProcessor{},
-		TxCoordinator:    &disabled.TxCoordinator{},
-		Storer:           scheduledSCRSStorer,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		Hasher:           pcf.coreData.Hasher(),
-		ShardCoordinator: pcf.bootstrapComponents.ShardCoordinator(),
+		TxProcessor:             &disabled.TxProcessor{},
+		TxCoordinator:           &disabled.TxCoordinator{},
+		Storer:                  scheduledSCRSStorer,
+		Marshalizer:             pcf.coreData.InternalMarshalizer(),
+		Hasher:                  pcf.coreData.Hasher(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 	}
 
@@ -919,7 +919,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNodePrice:        genesisNodePrice,
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
-		RunTypeComponents:    pcf.runTypeComponents,
+		RunTypeComponents:       pcf.runTypeComponents,
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
 		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
@@ -1573,7 +1573,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			NodeProcessingMode:              common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:        pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:              pcf.crypto.ManagedPeersHolder(),
-			StateStatsHandler:             pcf.statusCoreComponents.StateStatsHandler(),
+			StateStatsHandler:               pcf.statusCoreComponents.StateStatsHandler(),
 			AdditionalStorageServiceCreator: pcf.runTypeComponents.AdditionalStorageServiceCreator(),
 		},
 	)

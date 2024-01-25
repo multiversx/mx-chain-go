@@ -40,8 +40,8 @@ type ArgsStorageEpochStartBootstrap struct {
 	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
-	ResolverRequestFactory        requestHandlers.RequestHandlerCreator
+	EpochStartBootstrapperCreator    EpochStartBootstrapperCreator
+	ResolverRequestFactory           requestHandlers.RequestHandlerCreator
 }
 
 type storageEpochStartBootstrap struct {
@@ -55,7 +55,7 @@ type storageEpochStartBootstrap struct {
 	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	resolverRequestFactory     requestHandlers.RequestHandlerCreator
+	resolverRequestFactory           requestHandlers.RequestHandlerCreator
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -88,7 +88,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		chanGracefullyClose:              args.ChanGracefullyClose,
 		chainID:                          args.CoreComponentsHolder.ChainID(),
 		timeToWaitForRequestedData:       args.TimeToWaitForRequestedData,
-		resolverRequestFactory:     args.ResolverRequestFactory,
+		resolverRequestFactory:           args.ResolverRequestFactory,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
