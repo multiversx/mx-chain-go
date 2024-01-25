@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -73,7 +74,7 @@ func createArgBaseProcessor(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgBaseProcessor {
-	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
+	nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
@@ -102,7 +103,7 @@ func createArgBaseProcessor(
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         &mock.ForkDetectorMock{},
-		NodesCoordinator:     nodesCoordinator,
+		NodesCoordinator:     nodesCoordinatorInstance,
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		BlockChainHook:       &testscommon.BlockChainHookStub{},
@@ -126,6 +127,7 @@ func createArgBaseProcessor(
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
 	}
 }
 
@@ -3127,4 +3129,53 @@ func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 
 	assert.True(t, len(values) <= 1) // we can have the situation when all reads are done before the first set
 	assert.Equal(t, numCalls/2, values[lastValRead]+noValues)
+}
+
+func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
+		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, expectedErr
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+			ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+				assert.Fail(t, "should have not called ResetCountersManagedBlockSigners")
+			},
+		}
+		arguments.NodesCoordinator = nodesCoordinatorInstance
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		validator0, _ := nodesCoordinator.NewValidator([]byte("pk0"), 0, 0)
+		validator1, _ := nodesCoordinator.NewValidator([]byte("pk1"), 1, 1)
+		validator2, _ := nodesCoordinator.NewValidator([]byte("pk2"), 2, 2)
+
+		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+			return []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
+		}
+
+		resetCountersCalled := make([][]byte, 0)
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+			ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+				resetCountersCalled = append(resetCountersCalled, signerPk)
+			},
+		}
+		arguments.NodesCoordinator = nodesCoordinatorInstance
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
+		assert.Nil(t, err)
+
+		assert.Equal(t, [][]byte{validator0.PubKey(), validator1.PubKey(), validator2.PubKey()}, resetCountersCalled)
+	})
 }
