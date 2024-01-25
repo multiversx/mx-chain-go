@@ -2,6 +2,7 @@ package process
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -36,11 +38,16 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 
 // CreateGenesisBlocks will create sovereign genesis blocks
 func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
+	err := gbc.initSystemAccount()
+	if err != nil {
+		return nil, err
+	}
+
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	err := gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +62,32 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	return gbc.createSovereignHeaders(argsCreateBlock)
 }
 
+func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
+	acc, err := gbc.arg.Accounts.LoadAccount(core.SystemAccountAddress)
+	if err != nil {
+		return err
+	}
+
+	err = gbc.arg.Accounts.SaveAccount(acc)
+	if err != nil {
+		return err
+	}
+
+	acc, err = gbc.arg.Accounts.LoadAccount(core.ESDTSCAddress)
+	if err != nil {
+		return err
+	}
+
+	err = gbc.arg.Accounts.SaveAccount(acc)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createGenesisConfig())
+	err := gbc.computeSovereignDNSAddresses(createSovGenesisConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +172,7 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
-	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -276,4 +307,55 @@ func setSovereignStakedData(
 	)
 
 	return stakingTxs, nil
+}
+
+func createSovInitialESDTBalances(arg ArgsGenesisBlockCreator, genesisProcessors *genesisProcessors) (map[string]data.TransactionHandler, error) {
+	initialESDTTxs := make(map[string]data.TransactionHandler, 0)
+	initialAccounts := arg.AccountsParser.InitialAccounts()
+
+	for nonce, initialAcc := range initialAccounts {
+		log.Info("creating initial esdt balance", "acc", initialAcc.GetAddress())
+
+		scr := &smartContractResult.SmartContractResult{
+			Nonce:          uint64(nonce),
+			OriginalTxHash: nil,
+			RcvAddr:        initialAcc.AddressBytes(),
+			SndAddr:        core.ESDTSCAddress,
+			Data:           createSCRData(initialAcc.GetBalanceValue()),
+			Value:          big.NewInt(0),
+			GasLimit:       50000,
+		}
+
+		retCode, err := genesisProcessors.scrProcessor.ProcessSmartContractResult(scr)
+		if err != nil {
+			return nil, err
+		}
+
+		if retCode != vmcommon.Ok {
+			log.Error("could not generate initial esdt balances", "func", "createSovInitialESDTBalances", "ret code", retCode)
+			return nil, errors.New("could not generate initial esdt balances")
+		}
+
+		hash, err := core.CalculateHash(arg.Core.InternalMarshalizer(), arg.Core.Hasher(), scr)
+		if err != nil {
+			return nil, err
+		}
+
+		initialESDTTxs[hex.EncodeToString(hash)] = scr
+	}
+
+	return initialESDTTxs, nil
+}
+
+func createSCRData(value *big.Int) []byte {
+	numTokensToTransfer := 1
+	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
+
+	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
+		"@" + hex.EncodeToString(numTokensToTransferBytes) +
+		"@" + hex.EncodeToString([]byte("WEGLD-bd4d79")) + // tokenID
+		"@" + hex.EncodeToString(big.NewInt(0).Bytes()) + //nonce
+		"@" + hex.EncodeToString(big.NewInt(500000).Bytes())) // value
+
+	return ret
 }

@@ -60,6 +60,8 @@ func TestNewSovereignGenesisBlockCreator(t *testing.T) {
 		require.Equal(t, errNilGenesisBlockCreator, err)
 		require.Nil(t, sgbc)
 	})
+
+	log.Info(string(createSCRData(nil)))
 }
 
 func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.T) {

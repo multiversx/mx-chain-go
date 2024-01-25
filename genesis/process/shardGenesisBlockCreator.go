@@ -33,7 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -153,6 +153,13 @@ func createGenesisConfig() config.EnableEpochs {
 	}
 }
 
+func createSovGenesisConfig() config.EnableEpochs {
+	cfg := createGenesisConfig()
+	cfg.ESDTMultiTransferEnableEpoch = 0
+
+	return cfg
+}
+
 func createGenesisRoundConfig() *config.RoundConfig {
 	return &config.RoundConfig{
 		RoundActivations: map[string]config.ActivationRoundByName{
@@ -182,7 +189,7 @@ func CreateShardGenesisBlock(
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
 	}
 
-	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	processors, err := createProcessorsForShardGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -221,6 +228,13 @@ func CreateShardGenesisBlock(
 	}
 
 	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+
+	initialESDTs, err := createSovInitialESDTBalances(arg, processors)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, initialESDTs)
 	indexingData.ScrsTxs = scrsTxs
 
 	rootHash, err := arg.Accounts.Commit()
@@ -582,7 +596,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
+	scProcessorProxy, err := processorV2.CreateSCRProcessor(common.ChainRunTypeSovereign, argsNewScProcessor) //processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
