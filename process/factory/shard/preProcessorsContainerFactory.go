@@ -40,7 +40,6 @@ type preProcessorsContainerFactory struct {
 	txTypeHandler                          process.TxTypeHandler
 	scheduledTxsExecutionHandler           process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker             process.ProcessedMiniBlocksTracker
-	chainRunType                           common.ChainRunType
 	txExecutionOrderHandler                common.TxExecutionOrderHandler
 	txPreprocessorCreator                  preprocess.TxPreProcessorCreator
 	smartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator

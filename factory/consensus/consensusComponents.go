@@ -76,8 +76,6 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	consensusModel        consensus.ConsensusModel
-	chainRunType          common.ChainRunType
 
 	extraSignersHolder   bls.ExtraSignersHolder
 	subRoundEndV2Creator bls.SubRoundEndV2Creator

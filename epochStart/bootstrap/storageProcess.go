@@ -52,7 +52,6 @@ type storageEpochStartBootstrap struct {
 	chanGracefullyClose              chan endProcess.ArgEndProcess
 	chainID                          string
 	timeToWaitForRequestedData       time.Duration
-	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	resolverRequestFactory           requestHandlers.RequestHandlerCreator

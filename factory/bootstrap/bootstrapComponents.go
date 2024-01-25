@@ -57,7 +57,6 @@ type bootstrapComponentsFactory struct {
 	cryptoComponents                 factory.CryptoComponentsHolder
 	networkComponents                factory.NetworkComponentsHolder
 	statusCoreComponents             factory.StatusCoreComponentsHolder
-	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	runTypeComponents                factory.RunTypeComponentsHolder
