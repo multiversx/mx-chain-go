@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -1336,7 +1337,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               ordering.NewOrderedCollection(),
-		RunTypeComponents:      runTypeComponents,
+		RunTypeComponents:                     runTypeComponents,
 		ShardCoordinatorFactory:               sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
@@ -1475,7 +1476,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:                 cryptoComponents,
 		NetworkComponents:                networkComponents,
 		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:    runTypeComponents,
+		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
 	}
