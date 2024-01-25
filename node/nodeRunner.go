@@ -55,6 +55,7 @@ import (
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -706,20 +707,23 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
-		CoreComponents:       nodeHandler.GetCoreComponents(),
-		DataComponents:       nodeHandler.GetDataComponents(),
-		StateComponents:      nodeHandler.GetStateComponents(),
-		BootstrapComponents:  nodeHandler.GetBootstrapComponents(),
-		CryptoComponents:     nodeHandler.GetCryptoComponents(),
-		ProcessComponents:    nodeHandler.GetProcessComponents(),
-		StatusCoreComponents: nodeHandler.GetStatusCoreComponents(),
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         nodeHandler.GetConsensusComponents().Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     nodeHandler.GetStatusComponents(),
-		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:         common.ChainRunTypeRegular,
+		Configs:                        configs,
+		CoreComponents:                 nodeHandler.GetCoreComponents(),
+		DataComponents:                 nodeHandler.GetDataComponents(),
+		StateComponents:                nodeHandler.GetStateComponents(),
+		BootstrapComponents:            nodeHandler.GetBootstrapComponents(),
+		CryptoComponents:               nodeHandler.GetCryptoComponents(),
+		ProcessComponents:              nodeHandler.GetProcessComponents(),
+		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
+		GasScheduleNotifier:            gasScheduleNotifier,
+		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		AllowVMQueriesChan:             allowVMQueriesChan,
+		StatusComponents:               nodeHandler.GetStatusComponents(),
+		ProcessingMode:                 common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:                   common.ChainRunTypeRegular,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
+		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

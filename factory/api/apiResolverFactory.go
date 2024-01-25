@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -56,20 +57,23 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs              *config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	GasScheduleNotifier  common.GasScheduleNotifierAPI
-	Bootstrapper         process.Bootstrapper
-	AllowVMQueriesChan   chan struct{}
-	ProcessingMode       common.NodeProcessingMode
-	ChainRunType         common.ChainRunType
+	Configs                        *config.Configs
+	CoreComponents                 factory.CoreComponentsHolder
+	DataComponents                 factory.DataComponentsHolder
+	StateComponents                factory.StateComponentsHolder
+	BootstrapComponents            factory.BootstrapComponentsHolder
+	CryptoComponents               factory.CryptoComponentsHolder
+	ProcessComponents              factory.ProcessComponentsHolder
+	StatusCoreComponents           factory.StatusCoreComponentsHolder
+	StatusComponents               factory.StatusComponentsHolder
+	GasScheduleNotifier            common.GasScheduleNotifierAPI
+	Bootstrapper                   process.Bootstrapper
+	AllowVMQueriesChan             chan struct{}
+	ProcessingMode                 common.NodeProcessingMode
+	ChainRunType                   common.ChainRunType
+	DelegatedListFactoryHandler    trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryHandler trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	TotalStakedValueFactoryHandler trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 }
 
 type scQueryServiceArgs struct {
@@ -115,6 +119,17 @@ type scQueryElementArgs struct {
 // TODO: refactor to further decrease node's codebase
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
+
+	if check.IfNilReflect(args.DelegatedListFactoryHandler) {
+		return nil, factory.ErrNilDelegatedListFactory
+	}
+	if check.IfNilReflect(args.DirectStakedListFactoryHandler) {
+		return nil, factory.ErrNilDirectStakedListFactory
+	}
+	if check.IfNilReflect(args.TotalStakedValueFactoryHandler) {
+		return nil, factory.ErrNilTotalStakedValueFactory
+	}
+
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:         args.Configs.GeneralConfig,
 		epochConfig:           args.Configs.EpochConfig,
@@ -197,17 +212,17 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 		QueryService:       scQueryService,
 	}
-	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
+	totalStakedValueHandler, err := args.TotalStakedValueFactoryHandler.CreateTotalStakedValueProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(argsProcessors)
+	directStakedListHandler, err := args.DirectStakedListFactoryHandler.CreateDirectStakedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(argsProcessors)
+	delegatedListHandler, err := args.DelegatedListFactoryHandler.CreateDelegatedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
