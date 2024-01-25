@@ -28,6 +28,8 @@ type MetaChainSystemSCsCost struct {
 	DelegateVote          uint64
 	RevokeVote            uint64
 	CloseProposal         uint64
+	ClaimAccumulatedFees  uint64
+	ChangeConfig          uint64
 	DelegationOps         uint64
 	UnStakeTokens         uint64
 	UnBondTokens          uint64
