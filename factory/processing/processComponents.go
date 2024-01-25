@@ -267,6 +267,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
+		chainRunType:                          args.ChainRunType,
 	}, nil
 }
 
