@@ -8,6 +8,11 @@ generateConfig() {
     TMP_META_OBSERVERCOUNT=0
   fi
 
+  SOVEREIGN_BOOL="false"
+  if [ $SOVEREIGN_DEPLOY -eq 1 ]; then
+    SOVEREIGN_BOOL="true"
+  fi
+
   pushd $TESTNETDIR/filegen
   ./filegen \
     -output-directory $CONFIGGENERATOROUTPUTDIR               \
@@ -20,7 +25,7 @@ generateConfig() {
     -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
-    -sovereign=$SOVEREIGN_DEPLOY
+    -sovereign=$SOVEREIGN_BOOL
   popd
 }
 
@@ -146,6 +151,8 @@ updateNodeConfig() {
 	  sed -i '/^\[ElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
 	fi
 
+  sed -i '/^\[DbLookupExtensions\]/,/^\[/ s/Enabled *= *false/Enabled = true/' config_observer.toml
+
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
 
@@ -190,6 +197,23 @@ updateProxyConfig() {
   popd
 }
 
+updateSovereignProxyConfig() {
+  pushd $TESTNETDIR/proxy/config
+  cp config.toml config_edit.toml
+
+  # Truncate config.toml before the [[Observers]] list
+  sed -i -n '/\[\[Observers\]\]/q;p' config_edit.toml
+
+  updateTOMLValue config_edit.toml "ServerPort" $PORT_PROXY
+  generateSovereignProxyObserverList config_edit.toml
+
+  cp config_edit.toml config.toml
+  rm config_edit.toml
+
+  echo "Updated configuration for the Sovereign Proxy."
+  popd
+}
+
 copyTxGenConfig() {
   pushd $TESTNETDIR
 
@@ -221,6 +245,10 @@ updateTxGenConfig() {
   popd
 }
 
+updateSovereignTxGenConfig() {
+  updateTxGenConfig
+  pushd $TESTNETDIR/txgen/config/nodeConfig/config
+}
 
 generateProxyObserverList() {
   OBSERVER_INDEX=0
@@ -250,6 +278,31 @@ generateProxyObserverList() {
 
       (( OBSERVER_INDEX++ ))
     done
+}
+
+generateSovereignProxyObserverList() {
+  OBSERVER_INDEX=0
+  OUTPUTFILE=$!
+  # Start Shard Observers
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
+      (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
+
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $SHARD" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
+
+      # for sovereign shards, shard observers are also able to respond to Metachain related endpoints - useful so we can reuse the Proxy without changes
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $METASHARD_ID" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
+
+      (( OBSERVER_INDEX++ ))
+    done
+  done
 }
 
 updateTOMLValue() {
