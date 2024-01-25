@@ -37,7 +37,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, _ := accDB.Commit()
 
-	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
@@ -77,7 +77,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	testPubkey := integrationTests.CreateAccount(accDB, testNonce, testBalance)
 	rootHash, _ := accDB.Commit()
 
-	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 	coreComponents.AddressPubKeyConverterField = testscommon.RealWorldBech32PubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()

@@ -12,19 +12,20 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
+	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.12
 	github.com/multiversx/mx-chain-core-go v1.2.18
 	github.com/multiversx/mx-chain-crypto-go v1.2.9
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.18
 	github.com/multiversx/mx-chain-logger-go v1.0.13
-	github.com/multiversx/mx-chain-scenario-go v1.2.1
+	github.com/multiversx/mx-chain-scenario-go v1.3.0
 	github.com/multiversx/mx-chain-storage-go v1.0.14
-	github.com/multiversx/mx-chain-vm-common-go v1.5.10
-	github.com/multiversx/mx-chain-vm-go v1.5.24
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92
+	github.com/multiversx/mx-chain-vm-common-go v1.5.11
+	github.com/multiversx/mx-chain-vm-go v1.5.26
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.94
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -91,7 +92,6 @@ require (
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
