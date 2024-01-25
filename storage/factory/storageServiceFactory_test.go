@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -81,11 +80,11 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 				return core.NodeTypeObserver
 			},
 		},
-		StorageType:                   ProcessStorageService,
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: true,
-		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
-		StateStatsHandler:             disabledStatistics.NewStateStatistics(),
+		StorageType:                     ProcessStorageService,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   true,
+		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		StateStatsHandler:               disabledStatistics.NewStateStatistics(),
 		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
