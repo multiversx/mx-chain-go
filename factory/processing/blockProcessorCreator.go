@@ -3,7 +3,6 @@ package processing
 import (
 	"errors"
 	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
@@ -22,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -351,8 +349,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
 		SmartContractResultPreProcessorCreator: pcf.runTypeComponents.SCResultsPreProcessorCreator(),
-		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
-		TxPreProcessorCreator:        pcf.txPreprocessorCreator,
+		TxExecutionOrderHandler:                pcf.txExecutionOrderHandler,
+		TxPreProcessorCreator:                  pcf.txPreprocessorCreator,
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -444,6 +442,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+		OutGoingOperationsPool:       pcf.outGoingOperationsPool,
 	}
 
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
@@ -493,25 +492,6 @@ func (pcf *processComponentsFactory) addSystemVMToContainerIfNeeded(vmContainer 
 	}
 
 	return nil
-}
-
-// SOVFIX remove this?
-func (pcf *processComponentsFactory) createTransactionCoordinator(
-	argsTransactionCoordinator coordinator.ArgTransactionCoordinator,
-) (process.TransactionCoordinator, error) {
-	transactionCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
-	if err != nil {
-		return nil, err
-	}
-
-	switch pcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return transactionCoordinator, nil
-	case common.ChainRunTypeSovereign:
-		return coordinator.NewSovereignChainTransactionCoordinator(transactionCoordinator)
-	default:
-		return nil, fmt.Errorf("%w type %v", customErrors.ErrUnimplementedChainRunType, pcf.chainRunType)
-	}
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(

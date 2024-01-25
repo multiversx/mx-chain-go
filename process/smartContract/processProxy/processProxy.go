@@ -3,7 +3,6 @@ package processProxy
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -76,7 +75,7 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 
 	proxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
 
-	err = proxy.createProcessorV1()
+	err := proxy.createProcessorV1()
 	if err != nil {
 		return nil, err
 	}

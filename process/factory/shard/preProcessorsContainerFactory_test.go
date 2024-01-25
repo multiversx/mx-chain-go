@@ -2,6 +2,8 @@ package shard
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,30 +29,30 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContainerFactory {
 	return ArgPreProcessorsContainerFactory{
-		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
-		Store:                        &storageStubs.ChainStorerStub{},
-		Marshaller:                   &mock.MarshalizerMock{},
-		Hasher:                       &hashingMocks.HasherMock{},
-		DataPool:                     dataRetrieverMock.NewPoolsHolderMock(),
-		PubkeyConverter:              createMockPubkeyConverter(),
-		Accounts:                     &stateMock.AccountsStub{},
-		RequestHandler:               &testscommon.RequestHandlerStub{},
-		TxProcessor:                  &testscommon.TxProcessorMock{},
-		ScProcessor:                  &testscommon.SCProcessorMock{},
-		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
-		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
-		GasHandler:                   &testscommon.GasHandlerStub{},
-		BlockTracker:                 &mock.BlockTrackerMock{},
-		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		TxExecutionOrderHandler:      &mockCommon.TxExecutionOrderHandlerStub{},
-		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                 common.ChainRunTypeRegular,
+		ShardCoordinator:                       mock.NewMultiShardsCoordinatorMock(3),
+		Store:                                  &storageStubs.ChainStorerStub{},
+		Marshaller:                             &mock.MarshalizerMock{},
+		Hasher:                                 &hashingMocks.HasherMock{},
+		DataPool:                               dataRetrieverMock.NewPoolsHolderMock(),
+		PubkeyConverter:                        createMockPubkeyConverter(),
+		Accounts:                               &stateMock.AccountsStub{},
+		RequestHandler:                         &testscommon.RequestHandlerStub{},
+		TxProcessor:                            &testscommon.TxProcessorMock{},
+		ScProcessor:                            &testscommon.SCProcessorMock{},
+		ScResultProcessor:                      &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:                     &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                           &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                             &testscommon.GasHandlerStub{},
+		BlockTracker:                           &mock.BlockTrackerMock{},
+		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                     &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:                &mockCommon.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 }

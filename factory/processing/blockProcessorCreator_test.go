@@ -57,7 +57,8 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.ProcessedMiniBlocksTrackerStub{},
 			&testscommon.ReceiptsRepositoryStub{},
 			&testscommon.BlockProcessingCutoffStub{},
-			&testscommon.MissingTrieNodesNotifierStub{})
+			&testscommon.MissingTrieNodesNotifierStub{},
+		)
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))

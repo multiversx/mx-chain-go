@@ -54,8 +54,8 @@ type ConsensusComponentsFactoryArgs struct {
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
-	ConsensusModel        consensus.ConsensusModel // SOVFIX delete?
-	ChainRunType          common.ChainRunType //SOVFIX delete?
+	ConsensusModel        consensus.ConsensusModel
+	ChainRunType          common.ChainRunType
 	ExtraSignersHolder    bls.ExtraSignersHolder
 	SubRoundEndV2Creator  bls.SubRoundEndV2Creator
 }
@@ -76,8 +76,8 @@ type consensusComponentsFactory struct {
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	consensusModel        consensus.ConsensusModel // SOVFIX delete?
-	chainRunType          common.ChainRunType // SOVFIX delete?
+	consensusModel        consensus.ConsensusModel
+	chainRunType          common.ChainRunType
 
 	extraSignersHolder   bls.ExtraSignersHolder
 	subRoundEndV2Creator bls.SubRoundEndV2Creator

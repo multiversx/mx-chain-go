@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"math"
 	"math/big"
 	"testing"
@@ -193,7 +195,7 @@ func createMockArgument(
 		ChainRunType:            common.ChainRunTypeRegular,
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents: runType,
+		RunTypeComponents:       runType,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -436,7 +438,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilRunTypeComponents)
+		require.ErrorIs(t, err, errorsMx.ErrNilRunTypeComponents)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil BlockchainHookHandlerCreator should error", func(t *testing.T) {
@@ -448,7 +450,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilBlockChainHookHandlerCreator)
+		require.ErrorIs(t, err, errorsMx.ErrNilBlockChainHookHandlerCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil SCResultsPreProcessorCreator should error", func(t *testing.T) {
@@ -460,7 +462,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilSCResultsPreProcessorCreator)
+		require.ErrorIs(t, err, errorsMx.ErrNilSCResultsPreProcessorCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TransactionCoordinatorCreator should error", func(t *testing.T) {
@@ -472,7 +474,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilTransactionCoordinatorCreator)
+		require.ErrorIs(t, err, errorsMx.ErrNilTransactionCoordinatorCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {

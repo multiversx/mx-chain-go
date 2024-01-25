@@ -168,20 +168,19 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        dcf.config,
-			PrefsConfig:                   dcf.prefsConfig,
-			ShardCoordinator:              dcf.shardCoordinator,
-			PathManager:                   dcf.core.PathHandler(),
-			EpochStartNotifier:            dcf.core.EpochStartNotifierWithConfirm(),
-			NodeTypeProvider:              dcf.core.NodeTypeProvider(),
-			CurrentEpoch:                  dcf.currentEpoch,
-			StorageType:                   storageFactory.ProcessStorageService,
-			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
-			NodeProcessingMode:            dcf.nodeProcessingMode,
-			RepopulateTokensSupplies:      dcf.flagsConfig.RepopulateTokensSupplies,
-			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
-			StateStatsHandler:             dcf.statusCore.StateStatsHandler(),
-			ChainRunType:                  dcf.chainRunType,
+			Config:                          dcf.config,
+			PrefsConfig:                     dcf.prefsConfig,
+			ShardCoordinator:                dcf.shardCoordinator,
+			PathManager:                     dcf.core.PathHandler(),
+			EpochStartNotifier:              dcf.core.EpochStartNotifierWithConfirm(),
+			NodeTypeProvider:                dcf.core.NodeTypeProvider(),
+			CurrentEpoch:                    dcf.currentEpoch,
+			StorageType:                     storageFactory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer:   dcf.createTrieEpochRootHashStorer,
+			NodeProcessingMode:              dcf.nodeProcessingMode,
+			RepopulateTokensSupplies:        dcf.flagsConfig.RepopulateTokensSupplies,
+			ManagedPeersHolder:              dcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:               dcf.statusCore.StateStatsHandler(),
 			AdditionalStorageServiceCreator: dcf.additionalStorageServiceCreator,
 		})
 	if err != nil {

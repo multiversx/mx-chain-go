@@ -54,12 +54,6 @@ func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.Tr
 	return pcf.createAPITransactionEvaluator()
 }
 
-// SOVFIX needed?
-// SetChainRunType -
-func (pcf *processComponentsFactory) SetChainRunType(chainRunType common.ChainRunType) {
-	pcf.chainRunType = chainRunType
-}
-
 // AddSystemVMToContainerIfNeeded -
 func (pcf *processComponentsFactory) AddSystemVMToContainerIfNeeded(vmContainer process.VirtualMachinesContainer, builtInFuncFactory vmcommon.BuiltInFunctionFactory) error {
 	return pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)

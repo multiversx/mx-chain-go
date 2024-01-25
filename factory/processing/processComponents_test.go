@@ -265,7 +265,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
-		RunTypeComponents: components.GetRunTypeComponents(),
+		RunTypeComponents:                     components.GetRunTypeComponents(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)

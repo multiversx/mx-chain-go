@@ -3,6 +3,7 @@ package process
 import (
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"math"
 	"math/big"
 	"strconv"
@@ -629,30 +630,30 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
 	argsPreProc := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:             arg.ShardCoordinator,
-		Store:                        arg.Data.StorageService(),
-		Marshaller:                   arg.Core.InternalMarshalizer(),
-		Hasher:                       arg.Core.Hasher(),
-		DataPool:                     arg.Data.Datapool(),
-		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
-		Accounts:                     arg.Accounts,
-		RequestHandler:               disabledRequestHandler,
-		TxProcessor:                  transactionProcessor,
-		ScProcessor:                  scProcessorProxy,
-		ScResultProcessor:            scProcessorProxy,
-		RewardsTxProcessor:           rewardsTxProcessor,
-		EconomicsFee:                 arg.Economics,
-		GasHandler:                   gasHandler,
-		BlockTracker:                 disabledBlockTracker,
-		BlockSizeComputation:         disabledBlockSizeComputationHandler,
-		BalanceComputation:           disabledBalanceComputationHandler,
-		EnableEpochsHandler:          enableEpochsHandler,
-		TxTypeHandler:                txTypeHandler,
-		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
-		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
-		TxPreProcessorCreator:        arg.TxPreprocessorCreator,
-		ChainRunType:                 arg.ChainRunType,
+		ShardCoordinator:                       arg.ShardCoordinator,
+		Store:                                  arg.Data.StorageService(),
+		Marshaller:                             arg.Core.InternalMarshalizer(),
+		Hasher:                                 arg.Core.Hasher(),
+		DataPool:                               arg.Data.Datapool(),
+		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
+		Accounts:                               arg.Accounts,
+		RequestHandler:                         disabledRequestHandler,
+		TxProcessor:                            transactionProcessor,
+		ScProcessor:                            scProcessorProxy,
+		ScResultProcessor:                      scProcessorProxy,
+		RewardsTxProcessor:                     rewardsTxProcessor,
+		EconomicsFee:                           arg.Economics,
+		GasHandler:                             gasHandler,
+		BlockTracker:                           disabledBlockTracker,
+		BlockSizeComputation:                   disabledBlockSizeComputationHandler,
+		BalanceComputation:                     disabledBalanceComputationHandler,
+		EnableEpochsHandler:                    enableEpochsHandler,
+		TxTypeHandler:                          txTypeHandler,
+		ScheduledTxsExecutionHandler:           disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:                arg.TxExecutionOrderHandler,
+		TxPreProcessorCreator:                  arg.TxPreprocessorCreator,
+		ChainRunType:                           arg.ChainRunType,
 		SmartContractResultPreProcessorCreator: arg.RunTypeComponents.SCResultsPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)

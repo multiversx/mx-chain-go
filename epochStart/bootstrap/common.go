@@ -5,9 +5,17 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -25,6 +33,8 @@ type StorageHandlerArgs struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	ManagedPeersHolder              common.ManagedPeersHolder
 	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
+	StateStatsHandler               common.StateStatisticsHandler
+	ChainRunType                    common.ChainRunType
 }
 
 func checkArguments(args ArgsEpochStartBootstrap) error {

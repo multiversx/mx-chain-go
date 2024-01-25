@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"os"
 	"strings"
 	"testing"
@@ -188,6 +189,7 @@ func createMetaHandlerArgs() StorageHandlerArgs {
 		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
 		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
+		StateStatsHandler:               disabled.NewStateStatistics(),
 	}
 
 }

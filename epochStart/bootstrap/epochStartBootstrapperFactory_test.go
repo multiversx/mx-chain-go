@@ -1,6 +1,9 @@
 package bootstrap
 
 import (
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -97,27 +100,25 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		MainMessenger:          messenger,
 		FullArchiveMessenger:   messenger,
 		GeneralConfig: config.Config{
-			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
-			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
-			BlockHeaderStorage:                 generalCfg.BlockHeaderStorage,
-			TxStorage:                          generalCfg.TxStorage,
-			UnsignedTransactionStorage:         generalCfg.UnsignedTransactionStorage,
-			RewardTxStorage:                    generalCfg.RewardTxStorage,
-			ShardHdrNonceHashStorage:           generalCfg.ShardHdrNonceHashStorage,
-			MetaHdrNonceHashStorage:            generalCfg.MetaHdrNonceHashStorage,
-			StatusMetricsStorage:               generalCfg.StatusMetricsStorage,
-			ReceiptsStorage:                    generalCfg.ReceiptsStorage,
-			SmartContractsStorage:              generalCfg.SmartContractsStorage,
-			SmartContractsStorageForSCQuery:    generalCfg.SmartContractsStorageForSCQuery,
-			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
-			BootstrapStorage:                   generalCfg.BootstrapStorage,
-			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
-			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
-			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
-			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
-			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
-			HeartbeatV2:                        generalCfg.HeartbeatV2,
-			Hardfork:                           generalCfg.Hardfork,
+			MiniBlocksStorage:               generalCfg.MiniBlocksStorage,
+			PeerBlockBodyStorage:            generalCfg.PeerBlockBodyStorage,
+			BlockHeaderStorage:              generalCfg.BlockHeaderStorage,
+			TxStorage:                       generalCfg.TxStorage,
+			UnsignedTransactionStorage:      generalCfg.UnsignedTransactionStorage,
+			RewardTxStorage:                 generalCfg.RewardTxStorage,
+			ShardHdrNonceHashStorage:        generalCfg.ShardHdrNonceHashStorage,
+			MetaHdrNonceHashStorage:         generalCfg.MetaHdrNonceHashStorage,
+			StatusMetricsStorage:            generalCfg.StatusMetricsStorage,
+			ReceiptsStorage:                 generalCfg.ReceiptsStorage,
+			SmartContractsStorage:           generalCfg.SmartContractsStorage,
+			SmartContractsStorageForSCQuery: generalCfg.SmartContractsStorageForSCQuery,
+			TrieEpochRootHashStorage:        generalCfg.TrieEpochRootHashStorage,
+			BootstrapStorage:                generalCfg.BootstrapStorage,
+			MetaBlockStorage:                generalCfg.MetaBlockStorage,
+			AccountsTrieStorage:             generalCfg.AccountsTrieStorage,
+			PeerAccountsTrieStorage:         generalCfg.PeerAccountsTrieStorage,
+			HeartbeatV2:                     generalCfg.HeartbeatV2,
+			Hardfork:                        generalCfg.Hardfork,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -130,7 +131,6 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 				},
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     5,
 				AccountsStatePruningEnabled: true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
@@ -189,7 +189,7 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 				return 1
 			},
 		},
-		GenesisNodesConfig:         &mock.NodesSetupStub{},
+		GenesisNodesConfig:         &testscommon.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
@@ -215,7 +215,10 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
-		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
+		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
+		AdditionalStorageServiceCreator:  &testscommon.AdditionalStorageServiceFactoryMock{},
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		StateStatsHandler:                disabled.NewStateStatistics(),
 	}
 }

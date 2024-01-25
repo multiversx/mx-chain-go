@@ -28,4 +28,5 @@ type SmartContractResultPreProcessorCreatorArgs struct {
 	BalanceComputation           BalanceComputationHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
+	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 }

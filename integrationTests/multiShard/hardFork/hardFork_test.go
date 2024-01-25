@@ -12,7 +12,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -496,8 +495,8 @@ func hardForkImport(
 				},
 			},
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},RoundConfig:       &roundConfig,
-			RunTypeComponents: componentsMock.GetRunTypeComponents(),
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{}, RoundConfig: &roundConfig,
+			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
 			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 			TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		}

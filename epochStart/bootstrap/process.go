@@ -814,9 +814,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		NodeProcessingMode:              e.nodeProcessingMode,
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
-		// SOVFIX
-		//ChianRunType??
-		StateStatsHandler: e.stateStatsHandler,
+		StateStatsHandler:               e.stateStatsHandler,
 	}
 
 	storageHandlerComponent, err := NewMetaStorageHandler(args)
@@ -989,9 +987,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		NodeProcessingMode:              e.nodeProcessingMode,
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
-		//SOVFIX
-		StateStatsHandler: e.stateStatsHandler,
-		ChainRunType:      e.chainRunType,
+		StateStatsHandler:               e.stateStatsHandler,
 	}
 
 	storageHandlerComponent, err := NewShardStorageHandler(args)

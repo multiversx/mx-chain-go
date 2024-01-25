@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -105,7 +104,7 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 		args := createMockSmartContractProcessorArguments()
 		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
 
-		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
+		proxy, err := NewSmartContractProcessorProxy(args)
 		assert.True(t, check.IfNil(proxy))
 		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	})

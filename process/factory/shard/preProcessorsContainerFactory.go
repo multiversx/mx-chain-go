@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -18,59 +19,59 @@ import (
 var _ process.PreProcessorsContainerFactory = (*preProcessorsContainerFactory)(nil)
 
 type preProcessorsContainerFactory struct {
-	shardCoordinator             sharding.Coordinator
-	store                        dataRetriever.StorageService
-	marshaller                   marshal.Marshalizer
-	hasher                       hashing.Hasher
-	dataPool                     dataRetriever.PoolsHolder
-	pubkeyConverter              core.PubkeyConverter
-	txProcessor                  process.TransactionProcessor
-	scProcessor                  process.SmartContractProcessor
-	scResultProcessor            process.SmartContractResultProcessor
-	rewardsTxProcessor           process.RewardTransactionProcessor
-	accounts                     state.AccountsAdapter
-	requestHandler               process.RequestHandler
-	economicsFee                 process.FeeHandler
-	gasHandler                   process.GasHandler
-	blockTracker                 preprocess.BlockTracker
-	blockSizeComputation         preprocess.BlockSizeComputationHandler
-	balanceComputation           preprocess.BalanceComputationHandler
-	enableEpochsHandler          common.EnableEpochsHandler
-	txTypeHandler                process.TxTypeHandler
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
-	chainRunType                 common.ChainRunType
-	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	txPreprocessorCreator        preprocess.TxPreProcessorCreator
+	shardCoordinator                       sharding.Coordinator
+	store                                  dataRetriever.StorageService
+	marshaller                             marshal.Marshalizer
+	hasher                                 hashing.Hasher
+	dataPool                               dataRetriever.PoolsHolder
+	pubkeyConverter                        core.PubkeyConverter
+	txProcessor                            process.TransactionProcessor
+	scProcessor                            process.SmartContractProcessor
+	scResultProcessor                      process.SmartContractResultProcessor
+	rewardsTxProcessor                     process.RewardTransactionProcessor
+	accounts                               state.AccountsAdapter
+	requestHandler                         process.RequestHandler
+	economicsFee                           process.FeeHandler
+	gasHandler                             process.GasHandler
+	blockTracker                           preprocess.BlockTracker
+	blockSizeComputation                   preprocess.BlockSizeComputationHandler
+	balanceComputation                     preprocess.BalanceComputationHandler
+	enableEpochsHandler                    common.EnableEpochsHandler
+	txTypeHandler                          process.TxTypeHandler
+	scheduledTxsExecutionHandler           process.ScheduledTxsExecutionHandler
+	processedMiniBlocksTracker             process.ProcessedMiniBlocksTracker
+	chainRunType                           common.ChainRunType
+	txExecutionOrderHandler                common.TxExecutionOrderHandler
+	txPreprocessorCreator                  preprocess.TxPreProcessorCreator
 	smartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator
 }
 
 // ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
 type ArgPreProcessorsContainerFactory struct {
-	ShardCoordinator             sharding.Coordinator
-	Store                        dataRetriever.StorageService
-	Marshaller                   marshal.Marshalizer
-	Hasher                       hashing.Hasher
-	DataPool                     dataRetriever.PoolsHolder
-	PubkeyConverter              core.PubkeyConverter
-	Accounts                     state.AccountsAdapter
-	RequestHandler               process.RequestHandler
-	TxProcessor                  process.TransactionProcessor
-	ScProcessor                  process.SmartContractProcessor
-	ScResultProcessor            process.SmartContractResultProcessor
-	RewardsTxProcessor           process.RewardTransactionProcessor
-	EconomicsFee                 process.FeeHandler
-	GasHandler                   process.GasHandler
-	BlockTracker                 preprocess.BlockTracker
-	BlockSizeComputation         preprocess.BlockSizeComputationHandler
-	BalanceComputation           preprocess.BalanceComputationHandler
-	EnableEpochsHandler          common.EnableEpochsHandler
-	TxTypeHandler                process.TxTypeHandler
-	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
-	ChainRunType                 common.ChainRunType
-	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	TxPreProcessorCreator        preprocess.TxPreProcessorCreator
+	ShardCoordinator                       sharding.Coordinator
+	Store                                  dataRetriever.StorageService
+	Marshaller                             marshal.Marshalizer
+	Hasher                                 hashing.Hasher
+	DataPool                               dataRetriever.PoolsHolder
+	PubkeyConverter                        core.PubkeyConverter
+	Accounts                               state.AccountsAdapter
+	RequestHandler                         process.RequestHandler
+	TxProcessor                            process.TransactionProcessor
+	ScProcessor                            process.SmartContractProcessor
+	ScResultProcessor                      process.SmartContractResultProcessor
+	RewardsTxProcessor                     process.RewardTransactionProcessor
+	EconomicsFee                           process.FeeHandler
+	GasHandler                             process.GasHandler
+	BlockTracker                           preprocess.BlockTracker
+	BlockSizeComputation                   preprocess.BlockSizeComputationHandler
+	BalanceComputation                     preprocess.BalanceComputationHandler
+	EnableEpochsHandler                    common.EnableEpochsHandler
+	TxTypeHandler                          process.TxTypeHandler
+	ScheduledTxsExecutionHandler           process.ScheduledTxsExecutionHandler
+	ProcessedMiniBlocksTracker             process.ProcessedMiniBlocksTracker
+	ChainRunType                           common.ChainRunType
+	TxExecutionOrderHandler                common.TxExecutionOrderHandler
+	TxPreProcessorCreator                  preprocess.TxPreProcessorCreator
 	SmartContractResultPreProcessorCreator SmartContractResultPreProcessorCreator
 }
 
@@ -104,8 +105,8 @@ func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*p
 		scheduledTxsExecutionHandler:           args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:             args.ProcessedMiniBlocksTracker,
 		smartContractResultPreProcessorCreator: args.SmartContractResultPreProcessorCreator,
-		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
-		txPreprocessorCreator:        args.TxPreProcessorCreator,
+		txExecutionOrderHandler:                args.TxExecutionOrderHandler,
+		txPreprocessorCreator:                  args.TxPreProcessorCreator,
 	}, nil
 }
 
@@ -200,8 +201,7 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 		BalanceComputation:           ppcf.balanceComputation,
 		EnableEpochsHandler:          ppcf.enableEpochsHandler,
 		ProcessedMiniBlocksTracker:   ppcf.processedMiniBlocksTracker,
-		// SOVFIX
-		TxExecutionOrderHandler: ppcf.txExecutionOrderHandler,
+		TxExecutionOrderHandler:      ppcf.txExecutionOrderHandler,
 	}
 
 	return ppcf.smartContractResultPreProcessorCreator.CreateSmartContractResultPreProcessor(arg)
@@ -314,7 +314,7 @@ func checkPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContain
 		return process.ErrNilTxExecutionOrderHandler
 	}
 	if check.IfNil(args.TxPreProcessorCreator) {
-		return customErrors.ErrNilTxPreProcessorCreator
+		return errorsMx.ErrNilTxPreProcessorCreator
 	}
 	if check.IfNil(args.SmartContractResultPreProcessorCreator) {
 		return process.ErrNilSmartContractResultPreProcessorCreator

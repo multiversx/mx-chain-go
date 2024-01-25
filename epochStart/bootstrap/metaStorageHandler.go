@@ -22,7 +22,6 @@ type metaStorageHandler struct {
 // NewMetaStorageHandler will return a new instance of metaStorageHandler
 func NewMetaStorageHandler(
 	args StorageHandlerArgs,
-	stateStatsHandler common.StateStatisticsHandler,
 ) (*metaStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
@@ -40,7 +39,7 @@ func NewMetaStorageHandler(
 			RepopulateTokensSupplies:        false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:              args.ManagedPeersHolder,
 			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
-			StateStatsHandler:             stateStatsHandler,
+			StateStatsHandler:               args.StateStatsHandler,
 		},
 	)
 	if err != nil {

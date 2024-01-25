@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"math/big"
 	"reflect"
 	"sync"
@@ -49,6 +50,11 @@ func createMockComponentHolders() (
 	mdp := initDataPool([]byte("tx_hash"))
 
 	coreComponents := &mock.CoreComponentsMock{
+		AddrPubKeyConv: &testscommon.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		},
 		IntMarsh:                  &mock.MarshalizerMock{},
 		Hash:                      &mock.HasherStub{},
 		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
@@ -151,6 +157,7 @@ func createMockMetaArguments(
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

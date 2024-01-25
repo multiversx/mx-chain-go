@@ -47,39 +47,39 @@ const (
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
-	generalConfig                 config.Config
-	prefsConfig                   config.PreferencesConfig
-	shardCoordinator              storage.ShardCoordinator
-	pathManager                   storage.PathManagerHandler
-	epochStartNotifier            epochStart.EpochStartNotifier
-	oldDataCleanerProvider        clean.OldDataCleanerProvider
-	createTrieEpochRootHashStorer bool
-	currentEpoch                  uint32
-	storageType                   StorageServiceType
-	nodeProcessingMode            common.NodeProcessingMode
-	snapshotsEnabled              bool
-	repopulateTokensSupplies      bool
-	stateStatsHandler             common.StateStatisticsHandler
-	chainRunType                  common.ChainRunType
+	generalConfig                   config.Config
+	prefsConfig                     config.PreferencesConfig
+	shardCoordinator                storage.ShardCoordinator
+	pathManager                     storage.PathManagerHandler
+	epochStartNotifier              epochStart.EpochStartNotifier
+	oldDataCleanerProvider          clean.OldDataCleanerProvider
+	createTrieEpochRootHashStorer   bool
+	currentEpoch                    uint32
+	storageType                     StorageServiceType
+	nodeProcessingMode              common.NodeProcessingMode
+	snapshotsEnabled                bool
+	repopulateTokensSupplies        bool
+	stateStatsHandler               common.StateStatisticsHandler
+	chainRunType                    common.ChainRunType
 	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
 type StorageServiceFactoryArgs struct {
-	Config                        config.Config
-	PrefsConfig                   config.PreferencesConfig
-	ShardCoordinator              storage.ShardCoordinator
-	PathManager                   storage.PathManagerHandler
-	EpochStartNotifier            epochStart.EpochStartNotifier
-	NodeTypeProvider              NodeTypeProviderHandler
-	StorageType                   StorageServiceType
-	ManagedPeersHolder            storage.ManagedPeersHolder
-	CurrentEpoch                  uint32
-	CreateTrieEpochRootHashStorer bool
-	NodeProcessingMode            common.NodeProcessingMode
-	RepopulateTokensSupplies      bool
-	StateStatsHandler             common.StateStatisticsHandler
-	ChainRunType                  common.ChainRunType
+	Config                          config.Config
+	PrefsConfig                     config.PreferencesConfig
+	ShardCoordinator                storage.ShardCoordinator
+	PathManager                     storage.PathManagerHandler
+	EpochStartNotifier              epochStart.EpochStartNotifier
+	NodeTypeProvider                NodeTypeProviderHandler
+	StorageType                     StorageServiceType
+	ManagedPeersHolder              storage.ManagedPeersHolder
+	CurrentEpoch                    uint32
+	CreateTrieEpochRootHashStorer   bool
+	NodeProcessingMode              common.NodeProcessingMode
+	RepopulateTokensSupplies        bool
+	StateStatsHandler               common.StateStatisticsHandler
+	ChainRunType                    common.ChainRunType
 	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
@@ -104,20 +104,20 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 	}
 
 	return &StorageServiceFactory{
-		generalConfig:                 args.Config,
-		prefsConfig:                   args.PrefsConfig,
-		shardCoordinator:              args.ShardCoordinator,
-		pathManager:                   args.PathManager,
-		epochStartNotifier:            args.EpochStartNotifier,
-		currentEpoch:                  args.CurrentEpoch,
-		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		oldDataCleanerProvider:        oldDataCleanProvider,
-		storageType:                   args.StorageType,
-		nodeProcessingMode:            args.NodeProcessingMode,
-		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
-		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
-		stateStatsHandler:             args.StateStatsHandler,
-		chainRunType:                  args.ChainRunType,
+		generalConfig:                   args.Config,
+		prefsConfig:                     args.PrefsConfig,
+		shardCoordinator:                args.ShardCoordinator,
+		pathManager:                     args.PathManager,
+		epochStartNotifier:              args.EpochStartNotifier,
+		currentEpoch:                    args.CurrentEpoch,
+		createTrieEpochRootHashStorer:   args.CreateTrieEpochRootHashStorer,
+		oldDataCleanerProvider:          oldDataCleanProvider,
+		storageType:                     args.StorageType,
+		nodeProcessingMode:              args.NodeProcessingMode,
+		snapshotsEnabled:                args.Config.StateTriesConfig.SnapshotsEnabled,
+		repopulateTokensSupplies:        args.RepopulateTokensSupplies,
+		stateStatsHandler:               args.StateStatsHandler,
+		chainRunType:                    args.ChainRunType,
 		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 	}, nil
 }

@@ -1,6 +1,8 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -75,7 +77,7 @@ type ArgsGenesisBlockCreator struct {
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
-	RunTypeComponents    runTypeComponentsHandler
+	RunTypeComponents       runTypeComponentsHandler
 	ChainRunType            common.ChainRunType
 
 	GenesisNodePrice *big.Int
