@@ -33,7 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2/scrProcFactory"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -181,17 +181,26 @@ func CreateShardGenesisBlock(
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
+	processors, err := createProcessorsForShardGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return baseCreateShardGenesisBlock(arg, nodesListSplitter, processors)
+}
+
+func baseCreateShardGenesisBlock(
+	arg ArgsGenesisBlockCreator,
+	nodesListSplitter genesis.NodesListSplitter,
+	processors *genesisProcessors,
+) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
+
 	indexingData := &genesis.IndexingData{
 		DelegationTxs:      make([]data.TransactionHandler, 0),
 		ScrsTxs:            make(map[string]data.TransactionHandler),
 		StakingTxs:         make([]data.TransactionHandler, 0),
 		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
-	}
-
-	processors, err := createProcessorsForShardGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
-	if err != nil {
-		return nil, nil, nil, err
 	}
 
 	deployMetrics := &deployedScMetrics{}
@@ -228,13 +237,6 @@ func CreateShardGenesisBlock(
 	}
 
 	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-
-	initialESDTs, err := createSovInitialESDTBalances(arg, processors)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, initialESDTs)
 	indexingData.ScrsTxs = scrsTxs
 
 	rootHash, err := arg.Accounts.Commit()
@@ -596,7 +598,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
 
-	scProcessorProxy, err := processorV2.CreateSCRProcessor(common.ChainRunTypeSovereign, argsNewScProcessor) //processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
+	scProcessorProxy, err := scrProcFactory.CreateSCRProcessor(arg.ChainRunType, argsNewScProcessor, epochNotifier)
 	if err != nil {
 		return nil, err
 	}

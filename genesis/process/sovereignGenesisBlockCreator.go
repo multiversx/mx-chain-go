@@ -167,7 +167,17 @@ func createSovereignShardGenesisBlock(
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	genesisBlock, scAddresses, indexingData, err := CreateShardGenesisBlock(arg, body, nodesListSplitter, hardForkBlockProcessor)
+	// TODO: Do we really need this check for sovereign?
+	if mustDoHardForkImportProcess(arg) {
+		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
+	}
+
+	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	genesisBlock, scAddresses, indexingData, err := baseCreateShardGenesisBlock(arg, nodesListSplitter, shardProcessors)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -189,13 +199,19 @@ func createSovereignShardGenesisBlock(
 	}
 	indexingData.StakingTxs = stakingTxs
 
+	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	initialESDTs, err := createSovInitialESDTBalances(arg, shardProcessors)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, initialESDTs)
+	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
+
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w encountered when creating sovereign genesis block while commiting", err)
 	}
-
-	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
 
 	err = setRootHash(genesisBlock, rootHash)
 	if err != nil {
@@ -314,7 +330,8 @@ func createSovInitialESDTBalances(arg ArgsGenesisBlockCreator, genesisProcessors
 	initialAccounts := arg.AccountsParser.InitialAccounts()
 
 	for nonce, initialAcc := range initialAccounts {
-		log.Info("creating initial esdt balance", "acc", initialAcc.GetAddress())
+		log.Debug("creating genesis initial esdt balance",
+			"address", initialAcc.GetAddress(), "balance", initialAcc.GetBalanceValue().String())
 
 		scr := &smartContractResult.SmartContractResult{
 			Nonce:          uint64(nonce),
@@ -348,14 +365,10 @@ func createSovInitialESDTBalances(arg ArgsGenesisBlockCreator, genesisProcessors
 }
 
 func createSCRData(value *big.Int) []byte {
-	numTokensToTransfer := 1
-	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
-
-	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
+	numTokensToTransferBytes := big.NewInt(1).Bytes()
+	return []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + hex.EncodeToString(numTokensToTransferBytes) +
 		"@" + hex.EncodeToString([]byte("WEGLD-bd4d79")) + // tokenID
 		"@" + hex.EncodeToString(big.NewInt(0).Bytes()) + //nonce
-		"@" + hex.EncodeToString(big.NewInt(500000).Bytes())) // value
-
-	return ret
+		"@" + hex.EncodeToString(value.Bytes())) // value
 }
