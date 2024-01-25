@@ -558,26 +558,28 @@ func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, di
 		return err
 	}
 
-	if direct {
-		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
-		if err != nil {
-			return err
-		}
-	} else {
-		if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
-			userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
-			if err != nil {
-				return err
-			}
-		} else {
-			userVoteList.DelegatedWithAddress, err = addNewNonceV2(userVoteList.DelegatedWithAddress, scAddress, nonce)
-			if err != nil {
-				return err
-			}
-		}
+	err = g.updateUserVotes(userVoteList, nonce, direct, scAddress)
+	if err != nil {
+		return err
 	}
 
 	return g.saveUserVotes(address, userVoteList)
+}
+
+func (g *governanceContract) updateUserVotes(userVoteList *OngoingVotedListV2, nonce uint64, direct bool, scAddress []byte) error {
+	var err error
+	if direct {
+		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
+		return err
+	}
+
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
+		return err
+	}
+
+	userVoteList.DelegatedWithAddress, err = addNewNonceV2(userVoteList.DelegatedWithAddress, scAddress, nonce)
+	return err
 }
 
 func addNewNonce(nonceList []uint64, newNonce uint64) ([]uint64, error) {

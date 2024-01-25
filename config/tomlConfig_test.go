@@ -619,6 +619,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 21
 
+    # GovernanceDisableProposalEnableEpoch represents the epoch when governance disable proposal is enabled
+    GovernanceDisableProposeEnableEpoch = 22
+
+    # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled
+    GovernanceFixesEnableEpoch = 23
+
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
     DelegationManagerEnableEpoch = 22
@@ -883,6 +889,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			DoubleKeyProtectionEnableEpoch:                           19,
 			ESDTEnableEpoch:                                          20,
 			GovernanceEnableEpoch:                                    21,
+			GovernanceDisableProposeEnableEpoch:                      22,
+			GovernanceFixesEnableEpoch:                               23,
 			DelegationManagerEnableEpoch:                             22,
 			DelegationSmartContractEnableEpoch:                       23,
 			CorrectLastUnjailedEnableEpoch:                           24,
