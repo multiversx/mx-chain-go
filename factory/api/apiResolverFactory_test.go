@@ -12,10 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
@@ -110,7 +112,10 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		ChainRunType: common.ChainRunTypeRegular,
+		ChainRunType:                   common.ChainRunTypeRegular,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
+		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
 	}
 }
 
@@ -284,6 +289,34 @@ func TestCreateApiResolver(t *testing.T) {
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(apiResolver))
+	})
+
+	t.Run("DelegatedListFactoryHandler nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.DelegatedListFactoryHandler = nil
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, factoryErrors.ErrNilDelegatedListFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("DirectStakedListFactoryHandler nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.DirectStakedListFactoryHandler = nil
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, factoryErrors.ErrNilDirectStakedListFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("TotalStakedValueFactoryHandler nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.TotalStakedValueFactoryHandler = nil
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, factoryErrors.ErrNilTotalStakedValueFactory, err)
+		require.True(t, check.IfNil(apiResolver))
 	})
 }
 
