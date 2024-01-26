@@ -2,7 +2,6 @@ package process
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -40,7 +39,7 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 
 // CreateGenesisBlocks will create sovereign genesis blocks
 func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.initSystemAccount()
+	err := gbc.initGenesisAccounts()
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +63,7 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	return gbc.createSovereignHeaders(argsCreateBlock)
 }
 
-func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
+func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 	acc, err := gbc.arg.Accounts.LoadAccount(core.SystemAccountAddress)
 	if err != nil {
 		return err
@@ -80,16 +79,11 @@ func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
 		return err
 	}
 
-	err = gbc.arg.Accounts.SaveAccount(acc)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return gbc.arg.Accounts.SaveAccount(acc)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createSovGenesisConfig())
+	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig())
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +102,12 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	}
 
 	return mapEmptyGenesisBlocks, nil
+}
+
+func createSovereignGenesisConfig() config.EnableEpochs {
+	cfg := createGenesisConfig()
+	cfg.ESDTMultiTransferEnableEpoch = 0
+	return cfg
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
@@ -174,7 +174,8 @@ func createSovereignShardGenesisBlock(
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
+	sovereignGenesisConfig := createSovereignGenesisConfig()
+	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -184,7 +185,7 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
-	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, createSovGenesisConfig(), createGenesisRoundConfig())
+	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -339,12 +340,11 @@ func createSovereignGenesisESDTTransfers(args ArgsGenesisBlockCreator, scrProces
 			"address", initialAcc.GetAddress(), "balance", accInitialBalance.String(), "tokenID", tokenID)
 
 		scr := &smartContractResult.SmartContractResult{
-			Nonce:    uint64(nonce),
-			RcvAddr:  initialAcc.AddressBytes(),
-			SndAddr:  core.ESDTSCAddress,
-			Data:     createGenesisSCRData(tokenID, accInitialBalance),
-			Value:    big.NewInt(0),
-			GasLimit: 50000,
+			Nonce:   uint64(nonce),
+			RcvAddr: initialAcc.AddressBytes(),
+			SndAddr: core.ESDTSCAddress,
+			Data:    createGenesisSCRData(tokenID, accInitialBalance),
+			Value:   big.NewInt(0),
 		}
 
 		retCode, err := scrProcessor.ProcessSmartContractResult(scr)
@@ -354,7 +354,7 @@ func createSovereignGenesisESDTTransfers(args ArgsGenesisBlockCreator, scrProces
 
 		if retCode != vmcommon.Ok {
 			log.Error("could not generate initial esdt balances", "func", "createSovInitialESDTBalances", "ret code", retCode)
-			return nil, errors.New("could not generate initial esdt balances")
+			return nil, errCouldNotGenerateInitialESDTTransfers
 		}
 
 		hash, err := core.CalculateHash(args.Core.InternalMarshalizer(), args.Core.Hasher(), scr)

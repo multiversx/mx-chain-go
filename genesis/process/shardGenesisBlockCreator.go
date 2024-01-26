@@ -153,13 +153,6 @@ func createGenesisConfig() config.EnableEpochs {
 	}
 }
 
-func createSovGenesisConfig() config.EnableEpochs {
-	cfg := createGenesisConfig()
-	cfg.ESDTMultiTransferEnableEpoch = 0
-
-	return cfg
-}
-
 func createGenesisRoundConfig() *config.RoundConfig {
 	return &config.RoundConfig{
 		RoundActivations: map[string]config.ActivationRoundByName{

@@ -60,21 +60,10 @@ func requireTokenExists(
 	marshaller marshal.Marshalizer,
 ) {
 	marshaledData := getAccTokenMarshalledData(t, tokenName, account)
-
 	esdtData := &esdt.ESDigitalToken{}
 	err := marshaller.Unmarshal(esdtData, marshaledData)
 	require.Nil(t, err)
 	require.Equal(t, expectedValue, esdtData.Value)
-}
-
-func getAccount(t *testing.T, accountsDb state2.AccountsAdapter, address string) vmcommon.AccountHandler {
-	addressBytes, err := hex.DecodeString(address)
-	require.Nil(t, err)
-
-	account, err := accountsDb.LoadAccount(addressBytes)
-	require.Nil(t, err)
-
-	return account
 }
 
 func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.AccountHandler) []byte {
@@ -89,6 +78,16 @@ func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.
 
 func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
 	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
+}
+
+func getAccount(t *testing.T, accountsDb state2.AccountsAdapter, address string) vmcommon.AccountHandler {
+	addressBytes, err := hex.DecodeString(address)
+	require.Nil(t, err)
+
+	account, err := accountsDb.LoadAccount(addressBytes)
+	require.Nil(t, err)
+
+	return account
 }
 
 func requireSCRHashExists(
@@ -171,36 +170,37 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	acc2 := getAccount(t, accountsDB, addr2)
 	acc3 := getAccount(t, accountsDB, addr3)
 
-	requireTokenExists(t, acc1, []byte(sovereignNativeToken), big.NewInt(5000), args.Core.InternalMarshalizer())
-	requireTokenExists(t, acc2, []byte(sovereignNativeToken), big.NewInt(2000), args.Core.InternalMarshalizer())
+	balance1 := big.NewInt(5000)
+	balance2 := big.NewInt(2000)
+	balance3 := big.NewInt(0)
+
+	requireTokenExists(t, acc1, []byte(sovereignNativeToken), balance1, args.Core.InternalMarshalizer())
+	requireTokenExists(t, acc2, []byte(sovereignNativeToken), balance2, args.Core.InternalMarshalizer())
 	acc3TokenData := getAccTokenMarshalledData(t, []byte(sovereignNativeToken), acc3)
 	require.Empty(t, acc3TokenData)
 
 	scr1 := &smartContractResult.SmartContractResult{
-		Nonce:    uint64(0),
-		RcvAddr:  acc1.AddressBytes(),
-		SndAddr:  core.ESDTSCAddress,
-		Data:     createGenesisSCRData(sovereignNativeToken, big.NewInt(5000)),
-		Value:    big.NewInt(0),
-		GasLimit: 50000,
+		Nonce:   uint64(0),
+		RcvAddr: acc1.AddressBytes(),
+		SndAddr: core.ESDTSCAddress,
+		Data:    createGenesisSCRData(sovereignNativeToken, balance1),
+		Value:   big.NewInt(0),
 	}
 
 	scr2 := &smartContractResult.SmartContractResult{
-		Nonce:    uint64(1),
-		RcvAddr:  acc2.AddressBytes(),
-		SndAddr:  core.ESDTSCAddress,
-		Data:     createGenesisSCRData(sovereignNativeToken, big.NewInt(2000)),
-		Value:    big.NewInt(0),
-		GasLimit: 50000,
+		Nonce:   uint64(1),
+		RcvAddr: acc2.AddressBytes(),
+		SndAddr: core.ESDTSCAddress,
+		Data:    createGenesisSCRData(sovereignNativeToken, balance2),
+		Value:   big.NewInt(0),
 	}
 
 	scr3 := &smartContractResult.SmartContractResult{
-		Nonce:    uint64(2),
-		RcvAddr:  acc3.AddressBytes(),
-		SndAddr:  core.ESDTSCAddress,
-		Data:     createGenesisSCRData(sovereignNativeToken, big.NewInt(0)),
-		Value:    big.NewInt(0),
-		GasLimit: 50000,
+		Nonce:   uint64(2),
+		RcvAddr: acc3.AddressBytes(),
+		SndAddr: core.ESDTSCAddress,
+		Data:    createGenesisSCRData(sovereignNativeToken, balance3),
+		Value:   big.NewInt(0),
 	}
 
 	requireSCRHashExists(t, scr1, sovereignIdxData.ScrsTxs, args)
