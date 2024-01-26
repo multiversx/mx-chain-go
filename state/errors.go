@@ -145,5 +145,14 @@ var ErrNilStateMetrics = errors.New("nil sstate metrics")
 // ErrNilChannelsProvider signals that a nil channels provider has been given
 var ErrNilChannelsProvider = errors.New("nil channels provider")
 
+// ErrNilStatsHandler signals that a nil stats handler provider has been given
+var ErrNilStatsHandler = errors.New("nil stats handler")
+
+// ErrNilLastSnapshotMarker signals that a nil last snapshot marker has been given
+var ErrNilLastSnapshotMarker = errors.New("nil last snapshot marker")
+
+// ErrNilSnapshotsManager signals that a nil snapshots manager has been given
+var ErrNilSnapshotsManager = errors.New("nil snapshots manager")
+
 // ErrNilStateChangesCollector signals that a nil state changes collector has been given
 var ErrNilStateChangesCollector = errors.New("nil state changes collector")

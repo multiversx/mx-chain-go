@@ -1,8 +1,6 @@
 package storagerequesterscontainer
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
@@ -38,6 +36,7 @@ func NewShardRequestersContainerFactory(
 		workingDir:               args.WorkingDirectory,
 		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		stateStatsHandler:        args.StateStatsHandler,
 	}
 
 	err := base.checkParams()
@@ -71,11 +70,6 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 	}
 
 	err = srcf.generateMetablockHeaderRequesters()
-	if err != nil {
-		return nil, err
-	}
-
-	err = srcf.generateTrieNodesRequesters()
 	if err != nil {
 		return nil, err
 	}
@@ -148,53 +142,6 @@ func (srcf *shardRequestersContainerFactory) generateMetablockHeaderRequesters()
 	}
 
 	return srcf.container.Add(identifierHdr, requester)
-}
-
-func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error {
-	shardC := srcf.shardCoordinator
-
-	keys := make([]string, 0)
-	requestersSlice := make([]dataRetriever.Requester, 0)
-
-	userAccountsStorer, err := srcf.store.GetStorer(dataRetriever.UserAccountsUnit)
-	if err != nil {
-		return err
-	}
-
-	userAccountsCheckpointStorer, err := srcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
-	identifierTrieNodes := factory.AccountTrieNodesTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	storageManager, userAccountsDataTrie, err := srcf.newImportDBTrieStorage(
-		userAccountsStorer,
-		userAccountsCheckpointStorer,
-		dataRetriever.UserAccountsUnit,
-		srcf.enableEpochsHandler,
-	)
-	if err != nil {
-		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
-	}
-	arg := storagerequesters.ArgTrieRequester{
-		Messenger:                srcf.messenger,
-		ResponseTopicName:        identifierTrieNodes,
-		Marshalizer:              srcf.marshalizer,
-		TrieDataGetter:           userAccountsDataTrie,
-		TrieStorageManager:       storageManager,
-		ManualEpochStartNotifier: srcf.manualEpochStartNotifier,
-		ChanGracefullyClose:      srcf.chanGracefullyClose,
-		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
-	}
-	requester, err := storagerequesters.NewTrieNodeRequester(arg)
-	if err != nil {
-		return fmt.Errorf("%w while creating user accounts trie node requester", err)
-	}
-
-	requestersSlice = append(requestersSlice, requester)
-	keys = append(keys, identifierTrieNodes)
-
-	return srcf.container.AddMultiple(keys, requestersSlice)
 }
 
 func (srcf *shardRequestersContainerFactory) generateRewardRequester(

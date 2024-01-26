@@ -1,16 +1,16 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 )
 
 // ValidatorsProviderStub -
 type ValidatorsProviderStub struct {
-	GetLatestValidatorsCalled func() map[string]*accounts.ValidatorApiResponse
+	GetLatestValidatorsCalled func() map[string]*validator.ValidatorStatistics
 }
 
 // GetLatestValidators -
-func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*accounts.ValidatorApiResponse {
+func (vp *ValidatorsProviderStub) GetLatestValidators() map[string]*validator.ValidatorStatistics {
 	if vp.GetLatestValidatorsCalled != nil {
 		return vp.GetLatestValidatorsCalled()
 	}

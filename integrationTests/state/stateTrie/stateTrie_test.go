@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -32,13 +33,16 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -1056,16 +1060,25 @@ func createAccounts(
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           &marshallerMock.MarshalizerMock{},
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
+		AccountFactory:       accCreator,
+		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                integrationTests.TestHasher,
 		Marshaller:            integrationTests.TestMarshalizer,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      snapshotsManager,
 		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -1701,13 +1714,15 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 	numOfShards := 1
 	nodesPerShard := 1
 	numMetachainNodes := 1
-	stateCheckpointModulus := uint(3)
 
-	nodes := integrationTests.CreateNodesWithCustomStateCheckpointModulus(
+	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
+
+	nodes := integrationTests.CreateNodesWithEnableEpochsConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
-		stateCheckpointModulus,
+		enableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(17)
@@ -1742,7 +1757,6 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	time.Sleep(integrationTests.StepDelay)
 
-	checkpointsRootHashes := make(map[int][][]byte)
 	snapshotsRootHashes := make(map[uint32][][]byte)
 	prunedRootHashes := make(map[int][][]byte)
 
@@ -1757,13 +1771,11 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 		}
 		time.Sleep(integrationTests.StepDelay)
 
-		collectSnapshotAndCheckpointHashes(
+		collectSnapshotHashes(
 			nodes,
 			numShardNodes,
-			checkpointsRootHashes,
 			snapshotsRootHashes,
 			prunedRootHashes,
-			uint64(stateCheckpointModulus),
 			roundsPerEpoch,
 		)
 		time.Sleep(time.Second)
@@ -1781,17 +1793,15 @@ func TestSnapshotOnEpochChange(t *testing.T) {
 
 	for i := 0; i < numOfShards*nodesPerShard; i++ {
 		shId := nodes[i].ShardCoordinator.SelfId()
-		testNodeStateCheckpointSnapshotAndPruning(t, nodes[i], checkpointsRootHashes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
+		testNodeStateSnapshotAndPruning(t, nodes[i], snapshotsRootHashes[shId], prunedRootHashes[i])
 	}
 }
 
-func collectSnapshotAndCheckpointHashes(
+func collectSnapshotHashes(
 	nodes []*integrationTests.TestProcessorNode,
 	numShardNodes int,
-	checkpointsRootHashes map[int][][]byte,
 	snapshotsRootHashes map[uint32][][]byte,
 	prunedRootHashes map[int][][]byte,
-	stateCheckpointModulus uint64,
 	roundsPerEpoch uint64,
 ) {
 	pruningQueueSize := uint64(5)
@@ -1801,12 +1811,6 @@ func collectSnapshotAndCheckpointHashes(
 	for j := 0; j < numShardNodes; j++ {
 		currentBlockHeader := nodes[j].BlockChain.GetCurrentBlockHeader()
 		if currentBlockHeader.IsStartOfEpochBlock() {
-			continue
-		}
-
-		checkpointRound := currentBlockHeader.GetNonce()%stateCheckpointModulus == 0
-		if checkpointRound {
-			checkpointsRootHashes[j] = append(checkpointsRootHashes[j], currentBlockHeader.GetRootHash())
 			continue
 		}
 
@@ -1839,22 +1843,13 @@ func collectSnapshotAndCheckpointHashes(
 	}
 }
 
-func testNodeStateCheckpointSnapshotAndPruning(
+func testNodeStateSnapshotAndPruning(
 	t *testing.T,
 	node *integrationTests.TestProcessorNode,
-	checkpointsRootHashes [][]byte,
 	snapshotsRootHashes [][]byte,
 	prunedRootHashes [][]byte,
 ) {
-
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
-	assert.Equal(t, 6, len(checkpointsRootHashes))
-	for i := range checkpointsRootHashes {
-		tr, err := stateTrie.Recreate(checkpointsRootHashes[i])
-		require.Nil(t, err)
-		require.NotNil(t, tr)
-	}
-
 	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
 		tr, err := stateTrie.Recreate(snapshotsRootHashes[i])
@@ -2521,16 +2516,26 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           &marshallerMock.MarshalizerMock{},
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
+		AccountFactory:       accCreator,
+		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
+
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
 		Hasher:                integrationTests.TestHasher,
 		Marshaller:            integrationTests.TestMarshalizer,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      snapshotsManager,
 		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)

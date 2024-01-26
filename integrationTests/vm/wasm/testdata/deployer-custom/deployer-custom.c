@@ -1,16 +1,21 @@
-#include "../chain/context.h"
-#include "../chain/test_utils.h"
-#include "../chain/args.h"
+#include "../mxvm/context.h"
+#include "../mxvm/test_utils.h"
+#include "../mxvm/args.h"
 
 byte childGeneratedAddress[32] = {};
 byte childCode[5000] = {};
 byte childMetadata[16] = {};
 
-byte deploymentValue[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,42};
+byte deploymentValue[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42};
 
-void deployChild() {
-	int codeSize = getArgument(0, childCode);	
-  int metadataSize = getArgument(1, childMetadata);
+void init()
+{
+}
+
+void deployChild()
+{
+	int codeSize = getArgument(0, childCode);
+	int metadataSize = getArgument(1, childMetadata);
 
 	int result = createContract(
 			500000,

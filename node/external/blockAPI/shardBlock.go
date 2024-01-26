@@ -163,8 +163,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
-	headerEpoch := blockHeader.GetEpoch()
-
 	numOfTxs := uint32(0)
 	miniblocks := make([]*api.MiniBlock, 0)
 
@@ -187,7 +185,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
-			err = sbp.getAndAttachTxsToMb(miniBlockCopy, headerEpoch, miniblockAPI, options)
+			err = sbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
 			if err != nil {
 				return nil, err
 			}
@@ -228,6 +226,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
 		ReceiptsHash:    hex.EncodeToString(blockHeader.GetReceiptsHash()),
 		Reserved:        blockHeader.GetReserved(),
+		RandSeed:        hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:    hex.EncodeToString(blockHeader.GetPrevRandSeed()),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)
