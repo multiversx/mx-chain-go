@@ -49,16 +49,18 @@ func createArgsWithEEI(eei vm.SystemEI) ArgsNewGovernanceContract {
 				MinVetoThreshold: 0.5,
 				LostProposalFee:  "1",
 			},
-			OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			OwnerAddress:                 "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+			MaxVotingDelayPeriodInEpochs: 30,
 		},
-		Marshalizer:            &mock.MarshalizerMock{},
-		Hasher:                 &hashingMocks.HasherMock{},
-		GovernanceSCAddress:    vm.GovernanceSCAddress,
-		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:     vm.ValidatorSCAddress,
-		OwnerAddress:           bytes.Repeat([]byte{1}, 32),
-		UnBondPeriodInEpochs:   10,
-		EnableEpochsHandler:    enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag),
+		Marshalizer:                  &mock.MarshalizerMock{},
+		Hasher:                       &hashingMocks.HasherMock{},
+		GovernanceSCAddress:          vm.GovernanceSCAddress,
+		DelegationMgrSCAddress:       vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:           vm.ValidatorSCAddress,
+		OwnerAddress:                 bytes.Repeat([]byte{1}, 32),
+		UnBondPeriodInEpochs:         10,
+		MaxVotingDelayPeriodInEpochs: 30,
+		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag),
 	}
 }
 
@@ -650,7 +652,7 @@ func TestGovernanceContract_ProposalAlreadyExists(t *testing.T) {
 	require.Equal(t, eei.GetReturnMessage(), "proposal already exists")
 }
 
-func TestGovernanceContract_ProposalInvalidVoteNonce(t *testing.T) {
+func TestGovernanceContract_ProposalInvalidStartEndVoteEpochTooLong(t *testing.T) {
 	t.Parallel()
 
 	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
@@ -658,8 +660,45 @@ func TestGovernanceContract_ProposalInvalidVoteNonce(t *testing.T) {
 	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
 	callInputArgs := [][]byte{
 		proposalIdentifier,
-		[]byte("5"),
-		[]byte("arg3"),
+		[]byte("50"),
+		[]byte("61"),
+	}
+	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.GetReturnMessage(), vm.ErrInvalidStartEndVoteEpoch.Error())
+}
+
+func TestGovernanceContract_ProposalInvalidStartEndVoteEpochTooShortV1(t *testing.T) {
+	t.Parallel()
+
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+		[]byte("50"),
+		[]byte("54"),
+	}
+	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+	logsEntry := eei.GetLogs()
+	assert.Equal(t, 1, len(logsEntry))
+	expectedTopics := [][]byte{{1}, proposalIdentifier, []byte("50"), []byte("54")}
+	assert.Equal(t, expectedTopics, logsEntry[0].Topics)
+}
+
+func TestGovernanceContract_ProposalInvalidStartEndVoteEpochTooShortV2(t *testing.T) {
+	t.Parallel()
+
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+		[]byte("50"),
+		[]byte("54"),
 	}
 	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
 	retCode := gsc.Execute(callInput)

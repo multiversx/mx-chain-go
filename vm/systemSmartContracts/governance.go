@@ -30,33 +30,35 @@ const maxPercentage = float64(10000.0)
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
-	Eei                    vm.SystemEI
-	GasCost                vm.GasCost
-	GovernanceConfig       config.GovernanceSystemSCConfig
-	Marshalizer            marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	GovernanceSCAddress    []byte
-	DelegationMgrSCAddress []byte
-	ValidatorSCAddress     []byte
-	OwnerAddress           []byte
-	UnBondPeriodInEpochs   uint32
-	EnableEpochsHandler    common.EnableEpochsHandler
+	Eei                          vm.SystemEI
+	GasCost                      vm.GasCost
+	GovernanceConfig             config.GovernanceSystemSCConfig
+	Marshalizer                  marshal.Marshalizer
+	Hasher                       hashing.Hasher
+	GovernanceSCAddress          []byte
+	DelegationMgrSCAddress       []byte
+	ValidatorSCAddress           []byte
+	OwnerAddress                 []byte
+	UnBondPeriodInEpochs         uint32
+	MaxVotingDelayPeriodInEpochs uint32
+	EnableEpochsHandler          common.EnableEpochsHandler
 }
 
 type governanceContract struct {
-	eei                    vm.SystemEI
-	gasCost                vm.GasCost
-	baseProposalCost       *big.Int
-	ownerAddress           []byte
-	governanceSCAddress    []byte
-	delegationMgrSCAddress []byte
-	validatorSCAddress     []byte
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
-	governanceConfig       config.GovernanceSystemSCConfig
-	unBondPeriodInEpochs   uint32
-	enableEpochsHandler    common.EnableEpochsHandler
-	mutExecution           sync.RWMutex
+	eei                          vm.SystemEI
+	gasCost                      vm.GasCost
+	baseProposalCost             *big.Int
+	ownerAddress                 []byte
+	governanceSCAddress          []byte
+	delegationMgrSCAddress       []byte
+	validatorSCAddress           []byte
+	marshalizer                  marshal.Marshalizer
+	hasher                       hashing.Hasher
+	governanceConfig             config.GovernanceSystemSCConfig
+	unBondPeriodInEpochs         uint32
+	maxVotingDelayPeriodInEpochs uint32
+	enableEpochsHandler          common.EnableEpochsHandler
+	mutExecution                 sync.RWMutex
 }
 
 // NewGovernanceContract creates a new governance smart contract
@@ -99,18 +101,19 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	}
 
 	g := &governanceContract{
-		eei:                    args.Eei,
-		gasCost:                args.GasCost,
-		baseProposalCost:       baseProposalCost,
-		ownerAddress:           args.OwnerAddress,
-		governanceSCAddress:    args.GovernanceSCAddress,
-		delegationMgrSCAddress: args.DelegationMgrSCAddress,
-		validatorSCAddress:     args.ValidatorSCAddress,
-		marshalizer:            args.Marshalizer,
-		hasher:                 args.Hasher,
-		governanceConfig:       args.GovernanceConfig,
-		enableEpochsHandler:    args.EnableEpochsHandler,
-		unBondPeriodInEpochs:   args.UnBondPeriodInEpochs,
+		eei:                          args.Eei,
+		gasCost:                      args.GasCost,
+		baseProposalCost:             baseProposalCost,
+		ownerAddress:                 args.OwnerAddress,
+		governanceSCAddress:          args.GovernanceSCAddress,
+		delegationMgrSCAddress:       args.DelegationMgrSCAddress,
+		validatorSCAddress:           args.ValidatorSCAddress,
+		marshalizer:                  args.Marshalizer,
+		hasher:                       args.Hasher,
+		governanceConfig:             args.GovernanceConfig,
+		enableEpochsHandler:          args.EnableEpochsHandler,
+		unBondPeriodInEpochs:         args.UnBondPeriodInEpochs,
+		maxVotingDelayPeriodInEpochs: args.MaxVotingDelayPeriodInEpochs,
 	}
 
 	return g, nil
@@ -1222,18 +1225,21 @@ func (g *governanceContract) proposalExists(reference []byte) bool {
 
 // startEndEpochFromArguments converts the nonce string arguments to uint64
 func (g *governanceContract) startEndEpochFromArguments(argStart []byte, argEnd []byte) (uint64, uint64, error) {
-	startVoteEpoch := big.NewInt(0).SetBytes(argStart)
-	endVoteEpoch := big.NewInt(0).SetBytes(argEnd)
+	startVoteEpoch := big.NewInt(0).SetBytes(argStart).Uint64()
+	endVoteEpoch := big.NewInt(0).SetBytes(argEnd).Uint64()
 
 	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
-	if currentEpoch > startVoteEpoch.Uint64() || startVoteEpoch.Uint64() > endVoteEpoch.Uint64() {
+	if currentEpoch > startVoteEpoch || startVoteEpoch > endVoteEpoch {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
-	if endVoteEpoch.Uint64()-startVoteEpoch.Uint64() >= uint64(g.unBondPeriodInEpochs) {
+	if endVoteEpoch-startVoteEpoch >= uint64(g.unBondPeriodInEpochs) {
+		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
+	}
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && startVoteEpoch-currentEpoch >= uint64(g.maxVotingDelayPeriodInEpochs) {
 		return 0, 0, vm.ErrInvalidStartEndVoteEpoch
 	}
 
-	return startVoteEpoch.Uint64(), endVoteEpoch.Uint64(), nil
+	return startVoteEpoch, endVoteEpoch, nil
 }
 
 // convertV2Config converts the passed config file to the correct V2 typed GovernanceConfig
