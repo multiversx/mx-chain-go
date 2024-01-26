@@ -80,7 +80,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unsupported type <string> when trying to set the value of type <struct>")
+		require.Equal(t, "unsupported type <string> when trying to set the value of type <struct>", err.Error())
 	})
 
 	t.Run("should error when setting invalid type on struct", func(t *testing.T) {
@@ -91,7 +91,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, nil)
 
-		require.Equal(t, err.Error(), "invalid new value kind")
+		require.Equal(t, "invalid new value kind", err.Error())
 	})
 
 	t.Run("should error when setting invalid uint32", func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid uint32' of type <string> to type <uint32>")
+		require.Equal(t, "unable to cast value 'invalid uint32' of type <string> to type <uint32>", err.Error())
 	})
 
 	t.Run("should error when setting invalid uint64", func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid uint64' of type <string> to type <uint64>")
+		require.Equal(t, "unable to cast value 'invalid uint64' of type <string> to type <uint64>", err.Error())
 	})
 
 	t.Run("should error when setting invalid float32", func(t *testing.T) {
@@ -130,7 +130,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid float32' of type <string> to type <float32>")
+		require.Equal(t, "unable to cast value 'invalid float32' of type <string> to type <float32>", err.Error())
 	})
 
 	t.Run("should error when setting invalid float64", func(t *testing.T) {
@@ -143,7 +143,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid float64' of type <string> to type <float64>")
+		require.Equal(t, "unable to cast value 'invalid float64' of type <string> to type <float64>", err.Error())
 	})
 
 	t.Run("should error when setting invalid int64", func(t *testing.T) {
@@ -156,7 +156,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid int64' of type <string> to type <int64>")
+		require.Equal(t, "unable to cast value 'invalid int64' of type <string> to type <int64>", err.Error())
 	})
 
 	t.Run("should error when setting invalid int", func(t *testing.T) {
@@ -169,7 +169,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid int' of type <string> to type <int>")
+		require.Equal(t, "unable to cast value 'invalid int' of type <string> to type <int>", err.Error())
 	})
 
 	t.Run("should error when setting invalid bool", func(t *testing.T) {
@@ -182,7 +182,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, err.Error(), "unable to cast value 'invalid bool' of type <string> to type <bool>")
+		require.Equal(t, "unable to cast value 'invalid bool' of type <string> to type <bool>", err.Error())
 	})
 
 	t.Run("should error if the field is un-settable / unexported", func(t *testing.T) {
@@ -434,7 +434,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		expectedNewValue := 1
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
-		require.Equal(t, err.Error(), "unable to cast value '1' of type <int> to type <string>")
+		require.Equal(t, "unable to cast value '1' of type <int> to type <string>", err.Error())
 	})
 
 	t.Run("should error for unsupported type", func(t *testing.T) {
@@ -450,14 +450,14 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		path := "TestMap.Value"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
-		require.Equal(t, err.Error(), "unsupported type <map> when trying to set the value 'map[first:1 second:2]' of type <map[string]int>")
+		require.Equal(t, "unsupported type <map> when trying to set the value 'map[first:1 second:2]' of type <map[string]int>", err.Error())
 	})
 
 	t.Run("should error fit signed for target type not int", func(t *testing.T) {
 		t.Parallel()
 
-		newValue := 10
-		reflectNewValue := reflect.ValueOf(newValue)
+		expectedNewValue := 10
+		reflectNewValue := reflect.ValueOf(expectedNewValue)
 		targetType := reflect.TypeOf("string")
 
 		res := FitsWithinSignedIntegerRange(reflectNewValue, targetType)
@@ -467,8 +467,8 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error fit signed for value not int and target type int", func(t *testing.T) {
 		t.Parallel()
 
-		newValue := "value"
-		reflectNewValue := reflect.ValueOf(newValue)
+		expectedNewValue := "value"
+		reflectNewValue := reflect.ValueOf(expectedNewValue)
 		targetType := reflect.TypeOf(10)
 
 		res := FitsWithinSignedIntegerRange(reflectNewValue, targetType)
@@ -478,8 +478,8 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error fit unsigned for target type not uint", func(t *testing.T) {
 		t.Parallel()
 
-		newValue := uint(10)
-		reflectNewValue := reflect.ValueOf(newValue)
+		expectedNewValue := uint(10)
+		reflectNewValue := reflect.ValueOf(expectedNewValue)
 		targetType := reflect.TypeOf("string")
 
 		res := FitsWithinUnsignedIntegerRange(reflectNewValue, targetType)
@@ -489,8 +489,8 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error fit unsigned for value not uint and target type uint", func(t *testing.T) {
 		t.Parallel()
 
-		newValue := "value"
-		reflectNewValue := reflect.ValueOf(newValue)
+		expectedNewValue := "value"
+		reflectNewValue := reflect.ValueOf(expectedNewValue)
 		targetType := reflect.TypeOf(uint(10))
 
 		res := FitsWithinUnsignedIntegerRange(reflectNewValue, targetType)
@@ -500,8 +500,8 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error fit float for target type not float", func(t *testing.T) {
 		t.Parallel()
 
-		newValue := float32(10)
-		reflectNewValue := reflect.ValueOf(newValue)
+		expectedNewValue := float32(10)
+		reflectNewValue := reflect.ValueOf(expectedNewValue)
 		targetType := reflect.TypeOf("string")
 
 		res := FitsWithinFloatRange(reflectNewValue, targetType)
@@ -537,7 +537,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[1].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '128' of type <int64> to type <int8>")
+		require.Equal(t, "unable to cast value '128' of type <int64> to type <int8>", err.Error())
 	})
 
 	t.Run("should work and override int8 negative value", func(t *testing.T) {
@@ -569,7 +569,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[3].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-129' of type <int64> to type <int8>")
+		require.Equal(t, "unable to cast value '-129' of type <int64> to type <int8>", err.Error())
 	})
 
 	t.Run("should work and override int16 value", func(t *testing.T) {
@@ -601,7 +601,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[5].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '32768' of type <int64> to type <int16>")
+		require.Equal(t, "unable to cast value '32768' of type <int64> to type <int16>", err.Error())
 	})
 
 	t.Run("should work and override int16 negative value", func(t *testing.T) {
@@ -633,7 +633,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[7].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-32769' of type <int64> to type <int16>")
+		require.Equal(t, "unable to cast value '-32769' of type <int64> to type <int16>", err.Error())
 	})
 
 	t.Run("should work and override int32 value", func(t *testing.T) {
@@ -680,7 +680,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[9].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '2147483648' of type <int64> to type <int32>")
+		require.Equal(t, "unable to cast value '2147483648' of type <int64> to type <int32>", err.Error())
 	})
 
 	t.Run("should work and override int32 negative value", func(t *testing.T) {
@@ -712,7 +712,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[11].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-2147483649' of type <int64> to type <int32>")
+		require.Equal(t, "unable to cast value '-2147483649' of type <int64> to type <int32>", err.Error())
 	})
 
 	t.Run("should work and override int64 value", func(t *testing.T) {
@@ -776,7 +776,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[15].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '256' of type <int64> to type <uint8>")
+		require.Equal(t, "unable to cast value '256' of type <int64> to type <uint8>", err.Error())
 	})
 
 	t.Run("should error uint8 negative value", func(t *testing.T) {
@@ -792,7 +792,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[16].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-256' of type <int64> to type <uint8>")
+		require.Equal(t, "unable to cast value '-256' of type <int64> to type <uint8>", err.Error())
 	})
 
 	t.Run("should work and override uint16 value", func(t *testing.T) {
@@ -824,7 +824,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[18].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '65536' of type <int64> to type <uint16>")
+		require.Equal(t, "unable to cast value '65536' of type <int64> to type <uint16>", err.Error())
 	})
 
 	t.Run("should error uint16 negative value", func(t *testing.T) {
@@ -840,7 +840,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[19].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-65536' of type <int64> to type <uint16>")
+		require.Equal(t, "unable to cast value '-65536' of type <int64> to type <uint16>", err.Error())
 	})
 
 	t.Run("should work and override uint32 value", func(t *testing.T) {
@@ -872,7 +872,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[21].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '4294967296' of type <int64> to type <uint32>")
+		require.Equal(t, "unable to cast value '4294967296' of type <int64> to type <uint32>", err.Error())
 	})
 
 	t.Run("should error uint32 negative value", func(t *testing.T) {
@@ -888,7 +888,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[22].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-4294967296' of type <int64> to type <uint32>")
+		require.Equal(t, "unable to cast value '-4294967296' of type <int64> to type <uint32>", err.Error())
 	})
 
 	t.Run("should work and override uint64 value", func(t *testing.T) {
@@ -919,7 +919,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		path := "TestConfigU64.Uint64.Value"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[24].Value)
-		require.Equal(t, err.Error(), "unable to cast value '-9223372036854775808' of type <int64> to type <uint64>")
+		require.Equal(t, "unable to cast value '-9223372036854775808' of type <int64> to type <uint64>", err.Error())
 	})
 
 	t.Run("should work and override float32 value", func(t *testing.T) {
@@ -935,7 +935,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[25].Value)
 		require.NoError(t, err)
-		require.Equal(t, testConfig.Float32.Value, float32(3.4))
+		require.Equal(t, float32(3.4), testConfig.Float32.Value)
 	})
 
 	t.Run("should error float32 value", func(t *testing.T) {
@@ -951,7 +951,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[26].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '3.4e+39' of type <float64> to type <float32>")
+		require.Equal(t, "unable to cast value '3.4e+39' of type <float64> to type <float32>", err.Error())
 	})
 
 	t.Run("should work and override float32 negative value", func(t *testing.T) {
@@ -967,7 +967,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[27].Value)
 		require.NoError(t, err)
-		require.Equal(t, testConfig.Float32.Value, float32(-3.4))
+		require.Equal(t, float32(-3.4), testConfig.Float32.Value)
 	})
 
 	t.Run("should error float32 negative value", func(t *testing.T) {
@@ -983,7 +983,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[28].Value)
 		require.NotNil(t, err)
-		require.Equal(t, err.Error(), "unable to cast value '-3.4e+40' of type <float64> to type <float32>")
+		require.Equal(t, "unable to cast value '-3.4e+40' of type <float64> to type <float32>", err.Error())
 	})
 
 	t.Run("should work and override float64 value", func(t *testing.T) {
@@ -1029,9 +1029,13 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigStruct.ConfigStruct.Description"
 
+		expectedNewValue := toml.Description{
+			Number: 11,
+		}
+
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[31].Value)
 		require.NoError(t, err)
-		require.Equal(t, testConfig.TestConfigStruct.ConfigStruct.Description.Number, uint32(11))
+		require.Equal(t, expectedNewValue, testConfig.TestConfigStruct.ConfigStruct.Description)
 	})
 
 	t.Run("should error with field not found", func(t *testing.T) {
@@ -1046,7 +1050,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		path := "TestConfigStruct.ConfigStruct.Description"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[32].Value)
-		require.Equal(t, err.Error(), "field <Nr> not found or cannot be set")
+		require.Equal(t, "field <Nr> not found or cannot be set", err.Error())
 	})
 
 	t.Run("should error with different types", func(t *testing.T) {
@@ -1061,7 +1065,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		path := "TestConfigStruct.ConfigStruct.Description"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[33].Value)
-		require.Equal(t, err.Error(), "unable to cast value '11' of type <string> to type <uint32>")
+		require.Equal(t, "unable to cast value '11' of type <string> to type <uint32>", err.Error())
 	})
 
 	t.Run("should work and override nested struct", func(t *testing.T) {
@@ -1075,29 +1079,19 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct"
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[34].Value)
-		require.NoError(t, err)
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Text, "Overwritten text")
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.Public, false)
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[0].Text, "Overwritten Text1")
-	})
-
-	t.Run("should work and override nested struct", func(t *testing.T) {
-		t.Parallel()
-
-		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
-		require.NoError(t, err)
-
-		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
-		require.NoError(t, err)
-
-		path := "TestConfigNestedStruct.ConfigNestedStruct"
+		expectedNewValue := toml.ConfigNestedStruct{
+			Text: "Overwritten text",
+			Message: toml.Message{
+				Public: false,
+				MessageDescription: []toml.MessageDescription{
+					{Text: "Overwritten Text1"},
+				},
+			},
+		}
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[34].Value)
 		require.NoError(t, err)
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Text, "Overwritten text")
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.Public, false)
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[0].Text, "Overwritten Text1")
+		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct)
 	})
 
 	t.Run("should work on slice and override map", func(t *testing.T) {
@@ -1111,10 +1105,14 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
+		expectedNewValue := []toml.MessageDescription{
+			{Text: "Overwritten Text1"},
+			{Text: "Overwritten Text2"},
+		}
+
 		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[35].Value)
 		require.NoError(t, err)
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[0].Text, "Overwritten Text1")
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[1].Text, "Overwritten Text2")
+		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
 	})
 
 	t.Run("should error on slice when override int", func(t *testing.T) {
@@ -1126,7 +1124,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, 10)
-		require.Equal(t, err.Error(), "reflect: call of reflect.Value.Len on int Value")
+		require.Equal(t, "reflect: call of reflect.Value.Len on int Value", err.Error())
 	})
 
 	t.Run("should error on slice when override different type", func(t *testing.T) {
@@ -1137,10 +1135,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		var newValue = []int{10, 20}
+		expectedNewValue := []int{10, 20}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, newValue)
-		require.Equal(t, err.Error(), "unsupported type <int> when trying to set the value of type <struct>")
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.Equal(t, "unsupported type <int> when trying to set the value of type <struct>", err.Error())
 	})
 
 	t.Run("should error on slice when override different struct", func(t *testing.T) {
@@ -1151,13 +1149,13 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		var newValue = []toml.MessageDescriptionOtherName{
+		var expectedNewValue = []toml.MessageDescriptionOtherName{
 			{Value: "10"},
 			{Value: "20"},
 		}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, newValue)
-		require.Equal(t, err.Error(), "field <Value> not found or cannot be set")
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.Equal(t, "field <Value> not found or cannot be set", err.Error())
 	})
 
 	t.Run("should error on slice when override different struct types", func(t *testing.T) {
@@ -1168,13 +1166,13 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		var newValue = []toml.MessageDescriptionOtherType{
+		var expectedNewValue = []toml.MessageDescriptionOtherType{
 			{Text: 10},
 			{Text: 20},
 		}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, newValue)
-		require.Equal(t, err.Error(), "unable to cast value '10' of type <int> to type <string>")
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.Equal(t, "unable to cast value '10' of type <int> to type <string>", err.Error())
 	})
 
 	t.Run("should work on slice and override struct", func(t *testing.T) {
@@ -1185,15 +1183,14 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		var newValue = []toml.MessageDescription{
+		var expectedNewValue = []toml.MessageDescription{
 			{Text: "Text 1"},
 			{Text: "Text 2"},
 		}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, newValue)
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.NoError(t, err)
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[0].Text, "Text 1")
-		require.Equal(t, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription[1].Text, "Text 2")
+		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
 	})
 
 }
@@ -1207,6 +1204,7 @@ func loadTestConfig(filepath string) (*toml.Config, error) {
 
 	return cfg, nil
 }
+
 func loadOverrideConfig(filepath string) (*toml.OverrideConfig, error) {
 	cfg := &toml.OverrideConfig{}
 	err := core.LoadTomlFile(cfg, filepath)
