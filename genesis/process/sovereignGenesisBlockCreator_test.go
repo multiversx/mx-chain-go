@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -30,7 +31,8 @@ import (
 )
 
 var (
-	esdtKeyPrefix = []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	esdtKeyPrefix        = []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	sovereignNativeToken = "WEGLD-bd4d79"
 )
 
 func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
@@ -43,7 +45,7 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-	arg.Config.SovereignConfig.GenesisConfig.NativeESDT = "WEGLD-bd4d79"
+	arg.Config.SovereignConfig.GenesisConfig.NativeESDT = sovereignNativeToken
 	arg.ChainRunType = common.ChainRunTypeSovereign
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
@@ -76,7 +78,6 @@ func getAccount(t *testing.T, accountsDb state2.AccountsAdapter, address string)
 }
 
 func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.AccountHandler) []byte {
-
 	tokenId := append(esdtKeyPrefix, tokenName...)
 	esdtNFTTokenKey := computeESDTNFTTokenKey(tokenId, 0)
 
@@ -88,6 +89,17 @@ func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.
 
 func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
 	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
+}
+
+func requireSCRHashExists(
+	t *testing.T,
+	scr *smartContractResult.SmartContractResult,
+	allSCRs map[string]data.TransactionHandler,
+	args ArgsGenesisBlockCreator,
+) {
+	hash, err := core.CalculateHash(args.Core.InternalMarshalizer(), args.Core.Hasher(), scr)
+	require.Nil(t, err)
+	require.Contains(t, allSCRs, string(hash))
 }
 
 func TestNewSovereignGenesisBlockCreator(t *testing.T) {
@@ -148,19 +160,52 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	require.Len(t, sovereignIdxData.DeploySystemScTxs, 4)
 	require.Len(t, sovereignIdxData.DelegationTxs, 3)
 	require.Len(t, sovereignIdxData.StakingTxs, 0)
-	require.GreaterOrEqual(t, len(sovereignIdxData.ScrsTxs), 3)
-
-	accountsDB := args.Accounts
+	require.Greater(t, len(sovereignIdxData.ScrsTxs), 3)
 
 	addr1 := "a00102030405060708090001020304050607080900010203040506070809000a"
 	addr2 := "b00102030405060708090001020304050607080900010203040506070809000b"
 	addr3 := "c00102030405060708090001020304050607080900010203040506070809000c"
 
-	requireTokenExists(t, getAccount(t, accountsDB, addr1), []byte("WEGLD-bd4d79"), big.NewInt(5000), args.Core.InternalMarshalizer())
-	requireTokenExists(t, getAccount(t, accountsDB, addr2), []byte("WEGLD-bd4d79"), big.NewInt(2000), args.Core.InternalMarshalizer())
+	accountsDB := args.Accounts
+	acc1 := getAccount(t, accountsDB, addr1)
+	acc2 := getAccount(t, accountsDB, addr2)
+	acc3 := getAccount(t, accountsDB, addr3)
 
-	acc3TokenData := getAccTokenMarshalledData(t, []byte("WEGLD-bd4d79"), getAccount(t, accountsDB, addr3))
+	requireTokenExists(t, acc1, []byte(sovereignNativeToken), big.NewInt(5000), args.Core.InternalMarshalizer())
+	requireTokenExists(t, acc2, []byte(sovereignNativeToken), big.NewInt(2000), args.Core.InternalMarshalizer())
+	acc3TokenData := getAccTokenMarshalledData(t, []byte(sovereignNativeToken), acc3)
 	require.Empty(t, acc3TokenData)
+
+	scr1 := &smartContractResult.SmartContractResult{
+		Nonce:    uint64(0),
+		RcvAddr:  acc1.AddressBytes(),
+		SndAddr:  core.ESDTSCAddress,
+		Data:     createGenesisSCRData(sovereignNativeToken, big.NewInt(5000)),
+		Value:    big.NewInt(0),
+		GasLimit: 50000,
+	}
+
+	scr2 := &smartContractResult.SmartContractResult{
+		Nonce:    uint64(1),
+		RcvAddr:  acc2.AddressBytes(),
+		SndAddr:  core.ESDTSCAddress,
+		Data:     createGenesisSCRData(sovereignNativeToken, big.NewInt(2000)),
+		Value:    big.NewInt(0),
+		GasLimit: 50000,
+	}
+
+	scr3 := &smartContractResult.SmartContractResult{
+		Nonce:    uint64(2),
+		RcvAddr:  acc3.AddressBytes(),
+		SndAddr:  core.ESDTSCAddress,
+		Data:     createGenesisSCRData(sovereignNativeToken, big.NewInt(0)),
+		Value:    big.NewInt(0),
+		GasLimit: 50000,
+	}
+
+	requireSCRHashExists(t, scr1, sovereignIdxData.ScrsTxs, args)
+	requireSCRHashExists(t, scr2, sovereignIdxData.ScrsTxs, args)
+	requireSCRHashExists(t, scr3, sovereignIdxData.ScrsTxs, args)
 }
 
 func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {

@@ -339,13 +339,12 @@ func createSovereignGenesisESDTTransfers(args ArgsGenesisBlockCreator, scrProces
 			"address", initialAcc.GetAddress(), "balance", accInitialBalance.String(), "tokenID", tokenID)
 
 		scr := &smartContractResult.SmartContractResult{
-			Nonce:          uint64(nonce),
-			OriginalTxHash: nil,
-			RcvAddr:        initialAcc.AddressBytes(),
-			SndAddr:        core.ESDTSCAddress,
-			Data:           createGenesisSCRData(tokenID, accInitialBalance),
-			Value:          big.NewInt(0),
-			GasLimit:       50000,
+			Nonce:    uint64(nonce),
+			RcvAddr:  initialAcc.AddressBytes(),
+			SndAddr:  core.ESDTSCAddress,
+			Data:     createGenesisSCRData(tokenID, accInitialBalance),
+			Value:    big.NewInt(0),
+			GasLimit: 50000,
 		}
 
 		retCode, err := scrProcessor.ProcessSmartContractResult(scr)
