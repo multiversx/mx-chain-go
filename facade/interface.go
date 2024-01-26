@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
@@ -106,7 +107,7 @@ type NodeHandler interface {
 
 // TransactionSimulatorProcessor defines the actions which a transaction simulator processor has to implement
 type TransactionSimulatorProcessor interface {
-	ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
+	ProcessTx(tx *transaction.Transaction, currentHeader coreData.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error)
 	IsInterfaceNil() bool
 }
 
