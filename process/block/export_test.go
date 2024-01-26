@@ -578,6 +578,10 @@ func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock 
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
+func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
+	return sp.computeExistingAndRequestMissingMetaHeaders(header)
+}
+
 // InitMaps -
 func (hfb *hdrForBlock) InitMaps() {
 	hfb.initMaps()

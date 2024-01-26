@@ -280,13 +280,14 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		hdrsForBlock := mp.GetHdrForBlock()
 		hdrsForBlock.SetNumMissingHdrs(2)
 		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
-		hdrsForBlock.SetHighestHdrNonce(0, td[1].referencedHeaderData.header.GetNonce()-1)
-		hdrsForBlock.SetHdrHashAndInfo(string(td[1].referencedHeaderData.headerHash), &blockProcess.HdrInfo{
+		referencedHeaderData := td[1].referencedHeaderData
+		hdrsForBlock.SetHighestHdrNonce(0, referencedHeaderData.header.GetNonce()-1)
+		hdrsForBlock.SetHdrHashAndInfo(string(referencedHeaderData.headerHash), &blockProcess.HdrInfo{
 			UsedInBlock: true,
 			Hdr:         nil,
 		})
 
-		mp.ReceivedShardHeader(td[1].referencedHeaderData.header, td[1].referencedHeaderData.headerHash)
+		mp.ReceivedShardHeader(referencedHeaderData.header, referencedHeaderData.headerHash)
 
 		time.Sleep(100 * time.Millisecond)
 		require.Nil(t, err)
@@ -326,16 +327,17 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		hdrsForBlock := mp.GetHdrForBlock()
 		hdrsForBlock.SetNumMissingHdrs(1)
 		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
-		hdrsForBlock.SetHighestHdrNonce(0, td[0].referencedHeaderData.header.GetNonce()-1)
-		hdrsForBlock.SetHdrHashAndInfo(string(td[0].referencedHeaderData.headerHash), &blockProcess.HdrInfo{
+		referencedHeaderData := td[0].attestationHeaderData
+		hdrsForBlock.SetHighestHdrNonce(0, referencedHeaderData.header.GetNonce()-1)
+		hdrsForBlock.SetHdrHashAndInfo(string(referencedHeaderData.headerHash), &blockProcess.HdrInfo{
 			UsedInBlock: true,
 			Hdr:         nil,
 		})
 
 		// receive the missing header
 		headersPool := mp.GetDataPool().Headers()
-		headersPool.AddHeader(td[0].referencedHeaderData.headerHash, td[0].referencedHeaderData.header)
-		mp.ReceivedShardHeader(td[0].referencedHeaderData.header, td[0].referencedHeaderData.headerHash)
+		headersPool.AddHeader(referencedHeaderData.headerHash, referencedHeaderData.header)
+		mp.ReceivedShardHeader(td[0].referencedHeaderData.header, referencedHeaderData.headerHash)
 
 		time.Sleep(100 * time.Millisecond)
 		require.Nil(t, err)
@@ -354,8 +356,9 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		}(wg)
 
 		// receive also the attestation header
-		headersPool.AddHeader(td[0].attestationHeaderData.headerHash, td[0].attestationHeaderData.header)
-		mp.ReceivedShardHeader(td[0].attestationHeaderData.header, td[0].attestationHeaderData.headerHash)
+		attestationHeaderData := td[0].attestationHeaderData
+		headersPool.AddHeader(attestationHeaderData.headerHash, attestationHeaderData.header)
+		mp.ReceivedShardHeader(attestationHeaderData.header, attestationHeaderData.headerHash)
 		wg.Wait()
 
 		require.Equal(t, uint32(1), numCalls.Load())

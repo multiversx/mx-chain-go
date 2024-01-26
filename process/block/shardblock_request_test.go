@@ -30,6 +30,8 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 	t.Parallel()
 
 	t.Run("missing attesting meta header", func(t *testing.T) {
+		t.Parallel()
+
 		arguments, requestHandler := shardBlockRequestTestInit(t)
 		testData := createShardProcessorTestData()
 		numCalls := atomic.Uint32{}
@@ -55,6 +57,8 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 		require.Equal(t, uint32(1), numCalls.Load())
 	})
 	t.Run("no missing attesting meta header", func(t *testing.T) {
+		t.Parallel()
+
 		arguments, requestHandler := shardBlockRequestTestInit(t)
 		testData := createShardProcessorTestData()
 		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
@@ -73,15 +77,59 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
 		res := sp.RequestMissingFinalityAttestingHeaders()
 		time.Sleep(100 * time.Millisecond)
+
 		require.Equal(t, uint32(0), res)
 	})
 }
 
 func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T) {
+	t.Parallel()
 
+	t.Run("one referenced metaBlock missing will be requested", func(t *testing.T) {
+		t.Parallel()
+
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		numCalls := atomic.Uint32{}
+		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
+			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			attestationNonce := testData[core.MetachainShardId].confirmationHeaderData.header.GetNonce()
+			if nonce == attestationNonce {
+				require.Fail(t, fmt.Sprintf("should not request attestation block with nonce %d", attestationNonce))
+			}
+			referencedMetaBlockNonce := testData[core.MetachainShardId].headerData.header.GetNonce()
+			if nonce != referencedMetaBlockNonce {
+				require.Fail(t, fmt.Sprintf("requested nonce should have been %d", referencedMetaBlockNonce))
+			}
+			numCalls.Add(1)
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		metaBlockData := testData[core.MetachainShardId].headerData
+		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
+		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
+
+		// sp.ComputeExistingAndRequestMissingMetaHeaders()
+
+	})
+	t.Run("multiple referenced metaBlocks missing will be requested", func(t *testing.T) {
+		t.Parallel()
+
+	})
+	t.Run("all referenced metaBlocks existing with missing attestation, will request the attestation metaBlock", func(t *testing.T) {
+		t.Parallel()
+
+	})
+	t.Run("all referenced metaBlocks existing and existing attestation metaBlock will not request", func(t *testing.T) {
+		t.Parallel()
+
+	})
 }
 
 func TestShardProcessor_receivedMetaBlock(t *testing.T) {
+	t.Parallel()
 
 }
 
@@ -113,6 +161,7 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 	mbHash5 := []byte("mb hash 5")
 	mbHash6 := []byte("mb hash 6")
 
+	prevMetaBlockHash := []byte("prev meta block hash")
 	metaBlockHash := []byte("meta block hash")
 	metaConfirmationHash := []byte("confirmation meta block hash")
 
@@ -125,8 +174,9 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 	shard1Block2Hash := []byte("shard 1 block 2 hash")
 
 	metaBlock := &block.MetaBlock{
-		Nonce: 100,
-		Round: 100,
+		Nonce:    100,
+		Round:    100,
+		PrevHash: prevMetaBlockHash,
 		ShardInfo: []block.ShardData{
 			{
 				ShardID:    0,
@@ -136,16 +186,6 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 					{Hash: mbHash1, SenderShardID: 0, ReceiverShardID: 1},
 					{Hash: mbHash2, SenderShardID: 0, ReceiverShardID: 1},
 					{Hash: mbHash3, SenderShardID: 0, ReceiverShardID: 1},
-				},
-			},
-			{
-				ShardID:    1,
-				HeaderHash: shard1Block1Hash,
-				PrevHash:   shard1Block0Hash,
-				ShardMiniBlockHeaders: []block.MiniBlockHeader{
-					{Hash: mbHash4, SenderShardID: 1, ReceiverShardID: 0},
-					{Hash: mbHash5, SenderShardID: 1, ReceiverShardID: 0},
-					{Hash: mbHash6, SenderShardID: 1, ReceiverShardID: 0},
 				},
 			},
 		},
@@ -180,8 +220,8 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 	shar1Block1 := &block.Header{
 		ShardID:  1,
 		PrevHash: shard1Block0Hash,
-		Nonce:    98,
-		Round:    98,
+		Nonce:    102,
+		Round:    102,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{Hash: mbHash4, SenderShardID: 0, ReceiverShardID: 1},
 			{Hash: mbHash5, SenderShardID: 0, ReceiverShardID: 1},
@@ -192,8 +232,8 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 	shard1Block2 := &block.Header{
 		ShardID:          1,
 		PrevHash:         shard1Block1Hash,
-		Nonce:            99,
-		Round:            99,
+		Nonce:            103,
+		Round:            103,
 		MiniBlockHeaders: []block.MiniBlockHeader{},
 	}
 
