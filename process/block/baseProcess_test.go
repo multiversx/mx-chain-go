@@ -3153,7 +3153,7 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work with bitmap", func(t *testing.T) {
 		validator0, _ := nodesCoordinator.NewValidator([]byte("pk0"), 0, 0)
 		validator1, _ := nodesCoordinator.NewValidator([]byte("pk1"), 1, 1)
 		validator2, _ := nodesCoordinator.NewValidator([]byte("pk2"), 2, 2)
@@ -3173,9 +3173,11 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		arguments.NodesCoordinator = nodesCoordinatorInstance
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{
+			PubKeysBitmap: []byte{0b00000101},
+		})
 		assert.Nil(t, err)
 
-		assert.Equal(t, [][]byte{validator0.PubKey(), validator1.PubKey(), validator2.PubKey()}, resetCountersCalled)
+		assert.Equal(t, [][]byte{validator0.PubKey(), validator2.PubKey()}, resetCountersCalled)
 	})
 }
