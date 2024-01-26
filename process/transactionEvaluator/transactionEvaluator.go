@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -32,6 +33,7 @@ type ArgsApiTransactionEvaluator struct {
 	Accounts            state.AccountsAdapterWithClean
 	ShardCoordinator    sharding.Coordinator
 	EnableEpochsHandler common.EnableEpochsHandler
+	BlockChain          data.ChainHandler
 }
 
 type apiTransactionEvaluator struct {
@@ -41,6 +43,7 @@ type apiTransactionEvaluator struct {
 	feeHandler          process.FeeHandler
 	txSimulator         facade.TransactionSimulatorProcessor
 	enableEpochsHandler common.EnableEpochsHandler
+	blockChain          data.ChainHandler
 	mutExecution        sync.RWMutex
 }
 
@@ -64,6 +67,9 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.BlockChain) {
+		return nil, process.ErrNilBlockChain
+	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.CleanUpInformativeSCRsFlag,
 	})
@@ -78,6 +84,7 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 		accounts:            args.Accounts,
 		shardCoordinator:    args.ShardCoordinator,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		blockChain:          args.BlockChain,
 	}
 
 	return tce, nil
@@ -91,7 +98,9 @@ func (ate *apiTransactionEvaluator) SimulateTransactionExecution(tx *transaction
 		ate.mutExecution.Unlock()
 	}()
 
-	return ate.txSimulator.ProcessTx(tx)
+	currentHeader := ate.blockChain.GetCurrentBlockHeader()
+
+	return ate.txSimulator.ProcessTx(tx, currentHeader)
 }
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
@@ -140,8 +149,9 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 	}
 
 	costResponse := &transaction.CostResponse{}
+	currentHeader := ate.blockChain.GetCurrentBlockHeader()
 
-	res, err := ate.txSimulator.ProcessTx(tx)
+	res, err := ate.txSimulator.ProcessTx(tx, currentHeader)
 	if err != nil {
 		costResponse.ReturnMessage = err.Error()
 		return costResponse, nil
