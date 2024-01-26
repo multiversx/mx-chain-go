@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -42,6 +43,16 @@ func TestTransactionEvaluator_NilTxTypeHandler(t *testing.T) {
 
 	require.Nil(t, tce)
 	require.Equal(t, process.ErrNilTxTypeHandler, err)
+}
+
+func TestTransactionEvaluator_NilBlockChain(t *testing.T) {
+	t.Parallel()
+	args := createArgs()
+	args.BlockChain = nil
+	tce, err := NewAPITransactionEvaluator(args)
+
+	require.Nil(t, tce)
+	require.Equal(t, process.ErrNilBlockChain, err)
 }
 
 func TestTransactionEvaluator_NilFeeHandlerShouldErr(t *testing.T) {
@@ -336,4 +347,63 @@ func TestExtractGasUsedFromMessage(t *testing.T) {
 	require.Equal(t, uint64(500000000), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas used = 500000000", gasUsedSlitString))
 	require.Equal(t, uint64(0), extractGasRemainedFromMessage("", gasRemainedSplitString))
 	require.Equal(t, uint64(0), extractGasRemainedFromMessage("too much gas provided, gas needed = 10000, gas used = wrong", gasUsedSlitString))
+}
+
+func TestApiTransactionEvaluator_SimulateTransactionExecution(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	expectedNonce := uint64(1000)
+	args := createArgs()
+	args.BlockChain = &testscommon.ChainHandlerMock{}
+	_ = args.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: expectedNonce}, []byte("test"))
+
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(_ *transaction.Transaction, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+			called = true
+			require.Equal(t, expectedNonce, currentHeader.GetNonce())
+			return nil, nil
+		},
+	}
+
+	tce, err := NewAPITransactionEvaluator(args)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+
+	_, err = tce.SimulateTransactionExecution(tx)
+	require.Nil(t, err)
+	require.True(t, called)
+}
+
+func TestApiTransactionEvaluator_ComputeTransactionGasLimit(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	expectedNonce := uint64(1000)
+	args := createArgs()
+	args.BlockChain = &testscommon.ChainHandlerMock{}
+	_ = args.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: expectedNonce}, []byte("test"))
+
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			return process.SCInvoking, process.SCInvoking
+		},
+	}
+	args.TxSimulator = &mock.TransactionSimulatorStub{
+		ProcessTxCalled: func(_ *transaction.Transaction, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
+			called = true
+			require.Equal(t, expectedNonce, currentHeader.GetNonce())
+			return &txSimData.SimulationResultsWithVMOutput{}, nil
+		},
+	}
+
+	tce, err := NewAPITransactionEvaluator(args)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+
+	_, err = tce.ComputeTransactionGasLimit(tx)
+	require.Nil(t, err)
+	require.True(t, called)
 }

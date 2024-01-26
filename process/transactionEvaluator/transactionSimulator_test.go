@@ -77,6 +77,15 @@ func TestNewTransactionSimulator(t *testing.T) {
 			exError: ErrNilHasher,
 		},
 		{
+			name: "NilBlockChainHook",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.BlockChainHook = nil
+				return args
+			},
+			exError: process.ErrNilBlockChainHook,
+		},
+		{
 			name: "NilMarshalizer",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
