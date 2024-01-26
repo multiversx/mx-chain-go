@@ -202,12 +202,12 @@ func createSovereignShardGenesisBlock(
 	indexingData.StakingTxs = stakingTxs
 
 	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	initialESDTs, err := createSovInitialESDTBalances(arg, shardProcessors.scrProcessor)
+	genesisESDTTransfers, err := createSovereignGenesisESDTTransfers(arg, shardProcessors.scrProcessor)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, initialESDTs)
+	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, genesisESDTTransfers)
 	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
 
 	rootHash, err := arg.Accounts.Commit()
@@ -327,7 +327,7 @@ func setSovereignStakedData(
 	return stakingTxs, nil
 }
 
-func createSovInitialESDTBalances(args ArgsGenesisBlockCreator, scrProcessor process.SmartContractResultProcessor) (map[string]data.TransactionHandler, error) {
+func createSovereignGenesisESDTTransfers(args ArgsGenesisBlockCreator, scrProcessor process.SmartContractResultProcessor) (map[string]data.TransactionHandler, error) {
 	initialESDTTxs := make(map[string]data.TransactionHandler, 0)
 	initialAccounts := args.AccountsParser.InitialAccounts()
 
@@ -363,7 +363,7 @@ func createSovInitialESDTBalances(args ArgsGenesisBlockCreator, scrProcessor pro
 			return nil, err
 		}
 
-		initialESDTTxs[hex.EncodeToString(hash)] = scr
+		initialESDTTxs[string(hash)] = scr
 	}
 
 	return initialESDTTxs, nil

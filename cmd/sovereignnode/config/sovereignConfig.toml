@@ -62,8 +62,6 @@
         # Payload version to process
         Version = 1
 
-# GenesisConfig should hold all sovereign genesis related configs
 [GenesisConfig]
     # NativeESDT specifies the sovereign shard's native esdt currency
     NativeESDT = "WEGLD-bd4d79"
-    

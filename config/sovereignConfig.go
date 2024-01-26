@@ -59,6 +59,7 @@ type WebSocketConfig struct {
 	Version            uint32 `toml:"Version"`
 }
 
+// GenesisConfig should hold all sovereign genesis related configs
 type GenesisConfig struct {
 	NativeESDT string `toml:"NativeESDT"`
 }
