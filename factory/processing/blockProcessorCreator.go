@@ -742,7 +742,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GenesisEpoch:          genesisHdr.GetEpoch(),
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
-		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().StakingV2EnableEpoch(),
+		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {

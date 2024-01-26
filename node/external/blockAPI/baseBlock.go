@@ -71,7 +71,7 @@ func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(hea
 
 	apiMiniblocks := make([]*api.MiniBlock, 0, len(receiptsHolder.GetMiniblocks()))
 	for _, miniblock := range receiptsHolder.GetMiniblocks() {
-		apiMiniblock, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock, header.GetEpoch(), options)
+		apiMiniblock, err := bap.convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock, header, options)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(hea
 	return apiMiniblocks, nil
 }
 
-func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock *block.MiniBlock, epoch uint32, options api.BlockQueryOptions) (*api.MiniBlock, error) {
+func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMiniblock(miniblock *block.MiniBlock, header data.HeaderHandler, options api.BlockQueryOptions) (*api.MiniBlock, error) {
 	mbHash, err := core.CalculateHash(bap.marshalizer, bap.hasher, miniblock)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 		firstProcessed := int32(0)
 		lastProcessed := int32(len(miniblock.TxHashes) - 1)
 
-		err = bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, epoch, miniblockAPI, firstProcessed, lastProcessed, options)
+		err = bap.getAndAttachTxsToMbByEpoch(mbHash, miniblock, header, miniblockAPI, firstProcessed, lastProcessed, options)
 		if err != nil {
 			return nil, err
 		}
@@ -113,19 +113,19 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
 	mbHeader data.MiniBlockHeaderHandler,
-	epoch uint32,
+	header data.HeaderHandler,
 	apiMiniblock *api.MiniBlock,
 	options api.BlockQueryOptions,
 ) error {
 	miniblockHash := mbHeader.GetHash()
-	miniBlock, err := bap.getMiniblockByHashAndEpoch(miniblockHash, epoch)
+	miniBlock, err := bap.getMiniblockByHashAndEpoch(miniblockHash, header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
 	firstProcessed := mbHeader.GetIndexOfFirstTxProcessed()
 	lastProcessed := mbHeader.GetIndexOfLastTxProcessed()
-	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, epoch, apiMiniblock, firstProcessed, lastProcessed, options)
+	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, header, apiMiniblock, firstProcessed, lastProcessed, options)
 }
 
 func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byte, epoch uint32) (*block.MiniBlock, error) {
@@ -146,7 +146,7 @@ func (bap *baseAPIBlockProcessor) getMiniblockByHashAndEpoch(miniblockHash []byt
 func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 	miniblockHash []byte,
 	miniBlock *block.MiniBlock,
-	epoch uint32,
+	header data.HeaderHandler,
 	apiMiniblock *api.MiniBlock,
 	firstProcessedTxIndex int32,
 	lastProcessedTxIndex int32,
@@ -156,15 +156,15 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 
 	switch miniBlock.Type {
 	case block.TxBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeNormal, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, header, transaction.TxTypeNormal, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.RewardsBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, header, transaction.TxTypeReward, dataRetriever.RewardTransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.SmartContractResultBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, header, transaction.TxTypeUnsigned, dataRetriever.UnsignedTransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.InvalidBlock:
-		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, epoch, transaction.TxTypeInvalid, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
+		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, header, transaction.TxTypeInvalid, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.ReceiptBlock:
-		apiMiniblock.Receipts, err = bap.getReceiptsFromMiniblock(miniBlock, epoch)
+		apiMiniblock.Receipts, err = bap.getReceiptsFromMiniblock(miniBlock, header.GetEpoch())
 	}
 
 	if err != nil {
@@ -172,7 +172,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 	}
 
 	if options.WithLogs {
-		err = bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, epoch)
+		err = bap.logsFacade.IncludeLogsInTransactions(apiMiniblock.Transactions, miniBlock.TxHashes, header.GetEpoch())
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	miniblock *block.MiniBlock,
 	miniblockHash []byte,
-	epoch uint32,
+	header data.HeaderHandler,
 	txType transaction.TxType,
 	unit dataRetriever.UnitType,
 	firstProcessedTxIndex int32,
@@ -224,7 +224,7 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 	start := time.Now()
 
 	executedTxHashes := extractExecutedTxHashes(miniblock.TxHashes, firstProcessedTxIndex, lastProcessedTxIndex)
-	marshalledTxs, err := storer.GetBulkFromEpoch(executedTxHashes, epoch)
+	marshalledTxs, err := storer.GetBulkFromEpoch(executedTxHashes, header.GetEpoch())
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v, miniblock = %s", errCannotLoadTransactions, err, hex.EncodeToString(miniblockHash))
 	}
@@ -243,7 +243,8 @@ func (bap *baseAPIBlockProcessor) getTxsFromMiniblock(
 		tx.MiniBlockHash = hex.EncodeToString(miniblockHash)
 		tx.SourceShard = miniblock.SenderShardID
 		tx.DestinationShard = miniblock.ReceiverShardID
-		tx.Epoch = epoch
+		tx.Epoch = header.GetEpoch()
+		tx.Round = header.GetRound()
 		bap.apiTransactionHandler.PopulateComputedFields(tx)
 
 		// TODO : should check if tx is reward reverted

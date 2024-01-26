@@ -95,10 +95,9 @@ type baseProcessor struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler
 
-	appStatusHandler       core.AppStatusHandler
-	stateCheckpointModulus uint
-	blockProcessor         blockProcessor
-	txCounter              *transactionCounter
+	appStatusHandler core.AppStatusHandler
+	blockProcessor   blockProcessor
+	txCounter        *transactionCounter
 
 	outportHandler      outport.OutportHandler
 	outportDataProvider outport.DataProviderOutport
@@ -222,7 +221,7 @@ func (bp *baseProcessor) checkBlockValidity(
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
 func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -509,8 +508,17 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.CoreComponents.EpochNotifier()) {
 		return process.ErrNilEpochNotifier
 	}
-	if check.IfNil(arguments.CoreComponents.EnableEpochsHandler()) {
+	enableEpochsHandler := arguments.CoreComponents.EnableEpochsHandler()
+	if check.IfNil(enableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.ScheduledMiniBlocksFlag,
+		common.StakingV2Flag,
+		common.CurrentRandomnessOnSortingFlag,
+	})
+	if err != nil {
+		return err
 	}
 	if check.IfNil(arguments.CoreComponents.RoundNotifier()) {
 		return process.ErrNilRoundNotifier
@@ -677,7 +685,7 @@ func (bp *baseProcessor) setMiniBlockHeaderReservedField(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) error {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -853,7 +861,7 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 }
 
 func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
 
@@ -1050,7 +1058,7 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return body, nil
 	}
 
@@ -1407,14 +1415,6 @@ func (bp *baseProcessor) updateStateStorage(
 		return
 	}
 
-	// TODO generate checkpoint on a trigger
-	if bp.stateCheckpointModulus != 0 {
-		if finalHeader.GetNonce()%uint64(bp.stateCheckpointModulus) == 0 {
-			log.Debug("trie checkpoint", "currRootHash", currRootHash)
-			accounts.SetStateCheckpoint(currRootHash)
-		}
-	}
-
 	if bytes.Equal(prevRootHash, currRootHash) {
 		return
 	}
@@ -1689,7 +1689,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 	// waiting for late broadcast of mini blocks and transactions to be done and received
 	time.Sleep(waitTime)
 
-	bp.txCoordinator.RequestMiniBlocks(headerHandler)
+	bp.txCoordinator.RequestMiniBlocksAndTransactions(headerHandler)
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
@@ -2031,7 +2031,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 }
 
 func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
-	if !bp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return 0
 	}
 

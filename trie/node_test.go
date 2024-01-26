@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -1162,6 +1163,45 @@ func TestNodesVersion_deleteFromBn(t *testing.T) {
 		assert.True(t, ok)
 		version, _ = ln.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
+	})
+}
+
+func Test_treatCommitSnapshotErr(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil err", func(t *testing.T) {
+		t.Parallel()
+
+		childIsMissing, err := treatCommitSnapshotError(nil, []byte("hash"), nil)
+		assert.False(t, childIsMissing)
+		assert.Nil(t, err)
+	})
+	t.Run("err is not of type GetNodeFromDBError", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("some error")
+		childIsMissing, err := treatCommitSnapshotError(expectedErr, []byte("hash"), nil)
+		assert.False(t, childIsMissing)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("is closing err", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := fmt.Errorf("%w: %s", core.ErrContextClosing, core.GetNodeFromDBErrorString)
+		childIsMissing, err := treatCommitSnapshotError(expectedErr, []byte("hash"), nil)
+		assert.False(t, childIsMissing)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("child is missing", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := fmt.Errorf("%w: %s", ErrKeyNotFound, core.GetNodeFromDBErrorString)
+		missingNodesChan := make(chan []byte, 1)
+		childIsMissing, err := treatCommitSnapshotError(expectedErr, []byte("hash"), missingNodesChan)
+		assert.True(t, childIsMissing)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(missingNodesChan))
+		assert.Equal(t, []byte("hash"), <-missingNodesChan)
 	})
 }
 

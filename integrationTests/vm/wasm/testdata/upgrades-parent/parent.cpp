@@ -38,6 +38,10 @@ private:
     long long answer;
 };
 
+extern "C" void init()
+{
+}
+
 extern "C" void getUltimateAnswer()
 {
     Foo foo;

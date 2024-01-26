@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -54,6 +53,10 @@ func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos 
 	}
 
 	bn.ChildrenVersion[int(childPos)] = byte(version)
+
+	if version == core.NotSpecified {
+		bn.revertChildrenVersionSliceIfNeeded()
+	}
 }
 
 func (bn *branchNode) getHash() []byte {
@@ -287,55 +290,6 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	return nil
 }
 
-func (bn *branchNode) commitCheckpoint(
-	originDb common.TrieStorageInteractor,
-	targetDb common.BaseStorer,
-	checkpointHashes CheckpointHashesHolder,
-	leavesChan chan core.KeyValueHolder,
-	ctx context.Context,
-	stats common.TrieStatisticsHandler,
-	idleProvider IdleNodeProvider,
-	depthLevel int,
-) error {
-	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return core.ErrContextClosing
-	}
-
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit checkpoint error %w", err)
-	}
-
-	hash, err := computeAndSetNodeHash(bn)
-	if err != nil {
-		return err
-	}
-
-	shouldCommit := checkpointHashes.ShouldCommit(hash)
-	if !shouldCommit {
-		return nil
-	}
-
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), originDb)
-		if err != nil {
-			return err
-		}
-
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].commitCheckpoint(originDb, targetDb, checkpointHashes, leavesChan, ctx, stats, idleProvider, depthLevel+1)
-		if err != nil {
-			return err
-		}
-	}
-
-	checkpointHashes.Remove(hash)
-	return bn.saveToStorage(targetDb, stats, depthLevel)
-}
-
 func (bn *branchNode) commitSnapshot(
 	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
@@ -356,12 +310,12 @@ func (bn *branchNode) commitSnapshot(
 
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), db)
+		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
 		if err != nil {
-			if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
-				treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
-				continue
-			}
 			return err
+		}
+		if childIsMissing {
+			continue
 		}
 
 		if bn.children[i] == nil {
@@ -636,7 +590,7 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	bn.hash = nil
 	bn.children[childPos] = newNode
 	if check.IfNil(newNode) {
-		bn.setVersionForChild(0, childPos)
+		bn.setVersionForChild(core.NotSpecified, childPos)
 		bn.EncodedChildren[childPos] = nil
 
 		return nil
@@ -649,6 +603,17 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 	bn.setVersionForChild(childVersion, childPos)
 
 	return nil
+}
+
+func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
+	notSpecifiedVersion := byte(core.NotSpecified)
+	for i := range bn.ChildrenVersion {
+		if bn.ChildrenVersion[i] != notSpecifiedVersion {
+			return
+		}
+	}
+
+	bn.ChildrenVersion = []byte(nil)
 }
 
 func (bn *branchNode) reduceNode(pos int) (node, bool, error) {

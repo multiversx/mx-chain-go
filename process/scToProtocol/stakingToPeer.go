@@ -106,8 +106,10 @@ func checkIfNil(args ArgStakingToPeer) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-
-	return nil
+	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StakeFlag,
+		common.ValidatorToDelegationFlag,
+	})
 }
 
 func (stp *stakingToPeer) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
@@ -265,7 +267,7 @@ func (stp *stakingToPeer) updatePeerState(
 	blsPubKey []byte,
 	nonce uint64,
 ) error {
-	if !stp.enableEpochsHandler.IsStakeFlagEnabled() {
+	if !stp.enableEpochsHandler.IsFlagEnabled(common.StakeFlag) {
 		return stp.updatePeerStateV1(stakingData, blsPubKey, nonce)
 	}
 
@@ -284,7 +286,7 @@ func (stp *stakingToPeer) updatePeerState(
 		}
 		account.SetUnStakedEpoch(stakingData.UnStakedEpoch)
 
-		if stp.enableEpochsHandler.IsValidatorToDelegationFlagEnabled() && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
+		if stp.enableEpochsHandler.IsFlagEnabled(common.ValidatorToDelegationFlag) && !bytes.Equal(account.GetRewardAddress(), stakingData.RewardAddress) {
 			log.Debug("new reward address", "blsKey", blsPubKey, "rwdAddr", stakingData.RewardAddress)
 			err = account.SetRewardAddress(stakingData.RewardAddress)
 			if err != nil {
