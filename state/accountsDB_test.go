@@ -42,8 +42,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
-	disabledHashesHolder "github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -427,14 +425,17 @@ func TestAccountsDB_SaveAccountMalfunctionMarshallerShouldErr(t *testing.T) {
 func TestAccountsDB_SaveAccountCollectsAllStateChanges(t *testing.T) {
 	t.Parallel()
 
+	autoBalanceFlagEnabled := false
 	enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsAutoBalanceDataTriesEnabledField: false,
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return autoBalanceFlagEnabled
+		},
 	}
 	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
 	address := generateRandomByteArray(32)
 
 	stepCreateAccountWithDataTrieAndCode(t, adb, address)
-	enableEpochs.IsAutoBalanceDataTriesEnabledField = true
+	autoBalanceFlagEnabled = true
 	stepMigrateDataTrieValAndChangeCode(t, adb, address)
 }
 
