@@ -2,7 +2,6 @@ package shard
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/common"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"testing"
 
@@ -52,7 +51,6 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &mockCommon.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 }

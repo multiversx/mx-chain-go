@@ -416,7 +416,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		RunTypeComponents: GetRunTypeComponents(),
+		RunTypeComponents:                GetRunTypeComponents(),
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -596,7 +596,7 @@ func GetProcessArgs(
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
-		RunTypeComponents: GetRunTypeComponents(),
+		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
 

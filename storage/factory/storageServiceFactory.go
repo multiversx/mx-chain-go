@@ -60,7 +60,6 @@ type StorageServiceFactory struct {
 	snapshotsEnabled                bool
 	repopulateTokensSupplies        bool
 	stateStatsHandler               common.StateStatisticsHandler
-	chainRunType                    common.ChainRunType
 	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
@@ -79,7 +78,6 @@ type StorageServiceFactoryArgs struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	RepopulateTokensSupplies        bool
 	StateStatsHandler               common.StateStatisticsHandler
-	ChainRunType                    common.ChainRunType
 	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
@@ -117,7 +115,6 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		snapshotsEnabled:                args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:        args.RepopulateTokensSupplies,
 		stateStatsHandler:               args.StateStatsHandler,
-		chainRunType:                    args.ChainRunType,
 		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 	}, nil
 }

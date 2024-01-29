@@ -726,20 +726,20 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
-		CoreComponents:       currentNode.coreComponents,
-		DataComponents:       currentNode.dataComponents,
-		StateComponents:      currentNode.stateComponents,
-		BootstrapComponents:  currentNode.bootstrapComponents,
-		CryptoComponents:     currentNode.cryptoComponents,
-		ProcessComponents:    currentNode.processComponents,
-		StatusCoreComponents: currentNode.statusCoreComponents,
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     currentNode.statusComponents,
-		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:         common.ChainRunTypeRegular,
+		Configs:               configs,
+		CoreComponents:        currentNode.coreComponents,
+		DataComponents:        currentNode.dataComponents,
+		StateComponents:       currentNode.stateComponents,
+		BootstrapComponents:   currentNode.bootstrapComponents,
+		CryptoComponents:      currentNode.cryptoComponents,
+		ProcessComponents:     currentNode.processComponents,
+		StatusCoreComponents:  currentNode.statusCoreComponents,
+		GasScheduleNotifier:   gasScheduleNotifier,
+		Bootstrapper:          currentNode.consensusComponents.Bootstrapper(),
+		AllowVMQueriesChan:    allowVMQueriesChan,
+		StatusComponents:      currentNode.statusComponents,
+		ProcessingMode:        common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:          common.ChainRunTypeRegular,
 		BlockChainHookCreator: currentNode.runTypeComponents.BlockChainHookHandlerCreator(),
 	}
 
@@ -1292,7 +1292,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
-		RunTypeComponents:      runTypeComponents,
+		RunTypeComponents:                     runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1421,7 +1421,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:                 cryptoComponents,
 		NetworkComponents:                networkComponents,
 		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:    runTypeComponents,
+		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}

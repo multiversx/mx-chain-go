@@ -172,7 +172,6 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ScheduledProcessor:    &consensusMocks.ScheduledProcessorStub{},
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
-		ChainRunType:          common.ChainRunTypeRegular,
 		ConsensusModel:        consensus.ConsensusModelV1,
 		ExtraSignersHolder:    &subRoundsHolder.ExtraSignersHolderMock{},
 		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
