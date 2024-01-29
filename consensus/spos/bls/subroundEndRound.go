@@ -296,7 +296,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 		return err
 	}
 
-	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
+	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.AggregateSignature)
 	if err != nil {
 		log.Debug("verifyInvalidSigner: confirmed that node provided invalid signature",
 			"pubKey", cnsMsg.PubKey,
@@ -476,21 +476,6 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
 		sr.worker.SetValidEquivalentProof(sr.GetData(), proof)
 
 		sr.Blockchain().SetCurrentHeaderProof(proof)
-
-		prevProof, err := sr.worker.GetEquivalentProof(sr.Header.GetPrevHash())
-		if err != nil {
-			log.Debug("sendFinalInfo.GetEquivalentProof", "error", err.Error(), "header hash", string(sr.Header.GetPrevHash()))
-			currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-			if check.IfNil(currentHeader) {
-				log.Debug("sendFinalInfo.GetCurrentBlockHeader, nil current header")
-				return false
-			}
-			prevProof = data.HeaderProof{
-				AggregatedSignature: currentHeader.GetSignature(),
-				PubKeysBitmap:       currentHeader.GetPubKeysBitmap(),
-			}
-		}
-		sr.Header.SetPreviousAggregatedSignatureAndBitmap(prevProof.AggregatedSignature, prevProof.PubKeysBitmap)
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
@@ -513,11 +498,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
 		leaderSigToBroadcast = nil
 	}
 
-	if !sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender) {
-		return false
-	}
-
-	return true
+	return sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender)
 }
 
 func (sr *subroundEndRound) shouldSendFinalInfo() bool {
@@ -881,13 +862,6 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 
 		return true, header
 	}
-
-	prevHeaderProof, err := sr.worker.GetEquivalentProof(header.GetPrevHash())
-	if err != nil {
-		log.Debug("haveConsensusHeaderWithFullInfo.GetEquivalentProof", "error", err.Error(), "header hash", string(header.GetPrevHash()))
-		return false, nil
-	}
-	header.SetPreviousAggregatedSignatureAndBitmap(prevHeaderProof.AggregatedSignature, prevHeaderProof.PubKeysBitmap)
 
 	return true, header
 }

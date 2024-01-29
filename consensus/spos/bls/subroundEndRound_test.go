@@ -1608,21 +1608,12 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			Header: createDefaultHeader(),
 		}
 
-		wasGetValidatedEquivalentProof := false
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&mock.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{
-				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProof, error) {
-					wasGetValidatedEquivalentProof = true
-					return data.HeaderProof{
-						AggregatedSignature: providedPrevSig,
-						PubKeysBitmap:       providedPrevBitmap,
-					}, nil
-				},
-			},
+			&mock.SposWorkerMock{},
 		)
 
 		srEndRound.SetThreshold(bls.SrEndRound, 2)
@@ -1642,7 +1633,6 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		r := srEndRound.DoEndRoundJobByLeader()
 		require.True(t, r)
 		require.True(t, wasSetCurrentHeaderProofCalled)
-		require.True(t, wasGetValidatedEquivalentProof)
 	})
 }
 

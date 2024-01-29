@@ -766,6 +766,20 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 	return nil
 }
 
+func (wrk *Worker) checkFinalInfoFromSelf(cnsDta *consensus.Message) bool {
+	msgType := consensus.MessageType(cnsDta.MsgType)
+	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
+		return false
+	}
+
+	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
+	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
+		return true
+	}
+
+	return false
+}
+
 func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
 	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return false
@@ -775,6 +789,12 @@ func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType)
 }
 
 func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message) error {
+	// if the received final info is from self, simply return nil to allow further broadcast
+	// the proof was already validated
+	if wrk.checkFinalInfoFromSelf(cnsMsg) {
+		return nil
+	}
+
 	hdrHash := string(cnsMsg.BlockHeaderHash)
 	equivalentMsgInfo, ok := wrk.equivalentMessages[hdrHash]
 	if !ok {
@@ -806,7 +826,7 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 		return ErrNilHeader
 	}
 
-	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
+	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.AggregateSignature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
