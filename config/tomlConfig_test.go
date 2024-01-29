@@ -843,7 +843,7 @@ func TestEnableEpochConfig(t *testing.T) {
     MigrateDataTrieEnableEpoch = 92
 
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
-    CurrentRandomnessOnSortingEnableEpoch = 92
+    CurrentRandomnessOnSortingEnableEpoch = 93
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

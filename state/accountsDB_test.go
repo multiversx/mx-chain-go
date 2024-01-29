@@ -2986,11 +2986,8 @@ func testAccountMethodsConcurrency(
 func TestAccountsDB_MigrateDataTrieWithFunc(t *testing.T) {
 	t.Parallel()
 
-	checkpointHashesHolder := hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize)
-	enabeEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsAutoBalanceDataTriesEnabledField: false,
-	}
-	adb, _, _ := getDefaultStateComponents(checkpointHashesHolder, testscommon.NewSnapshotPruningStorerMock(), enabeEpochsHandler)
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	adb, _, _ := getDefaultStateComponents(testscommon.NewSnapshotPruningStorerMock(), enableEpochsHandler)
 
 	addr := []byte("addr")
 	acc, _ := adb.LoadAccount(addr)
@@ -2999,7 +2996,7 @@ func TestAccountsDB_MigrateDataTrieWithFunc(t *testing.T) {
 	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key2"), value)
 	_ = adb.SaveAccount(acc)
 
-	enabeEpochsHandler.IsAutoBalanceDataTriesEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.AutoBalanceDataTriesFlag)
 	acc, _ = adb.LoadAccount(addr)
 
 	isMigrated, err := acc.(state.AccountHandlerWithDataTrieMigrationStatus).IsDataTrieMigrated()

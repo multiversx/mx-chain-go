@@ -893,6 +893,7 @@ const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
 // FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
 const FullArchiveMetricSuffix = "_full_archive"
 
+// Enable epoch flags definitions
 const (
 	SCDeployFlag                                       core.EnableEpochFlag = "SCDeployFlag"
 	BuiltInFunctionsFlag                               core.EnableEpochFlag = "BuiltInFunctionsFlag"
@@ -991,6 +992,7 @@ const (
 	MultiClaimOnDelegationFlag                         core.EnableEpochFlag = "MultiClaimOnDelegationFlag"
 	ChangeUsernameFlag                                 core.EnableEpochFlag = "ChangeUsernameFlag"
 	AutoBalanceDataTriesFlag                           core.EnableEpochFlag = "AutoBalanceDataTriesFlag"
+	MigrateDataTrieFlag                                core.EnableEpochFlag = "MigrateDataTrieFlag"
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"

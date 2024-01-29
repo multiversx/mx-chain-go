@@ -668,7 +668,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)

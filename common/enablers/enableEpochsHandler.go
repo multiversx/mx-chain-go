@@ -629,6 +629,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch,
 		},
+		common.MigrateDataTrieFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MigrateDataTrieEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MigrateDataTrieEnableEpoch,
+		},
 		common.FixDelegationChangeOwnerOnAccountFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
