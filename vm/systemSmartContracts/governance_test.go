@@ -968,7 +968,7 @@ func TestGovernanceContract_ProposalDuringDisableFlag(t *testing.T) {
 func TestGovernanceContract_DelegateVoteMultiple(t *testing.T) {
 	t.Parallel()
 
-	gsc, blockchainHook, _ := createGovernanceBlockChainHookStubContextHandler()
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
 	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceFixesFlag)
 	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return 12
@@ -1003,6 +1003,10 @@ func TestGovernanceContract_DelegateVoteMultiple(t *testing.T) {
 	callInput := createVMInput(big.NewInt(0), "delegateVote", vm.ESDTSCAddress, vm.GovernanceSCAddress, voteArgs)
 	retCode := gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
 
 	callInput.CallerAddr = vm.FirstDelegationSCAddress
 	retCode = gsc.Execute(callInput)
