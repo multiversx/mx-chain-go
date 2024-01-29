@@ -619,7 +619,7 @@ func TestEnableEpochConfig(t *testing.T) {
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 21
 
-    # GovernanceDisableProposalEnableEpoch represents the epoch when governance disable proposal is enabled
+    # GovernanceDisableProposeEnableEpoch represents the epoch when governance disable proposal is enabled
     GovernanceDisableProposeEnableEpoch = 22
 
     # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled

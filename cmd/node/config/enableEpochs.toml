@@ -64,8 +64,8 @@
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 5
 
-    # GovernanceDisableProposalEnableEpoch represents the epoch when governance disable proposal is enabled
-    GovernanceDisableProposalEnableEpoch = 6
+    # GovernanceDisableProposeEnableEpoch represents the epoch when governance disable proposal is enabled
+    GovernanceDisableProposeEnableEpoch = 6
 
     # GovernanceFixesEnableEpoch represents the epoch when governance fixes are enabled
     GovernanceFixesEnableEpoch = 7
