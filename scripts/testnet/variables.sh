@@ -53,7 +53,7 @@ export NODE_WATCHER=0
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=60
+export NODE_DELAY=25
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
@@ -117,7 +117,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then
