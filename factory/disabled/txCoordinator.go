@@ -28,8 +28,8 @@ func (txCoordinator *TxCoordinator) ComputeTransactionType(_ data.TransactionHan
 	return 0, 0
 }
 
-// RequestMiniBlocks does nothing as it is disabled
-func (txCoordinator *TxCoordinator) RequestMiniBlocks(_ data.HeaderHandler) {
+// RequestMiniBlocksAndTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) RequestMiniBlocksAndTransactions(_ data.HeaderHandler) {
 }
 
 // RequestBlockTransactions does nothing as it is disabled

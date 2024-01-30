@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,23 +15,22 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
-	mainStorer             common.BaseStorer
-	checkpointsStorer      common.BaseStorer
-	pruningBlockingOps     uint32
-	snapshotReq            chan *snapshotsQueueEntry
-	checkpointReq          chan *snapshotsQueueEntry
-	checkpointHashesHolder CheckpointHashesHolder
-	storageOperationMutex  sync.RWMutex
-	cancelFunc             context.CancelFunc
-	closer                 core.SafeCloser
-	closed                 bool
-	idleProvider           IdleNodeProvider
-	identifier             string
+	mainStorer            common.BaseStorer
+	pruningBlockingOps    uint32
+	snapshotReq           chan *snapshotsQueueEntry
+	storageOperationMutex sync.RWMutex
+	cancelFunc            context.CancelFunc
+	closer                core.SafeCloser
+	closed                bool
+	idleProvider          IdleNodeProvider
+	identifier            string
+	statsCollector        common.StateStatisticsHandler
 }
 
 type snapshotsQueueEntry struct {
@@ -47,14 +45,13 @@ type snapshotsQueueEntry struct {
 
 // NewTrieStorageManagerArgs holds the arguments needed for creating a new trieStorageManager
 type NewTrieStorageManagerArgs struct {
-	MainStorer             common.BaseStorer
-	CheckpointsStorer      common.BaseStorer
-	Marshalizer            marshal.Marshalizer
-	Hasher                 hashing.Hasher
-	GeneralConfig          config.TrieStorageManagerConfig
-	CheckpointHashesHolder CheckpointHashesHolder
-	IdleProvider           IdleNodeProvider
-	Identifier             string
+	MainStorer     common.BaseStorer
+	Marshalizer    marshal.Marshalizer
+	Hasher         hashing.Hasher
+	GeneralConfig  config.TrieStorageManagerConfig
+	IdleProvider   IdleNodeProvider
+	Identifier     string
+	StatsCollector common.StateStatisticsHandler
 }
 
 // NewTrieStorageManager creates a new instance of trieStorageManager
@@ -62,17 +59,11 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.MainStorer) {
 		return nil, fmt.Errorf("%w for main storer", ErrNilStorer)
 	}
-	if check.IfNil(args.CheckpointsStorer) {
-		return nil, fmt.Errorf("%w for checkpoints storer", ErrNilStorer)
-	}
 	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
 	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
-	}
-	if check.IfNil(args.CheckpointHashesHolder) {
-		return nil, ErrNilCheckpointHashesHolder
 	}
 	if check.IfNil(args.IdleProvider) {
 		return nil, ErrNilIdleNodeProvider
@@ -80,31 +71,32 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if len(args.Identifier) == 0 {
 		return nil, ErrInvalidIdentifier
 	}
+	if check.IfNil(args.StatsCollector) {
+		return nil, storage.ErrNilStatsCollector
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
 	tsm := &trieStorageManager{
-		mainStorer:             args.MainStorer,
-		checkpointsStorer:      args.CheckpointsStorer,
-		snapshotReq:            make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
-		checkpointReq:          make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
-		pruningBlockingOps:     0,
-		cancelFunc:             cancelFunc,
-		checkpointHashesHolder: args.CheckpointHashesHolder,
-		closer:                 closing.NewSafeChanCloser(),
-		idleProvider:           args.IdleProvider,
-		identifier:             args.Identifier,
+		mainStorer:         args.MainStorer,
+		snapshotReq:        make(chan *snapshotsQueueEntry, args.GeneralConfig.SnapshotsBufferLen),
+		pruningBlockingOps: 0,
+		cancelFunc:         cancelFunc,
+		closer:             closing.NewSafeChanCloser(),
+		idleProvider:       args.IdleProvider,
+		identifier:         args.Identifier,
+		statsCollector:     args.StatsCollector,
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
 		return nil, err
 	}
 
-	go tsm.doCheckpointsAndSnapshots(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
+	go tsm.doSnapshot(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
 	return tsm, nil
 }
 
-func (tsm *trieStorageManager) doCheckpointsAndSnapshots(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher, goRoutinesThrottler core.Throttler) {
+func (tsm *trieStorageManager) doSnapshot(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher, goRoutinesThrottler core.Throttler) {
 	tsm.doProcessLoop(ctx, msh, hsh, goRoutinesThrottler)
 	tsm.cleanupChans()
 }
@@ -122,14 +114,6 @@ func (tsm *trieStorageManager) doProcessLoop(ctx context.Context, msh marshal.Ma
 
 			goRoutinesThrottler.StartProcessing()
 			go tsm.takeSnapshot(snapshotRequest, msh, hsh, ctx, goRoutinesThrottler)
-		case snapshotRequest := <-tsm.checkpointReq:
-			err := tsm.checkGoRoutinesThrottler(ctx, goRoutinesThrottler, snapshotRequest)
-			if err != nil {
-				return
-			}
-
-			goRoutinesThrottler.StartProcessing()
-			go tsm.takeCheckpoint(snapshotRequest, msh, hsh, ctx, goRoutinesThrottler)
 		case <-ctx.Done():
 			return
 		}
@@ -165,8 +149,6 @@ func (tsm *trieStorageManager) cleanupChans() {
 		select {
 		case entry := <-tsm.snapshotReq:
 			tsm.finishOperation(entry, "trie snapshot finished on cleanup")
-		case entry := <-tsm.checkpointReq:
-			tsm.finishOperation(entry, "trie checkpoint finished on cleanup")
 		default:
 			log.Debug("finished trieStorageManager.cleanupChans")
 			return
@@ -188,11 +170,16 @@ func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	if core.IsClosingError(err) {
 		return nil, err
 	}
-	if len(val) != 0 {
-		return val, nil
+	if len(val) == 0 {
+		return nil, ErrKeyNotFound
 	}
 
-	return tsm.getFromOtherStorers(key)
+	return val, nil
+}
+
+// GetStateStatsHandler will return the state statistics component
+func (tsm *trieStorageManager) GetStateStatsHandler() common.StateStatisticsHandler {
+	return tsm.statsCollector
 }
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
@@ -215,18 +202,6 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.Unlock()
 
 	return storer.GetFromCurrentEpoch(key)
-}
-
-func (tsm *trieStorageManager) getFromOtherStorers(key []byte) ([]byte, error) {
-	val, err := tsm.checkpointsStorer.Get(key)
-	if core.IsClosingError(err) {
-		return nil, err
-	}
-	if len(val) != 0 {
-		return val, nil
-	}
-
-	return nil, ErrKeyNotFound
 }
 
 // Put adds the given value to the main storer
@@ -353,7 +328,6 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	}
 
 	tsm.EnterPruningBufferingMode()
-	tsm.checkpointHashesHolder.RemoveCommitted(rootHash)
 
 	snapshotEntry := &snapshotsQueueEntry{
 		address:          address,
@@ -366,53 +340,6 @@ func (tsm *trieStorageManager) TakeSnapshot(
 	}
 	select {
 	case tsm.snapshotReq <- snapshotEntry:
-	case <-tsm.closer.ChanClose():
-		tsm.ExitPruningBufferingMode()
-		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
-		stats.SnapshotFinished()
-	}
-}
-
-// SetCheckpoint creates a new checkpoint, or if there is another snapshot or checkpoint in progress,
-// it adds this checkpoint in the queue. The checkpoint operation creates a new snapshot file
-// only if there was no snapshot done prior to this
-func (tsm *trieStorageManager) SetCheckpoint(
-	rootHash []byte,
-	mainTrieRootHash []byte,
-	iteratorChannels *common.TrieIteratorChannels,
-	missingNodesChan chan []byte,
-	stats common.SnapshotStatisticsHandler,
-) {
-	if iteratorChannels.ErrChan == nil {
-		log.Error("programming error in trieStorageManager.SetCheckpoint, cannot set checkpoint because errChan is nil")
-		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
-		stats.SnapshotFinished()
-		return
-	}
-	if tsm.IsClosed() {
-		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
-		stats.SnapshotFinished()
-		return
-	}
-
-	if bytes.Equal(rootHash, common.EmptyTrieHash) {
-		log.Trace("should not set checkpoint for empty trie")
-		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
-		stats.SnapshotFinished()
-		return
-	}
-
-	tsm.EnterPruningBufferingMode()
-
-	checkpointEntry := &snapshotsQueueEntry{
-		rootHash:         rootHash,
-		mainTrieRootHash: mainTrieRootHash,
-		iteratorChannels: iteratorChannels,
-		missingNodesChan: missingNodesChan,
-		stats:            stats,
-	}
-	select {
-	case tsm.checkpointReq <- checkpointEntry:
 	case <-tsm.closer.ChanClose():
 		tsm.ExitPruningBufferingMode()
 		common.CloseKeyValueHolderChan(iteratorChannels.LeavesChan)
@@ -480,41 +407,6 @@ func getTrieTypeFromAddress(address string) common.TrieType {
 	return common.DataTrie
 }
 
-func (tsm *trieStorageManager) takeCheckpoint(checkpointEntry *snapshotsQueueEntry, msh marshal.Marshalizer, hsh hashing.Hasher, ctx context.Context, goRoutinesThrottler core.Throttler) {
-	defer func() {
-		tsm.finishOperation(checkpointEntry, "trie checkpoint finished")
-		goRoutinesThrottler.EndProcessing()
-	}()
-
-	log.Trace("trie checkpoint started", "rootHash", checkpointEntry.rootHash)
-
-	newRoot, err := newSnapshotNode(tsm, msh, hsh, checkpointEntry.rootHash, checkpointEntry.missingNodesChan)
-	if err != nil {
-		checkpointEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
-		treatSnapshotError(err,
-			"trie storage manager: newSnapshotNode takeCheckpoint",
-			checkpointEntry.rootHash,
-			checkpointEntry.mainTrieRootHash,
-		)
-		return
-	}
-
-	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitCheckpoint(tsm, tsm.checkpointsStorer, tsm.checkpointHashesHolder, checkpointEntry.iteratorChannels.LeavesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
-	if err != nil {
-		checkpointEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
-		treatSnapshotError(err,
-			"trie storage manager: takeCheckpoint commit",
-			checkpointEntry.rootHash,
-			checkpointEntry.mainTrieRootHash,
-		)
-		return
-	}
-
-	stats.AddAccountInfo(checkpointEntry.address, checkpointEntry.rootHash)
-	checkpointEntry.stats.AddTrieStats(stats, getTrieTypeFromAddress(checkpointEntry.address))
-}
-
 func treatSnapshotError(err error, message string, rootHash []byte, mainTrieRootHash []byte) {
 	if core.IsClosingError(err) {
 		log.Debug("context closing", "message", message, "rootHash", rootHash, "mainTrieRootHash", mainTrieRootHash)
@@ -532,10 +424,8 @@ func newSnapshotNode(
 	missingNodesCh chan []byte,
 ) (snapshotNode, error) {
 	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
+	_, _ = treatCommitSnapshotError(err, rootHash, missingNodesCh)
 	if err != nil {
-		if strings.Contains(err.Error(), core.GetNodeFromDBErrorString) {
-			treatCommitSnapshotError(err, rootHash, missingNodesCh)
-		}
 		return nil, err
 	}
 
@@ -555,17 +445,11 @@ func (tsm *trieStorageManager) IsPruningBlocked() bool {
 	return tsm.pruningBlockingOps != 0
 }
 
-// AddDirtyCheckpointHashes adds the given hashes to the checkpoint hashes holder
-func (tsm *trieStorageManager) AddDirtyCheckpointHashes(rootHash []byte, hashes common.ModifiedHashes) bool {
-	return tsm.checkpointHashesHolder.Put(rootHash, hashes)
-}
-
-// Remove removes the given hash form the storage and from the checkpoint hashes holder
+// Remove removes the given hash form the storage
 func (tsm *trieStorageManager) Remove(hash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	tsm.checkpointHashesHolder.Remove(hash)
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return tsm.mainStorer.Remove(hash)
@@ -579,24 +463,12 @@ func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
 	tsm.storageOperationMutex.Lock()
 	defer tsm.storageOperationMutex.Unlock()
 
-	tsm.checkpointHashesHolder.Remove(hash)
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return fmt.Errorf("trie storage manager: main storer does not implement snapshotPruningStorer interface: %T", tsm.mainStorer)
 	}
 
 	return storer.RemoveFromAllActiveEpochs(hash)
-}
-
-// RemoveFromCheckpointHashesHolder removes the given hash from the checkpointHashesHolder
-func (tsm *trieStorageManager) RemoveFromCheckpointHashesHolder(hash []byte) {
-	//TODO check if the mutex is really needed here
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	log.Trace("trie storage manager: RemoveFromCheckpointHashesHolder", "hash", hash)
-
-	tsm.checkpointHashesHolder.Remove(hash)
 }
 
 // IsClosed returns true if the trie storage manager has been closed
@@ -625,12 +497,6 @@ func (tsm *trieStorageManager) Close() error {
 	if errMainStorerClose != nil {
 		log.Error("trieStorageManager.Close mainStorerClose", "error", errMainStorerClose)
 		err = errMainStorerClose
-	}
-
-	errCheckpointsStorerClose := tsm.checkpointsStorer.Close()
-	if errCheckpointsStorerClose != nil {
-		log.Error("trieStorageManager.Close checkpointsStorerClose", "error", errCheckpointsStorerClose)
-		err = errCheckpointsStorerClose
 	}
 
 	if err != nil {
@@ -663,6 +529,11 @@ func (tsm *trieStorageManager) ShouldTakeSnapshot() bool {
 		return false
 	}
 
+	return true
+}
+
+// IsSnapshotSupported returns true as the snapshotting process is supported by the current implementation
+func (tsm *trieStorageManager) IsSnapshotSupported() bool {
 	return true
 }
 

@@ -94,16 +94,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		AccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("AccountsTrieCheckpoints"),
-				Type:              string(storageunit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -114,19 +104,8 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: getLRUCacheConfig(),
-			DB: config.DBConfig{
-				FilePath:          AddTimestampSuffix("PeerAccountsTrieCheckpoints"),
-				Type:              string(storageunit.MemoryDB),
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus:     100,
-			CheckpointsEnabled:          false,
+			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
 			MaxStateTrieLevelInMemory:   5,
@@ -434,6 +413,24 @@ func GetGeneralConfig() config.Config {
 				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
 				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+			},
+		},
+		SovereignConfig: config.SovereignConfig{
+			NotifierConfig: config.NotifierConfig{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+			},
+			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
 			},
 		},
 	}

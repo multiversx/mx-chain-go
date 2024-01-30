@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"net"
 	"os"
 	"time"
 
@@ -14,9 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	"github.com/urfave/cli"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 // Before merging anything into feat/chain-go-sdk, please try a "stress" system test with a local testnet and this notifier.
@@ -24,6 +29,15 @@ import (
 // 1. Replace github.com/multiversx/mx-chain-communication-go from cmd/sovereignnode/systemTestDemo/go.mod with the one
 // from this branch: sovereign-stress-test-branch.
 // 2. Keep the config in variables.sh with at least 3 validators.
+//
+// If you need to simulate bridge outgoing txs with notifier confirmation, but don't have yet any SC deployed in sovereign
+// shard, you can simply add the following lines in `sovereignChainBlock.go`, func: `createAndSetOutGoingMiniBlock`
+//   + bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(headerHandler.GetRandSeed()))
+//   + bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(headerHandler.GetRandSeed()))
+//   + outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
+//
+// If you are running with a local testnet and need the necessary certificate files to mock bridge operations, you
+// can find them(certificate.crt + private_key.pem) within testnet environment setup at ~MultiversX/testnet/node/config
 
 func main() {
 	app := cli.NewApp()
@@ -64,6 +78,18 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
+	mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer()
+	if err != nil {
+		log.Error("cannot create grpc server", "error", err)
+		return err
+	}
+
+	defer func() {
+		grpcServerConn.Stop()
+		err = host.Close()
+		log.LogIfError(err)
+	}()
+
 	subscribedAddr, err := pubKeyConverter.Decode(subscribedAddress)
 	if err != nil {
 		return err
@@ -74,7 +100,11 @@ func startMockNotifier(ctx *cli.Context) error {
 	prevRandSeed := generateRandomHash()
 	for {
 		headerV2 := createHeaderV2(nonce, prevHash, prevRandSeed)
-		outportBlock, err := createOutportBlock(headerV2, subscribedAddr)
+
+		confirmedBridgeOps, err := mockedGRPCServer.ExtractRandomBridgeTopicsForConfirmation()
+		log.LogIfError(err)
+
+		outportBlock, err := createOutportBlock(headerV2, subscribedAddr, confirmedBridgeOps)
 		if err != nil {
 			return err
 		}
@@ -125,6 +155,40 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 	return factoryHost.CreateWebSocketHost(args)
 }
 
+func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
+	listener, err := net.Listen("tcp", grpcAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tlsConfig, err := cert.LoadTLSServerConfig(cert.FileCfg{
+		CertFile: "certificate.crt",
+		PkFile:   "private_key.pem",
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	tlsCredentials := credentials.NewTLS(tlsConfig)
+	grpcServer := grpc.NewServer(
+		grpc.Creds(tlsCredentials),
+	)
+	mockedServer := NewMockServer()
+	sovereign.RegisterBridgeTxSenderServer(grpcServer, mockedServer)
+
+	log.Info("starting grpc server...")
+
+	go func() {
+		for {
+			if err = grpcServer.Serve(listener); err != nil {
+				log.LogIfError(err)
+				time.Sleep(time.Second)
+			}
+		}
+	}()
+
+	return mockedServer, grpcServer, nil
+}
+
 func generateRandomHash() []byte {
 	randomBytes := make([]byte, hashSize)
 	_, _ = rand.Read(randomBytes)
@@ -144,14 +208,22 @@ func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.H
 	}
 }
 
-func createOutportBlock(headerV2 *block.HeaderV2, subscribedAddr []byte) (*outport.OutportBlock, error) {
+func createOutportBlock(headerV2 *block.HeaderV2, subscribedAddr []byte, confirmedBridgeOps []*ConfirmedBridgeOp) (*outport.OutportBlock, error) {
 	blockData, err := createBlockData(headerV2)
 	if err != nil {
 		return nil, err
 	}
-	logs, err := createLogs(subscribedAddr, headerV2.GetNonce())
+	incomingLogs, err := createLogs(subscribedAddr, headerV2.GetNonce())
 	if err != nil {
 		return nil, err
+	}
+
+	logs := make([]*outport.LogData, 0)
+	logs = append(logs, incomingLogs...)
+
+	bridgeConfirmationLogs := createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps, subscribedAddr)
+	if len(bridgeConfirmationLogs) != 0 {
+		logs = append(logs, bridgeConfirmationLogs...)
 	}
 
 	return &outport.OutportBlock{
@@ -194,6 +266,25 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 			},
 		},
 	}, nil
+}
+
+func createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps []*ConfirmedBridgeOp, subscribedAddr []byte) []*outport.LogData {
+	ret := make([]*outport.LogData, 0, len(confirmedBridgeOps))
+	for _, confirmedBridgeOp := range confirmedBridgeOps {
+		ret = append(ret, &outport.LogData{
+			Log: &transaction.Log{
+				Events: []*transaction.Event{
+					{
+						Address:    subscribedAddr,
+						Identifier: []byte("executedBridgeOp"),
+						Topics:     [][]byte{confirmedBridgeOp.HashOfHashes, confirmedBridgeOp.BridgeOpHash},
+					},
+				},
+			},
+		})
+	}
+
+	return ret
 }
 
 func createTransferTopics(addr []byte, ct int64) ([][]byte, error) {

@@ -15,3 +15,5 @@ var errInvalidNumTopicsIncomingEvent = errors.New("received invalid number of to
 var errEmptyLogData = errors.New("empty logs data in incoming event")
 
 var errInvalidNumTokensOnLogData = errors.New("received invalid number of tokens in topic data of incoming event")
+
+var errInvalidIncomingEventIdentifier = errors.New("received invalid/unknown incoming event identifier")

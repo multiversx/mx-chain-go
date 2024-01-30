@@ -19,5 +19,6 @@ var (
 	pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addressLen, "erd")
 
 	wsURL             = "localhost:22111"
+	grpcAddress       = ":8085"
 	subscribedAddress = "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
 )

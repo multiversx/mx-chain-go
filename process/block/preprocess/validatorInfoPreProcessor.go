@@ -56,6 +56,12 @@ func NewValidatorInfoPreprocessor(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	bpp := &basePreProcess{
 		hasher:               hasher,
@@ -110,7 +116,7 @@ func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 			continue
 		}
 
-		if vip.enableEpochsHandler.IsRefactorPeersMiniBlocksFlagEnabled() {
+		if vip.enableEpochsHandler.IsFlagEnabled(common.RefactorPeersMiniBlocksFlag) {
 			err := vip.restoreValidatorsInfo(miniBlock)
 			if err != nil {
 				return validatorsInfoRestored, err

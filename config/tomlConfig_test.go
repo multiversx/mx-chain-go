@@ -134,13 +134,14 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			CheckpointRoundsModulus:     37,
-			CheckpointsEnabled:          true,
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
+		},
+		Redundancy: RedundancyConfig{
+			MaxRoundsOfInactivityAccepted: 3,
 		},
 	}
 	testString := `
@@ -229,13 +230,16 @@ func TestTomlParser(t *testing.T) {
         DoProfileOnShuffleOut = true
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 37
-    CheckpointsEnabled = true
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
+
+[Redundancy]
+    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 
@@ -485,6 +489,10 @@ func TestP2pConfig(t *testing.T) {
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d"
             PreventPortReuse = true
+        [Node.ResourceLimiter]
+            Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
+            ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
+            ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
 
 [KadDhtPeerDiscovery]
     Enabled = false
@@ -520,6 +528,11 @@ func TestP2pConfig(t *testing.T) {
 				QUICAddress:         "/ip4/0.0.0.0/udp/%d/quic-v1",
 				WebSocketAddress:    "/ip4/0.0.0.0/tcp/%d/ws",
 				WebTransportAddress: "/ip4/0.0.0.0/udp/%d/quic-v1/webtransport",
+			},
+			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+				Type:                   "default autoscale",
+				ManualSystemMemoryInMB: 1,
+				ManualMaximumFD:        2,
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -820,6 +833,15 @@ func TestEnableEpochConfig(t *testing.T) {
     # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
     NFTStopCreateEnableEpoch = 89
 
+    # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 90
+
+    # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
+    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
+
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 92
+
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 69
 
@@ -929,7 +951,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeUsernameEnableEpoch:                    85,
 			ConsistentTokensValuesLengthCheckEnableEpoch: 86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch: 87,
-			ScToScLogEventEnableEpoch:                    88,NFTStopCreateEnableEpoch:                          89,
+			ScToScLogEventEnableEpoch:                    88, NFTStopCreateEnableEpoch: 89, ChangeOwnerAddressCrossShardThroughSCEnableEpoch: 90,
+			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
+			CurrentRandomnessOnSortingEnableEpoch:                    92,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

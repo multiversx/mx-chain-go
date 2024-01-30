@@ -7,7 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/database"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +37,7 @@ func TestNewTrieStorageManagerInEpochInvalidStorerType(t *testing.T) {
 	t.Parallel()
 
 	_, trieStorage := newEmptyTrie()
-	trieStorage.mainStorer = database.NewMemDB()
+	trieStorage.mainStorer = testscommon.NewMemDbMock()
 
 	tsmie, err := newTrieStorageManagerInEpoch(trieStorage, 0)
 	assert.Nil(t, tsmie)
