@@ -382,6 +382,20 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedNewValue, cfg.StoragePruning.FullArchiveNumActivePersisters)
 	})
 
+	t.Run("should work and override int32 value", func(t *testing.T) {
+		t.Parallel()
+
+		path := "Antiflood.NumConcurrentResolverJobs"
+		cfg := &config.Config{}
+		cfg.Antiflood.NumConcurrentResolverJobs = int32(50)
+		expectedNewValue := int32(37)
+
+		err := AdaptStructureValueBasedOnPath(cfg, path, fmt.Sprintf("%d", expectedNewValue))
+		require.NoError(t, err)
+
+		require.Equal(t, expectedNewValue, cfg.Antiflood.NumConcurrentResolverJobs)
+	})
+
 	t.Run("should work and override string value on multiple levels depth", func(t *testing.T) {
 		t.Parallel()
 

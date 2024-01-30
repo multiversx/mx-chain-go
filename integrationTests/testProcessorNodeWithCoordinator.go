@@ -61,21 +61,22 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                numShards,
-				EligibleNodes:           validatorsMapForNodesCoordinator,
-				WaitingNodes:            waitingMapForNodesCoordinator,
-				SelfPublicKey:           v.PubKeyBytes(),
-				ConsensusGroupCache:     lruCache,
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:           false,
-				EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+				ShardConsensusGroupSize:  shardConsensusGroupSize,
+				MetaConsensusGroupSize:   metaConsensusGroupSize,
+				Marshalizer:              TestMarshalizer,
+				Hasher:                   TestHasher,
+				ShardIDAsObserver:        shardId,
+				NbShards:                 numShards,
+				EligibleNodes:            validatorsMapForNodesCoordinator,
+				WaitingNodes:             waitingMapForNodesCoordinator,
+				SelfPublicKey:            v.PubKeyBytes(),
+				ConsensusGroupCache:      lruCache,
+				ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:            false,
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+				GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

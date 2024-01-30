@@ -658,3 +658,42 @@ var ErrNilTxPreProcessorCreator = errors.New("nil tx pre-processor creator has b
 
 // ErrNilNode signals that a nil node was provided
 var ErrNilNode = errors.New("nil node")
+
+// ErrNilOutgoingOperationsFormatter signals that a nil outgoing operations formatter has been provided
+var ErrNilOutgoingOperationsFormatter = errors.New("nil outgoing operations formatter has been provided")
+
+// ErrNilOutGoingOperationsPool signals that a nil outgoing operations pool has been provided
+var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has been provided")
+
+// ErrNilExtraSubRoundSigner signals that a nil extra subround signer has been provided
+var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been provided")
+
+// ErrNilStartRoundExtraSignersHolder signals that a nil start round extra signers holder has been provided
+var ErrNilStartRoundExtraSignersHolder = errors.New("nil start round extra signers holder has been provided")
+
+// ErrNilSignatureRoundExtraSignersHolder signals that a nil signature round extra signers holder has been provided
+var ErrNilSignatureRoundExtraSignersHolder = errors.New("nil signature round extra signers holder has been provided")
+
+// ErrNilEndRoundExtraSignersHolder signals that a nil end round extra signers holder has been provided
+var ErrNilEndRoundExtraSignersHolder = errors.New("nil end round extra signers holder has been provided")
+
+// ErrExtraSignerIdAlreadyExists signals that an extra signer with the same id has been already registered
+var ErrExtraSignerIdAlreadyExists = errors.New("an extra signer with the same id has been already registered")
+
+// ErrNilExtraHeaderSigVerifierHolder signals that a nil extra sig verifier holder has been provided
+var ErrNilExtraHeaderSigVerifierHolder = errors.New("nil extra sig verifier holder has been provided")
+
+// ErrNilConsensusMessage signals that a nil consensus message has been provided
+var ErrNilConsensusMessage = errors.New("nil consensus message has been provided")
+
+// ErrNilExtraSignersHolder signals that a nil extra signers holder has been provided
+var ErrNilExtraSignersHolder = errors.New("nil extra signer holder has been provided")
+
+// ErrNilSubRoundEndV2Creator signals that a nil sub round end v2 creator has been provided
+var ErrNilSubRoundEndV2Creator = errors.New("nil sub round end v2 creator has been provided")
+
+// ErrNilBridgeOpHandler signals that a nil bridge operation handler has been provided
+var ErrNilBridgeOpHandler = errors.New("nil bridge operation handler has been provided")
+
+// ErrOutGoingOperationsNotFound signals that an outgoing operation could not be found
+var ErrOutGoingOperationsNotFound = errors.New("outgoing operation could not be found")

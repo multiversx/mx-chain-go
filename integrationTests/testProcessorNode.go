@@ -115,6 +115,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -189,7 +190,6 @@ var MinTxGasLimit = uint64(1000)
 // MaxGasLimitPerBlock defines maximum gas limit allowed per one block
 const MaxGasLimitPerBlock = uint64(3000000)
 
-const maxTxNonceDeltaAllowed = 8000
 const minConnectedPeers = 0
 
 // OpGasValueForMockVm represents the gas value that it consumed by each operation called on the mock VM
@@ -219,8 +219,6 @@ var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02c
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
-
-const stateCheckpointModulus = uint(100)
 
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
@@ -279,7 +277,6 @@ type ArgTestProcessorNode struct {
 	TrieStore               storage.Storer
 	HardforkPk              crypto.PublicKey
 	GenesisFile             string
-	StateCheckpointModulus  *IntWrapper
 	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -830,11 +827,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	if args.WithSync {
 		tpn.initBlockProcessorWithSync()
 	} else {
-		scm := stateCheckpointModulus
-		if args.StateCheckpointModulus != nil {
-			scm = args.StateCheckpointModulus.Value
-		}
-		tpn.initBlockProcessor(scm)
+		tpn.initBlockProcessor()
 	}
 
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -1051,7 +1044,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
-	tpn.initBlockProcessor(stateCheckpointModulus)
+	tpn.initBlockProcessor()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		TestHasher,
@@ -1313,7 +1306,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                 tpn.EconomicsData,
 			BlockBlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:            tpn.HeaderSigVerifier,
@@ -1381,7 +1374,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:         tpn.FullArchiveMessenger,
 			Store:                        tpn.Storage,
 			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                 tpn.EconomicsData,
 			BlockBlackList:               tpn.BlockBlackListHandler,
 			HeaderSigVerifier:            tpn.HeaderSigVerifier,
@@ -2175,7 +2168,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
 }
 
-func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
+func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
@@ -2208,12 +2201,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	statusComponents := GetDefaultStatusComponents()
 
-	triesConfig := config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus: stateCheckpointModulus,
-		},
-	}
-
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -2224,7 +2211,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               triesConfig,
+		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         tpn.ForkDetector,
 		NodesCoordinator:     tpn.NodesCoordinator,
@@ -2435,7 +2422,12 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 		bp, errNewShardProc := block.NewShardProcessor(arguments)
 		if tpn.ChainRunType == common.ChainRunTypeSovereign {
-			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(bp, tpn.ValidatorStatisticsProcessor)
+			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
+				ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
+				ShardProcessor:               bp,
+				OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
+				OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			})
 		} else {
 			tpn.BlockProcessor = bp
 			err = errNewShardProc

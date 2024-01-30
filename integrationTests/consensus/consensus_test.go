@@ -14,10 +14,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -175,6 +177,8 @@ func startNodesWithCommitBlock(
 			IsInImportMode:       n.Node.IsInImportMode(),
 			ConsensusModel:       consensusModel,
 			ChainRunType:         common.ChainRunTypeRegular,
+			SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
+			ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)

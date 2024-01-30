@@ -118,17 +118,21 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the gas costs configuration directory.",
 		Value: "./config/gasSchedules",
 	}
-	// notifierConfigFile defines a flag for the path to the sovereign notifier toml configuration file
-	notifierConfigFile = cli.StringFlag{
-		Name:  "notifier-config",
-		Usage: "The `" + filePathPlaceholder + "` for sovereign notifier configuration.",
-		Value: "./config/notifierConfig.toml",
-	}
 	// sovereignConfigFile defines a flag for the path to the sovereign toml configuration file
 	sovereignConfigFile = cli.StringFlag{
 		Name:  "sovereign-config",
 		Usage: "The `" + filePathPlaceholder + "` for sovereign configuration.",
 		Value: "./config/sovereignConfig.toml",
+	}
+	sovereignBridgeCertificateFile = cli.StringFlag{
+		Name:  "certificate",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign outgoing bridge certificate file.",
+		Value: "./config/certificate.crt",
+	}
+	sovereignBridgeCertificatePkFile = cli.StringFlag{
+		Name:  "certificate-pk",
+		Usage: "The `" + filePathPlaceholder + "` for sovereign outgoing bridge private key certificate file.",
+		Value: "./config/private_key.pem",
 	}
 	// port defines a flag for setting the port on which the node will listen for connections on the main network
 	port = cli.StringFlag{
@@ -416,6 +420,12 @@ var (
 		Name:  "repopulate-tokens-supplies",
 		Usage: "Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies",
 	}
+	// p2pPrometheusMetrics defines a flag for p2p prometheus metrics
+	// If enabled, it will open a new route, /debug/metrics/prometheus, where p2p prometheus metrics will be available
+	p2pPrometheusMetrics = cli.BoolFlag{
+		Name:  "p2p-prometheus-metrics",
+		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -438,8 +448,9 @@ func getFlags() []cli.Flag {
 		validatorKeyIndex,
 		validatorKeyPemFile,
 		allValidatorKeysPemFile,
-		notifierConfigFile,
 		sovereignConfigFile,
+		sovereignBridgeCertificateFile,
+		sovereignBridgeCertificatePkFile,
 		port,
 		fullArchivePort,
 		profileMode,
@@ -506,9 +517,9 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
-	flagsConfig.NoKeyProvided = ctx.GlobalBool(noKey.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
+	flagsConfig.P2PPrometheusMetricsEnabled = ctx.GlobalBool(p2pPrometheusMetrics.Name)
 
 	return flagsConfig
 }
@@ -555,7 +566,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 		ImportDBWorkingDir:            importDbDirectoryValue,
 		ImportDbNoSigCheckFlag:        ctx.GlobalBool(importDbNoSigCheck.Name),
 		ImportDbSaveTrieEpochRootHash: ctx.GlobalBool(importDbSaveEpochRootHash.Name),
-		ImportDBStartInEpoch:          uint32(ctx.GlobalUint64(importDbStartInEpoch.Name)),
 	}
 	cfgs.FlagsConfig = flagsConfig
 	cfgs.ImportDbConfig = importDBConfigs
@@ -712,14 +722,10 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		return err
 	}
 
-	if importDbFlags.ImportDBStartInEpoch == 0 {
-		generalConfigs.GeneralSettings.StartInEpochEnabled = false
-	}
+	generalConfigs.GeneralSettings.StartInEpochEnabled = false
 
 	// We need to increment "NumActivePersisters" in order to make the storage resolvers work (since they open 2 epochs in advance)
 	generalConfigs.StoragePruning.NumActivePersisters++
-	generalConfigs.StateTriesConfig.CheckpointsEnabled = false
-	generalConfigs.StateTriesConfig.CheckpointRoundsModulus = 100000000
 	p2pConfigs.Node.ThresholdMinConnectedPeers = 0
 	p2pConfigs.KadDhtPeerDiscovery.Enabled = false
 	fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers = 0
@@ -729,15 +735,12 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 
 	log.Warn("the node is in import mode! Will auto-set some config values, including storage config values",
 		"GeneralSettings.StartInEpochEnabled", generalConfigs.GeneralSettings.StartInEpochEnabled,
-		"StateTriesConfig.CheckpointsEnabled", generalConfigs.StateTriesConfig.CheckpointsEnabled,
-		"StateTriesConfig.CheckpointRoundsModulus", generalConfigs.StateTriesConfig.CheckpointRoundsModulus,
 		"StoragePruning.NumEpochsToKeep", generalConfigs.StoragePruning.NumEpochsToKeep,
 		"StoragePruning.NumActivePersisters", generalConfigs.StoragePruning.NumActivePersisters,
 		"p2p.ThresholdMinConnectedPeers", p2pConfigs.Node.ThresholdMinConnectedPeers,
 		"fullArchiveP2P.ThresholdMinConnectedPeers", fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
-		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
 		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 		"kad dht discoverer", "off",
 	)

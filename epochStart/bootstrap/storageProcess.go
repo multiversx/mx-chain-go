@@ -184,6 +184,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
+		sesb.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -275,8 +276,9 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
+	initialEpoch := uint32(1)
 	mesn := notifier.NewManualEpochStartNotifier()
-	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
+	mesn.NewEpoch(initialEpoch)
 	sesb.store, err = sesb.createStoreForStorageResolvers(shardCoordinator, mesn)
 	if err != nil {
 		return err
@@ -297,6 +299,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
 		EnableEpochsHandler:      sesb.coreComponentsHolder.EnableEpochsHandler(),
+		StateStatsHandler:        sesb.stateStatsHandler,
 	}
 
 	var requestersContainerFactory dataRetriever.RequestersContainerFactory
@@ -326,11 +329,10 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		return nil, err
 	}
 
-	return sesb.createStorageService(
+	return sesb.createStorageServiceForImportDB(
 		shardCoordinator,
 		pathManager,
 		mesn,
-		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
 		sesb.importDbConfig.ImportDBTargetShardID,
 	)

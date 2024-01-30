@@ -34,7 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -51,12 +51,12 @@ var (
 	sovPubKeyConv = createMockPubkeyConverter()
 	sovShardCoord = mock.NewMultiShardsCoordinatorMock(1)
 
-	sovEnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSaveToSystemAccountFlagEnabledField:  true,
-		IsOptimizeNFTStoreFlagEnabledField:     true,
-		IsSendAlwaysFlagEnabledField:           true,
-		IsESDTNFTImprovementV1FlagEnabledField: true,
-	}
+	sovEnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+		common.SaveToSystemAccountFlag,
+		common.OptimizeNFTStoreFlag,
+		common.SendAlwaysFlag,
+		common.ESDTNFTImprovementV1Flag,
+	)
 )
 
 func createSovereignSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
@@ -117,9 +117,7 @@ func createAccountsDB() *state.AccountsDB {
 		Marshaller:            sovMarshaller,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+		SnapshotsManager:      &stateMock.SnapshotsManagerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 	}
 	adb, _ := state.NewAccountsDB(args)

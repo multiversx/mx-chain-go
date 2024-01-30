@@ -31,7 +31,7 @@ GLOBAL OPTIONS:
    --round-config [path]                     The [path] for the round configuration file. This TOML file contains activation round configurations (default: "./config/enableRounds.toml")
    --gas-costs-config [path]                 The [path] for the gas costs configuration directory. (default: "./config/gasSchedules")
    --sk-index value                          The index in the PEM file of the private key to be used by the node. (default: 0)
-   --validator-key-pem-file filepath         The filepath for the PEM file which contains the secret keys for the validator key. (default: "./config/validatorKey.pem")
+   --validator-key-pem-file filepath         The filepath for the PEM file which contains the secret keys to be used by this node. If the file does not exists or can not be loaded, the node will autogenerate and use a random key. The key may or may not be registered to be a consensus validator. (default: "./config/validatorKey.pem")
    --all-validator-keys-pem-file filepath    The filepath for the PEM file which contains all the secret keys managed by the current node. (default: "./config/allValidatorsKeys.pem")
    --port [p2p port]                         The [p2p port] number on which the application will start. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "0")
    --full-archive-port [p2p port]            The [p2p port] number on which the application will start the second network when running in full archive mode. Can use single values such as `0, 10230, 15670` or range of ports such as `5000-10000` (default: "0")
@@ -58,7 +58,6 @@ GLOBAL OPTIONS:
    --import-db value                         This flag, if set, will make the node start the import process using the provided data path. Will re-checkand re-process everything
    --import-db-no-sig-check                  This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set
    --import-db-save-epoch-root-hash          This flag, if set, will export the trie snapshots at every new epoch
-   --import-db-start-epoch value             This flag will specify the start in epoch value in import-db process (default: 0)
    --redundancy-level value                  This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.) (default: 0)
    --full-archive                            Boolean option for settings an observer as full archive, which will sync the entire database of its shard
    --mem-ballast value                       Flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization. If set to 0 (or not set at all), the feature will be disabled. This flag should be used only for well-monitored nodes and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast should not be higher than 20-25% of the machine's available RAM (default: 0)
@@ -66,13 +65,14 @@ GLOBAL OPTIONS:
    --force-start-from-network                Flag that will force the start from network bootstrap process
    --disable-consensus-watchdog              Flag that will disable the consensus watchdog
    --serialize-snapshots state snapshotting  Flag that will serialize state snapshotting and `processing`
-   --no-key                                  Boolean flag for enabling the node to generate a signing key when it starts (if the validatorKey.pem file is present, setting this flag to true will overwrite the BLS key used by the node)
+   --no-key                                  DEPRECATED option, it will be removed in the next releases. To start a node without a key, simply omit to provide a validatorKey.pem file
    --p2p-key-pem-file filepath               The filepath for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default. (default: "./config/p2pKey.pem")
    --snapshots-enabled                       Boolean option for enabling state snapshots. If it is not set it defaults to true, it will be set to false if it is set specifically as --snapshots-enabled=false
    --db-path directory                       This flag specifies the directory where the node will store databases.
    --logs-path directory                     This flag specifies the directory where the node will store logs.
    --operation-mode operation mode           String flag for specifying the desired operation mode(s) of the node, resulting in altering some configuration values accordingly. Possible values are: snapshotless-observer, full-archive, db-lookup-extension, historical-balances or `""` (empty). Multiple values can be separated via ,
    --repopulate-tokens-supplies              Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies
+   --p2p-prometheus-metrics                  Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics
    --help, -h                                show help
    --version, -v                             print the version
    

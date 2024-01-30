@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -53,12 +54,14 @@ import (
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
@@ -247,7 +250,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Outport: &outport.OutportStub{},
 		},
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
 		ChainRunType:                          common.ChainRunTypeRegular,
@@ -258,6 +262,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
+		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -650,6 +657,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.TxPreProcessorCreator = nil
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil extra header sig verifier holder, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.ExtraHeaderSigVerifierHolder = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilExtraHeaderSigVerifierHolder))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {
