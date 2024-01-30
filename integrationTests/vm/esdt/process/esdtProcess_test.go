@@ -46,6 +46,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch:      integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -179,6 +180,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 		MultiClaimOnDelegationEnableEpoch:           integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch:      integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -1413,6 +1415,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch:  integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
@@ -2105,9 +2108,10 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:           integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:     integrationTests.UnreachableEpoch,
-		MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:             integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:       integrationTests.UnreachableEpoch,
+		MaxBlockchainHookCountersEnableEpoch:   integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -2492,6 +2496,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch:      integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

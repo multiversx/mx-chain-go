@@ -860,6 +860,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
 	EquivalentMessagesEnableEpoch = 92
 
+    # ConsensusPropagationChangesEnableEpoch represents the epoch when the consensus propagation changes are enabled
+    ConsensusPropagationChangesEnableEpoch = 93
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -972,6 +975,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
 			EquivalentMessagesEnableEpoch:                            92,
+			ConsensusPropagationChangesEnableEpoch:                   93,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

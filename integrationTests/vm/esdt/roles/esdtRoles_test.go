@@ -389,7 +389,8 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		ScheduledMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:         integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -480,7 +481,8 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		ScheduledMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:         integrationTests.UnreachableEpoch,
+		ConsensusPropagationChangesEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,

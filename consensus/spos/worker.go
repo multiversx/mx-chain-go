@@ -126,6 +126,9 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		ConsensusState:       args.ConsensusState,
 		ConsensusService:     args.ConsensusService,
 		PeerSignatureHandler: args.PeerSignatureHandler,
+		EnableEpochsHandler:  args.EnableEpochsHandler,
+		Marshaller:           args.Marshalizer,
+		ShardCoordinator:     args.ShardCoordinator,
 		SignatureSize:        args.SignatureSize,
 		PublicKeySize:        args.PublicKeySize,
 		HeaderHashSize:       args.Hasher.Size(),
@@ -317,7 +320,7 @@ func (wrk *Worker) initReceivedMessages() {
 	wrk.mutReceivedMessages.Unlock()
 }
 
-// AddReceivedMessageCall adds a new handler function for a received messege type
+// AddReceivedMessageCall adds a new handler function for a received message type
 func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
@@ -500,6 +503,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	err = wrk.headerSigVerifier.VerifyRandSeed(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify rand seed for received header from consensus topic failed",
+			err)
+	}
+
+	err = wrk.headerSigVerifier.VerifyPreviousBlockProof(header)
+	if err != nil {
+		return fmt.Errorf("%w : verify previous block proof for received header from consensus topic failed",
 			err)
 	}
 
@@ -783,22 +792,21 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 		return err
 	}
 
-	// TODO[Sorin next PR]: update EquivalentMessageInfo structure to hold also the proof(bitmap+signature) that was received
-	// then on commit block store this data on blockchain in order to use it on the next block creation
 	equivalentMsgInfo.Validated = true
+	equivalentMsgInfo.Proof = data.HeaderProof{
+		AggregatedSignature: cnsMsg.AggregateSignature,
+		PubKeysBitmap:       cnsMsg.PubKeysBitmap,
+	}
 
 	return nil
 }
 
-func (wrk *Worker) verifyEquivalentMessageSignature(_ *consensus.Message) error {
+func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) error {
 	if check.IfNil(wrk.consensusState.Header) {
 		return ErrNilHeader
 	}
 
-	header := wrk.consensusState.Header.ShallowClone()
-
-	// TODO[Sorin]: after flag enabled, VerifySignature on previous hash, with the signature and bitmap from the proof on cnsMsg
-	return wrk.headerSigVerifier.VerifySignature(header)
+	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {

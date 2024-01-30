@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -19,6 +20,7 @@ type interceptedShardHeaderDataFactory struct {
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	validityAttester        process.ValidityAttester
 	epochStartTrigger       process.EpochStartTriggerHandler
+	enableEpochsHandler     common.EnableEpochsHandler
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -65,6 +67,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		headerIntegrityVerifier: argument.HeaderIntegrityVerifier,
 		validityAttester:        argument.ValidityAttester,
 		epochStartTrigger:       argument.EpochStartTrigger,
+		enableEpochsHandler:     argument.CoreComponents.EnableEpochsHandler(),
 	}, nil
 }
 
@@ -79,6 +82,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		HeaderIntegrityVerifier: ishdf.headerIntegrityVerifier,
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
+		EnableEpochsHandler:     ishdf.enableEpochsHandler,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

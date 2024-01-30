@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -20,14 +21,15 @@ var log = logger.GetOrCreate("process/block/interceptedBlocks")
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr               data.MetaHeaderHandler
-	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.HeaderIntegrityVerifier
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
-	hash              []byte
-	validityAttester  process.ValidityAttester
-	epochStartTrigger process.EpochStartTriggerHandler
+	hdr                 data.MetaHeaderHandler
+	sigVerifier         process.InterceptedHeaderSigVerifier
+	integrityVerifier   process.HeaderIntegrityVerifier
+	hasher              hashing.Hasher
+	shardCoordinator    sharding.Coordinator
+	hash                []byte
+	validityAttester    process.ValidityAttester
+	epochStartTrigger   process.EpochStartTriggerHandler
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -43,13 +45,14 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	}
 
 	inHdr := &InterceptedMetaHeader{
-		hdr:               hdr,
-		hasher:            arg.Hasher,
-		sigVerifier:       arg.HeaderSigVerifier,
-		integrityVerifier: arg.HeaderIntegrityVerifier,
-		shardCoordinator:  arg.ShardCoordinator,
-		validityAttester:  arg.ValidityAttester,
-		epochStartTrigger: arg.EpochStartTrigger,
+		hdr:                 hdr,
+		hasher:              arg.Hasher,
+		sigVerifier:         arg.HeaderSigVerifier,
+		integrityVerifier:   arg.HeaderIntegrityVerifier,
+		shardCoordinator:    arg.ShardCoordinator,
+		validityAttester:    arg.ValidityAttester,
+		epochStartTrigger:   arg.EpochStartTrigger,
+		enableEpochsHandler: arg.EnableEpochsHandler,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -120,6 +123,11 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
+	err = imh.sigVerifier.VerifyPreviousBlockProof(imh.hdr)
+	if err != nil {
+		return err
+	}
+
 	return imh.integrityVerifier.Verify(imh.hdr)
 }
 
@@ -137,7 +145,7 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 
 // integrity checks the integrity of the meta header block wrapper
 func (imh *InterceptedMetaHeader) integrity() error {
-	err := checkHeaderHandler(imh.HeaderHandler())
+	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler)
 	if err != nil {
 		return err
 	}

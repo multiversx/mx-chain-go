@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -39,6 +40,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.ValidityAttester) {
 		return process.ErrNilValidityAttester
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
 
 	return nil
 }
@@ -63,7 +67,7 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 	return nil
 }
 
-func checkHeaderHandler(hdr data.HeaderHandler) error {
+func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
 	if len(hdr.GetPubKeysBitmap()) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}

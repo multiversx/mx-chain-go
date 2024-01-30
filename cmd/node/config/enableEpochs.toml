@@ -290,6 +290,9 @@
     # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
     EquivalentMessagesEnableEpoch = 3
 
+    # ConsensusPropagationChangesEnableEpoch represents the epoch when the consensus propagation changes are enabled
+    ConsensusPropagationChangesEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
