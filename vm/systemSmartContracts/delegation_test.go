@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
@@ -5042,4 +5043,140 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		assert.Equal(t, ownerAddress, account.Owner)
 		eei.ResetReturnMessage()
 	})
+}
+
+func TestDelegationSystemSC_ExecuteAddNodesStakeNodesWithNodesLimit(t *testing.T) {
+	t.Parallel()
+
+	sig := []byte("sig1")
+	args := createMockArgumentsForDelegation()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+		common.StakingV4Step1Flag,
+		common.StakingV4Step2Flag,
+		common.StakingV4Step3Flag,
+		common.StakeLimitsFlag,
+
+		common.DelegationSmartContractFlag,
+		common.StakingV2FlagAfterEpoch,
+		common.AddTokensToDelegationFlag,
+		common.DeleteDelegatorAfterClaimRewardsFlag,
+		common.ComputeRewardCheckpointFlag,
+		common.ValidatorToDelegationFlag,
+		common.ReDelegateBelowMinCheckFlag,
+		common.MultiClaimOnDelegationFlag,
+	)
+	eei := createDefaultEei()
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	key1 := &NodesData{
+		BLSKey: blsKey1,
+	}
+	key2 := &NodesData{
+		BLSKey: blsKey2,
+	}
+	dStatus := &DelegationContractStatus{
+		StakedKeys: []*NodesData{key1, key2},
+	}
+	_ = d.saveDelegationStatus(dStatus)
+
+	globalFund := &GlobalFundData{
+		TotalActive: big.NewInt(400),
+	}
+	_ = d.saveGlobalFundData(globalFund)
+
+	addValidatorAndStakingScToVmContextWithBlsKeys(eei, [][]byte{blsKey1, blsKey2})
+
+	dStatus, _ = d.getDelegationStatus()
+	require.Equal(t, 2, len(dStatus.StakedKeys))
+	require.Equal(t, 0, len(dStatus.UnStakedKeys))
+	require.Equal(t, 0, len(dStatus.NotStakedKeys))
+
+	newBlsKey1 := []byte("newBlsKey1")
+	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey1, sig})
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stakeNodes", [][]byte{newBlsKey1})
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	dStatus, _ = d.getDelegationStatus()
+	require.Equal(t, 3, len(dStatus.StakedKeys))
+	require.Equal(t, 0, len(dStatus.UnStakedKeys))
+	require.Equal(t, 0, len(dStatus.NotStakedKeys))
+
+	addValidatorAndStakingScToVmContextWithBlsKeys(eei, [][]byte{blsKey1, blsKey2, newBlsKey1})
+
+	newBlsKey2 := []byte("newBlsKey2")
+	vmInput = getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey2, sig})
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stakeNodes", [][]byte{newBlsKey2})
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.True(t, strings.Contains(eei.returnMessage, numberOfNodesTooHigh))
+	require.True(t, strings.Contains(eei.returnMessage, "num registered bls keys: 4"))
+	require.True(t, strings.Contains(eei.returnMessage, "node limit: 3"))
+
+	dStatus, _ = d.getDelegationStatus()
+	require.Equal(t, 3, len(dStatus.StakedKeys))
+	require.Equal(t, 0, len(dStatus.UnStakedKeys))
+	require.Equal(t, 1, len(dStatus.NotStakedKeys))
+}
+
+func addValidatorAndStakingScToVmContextWithBlsKeys(eei *vmContext, blsKeys [][]byte) {
+	validatorArgs := createMockArgumentsForValidatorSC()
+	validatorArgs.StakingSCConfig.NodeLimitPercentage = 1
+	validatorArgs.Eei = eei
+	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
+	validatorArgs.StakingSCAddress = vm.StakingSCAddress
+	validatorArgs.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		GetNumTotalEligibleCalled: func() uint64 {
+			return 3
+		},
+	}
+	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
+
+	stakingArgs := createMockStakingScArguments()
+	stakingArgs.Eei = eei
+	stakingSc, _ := NewStakingSmartContract(stakingArgs)
+
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		if bytes.Equal(key, vm.StakingSCAddress) {
+			return stakingSc, nil
+		}
+
+		if bytes.Equal(key, vm.ValidatorSCAddress) {
+			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
+				RewardAddress:   []byte("rewardAddr"),
+				TotalStakeValue: big.NewInt(1000),
+				LockedStake:     big.NewInt(500),
+				BlsPubKeys:      blsKeys,
+				TotalUnstaked:   big.NewInt(150),
+				UnstakedInfo: []*UnstakedValue{
+					{
+						UnstakedEpoch: 10,
+						UnstakedValue: big.NewInt(60),
+					},
+					{
+						UnstakedEpoch: 50,
+						UnstakedValue: big.NewInt(80),
+					},
+				},
+				NumRegistered: uint32(len(blsKeys)),
+			})
+			validatorSc.unBondPeriod = 50
+			return validatorSc, nil
+		}
+
+		return nil, nil
+	}})
 }

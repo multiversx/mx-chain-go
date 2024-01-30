@@ -22,6 +22,7 @@ import (
 const unJailedFunds = "unJailFunds"
 const unStakeUnBondPauseKey = "unStakeUnBondPause"
 const minPercentage = 0.0001
+const numberOfNodesTooHigh = "number of nodes too high, no new nodes activated"
 
 var zero = big.NewInt(0)
 
@@ -935,8 +936,12 @@ func (v *validatorSC) isNumberOfNodesTooHigh(registrationData *ValidatorDataV2) 
 		return false
 	}
 
+	return len(registrationData.BlsPubKeys) > v.computeNodeLimit()
+}
+
+func (v *validatorSC) computeNodeLimit() int {
 	nodeLimit := float64(v.nodesCoordinator.GetNumTotalEligible()) * v.nodeLimitPercentage
-	return len(registrationData.BlsPubKeys) > int(nodeLimit)
+	return int(nodeLimit)
 }
 
 func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1064,17 +1069,27 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		}
 	}
 
-	v.activateStakingFor(
-		blsKeys,
-		registrationData,
-		validatorConfig.NodePrice,
-		registrationData.RewardAddress,
-		args.CallerAddr,
-	)
-
-	if v.isNumberOfNodesTooHigh(registrationData) {
-		v.eei.AddReturnMessage("number of nodes is too high")
-		return vmcommon.UserError
+	if !v.isNumberOfNodesTooHigh(registrationData) {
+		v.activateStakingFor(
+			blsKeys,
+			registrationData,
+			validatorConfig.NodePrice,
+			registrationData.RewardAddress,
+			args.CallerAddr,
+		)
+	} else {
+		numRegisteredBlsKeys := int64(len(registrationData.BlsPubKeys))
+		nodeLimit := int64(v.computeNodeLimit())
+		entry := &vmcommon.LogEntry{
+			Identifier: []byte(args.Function),
+			Address:    args.RecipientAddr,
+			Topics: [][]byte{
+				[]byte(numberOfNodesTooHigh),
+				big.NewInt(numRegisteredBlsKeys).Bytes(),
+				big.NewInt(nodeLimit).Bytes(),
+			},
+		}
+		v.eei.AddLogEntry(entry)
 	}
 
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)
