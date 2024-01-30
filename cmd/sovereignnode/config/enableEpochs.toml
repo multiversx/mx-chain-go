@@ -1,9 +1,9 @@
 [EnableEpochs]
     # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-    SCDeployEnableEpoch = 1
+    SCDeployEnableEpoch = 0
 
     # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-    BuiltInFunctionsEnableEpoch = 1
+    BuiltInFunctionsEnableEpoch = 0
 
     # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
     RelayedTransactionsEnableEpoch = 1
@@ -59,7 +59,7 @@
     DoubleKeyProtectionEnableEpoch = 1
 
     # ESDTEnableEpoch represents the epoch when ESDT is enabled
-    ESDTEnableEpoch = 1
+    ESDTEnableEpoch = 0
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
     GovernanceEnableEpoch = 1000000
