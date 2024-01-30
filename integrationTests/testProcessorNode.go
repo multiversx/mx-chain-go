@@ -53,6 +53,7 @@ import (
 	hdrFactory "github.com/multiversx/mx-chain-go/factory/block"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
+	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
@@ -116,7 +117,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -291,7 +291,6 @@ type ArgTestProcessorNode struct {
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
-	ChainRunType            common.ChainRunType
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -409,7 +408,9 @@ type TestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 
-	ChainRunType common.ChainRunType
+	RequestHandlerCreator processing.RequestHandlerCreator
+	BlockTrackerCreator   track.BlockTrackerCreator
+	BlockProcessorCreator processing.BlockProcessorCreator
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -430,11 +431,6 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 }
 
 func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
-	chainRunType := args.ChainRunType
-	if len(args.ChainRunType) == 0 {
-		chainRunType = common.ChainRunTypeRegular
-	}
-
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(args.MaxShards, args.NodeShardId)
 
 	pksBytes := CreatePkBytes(args.MaxShards)
@@ -500,6 +496,11 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	enableRoundsHandler, _ := enablers.NewEnableRoundsHandler(*args.RoundsConfig, genericRoundNotifier)
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
+
+	blockTracker, _ := track.NewShardBlockTrackerFactory()
+
+	blockProcessor, _ := block.NewShardBlockProcessorFactory()
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
 		MainMessenger:              messenger,
@@ -531,7 +532,9 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
 		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
-		ChainRunType:               chainRunType,
+		RequestHandlerCreator:      requestHandlers.NewResolverRequestHandlerFactory(),
+		BlockTrackerCreator:        blockTracker,
+		BlockProcessorCreator:      blockProcessor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -1504,22 +1507,17 @@ func (tpn *TestProcessorNode) initRequesters() {
 	}
 
 	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
-	requestHandler, _ := requestHandlers.NewResolverRequestHandler(
-		tpn.RequestersFinder,
-		tpn.RequestedItemsHandler,
-		tpn.WhiteListHandler,
-		100,
-		tpn.ShardCoordinator.SelfId(),
-		time.Second,
-	)
 
-	switch tpn.ChainRunType {
-	case common.ChainRunTypeSovereign:
-		sovReqHandler, _ := requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
-		tpn.RequestHandler = sovReqHandler
-	default:
-		tpn.RequestHandler = requestHandler
+	argsRequestHandler := requestHandlers.RequestHandlerArgs{
+		RequestersFinder:      tpn.RequestersFinder,
+		RequestedItemsHandler: tpn.RequestedItemsHandler,
+		WhiteListHandler:      tpn.WhiteListHandler,
+		MaxTxsToRequest:       100,
+		ShardID:               tpn.ShardCoordinator.SelfId(),
+		RequestInterval:       time.Second,
 	}
+
+	tpn.RequestHandler, _ = tpn.RequestHandlerCreator.CreateRequestHandler(argsRequestHandler)
 }
 
 func (tpn *TestProcessorNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
@@ -2426,23 +2424,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
-		arguments := block.ArgShardProcessor{
-			ArgBaseProcessor: argumentsBase,
-		}
-
-		bp, errNewShardProc := block.NewShardProcessor(arguments)
-		if tpn.ChainRunType == common.ChainRunTypeSovereign {
-			tpn.BlockProcessor, err = block.NewSovereignChainBlockProcessor(block.ArgsSovereignChainBlockProcessor{
-				ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
-				ShardProcessor:               bp,
-				OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-				OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			})
-		} else {
-			tpn.BlockProcessor = bp
-			err = errNewShardProc
-		}
-
+		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase)
 	}
 
 	if err != nil {
@@ -3063,15 +3045,11 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
 	}
 
-	if tpn.ChainRunType == common.ChainRunTypeSovereign {
-		arguments := track.ArgShardTracker{
-			ArgBaseTracker: argBaseTracker,
-		}
-
-		shardBlockTracker, _ := track.NewShardBlockTrack(arguments)
-		sovBlockTracker, _ := track.NewSovereignChainShardBlockTrack(shardBlockTracker)
-		tpn.BlockTracker = sovBlockTracker
+	arguments := track.ArgShardTracker{
+		ArgBaseTracker: argBaseTracker,
 	}
+
+	tpn.BlockTracker, _ = tpn.BlockTrackerCreator.CreateBlockTracker(arguments)
 }
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
