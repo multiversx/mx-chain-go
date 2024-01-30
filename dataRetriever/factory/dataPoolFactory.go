@@ -176,14 +176,13 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 		return disabled.NewPersister(), nil
 	}
 
-	dbCfg := factory.GetDBFromConfig(mainConfig.TrieSyncStorage.DB)
 	shardId := core.GetShardIDString(args.ShardCoordinator.SelfId())
-	argDB := storageunit.ArgDB{
-		DBType:            dbCfg.Type,
-		Path:              args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath),
-		BatchDelaySeconds: dbCfg.BatchDelaySeconds,
-		MaxBatchSize:      dbCfg.MaxBatchSize,
-		MaxOpenFiles:      dbCfg.MaxOpenFiles,
+	path := args.PathManager.PathForStatic(shardId, mainConfig.TrieSyncStorage.DB.FilePath)
+
+	dbConfigHandler := factory.NewDBConfigHandler(mainConfig.TrieSyncStorage.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
@@ -192,10 +191,10 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 			return nil, errTempDir
 		}
 
-		argDB.Path = filePath
+		path = filePath
 	}
 
-	db, err := storageunit.NewDB(argDB)
+	db, err := storageunit.NewDB(persisterFactory, path)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 	}

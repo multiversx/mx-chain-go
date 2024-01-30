@@ -8,8 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
+	"github.com/multiversx/mx-chain-scenario-go/scenario/exporter"
+	scenmodel "github.com/multiversx/mx-chain-scenario-go/scenario/model"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ import (
 var log = logger.GetOrCreate("scenariosConverter")
 
 // CheckAccounts will verify if scenariosAccounts correspond to AccountsAdapter accounts
-func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, scenariosAccounts []*mge.TestAccount) {
+func CheckAccounts(t *testing.T, accAdapter state.AccountsAdapter, scenariosAccounts []*exporter.TestAccount) {
 	for _, scenariosAcc := range scenariosAccounts {
 		accHandler, err := accAdapter.LoadAccount(scenariosAcc.GetAddress())
 		require.Nil(t, err)
@@ -56,7 +56,7 @@ func CheckStorage(t *testing.T, dataTrie state.UserAccountHandler, scenariosAccS
 }
 
 // CheckTransactions checks if the transactions correspond with the scenariosTransactions
-func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, scenariosTransactions []*mge.Transaction) {
+func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, scenariosTransactions []*exporter.Transaction) {
 	expectedLength := len(scenariosTransactions)
 	require.Equal(t, expectedLength, len(transactions))
 	for i := 0; i < expectedLength; i++ {
@@ -77,7 +77,7 @@ func CheckTransactions(t *testing.T, transactions []*transaction.Transaction, sc
 
 		var expectedData []byte
 		if len(expectedEsdtTransfers) != 0 {
-			expectedData = mgutil.CreateMultiTransferData(expectedReceiver, expectedEsdtTransfers, expectedCallFunction, expectedCallArguments)
+			expectedData = scenmodel.CreateMultiTransferData(expectedReceiver, expectedEsdtTransfers, expectedCallFunction, expectedCallArguments)
 			require.Equal(t, expectedSender, transactions[i].GetRcvAddr())
 		} else {
 			require.Equal(t, expectedReceiver, transactions[i].GetRcvAddr())
@@ -97,7 +97,7 @@ func BenchmarkScenariosSpecificTx(b *testing.B, scenariosTestPath string) {
 		return
 	}
 	defer testContext.Close()
-	if benchmarkTxPos == mge.InvalidBenchmarkTxPos {
+	if benchmarkTxPos == exporter.InvalidBenchmarkTxPos {
 		log.Trace("no transactions marked for benchmarking")
 	}
 	if len(transactions) > 1 {
@@ -115,21 +115,21 @@ func BenchmarkScenariosSpecificTx(b *testing.B, scenariosTestPath string) {
 
 // SetStateFromScenariosTest recieves path to scenariosTest, returns a VMTestContext with the specified accounts, an array with the specified transactions and an error
 func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTestContext, transactions []*transaction.Transaction, bechmarkTxPos int, err error) {
-	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
+	stateAndBenchmarkInfo, err := exporter.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, exporter.InvalidBenchmarkTxPos, err
 	}
 	testContext, err = vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, exporter.InvalidBenchmarkTxPos, err
 	}
 	err = CreateAccountsFromScenariosAccs(testContext, stateAndBenchmarkInfo.Accs)
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, exporter.InvalidBenchmarkTxPos, err
 	}
 	newAddresses, err := DeploySCsFromScenariosDeployTxs(testContext, stateAndBenchmarkInfo.DeployTxs)
 	if err != nil {
-		return nil, nil, mge.InvalidBenchmarkTxPos, err
+		return nil, nil, exporter.InvalidBenchmarkTxPos, err
 	}
 	ReplaceScenariosScAddressesWithNewScAddresses(stateAndBenchmarkInfo.DeployedAccs, newAddresses, stateAndBenchmarkInfo.Txs)
 	transactions = CreateTransactionsFromScenariosTxs(stateAndBenchmarkInfo.Txs)
@@ -138,7 +138,7 @@ func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTest
 
 // CheckConverter -
 func CheckConverter(t *testing.T, scenariosTestPath string) {
-	stateAndBenchmarkInfo, err := mge.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
+	stateAndBenchmarkInfo, err := exporter.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
 	require.Nil(t, err)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
