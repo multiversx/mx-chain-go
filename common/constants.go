@@ -1008,5 +1008,6 @@ const (
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
 	CurrentRandomnessOnSortingFlag                     core.EnableEpochFlag = "CurrentRandomnessOnSortingFlag"
 	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
+	ConsensusPropagationChangesFlag                    core.EnableEpochFlag = "ConsensusPropagationChangesFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

@@ -7,11 +7,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,6 +38,9 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 		ConsensusState:       consensusState,
 		ConsensusService:     blsService,
 		PeerSignatureHandler: peerSigHandler,
+		EnableEpochsHandler:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Marshaller:           &marshallerMock.MarshalizerStub{},
+		ShardCoordinator:     &testscommon.ShardsCoordinatorMock{},
 		SignatureSize:        SignatureSize,
 		PublicKeySize:        PublicKeySize,
 		HeaderHashSize:       hasher.Size(),
@@ -63,6 +70,36 @@ func TestNewConsensusMessageValidator(t *testing.T) {
 
 		assert.Nil(t, validator)
 		assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
+	})
+	t.Run("nil EnableEpochsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultConsensusMessageValidatorArgs()
+		args.EnableEpochsHandler = nil
+		validator, err := spos.NewConsensusMessageValidator(args)
+
+		assert.Nil(t, validator)
+		assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("nil Marshaller", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultConsensusMessageValidatorArgs()
+		args.Marshaller = nil
+		validator, err := spos.NewConsensusMessageValidator(args)
+
+		assert.Nil(t, validator)
+		assert.Equal(t, spos.ErrNilMarshalizer, err)
+	})
+	t.Run("nil ShardCoordinator", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultConsensusMessageValidatorArgs()
+		args.ShardCoordinator = nil
+		validator, err := spos.NewConsensusMessageValidator(args)
+
+		assert.Nil(t, validator)
+		assert.Equal(t, spos.ErrNilShardCoordinator, err)
 	})
 	t.Run("nil ConsensusState", func(t *testing.T) {
 		t.Parallel()
@@ -337,6 +374,22 @@ func TestCheckMessageWithBlockBodyValidity_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestCheckMessageWithBlockBodyAndHeaderValidity_NilSigShareAfterActivation(t *testing.T) {
+	t.Parallel()
+
+	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.ConsensusPropagationChangesFlag
+		},
+	}
+	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+	cnsMsg := &consensus.Message{SignatureShare: nil}
+	err := cmv.CheckMessageWithBlockBodyAndHeaderValidity(cnsMsg)
+	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+}
+
 func TestCheckMessageWithBlockBodyAndHeaderValidity_InvalidMessage(t *testing.T) {
 	t.Parallel()
 
@@ -416,6 +469,22 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInval
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), SignatureShare: []byte("1")}
+	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
+}
+
+func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInvalidAfterFlag(t *testing.T) {
+	t.Parallel()
+
+	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+	consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.ConsensusPropagationChangesFlag
+		},
+	}
+	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+	cnsMsg := &consensus.Message{MsgType: int64(bls.MtBlockHeader), SignatureShare: nil}
 	err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
 	assert.True(t, errors.Is(err, spos.ErrInvalidMessage))
 }

@@ -111,6 +111,7 @@ type EnableEpochs struct {
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
 	CurrentRandomnessOnSortingEnableEpoch                    uint32
 	EquivalentMessagesEnableEpoch                            uint32
+	ConsensusPropagationChangesEnableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

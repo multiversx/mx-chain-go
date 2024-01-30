@@ -16,6 +16,8 @@ type ChainHandlerMock struct {
 	finalBlockNonce    uint64
 	finalBlockHash     []byte
 	finalBlockRootHash []byte
+
+	currentHeaderProof data.HeaderProof
 }
 
 // GetGenesisHeader -
@@ -76,6 +78,16 @@ func (mock *ChainHandlerMock) SetFinalBlockInfo(nonce uint64, headerHash []byte,
 // GetFinalBlockInfo -
 func (mock *ChainHandlerMock) GetFinalBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
 	return mock.finalBlockNonce, mock.finalBlockHash, mock.finalBlockRootHash
+}
+
+// SetCurrentHeaderProof -
+func (mock *ChainHandlerMock) SetCurrentHeaderProof(proof data.HeaderProof) {
+	mock.currentHeaderProof = proof
+}
+
+// GetCurrentHeaderProof -
+func (mock *ChainHandlerMock) GetCurrentHeaderProof() data.HeaderProof {
+	return mock.currentHeaderProof
 }
 
 // IsInterfaceNil -

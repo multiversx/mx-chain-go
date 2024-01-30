@@ -268,6 +268,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier:       pcf.crypto.BlockSigner(),
 		KeyGen:                  pcf.crypto.BlockSignKeyGen(),
 		FallbackHeaderValidator: fallbackHeaderValidator,
+		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {

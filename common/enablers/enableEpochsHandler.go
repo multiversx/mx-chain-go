@@ -713,6 +713,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.EquivalentMessagesEnableEpoch,
 		},
+		common.ConsensusPropagationChangesFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ConsensusPropagationChangesEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ConsensusPropagationChangesEnableEpoch,
+		},
 	}
 }
 

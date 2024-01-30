@@ -191,8 +191,8 @@ func (fct *factory) generateBlockSubround() error {
 
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
-		fct.worker.Extend,
 		processingThresholdPercent,
+		fct.worker,
 	)
 	if err != nil {
 		return err
