@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -8,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -408,6 +410,13 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		expectedStorers := 23
 		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
 		_ = storageService.CloseAll()
 	})
 	t.Run("should work without DbLookupExtensions", func(t *testing.T) {
@@ -437,6 +446,27 @@ func TestStorageServiceFactory_CreateForShard(t *testing.T) {
 		allStorers := storageService.GetAllStorers()
 		expectedStorers := 23 // we still have a storer for trie epoch root hash
 		assert.Equal(t, expectedStorers, len(allStorers))
+		_ = storageService.CloseAll()
+	})
+	t.Run("should work for import-db", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StorageType = ImportDBStorageService
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForShard()
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storageService))
+		allStorers := storageService.GetAllStorers()
+		expectedStorers := 23
+		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
 		_ = storageService.CloseAll()
 	})
 }
@@ -499,6 +529,36 @@ func TestStorageServiceFactory_CreateForMeta(t *testing.T) {
 		numShardHdrStorage := 3
 		expectedStorers := 23 - missingStorers + numShardHdrStorage
 		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.NotEqual(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		_ = storageService.CloseAll()
+	})
+	t.Run("should work for import-db", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.StorageType = ImportDBStorageService
+		storageServiceFactory, _ := NewStorageServiceFactory(args)
+		storageService, err := storageServiceFactory.CreateForMeta()
+		assert.Nil(t, err)
+		assert.False(t, check.IfNil(storageService))
+		allStorers := storageService.GetAllStorers()
+		missingStorers := 2 // PeerChangesUnit and ShardHdrNonceHashDataUnit
+		numShardHdrStorage := 3
+		expectedStorers := 23 - missingStorers + numShardHdrStorage
+		assert.Equal(t, expectedStorers, len(allStorers))
+
+		storer, _ := storageService.GetStorer(dataRetriever.UserAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
+		storer, _ = storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		assert.Equal(t, "*disabled.storer", fmt.Sprintf("%T", storer))
+
 		_ = storageService.CloseAll()
 	})
 }

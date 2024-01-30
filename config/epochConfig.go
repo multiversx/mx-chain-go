@@ -102,12 +102,14 @@ type EnableEpochs struct {
 	MultiClaimOnDelegationEnableEpoch                        uint32
 	ChangeUsernameEnableEpoch                                uint32
 	AutoBalanceDataTriesEnableEpoch                          uint32
+	MigrateDataTrieEnableEpoch                               uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch             uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch             uint32
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch          uint32
 	NFTStopCreateEnableEpoch                                 uint32
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
+	CurrentRandomnessOnSortingEnableEpoch                    uint32
 	DynamicESDTEnableEpoch                                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
