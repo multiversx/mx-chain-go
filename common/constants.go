@@ -309,6 +309,9 @@ const MetricRedundancyLevel = "erd_redundancy_level"
 // MetricRedundancyIsMainActive is the metric that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
+// MetricRedundancyStepInReason is the metric that specifies why the back-up machine stepped in
+const MetricRedundancyStepInReason = "erd_redundancy_step_in_reason"
+
 // MetricValueNA represents the value to be used when a metric is not available/applicable
 const MetricValueNA = "N/A"
 
