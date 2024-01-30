@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
@@ -51,7 +52,12 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.RefactorPeersMiniBlocksFlag {
+				return UnreachableEpoch
+			}
+			return 0
+		},
 	}
 
 	dataComponents := GetDefaultDataComponents()
@@ -64,12 +70,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 	statusComponents := GetDefaultStatusComponents()
 
-	triesConfig := config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus: stateCheckpointModulus,
-		},
-	}
-
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -80,7 +80,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               triesConfig,
+		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         nil,
 		NodesCoordinator:     tpn.NodesCoordinator,

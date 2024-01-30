@@ -98,6 +98,13 @@ VERSION:
 	}
 
 	p2pConfigurationFile = "./config/p2p.toml"
+
+	// p2pPrometheusMetrics defines a flag for p2p prometheus metrics
+	// If enabled, it will open a new route, /debug/metrics/prometheus, where p2p prometheus metrics will be available
+	p2pPrometheusMetrics = cli.BoolFlag{
+		Name:  "p2p-prometheus-metrics",
+		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
+	}
 )
 
 var log = logger.GetOrCreate("main")
@@ -114,6 +121,7 @@ func main() {
 		logSaveFile,
 		configurationFile,
 		p2pKeyPemFile,
+		p2pPrometheusMetrics,
 	}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
@@ -301,12 +309,21 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
 	})
 
-	log.Info("known peers", "num peers", len(messenger.Peers()))
-	headerConnectedAddresses := []string{fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
+	protocolIDString := "Valid protocol ID?"
+	log.Info("peers info", "num known peers", len(messenger.Peers()), "num connected peers", len(mesConnectedAddrs))
+	headerConnectedAddresses := []string{"Connected peers", protocolIDString}
 	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
 
+	yesMarker := "yes"
+	yesMarker = strings.Repeat(" ", (len(protocolIDString)-len(yesMarker))/2) + yesMarker // add padding
+	noMarker := "!!! no !!!"
+	noMarker = strings.Repeat(" ", (len(protocolIDString)-len(noMarker))/2) + noMarker // add padding
 	for idx, address := range mesConnectedAddrs {
-		connAddresses[idx] = display.NewLineData(false, []string{address})
+		marker := noMarker
+		if messenger.HasCompatibleProtocolID(address) {
+			marker = yesMarker
+		}
+		connAddresses[idx] = display.NewLineData(false, []string{address, marker})
 	}
 
 	tbl2, _ := display.CreateTableString(headerConnectedAddresses, connAddresses)
@@ -350,14 +367,15 @@ func checkExpectedPeerCount(p2pConfig p2pConfig.P2PConfig) error {
 func startRestServices(ctx *cli.Context, marshalizer marshal.Marshalizer) {
 	restApiInterface := ctx.GlobalString(restApiInterfaceFlag.Name)
 	if restApiInterface != facade.DefaultRestPortOff {
-		go startGinServer(restApiInterface, marshalizer)
+		p2pPrometheusMetricsEnabled := ctx.GlobalBool(p2pPrometheusMetrics.Name)
+		go startGinServer(restApiInterface, marshalizer, p2pPrometheusMetricsEnabled)
 	} else {
 		log.Info("rest api is disabled")
 	}
 }
 
-func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer) {
-	err := api.Start(restApiInterface, marshalizer)
+func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer, p2pPrometheusMetricsEnabled bool) {
+	err := api.Start(restApiInterface, marshalizer, p2pPrometheusMetricsEnabled)
 	if err != nil {
 		log.LogIfError(err)
 	}

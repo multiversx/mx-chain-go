@@ -134,8 +134,6 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			CheckpointRoundsModulus:     37,
-			CheckpointsEnabled:          true,
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
@@ -232,8 +230,6 @@ func TestTomlParser(t *testing.T) {
         DoProfileOnShuffleOut = true
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 37
-    CheckpointsEnabled = true
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
@@ -846,6 +842,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
     MigrateDataTrieEnableEpoch = 92
 
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 93
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -958,6 +957,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
 			MigrateDataTrieEnableEpoch:                               92,
+			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
