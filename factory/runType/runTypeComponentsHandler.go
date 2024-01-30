@@ -2,6 +2,7 @@ package runType
 
 import (
 	"fmt"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -322,6 +323,30 @@ func (mrc *managedRunTypeComponents) ConsensusModel() consensus.ConsensusModel {
 	}
 
 	return mrc.runTypeComponents.consensusModel
+}
+
+// VmContainerMetaFactoryCreator returns the vm container meta factory creator
+func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.VmContainerMetaCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContainerMetaFactory
+}
+
+// VmContainerShardFactoryCreator returns the vm container shard factory creator
+func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.VmContainerShardCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContainerShardFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

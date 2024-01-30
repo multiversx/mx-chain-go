@@ -55,21 +55,20 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs              *config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	GasScheduleNotifier  common.GasScheduleNotifierAPI
-	Bootstrapper         process.Bootstrapper
+	Configs               *config.Configs
+	CoreComponents        factory.CoreComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHolder
+	ProcessComponents     factory.ProcessComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	StatusComponents      factory.StatusComponentsHolder
+	GasScheduleNotifier   common.GasScheduleNotifierAPI
+	Bootstrapper          process.Bootstrapper
 	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
-	AllowVMQueriesChan   chan struct{}
-	ProcessingMode       common.NodeProcessingMode
-	ChainRunType         common.ChainRunType
+	AllowVMQueriesChan    chan struct{}
+	ProcessingMode        common.NodeProcessingMode
 }
 
 type scQueryServiceArgs struct {
@@ -88,7 +87,6 @@ type scQueryServiceArgs struct {
 	allowVMQueriesChan    chan struct{}
 	workingDir            string
 	processingMode        common.NodeProcessingMode
-	chainRunType          common.ChainRunType
 	blockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
@@ -109,7 +107,6 @@ type scQueryElementArgs struct {
 	workingDir            string
 	index                 int
 	processingMode        common.NodeProcessingMode
-	chainRunType          common.ChainRunType
 	blockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
@@ -133,7 +130,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		allowVMQueriesChan:    args.AllowVMQueriesChan,
 		workingDir:            apiWorkingDir,
 		processingMode:        args.ProcessingMode,
-		chainRunType:          args.ChainRunType,
 		blockChainHookCreator: args.BlockChainHookCreator,
 	}
 
@@ -310,7 +306,6 @@ func createScQueryService(
 		workingDir:            args.workingDir,
 		index:                 0,
 		processingMode:        args.processingMode,
-		chainRunType:          args.chainRunType,
 		blockChainHookCreator: args.blockChainHookCreator,
 	}
 

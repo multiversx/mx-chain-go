@@ -2,6 +2,7 @@ package runType
 
 import (
 	"fmt"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -117,6 +118,16 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
 	}
 
+	vmContainerMetaCreator, err := factoryVm.NewSovereignVmContainerMetaFactory(blockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
+	}
+
+	vmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -134,5 +145,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		scProcessorCreator:                  scProcessorCreator,
 		scResultPreProcessorCreator:         scResultPreProcessorCreator,
 		consensusModel:                      consensus.ConsensusModelV2,
+		vmContainerMetaFactory:              vmContainerMetaCreator,
+		vmContainerShardFactory:             vmContainerShardCreator,
 	}, nil
 }

@@ -78,7 +78,6 @@ type ArgsGenesisBlockCreator struct {
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
 	RunTypeComponents       runTypeComponentsHandler
-	ChainRunType            common.ChainRunType
 
 	GenesisNodePrice *big.Int
 	GenesisString    string

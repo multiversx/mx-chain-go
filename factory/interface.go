@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -587,6 +588,8 @@ type RunTypeComponentsHolder interface {
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	ConsensusModel() consensus.ConsensusModel
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerMetaCreator
+	VmContainerShardFactoryCreator() factoryVm.VmContainerShardCreator
 	Close() error
 	IsInterfaceNil() bool
 }
