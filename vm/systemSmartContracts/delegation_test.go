@@ -60,7 +60,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 	}
 }
 
-func addValidatorAndStakingScToVmContext(eei *vmContext, blsKeys ...[]byte) {
+func addValidatorAndStakingScToVmContext(eei *vmContext) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
@@ -79,14 +79,13 @@ func addValidatorAndStakingScToVmContext(eei *vmContext, blsKeys ...[]byte) {
 			return stakingSc, nil
 		}
 
-		blsPubKeys := getInputBlsKeysOrDefaultIfEmpty(blsKeys...)
 		if bytes.Equal(key, vm.ValidatorSCAddress) {
 			enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
 				RewardAddress:   []byte("rewardAddr"),
 				TotalStakeValue: big.NewInt(1000),
 				LockedStake:     big.NewInt(500),
-				BlsPubKeys:      blsPubKeys,
+				BlsPubKeys:      [][]byte{[]byte("blsKey1"), []byte("blsKey2")},
 				TotalUnstaked:   big.NewInt(150),
 				UnstakedInfo: []*UnstakedValue{
 					{
@@ -98,7 +97,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext, blsKeys ...[]byte) {
 						UnstakedValue: big.NewInt(80),
 					},
 				},
-				NumRegistered: uint32(len(blsKeys)),
+				NumRegistered: 2,
 			})
 			validatorSc.unBondPeriod = 50
 			return validatorSc, nil
@@ -106,19 +105,6 @@ func addValidatorAndStakingScToVmContext(eei *vmContext, blsKeys ...[]byte) {
 
 		return nil, nil
 	}})
-}
-
-func getInputBlsKeysOrDefaultIfEmpty(blsKeys ...[]byte) [][]byte {
-	ret := make([][]byte, 0)
-	for _, blsKey := range blsKeys {
-		ret = append(ret, blsKey)
-	}
-
-	if len(ret) == 0 {
-		return [][]byte{[]byte("blsKey1"), []byte("blsKey2")}
-	}
-
-	return ret
 }
 
 func getDefaultVmInputForFunc(funcName string, args [][]byte) *vmcommon.ContractCallInput {
@@ -5068,6 +5054,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedInStakingV4(t *testing.T) {
 		common.StakingV4Step1Flag,
 		common.StakingV4Step2Flag,
 		common.StakingV4Step3Flag,
+		common.StakeLimitsFlag,
 
 		common.DelegationSmartContractFlag,
 		common.StakingV2FlagAfterEpoch,
@@ -5085,11 +5072,14 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedInStakingV4(t *testing.T) {
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
 	key1 := &NodesData{
-		BLSKey: []byte("blsKey1"),
+		BLSKey: blsKey1,
 	}
 	key2 := &NodesData{
-		BLSKey: []byte("blsKey2"),
+		BLSKey: blsKey2,
 	}
 	dStatus := &DelegationContractStatus{
 		StakedKeys: []*NodesData{key1, key2},
@@ -5100,18 +5090,20 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedInStakingV4(t *testing.T) {
 		TotalActive: big.NewInt(400),
 	}
 	_ = d.saveGlobalFundData(globalFund)
-	addValidatorAndStakingScToVmContext2(eei, [][]byte{[]byte("blsKey1"), []byte("blsKey2")})
+
+	addValidatorAndStakingScToVmContextWithBlsKeys(eei, [][]byte{blsKey1, blsKey2})
+
 	dStatus, _ = d.getDelegationStatus()
 	require.Equal(t, 2, len(dStatus.StakedKeys))
 	require.Equal(t, 0, len(dStatus.UnStakedKeys))
 	require.Equal(t, 0, len(dStatus.NotStakedKeys))
 
-	newBlsKey := []byte("newBlsKey")
-	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey, sig})
+	newBlsKey1 := []byte("newBlsKey1")
+	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey1, sig})
 	output := d.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, output)
 
-	vmInput = getDefaultVmInputForFunc("stakeNodes", [][]byte{newBlsKey})
+	vmInput = getDefaultVmInputForFunc("stakeNodes", [][]byte{newBlsKey1})
 	output = d.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, output)
 
@@ -5120,7 +5112,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedInStakingV4(t *testing.T) {
 	require.Equal(t, 0, len(dStatus.UnStakedKeys))
 	require.Equal(t, 0, len(dStatus.NotStakedKeys))
 
-	addValidatorAndStakingScToVmContext2(eei, [][]byte{[]byte("blsKey1"), []byte("blsKey2"), newBlsKey})
+	addValidatorAndStakingScToVmContextWithBlsKeys(eei, [][]byte{blsKey1, blsKey2, newBlsKey1})
 
 	newBlsKey2 := []byte("newBlsKey2")
 	vmInput = getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey2, sig})
@@ -5138,15 +5130,17 @@ func TestDelegationSystemSC_ExecuteAddNodesStakedInStakingV4(t *testing.T) {
 	require.Equal(t, 1, len(dStatus.NotStakedKeys))
 }
 
-func addValidatorAndStakingScToVmContext2(eei *vmContext, blsKeys [][]byte) {
+func addValidatorAndStakingScToVmContextWithBlsKeys(eei *vmContext, blsKeys [][]byte) {
 	validatorArgs := createMockArgumentsForValidatorSC()
 	validatorArgs.StakingSCConfig.NodeLimitPercentage = 1
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
-	validatorArgs.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{GetNumTotalEligibleCalled: func() uint64 {
-		return 3
-	}}
+	validatorArgs.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		GetNumTotalEligibleCalled: func() uint64 {
+			return 3
+		},
+	}
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
 	stakingArgs := createMockStakingScArguments()
