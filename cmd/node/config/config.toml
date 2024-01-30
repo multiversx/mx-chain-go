@@ -40,13 +40,13 @@
     # Make sure that this is greater than the unbonding period!
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
+    # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
+    ChainParametersByEpoch = [
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
-
-   # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
-   ChainParametersByEpoch = [
-      { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 3, MetachainConsensusGroupSize = 3, MetachainMinNumNodes = 3, Hysteresis = 0.0, Adaptivity = false }
-   ]
 
 [Versions]
     DefaultVersion = "default"
