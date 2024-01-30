@@ -95,14 +95,14 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                     common.Trie
-	Hasher                   hashing.Hasher
-	Marshaller               marshal.Marshalizer
-	AccountFactory           AccountFactory
-	StoragePruningManager    StoragePruningManager
-	AddressConverter         core.PubkeyConverter
-	SnapshotsManager         SnapshotsManager
-	StateChangesCollector    StateChangesCollector
+	Trie                  common.Trie
+	Hasher                hashing.Hasher
+	Marshaller            marshal.Marshalizer
+	AccountFactory        AccountFactory
+	StoragePruningManager StoragePruningManager
+	AddressConverter      core.PubkeyConverter
+	SnapshotsManager      SnapshotsManager
+	StateChangesCollector StateChangesCollector
 }
 
 // NewAccountsDB creates a new account manager
@@ -1248,12 +1248,16 @@ func collectStats(
 	log.Debug(strings.Join(trieStats.ToString(), " "))
 }
 
-// GetStateChangesForTheLatestTransaction will return the state changes since the last call of this method
-func (adb *AccountsDB) GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error) {
+// SetTxHashForLatestStateChanges will return the state changes since the last call of this method
+func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
+	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash)
+}
+
+func (adb *AccountsDB) ResetStateChangesCollector() []StateChangesForTx {
 	stateChanges := adb.stateChangesCollector.GetStateChanges()
 	adb.stateChangesCollector.Reset()
 
-	return stateChanges, nil
+	return stateChanges
 }
 
 // IsSnapshotInProgress returns true if there is a snapshot in progress

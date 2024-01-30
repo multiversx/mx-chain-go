@@ -195,6 +195,8 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
+	defer txProc.accounts.SetTxHashForLatestStateChanges(txHash)
+
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
@@ -221,14 +223,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 		return vmcommon.UserError, err
 	}
-
-	defer func() {
-		// TODO collect state changes from each transactions here
-		_, err = txProc.accounts.GetStateChangesForTheLatestTransaction()
-		if err != nil {
-			log.Error("GetStateChangesForTheLatestTransaction error", "err", err.Error())
-		}
-	}()
 
 	switch txType {
 	case process.MoveBalance:

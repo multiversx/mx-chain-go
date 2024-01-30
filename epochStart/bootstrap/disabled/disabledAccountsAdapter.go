@@ -133,9 +133,13 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// GetStateChangesForTheLatestTransaction -
-func (a *accountsAdapter) GetStateChangesForTheLatestTransaction() ([]state.StateChangeDTO, error) {
-	return nil, nil
+// SetTxHashForLatestStateChanges -
+func (a *accountsAdapter) SetTxHashForLatestStateChanges(_ []byte) {
+}
+
+// ResetStateChangesCollector -
+func (a *accountsAdapter) ResetStateChangesCollector() []state.StateChangesForTx {
+	return nil
 }
 
 // Close -

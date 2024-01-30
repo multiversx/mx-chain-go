@@ -140,9 +140,13 @@ func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// GetStateChangesForTheLatestTransaction returns nil
-func (accountsDB *accountsDBApiWithHistory) GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error) {
-	return nil, nil
+// SetTxHashForLatestStateChanges returns nil
+func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte) {
+}
+
+// ResetStateChangesCollector returns nil
+func (accountsDB *accountsDBApiWithHistory) ResetStateChangesCollector() []StateChangesForTx {
+	return nil
 }
 
 // Close will handle the closing of the underlying components

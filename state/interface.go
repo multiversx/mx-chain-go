@@ -49,7 +49,8 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	GetStateChangesForTheLatestTransaction() ([]StateChangeDTO, error)
+	SetTxHashForLatestStateChanges(txHash []byte)
+	ResetStateChangesCollector() []StateChangesForTx
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -283,7 +284,8 @@ type LastSnapshotMarker interface {
 // StateChangesCollector defines the methods needed for an StateChangesCollector implementation
 type StateChangesCollector interface {
 	AddStateChange(stateChange StateChangeDTO)
-	GetStateChanges() []StateChangeDTO
+	GetStateChanges() []StateChangesForTx
 	Reset()
+	AddTxHashToCollectedStateChanges(txHash []byte)
 	IsInterfaceNil() bool
 }
