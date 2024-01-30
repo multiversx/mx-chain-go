@@ -1237,7 +1237,7 @@ func tooManyNodesLogs(logEntries []*vmcommon.LogEntry) bool {
 		if len(logEntry.Topics) != 1 {
 			continue
 		}
-		if !bytes.Equal(logEntry.Topics[0], []byte(numberOfNodesTooHigh)) {
+		if bytes.Equal(logEntry.Topics[0], []byte(numberOfNodesTooHigh)) {
 			return true
 		}
 	}
