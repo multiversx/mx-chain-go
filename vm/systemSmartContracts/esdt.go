@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -1394,14 +1395,35 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 			rolesAsString = append(rolesAsString, string(role))
 		}
 
-		specialRoleAddress := e.addressPubKeyConverter.SilentEncode(specialRole.Address, log)
-
 		roles := strings.Join(rolesAsString, ",")
+
+		specialRoleAddress, errEncode := e.addressPubKeyConverter.Encode(specialRole.Address)
+		e.treatEncodeErrorForGetSpecialRoles(errEncode, rolesAsString, specialRole.Address)
+
 		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
 		e.eei.Finish([]byte(message))
 	}
 
 	return vmcommon.Ok
+}
+
+func (e *esdt) treatEncodeErrorForGetSpecialRoles(err error, roles []string, address []byte) {
+	if err == nil {
+		return
+	}
+
+	logLevel := logger.LogTrace
+	for _, role := range roles {
+		if role != vmcommon.ESDTRoleBurnForAll {
+			logLevel = logger.LogWarning
+			break
+		}
+	}
+
+	log.Log(logLevel, "esdt.treatEncodeErrorForGetSpecialRoles",
+		"hex specialRole.Address", hex.EncodeToString(address),
+		"roles", strings.Join(roles, ", "),
+		"error", err)
 }
 
 func (e *esdt) getTokenInfoAfterInputChecks(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
