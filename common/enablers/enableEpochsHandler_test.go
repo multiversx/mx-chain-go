@@ -110,7 +110,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		NFTStopCreateEnableEpoch:                                 92,
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
-		EquivalentMessagesEnableEpoch:                            95,
+		CurrentRandomnessOnSortingEnableEpoch:                    95,
+		EquivalentMessagesEnableEpoch:                            96,
 	}
 }
 
@@ -287,6 +288,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.MultiClaimOnDelegationFlag))
 	require.True(t, handler.IsFlagEnabled(common.ChangeUsernameFlag))
 	require.True(t, handler.IsFlagEnabled(common.AutoBalanceDataTriesFlag))
+	require.True(t, handler.IsFlagEnabled(common.MigrateDataTrieFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixOOGReturnCodeFlag))
 	require.True(t, handler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag))
@@ -298,6 +300,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.NFTStopCreateFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixGasRemainingForSaveKeyValueFlag))
 	require.True(t, handler.IsFlagEnabled(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
+	require.True(t, handler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag))
 	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
 }
 
@@ -398,6 +401,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.MultiClaimOnDelegationEnableEpoch, handler.GetActivationEpoch(common.MultiClaimOnDelegationFlag))
 	require.Equal(t, cfg.ChangeUsernameEnableEpoch, handler.GetActivationEpoch(common.ChangeUsernameFlag))
 	require.Equal(t, cfg.AutoBalanceDataTriesEnableEpoch, handler.GetActivationEpoch(common.AutoBalanceDataTriesFlag))
+	require.Equal(t, cfg.MigrateDataTrieEnableEpoch, handler.GetActivationEpoch(common.MigrateDataTrieFlag))
 	require.Equal(t, cfg.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.GetActivationEpoch(common.FixDelegationChangeOwnerOnAccountFlag))
 	require.Equal(t, cfg.FixOOGReturnCodeEnableEpoch, handler.GetActivationEpoch(common.FixOOGReturnCodeFlag))
 	require.Equal(t, cfg.DeterministicSortOnValidatorsInfoEnableEpoch, handler.GetActivationEpoch(common.DeterministicSortOnValidatorsInfoFixFlag))
@@ -409,6 +413,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.NFTStopCreateEnableEpoch, handler.GetActivationEpoch(common.NFTStopCreateFlag))
 	require.Equal(t, cfg.ChangeOwnerAddressCrossShardThroughSCEnableEpoch, handler.GetActivationEpoch(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
 	require.Equal(t, cfg.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch, handler.GetActivationEpoch(common.FixGasRemainingForSaveKeyValueFlag))
+	require.Equal(t, cfg.CurrentRandomnessOnSortingEnableEpoch, handler.GetActivationEpoch(common.CurrentRandomnessOnSortingFlag))
 	require.Equal(t, cfg.EquivalentMessagesEnableEpoch, handler.GetActivationEpoch(common.EquivalentMessagesFlag))
 }
 

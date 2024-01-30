@@ -175,7 +175,6 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	ReceivedActualSigners(signersPks []string)
 	IsInterfaceNil() bool
 }
 
