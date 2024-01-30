@@ -290,6 +290,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 	txFromMeta, err = chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
 	require.Nil(t, err)
+	require.NotNil(t, txFromMeta)
 
 	// check rewards
 	err = chainSimulator.GenerateBlocks(50)
