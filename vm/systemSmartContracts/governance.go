@@ -354,7 +354,7 @@ func (g *governanceContract) proposal(args *vmcommon.ContractCallInput) vmcommon
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[1], args.Arguments[2]},
+		Topics:     [][]byte{nonceAsBytes, commitHash, args.Arguments[1], args.Arguments[2]},
 	}
 	g.eei.AddLogEntry(logEntry)
 
@@ -769,9 +769,26 @@ func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
-	g.eei.Finish([]byte(userVotes.String()))
+	g.finishWithIntValue(len(userVotes.Delegated)) // first we send the number of delegated nonces and afterward the nonces
+	for _, val := range userVotes.Delegated {
+		g.finishWithIntValue(int(val))
+	}
+
+	g.finishWithIntValue(len(userVotes.Direct)) // then we send the number of direct nonces and afterward the nonces
+	for _, val := range userVotes.Direct {
+		g.finishWithIntValue(int(val))
+	}
 
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) finishWithIntValue(value int) {
+	if value == 0 {
+		g.eei.Finish([]byte{0})
+		return
+	}
+
+	g.eei.Finish(big.NewInt(int64(value)).Bytes())
 }
 
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -861,8 +878,7 @@ func (g *governanceContract) addNewVote(vote string, power *big.Int, proposal *G
 }
 
 // computeVotingPower returns the voting power for a value. The value can be either a balance or
-//
-//	the staked value for a validator
+// the staked value for a validator
 func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error) {
 	minValue, err := g.getMinValueToVote()
 	if err != nil {
@@ -873,7 +889,7 @@ func (g *governanceContract) computeVotingPower(value *big.Int) (*big.Int, error
 		return nil, vm.ErrNotEnoughStakeToVote
 	}
 
-	return big.NewInt(0).Sqrt(value), nil
+	return big.NewInt(0).Set(value), nil // linear computation
 }
 
 // function iterates over all delegation contracts and verifies balances of the given account and makes a sum of it
