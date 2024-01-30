@@ -2480,7 +2480,6 @@ func startNodesAndIssueToken(
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
