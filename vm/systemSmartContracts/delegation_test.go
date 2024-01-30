@@ -5045,7 +5045,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 	})
 }
 
-func TestDelegationSystemSC_ExecuteAddNodesStakedInStakingV4(t *testing.T) {
+func TestDelegationSystemSC_ExecuteAddNodesStakeNodesWithNodesLimit(t *testing.T) {
 	t.Parallel()
 
 	sig := []byte("sig1")
