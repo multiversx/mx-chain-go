@@ -103,6 +103,7 @@ func createMetaBlockProcessor(
 			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
+			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
