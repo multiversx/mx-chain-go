@@ -1074,10 +1074,16 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 			args.CallerAddr,
 		)
 	} else {
+		numRegisteredBlsKeys := int64(len(registrationData.BlsPubKeys))
+		nodeLimit := int64(float64(v.nodesCoordinator.GetNumTotalEligible()) * v.nodeLimitPercentage)
 		entry := &vmcommon.LogEntry{
 			Identifier: []byte(args.Function),
 			Address:    args.RecipientAddr,
-			Topics:     [][]byte{[]byte(numberOfNodesTooHigh)},
+			Topics: [][]byte{
+				[]byte(numberOfNodesTooHigh),
+				big.NewInt(numRegisteredBlsKeys).Bytes(),
+				big.NewInt(nodeLimit).Bytes(),
+			},
 		}
 		v.eei.AddLogEntry(entry)
 	}

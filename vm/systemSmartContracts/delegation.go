@@ -1216,8 +1216,9 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 
 	allLogs := d.eei.GetLogs()
-	if tooManyNodesLogs(allLogs) {
-		d.eei.AddReturnMessage(numberOfNodesTooHigh)
+	tooManyNodesErrMsg := getTooManyNodesErrMsg(allLogs)
+	if len(tooManyNodesErrMsg) != 0 {
+		d.eei.AddReturnMessage(tooManyNodesErrMsg)
 		return vmcommon.UserError
 	}
 
@@ -1232,17 +1233,25 @@ func (d *delegation) stakeNodes(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return vmcommon.Ok
 }
 
-func tooManyNodesLogs(logEntries []*vmcommon.LogEntry) bool {
+func getTooManyNodesErrMsg(logEntries []*vmcommon.LogEntry) string {
 	for _, logEntry := range logEntries {
-		if len(logEntry.Topics) != 1 {
+		topics := logEntry.Topics
+		if len(topics) != 3 {
 			continue
 		}
-		if bytes.Equal(logEntry.Topics[0], []byte(numberOfNodesTooHigh)) {
-			return true
+		if bytes.Equal(topics[0], []byte(numberOfNodesTooHigh)) {
+			return formatTooManyNodesMsg(topics)
 		}
 	}
 
-	return false
+	return ""
+}
+
+func formatTooManyNodesMsg(topics [][]byte) string {
+	numRegisteredBlsKeys := big.NewInt(0).SetBytes(topics[1]).Int64()
+	nodeLimit := big.NewInt(0).SetBytes(topics[2]).Int64()
+	return fmt.Sprintf("%s, num registered bls keys: %d, node limit: %d",
+		numberOfNodesTooHigh, numRegisteredBlsKeys, nodeLimit)
 }
 
 func (d *delegation) updateDelegationStatusAfterStake(
