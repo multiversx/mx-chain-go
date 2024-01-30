@@ -322,6 +322,7 @@ type ManagedPeersHolder interface {
 	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyMode() bool
+	GetRedundancyStepInReason() string
 	IsInterfaceNil() bool
 }
 
