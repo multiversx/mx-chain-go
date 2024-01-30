@@ -317,6 +317,9 @@ const MetricRedundancyLevel = "erd_redundancy_level"
 // MetricRedundancyIsMainActive is the metric that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
+// MetricRedundancyStepInReason is the metric that specifies why the back-up machine stepped in
+const MetricRedundancyStepInReason = "erd_redundancy_step_in_reason"
+
 // MetricValueNA represents the value to be used when a metric is not available/applicable
 const MetricValueNA = "N/A"
 
@@ -892,6 +895,7 @@ const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
 // FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
 const FullArchiveMetricSuffix = "_full_archive"
 
+// Enable epoch flags definitions
 const (
 	SCDeployFlag                                       core.EnableEpochFlag = "SCDeployFlag"
 	BuiltInFunctionsFlag                               core.EnableEpochFlag = "BuiltInFunctionsFlag"
@@ -988,6 +992,7 @@ const (
 	MultiClaimOnDelegationFlag                         core.EnableEpochFlag = "MultiClaimOnDelegationFlag"
 	ChangeUsernameFlag                                 core.EnableEpochFlag = "ChangeUsernameFlag"
 	AutoBalanceDataTriesFlag                           core.EnableEpochFlag = "AutoBalanceDataTriesFlag"
+	MigrateDataTrieFlag                                core.EnableEpochFlag = "MigrateDataTrieFlag"
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"
@@ -998,6 +1003,7 @@ const (
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
+	CurrentRandomnessOnSortingFlag                     core.EnableEpochFlag = "CurrentRandomnessOnSortingFlag"
 	StakeLimitsFlag                                    core.EnableEpochFlag = "StakeLimitsFlag"
 	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
 	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
