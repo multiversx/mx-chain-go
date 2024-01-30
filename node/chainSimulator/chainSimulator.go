@@ -2,6 +2,8 @@ package chainSimulator
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -39,6 +42,7 @@ type simulator struct {
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	handlers               []ChainHandler
 	initialWalletKeys      *dtos.InitialWalletKeys
+	validatorsPrivateKeys  []crypto.PrivateKey
 	nodes                  map[uint32]process.NodeHandler
 	numOfShards            uint32
 	mutex                  sync.RWMutex
@@ -105,6 +109,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	}
 
 	s.initialWalletKeys = outputConfigs.InitialWallets
+	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
@@ -200,6 +205,41 @@ func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
 // GetInitialWalletKeys will return the initial wallet keys
 func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 	return s.initialWalletKeys
+}
+
+// AddValidatorKeys will add the provided validators private keys in the keys handler on all nodes
+func (s *simulator) AddValidatorKeys(validatorsPrivateKeys *dtos.ValidatorsKeys) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for shard, node := range s.nodes {
+		for idx, privateKeyHex := range validatorsPrivateKeys.PrivateKeysBase64 {
+			decodedPrivateKey, err := base64.StdEncoding.DecodeString(privateKeyHex)
+			if err != nil {
+				return fmt.Errorf("cannot base64 decode provided key index=%d, error=%s", idx, err.Error())
+			}
+
+			hexDecoded, err := hex.DecodeString(string(decodedPrivateKey))
+			if err != nil {
+				return fmt.Errorf("cannot hex decode provided key index=%d, error=%s", idx, err.Error())
+			}
+
+			err = node.GetCryptoComponents().ManagedPeersHolder().AddManagedPeer(hexDecoded)
+			if err != nil {
+				return fmt.Errorf("cannot add private key for shard=%d, index=%d, error=%s", shard, idx, err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
+// GetValidatorPrivateKeys will return the initial validators private keys
+func (s *simulator) GetValidatorPrivateKeys() []crypto.PrivateKey {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.validatorsPrivateKeys
 }
 
 // SetKeyValueForAddress will set the provided state for a given address

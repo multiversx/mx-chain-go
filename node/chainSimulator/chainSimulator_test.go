@@ -2,6 +2,7 @@ package chainSimulator
 
 import (
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
@@ -9,7 +10,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
@@ -158,6 +161,156 @@ func TestChainSimulator_SetState(t *testing.T) {
 	require.Equal(t, keyValueMap, keyValuePairs)
 }
 
+// Test scenario
+// 1. Add a new validator private key in the multi key handler
+// 2. Do a stake transaction for the validator key
+// 3. Do an unstake transaction (to make a place for the new validator)
+// 4. Check if the new validator has generated rewards
+func TestChainSimulator_AddValidatorKey(t *testing.T) {
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       3,
+		MetaChainMinNodes:      3,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	err = chainSimulator.GenerateBlocks(30)
+	require.Nil(t, err)
+
+	// add validator key
+	validatorKeys := &dtos.ValidatorsKeys{
+		PrivateKeysBase64: []string{"NjRhYjk3NmJjYWVjZTBjNWQ4YmJhNGU1NjZkY2VmYWFiYjcxNDI1Y2JiZDcwYzc1ODA2MGUxNTE5MGM2ZjE1Zg=="},
+	}
+	err = chainSimulator.AddValidatorKeys(validatorKeys)
+	require.Nil(t, err)
+
+	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
+	newValidatorOwnerBytes, _ := chainSimulator.nodes[1].GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
+	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
+	rcvAddrBytes, _ := chainSimulator.nodes[1].GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
+
+	// set balance for sender
+	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
+			Balance: "10000000000000000000000",
+		},
+	})
+	require.Nil(t, err)
+
+	blsKey := "9b7de1b2d2c90b7bea8f6855075c77d6c63b5dada29abb9b87c52cfae9d4112fcac13279e1a07d94672a5e62a83e3716555513014324d5c6bb4261b465f1b8549a7a338bc3ae8edc1e940958f9c2e296bd3c118a4466dec99dda0ceee3eb6a8c"
+	blsKeyBytes, _ := hex.DecodeString(blsKey)
+	privateKey := chainSimulator.nodes[0].GetCryptoComponents().KeysHandler().GetHandledPrivateKey(blsKeyBytes)
+	signedMessage, _ := chainSimulator.nodes[0].GetCryptoComponents().BlockSigner().Sign(privateKey, newValidatorOwnerBytes)
+
+	// stake validator
+	stakeValue, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     stakeValue,
+		SndAddr:   newValidatorOwnerBytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("stake@01@%s@%s", blsKey, hex.EncodeToString(signedMessage))),
+		GasLimit:  50_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	err = chainSimulator.nodes[1].GetFacadeHandler().ValidateTransaction(tx)
+	require.Nil(t, err)
+
+	_, err = chainSimulator.nodes[1].GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{tx})
+	require.Nil(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = chainSimulator.GenerateBlocks(5)
+	require.Nil(t, err)
+
+	txHash, err := computeTxHash(chainSimulator, tx)
+	require.Nil(t, err)
+	txFromMeta, err := chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
+	require.Nil(t, err)
+	require.NotNil(t, txFromMeta)
+
+	shardIDValidatorOwner := chainSimulator.nodes[0].GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
+	accountValidatorOwner, _, err := chainSimulator.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	balanceBeforeActiveValidator := accountValidatorOwner.Balance
+
+	// unstake validator
+	firstValitorKey, err := chainSimulator.GetValidatorPrivateKeys()[0].GeneratePublic().ToByteArray()
+	require.Nil(t, err)
+
+	initialAddressWithValidators := chainSimulator.GetInitialWalletKeys().InitialWalletWithStake.Address
+	senderBytes, _ := chainSimulator.nodes[1].GetCoreComponents().AddressPubKeyConverter().Decode(initialAddressWithValidators)
+	shardID := chainSimulator.nodes[0].GetShardCoordinator().ComputeId(senderBytes)
+	initialAccount, _, err := chainSimulator.nodes[shardID].GetFacadeHandler().GetAccount(initialAddressWithValidators, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	tx = &transaction.Transaction{
+		Nonce:     initialAccount.Nonce,
+		Value:     big.NewInt(0),
+		SndAddr:   senderBytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("unStake@%s", hex.EncodeToString(firstValitorKey))),
+		GasLimit:  50_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+	err = chainSimulator.nodes[shardID].GetFacadeHandler().ValidateTransaction(tx)
+	require.Nil(t, err)
+
+	_, err = chainSimulator.nodes[shardID].GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{tx})
+	require.Nil(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = chainSimulator.GenerateBlocks(5)
+	require.Nil(t, err)
+
+	txHash, err = computeTxHash(chainSimulator, tx)
+	require.Nil(t, err)
+	txFromMeta, err = chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
+	require.Nil(t, err)
+
+	// check rewards
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	accountValidatorOwner, _, err = chainSimulator.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	balanceAfterActiveValidator := accountValidatorOwner.Balance
+
+	fmt.Println("balance before validator", balanceBeforeActiveValidator)
+	fmt.Println("balance after validator", balanceAfterActiveValidator)
+
+	balanceBeforeBig, _ := big.NewInt(0).SetString(balanceBeforeActiveValidator, 10)
+	balanceAfterBig, _ := big.NewInt(0).SetString(balanceAfterActiveValidator, 10)
+	diff := balanceAfterBig.Sub(balanceAfterBig, balanceBeforeBig)
+	fmt.Println("difference", diff.String())
+
+	// cumulated rewards should be greater than zero
+	require.True(t, diff.Cmp(big.NewInt(0)) > 0)
+}
+
 func TestChainSimulator_SetEntireState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -231,4 +384,14 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
 	require.Equal(t, accountState.Owner, account.OwnerAddress)
 	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
+}
+
+func computeTxHash(chainSimulator ChainSimulator, tx *transaction.Transaction) (string, error) {
+	txBytes, err := chainSimulator.GetNodeHandler(1).GetCoreComponents().InternalMarshalizer().Marshal(tx)
+	if err != nil {
+		return "", err
+	}
+
+	txHasBytes := chainSimulator.GetNodeHandler(1).GetCoreComponents().Hasher().Compute(string(txBytes))
+	return hex.EncodeToString(txHasBytes), nil
 }
