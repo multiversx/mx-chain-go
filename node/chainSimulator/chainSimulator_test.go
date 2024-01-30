@@ -213,9 +213,6 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 
 	blsKey := "9b7de1b2d2c90b7bea8f6855075c77d6c63b5dada29abb9b87c52cfae9d4112fcac13279e1a07d94672a5e62a83e3716555513014324d5c6bb4261b465f1b8549a7a338bc3ae8edc1e940958f9c2e296bd3c118a4466dec99dda0ceee3eb6a8c"
-	blsKeyBytes, _ := hex.DecodeString(blsKey)
-	privateKey := chainSimulator.nodes[0].GetCryptoComponents().KeysHandler().GetHandledPrivateKey(blsKeyBytes)
-	signedMessage, _ := chainSimulator.nodes[0].GetCryptoComponents().BlockSigner().Sign(privateKey, newValidatorOwnerBytes)
 
 	// stake validator
 	stakeValue, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
@@ -224,7 +221,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		Value:     stakeValue,
 		SndAddr:   newValidatorOwnerBytes,
 		RcvAddr:   rcvAddrBytes,
-		Data:      []byte(fmt.Sprintf("stake@01@%s@%s", blsKey, hex.EncodeToString(signedMessage))),
+		Data:      []byte(fmt.Sprintf("stake@01@%s@010101", blsKey)),
 		GasLimit:  50_000_000,
 		GasPrice:  1000000000,
 		Signature: []byte("dummy"),
@@ -248,6 +245,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	txFromMeta, err := chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
 	require.Nil(t, err)
 	require.NotNil(t, txFromMeta)
+	require.Equal(t, 2, len(txFromMeta.SmartContractResults))
 
 	shardIDValidatorOwner := chainSimulator.nodes[0].GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
 	accountValidatorOwner, _, err := chainSimulator.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
@@ -291,6 +289,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	txFromMeta, err = chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
 	require.Nil(t, err)
 	require.NotNil(t, txFromMeta)
+	require.Equal(t, 2, len(txFromMeta.SmartContractResults))
 
 	// check rewards
 	err = chainSimulator.GenerateBlocks(50)

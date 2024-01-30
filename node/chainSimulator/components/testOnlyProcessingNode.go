@@ -43,6 +43,8 @@ type ArgsTestOnlyProcessingNode struct {
 	NumShards              uint32
 	ShardIDStr             string
 	BypassTxSignatureCheck bool
+	MinNodesPerShard       uint32
+	MinNodesMeta           uint32
 }
 
 type testOnlyProcessingNode struct {
@@ -95,6 +97,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		GasScheduleFilename: args.GasScheduleFilename,
 		NodesSetupPath:      args.Configs.ConfigurationPathsHolder.Nodes,
 		InitialRound:        args.InitialRound,
+		MinNodesPerShard:    args.MinNodesPerShard,
+		MinNodesMeta:        args.MinNodesMeta,
 	})
 	if err != nil {
 		return nil, err

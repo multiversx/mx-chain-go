@@ -35,7 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 type coreComponentsHolder struct {
@@ -88,6 +87,9 @@ type ArgsCoreComponentsHolder struct {
 	GasScheduleFilename string
 	NumShards           uint32
 	WorkingDir          string
+
+	MinNodesPerShard uint32
+	MinNodesMeta     uint32
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -200,9 +202,20 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	// TODO check if we need this
 	instance.ratingsData = &testscommon.RatingsInfoMock{}
 	instance.rater = &testscommon.RaterMock{}
+	//////////////////////////////
 
-	// TODO check if we need nodes shuffler
-	instance.nodesShuffler = &shardingMocks.NodeShufflerMock{}
+	instance.nodesShuffler, err = nodesCoordinator.NewHashValidatorsShuffler(&nodesCoordinator.NodesShufflerArgs{
+		NodesShard:           args.MinNodesPerShard,
+		NodesMeta:            args.MinNodesMeta,
+		Hysteresis:           0,
+		Adaptivity:           false,
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: args.EnableEpochsConfig.MaxNodesChangeEnableEpoch,
+		EnableEpochsHandler:  instance.enableEpochsHandler,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)

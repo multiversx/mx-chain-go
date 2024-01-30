@@ -56,7 +56,7 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 		PrefsConfig:                          args.Preferences,
 		CoreComponentsHolder:                 args.CoreComponentsHolder,
 		KeyLoader:                            core.NewKeyLoader(),
-		ActivateBLSPubKeyMessageVerification: true,
+		ActivateBLSPubKeyMessageVerification: false,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
 		// set validator key pem file with a file that doesn't exist to all validators key pem file
