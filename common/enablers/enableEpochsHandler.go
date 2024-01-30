@@ -617,6 +617,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch,
 		},
+		common.MigrateDataTrieFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MigrateDataTrieEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MigrateDataTrieEnableEpoch,
+		},
 		common.FixDelegationChangeOwnerOnAccountFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
@@ -676,6 +682,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch,
+		},
+		common.CurrentRandomnessOnSortingFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch,
 		},
 		common.StakeLimitsFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
