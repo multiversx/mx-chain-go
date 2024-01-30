@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	mathRand "math/rand"
 	"strings"
 	"sync"
@@ -24,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -435,13 +435,16 @@ func stepCreateAccountWithDataTrieAndCode(
 	_ = userAcc.SaveKeyValue(key1, []byte("value"))
 	_ = userAcc.SaveKeyValue(key2, []byte("value"))
 	_ = adb.SaveAccount(userAcc)
-
+	adb.SetTxHashForLatestStateChanges([]byte("accountCreationTxHash"))
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
-	stateChanges, err := adb.GetStateChangesForTheLatestTransaction()
-	assert.Nil(t, err)
+	stateChangesForTx := adb.ResetStateChangesCollector()
+	assert.Equal(t, 1, len(stateChangesForTx))
+
+	stateChanges := stateChangesForTx[0].StateChanges
 	assert.Equal(t, 2, len(stateChanges))
+	assert.Equal(t, []byte("accountCreationTxHash"), stateChangesForTx[0].TxHash)
 
 	codeStateChange := stateChanges[0]
 	assert.Equal(t, codeHash, codeStateChange.MainTrieKey)
@@ -481,11 +484,14 @@ func stepMigrateDataTrieValAndChangeCode(
 	userAcc.SetCode(code)
 	_ = userAcc.SaveKeyValue([]byte("key1"), []byte("value1"))
 	_ = adb.SaveAccount(userAcc)
+	adb.SetTxHashForLatestStateChanges([]byte("accountUpdateTxHash"))
 
-	stateChanges, err := adb.GetStateChangesForTheLatestTransaction()
-	assert.Nil(t, err)
-	assert.Equal(t, 3, len(stateChanges))
+	stateChangesForTx := adb.ResetStateChangesCollector()
+	assert.Equal(t, 1, len(stateChangesForTx))
+	assert.Equal(t, 3, len(stateChangesForTx[0].StateChanges))
+	assert.Equal(t, []byte("accountUpdateTxHash"), stateChangesForTx[0].TxHash)
 
+	stateChanges := stateChangesForTx[0].StateChanges
 	oldCodeEntryChange := stateChanges[0]
 	assert.Equal(t, oldCodeHash, oldCodeEntryChange.MainTrieKey)
 	assert.Equal(t, []byte(nil), oldCodeEntryChange.MainTrieVal)
@@ -517,6 +523,7 @@ func stepMigrateDataTrieValAndChangeCode(
 	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[1].Key)
 	assert.Equal(t, []byte(nil), accountStateChange.DataTrieChanges[1].Val)
 }
+
 func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
 

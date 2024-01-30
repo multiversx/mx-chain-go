@@ -172,9 +172,14 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
-// GetStateChangesForTheLatestTransaction -
-func (r *simulationAccountsDB) GetStateChangesForTheLatestTransaction() ([]state.StateChangeDTO, error) {
-	return r.originalAccounts.GetStateChangesForTheLatestTransaction()
+// SetTxHashForLatestStateChanges -
+func (r *simulationAccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
+	r.originalAccounts.SetTxHashForLatestStateChanges(txHash)
+}
+
+// ResetStateChangesCollector -
+func (r *simulationAccountsDB) ResetStateChangesCollector() []state.StateChangesForTx {
+	return nil
 }
 
 // Close will handle the closing of the underlying components
