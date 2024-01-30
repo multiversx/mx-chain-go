@@ -936,8 +936,12 @@ func (v *validatorSC) isNumberOfNodesTooHigh(registrationData *ValidatorDataV2) 
 		return false
 	}
 
+	return len(registrationData.BlsPubKeys) > v.calcNodeLimit()
+}
+
+func (v *validatorSC) calcNodeLimit() int {
 	nodeLimit := float64(v.nodesCoordinator.GetNumTotalEligible()) * v.nodeLimitPercentage
-	return len(registrationData.BlsPubKeys) > int(nodeLimit)
+	return int(nodeLimit)
 }
 
 func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1075,7 +1079,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		)
 	} else {
 		numRegisteredBlsKeys := int64(len(registrationData.BlsPubKeys))
-		nodeLimit := int64(float64(v.nodesCoordinator.GetNumTotalEligible()) * v.nodeLimitPercentage)
+		nodeLimit := int64(v.calcNodeLimit())
 		entry := &vmcommon.LogEntry{
 			Identifier: []byte(args.Function),
 			Address:    args.RecipientAddr,
