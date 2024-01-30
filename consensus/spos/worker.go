@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	errorsErd "github.com/multiversx/mx-chain-go/errors"
@@ -31,6 +33,7 @@ var _ closing.Closer = (*Worker)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in checkChannels method
 const sleepTime = 5 * time.Millisecond
+const redundancySingleKeySteppedIn = "single-key node stepped in"
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
@@ -495,6 +498,11 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		"nbTxs", header.GetTxCount(),
 		"val stats root hash", valStatsRootHash)
 
+	if !wrk.verifyHeaderHash(headerHash, cnsMsg.Header) {
+		return fmt.Errorf("%w : received header from consensus with wrong hash",
+			ErrWrongHashForHeader)
+	}
+
 	err = wrk.headerIntegrityVerifier.Verify(header)
 	if err != nil {
 		return fmt.Errorf("%w : verify header integrity from consensus topic failed", err)
@@ -523,6 +531,11 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 	}
 
 	return nil
+}
+
+func (wrk *Worker) verifyHeaderHash(hash []byte, marshalledHeader []byte) bool {
+	computedHash := wrk.hasher.Compute(string(marshalledHeader))
+	return bytes.Equal(hash, computedHash)
 }
 
 func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) {
@@ -562,7 +575,20 @@ func (wrk *Worker) processReceivedHeaderMetric(cnsDta *consensus.Message) {
 	}
 	percent := sinceRoundStart * 100 / wrk.roundHandler.TimeDuration()
 	wrk.appStatusHandler.SetUInt64Value(common.MetricReceivedProposedBlock, uint64(percent))
-	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(wrk.nodeRedundancyHandler.IsMainMachineActive()))
+
+	isMainMachineActive, redundancyReason := wrk.computeRedundancyMetrics()
+	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyIsMainActive, strconv.FormatBool(isMainMachineActive))
+	wrk.appStatusHandler.SetStringValue(common.MetricRedundancyStepInReason, redundancyReason)
+}
+
+func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
+	if !wrk.nodeRedundancyHandler.IsMainMachineActive() {
+		return false, redundancySingleKeySteppedIn
+	}
+
+	reason := wrk.consensusState.GetMultikeyRedundancyStepInReason()
+
+	return len(reason) == 0, reason
 }
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {

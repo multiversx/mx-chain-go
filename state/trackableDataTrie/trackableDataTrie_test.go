@@ -863,20 +863,22 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 	t.Run("leaves that need to be migrated are added to dirty data", func(t *testing.T) {
 		t.Parallel()
 
+		expectedValues := [][]byte{[]byte("value1"), []byte("value2"), []byte("value3")}
+		address := []byte("identifier")
 		leavesToBeMigrated := []core.TrieData{
 			{
 				Key:     []byte("key1"),
-				Value:   []byte("value1"),
+				Value:   append([]byte("value1key1"), address...),
 				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key2"),
-				Value:   []byte("value2"),
+				Value:   append([]byte("value2key2"), address...),
 				Version: core.NotSpecified,
 			},
 			{
 				Key:     []byte("key3"),
-				Value:   []byte("value3"),
+				Value:   append([]byte("value3key3"), address...),
 				Version: core.NotSpecified,
 			},
 		}
@@ -896,7 +898,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 			},
 		}
 
-		tdt, _ := trackableDataTrie.NewTrackableDataTrie([]byte("identifier"), &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
+		tdt, _ := trackableDataTrie.NewTrackableDataTrie(address, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpchs)
 		tdt.SetDataTrie(tr)
 		args := vmcommon.ArgsMigrateDataTrieLeaves{
 			OldVersion:   core.NotSpecified,
@@ -910,7 +912,7 @@ func TestTrackableDataTrie_MigrateDataTrieLeaves(t *testing.T) {
 		assert.Equal(t, len(leavesToBeMigrated), len(dirtyData))
 		for i := range leavesToBeMigrated {
 			d := dirtyData[string(leavesToBeMigrated[i].Key)]
-			assert.Equal(t, leavesToBeMigrated[i].Value, d.Value)
+			assert.Equal(t, expectedValues[i], d.Value)
 			assert.Equal(t, core.TrieNodeVersion(100), d.NewVersion)
 		}
 	})

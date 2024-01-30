@@ -192,5 +192,6 @@ type KeysHandler interface {
 	GetAssociatedPid(pkBytes []byte) core.PeerID
 	IsOriginalPublicKeyOfTheNode(pkBytes []byte) bool
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
+	GetRedundancyStepInReason() string
 	IsInterfaceNil() bool
 }

@@ -219,7 +219,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
 	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
 
-	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.HasherField = integrationTests.TestHasher
