@@ -84,6 +84,7 @@ func InitConfigMetrics(
 	epochConfig config.EpochConfig,
 	economicsConfig config.EconomicsConfig,
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
+	gatewayMetricsConfig config.GatewayMetricsConfig,
 ) error {
 	if check.IfNil(appStatusHandler) {
 		return ErrNilAppStatusHandler
@@ -146,6 +147,7 @@ func InitConfigMetrics(
 
 	appStatusHandler.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", genesisNodesConfig.GetHysteresis()))
 	appStatusHandler.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", genesisNodesConfig.GetAdaptivity()))
+	appStatusHandler.SetStringValue(common.MetricGatewayMetricsEndpoint, gatewayMetricsConfig.URL)
 
 	return nil
 }

@@ -309,6 +309,9 @@ const MetricRedundancyLevel = "erd_redundancy_level"
 // MetricRedundancyIsMainActive is the metric that specifies data about the redundancy main machine
 const MetricRedundancyIsMainActive = "erd_redundancy_is_main_active"
 
+// MetricRedundancyStepInReason is the metric that specifies why the back-up machine stepped in
+const MetricRedundancyStepInReason = "erd_redundancy_step_in_reason"
+
 // MetricValueNA represents the value to be used when a metric is not available/applicable
 const MetricValueNA = "N/A"
 
@@ -337,6 +340,9 @@ const MetricTopUpFactor = "erd_top_up_factor"
 
 // MetricMinTransactionVersion is the metric that specifies the minimum transaction version
 const MetricMinTransactionVersion = "erd_min_transaction_version"
+
+// MetricGatewayMetricsEndpoint is the metric that specifies gateway endpoint
+const MetricGatewayMetricsEndpoint = "erd_gateway_metrics_endpoint"
 
 // MetricGasPerDataByte is the metric that specifies the required gas for a data byte
 const MetricGasPerDataByte = "erd_gas_per_data_byte"
@@ -893,6 +899,7 @@ const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
 // FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
 const FullArchiveMetricSuffix = "_full_archive"
 
+// Enable epoch flags definitions
 const (
 	SCDeployFlag                                       core.EnableEpochFlag = "SCDeployFlag"
 	BuiltInFunctionsFlag                               core.EnableEpochFlag = "BuiltInFunctionsFlag"
@@ -991,6 +998,7 @@ const (
 	MultiClaimOnDelegationFlag                         core.EnableEpochFlag = "MultiClaimOnDelegationFlag"
 	ChangeUsernameFlag                                 core.EnableEpochFlag = "ChangeUsernameFlag"
 	AutoBalanceDataTriesFlag                           core.EnableEpochFlag = "AutoBalanceDataTriesFlag"
+	MigrateDataTrieFlag                                core.EnableEpochFlag = "MigrateDataTrieFlag"
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"
@@ -1002,6 +1010,7 @@ const (
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
+	CurrentRandomnessOnSortingFlag                     core.EnableEpochFlag = "CurrentRandomnessOnSortingFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	FixRelayedMoveBalanceFlag                          core.EnableEpochFlag = "FixRelayedMoveBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined

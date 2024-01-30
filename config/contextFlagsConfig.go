@@ -33,7 +33,6 @@ type ContextFlagsConfig struct {
 // ImportDbConfig will hold the import-db parameters
 type ImportDbConfig struct {
 	IsImportDBMode                bool
-	ImportDBStartInEpoch          uint32
 	ImportDBTargetShardID         uint32
 	ImportDBWorkingDir            string
 	ImportDbNoSigCheckFlag        bool

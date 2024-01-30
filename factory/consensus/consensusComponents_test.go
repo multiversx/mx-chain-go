@@ -139,6 +139,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderSigVerif:                       &testsMocks.HeaderSigVerifierStub{},
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
+			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{

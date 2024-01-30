@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -550,10 +550,10 @@ func TestNodeFacade_RestInterface(t *testing.T) {
 func TestNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
-	mapToRet := make(map[string]*accounts.ValidatorApiResponse)
-	mapToRet["test"] = &accounts.ValidatorApiResponse{NumLeaderFailure: 5}
+	mapToRet := make(map[string]*validator.ValidatorStatistics)
+	mapToRet["test"] = &validator.ValidatorStatistics{NumLeaderFailure: 5}
 	node := &mock.NodeStub{
-		ValidatorStatisticsApiCalled: func() (map[string]*accounts.ValidatorApiResponse, error) {
+		ValidatorStatisticsApiCalled: func() (map[string]*validator.ValidatorStatistics, error) {
 			return mapToRet, nil
 		},
 	}

@@ -108,6 +108,7 @@ type StorageManager interface {
 	RemoveFromAllActiveEpochs(hash []byte) error
 	SetEpochForPutOperation(uint32)
 	ShouldTakeSnapshot() bool
+	IsSnapshotSupported() bool
 	GetBaseTrieStorageManager() StorageManager
 	IsClosed() bool
 	Close() error
@@ -321,6 +322,7 @@ type ManagedPeersHolder interface {
 	GetNextPeerAuthenticationTime(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTime(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyMode() bool
+	GetRedundancyStepInReason() string
 	IsInterfaceNil() bool
 }
 

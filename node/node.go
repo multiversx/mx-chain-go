@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -37,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -1012,7 +1012,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
-func (n *Node) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
+func (n *Node) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 

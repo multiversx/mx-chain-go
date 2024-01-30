@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -3239,12 +3240,12 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		},
 	}
 
-	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*accounts.ValidatorApiResponse {
-		apiResponses := make(map[string]*accounts.ValidatorApiResponse)
+	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*validator.ValidatorStatistics {
+		apiResponses := make(map[string]*validator.ValidatorStatistics)
 
 		for _, vis := range validatorsInfo {
 			for _, vi := range vis {
-				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &accounts.ValidatorApiResponse{}
+				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &validator.ValidatorStatistics{}
 			}
 		}
 
@@ -3261,7 +3262,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	expectedData := &accounts.ValidatorApiResponse{}
+	expectedData := &validator.ValidatorStatistics{}
 	validatorsData, err := n.ValidatorStatisticsApi()
 	require.Equal(t, expectedData, validatorsData[hex.EncodeToString([]byte(keys[2][0]))])
 	require.Nil(t, err)
