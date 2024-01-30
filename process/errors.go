@@ -1230,6 +1230,9 @@ var ErrNilStorageService = errors.New("nil storage service")
 // ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
 var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
 
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
 // ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
 var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
 

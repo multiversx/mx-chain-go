@@ -215,7 +215,8 @@ func generateDataTrie(
 
 	for i := 1; i < numLeaves; i++ {
 		key := keyGenerator(i)
-		err := tr.UpdateWithVersion(key, key, core.NotSpecified)
+		value := getValWithAppendedData(key, key, accAddr)
+		err := tr.UpdateWithVersion(key, value, core.NotSpecified)
 		require.Nil(t, err)
 
 		keys[i] = key
@@ -224,6 +225,13 @@ func generateDataTrie(
 	rootHash := saveAccount(t, testContext, dataTr, acc)
 
 	return rootHash, keys
+}
+
+func getValWithAppendedData(key, val, address []byte) []byte {
+	suffix := append(key, address...)
+	val = append(val, suffix...)
+
+	return val
 }
 
 func initDataTrie(
