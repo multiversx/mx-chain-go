@@ -353,7 +353,8 @@ func createSovereignGenesisESDTTransfers(args ArgsGenesisBlockCreator, scrProces
 		}
 
 		if retCode != vmcommon.Ok {
-			log.Error("could not generate initial esdt balances", "func", "createSovInitialESDTBalances", "ret code", retCode)
+			log.Error("could not generate initial esdt balances",
+				"func", "createSovereignGenesisESDTTransfers", "ret code", retCode, "address", initialAcc.GetAddress())
 			return nil, errCouldNotGenerateInitialESDTTransfers
 		}
 
