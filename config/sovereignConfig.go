@@ -14,7 +14,8 @@ type SovereignConfig struct {
 
 // OutgoingSubscribedEvents holds config for outgoing subscribed events
 type OutgoingSubscribedEvents struct {
-	TimeToWaitForUnconfirmedOutGoingOperationInSeconds uint32 `toml:"TimeToWaitForUnconfirmedOutGoingOperationInSeconds"`
+	TimeToWaitForUnconfirmedOutGoingOperationInSeconds uint32            `toml:"TimeToWaitForUnconfirmedOutGoingOperationInSeconds"`
+	SubscribedEvents                                   []SubscribedEvent `toml:"SubscribedEvents"`
 }
 
 // MainChainNotarization defines necessary data to start main chain notarization on a sovereign shard
