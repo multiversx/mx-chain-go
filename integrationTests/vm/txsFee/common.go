@@ -76,19 +76,6 @@ func getDynamicTokenTypes() []string {
 	}
 }
 
-func getTokenTypes() []string {
-	return []string{
-		core.FungibleESDT,
-		core.NonFungibleESDT,
-		core.NonFungibleESDTv2,
-		core.MetaESDT,
-		core.SemiFungibleESDT,
-		core.DynamicNFTESDT,
-		core.DynamicSFTESDT,
-		core.DynamicMetaESDT,
-	}
-}
-
 func createTokenTx(
 	sndAddr []byte,
 	rcvAddr []byte,
