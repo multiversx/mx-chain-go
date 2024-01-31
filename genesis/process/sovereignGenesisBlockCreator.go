@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -129,9 +128,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 
 	genesisBlock, scResults, gbc.initialIndexingData[shardID], err = createSovereignShardGenesisBlock(
 		args.mapArgsGenesisBlockCreator[shardID],
-		args.mapBodies[shardID],
 		args.nodesListSplitter,
-		args.mapHardForkBlockProcessor[shardID],
 	)
 
 	if err != nil {
@@ -165,15 +162,8 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 
 func createSovereignShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
-	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
-	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	// TODO: Do we really need this check for sovereign?
-	if mustDoHardForkImportProcess(arg) {
-		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
-	}
-
 	sovereignGenesisConfig := createSovereignGenesisConfig()
 	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig())
 	if err != nil {
