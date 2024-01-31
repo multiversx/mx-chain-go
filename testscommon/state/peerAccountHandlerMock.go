@@ -52,9 +52,24 @@ func (p *PeerAccountHandlerMock) GetList() string {
 	return ""
 }
 
+// GetPreviousList -
+func (p *PeerAccountHandlerMock) GetPreviousList() string {
+	return ""
+}
+
 // GetIndexInList -
 func (p *PeerAccountHandlerMock) GetIndexInList() uint32 {
 	return 0
+}
+
+// GetPreviousIndexInList -
+func (p *PeerAccountHandlerMock) GetPreviousIndexInList() uint32 {
+	return 0
+}
+
+// GetBLSPublicKey -
+func (p *PeerAccountHandlerMock) GetBLSPublicKey() []byte {
+	return nil
 }
 
 // SetBLSPublicKey -
@@ -290,7 +305,7 @@ func (p *PeerAccountHandlerMock) SetConsecutiveProposerMisses(consecutiveMisses 
 }
 
 // SetListAndIndex -
-func (p *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32) {
+func (p *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, index uint32, _ bool) {
 	if p.SetListAndIndexCalled != nil {
 		p.SetListAndIndexCalled(shardID, list, index)
 	}

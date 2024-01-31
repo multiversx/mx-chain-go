@@ -284,6 +284,11 @@ func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorS
 	return nf.node.ValidatorStatisticsApi()
 }
 
+// AuctionListApi will return the data about the validators in the auction list
+func (nf *nodeFacade) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return nf.node.AuctionListApi()
+}
+
 // SendBulkTransactions will send a bulk of transactions on the topic channel
 func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return nf.node.SendBulkTransactions(txs)

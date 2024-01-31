@@ -10,7 +10,7 @@ import (
 var _ StorageService = (*ChainStorer)(nil)
 
 // ChainStorer is a StorageService implementation that can hold multiple storages
-//  grouped by storage unit type
+// grouped by storage unit type
 type ChainStorer struct {
 	lock  sync.RWMutex
 	chain map[UnitType]storage.Storer

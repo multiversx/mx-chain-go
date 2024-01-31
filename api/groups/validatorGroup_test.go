@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,9 +35,16 @@ func TestNewValidatorGroup(t *testing.T) {
 }
 
 // ValidatorStatisticsResponse is the response for the validator statistics endpoint.
-type ValidatorStatisticsResponse struct {
+type validatorStatisticsResponse struct {
 	Result map[string]*validator.ValidatorStatistics `json:"statistics"`
 	Error  string                                    `json:"error"`
+}
+
+type auctionListReponse struct {
+	Data struct {
+		Result []*common.AuctionListValidatorAPIResponse `json:"auctionList"`
+	} `json:"data"`
+	Error string
 }
 
 func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
@@ -60,7 +68,7 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := ValidatorStatisticsResponse{}
+	response := validatorStatisticsResponse{}
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
@@ -97,7 +105,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	validatorStatistics := ValidatorStatisticsResponse{}
+	validatorStatistics := validatorStatisticsResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
 	_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
@@ -147,14 +155,13 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 		require.NoError(t, err)
 
 		ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
-
 		req, _ := http.NewRequest("GET", "/validator/statistics", nil)
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
 		response := shared.GenericAPIResponse{}
 		loadResponse(resp.Body, &response)
-		validatorStatistics := ValidatorStatisticsResponse{}
+		validatorStatistics := validatorStatisticsResponse{}
 		mapResponseData := response.Data.(map[string]interface{})
 		mapResponseDataBytes, _ := json.Marshal(mapResponseData)
 		_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
@@ -191,12 +198,71 @@ func TestValidatorGroup_IsInterfaceNil(t *testing.T) {
 	require.False(t, validatorGroup.IsInterfaceNil())
 }
 
+func TestAuctionList_ErrorWhenFacadeFails(t *testing.T) {
+	t.Parallel()
+
+	errStr := "error in facade"
+	facade := mock.FacadeStub{
+		AuctionListHandler: func() ([]*common.AuctionListValidatorAPIResponse, error) {
+			return nil, errors.New(errStr)
+		},
+	}
+
+	validatorGroup, err := groups.NewValidatorGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
+	req, _ := http.NewRequest("GET", "/validator/auction", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := auctionListReponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, response.Error, errStr)
+}
+
+func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
+	t.Parallel()
+
+	auctionListToReturn := []*common.AuctionListValidatorAPIResponse{
+		{
+			Owner:          "owner",
+			NumStakedNodes: 4,
+			TotalTopUp:     "1234",
+			TopUpPerNode:   "4321",
+			QualifiedTopUp: "4444",
+		},
+	}
+	facade := mock.FacadeStub{
+		AuctionListHandler: func() ([]*common.AuctionListValidatorAPIResponse, error) {
+			return auctionListToReturn, nil
+		},
+	}
+
+	validatorGroup, err := groups.NewValidatorGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
+	req, _ := http.NewRequest("GET", "/validator/auction", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := auctionListReponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, response.Data.Result, auctionListToReturn)
+}
+
 func getValidatorRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"validator": {
 				Routes: []config.RouteConfig{
 					{Name: "/statistics", Open: true},
+					{Name: "/auction", Open: true},
 				},
 			},
 		},

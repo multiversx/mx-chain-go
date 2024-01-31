@@ -99,7 +99,6 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                   unreachableEpoch,
-			WaitingListFixEnableEpoch:               unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
 		},

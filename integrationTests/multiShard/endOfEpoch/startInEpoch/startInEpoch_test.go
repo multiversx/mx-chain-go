@@ -33,6 +33,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
@@ -67,6 +69,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
+		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
+		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
+		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -149,7 +154,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < uint32(numOfShards); i++ {
@@ -181,7 +186,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 			return integrationTests.MinTransactionVersion
 		},
 	}
-
 	defer func() {
 		errRemoveDir := os.RemoveAll("Epoch_0")
 		assert.NoError(t, errRemoveDir)
@@ -231,12 +235,17 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&marshallerMock.MarshalizerMock{},
+		444,
+	)
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
-		CryptoComponentsHolder: cryptoComponents,
-		CoreComponentsHolder:   coreComponents,
-		MainMessenger:          nodeToJoinLate.MainMessenger,
-		FullArchiveMessenger:   nodeToJoinLate.FullArchiveMessenger,
-		GeneralConfig:          generalConfig,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		CryptoComponentsHolder:          cryptoComponents,
+		CoreComponentsHolder:            coreComponents,
+		MainMessenger:                   nodeToJoinLate.MainMessenger,
+		FullArchiveMessenger:            nodeToJoinLate.FullArchiveMessenger,
+		GeneralConfig:                   generalConfig,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},

@@ -474,6 +474,7 @@ func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBl
 		ChanceComputer:      args.coreComponents.Rater(),
 		ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		NodesCoordinator:    args.processComponents.NodesCoordinator(),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
 	if err != nil {

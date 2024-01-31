@@ -99,12 +99,10 @@ func createGenesisConfig() config.EnableEpochs {
 		SaveJailedAlwaysEnableEpoch:                       unreachableEpoch,
 		ValidatorToDelegationEnableEpoch:                  unreachableEpoch,
 		ReDelegateBelowMinCheckEnableEpoch:                unreachableEpoch,
-		WaitingListFixEnableEpoch:                         unreachableEpoch,
 		IncrementSCRNonceInMultiTransferEnableEpoch:       unreachableEpoch,
 		ESDTMultiTransferEnableEpoch:                      unreachableEpoch,
 		GlobalMintBurnDisableEpoch:                        unreachableEpoch,
 		ESDTTransferRoleEnableEpoch:                       unreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:                  unreachableEpoch,
 		ComputeRewardCheckpointEnableEpoch:                unreachableEpoch,
 		SCRSizeInvariantCheckEnableEpoch:                  unreachableEpoch,
 		BackwardCompSaveKeyValueEnableEpoch:               unreachableEpoch,
@@ -149,6 +147,10 @@ func createGenesisConfig() config.EnableEpochs {
 		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
 		SetGuardianEnableEpoch:                            unreachableEpoch,
 		ScToScLogEventEnableEpoch:                         unreachableEpoch,
+		StakeLimitsEnableEpoch:                            unreachableEpoch,
+		StakingV4Step1EnableEpoch:                         unreachableEpoch,
+		StakingV4Step2EnableEpoch:                         unreachableEpoch,
+		StakingV4Step3EnableEpoch:                         unreachableEpoch,
 	}
 }
 

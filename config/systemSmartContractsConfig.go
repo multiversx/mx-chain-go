@@ -23,16 +23,19 @@ type StakingSystemSCConfig struct {
 	BleedPercentagePerRound              float64
 	MaxNumberOfNodesForStake             uint64
 	ActivateBLSPubKeyMessageVerification bool
+	StakeLimitPercentage                 float64
+	NodeLimitPercentage                  float64
 }
 
 // ESDTSystemSCConfig defines a set of constant to initialize the esdt system smart contract
 type ESDTSystemSCConfig struct {
-	BaseIssuingCost string
-	OwnerAddress    string
+	BaseIssuingCost  string
+	OwnerAddress     string
+	DelegationTicker string
 }
 
 // GovernanceSystemSCConfigV1 holds the initial set of values that were used to initialise the
-//  governance system smart contract at genesis time
+// governance system smart contract at genesis time
 type GovernanceSystemSCConfigV1 struct {
 	NumNodes         int64
 	ProposalCost     string
@@ -42,7 +45,7 @@ type GovernanceSystemSCConfigV1 struct {
 }
 
 // GovernanceSystemSCConfigActive defines the set of configuration values used by the governance
-//  system smart contract once it activates
+// system smart contract once it activates
 type GovernanceSystemSCConfigActive struct {
 	ProposalCost     string
 	LostProposalFee  string

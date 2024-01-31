@@ -21,10 +21,11 @@ type NodesCoordinatorStub struct {
 	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
 	GetOwnPublicKeyCalled                    func() []byte
 	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
+	GetNumTotalEligibleCalled                func() uint64
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry {
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry(uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
 	return nil
 }
 
@@ -51,7 +52,7 @@ func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // SetConfig -
-func (ncm *NodesCoordinatorStub) SetConfig(_ *nodesCoordinator.NodesCoordinatorRegistry) error {
+func (ncm *NodesCoordinatorStub) SetConfig(_ nodesCoordinator.NodesCoordinatorRegistryHandler) error {
 	return nil
 }
 
@@ -77,8 +78,16 @@ func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(epoch uint32)
 	return nil, nil
 }
 
+// GetAllShuffledOutValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorStub) GetNumTotalEligible() uint64 {
+	if ncm.GetNumTotalEligibleCalled != nil {
+		return ncm.GetNumTotalEligibleCalled()
+	}
 	return 1
 }
 

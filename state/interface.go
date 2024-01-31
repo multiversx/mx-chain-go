@@ -23,6 +23,46 @@ type Updater interface {
 	IsInterfaceNil() bool
 }
 
+// PeerAccountHandler models a peer state account, which can journalize a normal account's data
+// with some extra features like signing statistics or rating information
+type PeerAccountHandler interface {
+	GetBLSPublicKey() []byte
+	SetBLSPublicKey([]byte) error
+	GetRewardAddress() []byte
+	SetRewardAddress([]byte) error
+	GetAccumulatedFees() *big.Int
+	AddToAccumulatedFees(*big.Int)
+	GetList() string
+	GetPreviousList() string
+	GetIndexInList() uint32
+	GetPreviousIndexInList() uint32
+	GetShardId() uint32
+	SetUnStakedEpoch(epoch uint32)
+	GetUnStakedEpoch() uint32
+	IncreaseLeaderSuccessRate(uint32)
+	DecreaseLeaderSuccessRate(uint32)
+	IncreaseValidatorSuccessRate(uint32)
+	DecreaseValidatorSuccessRate(uint32)
+	IncreaseValidatorIgnoredSignaturesRate(uint32)
+	GetNumSelectedInSuccessBlocks() uint32
+	IncreaseNumSelectedInSuccessBlocks()
+	GetLeaderSuccessRate() SignRate
+	GetValidatorSuccessRate() SignRate
+	GetValidatorIgnoredSignaturesRate() uint32
+	GetTotalLeaderSuccessRate() SignRate
+	GetTotalValidatorSuccessRate() SignRate
+	GetTotalValidatorIgnoredSignaturesRate() uint32
+	SetListAndIndex(shardID uint32, list string, index uint32, updatePreviousValues bool)
+	GetRating() uint32
+	SetRating(uint32)
+	GetTempRating() uint32
+	SetTempRating(uint32)
+	GetConsecutiveProposerMisses() uint32
+	SetConsecutiveProposerMisses(uint322 uint32)
+	ResetAtNewEpoch()
+	vmcommon.AccountHandler
+}
+
 // AccountsAdapter is used for the structure that manages the accounts on top of a trie.PatriciaMerkleTrie
 // implementation
 type AccountsAdapter interface {
@@ -180,43 +220,6 @@ type DataTrie interface {
 	CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error
 }
 
-// PeerAccountHandler models a peer state account, which can journalize a normal account's data
-// with some extra features like signing statistics or rating information
-type PeerAccountHandler interface {
-	SetBLSPublicKey([]byte) error
-	GetRewardAddress() []byte
-	SetRewardAddress([]byte) error
-	GetAccumulatedFees() *big.Int
-	AddToAccumulatedFees(*big.Int)
-	GetList() string
-	GetIndexInList() uint32
-	GetShardId() uint32
-	SetUnStakedEpoch(epoch uint32)
-	GetUnStakedEpoch() uint32
-	IncreaseLeaderSuccessRate(uint32)
-	DecreaseLeaderSuccessRate(uint32)
-	IncreaseValidatorSuccessRate(uint32)
-	DecreaseValidatorSuccessRate(uint32)
-	IncreaseValidatorIgnoredSignaturesRate(uint32)
-	GetNumSelectedInSuccessBlocks() uint32
-	IncreaseNumSelectedInSuccessBlocks()
-	GetLeaderSuccessRate() SignRate
-	GetValidatorSuccessRate() SignRate
-	GetValidatorIgnoredSignaturesRate() uint32
-	GetTotalLeaderSuccessRate() SignRate
-	GetTotalValidatorSuccessRate() SignRate
-	GetTotalValidatorIgnoredSignaturesRate() uint32
-	SetListAndIndex(shardID uint32, list string, index uint32)
-	GetRating() uint32
-	SetRating(uint32)
-	GetTempRating() uint32
-	SetTempRating(uint32)
-	GetConsecutiveProposerMisses() uint32
-	SetConsecutiveProposerMisses(uint322 uint32)
-	ResetAtNewEpoch()
-	vmcommon.AccountHandler
-}
-
 // UserAccountHandler models a user account, which can journalize account's data with some extra features
 // like balance, developer rewards, owner
 type UserAccountHandler interface {
@@ -277,4 +280,72 @@ type LastSnapshotMarker interface {
 	RemoveMarker(trieStorageManager common.StorageManager, epoch uint32, rootHash []byte)
 	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
 	IsInterfaceNil() bool
+}
+
+// ShardValidatorsInfoMapHandler shall be used to manage operations inside
+// a <shardID, []ValidatorInfoHandler> map in a concurrent-safe way.
+type ShardValidatorsInfoMapHandler interface {
+	GetShardValidatorsInfoMap() map[uint32][]ValidatorInfoHandler
+	GetAllValidatorsInfo() []ValidatorInfoHandler
+	GetValidator(blsKey []byte) ValidatorInfoHandler
+
+	Add(validator ValidatorInfoHandler) error
+	Delete(validator ValidatorInfoHandler) error
+	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
+	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
+}
+
+// ValidatorInfoHandler defines which data shall a validator info hold.
+type ValidatorInfoHandler interface {
+	IsInterfaceNil() bool
+
+	GetPublicKey() []byte
+	GetShardId() uint32
+	GetList() string
+	GetIndex() uint32
+	GetPreviousIndex() uint32
+	GetTempRating() uint32
+	GetRating() uint32
+	GetRatingModifier() float32
+	GetRewardAddress() []byte
+	GetLeaderSuccess() uint32
+	GetLeaderFailure() uint32
+	GetValidatorSuccess() uint32
+	GetValidatorFailure() uint32
+	GetValidatorIgnoredSignatures() uint32
+	GetNumSelectedInSuccessBlocks() uint32
+	GetAccumulatedFees() *big.Int
+	GetTotalLeaderSuccess() uint32
+	GetTotalLeaderFailure() uint32
+	GetTotalValidatorSuccess() uint32
+	GetTotalValidatorFailure() uint32
+	GetTotalValidatorIgnoredSignatures() uint32
+	GetPreviousList() string
+
+	SetPublicKey(publicKey []byte)
+	SetShardId(shardID uint32)
+	SetPreviousList(list string)
+	SetList(list string)
+	SetIndex(index uint32)
+	SetListAndIndex(list string, index uint32, updatePreviousValues bool)
+	SetTempRating(tempRating uint32)
+	SetRating(rating uint32)
+	SetRatingModifier(ratingModifier float32)
+	SetRewardAddress(rewardAddress []byte)
+	SetLeaderSuccess(leaderSuccess uint32)
+	SetLeaderFailure(leaderFailure uint32)
+	SetValidatorSuccess(validatorSuccess uint32)
+	SetValidatorFailure(validatorFailure uint32)
+	SetValidatorIgnoredSignatures(validatorIgnoredSignatures uint32)
+	SetNumSelectedInSuccessBlocks(numSelectedInSuccessBlock uint32)
+	SetAccumulatedFees(accumulatedFees *big.Int)
+	SetTotalLeaderSuccess(totalLeaderSuccess uint32)
+	SetTotalLeaderFailure(totalLeaderFailure uint32)
+	SetTotalValidatorSuccess(totalValidatorSuccess uint32)
+	SetTotalValidatorFailure(totalValidatorFailure uint32)
+	SetTotalValidatorIgnoredSignatures(totalValidatorIgnoredSignatures uint32)
+
+	ShallowClone() ValidatorInfoHandler
+	String() string
+	GoString() string
 }

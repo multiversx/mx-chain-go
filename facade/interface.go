@@ -86,6 +86,8 @@ type NodeHandler interface {
 
 	// ValidatorStatisticsApi return the statistics for all the validators
 	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
+
+	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 

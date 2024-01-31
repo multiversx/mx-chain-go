@@ -170,7 +170,10 @@
 [APIPackages.validator]
     Routes = [
         # /validator/statistics will return a list of validators statistics for all validators
-        { Name = "/statistics", Open = true }
+        { Name = "/statistics", Open = true },
+
+        # /validator/auction will return a list of nodes that are in the auction list
+        { Name = "/auction", Open = true },
     ]
 
 [APIPackages.vm-values]

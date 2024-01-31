@@ -218,7 +218,8 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		args.CoreComponents = coreComponents
 		coreComponents.RatingHandler = nil
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
+		require.Nil(t, err)
 		require.NotNil(t, bcf)
 
 		bc, err := bcf.Create()

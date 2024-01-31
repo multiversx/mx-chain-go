@@ -287,9 +287,9 @@ type ValidatorStatisticsProcessor interface {
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
+	ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error
+	GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error)
+	ProcessRatingsEndOfEpoch(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error
 	Commit() ([]byte, error)
 	DisplayRatings(epoch uint32)
 	SetLastFinalizedRootHash([]byte)
@@ -318,6 +318,7 @@ type TransactionLogProcessorDatabase interface {
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*validator.ValidatorStatistics
+	GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error)
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -945,10 +946,10 @@ type EpochStartDataCreator interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
@@ -962,8 +963,8 @@ type RewardsCreator interface {
 
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
-	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateValidatorInfoMiniBlocks(validatorInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error
 	GetLocalValidatorInfoCache() epochStart.ValidatorInfoCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetValidatorInfoTxs(body *block.Body) map[string]*state.ShardValidatorInfo
@@ -975,7 +976,10 @@ type EpochStartValidatorInfoCreator interface {
 
 // EpochStartSystemSCProcessor defines the functionality for the metachain to process system smart contract and end of epoch
 type EpochStartSystemSCProcessor interface {
-	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error
+	ProcessSystemSmartContract(
+		validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+		header data.HeaderHandler,
+	) error
 	ProcessDelegationRewards(
 		miniBlocks block.MiniBlockSlice,
 		rewardTxs epochStart.TransactionCacher,

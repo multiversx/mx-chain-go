@@ -65,7 +65,6 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.PenalizedTooMuchGasFlag,
-		common.BuiltInFunctionOnMetaFlag,
 		common.ESDTFlag,
 	})
 	if err != nil {
@@ -143,10 +142,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		if txProc.enableEpochsHandler.IsFlagEnabled(common.BuiltInFunctionOnMetaFlag) {
-			return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
-		}
-
 		if txProc.enableEpochsHandler.IsFlagEnabled(common.ESDTFlag) {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}
