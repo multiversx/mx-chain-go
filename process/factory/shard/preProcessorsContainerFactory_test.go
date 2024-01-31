@@ -2,19 +2,19 @@ package shard
 
 import (
 	"fmt"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	mockFactory "github.com/multiversx/mx-chain-go/process/mock/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -51,7 +51,7 @@ func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContaine
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &mockCommon.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
+		SmartContractResultPreProcessorCreator: &mockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 }
 
