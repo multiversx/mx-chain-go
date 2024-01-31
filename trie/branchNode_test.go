@@ -1333,10 +1333,7 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitCheckpoint(db, db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Equal(t, core.ErrContextClosing, err)
-
-	err = bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -1351,8 +1348,23 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	missingNodesChan := make(chan []byte, 10)
 	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	assert.Nil(t, err)
+	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
+}
+
+func TestBranchNode_commitSnapshotChildIsMissingErr(t *testing.T) {
+	t.Parallel()
+
+	db := testscommon.NewMemDbMock()
+	db.GetCalled = func(key []byte) ([]byte, error) {
+		return nil, core.NewGetNodeFromDBErrWithKey(key, ErrKeyNotFound, "test")
+	}
+
+	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	missingNodesChan := make(chan []byte, 10)
+	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(missingNodesChan))
 }
 
 func TestBranchNode_getVersion(t *testing.T) {

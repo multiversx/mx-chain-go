@@ -18,6 +18,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -112,7 +113,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockTracker:                  arguments.BlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
 		blockChain:                    arguments.DataComponents.Blockchain(),
-		stateCheckpointModulus:        arguments.Config.StateTriesConfig.CheckpointRoundsModulus,
 		outportHandler:                arguments.StatusComponents.OutportHandler(),
 		genesisNonce:                  genesisHdr.GetNonce(),
 		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
@@ -136,6 +136,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 	}
 
 	mp := metaProcessor{
@@ -180,7 +181,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 }
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
-	return headerHandler.GetEpoch() >= mp.enableEpochsHandler.StakingV2EnableEpoch()
+	return mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.StakingV2Flag, headerHandler.GetEpoch())
 }
 
 // ProcessBlock processes a block. It returns nil if all ok or the specific error
@@ -590,7 +591,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 }
 
 func (mp *metaProcessor) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return headerHandler.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, mp.shardCoordinator.SelfId())
@@ -929,7 +930,8 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
+	randomness := helpers.ComputeRandomnessForTxSorting(metaBlock, mp.enableEpochsHandler)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, err
 	}
@@ -948,7 +950,7 @@ func (mp *metaProcessor) createMiniBlocks(
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
-	if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		miniBlocks = mp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		mp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
 		// TODO: in case we add metachain originating scheduled miniBlocks, we need to add the invalid txs here, same as for shard processor
@@ -1236,6 +1238,11 @@ func (mp *metaProcessor) CommitBlock(
 		"hash", headerHash)
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
+
+	errNotCritical := mp.checkSentSignaturesAtCommitTime(headerHandler)
+	if errNotCritical != nil {
+		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
+	}
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
@@ -1791,7 +1798,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
-	if !mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return miniBlockHeaderHandlers
 	}
 
@@ -2031,7 +2038,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
 		for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
-			if mp.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+			if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 				miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 				if !miniBlockHeader.IsFinal() {
 					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
