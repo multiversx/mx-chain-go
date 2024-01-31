@@ -10,12 +10,14 @@ type sovereignVmContainerMetaFactory struct {
 	blockChainHookHandlerCreator hooks.BlockChainHookHandlerCreator
 }
 
+// NewSovereignVmContainerMetaFactory creates a new sovereign vm container meta factory
 func NewSovereignVmContainerMetaFactory(bhhc hooks.BlockChainHookHandlerCreator) (*sovereignVmContainerMetaFactory, error) {
 	return &sovereignVmContainerMetaFactory{
 		blockChainHookHandlerCreator: bhhc,
 	}, nil
 }
 
+// CreateVmContainerFactoryMeta will create a new instance of sovereign vm container and factory for metachain
 func (svcmf *sovereignVmContainerMetaFactory) CreateVmContainerFactoryMeta(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	blockChainHookImpl, err := svcmf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
 	if err != nil {
@@ -51,6 +53,7 @@ func (svcmf *sovereignVmContainerMetaFactory) CreateVmContainerFactoryMeta(argsH
 	return vmContainer, vmFactory, nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (svcmf *sovereignVmContainerMetaFactory) IsInterfaceNil() bool {
 	return svcmf == nil
 }

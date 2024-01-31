@@ -10,12 +10,14 @@ type vmContainerShardFactory struct {
 	blockChainHookHandlerCreator hooks.BlockChainHookHandlerCreator
 }
 
+// NewVmContainerShardFactory creates a new vm container shard factory
 func NewVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator) (*vmContainerShardFactory, error) {
 	return &vmContainerShardFactory{
 		blockChainHookHandlerCreator: bhhc,
 	}, nil
 }
 
+// CreateVmContainerFactoryShard will create a new vm container and factoy for shard
 func (vcsf *vmContainerShardFactory) CreateVmContainerFactoryShard(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	blockChainHookImpl, err := vcsf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
 	if err != nil {
@@ -47,6 +49,7 @@ func (vcsf *vmContainerShardFactory) CreateVmContainerFactoryShard(argsHook hook
 	return vmContainer, vmFactory, nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (vcsf *vmContainerShardFactory) IsInterfaceNil() bool {
 	return vcsf == nil
 }

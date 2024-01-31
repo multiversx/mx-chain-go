@@ -13,12 +13,14 @@ type sovereignVmContainerShardFactory struct {
 	blockChainHookHandlerCreator hooks.BlockChainHookHandlerCreator
 }
 
+// NewSovereignVmContainerShardFactory creates a new sovereign vm container shard factory
 func NewSovereignVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator) (*sovereignVmContainerShardFactory, error) {
 	return &sovereignVmContainerShardFactory{
 		blockChainHookHandlerCreator: bhhc,
 	}, nil
 }
 
+// CreateVmContainerFactoryShard will create a new instance of sovereign vm container and factory for shard
 func (svcsf *sovereignVmContainerShardFactory) CreateVmContainerFactoryShard(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	blockChainHookImpl, err := svcsf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
 	if err != nil {
@@ -76,6 +78,7 @@ func (svcsf *sovereignVmContainerShardFactory) CreateVmContainerFactoryShard(arg
 	return vmContainer, vmFactory, nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (svcsf *sovereignVmContainerShardFactory) IsInterfaceNil() bool {
 	return svcsf == nil
 }

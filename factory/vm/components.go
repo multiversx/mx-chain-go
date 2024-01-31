@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+// ArgsVmContainerFactory hold the argument needed for creating vm container
 type ArgsVmContainerFactory struct {
 	Config              config.VirtualMachineConfig
 	BlockGasLimit       uint64
