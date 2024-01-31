@@ -327,7 +327,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		hdrsForBlock := mp.GetHdrForBlock()
 		hdrsForBlock.SetNumMissingHdrs(1)
 		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
-		referencedHeaderData := td[0].attestationHeaderData
+		referencedHeaderData := td[0].referencedHeaderData
 		hdrsForBlock.SetHighestHdrNonce(0, referencedHeaderData.header.GetNonce()-1)
 		hdrsForBlock.SetHdrHashAndInfo(string(referencedHeaderData.headerHash), &blockProcess.HdrInfo{
 			UsedInBlock: true,

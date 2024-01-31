@@ -1,6 +1,7 @@
 package block_test
 
 import (
+	"bytes"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -22,8 +23,7 @@ type headerData struct {
 }
 
 type shardBlockTestData struct {
-	headerData             *headerData
-	confirmationHeaderData *headerData
+	headerData []*headerData
 }
 
 func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
@@ -34,12 +34,13 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 
 		arguments, requestHandler := shardBlockRequestTestInit(t)
 		testData := createShardProcessorTestData()
+		metaChainData := testData[core.MetachainShardId]
 		numCalls := atomic.Uint32{}
 		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
 			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
 		}
 		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			attestationNonce := testData[core.MetachainShardId].confirmationHeaderData.header.GetNonce()
+			attestationNonce := metaChainData.headerData[1].header.GetNonce()
 			if nonce != attestationNonce {
 				require.Fail(t, fmt.Sprintf("nonce should have been %d", attestationNonce))
 			}
@@ -47,7 +48,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(arguments)
 
-		metaBlockData := testData[core.MetachainShardId].headerData
+		metaBlockData := metaChainData.headerData[0]
 		// not adding the confirmation metaBlock to the headers pool means it will be missing and requested
 		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
 		res := sp.RequestMissingFinalityAttestingHeaders()
@@ -61,6 +62,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 
 		arguments, requestHandler := shardBlockRequestTestInit(t)
 		testData := createShardProcessorTestData()
+		metaChainData := testData[core.MetachainShardId]
 		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
 			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
 		}
@@ -71,8 +73,8 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 
 		headersDataPool := arguments.DataComponents.Datapool().Headers()
 		require.NotNil(t, headersDataPool)
-		metaBlockData := testData[core.MetachainShardId].headerData
-		confirmationMetaBlockData := testData[core.MetachainShardId].confirmationHeaderData
+		metaBlockData := metaChainData.headerData[0]
+		confirmationMetaBlockData := metaChainData.headerData[1]
 		headersDataPool.AddHeader(confirmationMetaBlockData.hash, confirmationMetaBlockData.header)
 		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
 		res := sp.RequestMissingFinalityAttestingHeaders()
@@ -85,46 +87,162 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T) {
 	t.Parallel()
 
+	shard1ID := uint32(1)
 	t.Run("one referenced metaBlock missing will be requested", func(t *testing.T) {
 		t.Parallel()
 
 		arguments, requestHandler := shardBlockRequestTestInit(t)
 		testData := createShardProcessorTestData()
+		metaChainData := testData[core.MetachainShardId]
+		shard1Data := testData[shard1ID]
 		numCalls := atomic.Uint32{}
 		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
 			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
 		}
 		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			attestationNonce := testData[core.MetachainShardId].confirmationHeaderData.header.GetNonce()
-			if nonce == attestationNonce {
-				require.Fail(t, fmt.Sprintf("should not request attestation block with nonce %d", attestationNonce))
-			}
-			referencedMetaBlockNonce := testData[core.MetachainShardId].headerData.header.GetNonce()
-			if nonce != referencedMetaBlockNonce {
-				require.Fail(t, fmt.Sprintf("requested nonce should have been %d", referencedMetaBlockNonce))
-			}
+			// should only be called when requesting attestation meta header block
+			require.Fail(t, "should not request meta header by nonce")
+		}
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			require.Equal(t, metaChainData.headerData[1].hash, hash)
 			numCalls.Add(1)
 		}
 		sp, _ := blproc.NewShardProcessor(arguments)
 
-		metaBlockData := testData[core.MetachainShardId].headerData
-		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
+		metaBlockData := metaChainData.headerData[0]
 		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
+		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
+		// first of the 2 referenced headers is added, the other will be missing
+		headersDataPool := arguments.DataComponents.Datapool().Headers()
+		headersDataPool.AddHeader(metaBlockData.hash, metaBlockData.header)
 
-		// sp.ComputeExistingAndRequestMissingMetaHeaders()
+		blockBeingProcessed := shard1Data.headerData[1].header
+		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		time.Sleep(100 * time.Millisecond)
 
+		require.Equal(t, uint32(1), missingHeaders)
+		require.Equal(t, uint32(0), missingFinalityAttestingHeaders)
+		require.Equal(t, uint32(1), numCalls.Load())
 	})
 	t.Run("multiple referenced metaBlocks missing will be requested", func(t *testing.T) {
 		t.Parallel()
 
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		numCalls := atomic.Uint32{}
+		metaChainData := testData[core.MetachainShardId]
+		shard1Data := testData[shard1ID]
+		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
+			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			// not yet requesting the attestation metaBlock
+			require.Fail(t, "should not request meta header by nonce")
+		}
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			if !(bytes.Equal(hash, metaChainData.headerData[0].hash) || bytes.Equal(hash, metaChainData.headerData[1].hash)) {
+				require.Fail(t, "other requests than the expected 2 metaBlocks are not expected")
+			}
+
+			numCalls.Add(1)
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		metaBlockData := testData[core.MetachainShardId].headerData[0]
+		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
+		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
+
+		blockBeingProcessed := shard1Data.headerData[1].header
+		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, uint32(2), missingHeaders)
+		require.Equal(t, uint32(0), missingFinalityAttestingHeaders)
+		require.Equal(t, uint32(2), numCalls.Load())
 	})
 	t.Run("all referenced metaBlocks existing with missing attestation, will request the attestation metaBlock", func(t *testing.T) {
 		t.Parallel()
 
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		numCallsMissing := atomic.Uint32{}
+		numCallsAttestation := atomic.Uint32{}
+		metaChainData := testData[core.MetachainShardId]
+		shard1Data := testData[shard1ID]
+		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
+			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			// not yet requesting the attestation metaBlock
+			require.Equal(t, metaChainData.headerData[1].header.GetNonce()+1, nonce)
+			numCallsAttestation.Add(1)
+		}
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			if !(bytes.Equal(hash, metaChainData.headerData[0].hash) || bytes.Equal(hash, metaChainData.headerData[1].hash)) {
+				require.Fail(t, "other requests than the expected 2 metaBlocks are not expected")
+			}
+
+			numCallsMissing.Add(1)
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
+		headersDataPool := arguments.DataComponents.Datapool().Headers()
+		headersDataPool.AddHeader(metaChainData.headerData[0].hash, metaChainData.headerData[0].header)
+		headersDataPool.AddHeader(metaChainData.headerData[1].hash, metaChainData.headerData[1].header)
+
+		blockBeingProcessed := shard1Data.headerData[1].header
+		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, uint32(0), missingHeaders)
+		require.Equal(t, uint32(1), missingFinalityAttestingHeaders)
+		require.Equal(t, uint32(0), numCallsMissing.Load())
+		require.Equal(t, uint32(1), numCallsAttestation.Load())
 	})
 	t.Run("all referenced metaBlocks existing and existing attestation metaBlock will not request", func(t *testing.T) {
 		t.Parallel()
 
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		numCallsMissing := atomic.Uint32{}
+		numCallsAttestation := atomic.Uint32{}
+		shard1Data := testData[shard1ID]
+		metaChainData := testData[core.MetachainShardId]
+		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
+			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			numCallsAttestation.Add(1)
+		}
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			numCallsMissing.Add(1)
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
+		headersDataPool := arguments.DataComponents.Datapool().Headers()
+		headersDataPool.AddHeader(metaChainData.headerData[0].hash, metaChainData.headerData[0].header)
+		headersDataPool.AddHeader(metaChainData.headerData[1].hash, metaChainData.headerData[1].header)
+		attestationMetaBlock := &block.MetaBlock{
+			Nonce:     102,
+			Round:     102,
+			PrevHash:  metaChainData.headerData[1].hash,
+			ShardInfo: []block.ShardData{},
+		}
+		attestationMetaBlockHash := []byte("attestationHash")
+
+		headersDataPool.AddHeader(attestationMetaBlockHash, attestationMetaBlock)
+
+		blockBeingProcessed := shard1Data.headerData[1].header
+		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, uint32(0), missingHeaders)
+		require.Equal(t, uint32(0), missingFinalityAttestingHeaders)
+		require.Equal(t, uint32(0), numCallsMissing.Load())
+		require.Equal(t, uint32(0), numCallsAttestation.Load())
 	})
 }
 
@@ -218,10 +336,11 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 	}
 
 	shar1Block1 := &block.Header{
-		ShardID:  1,
-		PrevHash: shard1Block0Hash,
-		Nonce:    102,
-		Round:    102,
+		ShardID:         1,
+		PrevHash:        shard1Block0Hash,
+		MetaBlockHashes: [][]byte{prevMetaBlockHash},
+		Nonce:           102,
+		Round:           102,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{Hash: mbHash4, SenderShardID: 0, ReceiverShardID: 1},
 			{Hash: mbHash5, SenderShardID: 0, ReceiverShardID: 1},
@@ -232,6 +351,7 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 	shard1Block2 := &block.Header{
 		ShardID:          1,
 		PrevHash:         shard1Block1Hash,
+		MetaBlockHashes:  [][]byte{metaBlockHash, metaConfirmationHash},
 		Nonce:            103,
 		Round:            103,
 		MiniBlockHeaders: []block.MiniBlockHeader{},
@@ -239,33 +359,39 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 
 	sbd := map[uint32]*shardBlockTestData{
 		0: {
-			headerData: &headerData{
-				hash:   shard0Block1Hash,
-				header: shard0Block1,
-			},
-			confirmationHeaderData: &headerData{
-				hash:   shard0Block2Hash,
-				header: shard0Block2,
+			headerData: []*headerData{
+				{
+					hash:   shard0Block1Hash,
+					header: shard0Block1,
+				},
+				{
+					hash:   shard0Block2Hash,
+					header: shard0Block2,
+				},
 			},
 		},
 		1: {
-			headerData: &headerData{
-				hash:   shard1Block1Hash,
-				header: shar1Block1,
-			},
-			confirmationHeaderData: &headerData{
-				hash:   shard1Block2Hash,
-				header: shard1Block2,
+			headerData: []*headerData{
+				{
+					hash:   shard1Block1Hash,
+					header: shar1Block1,
+				},
+				{
+					hash:   shard1Block2Hash,
+					header: shard1Block2,
+				},
 			},
 		},
 		core.MetachainShardId: {
-			headerData: &headerData{
-				hash:   metaBlockHash,
-				header: metaBlock,
-			},
-			confirmationHeaderData: &headerData{
-				hash:   metaConfirmationHash,
-				header: metaConfirmationBlock,
+			headerData: []*headerData{
+				{
+					hash:   metaBlockHash,
+					header: metaBlock,
+				},
+				{
+					hash:   metaConfirmationHash,
+					header: metaConfirmationBlock,
+				},
 			},
 		},
 	}
