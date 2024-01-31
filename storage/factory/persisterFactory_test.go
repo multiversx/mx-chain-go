@@ -3,11 +3,14 @@ package factory_test
 import (
 	"fmt"
 	"os"
+	"path"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -43,6 +46,41 @@ func TestPersisterFactory_Create(t *testing.T) {
 		p, err := pf.Create(dir)
 		require.NotNil(t, p)
 		require.Nil(t, err)
+	})
+}
+
+func TestPersisterFactory_CreateWithRetries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("wrong config should error", func(t *testing.T) {
+		t.Parallel()
+
+		path := "TEST"
+		dbConfig := createDefaultDBConfig()
+		dbConfig.Type = "invalid type"
+
+		persisterFactory, err := factory.NewPersisterFactory(dbConfig)
+		assert.Nil(t, err)
+
+		db, err := persisterFactory.CreateWithRetries(path)
+		assert.True(t, check.IfNil(db))
+		assert.Equal(t, common.ErrNotSupportedDBType, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		path := path.Join(t.TempDir(), "TEST")
+		dbConfig := createDefaultDBConfig()
+		dbConfig.FilePath = path
+
+		persisterFactory, err := factory.NewPersisterFactory(dbConfig)
+		assert.Nil(t, err)
+
+		db, err := persisterFactory.CreateWithRetries(path)
+		assert.False(t, check.IfNil(db))
+		assert.Nil(t, err)
+		_ = db.Close()
 	})
 }
 

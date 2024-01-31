@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-storage-go/factory"
 )
 
 const minNumShards = 2
@@ -51,16 +52,16 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 // CreateBasePersister will create base the persister for the provided path
 func (pc *persisterCreator) CreateBasePersister(path string) (storage.Persister, error) {
 	var dbType = storageunit.DBType(pc.dbType)
-	switch dbType {
-	case storageunit.LvlDB:
-		return database.NewLevelDB(path, pc.batchDelaySeconds, pc.maxBatchSize, pc.maxOpenFiles)
-	case storageunit.LvlDBSerial:
-		return database.NewSerialDB(path, pc.batchDelaySeconds, pc.maxBatchSize, pc.maxOpenFiles)
-	case storageunit.MemoryDB:
-		return database.NewMemDB(), nil
-	default:
-		return nil, storage.ErrNotSupportedDBType
+
+	argsDB := factory.ArgDB{
+		DBType:            dbType,
+		Path:              path,
+		BatchDelaySeconds: pc.batchDelaySeconds,
+		MaxBatchSize:      pc.maxBatchSize,
+		MaxOpenFiles:      pc.maxOpenFiles,
 	}
+
+	return storageunit.NewDB(argsDB)
 }
 
 func (pc *persisterCreator) createShardIDProvider() (storage.ShardIDProvider, error) {
