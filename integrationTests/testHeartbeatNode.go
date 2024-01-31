@@ -525,13 +525,14 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:                  100,
-		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:      10,
-		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PayloadValidator:                payloadValidator,
+		SizeCheckDelta:                      100,
+		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                    payloadValidator,
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
