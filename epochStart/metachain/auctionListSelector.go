@@ -2,8 +2,8 @@ package metachain
 
 import (
 	"fmt"
-	"math"
 	"math/big"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -124,7 +124,15 @@ func getAuctionConfig(softAuctionConfig config.SoftAuctionConfig, denomination i
 		)
 	}
 
-	denominator := big.NewInt(int64(math.Pow10(denomination)))
+	denominationStr := "1" + strings.Repeat("0", denomination)
+	denominator, ok := big.NewInt(0).SetString(denominationStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("%w for denomination: %d",
+			errCannotComputeDenominator,
+			denomination,
+		)
+	}
+
 	if minTopUp.Cmp(denominator) < 0 {
 		return nil, fmt.Errorf("%w for min top up in auction config; expected value to be >= %s, got %s",
 			process.ErrInvalidValue,

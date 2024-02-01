@@ -113,6 +113,7 @@ func TestNewAuctionListSelector(t *testing.T) {
 		als, err := NewAuctionListSelector(args)
 		require.NotNil(t, als)
 		require.Nil(t, err)
+		require.False(t, als.IsInterfaceNil())
 	})
 }
 
