@@ -25,7 +25,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	require.Nil(t, err)
 
 	return ArgsTestOnlyProcessingNode{
-		Configs:             *outputConfigs.Configs,
+		Configs:             outputConfigs.Configs,
 		GasScheduleFilename: outputConfigs.GasScheduleFilename,
 		NumShards:           3,
 

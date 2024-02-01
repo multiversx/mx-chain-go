@@ -53,7 +53,7 @@ type ArgsChainSimulatorConfigs struct {
 // ArgsConfigsSimulator holds the configs for the chain simulator
 type ArgsConfigsSimulator struct {
 	GasScheduleFilename   string
-	Configs               *config.Configs
+	Configs               config.Configs
 	ValidatorsPrivateKeys []crypto.PrivateKey
 	InitialWallets        *dtos.InitialWalletKeys
 }
@@ -121,7 +121,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	return &ArgsConfigsSimulator{
-		Configs:               configs,
+		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
 		GasScheduleFilename:   gasScheduleName,
 		InitialWallets:        initialWallets,
