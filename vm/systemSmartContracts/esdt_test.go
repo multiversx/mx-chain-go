@@ -29,8 +29,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		Eei:     &mock.SystemEIStub{},
 		GasCost: vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		ESDTSCConfig: config.ESDTSystemSCConfig{
-			BaseIssuingCost:  "1000",
-			DelegationTicker: "DEL",
+			BaseIssuingCost: "1000",
 		},
 		ESDTSCAddress:          []byte("address"),
 		Marshalizer:            &mock.MarshalizerMock{},

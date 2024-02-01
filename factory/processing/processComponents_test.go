@@ -108,9 +108,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		MaxRating:              100,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -151,6 +150,12 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ImportStartHandler: &testscommon.ImportStartHandlerStub{},

@@ -922,9 +922,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			Marshalizer:         TestMarshalizer,
 			SystemSCConfig: &config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-					BaseIssuingCost:  "1000",
-					OwnerAddress:     "aaaaaa",
-					DelegationTicker: "DEL",
+					BaseIssuingCost: "1000",
+					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 					V1: config.GovernanceSystemSCConfigV1{
@@ -967,6 +966,12 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 					MinServiceFee: 0,
 					MaxServiceFee: 100000,
+				},
+				SoftAuctionConfig: config.SoftAuctionConfig{
+					TopUpStep:             "10",
+					MinTopUp:              "1",
+					MaxTopUp:              "32000000",
+					MaxNumberOfIterations: 100000,
 				},
 			},
 			ValidatorAccountsDB: tpn.PeerState,
@@ -1885,9 +1890,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		Marshalizer:         TestMarshalizer,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -1926,6 +1930,12 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100000,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ValidatorAccountsDB: tpn.PeerState,
@@ -2330,9 +2340,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			StakingDataProvider:          stakingDataProvider,
 			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 			SoftAuctionConfig: config.SoftAuctionConfig{
-				TopUpStep: "10",
-				MinTopUp:  "1",
-				MaxTopUp:  "32000000",
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		}
 		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)

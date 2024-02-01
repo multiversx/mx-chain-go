@@ -687,9 +687,8 @@ func CreateFullGenesisBlocks(
 		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				OwnerAddress: DelegationManagerConfigChangeAddress,
@@ -727,6 +726,12 @@ func CreateFullGenesisBlocks(
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		AccountsParser:      accountsParser,
@@ -797,9 +802,8 @@ func CreateGenesisMetaBlock(
 		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -837,6 +841,12 @@ func CreateGenesisMetaBlock(
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		BlockSignKeyGen:  &mock.KeyGenMock{},

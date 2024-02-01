@@ -268,15 +268,6 @@ var ErrWrongNewOwnerAddress = errors.New("wrong new owner address")
 // ErrInternalErrorWhileSettingNewOwner signals that an error occurred when setting the new contract owner
 var ErrInternalErrorWhileSettingNewOwner = errors.New("internal error when setting new contract owner")
 
-// ErrInvalidDelegationTicker signals that invalid delegation ticker name was provided
-var ErrInvalidDelegationTicker = errors.New("invalid delegation ticker name")
-
-// ErrInvalidReturnData signals that invalid return data was provided
-var ErrInvalidReturnData = errors.New("invalid return data")
-
-// ErrNotEnoughRemainingFunds signals that operation is invalid as remaining funds are below minimum
-var ErrNotEnoughRemainingFunds = errors.New("not enough remaining funds - do not leave dust behind")
-
 // ErrInvalidStakeLimitPercentage signals the invalid stake limit percentage was provided
 var ErrInvalidStakeLimitPercentage = errors.New("invalid stake limit percentage")
 
