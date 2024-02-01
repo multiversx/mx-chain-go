@@ -27,11 +27,11 @@ type ownerAuctionData struct {
 }
 
 type auctionConfig struct {
-	step               *big.Int
-	minTopUp           *big.Int
-	maxTopUp           *big.Int
-	denominator        *big.Int
-	maxNumOfIterations uint64
+	step                  *big.Int
+	minTopUp              *big.Int
+	maxTopUp              *big.Int
+	denominator           *big.Int
+	maxNumberOfIterations uint64
 }
 
 type auctionListSelector struct {
@@ -103,19 +103,50 @@ func getAuctionConfig(softAuctionConfig config.SoftAuctionConfig, denomination i
 		)
 	}
 
+	if minTopUp.Cmp(maxTopUp) > 0 {
+		return nil, fmt.Errorf("%w for min/max top up in soft auction config; min value: %s > max value: %s",
+			process.ErrInvalidValue,
+			softAuctionConfig.MinTopUp,
+			softAuctionConfig.MaxTopUp,
+		)
+	}
+
 	if denomination < 0 {
-		return nil, fmt.Errorf("%w for denomination soft auction config;expected number >= 0, got %d",
+		return nil, fmt.Errorf("%w for denomination in soft auction config;expected number >= 0, got %d",
 			process.ErrInvalidValue,
 			denomination,
 		)
 	}
 
+	if softAuctionConfig.MaxNumberOfIterations == 0 {
+		return nil, fmt.Errorf("%w for max number of iterations in soft auction config;expected value > 0",
+			process.ErrInvalidValue,
+		)
+	}
+
+	denominator := big.NewInt(int64(math.Pow10(denomination)))
+	if minTopUp.Cmp(denominator) < 0 {
+		return nil, fmt.Errorf("%w for min top up in auction config; expected value to be >= %s, got %s",
+			process.ErrInvalidValue,
+			denominator.String(),
+			minTopUp.String(),
+		)
+	}
+
+	if step.Cmp(denominator) < 0 {
+		return nil, fmt.Errorf("%w for step in auction config; expected value to be >= %s, got %s",
+			process.ErrInvalidValue,
+			denominator.String(),
+			step.String(),
+		)
+	}
+
 	return &auctionConfig{
-		step:               step,
-		minTopUp:           minTopUp,
-		maxTopUp:           maxTopUp,
-		denominator:        big.NewInt(int64(math.Pow10(denomination))),
-		maxNumOfIterations: softAuctionConfig.MaxNumberOfIterations,
+		step:                  step,
+		minTopUp:              minTopUp,
+		maxTopUp:              maxTopUp,
+		denominator:           denominator,
+		maxNumberOfIterations: softAuctionConfig.MaxNumberOfIterations,
 	}, nil
 }
 
@@ -270,7 +301,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		}
 
 		iterationNumber++
-		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumOfIterations
+		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumberOfIterations
 	}
 
 	als.displayMinRequiredTopUp(topUp, minTopUp)

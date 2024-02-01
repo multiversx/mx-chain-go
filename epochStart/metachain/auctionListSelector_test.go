@@ -198,22 +198,100 @@ func TestGetAuctionConfig(t *testing.T) {
 		requireInvalidValueError(t, err, "denomination")
 	})
 
+	t.Run("zero max number of iterations", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createSoftAuctionConfig()
+		cfg.MaxNumberOfIterations = 0
+
+		res, err := getAuctionConfig(cfg, 10)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "for max number of iterations in soft auction config")
+	})
+
+	t.Run("min top up > max top up", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "32",
+			MaxTopUp:              "16",
+			MaxNumberOfIterations: 1,
+		}
+
+		res, err := getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "min value: 32 > max value: 16")
+	})
+
+	t.Run("min top up < denominator", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep:             "100",
+			MinTopUp:              "10",
+			MaxTopUp:              "5000",
+			MaxNumberOfIterations: 1,
+		}
+
+		res, err := getAuctionConfig(cfg, 2)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "for min top up in auction config; expected value to be >= 100, got 10")
+	})
+
+	t.Run("step < denominator", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "100",
+			MaxTopUp:              "5000",
+			MaxNumberOfIterations: 1,
+		}
+
+		res, err := getAuctionConfig(cfg, 2)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "for step in auction config; expected value to be >= 100, got 10")
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "444",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "444",
+			MaxNumberOfIterations: 100000,
 		}
 
-		res, err := getAuctionConfig(cfg, 4)
+		res, err := getAuctionConfig(cfg, 0)
 		require.Nil(t, err)
 		require.Equal(t, &auctionConfig{
-			step:        big.NewInt(10),
-			minTopUp:    big.NewInt(1),
-			maxTopUp:    big.NewInt(444),
-			denominator: big.NewInt(10000),
+			step:                  big.NewInt(10),
+			minTopUp:              big.NewInt(1),
+			maxTopUp:              big.NewInt(444),
+			denominator:           big.NewInt(1),
+			maxNumberOfIterations: 100000,
+		}, res)
+
+		minTopUp, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+		maxTopUp, _ := big.NewInt(0).SetString("32000000000000000000000000", 10)
+		step, _ := big.NewInt(0).SetString("10000000000000000000", 10)
+		cfg = config.SoftAuctionConfig{
+			TopUpStep:             step.String(),
+			MinTopUp:              minTopUp.String(),
+			MaxTopUp:              maxTopUp.String(),
+			MaxNumberOfIterations: 100000,
+		}
+
+		res, err = getAuctionConfig(cfg, 18)
+		require.Nil(t, err)
+		require.Equal(t, &auctionConfig{
+			step:                  step,
+			minTopUp:              minTopUp,
+			maxTopUp:              maxTopUp,
+			denominator:           minTopUp,
+			maxNumberOfIterations: 100000,
 		}, res)
 	})
 }
