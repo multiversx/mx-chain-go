@@ -26,3 +26,27 @@ func ComputeConsensusGroup(header data.HeaderHandler, nodesCoordinator nodesCoor
 
 	return nodesCoordinator.ComputeConsensusGroup(prevRandSeed, header.GetRound(), header.GetShardID(), epoch)
 }
+
+// ComputeSignersPublicKeys will extract from the provided consensus group slice only the strings that matched with the bitmap
+func ComputeSignersPublicKeys(consensusGroup []string, bitmap []byte) []string {
+	nbBitsBitmap := len(bitmap) * 8
+	consensusGroupSize := len(consensusGroup)
+	size := consensusGroupSize
+	if consensusGroupSize > nbBitsBitmap {
+		size = nbBitsBitmap
+	}
+
+	result := make([]string, 0, len(consensusGroup))
+
+	for i := 0; i < size; i++ {
+		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
+		if !indexRequired {
+			continue
+		}
+
+		pubKey := consensusGroup[i]
+		result = append(result, pubKey)
+	}
+
+	return result
+}

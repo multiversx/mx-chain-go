@@ -2122,8 +2122,15 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 		return err
 	}
 
+	consensusGroup := make([]string, 0, len(validatorsGroup))
 	for _, validator := range validatorsGroup {
-		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner(validator.PubKey())
+		consensusGroup = append(consensusGroup, string(validator.PubKey()))
+	}
+
+	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, header.GetPubKeysBitmap())
+
+	for _, signer := range signers {
+		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner([]byte(signer))
 	}
 
 	return nil
