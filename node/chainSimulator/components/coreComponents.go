@@ -202,7 +202,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	// TODO check if we need this
 	instance.ratingsData = &testscommon.RatingsInfoMock{}
 	instance.rater = &testscommon.RaterMock{}
-	//////////////////////////////
 
 	instance.nodesShuffler, err = nodesCoordinator.NewHashValidatorsShuffler(&nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           args.MinNodesPerShard,

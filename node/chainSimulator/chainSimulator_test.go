@@ -191,11 +191,14 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	err = chainSimulator.GenerateBlocks(30)
 	require.Nil(t, err)
 
-	// add validator key
-	validatorKeys := &dtos.ValidatorsKeys{
-		PrivateKeysBase64: []string{"NjRhYjk3NmJjYWVjZTBjNWQ4YmJhNGU1NjZkY2VmYWFiYjcxNDI1Y2JiZDcwYzc1ODA2MGUxNTE5MGM2ZjE1Zg=="},
-	}
-	err = chainSimulator.AddValidatorKeys(validatorKeys)
+	// Step 1 --- add a new validator key in the chain simulator
+	privateKeyBase64 := "NjRhYjk3NmJjYWVjZTBjNWQ4YmJhNGU1NjZkY2VmYWFiYjcxNDI1Y2JiZDcwYzc1ODA2MGUxNTE5MGM2ZjE1Zg=="
+	privateKeyHex, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	require.Nil(t, err)
+	privateKeyBytes, err := hex.DecodeString(string(privateKeyHex))
+	require.Nil(t, err)
+
+	err = chainSimulator.AddValidatorKeys([][]byte{privateKeyBytes})
 	require.Nil(t, err)
 
 	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
@@ -203,7 +206,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
 	rcvAddrBytes, _ := chainSimulator.nodes[1].GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
 
-	// set balance for sender
+	// Step 2 --- set an initial balance for the address that will initialize all the transactions
 	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{
 		{
 			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
@@ -214,7 +217,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 
 	blsKey := "9b7de1b2d2c90b7bea8f6855075c77d6c63b5dada29abb9b87c52cfae9d4112fcac13279e1a07d94672a5e62a83e3716555513014324d5c6bb4261b465f1b8549a7a338bc3ae8edc1e940958f9c2e296bd3c118a4466dec99dda0ceee3eb6a8c"
 
-	// stake validator
+	// Step 3 --- generate and send a stake transaction with the BLS key of the validator key that was added at step 1
 	stakeValue, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
 	tx := &transaction.Transaction{
 		Nonce:     0,
@@ -237,6 +240,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
+	// Step 4 --- generate 5 blocks so that the transaction from step 2 can be executed
 	err = chainSimulator.GenerateBlocks(5)
 	require.Nil(t, err)
 
@@ -252,8 +256,8 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 	balanceBeforeActiveValidator := accountValidatorOwner.Balance
 
-	// unstake validator
-	firstValitorKey, err := chainSimulator.GetValidatorPrivateKeys()[0].GeneratePublic().ToByteArray()
+	// Step 5 --- create an unStake transaction with the bls key of an initial validator and execute the transaction to make place for the validator that was added at step 3
+	firstValidatorKey, err := chainSimulator.GetValidatorPrivateKeys()[0].GeneratePublic().ToByteArray()
 	require.Nil(t, err)
 
 	initialAddressWithValidators := chainSimulator.GetInitialWalletKeys().InitialWalletWithStake.Address
@@ -266,7 +270,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		Value:     big.NewInt(0),
 		SndAddr:   senderBytes,
 		RcvAddr:   rcvAddrBytes,
-		Data:      []byte(fmt.Sprintf("unStake@%s", hex.EncodeToString(firstValitorKey))),
+		Data:      []byte(fmt.Sprintf("unStake@%s", hex.EncodeToString(firstValidatorKey))),
 		GasLimit:  50_000_000,
 		GasPrice:  1000000000,
 		Signature: []byte("dummy"),
@@ -281,6 +285,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
+	// Step 6 --- generate 5 blocks so that the transaction from step 5 can be executed
 	err = chainSimulator.GenerateBlocks(5)
 	require.Nil(t, err)
 
@@ -291,7 +296,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.NotNil(t, txFromMeta)
 	require.Equal(t, 2, len(txFromMeta.SmartContractResults))
 
-	// check rewards
+	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
 
@@ -299,15 +304,15 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 	balanceAfterActiveValidator := accountValidatorOwner.Balance
 
-	fmt.Println("balance before validator", balanceBeforeActiveValidator)
-	fmt.Println("balance after validator", balanceAfterActiveValidator)
+	log.Info("balance before validator", "value", balanceBeforeActiveValidator)
+	log.Info("balance after validator", "value", balanceAfterActiveValidator)
 
 	balanceBeforeBig, _ := big.NewInt(0).SetString(balanceBeforeActiveValidator, 10)
 	balanceAfterBig, _ := big.NewInt(0).SetString(balanceAfterActiveValidator, 10)
 	diff := balanceAfterBig.Sub(balanceAfterBig, balanceBeforeBig)
-	fmt.Println("difference", diff.String())
+	log.Info("difference", "value", diff.String())
 
-	// cumulated rewards should be greater than zero
+	// Step 7 --- check the balance of the validator owner has been increased
 	require.True(t, diff.Cmp(big.NewInt(0)) > 0)
 }
 

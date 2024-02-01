@@ -2,8 +2,6 @@ package chainSimulator
 
 import (
 	"bytes"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -12,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -93,9 +90,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(
-			outputConfigs.Configs, shardIDStr, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck, args.InitialRound, args.MinNodesPerShard, args.MetaChainMinNodes,
-		)
+		node, errCreate := s.createTestNode(outputConfigs, args, shardIDStr)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -129,30 +124,23 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 }
 
 func (s *simulator) createTestNode(
-	configs *config.Configs,
-	shardIDStr string,
-	gasScheduleFilename string,
-	apiInterface components.APIConfigurator,
-	bypassTxSignatureCheck bool,
-	initialRound int64,
-	minNodesPerShard uint32,
-	minNodesMeta uint32,
+	outputConfigs *configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
-	args := components.ArgsTestOnlyProcessingNode{
-		Configs:                *configs,
+	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
+		Configs:                *outputConfigs.Configs,
 		ChanStopNodeProcess:    s.chanStopNodeProcess,
 		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
 		NumShards:              s.numOfShards,
-		GasScheduleFilename:    gasScheduleFilename,
+		GasScheduleFilename:    outputConfigs.GasScheduleFilename,
 		ShardIDStr:             shardIDStr,
-		APIInterface:           apiInterface,
-		BypassTxSignatureCheck: bypassTxSignatureCheck,
-		InitialRound:           initialRound,
-		MinNodesPerShard:       minNodesPerShard,
-		MinNodesMeta:           minNodesMeta,
+		APIInterface:           args.ApiInterface,
+		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
+		InitialRound:           args.InitialRound,
+		MinNodesPerShard:       args.MinNodesPerShard,
+		MinNodesMeta:           args.MetaChainMinNodes,
 	}
 
-	return components.NewTestOnlyProcessingNode(args)
+	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
 }
 
 // GenerateBlocks will generate the provided number of blocks
@@ -214,26 +202,26 @@ func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 }
 
 // AddValidatorKeys will add the provided validators private keys in the keys handler on all nodes
-func (s *simulator) AddValidatorKeys(validatorsPrivateKeys *dtos.ValidatorsKeys) error {
+func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	for shard, node := range s.nodes {
-		for idx, privateKeyHex := range validatorsPrivateKeys.PrivateKeysBase64 {
-			decodedPrivateKey, err := base64.StdEncoding.DecodeString(privateKeyHex)
-			if err != nil {
-				return fmt.Errorf("cannot base64 decode provided key index=%d, error=%s", idx, err.Error())
-			}
+	for _, node := range s.nodes {
+		err := s.setValidatorKeysForNode(node, validatorsPrivateKeys)
+		if err != nil {
+			return err
+		}
+	}
 
-			hexDecoded, err := hex.DecodeString(string(decodedPrivateKey))
-			if err != nil {
-				return fmt.Errorf("cannot hex decode provided key index=%d, error=%s", idx, err.Error())
-			}
+	return nil
+}
 
-			err = node.GetCryptoComponents().ManagedPeersHolder().AddManagedPeer(hexDecoded)
-			if err != nil {
-				return fmt.Errorf("cannot add private key for shard=%d, index=%d, error=%s", shard, idx, err.Error())
-			}
+func (s *simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {
+	for idx, privateKey := range validatorsPrivateKeys {
+
+		err := node.GetCryptoComponents().ManagedPeersHolder().AddManagedPeer(privateKey)
+		if err != nil {
+			return fmt.Errorf("cannot add private key for shard=%d, index=%d, error=%s", node.GetShardCoordinator().SelfId(), idx, err.Error())
 		}
 	}
 
