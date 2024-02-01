@@ -23,6 +23,6 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	pr := realcomponents.NewProcessorRunner(t, *outputConfig.Configs)
+	pr := realcomponents.NewProcessorRunner(t, outputConfig.Configs)
 	pr.Close(t)
 }

@@ -87,7 +87,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(outputConfigs, args, shardIDStr)
+		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -121,10 +121,10 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 }
 
 func (s *simulator) createTestNode(
-	outputConfigs *configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
+	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                *outputConfigs.Configs,
+		Configs:                outputConfigs.Configs,
 		ChanStopNodeProcess:    s.chanStopNodeProcess,
 		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
 		NumShards:              s.numOfShards,
