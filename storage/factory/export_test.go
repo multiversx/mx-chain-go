@@ -5,19 +5,15 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// DefaultType exports the defaultType const to be used in tests
+const DefaultType = defaultType
+
+// DBConfigFileName exports the dbConfigFileName const to be used in tests
+const DBConfigFileName = dbConfigFileName
+
 // GetPersisterConfigFilePath -
 func GetPersisterConfigFilePath(path string) string {
 	return getPersisterConfigFilePath(path)
-}
-
-// GetDefaultDBConfig -
-func GetDefaultDBConfig() *config.DBConfig {
-	return &config.DBConfig{
-		Type:              defaultType,
-		BatchDelaySeconds: defaultBatchDelaySeconds,
-		MaxBatchSize:      defaultMaxBatchSize,
-		MaxOpenFiles:      defaultMaxOpenFiles,
-	}
 }
 
 // NewPersisterCreator -

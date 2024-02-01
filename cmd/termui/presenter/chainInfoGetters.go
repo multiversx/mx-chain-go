@@ -2,6 +2,7 @@ package presenter
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/cmd/termui/provider"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -183,6 +184,32 @@ func (psh *PresenterStatusHandler) GetEpochInfo() (uint64, uint64, int, string) 
 // GetTrieSyncNumProcessedNodes will return the number of processed nodes during trie sync
 func (psh *PresenterStatusHandler) GetTrieSyncNumProcessedNodes() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricTrieSyncNumProcessedNodes)
+}
+
+// GetTrieSyncProcessedPercentage will return the number of processed nodes during trie sync
+func (psh *PresenterStatusHandler) GetTrieSyncProcessedPercentage() core.OptionalUint64 {
+	numEstimatedNodes := psh.getFromCacheAsUint64(provider.AccountsSnapshotNumNodesMetric)
+	if numEstimatedNodes <= 0 {
+		return core.OptionalUint64{
+			Value:    0,
+			HasValue: false,
+		}
+	}
+
+	numProcessedNodes := psh.GetTrieSyncNumProcessedNodes()
+
+	percentage := (numProcessedNodes * 100) / numEstimatedNodes
+	if percentage > 100 {
+		return core.OptionalUint64{
+			Value:    100,
+			HasValue: true,
+		}
+	}
+
+	return core.OptionalUint64{
+		Value:    percentage,
+		HasValue: true,
+	}
 }
 
 // GetTrieSyncNumBytesReceived will return the number of bytes synced during trie sync
