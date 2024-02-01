@@ -4032,12 +4032,6 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of decimals"))
 
-	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), big.NewInt(10).Bytes()}
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "ticker name is not valid"))
-
 	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("TICKER"), big.NewInt(10).Bytes()}
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
@@ -4167,12 +4161,6 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidArgument.Error()))
-
-	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), []byte("FNG"), big.NewInt(10).Bytes()}
-	eei.returnMessage = ""
-	output = e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "ticker name is not valid"))
 
 	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ticker"), []byte("FNG"), big.NewInt(20).Bytes()}
 	eei.returnMessage = ""

@@ -50,9 +50,10 @@ func createSystemSCProcessor(
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 	auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)

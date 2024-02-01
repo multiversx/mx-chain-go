@@ -21,9 +21,10 @@ import (
 
 func createSoftAuctionConfig() config.SoftAuctionConfig {
 	return config.SoftAuctionConfig{
-		TopUpStep: "10",
-		MinTopUp:  "1",
-		MaxTopUp:  "32000000",
+		TopUpStep:             "10",
+		MinTopUp:              "1",
+		MaxTopUp:              "32000000",
+		MaxNumberOfIterations: 100000,
 	}
 }
 
@@ -594,6 +595,72 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 		require.Equal(t, expectedSoftAuction, softAuctionConfig)
 		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
+	})
+
+	t.Run("large top up difference, would qualify more nodes than an owner has, expect correct computation", func(t *testing.T) {
+		argsLargeTopUp := createAuctionListSelectorArgs(nil)
+		argsLargeTopUp.SoftAuctionConfig = config.SoftAuctionConfig{
+			TopUpStep:             "10000000000000000000",       // 10 eGLD
+			MinTopUp:              "1000000000000000000",        // 1 eGLD
+			MaxTopUp:              "32000000000000000000000000", // 32 mil eGLD
+			MaxNumberOfIterations: 10,
+		}
+		argsLargeTopUp.Denomination = 18
+		selector, _ := NewAuctionListSelector(argsLargeTopUp)
+
+		v0 := &state.ValidatorInfo{PublicKey: []byte("pk0")}
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+
+		oneEGLD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+		owner1TopUp, _ := big.NewInt(0).SetString("32000000000000000000000000", 10) // 31 mil eGLD
+		owner1 := "owner1"
+		owner2 := "owner2"
+		ownersData := map[string]*ownerAuctionData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               owner1TopUp,
+				topUpPerNode:             owner1TopUp,
+				qualifiedTopUpPerNode:    owner1TopUp,
+				auctionList:              []state.ValidatorInfoHandler{v0},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          2,
+				numQualifiedAuctionNodes: 2,
+				numStakedNodes:           2,
+				totalTopUp:               big.NewInt(0),
+				topUpPerNode:             big.NewInt(0),
+				qualifiedTopUpPerNode:    big.NewInt(0),
+				auctionList:              []state.ValidatorInfoHandler{v1, v2},
+			},
+		}
+
+		minTopUp, maxTopUp := selector.getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, oneEGLD, minTopUp)
+		require.Equal(t, owner1TopUp, maxTopUp)
+
+		softAuctionConfig := selector.calcSoftAuctionNodesConfig(ownersData, 3)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selector.selectNodes(softAuctionConfig, 3, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v0, v2, v1}, selectedNodes)
+
+		softAuctionConfig = selector.calcSoftAuctionNodesConfig(ownersData, 2)
+		expectedSoftAuction := copyOwnersData(ownersData)
+		expectedSoftAuction[owner1].numQualifiedAuctionNodes = 1
+		expectedSoftAuction[owner1].qualifiedTopUpPerNode = owner1TopUp
+		require.Equal(t, expectedSoftAuction, softAuctionConfig)
+		selectedNodes = selector.selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v0, v2}, selectedNodes)
+
+		softAuctionConfig = selector.calcSoftAuctionNodesConfig(ownersData, 1)
+		delete(expectedSoftAuction, owner2)
+		require.Equal(t, expectedSoftAuction, softAuctionConfig)
+		selectedNodes = selector.selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v0}, selectedNodes)
 	})
 }
 

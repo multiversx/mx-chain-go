@@ -27,10 +27,11 @@ type ownerAuctionData struct {
 }
 
 type auctionConfig struct {
-	step        *big.Int
-	minTopUp    *big.Int
-	maxTopUp    *big.Int
-	denominator *big.Int
+	step               *big.Int
+	minTopUp           *big.Int
+	maxTopUp           *big.Int
+	denominator        *big.Int
+	maxNumOfIterations uint64
 }
 
 type auctionListSelector struct {
@@ -110,10 +111,11 @@ func getAuctionConfig(softAuctionConfig config.SoftAuctionConfig, denomination i
 	}
 
 	return &auctionConfig{
-		step:        step,
-		minTopUp:    minTopUp,
-		maxTopUp:    maxTopUp,
-		denominator: big.NewInt(int64(math.Pow10(denomination))),
+		step:               step,
+		minTopUp:           minTopUp,
+		maxTopUp:           maxTopUp,
+		denominator:        big.NewInt(int64(math.Pow10(denomination))),
+		maxNumOfIterations: softAuctionConfig.MaxNumberOfIterations,
 	}, nil
 }
 
@@ -256,13 +258,19 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
 	previousConfig := copyOwnersData(ownersData)
-	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, als.softAuctionConfig.step) {
+	iterationNumber := uint64(0)
+	maxNumberOfIterationsReached := false
+
+	for ; topUp.Cmp(maxTopUp) < 0 && !maxNumberOfIterationsReached; topUp.Add(topUp, als.softAuctionConfig.step) {
 		previousConfig = copyOwnersData(ownersData)
 		numNodesQualifyingForTopUp := calcNodesConfig(ownersData, topUp)
 
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
 			break
 		}
+
+		iterationNumber++
+		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumOfIterations
 	}
 
 	als.displayMinRequiredTopUp(topUp, minTopUp)
@@ -323,8 +331,11 @@ func calcNodesConfig(ownersData map[string]*ownerAuctionData, topUp *big.Int) in
 			continue
 		}
 
-		qualifiedNodes := big.NewInt(0).Div(validatorTopUpForAuction, topUp).Int64()
-		if qualifiedNodes > owner.numAuctionNodes {
+		qualifiedNodesBigInt := big.NewInt(0).Div(validatorTopUpForAuction, topUp)
+		qualifiedNodes := qualifiedNodesBigInt.Int64()
+		isNumQualifiedNodesOverflow := !qualifiedNodesBigInt.IsUint64()
+
+		if qualifiedNodes > owner.numAuctionNodes || isNumQualifiedNodesOverflow {
 			numNodesQualifyingForTopUp += owner.numAuctionNodes
 		} else {
 			numNodesQualifyingForTopUp += qualifiedNodes

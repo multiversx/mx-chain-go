@@ -178,9 +178,6 @@ var ErrInvalidMaxNumberOfNodes = errors.New("invalid number of max number of nod
 // ErrTokenNameNotHumanReadable signals that token name is not human-readable
 var ErrTokenNameNotHumanReadable = errors.New("token name is not human readable")
 
-// ErrTickerNameNotValid signals that ticker name is not valid
-var ErrTickerNameNotValid = errors.New("ticker name is not valid")
-
 // ErrCouldNotCreateNewTokenIdentifier signals that token identifier could not be created
 var ErrCouldNotCreateNewTokenIdentifier = errors.New("token identifier could not be created")
 

@@ -641,7 +641,8 @@ type RedundancyConfig struct {
 
 // SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
 type SoftAuctionConfig struct {
-	TopUpStep string
-	MinTopUp  string
-	MaxTopUp  string
+	TopUpStep             string
+	MinTopUp              string
+	MaxTopUp              string
+	MaxNumberOfIterations uint64
 }

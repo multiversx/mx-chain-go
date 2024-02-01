@@ -900,9 +900,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
@@ -1908,9 +1909,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		StakingDataProvider:          args.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
