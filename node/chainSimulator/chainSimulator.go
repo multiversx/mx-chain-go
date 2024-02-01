@@ -75,13 +75,10 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		TempDir:               args.TempDir,
 		MinNodesPerShard:      args.MinNodesPerShard,
 		MetaChainMinNodes:     args.MetaChainMinNodes,
+		RoundsPerEpoch:        args.RoundsPerEpoch,
 	})
 	if err != nil {
 		return err
-	}
-
-	if args.RoundsPerEpoch.HasValue {
-		outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 	}
 
 	for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
@@ -90,7 +87,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(outputConfigs, args, shardIDStr)
+		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -124,10 +121,10 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 }
 
 func (s *simulator) createTestNode(
-	outputConfigs *configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
+	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                *outputConfigs.Configs,
+		Configs:                outputConfigs.Configs,
 		ChanStopNodeProcess:    s.chanStopNodeProcess,
 		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
 		NumShards:              s.numOfShards,

@@ -47,12 +47,13 @@ type ArgsChainSimulatorConfigs struct {
 	TempDir               string
 	MinNodesPerShard      uint32
 	MetaChainMinNodes     uint32
+	RoundsPerEpoch        core.OptionalUint64
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
 type ArgsConfigsSimulator struct {
 	GasScheduleFilename   string
-	Configs               *config.Configs
+	Configs               config.Configs
 	ValidatorsPrivateKeys []crypto.PrivateKey
 	InitialWallets        *dtos.InitialWalletKeys
 }
@@ -115,8 +116,12 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
+	if args.RoundsPerEpoch.HasValue {
+		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+	}
+
 	return &ArgsConfigsSimulator{
-		Configs:               configs,
+		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
 		GasScheduleFilename:   gasScheduleName,
 		InitialWallets:        initialWallets,
