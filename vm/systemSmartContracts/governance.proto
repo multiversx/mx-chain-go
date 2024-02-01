@@ -54,8 +54,7 @@ message OngoingVotedList {
 
 message OngoingVotedListV2 {
     repeated uint64 Direct = 1 [(gogoproto.jsontag) = "Direct"];
-    repeated uint64 Delegated = 2 [(gogoproto.jsontag) = "Delegated"];
-    repeated DelegatedWithAddress DelegatedWithAddress = 3 [(gogoproto.jsontag) = "DelegatedWithAddress"];
+    repeated DelegatedWithAddress DelegatedWithAddress = 2 [(gogoproto.jsontag) = "DelegatedWithAddress"];
 }
 
 message DelegatedWithAddress {
