@@ -60,9 +60,9 @@ func NewSyncedMessenger(network SyncedBroadcastNetworkHandler) (*syncedMessenger
 	return messenger, nil
 }
 
-// HasCompatibleProtocolID returns false as it is disabled
+// HasCompatibleProtocolID returns true
 func (messenger *syncedMessenger) HasCompatibleProtocolID(_ string) bool {
-	return false
+	return true
 }
 
 func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message p2p.MessageP2P) {
