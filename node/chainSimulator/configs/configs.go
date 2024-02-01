@@ -47,6 +47,7 @@ type ArgsChainSimulatorConfigs struct {
 	TempDir               string
 	MinNodesPerShard      uint32
 	MetaChainMinNodes     uint32
+	RoundsPerEpoch        core.OptionalUint64
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -114,6 +115,10 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
+
+	if args.RoundsPerEpoch.HasValue {
+		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+	}
 
 	return &ArgsConfigsSimulator{
 		Configs:               configs,

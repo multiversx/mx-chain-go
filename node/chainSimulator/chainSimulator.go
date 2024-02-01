@@ -75,13 +75,10 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		TempDir:               args.TempDir,
 		MinNodesPerShard:      args.MinNodesPerShard,
 		MetaChainMinNodes:     args.MetaChainMinNodes,
+		RoundsPerEpoch:        args.RoundsPerEpoch,
 	})
 	if err != nil {
 		return err
-	}
-
-	if args.RoundsPerEpoch.HasValue {
-		outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 	}
 
 	for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
