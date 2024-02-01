@@ -940,5 +940,5 @@
 # Changing this config is not backwards compatible
 [SoftAuctionConfig]
     TopUpStep = "10000000000000000000" # 10 EGLD
-    MinTopUp = "1" # 0.00...01 EGLD , should be very low, but != zero
+    MinTopUp = "1000000000000000000" # 1 EGLD should be minimum
     MaxTopUp = "32000000000000000000000000" # 32 mil EGLD

@@ -922,9 +922,8 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			Marshalizer:         TestMarshalizer,
 			SystemSCConfig: &config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-					BaseIssuingCost:  "1000",
-					OwnerAddress:     "aaaaaa",
-					DelegationTicker: "DEL",
+					BaseIssuingCost: "1000",
+					OwnerAddress:    "aaaaaa",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 					V1: config.GovernanceSystemSCConfigV1{
@@ -1885,9 +1884,8 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		Marshalizer:         TestMarshalizer,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{

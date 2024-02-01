@@ -23,8 +23,6 @@ import (
 const numOfRetriesForIdentifier = 50
 const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
-const minLengthForTickerName = 3
-const maxLengthForTickerName = 10
 const minLengthForInitTokenName = 10
 const minLengthForTokenName = 3
 const maxLengthForTokenName = 20
@@ -58,7 +56,6 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 	enableEpochsHandler    common.EnableEpochsHandler
-	delegationTicker       string
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -112,9 +109,6 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if len(args.EndOfEpochSCAddress) == 0 {
 		return nil, vm.ErrNilEndOfEpochSmartContractAddress
 	}
-	if !isTickerValid([]byte(args.ESDTSCConfig.DelegationTicker)) {
-		return nil, vm.ErrInvalidDelegationTicker
-	}
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
@@ -133,7 +127,6 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		delegationTicker:       args.ESDTSCConfig.DelegationTicker,
 	}, nil
 }
 
@@ -623,10 +616,6 @@ func (e *esdt) createNewToken(
 	if !isTokenNameHumanReadable(tokenName) {
 		return nil, nil, vm.ErrTokenNameNotHumanReadable
 	}
-	if !isTickerValid(tickerName) {
-		return nil, nil, vm.ErrTickerNameNotValid
-	}
-
 	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
 	if err != nil {
 		return nil, nil, err
@@ -655,23 +644,6 @@ func (e *esdt) createNewToken(
 	}
 
 	return tokenIdentifier, newESDTToken, nil
-}
-
-func isTickerValid(tickerName []byte) bool {
-	if len(tickerName) < minLengthForTickerName || len(tickerName) > maxLengthForTickerName {
-		return false
-	}
-
-	for _, ch := range tickerName {
-		isBigCharacter := ch >= 'A' && ch <= 'Z'
-		isNumber := ch >= '0' && ch <= '9'
-		isReadable := isBigCharacter || isNumber
-		if !isReadable {
-			return false
-		}
-	}
-
-	return true
 }
 
 func isTokenNameHumanReadable(tokenName []byte) bool {
