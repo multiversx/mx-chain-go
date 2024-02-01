@@ -652,19 +652,6 @@ func (e *esdt) createNewToken(
 	return tokenIdentifier, newESDTToken, nil
 }
 
-func isTokenNameHumanReadable(tokenName []byte) bool {
-	for _, ch := range tokenName {
-		isSmallCharacter := ch >= 'a' && ch <= 'z'
-		isBigCharacter := ch >= 'A' && ch <= 'Z'
-		isNumber := ch >= '0' && ch <= '9'
-		isReadable := isSmallCharacter || isBigCharacter || isNumber
-		if !isReadable {
-			return false
-		}
-	}
-	return true
-}
-
 func isTickerValid(tickerName []byte) bool {
 	if len(tickerName) < minLengthForTickerName || len(tickerName) > maxLengthForTickerName {
 		return false
@@ -679,6 +666,19 @@ func isTickerValid(tickerName []byte) bool {
 		}
 	}
 
+	return true
+}
+
+func isTokenNameHumanReadable(tokenName []byte) bool {
+	for _, ch := range tokenName {
+		isSmallCharacter := ch >= 'a' && ch <= 'z'
+		isBigCharacter := ch >= 'A' && ch <= 'Z'
+		isNumber := ch >= '0' && ch <= '9'
+		isReadable := isSmallCharacter || isBigCharacter || isNumber
+		if !isReadable {
+			return false
+		}
+	}
 	return true
 }
 
