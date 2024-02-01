@@ -500,8 +500,8 @@ func TestP2pConfig(t *testing.T) {
     Type = ""
     RefreshIntervalInSec = 0
 
-    # ProtocolIDs represents the protocols that this node will advertize to other peers
-    # To connect to other nodes, those nodes should have at least on common protocol string
+    # ProtocolIDs represents the protocols that this node will advertise to other peers
+    # To connect to other nodes, those nodes should have at least one common protocol string
     ProtocolIDs = [
         "` + protocolID1 + `",
         "` + protocolID2 + `",

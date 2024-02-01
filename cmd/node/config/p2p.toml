@@ -48,8 +48,8 @@
     # RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 10
 
-    # ProtocolIDs represents the protocols that this node will advertize to other peers
-    # To connect to other nodes, those nodes should have at least on common protocol string
+    # ProtocolIDs represents the protocols that this node will advertise to other peers
+    # To connect to other nodes, those nodes should have at least one common protocol string
     ProtocolIDs = [
         "/erd/kad/1.0.0",
         "mvx-main",
