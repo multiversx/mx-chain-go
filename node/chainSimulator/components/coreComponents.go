@@ -35,7 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 type coreComponentsHolder struct {
@@ -83,10 +82,14 @@ type ArgsCoreComponentsHolder struct {
 	RoundsConfig        config.RoundConfig
 	EconomicsConfig     config.EconomicsConfig
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
+	InitialRound        int64
 	NodesSetupPath      string
 	GasScheduleFilename string
 	NumShards           uint32
 	WorkingDir          string
+
+	MinNodesPerShard uint32
+	MinNodesMeta     uint32
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -146,7 +149,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	}
 
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
-	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration)
+	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration, args.InitialRound)
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
@@ -200,8 +203,18 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	instance.ratingsData = &testscommon.RatingsInfoMock{}
 	instance.rater = &testscommon.RaterMock{}
 
-	// TODO check if we need nodes shuffler
-	instance.nodesShuffler = &shardingMocks.NodeShufflerMock{}
+	instance.nodesShuffler, err = nodesCoordinator.NewHashValidatorsShuffler(&nodesCoordinator.NodesShufflerArgs{
+		NodesShard:           args.MinNodesPerShard,
+		NodesMeta:            args.MinNodesMeta,
+		Hysteresis:           0,
+		Adaptivity:           false,
+		ShuffleBetweenShards: true,
+		MaxNodesEnableConfig: args.EnableEpochsConfig.MaxNodesChangeEnableEpoch,
+		EnableEpochsHandler:  instance.enableEpochsHandler,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)

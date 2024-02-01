@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/config"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -28,6 +28,7 @@ type ArgsChainSimulator struct {
 	MinNodesPerShard       uint32
 	MetaChainMinNodes      uint32
 	GenesisTimestamp       int64
+	InitialRound           int64
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
 	ApiInterface           components.APIConfigurator
@@ -38,6 +39,7 @@ type simulator struct {
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	handlers               []ChainHandler
 	initialWalletKeys      *dtos.InitialWalletKeys
+	validatorsPrivateKeys  []crypto.PrivateKey
 	nodes                  map[uint32]process.NodeHandler
 	numOfShards            uint32
 	mutex                  sync.RWMutex
@@ -68,7 +70,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:           args.NumOfShards,
 		OriginalConfigsPath:   args.PathToInitialConfig,
-		GenesisTimeStamp:      args.GenesisTimestamp,
+		GenesisTimeStamp:      computeStartTimeBaseOnInitialRound(args),
 		RoundDurationInMillis: args.RoundDurationInMillis,
 		TempDir:               args.TempDir,
 		MinNodesPerShard:      args.MinNodesPerShard,
@@ -88,7 +90,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(outputConfigs.Configs, shardIDStr, outputConfigs.GasScheduleFilename, args.ApiInterface, args.BypassTxSignatureCheck)
+		node, errCreate := s.createTestNode(outputConfigs, args, shardIDStr)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -104,6 +106,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	}
 
 	s.initialWalletKeys = outputConfigs.InitialWallets
+	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
@@ -116,25 +119,28 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	return nil
 }
 
+func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
+	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
+}
+
 func (s *simulator) createTestNode(
-	configs *config.Configs,
-	shardIDStr string,
-	gasScheduleFilename string,
-	apiInterface components.APIConfigurator,
-	bypassTxSignatureCheck bool,
+	outputConfigs *configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
-	args := components.ArgsTestOnlyProcessingNode{
-		Configs:                *configs,
+	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
+		Configs:                *outputConfigs.Configs,
 		ChanStopNodeProcess:    s.chanStopNodeProcess,
 		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
 		NumShards:              s.numOfShards,
-		GasScheduleFilename:    gasScheduleFilename,
+		GasScheduleFilename:    outputConfigs.GasScheduleFilename,
 		ShardIDStr:             shardIDStr,
-		APIInterface:           apiInterface,
-		BypassTxSignatureCheck: bypassTxSignatureCheck,
+		APIInterface:           args.ApiInterface,
+		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
+		InitialRound:           args.InitialRound,
+		MinNodesPerShard:       args.MinNodesPerShard,
+		MinNodesMeta:           args.MetaChainMinNodes,
 	}
 
-	return components.NewTestOnlyProcessingNode(args)
+	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
 }
 
 // GenerateBlocks will generate the provided number of blocks
@@ -193,6 +199,41 @@ func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
 // GetInitialWalletKeys will return the initial wallet keys
 func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 	return s.initialWalletKeys
+}
+
+// AddValidatorKeys will add the provided validators private keys in the keys handler on all nodes
+func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	for _, node := range s.nodes {
+		err := s.setValidatorKeysForNode(node, validatorsPrivateKeys)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {
+	for idx, privateKey := range validatorsPrivateKeys {
+
+		err := node.GetCryptoComponents().ManagedPeersHolder().AddManagedPeer(privateKey)
+		if err != nil {
+			return fmt.Errorf("cannot add private key for shard=%d, index=%d, error=%s", node.GetShardCoordinator().SelfId(), idx, err.Error())
+		}
+	}
+
+	return nil
+}
+
+// GetValidatorPrivateKeys will return the initial validators private keys
+func (s *simulator) GetValidatorPrivateKeys() []crypto.PrivateKey {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	return s.validatorsPrivateKeys
 }
 
 // SetKeyValueForAddress will set the provided state for a given address
