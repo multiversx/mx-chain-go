@@ -234,7 +234,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = TestMarshalizer
@@ -320,6 +320,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
+	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tcn.ChainHandler
@@ -366,27 +367,26 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize: consensusSize,
-		MetaConsensusGroupSize:  consensusSize,
-		Marshalizer:             TestMarshalizer,
-		Hasher:                  hasher,
-		Shuffler:                &shardingMocks.NodeShufflerMock{},
-		EpochStartNotifier:      epochStartRegistrationHandler,
-		BootStorer:              CreateMemUnit(),
-		NbShards:                maxShards,
-		EligibleNodes:           eligibleMap,
-		WaitingNodes:            waitingMap,
-		SelfPublicKey:           pkBytes,
-		ConsensusGroupCache:     cache,
-		ShuffledOutHandler:      &chainShardingMocks.ShuffledOutHandlerStub{},
-		ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:           false,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField: true,
-		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
-		ShardIDAsObserver:   tcn.ShardCoordinator.SelfId(),
+		ShardConsensusGroupSize:  consensusSize,
+		MetaConsensusGroupSize:   consensusSize,
+		Marshalizer:              TestMarshalizer,
+		Hasher:                   hasher,
+		Shuffler:                 &shardingMocks.NodeShufflerMock{},
+		EpochStartNotifier:       epochStartRegistrationHandler,
+		BootStorer:               CreateMemUnit(),
+		NbShards:                 maxShards,
+		EligibleNodes:            eligibleMap,
+		WaitingNodes:             waitingMap,
+		SelfPublicKey:            pkBytes,
+		ConsensusGroupCache:      cache,
+		ShuffledOutHandler:       &chainShardingMocks.ShuffledOutHandlerStub{},
+		ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:            false,
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:        tcn.ShardCoordinator.SelfId(),
+		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

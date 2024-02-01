@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -16,6 +17,7 @@ type statusCoreComponentsHolder struct {
 	statusHandler              core.AppStatusHandler
 	statusMetrics              external.StatusMetricsHandler
 	persistentStatusHandler    factory.PersistentStatusHandler
+	stateStatisticsHandler     common.StateStatisticsHandler
 }
 
 // CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHandler
@@ -55,11 +57,17 @@ func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.C
 		statusHandler:              managedStatusCoreComponents.AppStatusHandler(),
 		statusMetrics:              managedStatusCoreComponents.StatusMetrics(),
 		persistentStatusHandler:    managedStatusCoreComponents.PersistentStatusHandler(),
+		stateStatisticsHandler:     managedStatusCoreComponents.StateStatsHandler(),
 	}
 
 	instance.collectClosableComponents()
 
 	return instance, nil
+}
+
+// StateStatsHandler will return the state statistics handler
+func (s *statusCoreComponentsHolder) StateStatsHandler() common.StateStatisticsHandler {
+	return s.stateStatisticsHandler
 }
 
 // ResourceMonitor will return the resource monitor

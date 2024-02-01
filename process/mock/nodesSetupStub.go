@@ -21,6 +21,8 @@ type NodesSetupStub struct {
 	MinNumberOfMetaNodesCalled                func() uint32
 	MinNumberOfShardNodesCalled               func() uint32
 	MinNumberOfNodesWithHysteresisCalled      func() uint32
+	MinShardHysteresisNodesCalled             func() uint32
+	MinMetaHysteresisNodesCalled              func() uint32
 }
 
 // MinNumberOfNodes -
@@ -162,6 +164,22 @@ func (n *NodesSetupStub) MinNumberOfNodesWithHysteresis() uint32 {
 		return n.MinNumberOfNodesWithHysteresisCalled()
 	}
 	return n.MinNumberOfNodes()
+}
+
+// MinShardHysteresisNodes -
+func (n *NodesSetupStub) MinShardHysteresisNodes() uint32 {
+	if n.MinShardHysteresisNodesCalled != nil {
+		return n.MinShardHysteresisNodesCalled()
+	}
+	return 1
+}
+
+// MinMetaHysteresisNodes -
+func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
+	if n.MinMetaHysteresisNodesCalled != nil {
+		return n.MinMetaHysteresisNodesCalled()
+	}
+	return 1
 }
 
 // IsInterfaceNil -

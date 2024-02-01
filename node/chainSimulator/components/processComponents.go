@@ -93,6 +93,7 @@ type processComponentsHolder struct {
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
+	sendSignatureTracker             process.SentSignaturesTracker
 }
 
 // CreateProcessComponents will create the process components holder
@@ -260,11 +261,17 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
+		sendSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 	}
 
 	instance.collectClosableComponents()
 
 	return instance, nil
+}
+
+// SentSignaturesTracker will return the send signature tracker
+func (p *processComponentsHolder) SentSignaturesTracker() process.SentSignaturesTracker {
+	return p.sendSignatureTracker
 }
 
 // NodesCoordinator will return the nodes coordinator

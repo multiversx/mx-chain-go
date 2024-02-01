@@ -23,6 +23,8 @@ type NodesSetupStub struct {
 	MinNumberOfNodesCalled                    func() uint32
 	AllInitialNodesCalled                     func() []nodesCoordinator.GenesisNodeInfoHandler
 	MinNumberOfNodesWithHysteresisCalled      func() uint32
+	MinShardHysteresisNodesCalled             func() uint32
+	MinMetaHysteresisNodesCalled              func() uint32
 }
 
 // InitialNodesPubKeys -
@@ -165,6 +167,22 @@ func (n *NodesSetupStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHan
 		return n.AllInitialNodesCalled()
 	}
 	return nil
+}
+
+// MinShardHysteresisNodes -
+func (n *NodesSetupStub) MinShardHysteresisNodes() uint32 {
+	if n.MinShardHysteresisNodesCalled != nil {
+		return n.MinShardHysteresisNodesCalled()
+	}
+	return 1
+}
+
+// MinMetaHysteresisNodes -
+func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
+	if n.MinMetaHysteresisNodesCalled != nil {
+		return n.MinMetaHysteresisNodesCalled()
+	}
+	return 1
 }
 
 // IsInterfaceNil -

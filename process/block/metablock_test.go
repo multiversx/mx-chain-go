@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -55,7 +56,7 @@ func createMockComponentHolders() (
 		RoundField:                &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		ProcessStatusHandlerField: &testscommon.ProcessStatusHandlerStub{},
 		EpochNotifierField:        &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandlerField:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		RoundNotifierField:        &epochNotifier.RoundNotifierStub{},
 		EnableRoundsHandlerField:  &testscommon.EnableRoundsHandlerStub{},
 	}
@@ -149,6 +150,7 @@ func createMockMetaArguments(
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -990,6 +992,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mdp := initDataPool([]byte("tx_hash"))
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
+	hdr.PubKeysBitmap = []byte{0b11111111}
 	body := &block.Body{}
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
@@ -1041,6 +1044,12 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	resetCountersForManagedBlockSignerCalled := false
+	arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+		ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+			resetCountersForManagedBlockSignerCalled = true
+		},
+	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1082,6 +1091,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
 	assert.True(t, debuggerMethodWasCalled)
+	assert.True(t, resetCountersForManagedBlockSignerCalled)
 	// this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
 }
@@ -3158,7 +3168,9 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
 		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableEpochsHandler.StakingV2EnableEpochField = 0
+		enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.StakingV2Flag
+		}
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		wasCalled := false
@@ -3191,7 +3203,12 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			StakingV2EnableEpochField: 10,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.StakingV2Flag {
+					return epoch >= 10
+				}
+				return false
+			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -3393,7 +3410,9 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
 		enableEpochsHandler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableEpochsHandler.StakingV2EnableEpochField = 0
+		enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.StakingV2Flag
+		}
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		mb := &block.MetaBlock{
@@ -3467,7 +3486,12 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			StakingV2EnableEpochField: 10,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.StakingV2Flag {
+					return epoch >= 10
+				}
+				return false
+			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -3545,10 +3569,6 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: false,
-		}
-		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
@@ -3563,10 +3583,7 @@ func TestMetaProcessor_getFinalMiniBlockHashes(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsScheduledMiniBlocksFlagEnabledField: true,
-		}
-		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerStub
+		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)

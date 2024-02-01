@@ -12,8 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
@@ -99,6 +99,7 @@ type PruningStorer struct {
 	numOfActivePersisters  uint32
 	epochForPutOperation   uint32
 	pruningEnabled         bool
+	stateStatsHandler      common.StateStatisticsHandler
 }
 
 // NewPruningStorer will return a new instance of PruningStorer without sharded directories' naming scheme
@@ -158,6 +159,7 @@ func initPruningStorer(
 	pdb.persistersMapByEpoch = persistersMapByEpoch
 	pdb.activePersisters = activePersisters
 	pdb.lastEpochNeededHandler = pdb.lastEpochNeeded
+	pdb.stateStatsHandler = args.StateStatsHandler
 
 	return pdb, nil
 }
@@ -192,6 +194,9 @@ func checkArgs(args StorerArgs) error {
 	}
 	if check.IfNil(args.PersistersTracker) {
 		return storage.ErrNilPersistersTracker
+	}
+	if check.IfNil(args.StateStatsHandler) {
+		return statistics.ErrNilStateStatsHandler
 	}
 
 	return nil
@@ -257,11 +262,13 @@ func createPersisterIfPruningDisabled(
 	var persisters []*persisterData
 	persistersMapByEpoch := make(map[uint32]*persisterData)
 
-	p, err := createPersisterDataForEpoch(args, 0, shardIDStr)
+	epoch := uint32(0)
+	p, err := createPersisterDataForEpoch(args, epoch, shardIDStr)
 	if err != nil {
 		return nil, nil, err
 	}
 	persisters = append(persisters, p)
+	persistersMapByEpoch[epoch] = p
 
 	return persisters, persistersMapByEpoch, nil
 }
@@ -427,6 +434,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
+		ps.stateStatsHandler.IncrCache()
 		return v.([]byte), nil
 	}
 
@@ -439,7 +447,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
 			}
 
@@ -448,6 +456,9 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
+
+		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
+
 		return val, nil
 	}
 
@@ -521,7 +532,7 @@ func (ps *PruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) 
 }
 
 // GetBulkFromEpoch will return a slice of keys only in the persister for the given epoch
-func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
 	ps.lock.RLock()
 	pd, exists := ps.persistersMapByEpoch[epoch]
 	ps.lock.RUnlock()
@@ -538,11 +549,11 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storag
 	}
 	defer closePersister()
 
-	results := make([]storageCore.KeyValuePair, 0, len(keys))
+	results := make([]data.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		v, ok := ps.cacher.Get(key)
 		if ok {
-			keyValue := storageCore.KeyValuePair{Key: key, Value: v.([]byte)}
+			keyValue := data.KeyValuePair{Key: key, Value: v.([]byte)}
 			results = append(results, keyValue)
 			continue
 		}
@@ -556,7 +567,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storag
 			continue
 		}
 
-		keyValue := storageCore.KeyValuePair{Key: key, Value: res}
+		keyValue := data.KeyValuePair{Key: key, Value: res}
 		results = append(results, keyValue)
 	}
 

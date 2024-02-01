@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -76,7 +77,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	return fct
@@ -125,7 +126,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -145,7 +146,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -167,7 +168,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -189,7 +190,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -211,7 +212,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -233,7 +234,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -255,7 +256,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -277,7 +278,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -299,7 +300,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -321,7 +322,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -343,7 +344,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -365,7 +366,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -387,7 +388,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -407,7 +408,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -428,7 +429,7 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		nil,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -453,7 +454,7 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+	assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -478,7 +479,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		nil,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.Nil(t, fct)
