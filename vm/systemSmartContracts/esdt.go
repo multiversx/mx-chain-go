@@ -23,6 +23,8 @@ import (
 const numOfRetriesForIdentifier = 50
 const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
+const minLengthForTickerName = 3
+const maxLengthForTickerName = 10
 const minLengthForInitTokenName = 10
 const minLengthForTokenName = 3
 const maxLengthForTokenName = 20
@@ -616,6 +618,10 @@ func (e *esdt) createNewToken(
 	if !isTokenNameHumanReadable(tokenName) {
 		return nil, nil, vm.ErrTokenNameNotHumanReadable
 	}
+	if !isTickerValid(tickerName) {
+		return nil, nil, vm.ErrTickerNameNotValid
+	}
+
 	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
 	if err != nil {
 		return nil, nil, err
@@ -656,6 +662,23 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 			return false
 		}
 	}
+	return true
+}
+
+func isTickerValid(tickerName []byte) bool {
+	if len(tickerName) < minLengthForTickerName || len(tickerName) > maxLengthForTickerName {
+		return false
+	}
+
+	for _, ch := range tickerName {
+		isBigCharacter := ch >= 'A' && ch <= 'Z'
+		isNumber := ch >= '0' && ch <= '9'
+		isReadable := isBigCharacter || isNumber
+		if !isReadable {
+			return false
+		}
+	}
+
 	return true
 }
 
