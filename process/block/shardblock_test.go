@@ -2048,7 +2048,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:           1,
 		Round:           1,
-		PubKeysBitmap:   rootHash,
+		PubKeysBitmap:   []byte{0b11111111},
 		PrevHash:        hdrHash,
 		Signature:       rootHash,
 		RootHash:        rootHash,
