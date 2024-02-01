@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/process"
@@ -386,7 +387,7 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher
@@ -558,7 +559,7 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], exportConfig)
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
-		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestTxSignMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher
@@ -580,7 +581,8 @@ func createHardForkExporter(
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
 		statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabled.NewStateStatistics(),
 		}
 
 		networkComponents := integrationTests.GetDefaultNetworkComponents()

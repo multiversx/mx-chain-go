@@ -54,7 +54,7 @@ func NewSubroundStartRound(
 		return nil, fmt.Errorf("%w for resetConsensusMessages function", spos.ErrNilFunctionHandler)
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, spos.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 
 	srStartRound := subroundStartRound{
@@ -155,10 +155,8 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			sr.ConsensusGroup(),
 			sr.RoundHandler().Index(),
 		)
-		// TODO refactor the usage of the single key & multikey redundancy system
-		if sr.NodeRedundancyHandler().IsMainMachineActive() {
-			return false
-		}
+		// we should not return here, the multikey redundancy system relies on it
+		// the NodeRedundancyHandler "thinks" it is in redundancy mode even if we use the multikey redundancy system
 	}
 
 	leader, err := sr.GetLeader()
@@ -193,15 +191,14 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	_, err = sr.SelfConsensusGroupIndex()
-	if err != nil {
-		if numMultiKeysInConsensusGroup == 0 {
-			log.Debug("not in consensus group")
-		}
+	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
+	isLeader := isSingleKeyLeader || sr.IsKeyManagedByCurrentNode([]byte(leader))
+	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
+	if !isSelfInConsensus {
+		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		isLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
-		if !isLeader && !sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+		if !isLeader {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}

@@ -2034,7 +2034,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	hdr := &block.Header{
 		Nonce:           1,
 		Round:           1,
-		PubKeysBitmap:   rootHash,
+		PubKeysBitmap:   []byte{0b11111111},
 		PrevHash:        hdrHash,
 		Signature:       rootHash,
 		RootHash:        rootHash,
@@ -2107,6 +2107,12 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.MetaBlock{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	resetCountersForManagedBlockSignerCalled := false
+	arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+		ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+			resetCountersForManagedBlockSignerCalled = true
+		},
+	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	debuggerMethodWasCalled := false
@@ -2130,6 +2136,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.True(t, forkDetectorAddCalled)
 	assert.Equal(t, hdrHash, blkc.GetCurrentBlockHeaderHash())
 	assert.True(t, debuggerMethodWasCalled)
+	assert.True(t, resetCountersForManagedBlockSignerCalled)
 	// this should sleep as there is an async call to display current hdr and block in CommitBlock
 	time.Sleep(time.Second)
 }
@@ -4485,7 +4492,6 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
-	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
@@ -5033,9 +5039,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
-	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsScheduledMiniBlocksFlagEnabledField: true,
-	}
+	coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {

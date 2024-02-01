@@ -40,6 +40,7 @@ type ArgNodeApiResolver struct {
 	AccountsParser           genesis.AccountsParser
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
 	ManagedPeersMonitor      common.ManagedPeersMonitor
+	NodesCoordinator         nodesCoordinator.NodesCoordinator
 }
 
 // nodeApiResolver can resolve API requests
@@ -58,6 +59,7 @@ type nodeApiResolver struct {
 	accountsParser           genesis.AccountsParser
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
 	managedPeersMonitor      common.ManagedPeersMonitor
+	nodesCoordinator         nodesCoordinator.NodesCoordinator
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -104,6 +106,9 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 	if check.IfNil(arg.ManagedPeersMonitor) {
 		return nil, ErrNilManagedPeersMonitor
 	}
+	if check.IfNil(arg.NodesCoordinator) {
+		return nil, ErrNilNodesCoordinator
+	}
 
 	return &nodeApiResolver{
 		scQueryService:           arg.SCQueryService,
@@ -120,6 +125,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		accountsParser:           arg.AccountsParser,
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
 		managedPeersMonitor:      arg.ManagedPeersMonitor,
+		nodesCoordinator:         arg.NodesCoordinator,
 	}, nil
 }
 
@@ -372,6 +378,16 @@ func (nar *nodeApiResolver) parseKeys(keys [][]byte) []string {
 	}
 
 	return keysSlice
+}
+
+// GetWaitingEpochsLeftForPublicKey returns the number of epochs left for the public key until it becomes eligible
+func (nar *nodeApiResolver) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	pkBytes, err := nar.validatorPubKeyConverter.Decode(publicKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return nar.nodesCoordinator.GetWaitingEpochsLeftForPublicKey(pkBytes)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

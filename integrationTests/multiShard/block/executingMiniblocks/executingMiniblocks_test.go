@@ -160,7 +160,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 
 	minGasLimit := uint64(10000)
 	for _, node := range nodes {
-		node.EconomicsData.SetMinGasLimit(minGasLimit)
+		node.EconomicsData.SetMinGasLimit(minGasLimit, 0)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
@@ -213,7 +213,7 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 
 	time.Sleep(time.Second)
 
-	txGasNeed := nodes[0].EconomicsData.GetMinGasLimit()
+	txGasNeed := nodes[0].EconomicsData.GetMinGasLimit(0)
 	txGasPrice := nodes[0].EconomicsData.GetMinGasPrice()
 
 	oneTxCost := big.NewInt(0).Add(sendValue, big.NewInt(0).SetUint64(txGasNeed*txGasPrice))
@@ -250,7 +250,7 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 
 	minGasLimit := uint64(10000)
 	for _, node := range nodes {
-		node.EconomicsData.SetMinGasLimit(minGasLimit)
+		node.EconomicsData.SetMinGasLimit(minGasLimit, 0)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
