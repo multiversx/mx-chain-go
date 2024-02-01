@@ -248,7 +248,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	}
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
-		err := s.prepareRewardsData(validatorInfos)
+		err := s.prepareRewardsData(validatorInfos, epoch)
 		if err != nil {
 			return err
 		}
@@ -507,8 +507,9 @@ func (s *systemSCProcessor) fillStakingDataForNonEligible(validatorInfos map[uin
 
 func (s *systemSCProcessor) prepareRewardsData(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	epoch uint32,
 ) error {
-	eligibleNodesKeys := s.getEligibleNodesKeyMapOfType(validatorsInfo)
+	eligibleNodesKeys := s.getEligibleNodesKeyMapOfType(validatorsInfo, epoch)
 	err := s.prepareStakingDataForRewards(eligibleNodesKeys)
 	if err != nil {
 		return err
@@ -530,10 +531,11 @@ func (s *systemSCProcessor) prepareStakingDataForRewards(eligibleNodesKeys map[u
 
 func (s *systemSCProcessor) getEligibleNodesKeyMapOfType(
 	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	epoch uint32,
 ) map[uint32][][]byte {
 	eligibleNodesKeys := make(map[uint32][][]byte)
 	for shardID, validatorsInfoSlice := range validatorsInfo {
-		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSize(shardID))
+		eligibleNodesKeys[shardID] = make([][]byte, 0, s.nodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(shardID, epoch-1))
 		for _, validatorInfo := range validatorsInfoSlice {
 			if vInfo.WasEligibleInCurrentEpoch(validatorInfo) {
 				eligibleNodesKeys[shardID] = append(eligibleNodesKeys[shardID], validatorInfo.PublicKey)

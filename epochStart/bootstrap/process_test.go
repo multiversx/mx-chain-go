@@ -47,6 +47,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
@@ -72,6 +73,14 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 }
 
 func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
+	chainParams := &shardingmock.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				ShardConsensusGroupSize:     1,
+				MetachainConsensusGroupSize: 1,
+			}
+		},
+	}
 	return &mock.CoreComponentsMock{
 			IntMarsh:                     &mock.MarshalizerMock{},
 			Marsh:                        &mock.MarshalizerMock{},
@@ -86,6 +95,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ChainParametersHandlerField:  chainParams,
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},

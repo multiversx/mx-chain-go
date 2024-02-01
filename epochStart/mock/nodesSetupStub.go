@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
@@ -8,6 +9,7 @@ import (
 type NodesSetupStub struct {
 	InitialNodesInfoForShardCalled            func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
 	InitialNodesInfoCalled                    func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	ExportNodesConfigCalled                   func() config.NodesConfig
 	GetStartTimeCalled                        func() int64
 	GetRoundDurationCalled                    func() uint64
 	GetShardConsensusGroupSizeCalled          func() uint32
@@ -183,6 +185,15 @@ func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
 		return n.MinMetaHysteresisNodesCalled()
 	}
 	return 1
+}
+
+// ExportNodesConfig -
+func (n *NodesSetupStub) ExportNodesConfig() config.NodesConfig {
+	if n.ExportNodesConfigCalled != nil {
+		return n.ExportNodesConfigCalled()
+	}
+
+	return config.NodesConfig{}
 }
 
 // IsInterfaceNil -

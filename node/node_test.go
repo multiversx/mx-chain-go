@@ -4440,7 +4440,6 @@ func TestNode_Getters(t *testing.T) {
 	heartbeatComponents := &factoryMock.HeartbeatV2ComponentsStub{}
 	networkComponents := getDefaultNetworkComponents()
 	processComponents := getDefaultProcessComponents()
-	consensusGroupSize := 10
 
 	n, err := node.NewNode(
 		node.WithCoreComponents(coreComponents),
@@ -4452,7 +4451,6 @@ func TestNode_Getters(t *testing.T) {
 		node.WithHeartbeatV2Components(heartbeatComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithProcessComponents(processComponents),
-		node.WithConsensusGroupSize(consensusGroupSize),
 		node.WithImportMode(true),
 	)
 	require.Nil(t, err)
@@ -4467,7 +4465,6 @@ func TestNode_Getters(t *testing.T) {
 	assert.True(t, n.GetHeartbeatV2Components() == heartbeatComponents)
 	assert.True(t, n.GetNetworkComponents() == networkComponents)
 	assert.True(t, n.GetProcessComponents() == processComponents)
-	assert.Equal(t, consensusGroupSize, n.GetConsensusGroupSize())
 	assert.True(t, n.IsInImportMode())
 }
 

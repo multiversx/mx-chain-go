@@ -7,6 +7,7 @@ import (
 	"runtime/pprof"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -40,6 +41,8 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
 	roundConfig, _ := common.LoadRoundConfig(configPathsHolder.RoundActivation)
+	var nodesConfig config.NodesConfig
+	_ = core.LoadJsonFile(&nodesConfig, NodesSetupPath)
 
 	mainP2PConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
@@ -69,6 +72,7 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
 	configs.ImportDbConfig = &config.ImportDbConfig{}
+	configs.NodesConfig = &nodesConfig
 
 	return configs
 }

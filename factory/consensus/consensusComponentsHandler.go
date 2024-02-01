@@ -101,18 +101,6 @@ func (mcc *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastM
 	return mcc.consensusComponents.broadcastMessenger
 }
 
-// ConsensusGroupSize returns the consensus group size
-func (mcc *managedConsensusComponents) ConsensusGroupSize() (int, error) {
-	mcc.mutConsensusComponents.RLock()
-	defer mcc.mutConsensusComponents.RUnlock()
-
-	if mcc.consensusComponents == nil {
-		return 0, errors.ErrNilConsensusComponentsHolder
-	}
-
-	return mcc.consensusComponents.consensusGroupSize, nil
-}
-
 // CheckSubcomponents verifies all subcomponents
 func (mcc *managedConsensusComponents) CheckSubcomponents() error {
 	mcc.mutConsensusComponents.RLock()

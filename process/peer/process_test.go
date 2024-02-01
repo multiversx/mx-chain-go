@@ -1820,7 +1820,7 @@ func DoComputeMissingBlocks(
 		GetAllEligibleValidatorsPublicKeysCalled: func(_ uint32) (map[uint32][][]byte, error) {
 			return validatorPublicKeys, nil
 		},
-		ConsensusGroupSizeCalled: func(uint32) int {
+		ConsensusGroupSizeCalled: func(uint32, uint32) int {
 			return consensusGroupSize
 		},
 		GetValidatorWithPublicKeyCalled: func(publicKey []byte) (nodesCoordinator.Validator, uint32, error) {

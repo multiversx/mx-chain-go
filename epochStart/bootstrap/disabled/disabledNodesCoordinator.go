@@ -93,8 +93,8 @@ func (n *nodesCoordinator) GetConsensusWhitelistedNodes(_ uint32) (map[string]st
 	return nil, nil
 }
 
-// ConsensusGroupSize -
-func (n *nodesCoordinator) ConsensusGroupSize(uint32) int {
+// ConsensusGroupSizeForShardAndEpoch -
+func (n *nodesCoordinator) ConsensusGroupSizeForShardAndEpoch(uint32, uint32) int {
 	return 0
 }
 

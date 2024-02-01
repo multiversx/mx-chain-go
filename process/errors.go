@@ -462,6 +462,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 // ErrNilRoundNotifier signals that the provided EpochNotifier is nil
 var ErrNilRoundNotifier = errors.New("nil RoundNotifier")
 
+// ErrNilChainParametersHandler signals that the provided chain parameters handler is nil
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
+
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
 var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
 
@@ -1229,3 +1232,12 @@ var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/ca
 
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
+var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
+
+// ErrEmptyChainParametersConfiguration signals that an empty chain parameters configuration has been provided
+var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters configuration")
+
+// ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
+var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")

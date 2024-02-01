@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
@@ -60,6 +61,12 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 	roundConfig, err := common.LoadRoundConfig(path.Join(newConfigsPath, "enableRounds.toml"))
 	require.Nil(tb, err)
 
+	var nodesSetup config.NodesConfig
+	err = core.LoadJsonFile(&nodesSetup, path.Join(newConfigsPath, "nodesSetup.json"))
+	require.Nil(tb, err)
+
+	generalConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(nodesSetup.InitialNodes)), generalConfig.GeneralSettings.GenesisMaxNumberOfShards)
+
 	// make the node pass the network wait constraints
 	mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
 	mainP2PConfig.Node.ThresholdMinConnectedPeers = 0
@@ -91,6 +98,7 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 		},
 		EpochConfig: epochConfig,
 		RoundConfig: roundConfig,
+		NodesConfig: &nodesSetup,
 	}
 }
 
@@ -107,4 +115,23 @@ func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGe
 	output := strings.Join(lines, "\n")
 	err = os.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
 	require.Nil(tb, err)
+}
+
+func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32) []config.ChainParametersByEpochConfig {
+	numShardsWithMeta := numShardsWithoutMeta + 1
+	nodesPerShards := numInitialNodes / numShardsWithMeta
+	shardCnsGroupSize := nodesPerShards
+	if shardCnsGroupSize > 1 {
+		shardCnsGroupSize--
+	}
+	diff := numInitialNodes - nodesPerShards*numShardsWithMeta
+	return []config.ChainParametersByEpochConfig{
+		{
+			ShardConsensusGroupSize:     shardCnsGroupSize,
+			ShardMinNumNodes:            nodesPerShards,
+			MetachainConsensusGroupSize: nodesPerShards,
+			MetachainMinNumNodes:        nodesPerShards + diff,
+			RoundDuration:               2000,
+		},
+	}
 }

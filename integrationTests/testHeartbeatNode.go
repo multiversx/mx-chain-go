@@ -55,6 +55,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/update"
@@ -349,8 +350,14 @@ func CreateNodesWithTestHeartbeatNode(
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:  shardConsensusGroupSize,
-			MetaConsensusGroupSize:   metaConsensusGroupSize,
+			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+					}, nil
+				},
+			},
 			Marshalizer:              TestMarshalizer,
 			Hasher:                   TestHasher,
 			ShardIDAsObserver:        shardId,
@@ -396,8 +403,14 @@ func CreateNodesWithTestHeartbeatNode(
 			}
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:  shardConsensusGroupSize,
-				MetaConsensusGroupSize:   metaConsensusGroupSize,
+				ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+						return config.ChainParametersByEpochConfig{
+							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+							MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+						}, nil
+					},
+				},
 				Marshalizer:              TestMarshalizer,
 				Hasher:                   TestHasher,
 				ShardIDAsObserver:        shardId,
@@ -416,7 +429,7 @@ func CreateNodesWithTestHeartbeatNode(
 				IsFullArchive:            false,
 				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-				GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+				GenesisNodesSetupHandler: &mock.NodesSetupStub{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,6 +29,52 @@ const (
 	eligiblePerShard     = 100
 	waitingPerShard      = 30
 )
+
+type testChainParametersCreator struct {
+	numNodesShards uint32
+	numNodesMeta   uint32
+	hysteresis     float32
+	adaptivity     bool
+}
+
+func (t testChainParametersCreator) build() ChainParametersHandler {
+	return &shardingmock.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				EnableEpoch:                 0,
+				Hysteresis:                  t.hysteresis,
+				ShardMinNumNodes:            t.numNodesShards,
+				MetachainMinNumNodes:        t.numNodesMeta,
+				ShardConsensusGroupSize:     t.numNodesShards,
+				MetachainConsensusGroupSize: t.numNodesMeta,
+				Adaptivity:                  t.adaptivity,
+			}
+		},
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				EnableEpoch:                 0,
+				Hysteresis:                  t.hysteresis,
+				ShardMinNumNodes:            t.numNodesShards,
+				MetachainMinNumNodes:        t.numNodesMeta,
+				ShardConsensusGroupSize:     t.numNodesShards,
+				MetachainConsensusGroupSize: t.numNodesMeta,
+				Adaptivity:                  t.adaptivity,
+			}, nil
+		},
+	}
+}
+
+func getTestChainParameters() config.ChainParametersByEpochConfig {
+	return config.ChainParametersByEpochConfig{
+		EnableEpoch:                 0,
+		Hysteresis:                  hysteresis,
+		ShardConsensusGroupSize:     eligiblePerShard,
+		ShardMinNumNodes:            eligiblePerShard,
+		MetachainConsensusGroupSize: eligiblePerShard,
+		MetachainMinNumNodes:        eligiblePerShard,
+		Adaptivity:                  false,
+	}
+}
 
 func generateRandomByteArray(size int) []byte {
 	r := make([]byte, size)
@@ -189,10 +236,6 @@ func testShuffledOut(
 
 func createHashShufflerInter() (*randHashShuffler, error) {
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -205,10 +248,6 @@ func createHashShufflerInter() (*randHashShuffler, error) {
 
 func createHashShufflerIntraShards() (*randHashShuffler, error) {
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -584,8 +623,8 @@ func Test_removeValidatorsFromListRemoveFromLastMaxGreater(t *testing.T) {
 func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 	t.Parallel()
 
-	nbValidatotrsToRemove := 10
-	maxToRemove := nbValidatotrsToRemove - 3
+	nbValidatorsToRemove := 10
+	maxToRemove := nbValidatorsToRemove - 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	validatorsToRemove := make([]Validator, 0)
@@ -594,7 +633,7 @@ func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 
 	sort.Sort(validatorList(validators))
 
-	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
+	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatorsToRemove]...)
 
 	v, removed := removeValidatorsFromList(validators, validatorsToRemove, maxToRemove)
 	testRemoveValidators(t, validatorsCopy, validatorsToRemove, v, removed, maxToRemove)
@@ -603,8 +642,8 @@ func Test_removeValidatorsFromListRandomValidatorsMaxSmaller(t *testing.T) {
 func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
 	t.Parallel()
 
-	nbValidatotrsToRemove := 10
-	maxToRemove := nbValidatotrsToRemove + 3
+	nbValidatorsToRemove := 10
+	maxToRemove := nbValidatorsToRemove + 3
 	validators := generateValidatorList(30)
 	validatorsCopy := make([]Validator, len(validators))
 	validatorsToRemove := make([]Validator, 0)
@@ -613,13 +652,13 @@ func Test_removeValidatorsFromListRandomValidatorsMaxGreater(t *testing.T) {
 
 	sort.Sort(validatorList(validators))
 
-	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatotrsToRemove]...)
+	validatorsToRemove = append(validatorsToRemove, validators[:nbValidatorsToRemove]...)
 
 	v, removed := removeValidatorsFromList(validators, validatorsToRemove, maxToRemove)
 	testRemoveValidators(t, validatorsCopy, validatorsToRemove, v, removed, maxToRemove)
 }
 
-func Test_removeDupplicates_NoDupplicates(t *testing.T) {
+func Test_removeDuplicates_NoDuplicates(t *testing.T) {
 	t.Parallel()
 
 	firstList := generateValidatorList(30)
@@ -631,13 +670,13 @@ func Test_removeDupplicates_NoDupplicates(t *testing.T) {
 	secondListCopy := make([]Validator, len(secondList))
 	copy(secondListCopy, secondList)
 
-	secondListAfterRemove := removeDupplicates(firstList, secondList)
+	secondListAfterRemove := removeDuplicates(firstList, secondList)
 
 	assert.Equal(t, firstListCopy, firstList)
 	assert.Equal(t, secondListCopy, secondListAfterRemove)
 }
 
-func Test_removeDupplicates_SomeDupplicates(t *testing.T) {
+func Test_removeDuplicates_SomeDuplicates(t *testing.T) {
 	t.Parallel()
 
 	firstList := generateValidatorList(30)
@@ -651,14 +690,14 @@ func Test_removeDupplicates_SomeDupplicates(t *testing.T) {
 	secondListCopy := make([]Validator, len(secondList))
 	copy(secondListCopy, secondList)
 
-	secondListAfterRemove := removeDupplicates(firstList, secondList)
+	secondListAfterRemove := removeDuplicates(firstList, secondList)
 
 	assert.Equal(t, firstListCopy, firstList)
 	assert.Equal(t, len(secondListCopy)-len(validatorsFromFirstList), len(secondListAfterRemove))
 	assert.Equal(t, secondListCopy[:20], secondListAfterRemove)
 }
 
-func Test_removeDupplicates_AllDupplicates(t *testing.T) {
+func Test_removeDuplicates_AllDuplicates(t *testing.T) {
 	t.Parallel()
 
 	firstList := generateValidatorList(30)
@@ -670,7 +709,7 @@ func Test_removeDupplicates_AllDupplicates(t *testing.T) {
 	secondListCopy := make([]Validator, len(secondList))
 	copy(secondListCopy, secondList)
 
-	secondListAfterRemove := removeDupplicates(firstList, secondList)
+	secondListAfterRemove := removeDuplicates(firstList, secondList)
 
 	assert.Equal(t, firstListCopy, firstList)
 	assert.Equal(t, len(secondListCopy)-len(firstListCopy), len(secondListAfterRemove))
@@ -1101,10 +1140,6 @@ func TestNewHashValidatorsShuffler(t *testing.T) {
 	t.Parallel()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -1121,10 +1156,12 @@ func TestRandHashShuffler_computeNewShardsNotChanging(t *testing.T) {
 	shuffler, err := createHashShufflerInter()
 	require.Nil(t, err)
 
-	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
+	testChainParams := getTestChainParameters()
+
+	eligible := generateValidatorMap(int(getTestChainParameters().ShardMinNumNodes), currentNbShards)
 	nbShards := currentNbShards + 1 // account for meta
-	maxNodesNoSplit := (nbShards + 1) * (shuffler.nodesShard + shuffler.shardHysteresis)
-	nbWaitingPerShard := int(maxNodesNoSplit/nbShards - shuffler.nodesShard)
+	maxNodesNoSplit := (nbShards + 1) * (testChainParams.ShardMinNumNodes + shuffler.shardHysteresis(testChainParams))
+	nbWaitingPerShard := int(maxNodesNoSplit/nbShards - testChainParams.ShardMinNumNodes)
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
 	leavingUnstake := generateValidatorList(0)
@@ -1133,7 +1170,7 @@ func TestRandHashShuffler_computeNewShardsNotChanging(t *testing.T) {
 	numNewNodes := len(newNodes)
 	numLeaving := len(leavingUnstake) + len(leavingRating)
 
-	newNbShards := shuffler.computeNewShards(eligible, waiting, numNewNodes, numLeaving, currentNbShards)
+	newNbShards := shuffler.computeNewShards(testChainParams, eligible, waiting, numNewNodes, numLeaving, currentNbShards)
 	assert.Equal(t, currentNbShards, newNbShards)
 }
 
@@ -1144,10 +1181,11 @@ func TestRandHashShuffler_computeNewShardsWithSplit(t *testing.T) {
 	shuffler, err := createHashShufflerInter()
 	require.Nil(t, err)
 
-	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
+	testChainParams := getTestChainParameters()
+	eligible := generateValidatorMap(int(testChainParams.ShardMinNumNodes), currentNbShards)
 	nbShards := currentNbShards + 1 // account for meta
-	maxNodesNoSplit := (nbShards + 1) * (shuffler.nodesShard + shuffler.shardHysteresis)
-	nbWaitingPerShard := int(maxNodesNoSplit/nbShards-shuffler.nodesShard) + 1
+	maxNodesNoSplit := (nbShards + 1) * (testChainParams.ShardMinNumNodes + shuffler.shardHysteresis(testChainParams))
+	nbWaitingPerShard := int(maxNodesNoSplit/nbShards-testChainParams.ShardMinNumNodes) + 1
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
 	leavingUnstake := generateValidatorList(0)
@@ -1156,7 +1194,7 @@ func TestRandHashShuffler_computeNewShardsWithSplit(t *testing.T) {
 	numNewNodes := len(newNodes)
 	numLeaving := len(leavingUnstake) + len(leavingRating)
 
-	newNbShards := shuffler.computeNewShards(eligible, waiting, numNewNodes, numLeaving, currentNbShards)
+	newNbShards := shuffler.computeNewShards(testChainParams, eligible, waiting, numNewNodes, numLeaving, currentNbShards)
 	assert.Equal(t, currentNbShards+1, newNbShards)
 }
 
@@ -1167,7 +1205,7 @@ func TestRandHashShuffler_computeNewShardsWithMerge(t *testing.T) {
 	shuffler, err := createHashShufflerInter()
 	require.Nil(t, err)
 
-	eligible := generateValidatorMap(int(shuffler.nodesShard), currentNbShards)
+	eligible := generateValidatorMap(int(getTestChainParameters().ShardMinNumNodes), currentNbShards)
 	nbWaitingPerShard := 0
 	waiting := generateValidatorMap(nbWaitingPerShard, currentNbShards)
 	newNodes := generateValidatorList(0)
@@ -1177,36 +1215,8 @@ func TestRandHashShuffler_computeNewShardsWithMerge(t *testing.T) {
 	numNewNodes := len(newNodes)
 	numLeaving := len(leavingUnstake) + len(leavingRating)
 
-	newNbShards := shuffler.computeNewShards(eligible, waiting, numNewNodes, numLeaving, currentNbShards)
+	newNbShards := shuffler.computeNewShards(getTestChainParameters(), eligible, waiting, numNewNodes, numLeaving, currentNbShards)
 	assert.Equal(t, currentNbShards-1, newNbShards)
-}
-
-func TestRandHashShuffler_UpdateParams(t *testing.T) {
-	t.Parallel()
-
-	shuffler, err := createHashShufflerInter()
-	require.Nil(t, err)
-
-	shuffler2 := &randHashShuffler{
-		nodesShard:            200,
-		nodesMeta:             200,
-		shardHysteresis:       0,
-		metaHysteresis:        0,
-		adaptivity:            true,
-		shuffleBetweenShards:  true,
-		validatorDistributor:  &CrossShardValidatorDistributor{},
-		availableNodesConfigs: nil,
-		enableEpochsHandler:   &mock.EnableEpochsHandlerMock{},
-	}
-
-	shuffler.UpdateParams(
-		shuffler2.nodesShard,
-		shuffler2.nodesMeta,
-		0,
-		shuffler2.adaptivity,
-	)
-
-	assert.Equal(t, shuffler2, shuffler)
 }
 
 func TestRandHashShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
@@ -1215,7 +1225,7 @@ func TestRandHashShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 	shuffler, err := createHashShufflerInter()
 	require.Nil(t, err)
 
-	eligiblePerShard := int(shuffler.nodesShard)
+	eligiblePerShard := int(getTestChainParameters().ShardMinNumNodes)
 	waitingPerShard := 30
 	nbShards := uint32(3)
 	randomness := generateRandomByteArray(32)
@@ -1236,6 +1246,12 @@ func TestRandHashShuffler_UpdateNodeListsNoReSharding(t *testing.T) {
 		Rand:              randomness,
 		NbShards:          nbShards,
 	}
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -1255,10 +1271,6 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t
 	eligibleMeta := 10
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligibleMeta),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -1276,6 +1288,13 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromEligible(t
 		args.Eligible[core.MetachainShardId][0],
 		args.Eligible[core.MetachainShardId][1],
 	}
+
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligibleMeta),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -1323,10 +1342,6 @@ func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligibleMeta),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
 			{
@@ -1353,6 +1368,13 @@ func testUpdateNodesAndCheckNumLeaving(t *testing.T, beforeFix bool) {
 	for i := 0; i < numLeaving; i++ {
 		args.UnStakeLeaving = append(args.UnStakeLeaving, args.Waiting[0][i])
 	}
+
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligibleMeta),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -1400,10 +1422,6 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligibleMeta),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
 			{
@@ -1437,6 +1455,13 @@ func testUpdateNodeListsAndCheckWaitingList(t *testing.T, beforeFix bool) {
 		args.UnStakeLeaving = append(args.UnStakeLeaving, args.Waiting[0][i])
 	}
 
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligibleMeta),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
+
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
 
@@ -1467,10 +1492,6 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t 
 	eligibleMeta := 10
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligibleMeta),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -1488,6 +1509,13 @@ func TestRandHashShuffler_UpdateNodeListsWithUnstakeLeavingRemovesFromWaiting(t 
 		args.Waiting[core.MetachainShardId][0],
 		args.Waiting[core.MetachainShardId][1],
 	}
+
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligibleMeta),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -1510,10 +1538,6 @@ func TestRandHashShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRem
 	t.Parallel()
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           10,
-		NodesMeta:            10,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -1521,7 +1545,7 @@ func TestRandHashShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRem
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	eligiblePerShard := int(shuffler.nodesShard)
+	eligiblePerShard := 10
 	waitingPerShard := 2
 	nbShards := uint32(0)
 
@@ -1536,6 +1560,12 @@ func TestRandHashShuffler_UpdateNodeListsWithNonExistentUnstakeLeavingDoesNotRem
 		},
 	}
 
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(10),
+		numNodesMeta:   uint32(10),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
 
@@ -1562,10 +1592,6 @@ func TestRandHashShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 
 	for _, shuffle := range shuffleBetweenShards {
 		shufflerArgs := &NodesShufflerArgs{
-			NodesShard:           uint32(eligiblePerShard),
-			NodesMeta:            uint32(eligiblePerShard),
-			Hysteresis:           hysteresis,
-			Adaptivity:           adaptivity,
 			ShuffleBetweenShards: shuffle,
 			MaxNodesEnableConfig: nil,
 			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -1600,6 +1626,13 @@ func TestRandHashShuffler_UpdateNodeListsWithRangeOnMaps(t *testing.T) {
 		}
 
 		args.UnStakeLeaving = leavingValidators
+
+		args.ChainParameters = testChainParametersCreator{
+			numNodesShards: uint32(eligiblePerShard),
+			numNodesMeta:   uint32(eligiblePerShard),
+			hysteresis:     hysteresis,
+			adaptivity:     adaptivity,
+		}.build().CurrentChainParameters()
 
 		resUpdateNodeListInitial, err := shuffler.UpdateNodeLists(args)
 		require.Nil(t, err)
@@ -1640,6 +1673,12 @@ func TestRandHashShuffler_UpdateNodeListsNoReShardingIntraShardShuffling(t *test
 		Rand:              randomness,
 		NbShards:          nbShards,
 	}
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -2019,6 +2058,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeLeaving(t *testing.T) {
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	result, err := shuffler.UpdateNodeLists(arg)
 	require.Nil(t, err)
@@ -2068,6 +2113,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeLeaving_EnoughRemaining(t *
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	result, err := shuffler.UpdateNodeLists(arg)
 	assert.NotNil(t, result)
@@ -2100,6 +2151,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeLeaving_NotEnoughRemaining(
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	_, err = shuffler.UpdateNodeLists(arg)
 	assert.True(t, errors.Is(err, ErrSmallShardEligibleListSize))
@@ -2121,6 +2178,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeLeaving_NotEnoughRemaining(
 		Rand:              generateRandomByteArray(32),
 		NbShards:          uint32(len(eligibleMap)),
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	_, err = shuffler.UpdateNodeLists(arg)
 	assert.True(t, errors.Is(err, ErrSmallShardEligibleListSize))
@@ -2168,6 +2231,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithAdditionalLeaving(t *testing.T) {
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	result, err := shuffler.UpdateNodeLists(arg)
 	require.Nil(t, err)
@@ -2192,7 +2261,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithAdditionalLeaving(t *testing.T) {
 	}
 }
 
-func TestRandHashShuffler_UpdateNodeLists_WithUnstakeAndAdditionalLeaving_NoDupplicates(t *testing.T) {
+func TestRandHashShuffler_UpdateNodeLists_WithUnstakeAndAdditionalLeaving_NoDuplicates(t *testing.T) {
 	t.Parallel()
 
 	eligiblePerShard := 100
@@ -2244,6 +2313,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeAndAdditionalLeaving_NoDupp
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	result, err := shuffler.UpdateNodeLists(arg)
 	require.Nil(t, err)
@@ -2267,7 +2342,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithUnstakeAndAdditionalLeaving_NoDupp
 		)
 	}
 }
-func TestRandHashShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDupplicates(t *testing.T) {
+func TestRandHashShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDuplicates(t *testing.T) {
 	t.Parallel()
 
 	eligiblePerShard := 100
@@ -2326,6 +2401,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithAdditionalLeaving_WithDupplicates(
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	result, err := shuffler.UpdateNodeLists(arg)
 	require.Nil(t, err)
@@ -2398,10 +2479,6 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 	unstakeLeavingList, additionalLeavingList := prepareListsFromMaps(unstakeLeaving, additionalLeaving)
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -2418,6 +2495,12 @@ func TestRandHashShuffler_UpdateNodeLists_All(t *testing.T) {
 		Rand:              generateRandomByteArray(32),
 		NbShards:          nbShards,
 	}
+	arg.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	result, err := shuffler.UpdateNodeLists(arg)
 	require.Nil(t, err)
@@ -2502,10 +2585,6 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -2513,6 +2592,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NoWaiting(t *testing.T) {
 
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -2563,16 +2648,19 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NilOrEmptyWaiting(t *test
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(eligiblePerShard),
-		NodesMeta:            uint32(eligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
 	}
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
+
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -2587,6 +2675,13 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_NilOrEmptyWaiting(t *test
 		Rand:              randomness,
 		NbShards:          nbShards,
 	}
+
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	resUpdateNodeList, err = shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
@@ -2618,6 +2713,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting(t *testing.T)
 		Rand:              randomness,
 		NbShards:          uint32(nbShards),
 	}
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(eligiblePerShard),
+		numNodesMeta:   uint32(eligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 
 	shuffler, err := createHashShufflerIntraShards()
 	require.Nil(t, err)
@@ -2694,10 +2795,6 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 	}
 
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           uint32(numEligiblePerShard),
-		NodesMeta:            uint32(numEligiblePerShard),
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -2705,6 +2802,12 @@ func TestRandHashShuffler_UpdateNodeLists_WithNewNodes_WithWaiting_WithLeaving(t
 	shuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
+	args.ChainParameters = testChainParametersCreator{
+		numNodesShards: uint32(numEligiblePerShard),
+		numNodesMeta:   uint32(numEligiblePerShard),
+		hysteresis:     hysteresis,
+		adaptivity:     adaptivity,
+	}.build().CurrentChainParameters()
 	resUpdateNodeList, err := shuffler.UpdateNodeLists(args)
 	require.Nil(t, err)
 
@@ -2746,7 +2849,7 @@ func verifyResultsIntraShardShuffling(
 	initialNumWaiting := len(waiting)
 	numToRemove := initialNumWaiting
 
-	additionalLeaving = removeDupplicates(unstakeLeaving, additionalLeaving)
+	additionalLeaving = removeDuplicates(unstakeLeaving, additionalLeaving)
 
 	computedNewWaiting, removedFromWaiting := removeValidatorsFromList(waiting, unstakeLeaving, numToRemove)
 	removedNodes = append(removedNodes, removedFromWaiting...)
@@ -2922,10 +3025,6 @@ func TestRandHashShuffler_sortConfigs(t *testing.T) {
 		require.NotEqual(t, orderedConfigs, shuffledConfigs)
 
 		shufflerArgs := &NodesShufflerArgs{
-			NodesShard:           eligiblePerShard,
-			NodesMeta:            eligiblePerShard,
-			Hysteresis:           hysteresis,
-			Adaptivity:           adaptivity,
 			ShuffleBetweenShards: shuffleBetweenShards,
 			MaxNodesEnableConfig: shuffledConfigs,
 			EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -2941,10 +3040,6 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 
 	orderedConfigs := getDummyShufflerConfigs()
 	shufflerArgs := &NodesShufflerArgs{
-		NodesShard:           eligiblePerShard,
-		NodesMeta:            eligiblePerShard,
-		Hysteresis:           hysteresis,
-		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: orderedConfigs,
 		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
@@ -2957,7 +3052,13 @@ func TestRandHashShuffler_UpdateShufflerConfig(t *testing.T) {
 		if epoch == orderedConfigs[(i+1)%len(orderedConfigs)].EpochEnable {
 			i++
 		}
-		shuffler.updateShufflerConfig(epoch)
+		chainParams := testChainParametersCreator{
+			numNodesShards: uint32(eligiblePerShard),
+			numNodesMeta:   uint32(eligiblePerShard),
+			hysteresis:     hysteresis,
+			adaptivity:     adaptivity,
+		}.build().CurrentChainParameters()
+		shuffler.UpdateShufflerConfig(epoch, chainParams)
 		require.Equal(t, orderedConfigs[i], shuffler.activeNodesConfig)
 	}
 }

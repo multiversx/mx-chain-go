@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -256,7 +257,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
 		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0,
+		MaxRoundsOfInactivity: 10,
 		PrefsConfig:           config.Preferences{},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
@@ -345,7 +346,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		node.WithStateComponents(stateComponents),
 		node.WithNetworkComponents(networkComponents),
 		node.WithRoundDuration(args.RoundTime),
-		node.WithConsensusGroupSize(args.ConsensusSize),
 		node.WithConsensusType(args.ConsensusType),
 		node.WithGenesisTime(time.Unix(args.StartTime, 0)),
 		node.WithValidatorSignatureSize(signatureSize),
@@ -367,8 +367,14 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:  consensusSize,
-		MetaConsensusGroupSize:   consensusSize,
+		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					ShardConsensusGroupSize:     uint32(consensusSize),
+					MetachainConsensusGroupSize: uint32(consensusSize),
+				}, nil
+			},
+		},
 		Marshalizer:              TestMarshalizer,
 		Hasher:                   hasher,
 		Shuffler:                 &shardingMocks.NodeShufflerMock{},

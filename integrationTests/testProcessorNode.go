@@ -108,6 +108,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -115,6 +116,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -1221,12 +1223,10 @@ func CreateRatingsData() *rating.RatingsData {
 	}
 
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   ratingsConfig,
-		ShardConsensusSize:       63,
-		MetaConsensusSize:        400,
-		ShardMinNodes:            400,
-		MetaMinNodes:             400,
-		RoundDurationMiliseconds: 6000,
+		Config:                    ratingsConfig,
+		ChainParametersHolder:     &shardingmock.ChainParametersHolderMock{},
+		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
+		RoundDurationMilliseconds: 6000,
 	}
 
 	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
@@ -3259,6 +3259,7 @@ func GetDefaultCoreComponents(enableEpochsConfig config.EnableEpochs) *mock.Core
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:     enableEpochsHandler,
+		ChainParametersHandlerField:  &shardingmock.ChainParametersHandlerStub{},
 	}
 }
 

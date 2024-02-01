@@ -1,4 +1,4 @@
-package mock
+package epochstartmock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
