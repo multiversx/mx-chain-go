@@ -556,7 +556,7 @@ func (g *governanceContract) updateUserVoteListV1(address []byte, nonce uint64, 
 		return err
 	}
 
-	err = g.updateUserVotes(userVoteList, nonce, direct, scAddress)
+	err = g.updateUserVotesV1(userVoteList, nonce, direct)
 	if err != nil {
 		return err
 	}
