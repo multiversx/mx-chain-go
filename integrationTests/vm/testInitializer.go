@@ -779,6 +779,12 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			MinServiceFee: 1,
 			MaxServiceFee: 20,
 		},
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
+		},
 	}
 }
 

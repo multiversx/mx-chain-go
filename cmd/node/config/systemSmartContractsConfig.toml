@@ -41,3 +41,10 @@
 [DelegationSystemSCConfig]
     MinServiceFee  = 0
     MaxServiceFee  = 10000
+
+# Changing this config is not backwards compatible
+[SoftAuctionConfig]
+    TopUpStep = "10000000000000000000" # 10 EGLD
+    MinTopUp = "1000000000000000000" # 1 EGLD should be minimum
+    MaxTopUp = "32000000000000000000000000" # 32 mil EGLD
+    MaxNumberOfIterations = 100000 # 100k max number of iterations for soft auction config

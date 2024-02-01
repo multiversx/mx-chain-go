@@ -151,6 +151,12 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		ImportStartHandler: &testscommon.ImportStartHandlerStub{},
 		HistoryRepo:        &dblookupext.HistoryRepositoryStub{},

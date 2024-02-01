@@ -77,6 +77,12 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStakeAmount:      "10",
 				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		AddressPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},

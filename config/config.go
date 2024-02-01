@@ -226,8 +226,6 @@ type Config struct {
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
 	Redundancy          RedundancyConfig
-
-	SoftAuctionConfig SoftAuctionConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -637,12 +635,4 @@ type PoolsCleanersConfig struct {
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
 	MaxRoundsOfInactivityAccepted int
-}
-
-// SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
-type SoftAuctionConfig struct {
-	TopUpStep             string
-	MinTopUp              string
-	MaxTopUp              string
-	MaxNumberOfIterations uint64
 }

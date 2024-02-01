@@ -967,6 +967,12 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					MinServiceFee: 0,
 					MaxServiceFee: 100000,
 				},
+				SoftAuctionConfig: config.SoftAuctionConfig{
+					TopUpStep:             "10",
+					MinTopUp:              "1",
+					MaxTopUp:              "32000000",
+					MaxNumberOfIterations: 100000,
+				},
 			},
 			ValidatorAccountsDB: tpn.PeerState,
 			UserAccountsDB:      tpn.AccntState,
@@ -1924,6 +1930,12 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100000,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ValidatorAccountsDB: tpn.PeerState,

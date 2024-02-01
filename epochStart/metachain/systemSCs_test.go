@@ -872,6 +872,12 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		ValidatorAccountsDB: peerAccountsDB,
 		UserAccountsDB:      userAccountsDB,
