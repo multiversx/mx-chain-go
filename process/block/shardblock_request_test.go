@@ -249,6 +249,192 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 func TestShardProcessor_receivedMetaBlock(t *testing.T) {
 	t.Parallel()
 
+	t.Run("received non referenced metaBlock, while still having missing referenced metaBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		sp, _ := blproc.NewShardProcessor(arguments)
+		hdrsForBlock := sp.GetHdrForBlock()
+
+		firstMissingMetaBlockData := testData[core.MetachainShardId].headerData[0]
+		secondMissingMetaBlockData := testData[core.MetachainShardId].headerData[1]
+
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			require.Fail(t, "no requests expected")
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			require.Fail(t, "no requests expected")
+		}
+
+		highestHeaderNonce := firstMissingMetaBlockData.header.GetNonce() - 1
+		hdrsForBlock.SetNumMissingHdrs(2)
+		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
+		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, highestHeaderNonce)
+		hdrsForBlock.SetHdrHashAndInfo(string(firstMissingMetaBlockData.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         nil,
+			})
+		hdrsForBlock.SetHdrHashAndInfo(string(secondMissingMetaBlockData.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         nil,
+			})
+		otherMetaBlock := &block.MetaBlock{
+			Nonce:    102,
+			Round:    102,
+			PrevHash: []byte("other meta block prev hash"),
+		}
+
+		otherMetaBlockHash := []byte("other meta block hash")
+		sp.ReceivedMetaBlock(otherMetaBlock, otherMetaBlockHash)
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, uint32(2), hdrsForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
+		highestHeaderNonces := hdrsForBlock.GetHighestHdrNonce()
+		require.Equal(t, highestHeaderNonce, highestHeaderNonces[core.MetachainShardId])
+	})
+	t.Run("received missing referenced metaBlock, other referenced metaBlock still missing", func(t *testing.T) {
+		t.Parallel()
+
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		sp, _ := blproc.NewShardProcessor(arguments)
+		hdrsForBlock := sp.GetHdrForBlock()
+
+		firstMissingMetaBlockData := testData[core.MetachainShardId].headerData[0]
+		secondMissingMetaBlockData := testData[core.MetachainShardId].headerData[1]
+
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			require.Fail(t, "no requests expected")
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			require.Fail(t, "no requests expected")
+		}
+
+		highestHeaderNonce := firstMissingMetaBlockData.header.GetNonce() - 1
+		hdrsForBlock.SetNumMissingHdrs(2)
+		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
+		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, highestHeaderNonce)
+		hdrsForBlock.SetHdrHashAndInfo(string(firstMissingMetaBlockData.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         nil,
+			})
+		hdrsForBlock.SetHdrHashAndInfo(string(secondMissingMetaBlockData.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         nil,
+			})
+
+		sp.ReceivedMetaBlock(firstMissingMetaBlockData.header, firstMissingMetaBlockData.hash)
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, uint32(1), hdrsForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
+		highestHeaderNonces := hdrsForBlock.GetHighestHdrNonce()
+		require.Equal(t, firstMissingMetaBlockData.header.GetNonce(), highestHeaderNonces[core.MetachainShardId])
+	})
+	t.Run("received non missing referenced metaBlock", func(t *testing.T) {
+		t.Parallel()
+
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		sp, _ := blproc.NewShardProcessor(arguments)
+		hdrsForBlock := sp.GetHdrForBlock()
+
+		notMissingReferencedMetaBlockData := testData[core.MetachainShardId].headerData[0]
+		missingMetaBlockData := testData[core.MetachainShardId].headerData[1]
+
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			require.Fail(t, "no requests expected")
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			require.Fail(t, "no requests expected")
+		}
+
+		highestHeaderNonce := notMissingReferencedMetaBlockData.header.GetNonce() - 1
+		hdrsForBlock.SetNumMissingHdrs(1)
+		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
+		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, highestHeaderNonce)
+		hdrsForBlock.SetHdrHashAndInfo(string(notMissingReferencedMetaBlockData.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         notMissingReferencedMetaBlockData.header,
+			})
+		hdrsForBlock.SetHdrHashAndInfo(string(missingMetaBlockData.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         nil,
+			})
+
+		headersDataPool := arguments.DataComponents.Datapool().Headers()
+		require.NotNil(t, headersDataPool)
+		headersDataPool.AddHeader(notMissingReferencedMetaBlockData.hash, notMissingReferencedMetaBlockData.header)
+
+		sp.ReceivedMetaBlock(notMissingReferencedMetaBlockData.header, notMissingReferencedMetaBlockData.hash)
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, uint32(1), hdrsForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
+		hdrsForBlockHighestNonces := hdrsForBlock.GetHighestHdrNonce()
+		require.Equal(t, highestHeaderNonce, hdrsForBlockHighestNonces[core.MetachainShardId])
+	})
+	t.Run("received missing attestation metaBlock", func(t *testing.T) {
+		t.Parallel()
+
+		arguments, requestHandler := shardBlockRequestTestInit(t)
+		testData := createShardProcessorTestData()
+		sp, _ := blproc.NewShardProcessor(arguments)
+		hdrsForBlock := sp.GetHdrForBlock()
+
+		referencedMetaBlock := testData[core.MetachainShardId].headerData[0]
+		lastReferencedMetaBlock := testData[core.MetachainShardId].headerData[1]
+		attestationMetaBlockHash := []byte("attestation meta block hash")
+		attestationMetaBlock := &block.MetaBlock{
+			Nonce:    lastReferencedMetaBlock.header.GetNonce() + 1,
+			Round:    lastReferencedMetaBlock.header.GetRound() + 1,
+			PrevHash: lastReferencedMetaBlock.hash,
+		}
+
+		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
+			require.Fail(t, "no requests expected")
+		}
+		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
+			require.Fail(t, "no requests expected")
+		}
+
+		hdrsForBlock.SetNumMissingHdrs(0)
+		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(1)
+		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, lastReferencedMetaBlock.header.GetNonce())
+		hdrsForBlock.SetHdrHashAndInfo(string(referencedMetaBlock.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         referencedMetaBlock.header,
+			})
+		hdrsForBlock.SetHdrHashAndInfo(string(lastReferencedMetaBlock.hash),
+			&blproc.HdrInfo{
+				UsedInBlock: true,
+				Hdr:         lastReferencedMetaBlock.header,
+			})
+
+		headersDataPool := arguments.DataComponents.Datapool().Headers()
+		require.NotNil(t, headersDataPool)
+		headersDataPool.AddHeader(referencedMetaBlock.hash, referencedMetaBlock.header)
+		headersDataPool.AddHeader(lastReferencedMetaBlock.hash, lastReferencedMetaBlock.header)
+		headersDataPool.AddHeader(attestationMetaBlockHash, attestationMetaBlock)
+		wg := startWaitingForAllHeadersReceivedSignal(t, sp)
+
+		sp.ReceivedMetaBlock(attestationMetaBlock, attestationMetaBlockHash)
+		wg.Wait()
+
+		require.Equal(t, uint32(0), hdrsForBlock.GetMissingHdrs())
+		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
+		hdrsForBlockHighestNonces := hdrsForBlock.GetHighestHdrNonce()
+		require.Equal(t, lastReferencedMetaBlock.header.GetNonce(), hdrsForBlockHighestNonces[core.MetachainShardId])
+	})
 }
 
 func shardBlockRequestTestInit(t *testing.T) (blproc.ArgShardProcessor, *testscommon.RequestHandlerStub) {

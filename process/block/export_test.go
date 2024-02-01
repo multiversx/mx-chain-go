@@ -570,16 +570,29 @@ func (mp *metaProcessor) GetHdrForBlock() *hdrForBlock {
 	return mp.hdrsForCurrBlock
 }
 
+// ChannelReceiveAllHeaders -
 func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
 	return mp.chRcvAllHdrs
 }
 
+// ComputeExistingAndRequestMissingShardHeaders -
 func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
+// ComputeExistingAndRequestMissingMetaHeaders -
 func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
 	return sp.computeExistingAndRequestMissingMetaHeaders(header)
+}
+
+// GetHdrForBlock -
+func (sp *shardProcessor) GetHdrForBlock() *hdrForBlock {
+	return sp.hdrsForCurrBlock
+}
+
+// ChannelReceiveAllHeaders -
+func (sp *shardProcessor) ChannelReceiveAllHeaders() chan bool {
+	return sp.chRcvAllMetaHdrs
 }
 
 // InitMaps -

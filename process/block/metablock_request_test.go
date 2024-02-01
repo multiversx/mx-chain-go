@@ -347,13 +347,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 
 		// needs to be done before receiving the last header otherwise it will
 		// be blocked waiting on writing to the channel
-		wg := &sync.WaitGroup{}
-		wg.Add(1)
-		go func(w *sync.WaitGroup) {
-			receivedAllHeaders := checkReceivedAllHeaders(mp.ChannelReceiveAllHeaders())
-			require.True(t, receivedAllHeaders)
-			wg.Done()
-		}(wg)
+		wg := startWaitingForAllHeadersReceivedSignal(t, mp)
 
 		// receive also the attestation header
 		attestationHeaderData := td[0].attestationHeaderData
@@ -430,13 +424,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 
 		// needs to be done before receiving the last header otherwise it will
 		// be blocked writing to a channel no one is reading from
-		wg := &sync.WaitGroup{}
-		wg.Add(1)
-		go func(w *sync.WaitGroup) {
-			receivedAllHeaders := checkReceivedAllHeaders(mp.ChannelReceiveAllHeaders())
-			require.True(t, receivedAllHeaders)
-			wg.Done()
-		}(wg)
+		wg := startWaitingForAllHeadersReceivedSignal(t, mp)
 
 		// receive also the attestation header
 		headersPool.AddHeader(td[0].attestationHeaderData.headerHash, td[0].attestationHeaderData.header)
@@ -452,6 +440,21 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		require.Equal(t, uint32(3), numCalls.Load())
 		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
 	})
+}
+
+type ReceivedAllHeadersSignaler interface {
+	ChannelReceiveAllHeaders() chan bool
+}
+
+func startWaitingForAllHeadersReceivedSignal(t *testing.T, mp ReceivedAllHeadersSignaler) *sync.WaitGroup {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func(w *sync.WaitGroup) {
+		receivedAllHeaders := checkReceivedAllHeaders(mp.ChannelReceiveAllHeaders())
+		require.True(t, receivedAllHeaders)
+		wg.Done()
+	}(wg)
+	return wg
 }
 
 func checkReceivedAllHeaders(channelReceiveAllHeaders chan bool) bool {
