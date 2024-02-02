@@ -211,6 +211,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: args.EnableEpochsConfig.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  instance.enableEpochsHandler,
+		EnableEpochs:         args.EnableEpochsConfig,
 	})
 	if err != nil {
 		return nil, err

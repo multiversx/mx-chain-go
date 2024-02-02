@@ -106,9 +106,15 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	maxNumNodes := uint64(args.MinNodesPerShard*args.NumOfShards+args.MetaChainMinNodes) + uint64(args.NumOfShards+1)
 	configs.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
-	for idx := 0; idx < len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch); idx++ {
+	numMaxNumNodesEnableEpochs := len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
+	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {
 		configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[idx].MaxNumNodes = uint32(maxNumNodes)
 	}
+
+	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].EpochEnable = configs.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch
+	prevEntry := configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-2]
+	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].NodesToShufflePerShard = prevEntry.NodesToShufflePerShard
+	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].MaxNumNodes = prevEntry.MaxNumNodes - (args.NumOfShards+1)*prevEntry.NodesToShufflePerShard
 
 	// set compatible trie configs
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
