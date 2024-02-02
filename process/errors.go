@@ -1238,3 +1238,6 @@ var ErrNilShardStorageBootstrapper = errors.New("nil shard storage bootstrapper"
 
 // ErrWrongHeaderVersion signals that a wrong header version has been found
 var ErrWrongHeaderVersion = errors.New("wrong header version")
+
+// ErrTransactionNotEligibleForExecution signals that the transaction is not eligible for execution
+var ErrTransactionNotEligibleForExecution = errors.New("transaction is not eligible for execution")

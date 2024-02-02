@@ -399,6 +399,9 @@ func (txs *transactions) verifyTransaction(
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
+		if err == nil {
+			return process.ErrTransactionNotEligibleForExecution
+		}
 		return err
 	}
 
