@@ -3222,7 +3222,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch:            UnreachableEpoch,
 	}
 }
 
@@ -3527,7 +3526,6 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		FailExecutionOnEveryAPIErrorEnableEpoch:         UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch:          UnreachableEpoch,
 	}
 }
 

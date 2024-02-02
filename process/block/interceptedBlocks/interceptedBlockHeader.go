@@ -83,7 +83,7 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	}
 
 	// TODO[cleanup cns finality]: remove this
-	if !inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, inHdr.hdr.GetEpoch()) {
+	if !inHdr.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, inHdr.hdr.GetEpoch()) {
 		return inHdr.verifySignatures()
 	}
 
