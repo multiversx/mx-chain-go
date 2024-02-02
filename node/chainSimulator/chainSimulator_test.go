@@ -404,6 +404,7 @@ func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSim
 		count++
 		if count >= maxNumOfBlockToGenerateWhenExecutingTx {
 			t.Error("something went wrong transaction is still in pending")
+			t.FailNow()
 		}
 	}
 
