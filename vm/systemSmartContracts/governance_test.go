@@ -683,6 +683,10 @@ func TestGovernanceContract_ProposalOK(t *testing.T) {
 	retCode := gsc.Execute(callInput)
 
 	require.Equal(t, vmcommon.Ok, retCode)
+	logsEntry := gsc.eei.GetLogs()
+	assert.Equal(t, 1, len(logsEntry))
+	expectedTopics := [][]byte{{1}, proposalIdentifier, []byte("50"), []byte("55")}
+	assert.Equal(t, expectedTopics, logsEntry[0].Topics)
 }
 
 func TestGovernanceContract_VoteWithBadArgsOrCallValue(t *testing.T) {
@@ -1309,7 +1313,7 @@ func TestGovernanceContract_GetVotingPower(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 
 	vmOutput := eei.CreateVMOutput()
-	require.Equal(t, big.NewInt(10).Bytes(), vmOutput.ReturnData[0])
+	require.Equal(t, big.NewInt(120).Bytes(), vmOutput.ReturnData[0])
 }
 
 func TestGovernanceContract_GetVVotingPowerWrongCallValue(t *testing.T) {
@@ -1450,12 +1454,16 @@ func TestGovernanceContract_ViewUserHistory(t *testing.T) {
 	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
 	returnMessage := ""
+	finishedMessages := make([][]byte, 0)
 	mockEEI := &mock.SystemEIStub{
 		GetStorageFromAddressCalled: func(_ []byte, _ []byte) []byte {
 			return []byte("invalid data")
 		},
 		AddReturnMessageCalled: func(msg string) {
 			returnMessage = msg
+		},
+		FinishCalled: func(value []byte) {
+			finishedMessages = append(finishedMessages, value)
 		},
 	}
 	args.Eei = mockEEI
@@ -1473,17 +1481,33 @@ func TestGovernanceContract_ViewUserHistory(t *testing.T) {
 	callInput.Arguments = [][]byte{callerAddress}
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	expectedMessaged := [][]byte{
+		{0}, // 0 delegated values
+		{0}, // 0 direct values
+	}
+	assert.Equal(t, expectedMessaged, finishedMessages)
 
 	mockEEI.GetStorageCalled = func(key []byte) []byte {
 		proposalBytes, _ := args.Marshalizer.Marshal(&OngoingVotedList{
 			Delegated: []uint64{1, 2},
-			Direct:    []uint64{1, 2},
+			Direct:    []uint64{3, 4, 5},
 		})
 		return proposalBytes
 	}
 
+	finishedMessages = make([][]byte, 0)
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	expectedMessaged = [][]byte{
+		{2}, // 2 delegated values
+		{1},
+		{2},
+		{3}, // 3 direct values
+		{3},
+		{4},
+		{5},
+	}
+	assert.Equal(t, expectedMessaged, finishedMessages)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {

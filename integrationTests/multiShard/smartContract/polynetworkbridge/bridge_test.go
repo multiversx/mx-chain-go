@@ -28,11 +28,11 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	numMetachainNodes := 1
 
 	enableEpochs := config.EnableEpochs{
-		GlobalMintBurnDisableEpoch:             integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:       integrationTests.UnreachableEpoch,
-		SCProcessorV2EnableEpoch:               integrationTests.UnreachableEpoch,
-		FixAsyncCallBackArgsListEnableEpoch:    integrationTests.UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch: integrationTests.UnreachableEpoch,
+		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
+		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
+		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
+		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:       integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}

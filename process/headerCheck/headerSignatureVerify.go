@@ -194,7 +194,7 @@ func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler
 	previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
 	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
 	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
-	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch())
+	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
 	if isFlagEnabled && !hasProof {
 		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
 	}
@@ -332,15 +332,7 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
-	prevRandSeed := header.GetPrevRandSeed()
-
-	// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
-	epoch := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epoch > 0 {
-		epoch = epoch - 1
-	}
-
-	headerConsensusGroup, err := hsv.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, header.GetRound(), header.GetShardID(), epoch)
+	headerConsensusGroup, err := ComputeConsensusGroup(header, hsv.nodesCoordinator)
 	if err != nil {
 		return nil, err
 	}

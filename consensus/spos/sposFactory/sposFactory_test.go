@@ -53,7 +53,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		consensusType,
 		statusHandler,
 		indexer,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
 	)
@@ -77,7 +77,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		consensusType,
 		nil,
 		indexer,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
 	)
@@ -102,7 +102,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		consensusType,
 		statusHandler,
 		indexer,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
 	)

@@ -130,9 +130,17 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
+
+	dbConfigHandler := factory.NewDBConfigHandler(storageConfig.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return nil, err

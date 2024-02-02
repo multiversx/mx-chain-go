@@ -35,7 +35,7 @@ func NewSubroundSignature(
 		return nil, spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, spos.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
@@ -78,42 +78,47 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfSingleKeyLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
+	// if single key leader, the signature has been sent on subroundBlock, thus the current round can be marked as finished
+	if isSelfSingleKeyLeader && isFlagActive {
+		log.Debug("step 2: subround has been finished for leader",
+			"subround", sr.Name())
 
-	if isSelfLeader || isSelfInConsensusGroup {
-		selfIndex, err := sr.SelfConsensusGroupIndex()
+		leader, err := sr.GetLeader()
 		if err != nil {
-			log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+			return false
+		}
+		err = sr.SetJobDone(leader, sr.Current(), true)
+		if err != nil {
 			return false
 		}
 
-		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.GetData(),
-			uint16(selfIndex),
-			sr.Header.GetEpoch(),
-			[]byte(sr.SelfPubKey()),
-		)
-		if err != nil {
-			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false
-		}
+		sr.SetStatus(sr.Current(), spos.SsFinished)
 
-		// leader already sent his signature on subround block
-		if !isSelfLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
-			if !ok {
-				return false
-			}
-		}
+		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+		return true
+	}
 
-		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), isSelfLeader)
-		if !ok {
+	// TODO[cleanup cns finality]: remove this
+	if (isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup) && !isFlagActive {
+		if !sr.doSignatureJobForSingleKey(isSelfSingleKeyLeader, isFlagActive) {
 			return false
 		}
 	}
 
-	return sr.doSignatureJobForManagedKeys()
+	if !sr.doSignatureJobForManagedKeys() {
+		return false
+	}
+
+	if isFlagActive {
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+	}
+
+	return true
 }
 
 func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
@@ -146,7 +151,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 	return true
 }
 
-func (sr *subroundSignature) completeSignatureSubRound(pk string, isLeader bool) bool {
+func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForAllSigsAsync bool) bool {
 	err := sr.SetJobDone(pk, sr.Current(), true)
 	if err != nil {
 		log.Debug("doSignatureJob.SetSelfJobDone",
@@ -157,8 +162,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, isLeader bool)
 		return false
 	}
 
-	// TODO[cleanup cns finality]: remove the isLeader check. Once the flag will be enabled, all participants will have to wait for signatures.
-	shouldWaitForAllSigsAsync := isLeader || sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch())
+	// TODO[cleanup cns finality]: do not wait for signatures anymore, this will be done on subroundEndRound
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
 	}
@@ -170,6 +174,11 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, isLeader bool)
 // If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
+	// TODO[cleanup cns finality]: remove this method, received signatures will be handled on subroundEndRound
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return true
+	}
+
 	node := string(cnsDta.PubKey)
 	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
 
@@ -187,8 +196,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	// TODO[cleanup cns finality]: remove the leader checks. Once the flag will be enabled, all participants will have to wait for signatures.
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() && !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
+	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() {
 		return false
 	}
 
@@ -232,7 +240,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
-	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
 }
 
@@ -243,9 +250,16 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	if sr.IsSubroundFinished(sr.Current()) {
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
-
 		return true
+	}
+
+	if check.IfNil(sr.Header) {
+		return false
+	}
+
+	// TODO[cleanup cns finality]: simply return false and remove the rest of the method. This will be handled by subroundEndRound
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return false
 	}
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
@@ -278,7 +292,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
 
-	if isSubroundFinished && !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
+	if isSubroundFinished {
 		if isSelfLeader {
 			log.Debug("step 2: signatures",
 				"received", numSigs,
@@ -292,29 +306,6 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 
 		return true
-	}
-
-	// TODO[cleanup cns finality]: remove above lines
-	isJobDoneByConsensusNodeAfterPropagationChanges := isSelfInConsensusGroup && selfJobDone && multiKeyJobDone && isSignatureCollectionDone
-	if isJobDoneByConsensusNodeAfterPropagationChanges && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
-		log.Debug("step 2: subround has been finished",
-			"subround", sr.Name(),
-			"signatures received", numSigs,
-			"total signatures", len(sr.ConsensusGroup()))
-
-		sr.SetStatus(sr.Current(), spos.SsFinished)
-
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
-
-		return true
-	}
-
-	if !isSelfInConsensusGroup {
-		log.Debug("step 2: subround has been finished",
-			"subround", sr.Name())
-		sr.SetStatus(sr.Current(), spos.SsFinished)
-
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	}
 
 	return false
@@ -376,6 +367,7 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 
 	numMultiKeysSignaturesSent := 0
 	for idx, pk := range sr.ConsensusGroup() {
@@ -387,15 +379,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
-		selfIndex, err := sr.ConsensusGroupIndex(pk)
-		if err != nil {
-			log.Warn("doSignatureJobForManagedKeys: index not found", "pk", pkBytes)
-			continue
-		}
-
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
-			uint16(selfIndex),
+			uint16(idx),
 			sr.Header.GetEpoch(),
 			pkBytes,
 		)
@@ -404,6 +390,12 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
+		isKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
+		// TODO[cleanup cns finality]: update the check
+		// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
+		if isFlagActive {
+			isMultiKeyLeader = isKeyLeader
+		}
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 			if !ok {
@@ -412,10 +404,11 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 
 			numMultiKeysSignaturesSent++
 		}
+		// with the equivalent messages feature on, the leader signature is sent on subroundBlock, thus we should update its status here as well
 		sr.sentSignatureTracker.SignatureSent(pkBytes)
 
-		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		ok := sr.completeSignatureSubRound(pk, isLeader)
+		shouldWaitForAllSigsAsync := isKeyLeader && !isFlagActive
+		ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 		if !ok {
 			return false
 		}
@@ -426,6 +419,36 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	}
 
 	return true
+}
+
+func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFlagActive bool) bool {
+	selfIndex, err := sr.SelfConsensusGroupIndex()
+	if err != nil {
+		log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+		return false
+	}
+
+	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		sr.GetData(),
+		uint16(selfIndex),
+		sr.Header.GetEpoch(),
+		[]byte(sr.SelfPubKey()),
+	)
+	if err != nil {
+		log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
+		return false
+	}
+
+	// leader already sent his signature on subround block
+	if !isSelfLeader {
+		ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
+		if !ok {
+			return false
+		}
+	}
+
+	shouldWaitForAllSigsAsync := isSelfLeader && !isFlagActive
+	return sr.completeSignatureSubRound(sr.SelfPubKey(), shouldWaitForAllSigsAsync)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
