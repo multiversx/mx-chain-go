@@ -401,6 +401,4 @@ func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSim
 	}
 
 	log.Warn("transaction was executed", "txHash", txHash)
-
-	return
 }
