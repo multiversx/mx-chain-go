@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	defaultPathToInitialConfig = "../../cmd/node/config/"
+	defaultPathToInitialConfig             = "../../cmd/node/config/"
+	maxNumOfBlockToGenerateWhenExecutingTx = 10
 )
 
 func TestNewChainSimulator(t *testing.T) {
@@ -371,7 +372,6 @@ func computeTxHash(chainSimulator ChainSimulator, tx *transaction.Transaction) (
 }
 
 func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSimulator, tx *transaction.Transaction) {
-
 	shardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.SndAddr)
 	err := chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(tx)
 	require.Nil(t, err)
@@ -386,17 +386,24 @@ func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSim
 	time.Sleep(100 * time.Millisecond)
 
 	destinationShardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.RcvAddr)
+	count := 0
 	for {
-		err = chainSimulator.GenerateBlocks(2)
+		err = chainSimulator.GenerateBlocks(1)
 		require.Nil(t, err)
 
 		txFromMeta, errGet := chainSimulator.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHash, true)
-		if errGet != nil {
+		if errGet != nil && count < maxNumOfBlockToGenerateWhenExecutingTx {
+			count++
 			continue
 		}
 
-		if txFromMeta.Status != transaction.TxStatusPending {
+		if txFromMeta != nil && txFromMeta.Status != transaction.TxStatusPending {
 			break
+		}
+
+		count++
+		if count >= maxNumOfBlockToGenerateWhenExecutingTx {
+			t.Error("something went wrong transaction is still in pending")
 		}
 	}
 
