@@ -10,6 +10,7 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // ArgsBootstrapComponentsHolder will hold the components needed for the bootstrap components holders
@@ -27,15 +28,16 @@ type ArgsBootstrapComponentsHolder struct {
 }
 
 type bootstrapComponentsHolder struct {
-	closeHandler            *closeHandler
-	epochStartBootstrapper  factory.EpochStartBootstrapper
-	epochBootstrapParams    factory.BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
-	headerVersionHandler    nodeFactory.HeaderVersionHandler
-	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
-	guardedAccountHandler   process.GuardedAccountHandler
+	closeHandler                    *closeHandler
+	epochStartBootstrapper          factory.EpochStartBootstrapper
+	epochBootstrapParams            factory.BootstrapParamsHolder
+	nodeType                        core.NodeType
+	shardCoordinator                sharding.Coordinator
+	versionedHeaderFactory          nodeFactory.VersionedHeaderFactory
+	headerVersionHandler            nodeFactory.HeaderVersionHandler
+	headerIntegrityVerifier         nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler           process.GuardedAccountHandler
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // CreateBootstrapComponents will create a new instance of bootstrap components holder
@@ -81,10 +83,16 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (factory.Boot
 	instance.headerVersionHandler = managedBootstrapComponents.HeaderVersionHandler()
 	instance.headerIntegrityVerifier = managedBootstrapComponents.HeaderIntegrityVerifier()
 	instance.guardedAccountHandler = managedBootstrapComponents.GuardedAccountHandler()
+	instance.nodesCoordinatorRegistryFactory = managedBootstrapComponents.NodesCoordinatorRegistryFactory()
 
 	instance.collectClosableComponents()
 
 	return instance, nil
+}
+
+// NodesCoordinatorRegistryFactory will return the nodes coordinator registry factory
+func (b *bootstrapComponentsHolder) NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory {
+	return b.nodesCoordinatorRegistryFactory
 }
 
 // EpochStartBootstrapper will return the epoch start bootstrapper

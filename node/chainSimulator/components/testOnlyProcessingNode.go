@@ -81,10 +81,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	var err error
-	instance.TransactionFeeHandler, err = postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
+	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:              *args.Configs.GeneralConfig,
@@ -300,6 +297,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.NodeTypeProvider(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.DataPool.CurrentEpochValidatorInfo(),
+		node.BootstrapComponentsHolder.NodesCoordinatorRegistryFactory(),
 	)
 	if err != nil {
 		return err
