@@ -35,7 +35,9 @@ func TestNewNodeRunner(t *testing.T) {
 	t.Run("with valid configs should work", func(t *testing.T) {
 		t.Parallel()
 
-		configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
+		configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
+		require.Nil(t, err)
+
 		runner, err := NewNodeRunner(configs)
 		assert.NotNil(t, runner)
 		assert.Nil(t, err)
@@ -45,12 +47,16 @@ func TestNewNodeRunner(t *testing.T) {
 func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 	t.Parallel()
 
-	configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
+	configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
+	require.Nil(t, err)
 	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 50
+
+
+
 	runner, _ := NewNodeRunner(configs)
 
 	trigger := mock.NewApplicationRunningTrigger()
-	err := logger.AddLogObserver(trigger, &logger.PlainFormatter{})
+	err = logger.AddLogObserver(trigger, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
 	// start a go routine that will send the SIGINT message after 1 second after the node has started
