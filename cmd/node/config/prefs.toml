@@ -8,7 +8,7 @@
    # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    NodeDisplayName = ""
 
-   # Identity represents the keybase/GitHub identity when the node does not run in multikey mode
+   # Identity represents the GitHub identity when the node does not run in multikey mode
    # In multikey mode, all bls keys not mentioned in NamedIdentity section will use this one as default
    Identity = ""
 
@@ -28,7 +28,7 @@
    # ]
    PreferredConnections = []
 
-   # ConnectionWatcherType represents the type of a connection watcher needed.
+   # ConnectionWatcherType represents the type of the connection watcher needed.
    # possible options:
    #  - "disabled" - no connection watching should be made
    #  - "print" - new connection found will be printed in the log file
@@ -71,7 +71,7 @@
 # NamedIdentity represents an identity that runs nodes on the multikey
 # There can be multiple identities set on the same node, each one of them having different bls keys, just by duplicating the NamedIdentity
 [[NamedIdentity]]
-   # Identity represents the keybase/GitHub identity for the current NamedIdentity
+   # Identity represents the GitHub identity for the current NamedIdentity
    Identity = ""
    # NodeName represents the name that will be given to the names of the current identity
    NodeName = ""

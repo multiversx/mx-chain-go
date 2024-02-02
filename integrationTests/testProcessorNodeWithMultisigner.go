@@ -173,13 +173,13 @@ func CreateNodeWithBLSAndTxKeys(
 	twa.PeerSigHandler, _ = peerSignatureHandler.NewPeerSignatureHandler(peerSigCache, twa.SingleSigner, keyGen)
 
 	epochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                   1,
-		DelegationManagerEnableEpoch:           1,
-		DelegationSmartContractEnableEpoch:     1,
-		ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:     UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch: UnreachableEpoch,
+		StakingV2EnableEpoch:                 1,
+		DelegationManagerEnableEpoch:         1,
+		DelegationSmartContractEnableEpoch:   1,
+		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -239,7 +239,6 @@ func CreateNodesWithNodesCoordinatorFactory(
 		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch:          UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -482,10 +481,10 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: txSignPrivKeyShardId,
 				EpochsConfig: &config.EnableEpochs{
-					StakingV2EnableEpoch:                   UnreachableEpoch,
-					ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
-					MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
-					ConsensusPropagationChangesEnableEpoch: UnreachableEpoch,
+					StakingV2EnableEpoch:                 UnreachableEpoch,
+					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -616,10 +615,10 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: txSignPrivKeyShardId,
 				EpochsConfig: &config.EnableEpochs{
-					StakingV2EnableEpoch:                   UnreachableEpoch,
-					ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
-					MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
-					ConsensusPropagationChangesEnableEpoch: UnreachableEpoch,
+					StakingV2EnableEpoch:                 UnreachableEpoch,
+					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,

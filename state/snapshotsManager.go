@@ -2,6 +2,7 @@ package state
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -157,6 +158,15 @@ func (sm *snapshotsManager) SnapshotState(
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 ) {
+	if check.IfNil(trieStorageManager) {
+		return
+	}
+	if !trieStorageManager.IsSnapshotSupported() {
+		log.Debug("skipping snapshot as the snapshot is not supported by the current trieStorageManager",
+			"trieStorageManager type", fmt.Sprintf("%T", trieStorageManager))
+		return
+	}
+
 	sm.mutex.Lock()
 
 	stats, skipSnapshot := sm.prepareSnapshot(rootHash, epoch, trieStorageManager)

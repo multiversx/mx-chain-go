@@ -20,7 +20,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
 		bls.ProcessingThresholdPercent,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
 
@@ -31,7 +31,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 	startRound, _ := bls.NewSubroundStartRound(
 		sr,
 		bls.ProcessingThresholdPercent,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
 
@@ -68,7 +68,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 	srStartRound, _ := bls.NewSubroundStartRound(
 		sr,
 		bls.ProcessingThresholdPercent,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
 
@@ -108,7 +108,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		srStartRound, err := bls.NewSubroundStartRound(
 			nil,
 			bls.ProcessingThresholdPercent,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
 
@@ -126,7 +126,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		)
 
 		assert.Nil(t, srStartRound)
-		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
@@ -134,7 +134,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		srStartRound, err := bls.NewSubroundStartRound(
 			sr,
 			bls.ProcessingThresholdPercent,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			nil,
 		)
 
@@ -321,7 +321,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 
 	sr := *initSubroundStartRoundWithContainer(container)
 	sentTrackerInterface := sr.GetSentSignatureTracker()
-	sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
+	sentTracker := sentTrackerInterface.(*testscommon.SentSignatureTrackerStub)
 	startRoundCalled := false
 	sentTracker.StartRoundCalled = func() {
 		startRoundCalled = true
@@ -513,28 +513,39 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
 			bls.ProcessingThresholdPercent,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
 	})
-	t.Run("participant node", func(t *testing.T) {
+	t.Run("main key participant", func(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
+		wasIncrementCalled := false
 		container := mock.InitConsensusCore()
-		keysHandler := &testscommon.KeysHandlerStub{}
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return string(pkBytes) == "B"
+			},
+		}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
-					assert.Equal(t, value, "participant")
+					assert.Equal(t, "participant", value)
+				}
+			},
+			IncrementHandler: func(key string) {
+				if key == common.MetricCountConsensus {
+					wasIncrementCalled = true
 				}
 			},
 		}
 		ch := make(chan bool, 1)
 		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState.SetSelfPubKey("B")
 		sr, _ := spos.NewSubround(
 			-1,
 			bls.SrStartRound,
@@ -554,11 +565,63 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
 			bls.ProcessingThresholdPercent,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
+		assert.True(t, wasIncrementCalled)
+	})
+	t.Run("multi key participant", func(t *testing.T) {
+		t.Parallel()
+
+		wasCalled := false
+		wasIncrementCalled := false
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{}
+		appStatusHandler := &statusHandler.AppStatusHandlerStub{
+			SetStringValueHandler: func(key string, value string) {
+				if key == common.MetricConsensusState {
+					wasCalled = true
+					assert.Equal(t, value, "participant")
+				}
+			},
+			IncrementHandler: func(key string) {
+				if key == common.MetricCountConsensus {
+					wasIncrementCalled = true
+				}
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
+			return string(pkBytes) == consensusState.SelfPubKey()
+		}
+		sr, _ := spos.NewSubround(
+			-1,
+			bls.SrStartRound,
+			bls.SrBlock,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(START_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			appStatusHandler,
+		)
+
+		srStartRound, _ := bls.NewSubroundStartRound(
+			sr,
+			bls.ProcessingThresholdPercent,
+			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
+		)
+		srStartRound.Check()
+		assert.True(t, wasCalled)
+		assert.True(t, wasIncrementCalled)
 	})
 	t.Run("main key leader", func(t *testing.T) {
 		t.Parallel()
@@ -615,7 +678,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
 			bls.ProcessingThresholdPercent,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
@@ -658,6 +721,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		ch := make(chan bool, 1)
 		consensusState := initConsensusStateWithKeysHandler(keysHandler)
 		leader, _ := consensusState.GetLeader()
+		consensusState.SetSelfPubKey(leader)
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return string(pkBytes) == leader
 		}
@@ -680,7 +744,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
 			bls.ProcessingThresholdPercent,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()

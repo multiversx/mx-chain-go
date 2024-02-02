@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -1171,6 +1172,13 @@ func (e *esdt) unsetBurnRoleGlobally(args *vmcommon.ContractCallInput) vmcommon.
 
 	deleteRoleFromToken(token, []byte(vmcommon.ESDTRoleBurnForAll))
 
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0], zero.Bytes(), zero.Bytes(), []byte(vmcommon.ESDTRoleBurnForAll)},
+	}
+	e.eei.AddLogEntry(logEntry)
+
 	returnCode = e.saveTokenAndSendForAll(token, args.Arguments[0], vmcommon.BuiltInFunctionESDTUnSetBurnRoleForAll)
 	return returnCode
 }
@@ -1183,6 +1191,13 @@ func (e *esdt) addBurnRoleAndSendToAllShards(token *ESDTDataV2, tokenID []byte) 
 
 	burnForAllRole := &ESDTRoles{Roles: [][]byte{[]byte(vmcommon.ESDTRoleBurnForAll)}, Address: []byte{}}
 	token.SpecialRoles = append(token.SpecialRoles, burnForAllRole)
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(vmcommon.BuiltInFunctionESDTSetBurnRoleForAll),
+		Address:    token.OwnerAddress,
+		Topics:     [][]byte{tokenID, zero.Bytes(), zero.Bytes(), []byte(vmcommon.ESDTRoleBurnForAll)},
+	}
+	e.eei.AddLogEntry(logEntry)
 
 	esdtTransferData := vmcommon.BuiltInFunctionESDTSetBurnRoleForAll + "@" + hex.EncodeToString(tokenID)
 	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
@@ -1349,14 +1364,35 @@ func (e *esdt) getSpecialRoles(args *vmcommon.ContractCallInput) vmcommon.Return
 			rolesAsString = append(rolesAsString, string(role))
 		}
 
-		specialRoleAddress := e.addressPubKeyConverter.SilentEncode(specialRole.Address, log)
-
 		roles := strings.Join(rolesAsString, ",")
+
+		specialRoleAddress, errEncode := e.addressPubKeyConverter.Encode(specialRole.Address)
+		e.treatEncodeErrorForGetSpecialRoles(errEncode, rolesAsString, specialRole.Address)
+
 		message := fmt.Sprintf("%s:%s", specialRoleAddress, roles)
 		e.eei.Finish([]byte(message))
 	}
 
 	return vmcommon.Ok
+}
+
+func (e *esdt) treatEncodeErrorForGetSpecialRoles(err error, roles []string, address []byte) {
+	if err == nil {
+		return
+	}
+
+	logLevel := logger.LogTrace
+	for _, role := range roles {
+		if role != vmcommon.ESDTRoleBurnForAll {
+			logLevel = logger.LogWarning
+			break
+		}
+	}
+
+	log.Log(logLevel, "esdt.treatEncodeErrorForGetSpecialRoles",
+		"hex specialRole.Address", hex.EncodeToString(address),
+		"roles", strings.Join(roles, ", "),
+		"error", err)
 }
 
 func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {

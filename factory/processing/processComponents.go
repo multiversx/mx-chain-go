@@ -130,6 +130,7 @@ type processComponents struct {
 	esdtDataStorageForApi            vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	receiptsRepository               mainFactory.ReceiptsRepository
+	sentSignaturesTracker            process.SentSignaturesTracker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -608,6 +609,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	sentSignaturesTracker, err := track.NewSentSignaturesTracker(pcf.crypto.KeysHandler())
+	if err != nil {
+		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -623,6 +629,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		receiptsRepository,
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
+		sentSignaturesTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -736,6 +743,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		esdtDataStorageForApi:            pcf.esdtNftStorage,
 		accountsParser:                   pcf.accountsParser,
 		receiptsRepository:               receiptsRepository,
+		sentSignaturesTracker:            sentSignaturesTracker,
 	}, nil
 }
 
@@ -1526,7 +1534,7 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			EpochStartNotifier:            manualEpochStartNotifier,
 			NodeTypeProvider:              pcf.coreData.NodeTypeProvider(),
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			StorageType:                   storageFactory.ProcessStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,

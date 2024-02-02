@@ -1133,14 +1133,15 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createStorageService(
+func (e *epochStartBootstrap) createStorageServiceForImportDB(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier epochStart.EpochStartNotifier,
-	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,
 ) (dataRetriever.StorageService, error) {
+	startEpoch := uint32(0)
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
 			Config:                        e.generalConfig,
@@ -1150,7 +1151,7 @@ func (e *epochStartBootstrap) createStorageService(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
 			CurrentEpoch:                  startEpoch,
-			StorageType:                   storageFactory.BootstrapStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,

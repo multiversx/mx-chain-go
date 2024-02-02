@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// RedundancySingleKeySteppedIn exposes the redundancySingleKeySteppedIn constant
+const RedundancySingleKeySteppedIn = redundancySingleKeySteppedIn
+
 type RoundConsensus struct {
 	*roundConsensus
 }
@@ -172,6 +175,16 @@ func (wrk *Worker) SetConsensusStateChangedChannel(consensusStateChangedChannel 
 // CheckSelfState -
 func (wrk *Worker) CheckSelfState(cnsDta *consensus.Message) error {
 	return wrk.checkSelfState(cnsDta)
+}
+
+// SetRedundancyHandler -
+func (wrk *Worker) SetRedundancyHandler(redundancyHandler consensus.NodeRedundancyHandler) {
+	wrk.nodeRedundancyHandler = redundancyHandler
+}
+
+// SetKeysHandler -
+func (wrk *Worker) SetKeysHandler(keysHandler consensus.KeysHandler) {
+	wrk.consensusState.keysHandler = keysHandler
 }
 
 // EligibleList -

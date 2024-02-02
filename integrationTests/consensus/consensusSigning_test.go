@@ -19,14 +19,13 @@ func initNodesWithTestSigner(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-	consensusPropagationChangesFlagActive bool,
+	equivalentMessagesFlagActive bool,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	if consensusPropagationChangesFlagActive {
-		enableEpochsConfig.ConsensusPropagationChangesEnableEpoch = 0
+	if equivalentMessagesFlagActive {
 		enableEpochsConfig.EquivalentMessagesEnableEpoch = 0
 	}
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
@@ -48,7 +47,7 @@ func initNodesWithTestSigner(
 	for shardID := range nodes {
 		if numInvalid < numNodes {
 			for i := uint32(0); i < numInvalid; i++ {
-				if i == 0 && consensusPropagationChangesFlagActive {
+				if i == 0 && equivalentMessagesFlagActive {
 					// allow valid sigShare when flag active as the leader must send its signature with the first block
 					continue
 				}
@@ -74,11 +73,11 @@ func initNodesWithTestSigner(
 }
 
 func TestConsensusWithInvalidSigners(t *testing.T) {
-	t.Run("before consensus propagation changes", testConsensusWithInvalidSigners(false))
-	t.Run("after consensus propagation changes", testConsensusWithInvalidSigners(true))
+	t.Run("before equivalent messages", testConsensusWithInvalidSigners(false))
+	t.Run("after equivalent messages", testConsensusWithInvalidSigners(true))
 }
 
-func testConsensusWithInvalidSigners(consensusPropagationChangesFlagActive bool) func(t *testing.T) {
+func testConsensusWithInvalidSigners(equivalentMessagesFlagActive bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
@@ -91,7 +90,7 @@ func testConsensusWithInvalidSigners(consensusPropagationChangesFlagActive bool)
 		roundTime := uint64(1000)
 		numCommBlock := uint64(8)
 
-		nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType, consensusPropagationChangesFlagActive)
+		nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType, equivalentMessagesFlagActive)
 
 		defer func() {
 			for shardID := range nodes {

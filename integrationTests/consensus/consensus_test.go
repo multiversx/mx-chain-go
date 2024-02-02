@@ -232,7 +232,6 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.ConsensusPropagationChangesEnableEpoch = equivalentMessagesEnableEpoch
 	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
 	nodes := initNodesAndTest(
 		numMetaNodes,
@@ -289,11 +288,10 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before consensus propagation changes", func(t *testing.T) {
+	t.Run("before equivalent messages", func(t *testing.T) {
 		runFullConsensusTest(t, blsConsensusType, 1, integrationTests.UnreachableEpoch)
 	})
-	t.Run("after consensus propagation changes", func(t *testing.T) {
-		_ = logger.SetLogLevel("*:DEBUG,consensus:TRACE")
+	t.Run("after equivalent messages", func(t *testing.T) {
 		runFullConsensusTest(t, blsConsensusType, 1, 0)
 	})
 }
@@ -303,10 +301,10 @@ func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before consensus propagation changes", func(t *testing.T) {
+	t.Run("before equivalent messages", func(t *testing.T) {
 		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
 	})
-	t.Run("after consensus propagation changes", func(t *testing.T) {
+	t.Run("after equivalent messages", func(t *testing.T) {
 		runFullConsensusTest(t, blsConsensusType, 5, 0)
 	})
 }
@@ -319,7 +317,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, equ
 	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
-	enableEpochsConfig.ConsensusPropagationChangesEnableEpoch = equivalentMessagesEnableEpoch
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {
@@ -358,10 +355,10 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before consensus propagation changes", func(t *testing.T) {
+	t.Run("before equivalent messages", func(t *testing.T) {
 		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
 	})
-	t.Run("after consensus propagation changes", func(t *testing.T) {
+	t.Run("after equivalent messages", func(t *testing.T) {
 		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
 	})
 }

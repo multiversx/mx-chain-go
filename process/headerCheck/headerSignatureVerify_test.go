@@ -653,7 +653,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		args := createHeaderSigVerifierArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 
@@ -691,7 +691,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		args := createHeaderSigVerifierArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 
@@ -712,7 +712,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		args := createHeaderSigVerifierArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 

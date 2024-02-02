@@ -418,10 +418,10 @@ func (net *TestNetwork) RequireWalletNoncesInSyncWithState() {
 
 func (net *TestNetwork) createNodes() {
 	enableEpochsConfig := config.EnableEpochs{
-		StakingV2EnableEpoch:                   UnreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:         UnreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:   UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch: UnreachableEpoch,
+		StakingV2EnableEpoch:                 UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
+		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 	}
 
 	net.Nodes = CreateNodesWithEnableEpochs(
