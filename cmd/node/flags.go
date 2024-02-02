@@ -331,12 +331,6 @@ var (
 		Name:  "import-db-save-epoch-root-hash",
 		Usage: "This flag, if set, will export the trie snapshots at every new epoch",
 	}
-	// importDbStartInEpoch defines a flag for an optional flag that can specify the start in epoch value when executing the import-db process
-	importDbStartInEpoch = cli.Uint64Flag{
-		Name:  "import-db-start-epoch",
-		Value: 0,
-		Usage: "This flag will specify the start in epoch value in import-db process",
-	}
 	// redundancyLevel defines a flag that specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.)
 	redundancyLevel = cli.Int64Flag{
 		Name:  "redundancy-level",
@@ -461,7 +455,6 @@ func getFlags() []cli.Flag {
 		importDbDirectory,
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
-		importDbStartInEpoch,
 		redundancyLevel,
 		fullArchive,
 		memBallast,
@@ -557,7 +550,6 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 		ImportDBWorkingDir:            importDbDirectoryValue,
 		ImportDbNoSigCheckFlag:        ctx.GlobalBool(importDbNoSigCheck.Name),
 		ImportDbSaveTrieEpochRootHash: ctx.GlobalBool(importDbSaveEpochRootHash.Name),
-		ImportDBStartInEpoch:          uint32(ctx.GlobalUint64(importDbStartInEpoch.Name)),
 	}
 	cfgs.FlagsConfig = flagsConfig
 	cfgs.ImportDbConfig = importDBConfigs
@@ -715,9 +707,7 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		return err
 	}
 
-	if importDbFlags.ImportDBStartInEpoch == 0 {
-		generalConfigs.GeneralSettings.StartInEpochEnabled = false
-	}
+	generalConfigs.GeneralSettings.StartInEpochEnabled = false
 
 	// We need to increment "NumActivePersisters" in order to make the storage resolvers work (since they open 2 epochs in advance)
 	generalConfigs.StoragePruning.NumActivePersisters++
@@ -736,7 +726,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"fullArchiveP2P.ThresholdMinConnectedPeers", fullArchiveP2PConfigs.Node.ThresholdMinConnectedPeers,
 		"no sig check", importDbFlags.ImportDbNoSigCheckFlag,
 		"import save trie epoch root hash", importDbFlags.ImportDbSaveTrieEpochRootHash,
-		"import DB start in epoch", importDbFlags.ImportDBStartInEpoch,
 		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 		"kad dht discoverer", "off",
 	)

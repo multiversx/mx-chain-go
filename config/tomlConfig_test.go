@@ -856,12 +856,15 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
     FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
+    
+    # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
+    MigrateDataTrieEnableEpoch = 92
+
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 93
 
 	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-	EquivalentMessagesEnableEpoch = 92
-
-    # ConsensusPropagationChangesEnableEpoch represents the epoch when the consensus propagation changes are enabled
-    ConsensusPropagationChangesEnableEpoch = 93
+	EquivalentMessagesEnableEpoch = 94
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -974,8 +977,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			NFTStopCreateEnableEpoch:                                 89,
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
-			EquivalentMessagesEnableEpoch:                            92,
-			ConsensusPropagationChangesEnableEpoch:                   93,
+			MigrateDataTrieEnableEpoch:                               92,
+			CurrentRandomnessOnSortingEnableEpoch:                    93,
+			EquivalentMessagesEnableEpoch:                            94,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

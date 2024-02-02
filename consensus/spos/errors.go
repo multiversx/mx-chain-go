@@ -238,11 +238,11 @@ var ErrNilSigningHandler = errors.New("nil signing handler")
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")
 
-// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
-var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
-
 // ErrNilFunctionHandler signals that a nil function handler was provided
 var ErrNilFunctionHandler = errors.New("nil function handler")
+
+// ErrWrongHashForHeader signals that the hash of the header is not the expected one
+var ErrWrongHashForHeader = errors.New("wrong hash for header")
 
 // ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
 var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")

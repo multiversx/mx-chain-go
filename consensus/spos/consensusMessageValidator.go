@@ -269,7 +269,7 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity
 		return err
 	}
 
-	if cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+	if cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		isInvalidSigShare = cnsMsg.SignatureShare == nil
 	}
 
@@ -348,7 +348,7 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockHeaderValidity(cnsMsg
 		return err
 	}
 
-	if cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+	if cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		isInvalidSigShare = cnsMsg.SignatureShare == nil
 	}
 	isMessageInvalid := cnsMsg.Body != nil ||

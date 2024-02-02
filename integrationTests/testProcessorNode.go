@@ -1241,7 +1241,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -2160,7 +2160,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
@@ -2213,6 +2213,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2426,7 +2427,7 @@ func (tpn *TestProcessorNode) initNode() {
 		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -3221,15 +3222,13 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch:            UnreachableEpoch,
 	}
 }
 
 // GetDefaultCoreComponents -
-func GetDefaultCoreComponents() *mock.CoreComponentsStub {
-	enableEpochsCfg := CreateEnableEpochsConfig()
+func GetDefaultCoreComponents(enableEpochsConfig config.EnableEpochs) *mock.CoreComponentsStub {
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
@@ -3527,7 +3526,6 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		FailExecutionOnEveryAPIErrorEnableEpoch:         UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
-		ConsensusPropagationChangesEnableEpoch:          UnreachableEpoch,
 	}
 }
 

@@ -629,6 +629,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch,
 		},
+		common.MigrateDataTrieFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MigrateDataTrieEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MigrateDataTrieEnableEpoch,
+		},
 		common.FixDelegationChangeOwnerOnAccountFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
@@ -695,17 +701,17 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ChangeOwnerAddressCrossShardThroughSCEnableEpoch,
 		},
+		common.CurrentRandomnessOnSortingFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch,
+		},
 		common.EquivalentMessagesFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.EquivalentMessagesEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.EquivalentMessagesEnableEpoch,
-		},
-		common.ConsensusPropagationChangesFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.ConsensusPropagationChangesEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.ConsensusPropagationChangesEnableEpoch,
 		},
 	}
 }

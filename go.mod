@@ -12,19 +12,20 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
 	github.com/gorilla/websocket v1.5.0
+	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240104160859-3590810021c1
-	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.17-0.20231129114609-035c49863110
-	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231129101244-c44fa1c79b03
-	github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296
-	github.com/multiversx/mx-chain-storage-go v1.0.14-0.20231129103407-a506e0debdd4
-	github.com/multiversx/mx-chain-vm-common-go v1.5.9-0.20231129110322-d07a35163513
-	github.com/multiversx/mx-chain-vm-go v1.5.21-0.20231129123522-78375fd2abf4
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.64-0.20231129115807-0bb8c764d9e4
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.65-0.20231129120711-ccd8bcb98f1f
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231129122620-cf29965fa7ff
+	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240126121117-627adccf10ad
+	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240130123344-308e43de6f8c
+	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231206065052-38843c1f1479
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.19-0.20240129150813-a772c480d33a
+	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
+	github.com/multiversx/mx-chain-scenario-go v1.3.1-0.20240129145446-ca4fba98f6d1
+	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240129144933-b1c0d642d7f8
+	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240129145149-4fe61574f566
+	github.com/multiversx/mx-chain-vm-go v1.5.27-0.20240129150501-7c828af05c83
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240129145751-f814f5525edb
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240129150004-536a22d9c618
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.95-0.20240129150215-43996b664ada
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
@@ -48,7 +49,7 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
@@ -92,7 +93,6 @@ require (
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/koron/go-ssdp v0.0.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/libp2p/go-buffer-pool v0.1.0 // indirect
@@ -150,8 +150,7 @@ require (
 	github.com/quic-go/quic-go v0.33.0 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
-	github.com/russross/blackfriday/v2 v2.0.1 // indirect
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/smartystreets/assertions v1.13.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect

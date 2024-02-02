@@ -65,6 +65,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+	sentSignaturesTracker process.SentSignaturesTracker,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -82,6 +83,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			receiptsRepository,
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
+			sentSignaturesTracker,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -99,6 +101,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			processedMiniBlocksTracker,
 			receiptsRepository,
 			blockCutoffProcessingHandler,
+			sentSignaturesTracker,
 		)
 	}
 
@@ -121,6 +124,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+	sentSignaturesTracker process.SentSignaturesTracker,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -432,6 +436,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
+		SentSignaturesTracker:        sentSignaturesTracker,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -467,6 +472,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
+	sentSignaturesTracker process.SentSignaturesTracker,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -852,6 +858,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		OutportDataProvider:          outportDataProvider,
 		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
+		SentSignaturesTracker:        sentSignaturesTracker,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

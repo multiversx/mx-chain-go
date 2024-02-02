@@ -236,7 +236,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = TestMarshalizer
@@ -322,6 +322,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
+	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tcn.ChainHandler

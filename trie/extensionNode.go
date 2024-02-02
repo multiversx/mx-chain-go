@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -229,17 +228,12 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	err = resolveIfCollapsed(en, 0, db)
-	isMissingNodeErr := false
+	childIsMissing, err := treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
 	if err != nil {
-		isMissingNodeErr = strings.Contains(err.Error(), core.GetNodeFromDBErrorString)
-		if !isMissingNodeErr {
-			return err
-		}
+		return err
 	}
 
-	if isMissingNodeErr {
-		treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
-	} else {
+	if !childIsMissing {
 		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
 		if err != nil {
 			return err
