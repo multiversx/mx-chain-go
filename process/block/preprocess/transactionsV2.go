@@ -400,6 +400,7 @@ func (txs *transactions) verifyTransaction(
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
 		if err == nil {
+			log.Debug("tx not eligible for execution", "error", err, "hash", txHash)
 			return process.ErrTransactionNotEligibleForExecution
 		}
 		return err
