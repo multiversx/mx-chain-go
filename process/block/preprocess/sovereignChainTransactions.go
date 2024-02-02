@@ -181,6 +181,8 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 		}
 	}
 
+	log.Debug("account info", "address", string(tx.GetSndAddr()))
+
 	if accntInfo.nonce < tx.GetNonce() {
 		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrHigherNonceInTransaction,
 			"account nonce", accntInfo.nonce,
