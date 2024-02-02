@@ -21,9 +21,10 @@ import (
 
 func createSoftAuctionConfig() config.SoftAuctionConfig {
 	return config.SoftAuctionConfig{
-		TopUpStep: "10",
-		MinTopUp:  "1",
-		MaxTopUp:  "32000000",
+		TopUpStep:             "10",
+		MinTopUp:              "1",
+		MaxTopUp:              "32000000",
+		MaxNumberOfIterations: 100000,
 	}
 }
 
@@ -112,6 +113,7 @@ func TestNewAuctionListSelector(t *testing.T) {
 		als, err := NewAuctionListSelector(args)
 		require.NotNil(t, als)
 		require.Nil(t, err)
+		require.False(t, als.IsInterfaceNil())
 	})
 }
 
@@ -197,22 +199,100 @@ func TestGetAuctionConfig(t *testing.T) {
 		requireInvalidValueError(t, err, "denomination")
 	})
 
+	t.Run("zero max number of iterations", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createSoftAuctionConfig()
+		cfg.MaxNumberOfIterations = 0
+
+		res, err := getAuctionConfig(cfg, 10)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "for max number of iterations in soft auction config")
+	})
+
+	t.Run("min top up > max top up", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "32",
+			MaxTopUp:              "16",
+			MaxNumberOfIterations: 1,
+		}
+
+		res, err := getAuctionConfig(cfg, 1)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "min value: 32 > max value: 16")
+	})
+
+	t.Run("min top up < denominator", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep:             "100",
+			MinTopUp:              "10",
+			MaxTopUp:              "5000",
+			MaxNumberOfIterations: 1,
+		}
+
+		res, err := getAuctionConfig(cfg, 2)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "for min top up in auction config; expected value to be >= 100, got 10")
+	})
+
+	t.Run("step < denominator", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "100",
+			MaxTopUp:              "5000",
+			MaxNumberOfIterations: 1,
+		}
+
+		res, err := getAuctionConfig(cfg, 2)
+		require.Nil(t, res)
+		requireInvalidValueError(t, err, "for step in auction config; expected value to be >= 100, got 10")
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "444",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "444",
+			MaxNumberOfIterations: 100000,
 		}
 
-		res, err := getAuctionConfig(cfg, 4)
+		res, err := getAuctionConfig(cfg, 0)
 		require.Nil(t, err)
 		require.Equal(t, &auctionConfig{
-			step:        big.NewInt(10),
-			minTopUp:    big.NewInt(1),
-			maxTopUp:    big.NewInt(444),
-			denominator: big.NewInt(10000),
+			step:                  big.NewInt(10),
+			minTopUp:              big.NewInt(1),
+			maxTopUp:              big.NewInt(444),
+			denominator:           big.NewInt(1),
+			maxNumberOfIterations: 100000,
+		}, res)
+
+		minTopUp, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+		maxTopUp, _ := big.NewInt(0).SetString("32000000000000000000000000", 10)
+		step, _ := big.NewInt(0).SetString("10000000000000000000", 10)
+		cfg = config.SoftAuctionConfig{
+			TopUpStep:             step.String(),
+			MinTopUp:              minTopUp.String(),
+			MaxTopUp:              maxTopUp.String(),
+			MaxNumberOfIterations: 100000,
+		}
+
+		res, err = getAuctionConfig(cfg, 18)
+		require.Nil(t, err)
+		require.Equal(t, &auctionConfig{
+			step:                  step,
+			minTopUp:              minTopUp,
+			maxTopUp:              maxTopUp,
+			denominator:           minTopUp,
+			maxNumberOfIterations: 100000,
 		}, res)
 	})
 }
@@ -594,6 +674,72 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 		require.Equal(t, expectedSoftAuction, softAuctionConfig)
 		selectedNodes = als.selectNodes(softAuctionConfig, 1, randomness)
 		require.Equal(t, []state.ValidatorInfoHandler{v2}, selectedNodes)
+	})
+
+	t.Run("large top up difference, would qualify more nodes than an owner has, expect correct computation", func(t *testing.T) {
+		argsLargeTopUp := createAuctionListSelectorArgs(nil)
+		argsLargeTopUp.SoftAuctionConfig = config.SoftAuctionConfig{
+			TopUpStep:             "10000000000000000000",       // 10 eGLD
+			MinTopUp:              "1000000000000000000",        // 1 eGLD
+			MaxTopUp:              "32000000000000000000000000", // 32 mil eGLD
+			MaxNumberOfIterations: 10,
+		}
+		argsLargeTopUp.Denomination = 18
+		selector, _ := NewAuctionListSelector(argsLargeTopUp)
+
+		v0 := &state.ValidatorInfo{PublicKey: []byte("pk0")}
+		v1 := &state.ValidatorInfo{PublicKey: []byte("pk1")}
+		v2 := &state.ValidatorInfo{PublicKey: []byte("pk2")}
+
+		oneEGLD, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+		owner1TopUp, _ := big.NewInt(0).SetString("32000000000000000000000000", 10) // 31 mil eGLD
+		owner1 := "owner1"
+		owner2 := "owner2"
+		ownersData := map[string]*ownerAuctionData{
+			owner1: {
+				numActiveNodes:           0,
+				numAuctionNodes:          1,
+				numQualifiedAuctionNodes: 1,
+				numStakedNodes:           1,
+				totalTopUp:               owner1TopUp,
+				topUpPerNode:             owner1TopUp,
+				qualifiedTopUpPerNode:    owner1TopUp,
+				auctionList:              []state.ValidatorInfoHandler{v0},
+			},
+			owner2: {
+				numActiveNodes:           0,
+				numAuctionNodes:          2,
+				numQualifiedAuctionNodes: 2,
+				numStakedNodes:           2,
+				totalTopUp:               big.NewInt(0),
+				topUpPerNode:             big.NewInt(0),
+				qualifiedTopUpPerNode:    big.NewInt(0),
+				auctionList:              []state.ValidatorInfoHandler{v1, v2},
+			},
+		}
+
+		minTopUp, maxTopUp := selector.getMinMaxPossibleTopUp(ownersData)
+		require.Equal(t, oneEGLD, minTopUp)
+		require.Equal(t, owner1TopUp, maxTopUp)
+
+		softAuctionConfig := selector.calcSoftAuctionNodesConfig(ownersData, 3)
+		require.Equal(t, ownersData, softAuctionConfig)
+		selectedNodes := selector.selectNodes(softAuctionConfig, 3, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v0, v2, v1}, selectedNodes)
+
+		softAuctionConfig = selector.calcSoftAuctionNodesConfig(ownersData, 2)
+		expectedSoftAuction := copyOwnersData(ownersData)
+		expectedSoftAuction[owner1].numQualifiedAuctionNodes = 1
+		expectedSoftAuction[owner1].qualifiedTopUpPerNode = owner1TopUp
+		require.Equal(t, expectedSoftAuction, softAuctionConfig)
+		selectedNodes = selector.selectNodes(softAuctionConfig, 2, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v0, v2}, selectedNodes)
+
+		softAuctionConfig = selector.calcSoftAuctionNodesConfig(ownersData, 1)
+		delete(expectedSoftAuction, owner2)
+		require.Equal(t, expectedSoftAuction, softAuctionConfig)
+		selectedNodes = selector.selectNodes(softAuctionConfig, 1, randomness)
+		require.Equal(t, []state.ValidatorInfoHandler{v0}, selectedNodes)
 	})
 }
 

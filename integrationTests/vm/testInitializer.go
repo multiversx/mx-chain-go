@@ -734,9 +734,8 @@ func CreateVMAndBlockchainHookMeta(
 func createSystemSCConfig() *config.SystemSmartContractsConfig {
 	return &config.SystemSmartContractsConfig{
 		ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-			BaseIssuingCost:  "5000000000000000000",
-			OwnerAddress:     "3132333435363738393031323334353637383930313233343536373839303233",
-			DelegationTicker: "DEL",
+			BaseIssuingCost: "5000000000000000000",
+			OwnerAddress:    "3132333435363738393031323334353637383930313233343536373839303233",
 		},
 		GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 			V1: config.GovernanceSystemSCConfigV1{
@@ -779,6 +778,12 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 		DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 			MinServiceFee: 1,
 			MaxServiceFee: 20,
+		},
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 }

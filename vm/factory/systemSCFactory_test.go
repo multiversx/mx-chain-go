@@ -33,9 +33,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		Hasher:              &hashingMocks.HasherMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "100000000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -77,6 +76,12 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinCreationDeposit:  "10",
 				MinStakeAmount:      "10",
 				ConfigChangeAddress: "3132333435363738393031323334353637383930313233343536373839303234",
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		AddressPubKeyConverter: &testscommon.PubkeyConverterMock{},
