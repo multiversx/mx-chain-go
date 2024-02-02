@@ -891,7 +891,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-		SoftAuctionConfig:            pcf.config.SoftAuctionConfig,
+		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 	}
 	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
@@ -903,7 +903,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		StakingDataProvider:          stakingDataProviderAPI,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-		SoftAuctionConfig:            pcf.config.SoftAuctionConfig,
+		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 	}
 	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)

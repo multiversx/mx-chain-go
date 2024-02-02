@@ -49,6 +49,9 @@ func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 
 	configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
 	require.Nil(t, err)
+	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 50
+
+
 
 	runner, _ := NewNodeRunner(configs)
 
