@@ -10,15 +10,15 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
-	mge "github.com/multiversx/mx-chain-scenario-go/scenario-exporter"
-	mgutil "github.com/multiversx/mx-chain-scenario-go/util"
+	"github.com/multiversx/mx-chain-scenario-go/scenario/exporter"
+	scenmodel "github.com/multiversx/mx-chain-scenario-go/scenario/model"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errReturnCodeNotOk = errors.New("returnCode is not 0(Ok)")
 
 // CreateAccountsFromScenariosAccs uses scenariosAccounts to populate the AccountsAdapter
-func CreateAccountsFromScenariosAccs(tc *vm.VMTestContext, scenariosUserAccounts []*mge.TestAccount) error {
+func CreateAccountsFromScenariosAccs(tc *vm.VMTestContext, scenariosUserAccounts []*exporter.TestAccount) error {
 	for _, scenariosAcc := range scenariosUserAccounts {
 		acc, err := tc.Accounts.LoadAccount(scenariosAcc.GetAddress())
 		if err != nil {
@@ -60,7 +60,7 @@ func CreateAccountsFromScenariosAccs(tc *vm.VMTestContext, scenariosUserAccounts
 }
 
 // CreateTransactionsFromScenariosTxs converts scenarios transactions intro trasnsactions that can be processed by the txProcessor
-func CreateTransactionsFromScenariosTxs(scenariosTxs []*mge.Transaction) (transactions []*transaction.Transaction) {
+func CreateTransactionsFromScenariosTxs(scenariosTxs []*exporter.Transaction) (transactions []*transaction.Transaction) {
 	var data []byte
 	transactions = make([]*transaction.Transaction, 0)
 
@@ -70,7 +70,7 @@ func CreateTransactionsFromScenariosTxs(scenariosTxs []*mge.Transaction) (transa
 		endpointName := scenariosTx.GetCallFunction()
 		args := scenariosTx.GetCallArguments()
 		if len(esdtTransfers) != 0 {
-			data = mgutil.CreateMultiTransferData(scenariosTx.GetReceiverAddress(), esdtTransfers, endpointName, args)
+			data = scenmodel.CreateMultiTransferData(scenariosTx.GetReceiverAddress(), esdtTransfers, endpointName, args)
 		} else {
 			data = createData(endpointName, args)
 		}
@@ -92,7 +92,7 @@ func CreateTransactionsFromScenariosTxs(scenariosTxs []*mge.Transaction) (transa
 }
 
 // DeploySCsFromScenariosDeployTxs deploys all smartContracts correspondent to "scDeploy" in a scenarios test, then replaces with the correct computed address in all the transactions.
-func DeploySCsFromScenariosDeployTxs(testContext *vm.VMTestContext, deployScenariosTxs []*mge.Transaction) ([][]byte, error) {
+func DeploySCsFromScenariosDeployTxs(testContext *vm.VMTestContext, deployScenariosTxs []*exporter.Transaction) ([][]byte, error) {
 	newScAddresses := make([][]byte, 0)
 	for _, deployScenariosTransaction := range deployScenariosTxs {
 		deployedScAddress, err := deploySC(testContext, deployScenariosTransaction)
@@ -105,7 +105,7 @@ func DeploySCsFromScenariosDeployTxs(testContext *vm.VMTestContext, deployScenar
 }
 
 // ReplaceScenariosScAddressesWithNewScAddresses corrects the Scenarios SC Addresses, with the new Addresses obtained from deploying the SCs
-func ReplaceScenariosScAddressesWithNewScAddresses(deployedScAccounts []*mge.TestAccount, newScAddresses [][]byte, scenariosTxs []*mge.Transaction) {
+func ReplaceScenariosScAddressesWithNewScAddresses(deployedScAccounts []*exporter.TestAccount, newScAddresses [][]byte, scenariosTxs []*exporter.Transaction) {
 	for _, newScAddr := range newScAddresses {
 		addressToBeReplaced := deployedScAccounts[0].GetAddress()
 		for _, scenariosTx := range scenariosTxs {
@@ -126,7 +126,7 @@ func createData(functionName string, arguments [][]byte) []byte {
 	return builder.ToBytes()
 }
 
-func deploySC(testContext *vm.VMTestContext, deployScenariosTx *mge.Transaction) (scAddress []byte, err error) {
+func deploySC(testContext *vm.VMTestContext, deployScenariosTx *exporter.Transaction) (scAddress []byte, err error) {
 	gasLimit, gasPrice := deployScenariosTx.GetGasLimitAndPrice()
 	ownerAddr := deployScenariosTx.GetSenderAddress()
 	deployData := deployScenariosTx.GetDeployData()
