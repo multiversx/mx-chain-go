@@ -391,7 +391,7 @@ func (txs *transactions) verifyTransaction(
 		}
 
 		mbInfo.schedulingInfo.numScheduledBadTxs++
-		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
+		log.Debug("bad tx", "error", err, "hash", txHash)
 
 		txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
 
