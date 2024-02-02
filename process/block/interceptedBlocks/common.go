@@ -69,13 +69,13 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 
 func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
 	// TODO[cleanup cns finality]: remove these checks
-	if len(hdr.GetPubKeysBitmap()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, hdr.GetEpoch()) {
+	if len(hdr.GetPubKeysBitmap()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
 		return process.ErrNilPubKeysBitmap
 	}
 	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if len(hdr.GetSignature()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, hdr.GetEpoch()) {
+	if len(hdr.GetSignature()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
 		return process.ErrNilSignature
 	}
 	if len(hdr.GetRootHash()) == 0 {

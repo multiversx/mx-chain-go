@@ -444,7 +444,7 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 	}
 
 	// TODO[cleanup cns finality]: remove this
-	if cmv.enableEpochsHandler.IsFlagEnabled(common.ConsensusPropagationChangesFlag) {
+	if cmv.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		return nil
 	}
 

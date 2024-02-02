@@ -180,7 +180,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 
 	bitmap := header.GetPubKeysBitmap()
 	sig := header.GetSignature()
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, headerCopy.GetEpoch()) {
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerCopy.GetEpoch()) {
 		headerCopy, hash, sig, bitmap, err = hsv.getPrevHeaderInfo(headerCopy)
 		if err != nil {
 			return err
@@ -355,7 +355,7 @@ func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, head
 
 func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
 	// TODO[cleanup cns finality]: consider removing this method
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil
 	}
 

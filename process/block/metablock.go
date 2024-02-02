@@ -2028,7 +2028,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.Nonce = shardHdr.GetNonce()
 		shardData.PrevRandSeed = shardHdr.GetPrevRandSeed()
 		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
-		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, shardHdr.GetEpoch()) {
+		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
 			_, shardData.PubKeysBitmap = shardHdr.GetPreviousAggregatedSignatureAndBitmap()
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
