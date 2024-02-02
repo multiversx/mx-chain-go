@@ -137,7 +137,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 		)
 
 		assert.Nil(t, srEndRound)
-		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
@@ -151,7 +151,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 		)
 
 		assert.Nil(t, srEndRound)
-		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, spos.ErrNilWorker, err)
 	})
 }
 
@@ -916,18 +916,10 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			PubKey:          []byte("A"),
 		}
 
-		sentTrackerInterface := sr.GetSentSignatureTracker()
-		sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
-		receivedActualSignersCalled := false
-		sentTracker.ReceivedActualSignersCalled = func(signersPks []string) {
-			receivedActualSignersCalled = true
-		}
-
 		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
 		assert.True(t, res)
-		assert.True(t, receivedActualSignersCalled)
 	})
-	t.Run("should work with consensus propagation flag on", func(t *testing.T) {
+	t.Run("should work with equivalent messages flag on", func(t *testing.T) {
 		t.Parallel()
 
 		providedPrevSig := []byte("prev sig")
@@ -942,7 +934,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		container := mock.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -985,7 +977,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			sr,
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{
 				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProof, error) {
 					assert.Equal(t, hdr.GetPrevHash(), headerHash)
@@ -1003,16 +995,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		srEndRound.SetStatus(2, spos.SsFinished)
 		srEndRound.SetStatus(3, spos.SsNotFinished)
 
-		sentTrackerInterface := srEndRound.GetSentSignatureTracker()
-		sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
-		receivedActualSignersCalled := false
-		sentTracker.ReceivedActualSignersCalled = func(signersPks []string) {
-			receivedActualSignersCalled = true
-		}
-
 		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
 		assert.True(t, res)
-		assert.True(t, receivedActualSignersCalled)
 		assert.True(t, wasSetCurrentHeaderProofCalled)
 	})
 	t.Run("should return false when header is nil", func(t *testing.T) {
@@ -1111,7 +1095,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		container := mock.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -1141,7 +1125,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			sr,
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{
 				HasEquivalentMessageCalled: func(headerHash []byte) bool {
 					return true
@@ -1411,13 +1395,13 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 	t.Parallel()
 
-	t.Run("consensus propagation changes flag enabled and message already received", func(t *testing.T) {
+	t.Run("equivalent messages flag enabled and message already received", func(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -1448,7 +1432,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			sr,
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{
 				HasEquivalentMessageCalled: func(headerHash []byte) bool {
 					wasHasEquivalentProofCalled = true
@@ -1516,7 +1500,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		assert.Equal(t, 2, verifySigShareNumCalls)
 	})
 
-	t.Run("should work without consensus propagation changes flag active", func(t *testing.T) {
+	t.Run("should work without equivalent messages flag active", func(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
@@ -1563,7 +1547,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		assert.False(t, verifyFirstCall)
 		assert.Equal(t, 3, verifySigShareNumCalls)
 	})
-	t.Run("should work with consensus propagation changes flag active", func(t *testing.T) {
+	t.Run("should work with equivalent messages flag active", func(t *testing.T) {
 		t.Parallel()
 
 		providedPrevSig := []byte("prev sig")
@@ -1582,7 +1566,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		})
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -1612,7 +1596,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			sr,
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
 
@@ -1733,11 +1717,10 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 
 		srEndRound.SetSelfPubKey("A")
