@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/process"
@@ -436,8 +437,9 @@ func hardForkImport(
 			TrieStorageManagers: node.TrieStorageManagers,
 			SystemSCConfig: config.SystemSmartContractsConfig{
 				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-					BaseIssuingCost: "1000",
-					OwnerAddress:    "aaaaaa",
+					BaseIssuingCost:  "1000",
+					OwnerAddress:     "aaaaaa",
+					DelegationTicker: "DEL",
 				},
 				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 					V1: config.GovernanceSystemSCConfigV1{
@@ -464,6 +466,8 @@ func hardForkImport(
 					MaxNumberOfNodesForStake:             100,
 					ActivateBLSPubKeyMessageVerification: false,
 					MinUnstakeTokensValue:                "1",
+					StakeLimitPercentage:                 100.0,
+					NodeLimitPercentage:                  100.0,
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 					MinCreationDeposit:  "100",
@@ -580,7 +584,8 @@ func createHardForkExporter(
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
 		statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabled.NewStateStatistics(),
 		}
 
 		networkComponents := integrationTests.GetDefaultNetworkComponents()

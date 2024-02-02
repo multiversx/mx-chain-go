@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -28,22 +29,23 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 		Eei:     &mock.SystemEIStub{},
 		GasCost: vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		ESDTSCConfig: config.ESDTSystemSCConfig{
-			BaseIssuingCost: "1000",
+			BaseIssuingCost:  "1000",
+			DelegationTicker: "DEL",
 		},
 		ESDTSCAddress:          []byte("address"),
 		Marshalizer:            &mock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		AddressPubKeyConverter: testscommon.NewPubkeyConverterMock(32),
 		EndOfEpochSCAddress:    vm.EndOfEpochAddress,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsESDTFlagEnabledField:                          true,
-			IsGlobalMintBurnFlagEnabledField:                true,
-			IsMetaESDTSetFlagEnabledField:                   true,
-			IsESDTRegisterAndSetAllRolesFlagEnabledField:    true,
-			IsESDTNFTCreateOnMultiShardFlagEnabledField:     true,
-			IsESDTTransferRoleFlagEnabledField:              true,
-			IsESDTMetadataContinuousCleanupFlagEnabledField: true,
-		},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.ESDTFlag,
+			common.GlobalMintBurnFlag,
+			common.MetaESDTSetFlag,
+			common.ESDTRegisterAndSetAllRolesFlag,
+			common.ESDTNFTCreateOnMultiShardFlag,
+			common.ESDTTransferRoleFlag,
+			common.ESDTMetadataContinuousCleanupFlag,
+		),
 	}
 }
 
@@ -101,6 +103,17 @@ func TestNewESDTSmartContract_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	e, err := NewESDTSmartContract(args)
 	assert.Nil(t, e)
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewESDTSmartContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	e, err := NewESDTSmartContract(args)
+	assert.Nil(t, e)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewESDTSmartContract_NilPubKeyConverterShouldErr(t *testing.T) {
@@ -207,11 +220,11 @@ func TestEsdt_ExecuteIssueWithMultiNFTCreate(t *testing.T) {
 	ticker := []byte("TICKER")
 	vmInput.Arguments = [][]byte{[]byte("name"), ticker, []byte(canCreateMultiShard), []byte("true")}
 
-	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTNFTCreateOnMultiShardFlag)
 	returnCode := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
-	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTNFTCreateOnMultiShardFlag)
 	returnCode = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 
@@ -304,8 +317,7 @@ func TestEsdt_ExecuteIssueWithZero(t *testing.T) {
 	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 
-	enableEpochsHandler.IsGlobalMintBurnFlagEnabledField = false
-	enableEpochsHandler.IsESDTNFTCreateOnMultiShardFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.GlobalMintBurnFlag, common.ESDTNFTCreateOnMultiShardFlag)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
@@ -500,7 +512,7 @@ func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsGlobalMintBurnFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.GlobalMintBurnFlag)
 	eei := createDefaultEei()
 	args.Eei = eei
 
@@ -783,7 +795,7 @@ func TestEsdt_ExecuteMintInvalidDestinationAddressShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "destination address of invalid length"))
 }
 
-func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteMintTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -796,9 +808,6 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -807,7 +816,7 @@ func TestEsdt_ExecuteMintTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("mint", [][]byte{[]byte("esdtToken"), {200}})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteMintWithTwoArgsShouldSetOwnerAsDestination(t *testing.T) {
@@ -902,7 +911,7 @@ func TestEsdt_ExecuteIssueDisabled(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTFlag)
 	e, _ := NewESDTSmartContract(args)
 
 	callValue, _ := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
@@ -1069,7 +1078,7 @@ func TestEsdt_ExecuteToggleFreezeNonFreezableTokenShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot freeze"))
 }
 
-func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteToggleFreezeTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1081,9 +1090,6 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1092,10 +1098,10 @@ func TestEsdt_ExecuteToggleFreezeTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freeze", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteToggleFreezeSingleNFTTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1108,9 +1114,6 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1119,7 +1122,7 @@ func TestEsdt_ExecuteToggleFreezeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("freezeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteToggleFreezeShouldWorkWithRealBech32Address(t *testing.T) {
@@ -1555,7 +1558,7 @@ func TestEsdt_ExecuteWipeInvalidDestShouldFail(t *testing.T) {
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid"))
 }
 
-func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteWipeTransferFailsNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1568,9 +1571,6 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1579,10 +1579,10 @@ func TestEsdt_ExecuteWipeTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipe", [][]byte{[]byte("esdtToken"), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
+func TestEsdt_ExecuteWipeSingleNFTTransferNoErr(t *testing.T) {
 	t.Parallel()
 
 	err := errors.New("transfer error")
@@ -1595,9 +1595,6 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 		})
 		return marshalizedData
 	}
-	args.Eei.(*mock.SystemEIStub).TransferCalled = func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-		return err
-	}
 	args.Eei.(*mock.SystemEIStub).AddReturnMessageCalled = func(msg string) {
 		assert.Equal(t, err.Error(), msg)
 	}
@@ -1606,7 +1603,7 @@ func TestEsdt_ExecuteWipeSingleNFTTransferFailsShouldErr(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("wipeSingleNFT", [][]byte{[]byte("esdtToken"), big.NewInt(10).Bytes(), getAddress()})
 
 	output := e.Execute(vmInput)
-	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, vmcommon.Ok, output)
 }
 
 func TestEsdt_ExecuteWipeShouldWork(t *testing.T) {
@@ -2806,7 +2803,6 @@ func TestEsdt_SetSpecialRoleCheckBasicOwnershipErr(t *testing.T) {
 func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("local err")
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -2816,9 +2812,8 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
-			return localErr
 		},
 	}
 	args.Eei = eei
@@ -2853,9 +2848,8 @@ func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -2892,11 +2886,10 @@ func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -2933,9 +2926,8 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -2977,9 +2969,8 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654e4654437265617465"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -3014,7 +3005,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTTransferRoleFlag)
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
@@ -3042,7 +3033,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	args.Eei = eei
 
 	e, _ := NewESDTSmartContract(args)
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{})
 	vmInput.Arguments = [][]byte{[]byte("myToken"), []byte("myAddress"), []byte(core.ESDTRoleTransfer)}
 	vmInput.CallerAddr = []byte("caller123")
@@ -3061,7 +3052,7 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 
-	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTTransferRoleFlag)
 	called = false
 	token.TokenType = []byte(core.NonFungibleESDT)
 	retCode = e.Execute(vmInput)
@@ -3106,7 +3097,7 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTTransferRoleFlag)
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller123"),
@@ -3136,7 +3127,7 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.GasProvided = 50000000
 
-	enableEpochsHandler.IsESDTTransferRoleFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTTransferRoleFlag)
 	called = 0
 	token.TokenType = []byte(core.NonFungibleESDT)
 	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
@@ -3199,7 +3190,7 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 
 	args := createMockArgumentsForESDT()
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1234"),
@@ -3240,7 +3231,7 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.FunctionNotFound, retCode)
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	eei.ReturnMessage = ""
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
@@ -3284,9 +3275,8 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654e46544164645175616e74697479"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -3555,10 +3545,9 @@ func TestEsdt_UnsetSpecialRoleCannotRemoveRoleNotExistsShouldErr(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, retCode)
 }
 
-func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
+func TestEsdt_UnsetSpecialRoleRemoveRoleTransfer(t *testing.T) {
 	t.Parallel()
 
-	localErr := errors.New("local err")
 	args := createMockArgumentsForESDT()
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
@@ -3574,9 +3563,8 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
-			return localErr
 		},
 	}
 	args.Eei = eei
@@ -3590,7 +3578,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransferErr(t *testing.T) {
 	vmInput.GasProvided = 50000000
 
 	retCode := e.Execute(vmInput)
-	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vmcommon.Ok, retCode)
 }
 
 func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
@@ -3611,11 +3599,10 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
 			castedMarshalizer := args.Marshalizer.(*mock.MarshalizerMock)
 			castedMarshalizer.Fail = true
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3650,9 +3637,8 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
-			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -3759,9 +3745,8 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTUnSetRole@746f6b656e4944@45534454526f6c654e4654437265617465"), input)
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3871,10 +3856,9 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
 			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@63616c6c657232"), input)
 			require.Equal(t, destination, []byte("caller3"))
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -3908,11 +3892,6 @@ func TestEsdt_TransferNFTCreateCallMultiShardShouldWork(t *testing.T) {
 		GetStorageCalled: func(key []byte) []byte {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
-		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte) error {
-			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@3263616c6c6572"), input)
-			require.Equal(t, destination, []byte("3caller"))
-			return nil
 		},
 	}
 	args.Eei = eei
@@ -4028,7 +4007,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.MetaESDTSetFlag)
 	vmInput := getDefaultVmInputForFunc("registerMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4036,7 +4015,7 @@ func TestEsdt_ExecuteIssueMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.MetaESDTSetFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4077,7 +4056,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.MetaESDTSetFlag)
 	vmInput := getDefaultVmInputForFunc("changeSFTToMetaESDT", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4085,7 +4064,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsMetaESDTSetFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.MetaESDTSetFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4164,7 +4143,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTRegisterAndSetAllRolesFlag)
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
@@ -4172,7 +4151,7 @@ func TestEsdt_ExecuteRegisterAndSetErrors(t *testing.T) {
 
 	eei.returnMessage = ""
 	eei.gasRemaining = 9999
-	enableEpochsHandler.IsESDTRegisterAndSetAllRolesFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTRegisterAndSetAllRolesFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.Equal(t, eei.returnMessage, "not enough arguments")
@@ -4293,7 +4272,7 @@ func registerAndSetAllRolesWithTypeCheck(t *testing.T, typeArgument []byte, expe
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	vmInput := getDefaultVmInputForFunc("registerAndSetAllRoles", nil)
 	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
 
@@ -4326,12 +4305,12 @@ func TestEsdt_setBurnRoleGlobally(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("setBurnRoleGlobally", [][]byte{})
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
@@ -4386,12 +4365,12 @@ func TestEsdt_unsetBurnRoleGlobally(t *testing.T) {
 	e, _ := NewESDTSmartContract(args)
 	vmInput := getDefaultVmInputForFunc("unsetBurnRoleGlobally", [][]byte{})
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionNotFound, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid method to call"))
 
-	enableEpochsHandler.IsESDTMetadataContinuousCleanupFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ESDTMetadataContinuousCleanupFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "invalid number of arguments, wanted 1"))
@@ -4452,11 +4431,10 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = false
 	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Nil(t, err)
 
-	enableEpochsHandler.IsManagedCryptoAPIsFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ManagedCryptoAPIsFlag)
 	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
 }
@@ -4497,12 +4475,12 @@ func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
 
 	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
 	vmInput.CallerAddr = owner
-	enableEpochsHandler.IsNFTStopCreateEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.NFTStopCreateFlag)
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot add NFT create role as NFT creation was stopped"))
 
-	enableEpochsHandler.IsNFTStopCreateEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.NFTStopCreateFlag)
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)

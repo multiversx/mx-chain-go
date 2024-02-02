@@ -26,6 +26,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -327,7 +328,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			UInt64ByteSliceConv:          &testsMocks.Uint64ByteSliceConverterMock{},
 			EconomicsHandler:             &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:                  &testscommon.NodesSetupStub{},
+			NodesConfig:                  &genesisMocks.NodesSetupStub{},
 			Hash:                         &testscommon.HasherStub{},
 			RatingHandler:                &testscommon.RaterMock{},
 			WasmVMChangeLockerInternal:   &sync.RWMutex{},

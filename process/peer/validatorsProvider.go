@@ -9,12 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
@@ -23,15 +24,23 @@ var _ process.ValidatorsProvider = (*validatorsProvider)(nil)
 type validatorsProvider struct {
 	nodesCoordinator             process.NodesCoordinator
 	validatorStatistics          process.ValidatorStatisticsProcessor
-	cache                        map[string]*accounts.ValidatorApiResponse
+	cache                        map[string]*validator.ValidatorStatistics
+	cachedAuctionValidators      []*common.AuctionListValidatorAPIResponse
+	cachedRandomness             []byte
 	cacheRefreshIntervalDuration time.Duration
 	refreshCache                 chan uint32
 	lastCacheUpdate              time.Time
+	lastAuctionCacheUpdate       time.Time
 	lock                         sync.RWMutex
+	auctionMutex                 sync.RWMutex
 	cancelFunc                   func()
-	pubkeyConverter              core.PubkeyConverter
-	maxRating                    uint32
-	currentEpoch                 uint32
+	validatorPubKeyConverter     core.PubkeyConverter
+	addressPubKeyConverter       core.PubkeyConverter
+	stakingDataProvider          StakingDataProviderAPI
+	auctionListSelector          epochStart.AuctionListSelector
+
+	maxRating    uint32
+	currentEpoch uint32
 }
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
@@ -40,27 +49,39 @@ type ArgValidatorsProvider struct {
 	EpochStartEventNotifier           process.EpochStartEventNotifier
 	CacheRefreshIntervalDurationInSec time.Duration
 	ValidatorStatistics               process.ValidatorStatisticsProcessor
-	PubKeyConverter                   core.PubkeyConverter
+	ValidatorPubKeyConverter          core.PubkeyConverter
+	AddressPubKeyConverter            core.PubkeyConverter
+	StakingDataProvider               StakingDataProviderAPI
+	AuctionListSelector               epochStart.AuctionListSelector
 	StartEpoch                        uint32
 	MaxRating                         uint32
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible for keeping account of
-//  the latest information about the validators
+// the latest information about the validators
 func NewValidatorsProvider(
 	args ArgValidatorsProvider,
 ) (*validatorsProvider, error) {
 	if check.IfNil(args.ValidatorStatistics) {
 		return nil, process.ErrNilValidatorStatistics
 	}
-	if check.IfNil(args.PubKeyConverter) {
-		return nil, process.ErrNilPubkeyConverter
+	if check.IfNil(args.ValidatorPubKeyConverter) {
+		return nil, fmt.Errorf("%w for validators", process.ErrNilPubkeyConverter)
+	}
+	if check.IfNil(args.AddressPubKeyConverter) {
+		return nil, fmt.Errorf("%w for addresses", process.ErrNilPubkeyConverter)
 	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, process.ErrNilNodesCoordinator
 	}
 	if check.IfNil(args.EpochStartEventNotifier) {
 		return nil, process.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.StakingDataProvider) {
+		return nil, process.ErrNilStakingDataProvider
+	}
+	if check.IfNil(args.AuctionListSelector) {
+		return nil, epochStart.ErrNilAuctionListSelector
 	}
 	if args.MaxRating == 0 {
 		return nil, process.ErrMaxRatingZero
@@ -74,14 +95,20 @@ func NewValidatorsProvider(
 	valProvider := &validatorsProvider{
 		nodesCoordinator:             args.NodesCoordinator,
 		validatorStatistics:          args.ValidatorStatistics,
-		cache:                        make(map[string]*accounts.ValidatorApiResponse),
+		stakingDataProvider:          args.StakingDataProvider,
+		cache:                        make(map[string]*validator.ValidatorStatistics),
+		cachedAuctionValidators:      make([]*common.AuctionListValidatorAPIResponse, 0),
+		cachedRandomness:             make([]byte, 0),
 		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
+		auctionMutex:                 sync.RWMutex{},
 		cancelFunc:                   cancelfunc,
 		maxRating:                    args.MaxRating,
-		pubkeyConverter:              args.PubKeyConverter,
+		validatorPubKeyConverter:     args.ValidatorPubKeyConverter,
+		addressPubKeyConverter:       args.AddressPubKeyConverter,
 		currentEpoch:                 args.StartEpoch,
+		auctionListSelector:          args.AuctionListSelector,
 	}
 
 	go valProvider.startRefreshProcess(currentContext)
@@ -91,14 +118,8 @@ func NewValidatorsProvider(
 }
 
 // GetLatestValidators gets the latest configuration of validators from the peerAccountsTrie
-func (vp *validatorsProvider) GetLatestValidators() map[string]*accounts.ValidatorApiResponse {
-	vp.lock.RLock()
-	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
-	vp.lock.RUnlock()
-
-	if shouldUpdate {
-		vp.updateCache()
-	}
+func (vp *validatorsProvider) GetLatestValidators() map[string]*validator.ValidatorStatistics {
+	vp.updateCacheIfNeeded()
 
 	vp.lock.RLock()
 	clonedMap := cloneMap(vp.cache)
@@ -107,8 +128,18 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*accounts.Validat
 	return clonedMap
 }
 
-func cloneMap(cache map[string]*accounts.ValidatorApiResponse) map[string]*accounts.ValidatorApiResponse {
-	newMap := make(map[string]*accounts.ValidatorApiResponse)
+func (vp *validatorsProvider) updateCacheIfNeeded() {
+	vp.lock.RLock()
+	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
+	vp.lock.RUnlock()
+
+	if shouldUpdate {
+		vp.updateCache()
+	}
+}
+
+func cloneMap(cache map[string]*validator.ValidatorStatistics) map[string]*validator.ValidatorStatistics {
+	newMap := make(map[string]*validator.ValidatorStatistics)
 
 	for k, v := range cache {
 		newMap[k] = cloneValidatorAPIResponse(v)
@@ -117,11 +148,11 @@ func cloneMap(cache map[string]*accounts.ValidatorApiResponse) map[string]*accou
 	return newMap
 }
 
-func cloneValidatorAPIResponse(v *accounts.ValidatorApiResponse) *accounts.ValidatorApiResponse {
+func cloneValidatorAPIResponse(v *validator.ValidatorStatistics) *validator.ValidatorStatistics {
 	if v == nil {
 		return nil
 	}
-	return &accounts.ValidatorApiResponse{
+	return &validator.ValidatorStatistics{
 		TempRating:                         v.TempRating,
 		NumLeaderSuccess:                   v.NumLeaderSuccess,
 		NumLeaderFailure:                   v.NumLeaderFailure,
@@ -182,6 +213,7 @@ func (vp *validatorsProvider) updateCache() {
 	}
 	allNodes, err := vp.validatorStatistics.GetValidatorInfoForRootHash(lastFinalizedRootHash)
 	if err != nil {
+		allNodes = state.NewShardValidatorsInfoMap()
 		log.Trace("validatorsProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
@@ -199,48 +231,46 @@ func (vp *validatorsProvider) updateCache() {
 
 func (vp *validatorsProvider) createNewCache(
 	epoch uint32,
-	allNodes map[uint32][]*state.ValidatorInfo,
-) map[string]*accounts.ValidatorApiResponse {
+	allNodes state.ShardValidatorsInfoMapHandler,
+) map[string]*validator.ValidatorStatistics {
 	newCache := vp.createValidatorApiResponseMapFromValidatorInfoMap(allNodes)
 
 	nodesMapEligible, err := vp.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("validatorsProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("validatorsProvider - GetAllEligibleValidatorsPublicKeys failed", "epoch", epoch, "error", err)
 	}
 	vp.aggregateLists(newCache, nodesMapEligible, common.EligibleList)
 
 	nodesMapWaiting, err := vp.nodesCoordinator.GetAllWaitingValidatorsPublicKeys(epoch)
 	if err != nil {
-		log.Debug("validatorsProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch)
+		log.Debug("validatorsProvider - GetAllWaitingValidatorsPublicKeys failed", "epoch", epoch, "error", err)
 	}
 	vp.aggregateLists(newCache, nodesMapWaiting, common.WaitingList)
 
 	return newCache
 }
 
-func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes map[uint32][]*state.ValidatorInfo) map[string]*accounts.ValidatorApiResponse {
-	newCache := make(map[string]*accounts.ValidatorApiResponse)
-	for _, validatorInfosInShard := range allNodes {
-		for _, validatorInfo := range validatorInfosInShard {
-			strKey := vp.pubkeyConverter.SilentEncode(validatorInfo.PublicKey, log)
+func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(allNodes state.ShardValidatorsInfoMapHandler) map[string]*validator.ValidatorStatistics {
+	newCache := make(map[string]*validator.ValidatorStatistics)
 
-			newCache[strKey] = &accounts.ValidatorApiResponse{
-				NumLeaderSuccess:                   validatorInfo.LeaderSuccess,
-				NumLeaderFailure:                   validatorInfo.LeaderFailure,
-				NumValidatorSuccess:                validatorInfo.ValidatorSuccess,
-				NumValidatorFailure:                validatorInfo.ValidatorFailure,
-				NumValidatorIgnoredSignatures:      validatorInfo.ValidatorIgnoredSignatures,
-				TotalNumLeaderSuccess:              validatorInfo.TotalLeaderSuccess,
-				TotalNumLeaderFailure:              validatorInfo.TotalLeaderFailure,
-				TotalNumValidatorSuccess:           validatorInfo.TotalValidatorSuccess,
-				TotalNumValidatorFailure:           validatorInfo.TotalValidatorFailure,
-				TotalNumValidatorIgnoredSignatures: validatorInfo.TotalValidatorIgnoredSignatures,
-				RatingModifier:                     validatorInfo.RatingModifier,
-				Rating:                             float32(validatorInfo.Rating) * 100 / float32(vp.maxRating),
-				TempRating:                         float32(validatorInfo.TempRating) * 100 / float32(vp.maxRating),
-				ShardId:                            validatorInfo.ShardId,
-				ValidatorStatus:                    validatorInfo.List,
-			}
+	for _, validatorInfo := range allNodes.GetAllValidatorsInfo() {
+		strKey := vp.validatorPubKeyConverter.SilentEncode(validatorInfo.GetPublicKey(), log)
+		newCache[strKey] = &validator.ValidatorStatistics{
+			NumLeaderSuccess:                   validatorInfo.GetLeaderSuccess(),
+			NumLeaderFailure:                   validatorInfo.GetLeaderFailure(),
+			NumValidatorSuccess:                validatorInfo.GetValidatorSuccess(),
+			NumValidatorFailure:                validatorInfo.GetValidatorFailure(),
+			NumValidatorIgnoredSignatures:      validatorInfo.GetValidatorIgnoredSignatures(),
+			TotalNumLeaderSuccess:              validatorInfo.GetTotalLeaderSuccess(),
+			TotalNumLeaderFailure:              validatorInfo.GetTotalLeaderFailure(),
+			TotalNumValidatorSuccess:           validatorInfo.GetTotalValidatorSuccess(),
+			TotalNumValidatorFailure:           validatorInfo.GetTotalValidatorFailure(),
+			TotalNumValidatorIgnoredSignatures: validatorInfo.GetTotalValidatorIgnoredSignatures(),
+			RatingModifier:                     validatorInfo.GetRatingModifier(),
+			Rating:                             float32(validatorInfo.GetRating()) * 100 / float32(vp.maxRating),
+			TempRating:                         float32(validatorInfo.GetTempRating()) * 100 / float32(vp.maxRating),
+			ShardId:                            validatorInfo.GetShardId(),
+			ValidatorStatus:                    validatorInfo.GetList(),
 		}
 	}
 
@@ -248,20 +278,19 @@ func (vp *validatorsProvider) createValidatorApiResponseMapFromValidatorInfoMap(
 }
 
 func (vp *validatorsProvider) aggregateLists(
-	newCache map[string]*accounts.ValidatorApiResponse,
+	newCache map[string]*validator.ValidatorStatistics,
 	validatorsMap map[uint32][][]byte,
 	currentList common.PeerType,
 ) {
 	for shardID, shardValidators := range validatorsMap {
 		for _, val := range shardValidators {
-			encodedKey := vp.pubkeyConverter.SilentEncode(val, log)
-
+			encodedKey := vp.validatorPubKeyConverter.SilentEncode(val, log)
 			foundInTrieValidator, ok := newCache[encodedKey]
 
 			peerType := string(currentList)
 
 			if !ok || foundInTrieValidator == nil {
-				newCache[encodedKey] = &accounts.ValidatorApiResponse{}
+				newCache[encodedKey] = &validator.ValidatorStatistics{}
 				newCache[encodedKey].ShardId = shardID
 				newCache[encodedKey].ValidatorStatus = peerType
 				log.Debug("validator from map not found in trie", "pk", encodedKey, "map", peerType)

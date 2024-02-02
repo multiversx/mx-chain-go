@@ -338,7 +338,7 @@ func CheckForwarderRawSavedCallbackArgs(
 	}
 }
 
-/// ForwarderRawSavedPaymentInfo contains token data to be checked in the forwarder-raw contract.
+// ForwarderRawSavedPaymentInfo contains token data to be checked in the forwarder-raw contract.
 type ForwarderRawSavedPaymentInfo struct {
 	TokenId string
 	Nonce   uint64

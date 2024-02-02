@@ -52,6 +52,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -349,26 +350,28 @@ func CreateNodesWithTestHeartbeatNode(
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize: shardConsensusGroupSize,
-			MetaConsensusGroupSize:  metaConsensusGroupSize,
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			ShardIDAsObserver:       shardId,
-			NbShards:                uint32(numShards),
-			EligibleNodes:           validatorsForNodesCoordinator,
-			SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache:     suCache,
-			Shuffler:                &shardingMocks.NodeShufflerMock{},
-			BootStorer:              CreateMemUnit(),
-			WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
-			Epoch:                   0,
-			EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
-			ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-			ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:           false,
-			EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+			ShardConsensusGroupSize:         shardConsensusGroupSize,
+			MetaConsensusGroupSize:          metaConsensusGroupSize,
+			Marshalizer:                     TestMarshalizer,
+			Hasher:                          TestHasher,
+			ShardIDAsObserver:               shardId,
+			NbShards:                        uint32(numShards),
+			EligibleNodes:                   validatorsForNodesCoordinator,
+			SelfPublicKey:                   []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:             suCache,
+			Shuffler:                        &shardingMocks.NodeShufflerMock{},
+			BootStorer:                      CreateMemUnit(),
+			WaitingNodes:                    make(map[uint32][]nodesCoordinator.Validator),
+			Epoch:                           0,
+			EpochStartNotifier:              notifier.NewEpochStartSubscriptionHandler(),
+			ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:                   false,
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+			GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+			NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -395,26 +398,28 @@ func CreateNodesWithTestHeartbeatNode(
 			}
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize: shardConsensusGroupSize,
-				MetaConsensusGroupSize:  metaConsensusGroupSize,
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				ShardIDAsObserver:       shardId,
-				NbShards:                uint32(numShards),
-				EligibleNodes:           validatorsForNodesCoordinator,
-				SelfPublicKey:           []byte(strconv.Itoa(int(shardId))),
-				ConsensusGroupCache:     suCache,
-				Shuffler:                &shardingMocks.NodeShufflerMock{},
-				BootStorer:              CreateMemUnit(),
-				WaitingNodes:            make(map[uint32][]nodesCoordinator.Validator),
-				Epoch:                   0,
-				EpochStartNotifier:      notifier.NewEpochStartSubscriptionHandler(),
-				ShuffledOutHandler:      &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:            endProcess.GetDummyEndProcessChannel(),
-				NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
-				IsFullArchive:           false,
-				EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher:     &vic.ValidatorInfoCacherStub{},
+				ShardConsensusGroupSize:         shardConsensusGroupSize,
+				MetaConsensusGroupSize:          metaConsensusGroupSize,
+				Marshalizer:                     TestMarshalizer,
+				Hasher:                          TestHasher,
+				ShardIDAsObserver:               shardId,
+				NbShards:                        uint32(numShards),
+				EligibleNodes:                   validatorsForNodesCoordinator,
+				SelfPublicKey:                   []byte(strconv.Itoa(int(shardId))),
+				ConsensusGroupCache:             suCache,
+				Shuffler:                        &shardingMocks.NodeShufflerMock{},
+				BootStorer:                      CreateMemUnit(),
+				WaitingNodes:                    make(map[uint32][]nodesCoordinator.Validator),
+				Epoch:                           0,
+				EpochStartNotifier:              notifier.NewEpochStartSubscriptionHandler(),
+				ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+				NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+				IsFullArchive:                   false,
+				EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+				GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+				NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)

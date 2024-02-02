@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -17,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 // FacadeStub is the mock implementation of a node router handler
@@ -36,7 +36,7 @@ type FacadeStub struct {
 	SendBulkTransactionsHandler                 func(txs []*transaction.Transaction) (uint64, error)
 	ExecuteSCQueryHandler                       func(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	StatusMetricsHandler                        func() external.StatusMetricsHandler
-	ValidatorStatisticsHandler                  func() (map[string]*accounts.ValidatorApiResponse, error)
+	ValidatorStatisticsHandler                  func() (map[string]*validator.ValidatorStatistics, error)
 	ComputeTransactionGasLimitHandler           func(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	NodeConfigCalled                            func() map[string]interface{}
 	GetQueryHandlerCalled                       func(name string) (debug.QueryHandler, error)
@@ -93,6 +93,9 @@ type FacadeStub struct {
 	GetManagedKeysCalled                        func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
+	P2PPrometheusMetricsEnabledCalled           func() bool
+	AuctionListHandler                          func() ([]*common.AuctionListValidatorAPIResponse, error)
 }
 
 // GetTokenSupply -
@@ -193,12 +196,20 @@ func (f *FacadeStub) PprofEnabled() bool {
 
 // GetHeartbeats returns the slice of heartbeat info
 func (f *FacadeStub) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
-	return f.GetHeartbeatsHandler()
+	if f.GetHeartbeatsHandler != nil {
+		return f.GetHeartbeatsHandler()
+	}
+
+	return nil, nil
 }
 
 // GetBalance is the mock implementation of a handler's GetBalance method
 func (f *FacadeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
-	return f.GetBalanceCalled(address, options)
+	if f.GetBalanceCalled != nil {
+		return f.GetBalanceCalled(address, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // GetValueForKey is the mock implementation of a handler's GetValueForKey method
@@ -283,7 +294,11 @@ func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
 
 // GetAccount -
 func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
-	return f.GetAccountCalled(address, options)
+	if f.GetAccountCalled != nil {
+		return f.GetAccountCalled(address, options)
+	}
+
+	return api.AccountResponse{}, api.BlockInfo{}, nil
 }
 
 // GetAccounts -
@@ -297,72 +312,137 @@ func (f *FacadeStub) GetAccounts(addresses []string, options api.AccountQueryOpt
 
 // CreateTransaction is  mock implementation of a handler's CreateTransaction method
 func (f *FacadeStub) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*transaction.Transaction, []byte, error) {
-	return f.CreateTransactionHandler(txArgs)
+	if f.CreateTransactionHandler != nil {
+		return f.CreateTransactionHandler(txArgs)
+	}
+
+	return nil, nil, nil
 }
 
 // GetTransaction is the mock implementation of a handler's GetTransaction method
 func (f *FacadeStub) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
-	return f.GetTransactionHandler(hash, withResults)
+	if f.GetTransactionHandler != nil {
+		return f.GetTransactionHandler(hash, withResults)
+	}
+
+	return nil, nil
 }
 
 // SimulateTransactionExecution is the mock implementation of a handler's SimulateTransactionExecution method
 func (f *FacadeStub) SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
-	return f.SimulateTransactionExecutionHandler(tx)
+	if f.SimulateTransactionExecutionHandler != nil {
+		return f.SimulateTransactionExecutionHandler(tx)
+	}
+
+	return nil, nil
 }
 
 // SendBulkTransactions is the mock implementation of a handler's SendBulkTransactions method
 func (f *FacadeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	return f.SendBulkTransactionsHandler(txs)
+	if f.SendBulkTransactionsHandler != nil {
+		return f.SendBulkTransactionsHandler(txs)
+	}
+
+	return 0, nil
 }
 
 // ValidateTransaction -
 func (f *FacadeStub) ValidateTransaction(tx *transaction.Transaction) error {
-	return f.ValidateTransactionHandler(tx)
+	if f.ValidateTransactionHandler != nil {
+		return f.ValidateTransactionHandler(tx)
+	}
+
+	return nil
 }
 
 // ValidateTransactionForSimulation -
 func (f *FacadeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
-	return f.ValidateTransactionForSimulationHandler(tx, bypassSignature)
+	if f.ValidateTransactionForSimulationHandler != nil {
+		return f.ValidateTransactionForSimulationHandler(tx, bypassSignature)
+	}
+
+	return nil
 }
 
 // ValidatorStatisticsApi is the mock implementation of a handler's ValidatorStatisticsApi method
-func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
-	return f.ValidatorStatisticsHandler()
+func (f *FacadeStub) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
+	if f.ValidatorStatisticsHandler != nil {
+		return f.ValidatorStatisticsHandler()
+	}
+
+	return nil, nil
+}
+
+// AuctionListApi is the mock implementation of a handler's AuctionListApi method
+func (f *FacadeStub) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	if f.AuctionListHandler != nil {
+		return f.AuctionListHandler()
+	}
+
+	return nil, nil
 }
 
 // ExecuteSCQuery is a mock implementation.
 func (f *FacadeStub) ExecuteSCQuery(query *process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error) {
-	return f.ExecuteSCQueryHandler(query)
+	if f.ExecuteSCQueryHandler != nil {
+		return f.ExecuteSCQueryHandler(query)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // StatusMetrics is the mock implementation for the StatusMetrics
 func (f *FacadeStub) StatusMetrics() external.StatusMetricsHandler {
-	return f.StatusMetricsHandler()
+	if f.StatusMetricsHandler != nil {
+		return f.StatusMetricsHandler()
+	}
+
+	return nil
 }
 
 // GetTotalStakedValue -
 func (f *FacadeStub) GetTotalStakedValue() (*api.StakeValues, error) {
-	return f.GetTotalStakedValueHandler()
+	if f.GetTotalStakedValueHandler != nil {
+		return f.GetTotalStakedValueHandler()
+	}
+
+	return nil, nil
 }
 
 // GetDirectStakedList -
 func (f *FacadeStub) GetDirectStakedList() ([]*api.DirectStakedValue, error) {
-	return f.GetDirectStakedListHandler()
+	if f.GetDirectStakedListHandler != nil {
+		return f.GetDirectStakedListHandler()
+	}
+
+	return nil, nil
 }
 
 // GetDelegatorsList -
 func (f *FacadeStub) GetDelegatorsList() ([]*api.Delegator, error) {
-	return f.GetDelegatorsListHandler()
+	if f.GetDelegatorsListHandler != nil {
+		return f.GetDelegatorsListHandler()
+	}
+
+	return nil, nil
 }
 
 // ComputeTransactionGasLimit -
 func (f *FacadeStub) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
-	return f.ComputeTransactionGasLimitHandler(tx)
+	if f.ComputeTransactionGasLimitHandler != nil {
+		return f.ComputeTransactionGasLimitHandler(tx)
+	}
+
+	return nil, nil
 }
 
 // NodeConfig -
 func (f *FacadeStub) NodeConfig() map[string]interface{} {
-	return f.NodeConfigCalled()
+	if f.NodeConfigCalled != nil {
+		return f.NodeConfigCalled()
+	}
+
+	return nil
 }
 
 // EncodeAddressPubkey -
@@ -380,17 +460,29 @@ func (f *FacadeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 
 // GetQueryHandler -
 func (f *FacadeStub) GetQueryHandler(name string) (debug.QueryHandler, error) {
-	return f.GetQueryHandlerCalled(name)
+	if f.GetQueryHandlerCalled != nil {
+		return f.GetQueryHandlerCalled(name)
+	}
+
+	return nil, nil
 }
 
 // GetPeerInfo -
 func (f *FacadeStub) GetPeerInfo(pid string) ([]core.QueryP2PPeerInfo, error) {
-	return f.GetPeerInfoCalled(pid)
+	if f.GetPeerInfoCalled != nil {
+		return f.GetPeerInfoCalled(pid)
+	}
+
+	return nil, nil
 }
 
 // GetConnectedPeersRatingsOnMainNetwork -
 func (f *FacadeStub) GetConnectedPeersRatingsOnMainNetwork() (string, error) {
-	return f.GetConnectedPeersRatingsOnMainNetworkCalled()
+	if f.GetConnectedPeersRatingsOnMainNetworkCalled != nil {
+		return f.GetConnectedPeersRatingsOnMainNetworkCalled()
+	}
+
+	return "", nil
 }
 
 // GetEpochStartDataAPI -
@@ -400,12 +492,20 @@ func (f *FacadeStub) GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataA
 
 // GetBlockByNonce -
 func (f *FacadeStub) GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error) {
-	return f.GetBlockByNonceCalled(nonce, options)
+	if f.GetBlockByNonceCalled != nil {
+		return f.GetBlockByNonceCalled(nonce, options)
+	}
+
+	return nil, nil
 }
 
 // GetBlockByHash -
 func (f *FacadeStub) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
-	return f.GetBlockByHashCalled(hash, options)
+	if f.GetBlockByHashCalled != nil {
+		return f.GetBlockByHashCalled(hash, options)
+	}
+
+	return nil, nil
 }
 
 // GetBlockByRound -
@@ -608,6 +708,22 @@ func (f *FacadeStub) GetWaitingManagedKeys() ([]string, error) {
 		return f.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (f *FacadeStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	if f.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return f.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
+}
+
+// P2PPrometheusMetricsEnabled -
+func (f *FacadeStub) P2PPrometheusMetricsEnabled() bool {
+	if f.P2PPrometheusMetricsEnabledCalled != nil {
+		return f.P2PPrometheusMetricsEnabledCalled()
+	}
+	return false
 }
 
 // Close -

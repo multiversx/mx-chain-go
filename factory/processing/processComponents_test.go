@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -43,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	nodesSetupMock "github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -106,8 +108,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		MaxRating:              100,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "1000",
-				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+				BaseIssuingCost:  "1000",
+				OwnerAddress:     "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -126,7 +129,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "2500000000000000000000",
+				GenesisNodePrice:                     "2500",
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
@@ -137,6 +140,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				NodeLimitPercentage:                  100.0,
+				StakeLimitPercentage:                 100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -169,7 +174,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			UInt64ByteSliceConv: &testsMocks.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      addrPubKeyConv,
 			ValPubKeyConv:       valPubKeyConv,
-			NodesConfig: &testscommon.NodesSetupStub{
+			NodesConfig: &nodesSetupMock.NodesSetupStub{
 				GetShardConsensusGroupSizeCalled: func() uint32 {
 					return 2
 				},
@@ -237,7 +242,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Outport: &outport.OutportStub{},
 		},
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
@@ -351,7 +357,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:      &testscommon.NodesSetupStub{},
+			NodesConfig:      &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:   nil,
 		}
 		pcf, err := processComp.NewProcessComponentsFactory(args)
@@ -364,7 +370,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:         &testscommon.NodesSetupStub{},
+			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: nil,
 		}
@@ -378,7 +384,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:         &testscommon.NodesSetupStub{},
+			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
 			ValPubKeyConv:       nil,
@@ -393,7 +399,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:         &testscommon.NodesSetupStub{},
+			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
 			ValPubKeyConv:       &testscommon.PubkeyConverterStub{},
@@ -409,7 +415,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		args.CoreData = &mock.CoreComponentsMock{
 			EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:         &testscommon.NodesSetupStub{},
+			NodesConfig:         &nodesSetupMock.NodesSetupStub{},
 			AddrPubKeyConv:      &testscommon.PubkeyConverterStub{},
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
 			ValPubKeyConv:       &testscommon.PubkeyConverterStub{},
@@ -730,7 +736,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		coreCompStub.GenesisNodesSetupCalled = func() sharding.GenesisNodesSetupHandler {
-			return &testscommon.NodesSetupStub{
+			return &nodesSetupMock.NodesSetupStub{
 				AllInitialNodesCalled: func() []nodesCoordinator.GenesisNodeInfoHandler {
 					return []nodesCoordinator.GenesisNodeInfoHandler{
 						&genesisMocks.GenesisNodeInfoHandlerMock{

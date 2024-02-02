@@ -304,6 +304,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
 	)
 	require.Nil(tb, err)
 

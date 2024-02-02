@@ -43,13 +43,11 @@ type EnableEpochs struct {
 	SaveJailedAlwaysEnableEpoch                              uint32
 	ValidatorToDelegationEnableEpoch                         uint32
 	ReDelegateBelowMinCheckEnableEpoch                       uint32
-	WaitingListFixEnableEpoch                                uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch              uint32
 	ScheduledMiniBlocksEnableEpoch                           uint32
 	ESDTMultiTransferEnableEpoch                             uint32
 	GlobalMintBurnDisableEpoch                               uint32
 	ESDTTransferRoleEnableEpoch                              uint32
-	BuiltInFunctionOnMetaEnableEpoch                         uint32
 	ComputeRewardCheckpointEnableEpoch                       uint32
 	SCRSizeInvariantCheckEnableEpoch                         uint32
 	BackwardCompSaveKeyValueEnableEpoch                      uint32
@@ -109,7 +107,12 @@ type EnableEpochs struct {
 	NFTStopCreateEnableEpoch                                 uint32
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
+	CurrentRandomnessOnSortingEnableEpoch                    uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
+	StakeLimitsEnableEpoch                                   uint32
+	StakingV4Step1EnableEpoch                                uint32
+	StakingV4Step2EnableEpoch                                uint32
+	StakingV4Step3EnableEpoch                                uint32
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch

@@ -12,9 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
@@ -45,16 +47,16 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 		EndOfEpochAddress:      vm.EndOfEpochAddress,
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       bytes.Repeat([]byte{1}, 32),
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsDelegationSmartContractFlagEnabledField:              true,
-			IsStakingV2FlagEnabledForActivationEpochCompletedField: true,
-			IsAddTokensToDelegationFlagEnabledField:                true,
-			IsDeleteDelegatorAfterClaimRewardsFlagEnabledField:     true,
-			IsComputeRewardCheckpointFlagEnabledField:              true,
-			IsValidatorToDelegationFlagEnabledField:                true,
-			IsReDelegateBelowMinCheckFlagEnabledField:              true,
-			IsMultiClaimOnDelegationEnabledField:                   true,
-		},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.DelegationSmartContractFlag,
+			common.StakingV2FlagAfterEpoch,
+			common.AddTokensToDelegationFlag,
+			common.DeleteDelegatorAfterClaimRewardsFlag,
+			common.ComputeRewardCheckpointFlag,
+			common.ValidatorToDelegationFlag,
+			common.ReDelegateBelowMinCheckFlag,
+			common.MultiClaimOnDelegationFlag,
+		),
 	}
 }
 
@@ -78,7 +80,7 @@ func addValidatorAndStakingScToVmContext(eei *vmContext) {
 		}
 
 		if bytes.Equal(key, vm.ValidatorSCAddress) {
-			enableEpochsHandler.IsStakingV2FlagEnabledField = true
+			enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
 				RewardAddress:   []byte("rewardAddr"),
 				TotalStakeValue: big.NewInt(1000),
@@ -144,7 +146,7 @@ func createDelegationContractAndEEI() (*delegation, *vmContext) {
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	})
 	systemSCContainerStub := &mock.SystemSCContainerStub{GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
 		return &mock.SystemSCStub{ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -157,6 +159,14 @@ func createDelegationContractAndEEI() (*delegation, *vmContext) {
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	d, _ := NewDelegationSystemSC(args)
+
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(10),
+		MinDelegationAmount: big.NewInt(10),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
 	return d, eei
 }
 
@@ -227,6 +237,17 @@ func TestNewDelegationSystemSC_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	d, err := NewDelegationSystemSC(args)
 	assert.Nil(t, d)
 	assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewDelegationSystemSC_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	d, err := NewDelegationSystemSC(args)
+	assert.Nil(t, d)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewDelegationSystemSC_NilSigVerifierShouldErr(t *testing.T) {
@@ -305,7 +326,7 @@ func TestDelegationSystemSC_ExecuteDelegationDisabledShouldErr(t *testing.T) {
 	args.Eei = eei
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	d, _ := NewDelegationSystemSC(args)
-	enableEpochsHandler.IsDelegationSmartContractFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationSmartContractFlag)
 	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{})
 
 	output := d.Execute(vmInput)
@@ -1080,7 +1101,7 @@ func TestDelegationSystemSC_ExecuteUnStakeNodesAtEndOfEpoch(t *testing.T) {
 	validatorArgs.Eei = eei
 	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
 	enableEpochsHandler, _ := validatorArgs.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStakingV2FlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
 	validatorArgs.StakingSCAddress = vm.StakingSCAddress
 	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
 
@@ -1603,9 +1624,16 @@ func TestDelegationSystemSC_ExecuteUnDelegateUserErrorsWhenGettingMinimumDelegat
 	})
 	d.eei.SetStorage([]byte(lastFundKey), fundKey)
 
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(50),
+		MinDelegationAmount: big.NewInt(50),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "error getting minimum delegation amount"))
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid value to undelegate - need to undelegate all - do not leave dust behind"))
 }
 
 func TestDelegationSystemSC_ExecuteUnDelegateUserNotDelegatorOrNoActiveFundShouldErr(t *testing.T) {
@@ -2601,7 +2629,11 @@ func prepareReDelegateRewardsComponents(
 	args.DelegationSCConfig.MaxServiceFee = 10000
 	args.DelegationSCConfig.MinServiceFee = 0
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsReDelegateBelowMinCheckFlagEnabledField = extraCheckEpoch == 0
+	if extraCheckEpoch == 0 {
+		enableEpochsHandler.AddActiveFlags(common.ReDelegateBelowMinCheckFlag)
+	} else {
+		enableEpochsHandler.RemoveActiveFlags(common.ReDelegateBelowMinCheckFlag)
+	}
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(core.SCDeployInitFunctionName, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 	vmInput.CallValue = big.NewInt(1000)
@@ -3908,12 +3940,12 @@ func TestDelegation_checkArgumentsForValidatorToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 	eei.returnMessage = ""
 	returnCode = d.checkArgumentsForValidatorToDelegation(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
@@ -4047,12 +4079,12 @@ func TestDelegation_initFromValidatorData(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(initFromValidatorData, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, initFromValidatorData+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4176,12 +4208,12 @@ func TestDelegation_mergeValidatorDataToDelegation(t *testing.T) {
 	d, _ := NewDelegationSystemSC(args)
 	vmInput := getDefaultVmInputForFunc(mergeValidatorDataToDelegation, [][]byte{big.NewInt(0).Bytes(), big.NewInt(0).Bytes()})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, mergeValidatorDataToDelegation+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 
 	eei.returnMessage = ""
 	vmInput.CallerAddr = d.delegationMgrSCAddress
@@ -4317,12 +4349,12 @@ func TestDelegation_whitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("whitelistForMerge", [][]byte{[]byte("address")})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "whitelistForMerge"+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 
 	eei.returnMessage = ""
 	returnCode = d.Execute(vmInput)
@@ -4396,12 +4428,12 @@ func TestDelegation_deleteWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("deleteWhitelistForMerge", [][]byte{[]byte("address")})
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "deleteWhitelistForMerge"+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 	d.eei.SetStorage([]byte(ownerKey), []byte("address0"))
 	vmInput.CallerAddr = []byte("address0")
 
@@ -4454,12 +4486,12 @@ func TestDelegation_GetWhitelistForMerge(t *testing.T) {
 
 	vmInput := getDefaultVmInputForFunc("getWhitelistForMerge", make([][]byte, 0))
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.ValidatorToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "getWhitelistForMerge"+" is an unknown function")
 
-	enableEpochsHandler.IsValidatorToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
 
 	addr := []byte("address1")
 	vmInput = getDefaultVmInputForFunc("whitelistForMerge", [][]byte{addr})
@@ -4576,13 +4608,13 @@ func TestDelegation_AddTokens(t *testing.T) {
 	vmInput.CallValue = big.NewInt(20)
 	vmInput.CallerAddr = vm.EndOfEpochAddress
 
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.AddTokensToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" is an unknown function")
 
 	eei.returnMessage = ""
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.AddTokensToDelegationFlag)
 	returnCode = d.Execute(vmInput)
 	assert.Equal(t, returnCode, vmcommon.UserError)
 	assert.Equal(t, eei.returnMessage, vmInput.Function+" can be called by whitelisted address only")
@@ -4597,12 +4629,12 @@ func TestDelegation_correctNodesStatus(t *testing.T) {
 	vmInput := getDefaultVmInputForFunc("correctNodesStatus", nil)
 
 	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.AddTokensToDelegationFlag)
 	returnCode := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 	assert.Equal(t, eei.returnMessage, "correctNodesStatus is an unknown function")
 
-	enableEpochsHandler.IsAddTokensToDelegationFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.AddTokensToDelegationFlag)
 	eei.returnMessage = ""
 	vmInput.CallValue.SetUint64(10)
 	returnCode = d.Execute(vmInput)
@@ -4730,9 +4762,7 @@ func createDefaultEeiArgs() VMContextArgs {
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsMultiClaimOnDelegationEnabledField: true,
-		},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MultiClaimOnDelegationFlag),
 	}
 }
 
@@ -4759,13 +4789,13 @@ func TestDelegationSystemSC_ExecuteChangeOwnerUserErrors(t *testing.T) {
 	args.Eei = eei
 
 	d, _ := NewDelegationSystemSC(args)
-	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = false
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).RemoveActiveFlags(common.ChangeDelegationOwnerFlag)
 	vmInput := getDefaultVmInputForFunc("changeOwner", vmInputArgs)
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vmInput.Function+" is an unknown function"))
 
-	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.ChangeDelegationOwnerFlag)
 	vmInput.CallValue = big.NewInt(0)
 	vmInput.CallerAddr = []byte("aaa")
 	output = d.Execute(vmInput)
@@ -4810,7 +4840,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	epochHandler.IsMultiClaimOnDelegationEnabledField = false
+	epochHandler.RemoveActiveFlags(common.MultiClaimOnDelegationFlag)
 	argsVmContext := VMContextArgs{
 		BlockChainHook:      &mock.BlockChainHookStub{},
 		CryptoHook:          hooks.NewVMCryptoHook(),
@@ -4820,7 +4850,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithoutAccountUpdate(t *testing.T)
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
 	}
-	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag)
 	eei, err := NewVMContext(argsVmContext)
 	require.Nil(t, err)
 
@@ -4886,7 +4916,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 	vmInputArgs := make([][]byte, 0)
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+	epochHandler.AddActiveFlags(common.FixDelegationChangeOwnerOnAccountFlag)
 	account := &stateMock.AccountWrapMock{}
 	argsVmContext := VMContextArgs{
 		BlockChainHook:      &mock.BlockChainHookStub{},
@@ -4901,7 +4931,7 @@ func TestDelegationSystemSC_ExecuteChangeOwnerWithAccountUpdate(t *testing.T) {
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: args.EnableEpochsHandler,
 	}
-	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).IsChangeDelegationOwnerFlagEnabledField = true
+	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag)
 	eei, err := NewVMContext(argsVmContext)
 	require.Nil(t, err)
 
@@ -4936,7 +4966,6 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 
 	args := createMockArgumentsForDelegation()
 	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = false
 
 	account := &stateMock.AccountWrapMock{}
 
@@ -4978,7 +5007,7 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		assert.Equal(t, "synchronizeOwner is an unknown function", eei.GetReturnMessage())
 	})
 
-	epochHandler.FixDelegationChangeOwnerOnAccountEnabledField = true
+	epochHandler.AddActiveFlags(common.FixDelegationChangeOwnerOnAccountFlag)
 	eei.ResetReturnMessage()
 
 	t.Run("transfer value is not zero", func(t *testing.T) {
@@ -5014,4 +5043,140 @@ func TestDelegationSystemSC_SynchronizeOwner(t *testing.T) {
 		assert.Equal(t, ownerAddress, account.Owner)
 		eei.ResetReturnMessage()
 	})
+}
+
+func TestDelegationSystemSC_ExecuteAddNodesStakeNodesWithNodesLimit(t *testing.T) {
+	t.Parallel()
+
+	sig := []byte("sig1")
+	args := createMockArgumentsForDelegation()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+		common.StakingV4Step1Flag,
+		common.StakingV4Step2Flag,
+		common.StakingV4Step3Flag,
+		common.StakeLimitsFlag,
+
+		common.DelegationSmartContractFlag,
+		common.StakingV2FlagAfterEpoch,
+		common.AddTokensToDelegationFlag,
+		common.DeleteDelegatorAfterClaimRewardsFlag,
+		common.ComputeRewardCheckpointFlag,
+		common.ValidatorToDelegationFlag,
+		common.ReDelegateBelowMinCheckFlag,
+		common.MultiClaimOnDelegationFlag,
+	)
+	eei := createDefaultEei()
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	key1 := &NodesData{
+		BLSKey: blsKey1,
+	}
+	key2 := &NodesData{
+		BLSKey: blsKey2,
+	}
+	dStatus := &DelegationContractStatus{
+		StakedKeys: []*NodesData{key1, key2},
+	}
+	_ = d.saveDelegationStatus(dStatus)
+
+	globalFund := &GlobalFundData{
+		TotalActive: big.NewInt(400),
+	}
+	_ = d.saveGlobalFundData(globalFund)
+
+	addValidatorAndStakingScToVmContextWithBlsKeys(eei, [][]byte{blsKey1, blsKey2})
+
+	dStatus, _ = d.getDelegationStatus()
+	require.Equal(t, 2, len(dStatus.StakedKeys))
+	require.Equal(t, 0, len(dStatus.UnStakedKeys))
+	require.Equal(t, 0, len(dStatus.NotStakedKeys))
+
+	newBlsKey1 := []byte("newBlsKey1")
+	vmInput := getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey1, sig})
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stakeNodes", [][]byte{newBlsKey1})
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	dStatus, _ = d.getDelegationStatus()
+	require.Equal(t, 3, len(dStatus.StakedKeys))
+	require.Equal(t, 0, len(dStatus.UnStakedKeys))
+	require.Equal(t, 0, len(dStatus.NotStakedKeys))
+
+	addValidatorAndStakingScToVmContextWithBlsKeys(eei, [][]byte{blsKey1, blsKey2, newBlsKey1})
+
+	newBlsKey2 := []byte("newBlsKey2")
+	vmInput = getDefaultVmInputForFunc("addNodes", [][]byte{newBlsKey2, sig})
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stakeNodes", [][]byte{newBlsKey2})
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.True(t, strings.Contains(eei.returnMessage, numberOfNodesTooHigh))
+	require.True(t, strings.Contains(eei.returnMessage, "num registered bls keys: 4"))
+	require.True(t, strings.Contains(eei.returnMessage, "node limit: 3"))
+
+	dStatus, _ = d.getDelegationStatus()
+	require.Equal(t, 3, len(dStatus.StakedKeys))
+	require.Equal(t, 0, len(dStatus.UnStakedKeys))
+	require.Equal(t, 1, len(dStatus.NotStakedKeys))
+}
+
+func addValidatorAndStakingScToVmContextWithBlsKeys(eei *vmContext, blsKeys [][]byte) {
+	validatorArgs := createMockArgumentsForValidatorSC()
+	validatorArgs.StakingSCConfig.NodeLimitPercentage = 1
+	validatorArgs.Eei = eei
+	validatorArgs.StakingSCConfig.GenesisNodePrice = "100"
+	validatorArgs.StakingSCAddress = vm.StakingSCAddress
+	validatorArgs.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		GetNumTotalEligibleCalled: func() uint64 {
+			return 3
+		},
+	}
+	validatorSc, _ := NewValidatorSmartContract(validatorArgs)
+
+	stakingArgs := createMockStakingScArguments()
+	stakingArgs.Eei = eei
+	stakingSc, _ := NewStakingSmartContract(stakingArgs)
+
+	_ = eei.SetSystemSCContainer(&mock.SystemSCContainerStub{GetCalled: func(key []byte) (contract vm.SystemSmartContract, err error) {
+		if bytes.Equal(key, vm.StakingSCAddress) {
+			return stakingSc, nil
+		}
+
+		if bytes.Equal(key, vm.ValidatorSCAddress) {
+			_ = validatorSc.saveRegistrationData([]byte("addr"), &ValidatorDataV2{
+				RewardAddress:   []byte("rewardAddr"),
+				TotalStakeValue: big.NewInt(1000),
+				LockedStake:     big.NewInt(500),
+				BlsPubKeys:      blsKeys,
+				TotalUnstaked:   big.NewInt(150),
+				UnstakedInfo: []*UnstakedValue{
+					{
+						UnstakedEpoch: 10,
+						UnstakedValue: big.NewInt(60),
+					},
+					{
+						UnstakedEpoch: 50,
+						UnstakedValue: big.NewInt(80),
+					},
+				},
+				NumRegistered: uint32(len(blsKeys)),
+			})
+			validatorSc.unBondPeriod = 50
+			return validatorSc, nil
+		}
+
+		return nil, nil
+	}})
 }

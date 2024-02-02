@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -55,11 +56,13 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	mockStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -3202,12 +3205,11 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 	initialPubKeys[1] = keys[1]
 	initialPubKeys[2] = keys[2]
 
-	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 
 	for shardId, pubkeysPerShard := range initialPubKeys {
-		validatorsInfo[shardId] = make([]*state.ValidatorInfo, 0)
 		for _, pubKey := range pubkeysPerShard {
-			validatorsInfo[shardId] = append(validatorsInfo[shardId], &state.ValidatorInfo{
+			_ = validatorsInfo.Add(&state.ValidatorInfo{
 				PublicKey:                  []byte(pubKey),
 				ShardId:                    shardId,
 				List:                       "",
@@ -3229,26 +3231,25 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		}
 	}
 
-	vsp := &mock.ValidatorStatisticsProcessorStub{
+	vsp := &testscommon.ValidatorStatisticsProcessorStub{
 		RootHashCalled: func() (i []byte, err error) {
 			return []byte("hash"), nil
 		},
-		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m map[uint32][]*state.ValidatorInfo, err error) {
+		GetValidatorInfoForRootHashCalled: func(rootHash []byte) (m state.ShardValidatorsInfoMapHandler, err error) {
 			return validatorsInfo, nil
 		},
 	}
 
-	validatorProvider := &mock.ValidatorsProviderStub{GetLatestValidatorsCalled: func() map[string]*accounts.ValidatorApiResponse {
-		apiResponses := make(map[string]*accounts.ValidatorApiResponse)
+	validatorProvider := &stakingcommon.ValidatorsProviderStub{
+		GetLatestValidatorsCalled: func() map[string]*validator.ValidatorStatistics {
+			apiResponses := make(map[string]*validator.ValidatorStatistics)
 
-		for _, vis := range validatorsInfo {
-			for _, vi := range vis {
-				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &accounts.ValidatorApiResponse{}
+			for _, vi := range validatorsInfo.GetAllValidatorsInfo() {
+				apiResponses[hex.EncodeToString(vi.GetPublicKey())] = &validator.ValidatorStatistics{}
 			}
-		}
 
-		return apiResponses
-	},
+			return apiResponses
+		},
 	}
 
 	processComponents := getDefaultProcessComponents()
@@ -3260,7 +3261,7 @@ func TestNode_ValidatorStatisticsApi(t *testing.T) {
 		node.WithProcessComponents(processComponents),
 	)
 
-	expectedData := &accounts.ValidatorApiResponse{}
+	expectedData := &validator.ValidatorStatistics{}
 	validatorsData, err := n.ValidatorStatisticsApi()
 	require.Equal(t, expectedData, validatorsData[hex.EncodeToString([]byte(keys[2][0]))])
 	require.Nil(t, err)
@@ -5099,7 +5100,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
 		RatingsConfig:         &testscommon.RatingsInfoMock{},
 		RatingHandler:         &testscommon.RaterMock{},
-		NodesConfig:           &testscommon.NodesSetupStub{},
+		NodesConfig:           &genesisMocks.NodesSetupStub{},
 		StartTime:             time.Time{},
 		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
@@ -5124,8 +5125,8 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		BootSore:                             &mock.BootstrapStorerMock{},
 		HeaderSigVerif:                       &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
-		ValidatorStatistics:                  &mock.ValidatorStatisticsProcessorMock{},
-		ValidatorProvider:                    &mock.ValidatorsProviderStub{},
+		ValidatorStatistics:                  &testscommon.ValidatorStatisticsProcessorStub{},
+		ValidatorProvider:                    &stakingcommon.ValidatorsProviderStub{},
 		BlockTrack:                           &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:                 &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:                           &testscommon.RequestHandlerStub{},

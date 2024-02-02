@@ -134,8 +134,6 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			CheckpointRoundsModulus:     37,
-			CheckpointsEnabled:          true,
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
@@ -232,8 +230,6 @@ func TestTomlParser(t *testing.T) {
         DoProfileOnShuffleOut = true
 
 [StateTriesConfig]
-    CheckpointRoundsModulus = 37
-    CheckpointsEnabled = true
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
@@ -649,9 +645,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
     ValidatorToDelegationEnableEpoch = 29
 
-    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 30
-
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 31
@@ -664,9 +657,6 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
     ESDTTransferRoleEnableEpoch = 34
-
-    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 35
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 36
@@ -846,6 +836,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
     MigrateDataTrieEnableEpoch = 92
 
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 93
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -895,12 +888,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			SaveJailedAlwaysEnableEpoch:                              27,
 			ReDelegateBelowMinCheckEnableEpoch:                       28,
 			ValidatorToDelegationEnableEpoch:                         29,
-			WaitingListFixEnableEpoch:                                30,
 			IncrementSCRNonceInMultiTransferEnableEpoch:              31,
 			ESDTMultiTransferEnableEpoch:                             32,
 			GlobalMintBurnDisableEpoch:                               33,
 			ESDTTransferRoleEnableEpoch:                              34,
-			BuiltInFunctionOnMetaEnableEpoch:                         35,
 			ComputeRewardCheckpointEnableEpoch:                       36,
 			SCRSizeInvariantCheckEnableEpoch:                         37,
 			BackwardCompSaveKeyValueEnableEpoch:                      38,
@@ -958,6 +949,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
 			MigrateDataTrieEnableEpoch:                               92,
+			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

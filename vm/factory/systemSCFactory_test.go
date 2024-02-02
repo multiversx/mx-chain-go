@@ -33,8 +33,9 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		Hasher:              &hashingMocks.HasherMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "100000000",
-				OwnerAddress:    "aaaaaa",
+				BaseIssuingCost:  "100000000",
+				OwnerAddress:     "aaaaaa",
+				DelegationTicker: "DEL",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -65,6 +66,8 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
@@ -79,6 +82,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 		AddressPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		ShardCoordinator:       &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodesCoordinator:       &mock.NodesCoordinatorStub{},
 	}
 }
 
@@ -91,6 +95,17 @@ func TestNewSystemSCFactory_NilSystemEI(t *testing.T) {
 
 	assert.Nil(t, scFactory)
 	assert.True(t, errors.Is(err, vm.ErrNilSystemEnvironmentInterface))
+}
+
+func TestNewSystemSCFactory_NilNodesCoordinator(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	arguments.NodesCoordinator = nil
+	scFactory, err := NewSystemSCFactory(arguments)
+
+	assert.Nil(t, scFactory)
+	assert.True(t, errors.Is(err, vm.ErrNilNodesCoordinator))
 }
 
 func TestNewSystemSCFactory_NilSigVerifier(t *testing.T) {

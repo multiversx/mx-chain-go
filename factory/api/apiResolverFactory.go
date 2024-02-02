@@ -26,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -37,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -207,20 +207,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		ArgsParser:  smartContract.NewArgumentParser(),
-		GasSchedule: args.GasScheduleNotifier,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	feeComputer, err := fee.NewFeeComputer(fee.ArgsNewFeeComputer{
-		BuiltInFunctionsCostHandler: builtInCostHandler,
-		EconomicsConfig:             *args.Configs.EconomicsConfig,
-		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
-		TxVersionChecker:            args.CoreComponents.TxVersionChecker(),
-	})
+	feeComputer, err := fee.NewFeeComputer(args.CoreComponents.EconomicsData())
 	if err != nil {
 		return nil, err
 	}
@@ -284,6 +271,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		AccountsParser:           args.ProcessComponents.AccountsParser(),
 		GasScheduleNotifier:      args.GasScheduleNotifier,
 		ManagedPeersMonitor:      args.StatusComponents.ManagedPeersMonitor(),
+		NodesCoordinator:         args.ProcessComponents.NodesCoordinator(),
 	}
 
 	return external.NewNodeApiResolver(argsApiResolver)
@@ -486,6 +474,7 @@ func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBl
 		ChanceComputer:      args.coreComponents.Rater(),
 		ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		NodesCoordinator:    args.processComponents.NodesCoordinator(),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
 	if err != nil {
@@ -565,10 +554,6 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 	if err != nil {
 		return nil, err
 	}
-	checkpointsStorer, err := storageService.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return nil, err
-	}
 
 	trieFactoryArgs := trieFactory.TrieFactoryArgs{
 		Marshalizer:              args.coreComponents.InternalMarshalizer(),
@@ -583,14 +568,13 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 
 	trieCreatorArgs := trieFactory.TrieCreateArgs{
 		MainStorer:          trieStorer,
-		CheckpointsStorer:   checkpointsStorer,
 		PruningEnabled:      args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		CheckpointsEnabled:  args.generalConfig.StateTriesConfig.CheckpointsEnabled,
 		MaxTrieLevelInMem:   args.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		SnapshotsEnabled:    args.generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:        args.coreComponents.ProcessStatusHandler(),
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
 	}
 	_, merkleTrie, err := trFactory.Create(trieCreatorArgs)
 	if err != nil {
@@ -603,10 +587,8 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		Marshaller:            args.coreComponents.InternalMarshalizer(),
 		AccountFactory:        accountFactory,
 		StoragePruningManager: storagePruning,
-		ProcessingMode:        args.processingMode,
-		ProcessStatusHandler:  args.coreComponents.ProcessStatusHandler(),
-		AppStatusHandler:      args.statusCoreComponents.AppStatusHandler(),
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

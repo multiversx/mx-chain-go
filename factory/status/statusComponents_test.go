@@ -15,6 +15,7 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
@@ -45,7 +46,7 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 		NodesCoordinator:   &shardingMocks.NodesCoordinatorMock{},
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
 		CoreComponents: &mock.CoreComponentsMock{
-			NodesConfig: &testscommon.NodesSetupStub{
+			NodesConfig: &genesisMocks.NodesSetupStub{
 				GetRoundDurationCalled: func() uint64 {
 					return 1000
 				},
@@ -185,7 +186,7 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 
 		args := createMockStatusComponentsFactoryArgs()
 		args.CoreComponents = &mock.CoreComponentsMock{
-			NodesConfig: &testscommon.NodesSetupStub{
+			NodesConfig: &genesisMocks.NodesSetupStub{
 				GetRoundDurationCalled: func() uint64 {
 					return 0
 				},

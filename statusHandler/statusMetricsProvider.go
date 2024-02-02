@@ -295,7 +295,6 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricDelegationSmartContractEnableEpoch] = sm.uint64Metrics[common.MetricDelegationSmartContractEnableEpoch]
 	enableEpochsMetrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricIncrementSCRNonceInMultiTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricBalanceWaitingListsEnableEpoch] = sm.uint64Metrics[common.MetricBalanceWaitingListsEnableEpoch]
-	enableEpochsMetrics[common.MetricWaitingListFixEnableEpoch] = sm.uint64Metrics[common.MetricWaitingListFixEnableEpoch]
 	enableEpochsMetrics[common.MetricSetGuardianEnableEpoch] = sm.uint64Metrics[common.MetricSetGuardianEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
@@ -414,7 +413,12 @@ func (sm *statusMetrics) BootstrapMetrics() (map[string]interface{}, error) {
 	sm.mutUint64Operations.RLock()
 	bootstrapMetrics[common.MetricTrieSyncNumReceivedBytes] = sm.uint64Metrics[common.MetricTrieSyncNumReceivedBytes]
 	bootstrapMetrics[common.MetricTrieSyncNumProcessedNodes] = sm.uint64Metrics[common.MetricTrieSyncNumProcessedNodes]
+	bootstrapMetrics[common.MetricShardId] = sm.uint64Metrics[common.MetricShardId]
 	sm.mutUint64Operations.RUnlock()
+
+	sm.mutStringOperations.RLock()
+	bootstrapMetrics[common.MetricGatewayMetricsEndpoint] = sm.stringMetrics[common.MetricGatewayMetricsEndpoint]
+	sm.mutStringOperations.RUnlock()
 
 	return bootstrapMetrics, nil
 }

@@ -42,7 +42,6 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -174,7 +173,6 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -1293,7 +1291,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	}()
 
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	initialVal := big.NewInt(10000000000)
@@ -1410,7 +1408,6 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
 	}
@@ -2047,7 +2044,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
@@ -2106,7 +2103,6 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:           integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:     integrationTests.UnreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -2132,11 +2128,11 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
-		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000, 0)
 		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
 		gasScheduleHandler.GasScheduleChange(gasSchedule)
 	}
