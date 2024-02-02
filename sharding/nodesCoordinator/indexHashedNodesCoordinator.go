@@ -824,12 +824,14 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	validatorInfo *state.ShardValidatorInfo,
 ) {
 	shardId := validatorInfo.ShardId
-	if !ihnc.flagStakingV4Started.IsSet() {
+	previousList := validatorInfo.PreviousList
+	if !ihnc.flagStakingV4Started.IsSet() || len(previousList) == 0 {
+		log.Debug("leaving node before staking v4 or with not previous list set node found in",
+			"list", "eligible", "shardId", shardId, "previous list", previousList)
 		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
 		return
 	}
 
-	previousList := validatorInfo.PreviousList
 	if previousList == string(common.EligibleList) {
 		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
 		currentValidator.index = validatorInfo.PreviousIndex
