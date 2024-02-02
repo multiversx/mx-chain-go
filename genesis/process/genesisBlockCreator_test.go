@@ -123,9 +123,8 @@ func createMockArgument(
 		},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "5000000000000000000000",
-				OwnerAddress:     "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "5000000000000000000000",
+				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -163,6 +162,12 @@ func createMockArgument(
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		TrieStorageManagers: trieStorageManagers,

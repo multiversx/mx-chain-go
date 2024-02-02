@@ -50,9 +50,10 @@ func createSystemSCProcessor(
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 	auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
@@ -195,9 +196,8 @@ func createVMContainerFactory(
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -232,6 +232,12 @@ func createVMContainerFactory(
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ValidatorAccountsDB: stateComponents.PeerAccounts(),

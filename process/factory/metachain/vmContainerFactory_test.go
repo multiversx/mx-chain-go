@@ -37,9 +37,8 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "100000000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -66,6 +65,12 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				ActivateBLSPubKeyMessageVerification: false,
 				StakeLimitPercentage:                 100.0,
 				NodeLimitPercentage:                  100.0,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
@@ -333,9 +338,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		Marshalizer:         &mock.MarshalizerMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "100000000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "100000000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -373,6 +377,12 @@ func TestVmContainerFactory_Create(t *testing.T) {
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},

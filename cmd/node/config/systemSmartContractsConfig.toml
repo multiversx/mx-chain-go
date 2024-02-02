@@ -17,7 +17,6 @@
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
     OwnerAddress = "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"
-    DelegationTicker = "DEL"
 
 [GovernanceSystemSCConfig]
     OwnerAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80" #should use a multisign contract instead of a wallet address
@@ -42,3 +41,10 @@
 [DelegationSystemSCConfig]
     MinServiceFee  = 0
     MaxServiceFee  = 10000
+
+# Changing this config is not backwards compatible
+[SoftAuctionConfig]
+    TopUpStep = "10000000000000000000" # 10 EGLD
+    MinTopUp = "1000000000000000000" # 1 EGLD should be minimum
+    MaxTopUp = "32000000000000000000000000" # 32 mil EGLD
+    MaxNumberOfIterations = 100000 # 100k max number of iterations for soft auction config

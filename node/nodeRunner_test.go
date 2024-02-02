@@ -46,6 +46,7 @@ func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 	t.Parallel()
 
 	configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
+	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 50
 	runner, _ := NewNodeRunner(configs)
 
 	trigger := mock.NewApplicationRunningTrigger()
