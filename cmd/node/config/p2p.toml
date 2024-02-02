@@ -72,9 +72,9 @@
 [Sharding]
     # The targeted number of peer connections
     TargetPeerCount = 36
-    MaxIntraShardValidators = 7
+    MaxIntraShardValidators = 6
     MaxCrossShardValidators = 13
-    MaxIntraShardObservers = 4
+    MaxIntraShardObservers = 5
     MaxCrossShardObservers = 3
     MaxSeeders = 2
 
