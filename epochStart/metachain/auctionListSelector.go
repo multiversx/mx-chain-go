@@ -2,8 +2,8 @@ package metachain
 
 import (
 	"fmt"
-	"math"
 	"math/big"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -27,10 +27,11 @@ type ownerAuctionData struct {
 }
 
 type auctionConfig struct {
-	step        *big.Int
-	minTopUp    *big.Int
-	maxTopUp    *big.Int
-	denominator *big.Int
+	step                  *big.Int
+	minTopUp              *big.Int
+	maxTopUp              *big.Int
+	denominator           *big.Int
+	maxNumberOfIterations uint64
 }
 
 type auctionListSelector struct {
@@ -102,18 +103,58 @@ func getAuctionConfig(softAuctionConfig config.SoftAuctionConfig, denomination i
 		)
 	}
 
+	if minTopUp.Cmp(maxTopUp) > 0 {
+		return nil, fmt.Errorf("%w for min/max top up in soft auction config; min value: %s > max value: %s",
+			process.ErrInvalidValue,
+			softAuctionConfig.MinTopUp,
+			softAuctionConfig.MaxTopUp,
+		)
+	}
+
 	if denomination < 0 {
-		return nil, fmt.Errorf("%w for denomination soft auction config;expected number >= 0, got %d",
+		return nil, fmt.Errorf("%w for denomination in soft auction config;expected number >= 0, got %d",
 			process.ErrInvalidValue,
 			denomination,
 		)
 	}
 
+	if softAuctionConfig.MaxNumberOfIterations == 0 {
+		return nil, fmt.Errorf("%w for max number of iterations in soft auction config;expected value > 0",
+			process.ErrInvalidValue,
+		)
+	}
+
+	denominationStr := "1" + strings.Repeat("0", denomination)
+	denominator, ok := big.NewInt(0).SetString(denominationStr, 10)
+	if !ok {
+		return nil, fmt.Errorf("%w for denomination: %d",
+			errCannotComputeDenominator,
+			denomination,
+		)
+	}
+
+	if minTopUp.Cmp(denominator) < 0 {
+		return nil, fmt.Errorf("%w for min top up in auction config; expected value to be >= %s, got %s",
+			process.ErrInvalidValue,
+			denominator.String(),
+			minTopUp.String(),
+		)
+	}
+
+	if step.Cmp(denominator) < 0 {
+		return nil, fmt.Errorf("%w for step in auction config; expected value to be >= %s, got %s",
+			process.ErrInvalidValue,
+			denominator.String(),
+			step.String(),
+		)
+	}
+
 	return &auctionConfig{
-		step:        step,
-		minTopUp:    minTopUp,
-		maxTopUp:    maxTopUp,
-		denominator: big.NewInt(int64(math.Pow10(denomination))),
+		step:                  step,
+		minTopUp:              minTopUp,
+		maxTopUp:              maxTopUp,
+		denominator:           denominator,
+		maxNumberOfIterations: softAuctionConfig.MaxNumberOfIterations,
 	}, nil
 }
 
@@ -256,13 +297,19 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 
 	topUp := big.NewInt(0).SetBytes(minTopUp.Bytes())
 	previousConfig := copyOwnersData(ownersData)
-	for ; topUp.Cmp(maxTopUp) < 0; topUp.Add(topUp, als.softAuctionConfig.step) {
+	iterationNumber := uint64(0)
+	maxNumberOfIterationsReached := false
+
+	for ; topUp.Cmp(maxTopUp) < 0 && !maxNumberOfIterationsReached; topUp.Add(topUp, als.softAuctionConfig.step) {
 		previousConfig = copyOwnersData(ownersData)
 		numNodesQualifyingForTopUp := calcNodesConfig(ownersData, topUp)
 
 		if numNodesQualifyingForTopUp < int64(numAvailableSlots) {
 			break
 		}
+
+		iterationNumber++
+		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumberOfIterations
 	}
 
 	als.displayMinRequiredTopUp(topUp, minTopUp)
@@ -323,8 +370,11 @@ func calcNodesConfig(ownersData map[string]*ownerAuctionData, topUp *big.Int) in
 			continue
 		}
 
-		qualifiedNodes := big.NewInt(0).Div(validatorTopUpForAuction, topUp).Int64()
-		if qualifiedNodes > owner.numAuctionNodes {
+		qualifiedNodesBigInt := big.NewInt(0).Div(validatorTopUpForAuction, topUp)
+		qualifiedNodes := qualifiedNodesBigInt.Int64()
+		isNumQualifiedNodesOverflow := !qualifiedNodesBigInt.IsUint64()
+
+		if qualifiedNodes > owner.numAuctionNodes || isNumQualifiedNodesOverflow {
 			numNodesQualifyingForTopUp += owner.numAuctionNodes
 		} else {
 			numNodesQualifyingForTopUp += qualifiedNodes

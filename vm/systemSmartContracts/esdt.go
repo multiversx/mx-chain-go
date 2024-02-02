@@ -58,7 +58,6 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 	enableEpochsHandler    common.EnableEpochsHandler
-	delegationTicker       string
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -112,9 +111,6 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	if len(args.EndOfEpochSCAddress) == 0 {
 		return nil, vm.ErrNilEndOfEpochSmartContractAddress
 	}
-	if !isTickerValid([]byte(args.ESDTSCConfig.DelegationTicker)) {
-		return nil, vm.ErrInvalidDelegationTicker
-	}
 	baseIssuingCost, okConvert := big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, conversionBase)
 	if !okConvert || baseIssuingCost.Cmp(big.NewInt(0)) < 0 {
 		return nil, vm.ErrInvalidBaseIssuingCost
@@ -133,7 +129,6 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		delegationTicker:       args.ESDTSCConfig.DelegationTicker,
 	}, nil
 }
 

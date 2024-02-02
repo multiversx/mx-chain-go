@@ -832,9 +832,8 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		Marshalizer:         marshalizer,
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost:  "1000",
-				OwnerAddress:     "aaaaaa",
-				DelegationTicker: "DEL",
+				BaseIssuingCost: "1000",
+				OwnerAddress:    "aaaaaa",
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{
@@ -873,6 +872,12 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		ValidatorAccountsDB: peerAccountsDB,
 		UserAccountsDB:      userAccountsDB,
@@ -901,9 +906,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
@@ -1909,9 +1915,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		StakingDataProvider:          args.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep: "10",
-			MinTopUp:  "1",
-			MaxTopUp:  "32000000",
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
