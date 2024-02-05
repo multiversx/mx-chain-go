@@ -395,14 +395,16 @@ func (txs *transactions) verifyTransaction(
 
 		txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
 
-		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
-		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
-		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
-
-		if err == nil {
-			log.Debug("tx not eligible for execution", "error", err, "hash", txHash)
-			return process.ErrTransactionNotEligibleForExecution
+		if err != nil {
+			mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
+			mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 		}
+
+		//if err == nil {
+		//	log.Debug("tx not eligible for execution", "error", err, "hash", txHash)
+		//	return process.ErrTransactionNotEligibleForExecution
+		//}
 		return err
 	}
 
