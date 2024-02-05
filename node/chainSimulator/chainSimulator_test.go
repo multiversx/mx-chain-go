@@ -21,7 +21,7 @@ import (
 
 const (
 	defaultPathToInitialConfig             = "../../cmd/node/config/"
-	maxNumOfBlockToGenerateWhenExecutingTx = 10
+	maxNumOfBlockToGenerateWhenExecutingTx = 7
 )
 
 func TestNewChainSimulator(t *testing.T) {
@@ -371,33 +371,28 @@ func computeTxHash(chainSimulator ChainSimulator, tx *transaction.Transaction) (
 	return hex.EncodeToString(txHasBytes), nil
 }
 
-func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSimulator, tx *transaction.Transaction) {
-	shardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.SndAddr)
-	err := chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(tx)
+func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSimulator, txToSend *transaction.Transaction) {
+	shardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.SndAddr)
+	err := chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(txToSend)
 	require.Nil(t, err)
 
-	txHash, err := computeTxHash(chainSimulator, tx)
+	txHash, err := computeTxHash(chainSimulator, txToSend)
 	require.Nil(t, err)
-	log.Warn("send transaction", "txHash", txHash)
+	log.Info("############## send transaction ##############", "txHash", txHash)
 
-	_, err = chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{tx})
+	_, err = chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{txToSend})
 	require.Nil(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
-	destinationShardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.RcvAddr)
+	destinationShardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
 	count := 0
 	for {
 		err = chainSimulator.GenerateBlocks(1)
 		require.Nil(t, err)
 
-		txFromMeta, errGet := chainSimulator.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHash, true)
-		if errGet != nil && count < maxNumOfBlockToGenerateWhenExecutingTx {
-			count++
-			continue
-		}
-
-		if txFromMeta != nil && txFromMeta.Status != transaction.TxStatusPending {
+		tx, errGet := chainSimulator.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHash, true)
+		if errGet == nil && tx.Status != transaction.TxStatusPending {
 			break
 		}
 
@@ -408,5 +403,5 @@ func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSim
 		}
 	}
 
-	log.Warn("transaction was executed", "txHash", txHash)
+	log.Warn("############## transaction was executed ##############", "txHash", txHash)
 }
