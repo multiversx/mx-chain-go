@@ -827,6 +827,63 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	require.Equal(t, eei.GetReturnMessage(), "double vote is not allowed")
 }
 
+func TestGovernanceContract_VoteAfterGovernanceFixesActivationWithOngoingListV1(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, _ := createGovernanceBlockChainHookStubContextHandler()
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return 12
+	}
+
+	delegatedAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := []byte("aaaaaaaaa")
+	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+		Yes:            big.NewInt(0),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
+	}
+
+	voteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+	}
+	delegateVoteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+		delegatedAddress,
+		big.NewInt(30).Bytes(),
+	}
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), delegateVoteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
+	callInput := createVMInput(big.NewInt(0), "delegateVote", vm.ESDTSCAddress, vm.GovernanceSCAddress, delegateVoteArgs)
+	addStakeAndDelegationForAddress(gsc, callInput.CallerAddr)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	callInput = createVMInput(big.NewInt(0), "vote", delegatedAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	delegateVoteArgs[0] = []byte("2")
+	generalProposal.CommitHash = []byte("bbbbbbbbb")
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), delegateVoteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+	callInput = createVMInput(big.NewInt(0), "delegateVote", vm.ESDTSCAddress, vm.GovernanceSCAddress, delegateVoteArgs)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
 func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
 	t.Parallel()
 

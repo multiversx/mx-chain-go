@@ -531,6 +531,7 @@ func (g *governanceContract) addUserVote(
 	scAddress []byte,
 ) error {
 	nonce := big.NewInt(0).SetBytes(nonceAsBytes)
+	//TODO: remove extra struct & methods for V2 if no V1 proposal exists
 	err := g.updateUserVoteListV2(address, nonce.Uint64(), direct, scAddress)
 	if err != nil {
 		return err
@@ -1073,6 +1074,8 @@ func (g *governanceContract) getUserVotesV1(address []byte) (*OngoingVotedList, 
 	return onGoingList, nil
 }
 
+// getUserVotesV2 returns the ongoing voted list for a user
+// if the user has v1 ongoing list, it will be converted to v2, dropping Delegate field
 func (g *governanceContract) getUserVotesV2(address []byte) (*OngoingVotedListV2, error) {
 	onGoingListV2 := &OngoingVotedListV2{
 		Direct:               make([]uint64, 0),
