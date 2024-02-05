@@ -808,15 +808,6 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) finishWithIntValue(value int) {
-	if value == 0 {
-		g.eei.Finish([]byte{0})
-		return
-	}
-
-	g.eei.Finish(big.NewInt(int64(value)).Bytes())
-}
-
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	err := g.checkViewFuncArguments(args, 1)
 	if err != nil {
