@@ -386,22 +386,17 @@ func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSim
 	time.Sleep(100 * time.Millisecond)
 
 	destinationShardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
-	count := 0
-	for {
+	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
 		err = chainSimulator.GenerateBlocks(1)
 		require.Nil(t, err)
 
 		tx, errGet := chainSimulator.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHash, true)
 		if errGet == nil && tx.Status != transaction.TxStatusPending {
-			break
-		}
-
-		count++
-		if count >= maxNumOfBlockToGenerateWhenExecutingTx {
-			t.Error("something went wrong transaction is still in pending")
-			t.FailNow()
+			log.Info("############## transaction was executed ##############", "txHash", txHash)
+			return
 		}
 	}
 
-	log.Warn("############## transaction was executed ##############", "txHash", txHash)
+	t.Error("something went wrong transaction is still in pending")
+	t.FailNow()
 }
