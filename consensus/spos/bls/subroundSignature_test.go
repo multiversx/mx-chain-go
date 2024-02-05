@@ -626,6 +626,9 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 				return nil
 			},
 		})
+
+		sr.SetSelfPubKey("OTHER")
+
 		r := srSignature.DoSignatureJob()
 		assert.True(t, r)
 
@@ -633,9 +636,9 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		assert.True(t, sr.IsSubroundFinished(bls.SrSignature))
 
 		for _, pk := range sr.ConsensusGroup() {
-			leaderJobDone, err := sr.JobDone(pk, bls.SrSignature)
+			isJobDone, err := sr.JobDone(pk, bls.SrSignature)
 			assert.NoError(t, err)
-			assert.True(t, leaderJobDone)
+			assert.True(t, isJobDone)
 		}
 
 		expectedMap := map[string]struct{}{
