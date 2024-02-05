@@ -8,7 +8,35 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewAuctionListDisplayer(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid config", func(t *testing.T) {
+		cfg := createSoftAuctionConfig()
+		cfg.MaxNumberOfIterations = 0
+		ald, err := NewAuctionListDisplayer(cfg, 0)
+		require.Nil(t, ald)
+		requireInvalidValueError(t, err, "for max number of iterations")
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		cfg := createSoftAuctionConfig()
+		ald, err := NewAuctionListDisplayer(cfg, 0)
+		require.Nil(t, err)
+		require.False(t, ald.IsInterfaceNil())
+
+		require.NotPanics(t, func() {
+			ald.DisplayOwnersData(nil)
+			ald.DisplayOwnersSelectedNodes(nil)
+			ald.DisplayAuctionList(nil, nil, 0)
+
+		})
+	})
+}
+
 func TestGetPrettyValue(t *testing.T) {
+	t.Parallel()
+
 	require.Equal(t, "1234.0", getPrettyValue(big.NewInt(1234), big.NewInt(1)))
 	require.Equal(t, "123.4", getPrettyValue(big.NewInt(1234), big.NewInt(10)))
 	require.Equal(t, "12.34", getPrettyValue(big.NewInt(1234), big.NewInt(100)))

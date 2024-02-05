@@ -105,6 +105,15 @@ func TestNewAuctionListSelector(t *testing.T) {
 		require.Equal(t, epochStart.ErrNilMaxNodesChangeConfigProvider, err)
 	})
 
+	t.Run("nil auction list displayer", func(t *testing.T) {
+		t.Parallel()
+		args := createAuctionListSelectorArgs(nil)
+		args.AuctionListDisplayHandler = nil
+		als, err := NewAuctionListSelector(args)
+		require.Nil(t, als)
+		require.Equal(t, errNilAuctionListDisplayHandler, err)
+	})
+
 	t.Run("invalid soft auction config", func(t *testing.T) {
 		t.Parallel()
 		args := createAuctionListSelectorArgs(nil)
