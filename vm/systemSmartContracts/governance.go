@@ -728,8 +728,25 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	return vmcommon.Ok
 }
 
-func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	// TODO: implement
+func (g *governanceContract) clearEndedProposals(addresses [][]byte) vmcommon.ReturnCode {
+	numAddresses := uint64(len(addresses))
+	if numAddresses == 0 {
+		return vmcommon.Ok
+	}
+
+	err := g.eei.UseGas(numAddresses * g.gasCost.MetaChainSystemSCsCost.ClearProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+	for i := uint64(0); i < numAddresses; i++ {
+		voter := addresses[i]
+		if len(voter) != len(args.CallerAddr) {
+			g.eei.AddReturnMessage("invalid delegator address")
+			return vmcommon.UserError
+		}
+		err = g.clearUserVotes(voter)
+	}
 	return vmcommon.Ok
 }
 
