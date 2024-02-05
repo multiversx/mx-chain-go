@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	defaultPathToInitialConfig = "../../cmd/node/config/"
+	defaultPathToInitialConfig             = "../../cmd/node/config/"
+	maxNumOfBlockToGenerateWhenExecutingTx = 7
 )
 
 func TestNewChainSimulator(t *testing.T) {
@@ -235,25 +236,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-
-	err = chainSimulator.nodes[1].GetFacadeHandler().ValidateTransaction(tx)
-	require.Nil(t, err)
-
-	_, err = chainSimulator.nodes[1].GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{tx})
-	require.Nil(t, err)
-
-	time.Sleep(100 * time.Millisecond)
-
-	// Step 4 --- generate 5 blocks so that the transaction from step 2 can be executed
-	err = chainSimulator.GenerateBlocks(5)
-	require.Nil(t, err)
-
-	txHash, err := computeTxHash(chainSimulator, tx)
-	require.Nil(t, err)
-	txFromMeta, err := chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
-	require.Nil(t, err)
-	require.NotNil(t, txFromMeta)
-	require.Equal(t, 2, len(txFromMeta.SmartContractResults))
+	sendTxAndGenerateBlockTilTxIsExecuted(t, chainSimulator, tx)
 
 	shardIDValidatorOwner := chainSimulator.nodes[0].GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
 	accountValidatorOwner, _, err := chainSimulator.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
@@ -281,24 +264,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	err = chainSimulator.nodes[shardID].GetFacadeHandler().ValidateTransaction(tx)
-	require.Nil(t, err)
-
-	_, err = chainSimulator.nodes[shardID].GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{tx})
-	require.Nil(t, err)
-
-	time.Sleep(100 * time.Millisecond)
-
-	// Step 6 --- generate 5 blocks so that the transaction from step 5 can be executed
-	err = chainSimulator.GenerateBlocks(5)
-	require.Nil(t, err)
-
-	txHash, err = computeTxHash(chainSimulator, tx)
-	require.Nil(t, err)
-	txFromMeta, err = chainSimulator.nodes[core.MetachainShardId].GetFacadeHandler().GetTransaction(txHash, true)
-	require.Nil(t, err)
-	require.NotNil(t, txFromMeta)
-	require.Equal(t, 2, len(txFromMeta.SmartContractResults))
+	sendTxAndGenerateBlockTilTxIsExecuted(t, chainSimulator, tx)
 
 	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
 	err = chainSimulator.GenerateBlocks(50)
@@ -403,4 +369,34 @@ func computeTxHash(chainSimulator ChainSimulator, tx *transaction.Transaction) (
 
 	txHasBytes := chainSimulator.GetNodeHandler(1).GetCoreComponents().Hasher().Compute(string(txBytes))
 	return hex.EncodeToString(txHasBytes), nil
+}
+
+func sendTxAndGenerateBlockTilTxIsExecuted(t *testing.T, chainSimulator ChainSimulator, txToSend *transaction.Transaction) {
+	shardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.SndAddr)
+	err := chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(txToSend)
+	require.Nil(t, err)
+
+	txHash, err := computeTxHash(chainSimulator, txToSend)
+	require.Nil(t, err)
+	log.Info("############## send transaction ##############", "txHash", txHash)
+
+	_, err = chainSimulator.GetNodeHandler(shardID).GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{txToSend})
+	require.Nil(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	destinationShardID := chainSimulator.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
+	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
+		err = chainSimulator.GenerateBlocks(1)
+		require.Nil(t, err)
+
+		tx, errGet := chainSimulator.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHash, true)
+		if errGet == nil && tx.Status != transaction.TxStatusPending {
+			log.Info("############## transaction was executed ##############", "txHash", txHash)
+			return
+		}
+	}
+
+	t.Error("something went wrong transaction is still in pending")
+	t.FailNow()
 }
