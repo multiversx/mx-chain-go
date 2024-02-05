@@ -4125,7 +4125,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	token, _ := e.getExistingToken(vmInput.Arguments[0])
 	assert.Equal(t, token.NumDecimals, uint32(10))
-	assert.Equal(t, token.TokenType, []byte(metaESDT))
+	assert.Equal(t, token.TokenType, []byte(core.MetaESDT))
 }
 
 func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
@@ -4159,7 +4159,7 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 
 	token, _ = e.getExistingToken(fullTicker)
 	assert.Equal(t, token.NumDecimals, uint32(10))
-	assert.Equal(t, token.TokenType, []byte(metaESDT))
+	assert.Equal(t, token.TokenType, []byte(core.MetaESDT))
 
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4293,7 +4293,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
 
 	registerAndSetAllRolesWithTypeCheck(t, []byte("NFT"), []byte(core.NonFungibleESDT))
 	registerAndSetAllRolesWithTypeCheck(t, []byte("SFT"), []byte(core.SemiFungibleESDT))
-	registerAndSetAllRolesWithTypeCheck(t, []byte("META"), []byte(metaESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("META"), []byte(core.MetaESDT))
 	registerAndSetAllRolesWithTypeCheck(t, []byte("FNG"), []byte(core.FungibleESDT))
 }
 
@@ -4463,11 +4463,11 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(core.MetaESDT)})
 	assert.Nil(t, err)
 
 	enableEpochsHandler.AddActiveFlags(common.ManagedCryptoAPIsFlag)
-	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(core.MetaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
 }
 
@@ -4654,7 +4654,7 @@ func TestEsdt_UpdateTokenID(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
-	assert.Equal(t, esdtData.TokenType, []byte(nonFungibleV2))
+	assert.Equal(t, esdtData.TokenType, []byte(core.NonFungibleESDTv2))
 }
 
 func TestEsdt_RegisterDynamic(t *testing.T) {
@@ -4819,14 +4819,14 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "cannot change fungible tokens to dynamic"))
 
-	esdtData.TokenType = []byte(dynamicMetaESDT)
+	esdtData.TokenType = []byte(core.DynamicMetaESDT)
 	_ = e.saveToken(vmInput.Arguments[0], esdtData)
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "tokenID is already dynamic"))
 
-	esdtData.TokenType = []byte(metaESDT)
+	esdtData.TokenType = []byte(core.MetaESDT)
 	esdtData.SpecialRoles = append(esdtData.SpecialRoles, &ESDTRoles{Address: vmInput.CallerAddr, Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTUpdateAttributes)}})
 	esdtData.SpecialRoles = append(esdtData.SpecialRoles, &ESDTRoles{Address: bytes.Repeat([]byte{2}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTUpdateAttributes)}})
 
@@ -4837,12 +4837,12 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 	fmt.Println(eei.returnMessage)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCannotChangeToDynamic.Error()))
 
-	esdtData.SpecialRoles[1] = &ESDTRoles{Address: bytes.Repeat([]byte{2}, 32), Roles: [][]byte{[]byte(ESDTRoleNFTRecreate)}}
+	esdtData.SpecialRoles[1] = &ESDTRoles{Address: bytes.Repeat([]byte{2}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTRecreate)}}
 	_ = e.saveToken(vmInput.Arguments[0], esdtData)
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
 	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
-	assert.True(t, strings.Contains(string(esdtData.TokenType), dynamic))
+	assert.True(t, strings.Contains(string(esdtData.TokenType), core.Dynamic))
 }
