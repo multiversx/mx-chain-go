@@ -3,6 +3,7 @@ package bls
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"time"
@@ -16,6 +17,8 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
+
+const timeBetweenSignaturesChecks = time.Millisecond * 5
 
 type subroundEndRound struct {
 	*spos.Subround
@@ -83,6 +86,9 @@ func checkNewSubroundEndRoundParams(
 
 // receivedBlockHeaderFinalInfo method is called when a block header final info is received
 func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsDta *consensus.Message) bool {
+	sr.mutEquivalentProofsCriticalSection.Lock()
+	defer sr.mutEquivalentProofsCriticalSection.Unlock()
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
@@ -125,9 +131,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	sr.mutEquivalentProofsCriticalSection.RLock()
 	hasProof := sr.worker.HasEquivalentMessage(cnsDta.BlockHeaderHash)
-	sr.mutEquivalentProofsCriticalSection.RUnlock()
 	if hasProof && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return true
 	}
@@ -158,7 +162,7 @@ func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Messag
 		return sr.verifySignatures(header, cnsDta)
 	}
 
-	err := sr.HeaderSigVerifier().VerifySignatureForHash(header, cnsDta.BlockHeaderHash, cnsDta.PubKeysBitmap, cnsDta.Signature)
+	err := sr.HeaderSigVerifier().VerifySignatureForHash(header, cnsDta.BlockHeaderHash, cnsDta.PubKeysBitmap, cnsDta.AggregateSignature)
 	if err != nil {
 		log.Debug("isBlockHeaderFinalInfoValid.VerifySignatureForHash", "error", err.Error())
 		return false
@@ -318,14 +322,13 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	if isFlagEnabledForHeader {
-		headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
-		sr.mutEquivalentProofsCriticalSection.RLock()
-		hasProof := sr.worker.HasEquivalentMessage(headerHash)
-		sr.mutEquivalentProofsCriticalSection.RUnlock()
-		if err == nil && hasProof {
-			return
-		}
+	receivedHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
+	if err != nil {
+		return
+	}
+	isHeaderAlreadyReceived := bytes.Equal(receivedHeaderHash, sr.Data)
+	if isFlagEnabledForHeader && isHeaderAlreadyReceived {
+		return
 	}
 
 	sr.AddReceivedHeader(headerHandler)
@@ -368,6 +371,17 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sender, err := sr.getSender()
 	if err != nil {
+		return false
+	}
+
+	if !sr.waitForSignalSync() {
+		return false
+	}
+
+	sr.mutEquivalentProofsCriticalSection.Lock()
+	defer sr.mutEquivalentProofsCriticalSection.Unlock()
+
+	if !sr.shouldSendFinalInfo() {
 		return false
 	}
 
@@ -417,13 +431,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
-	sr.mutEquivalentProofsCriticalSection.Lock()
-	defer sr.mutEquivalentProofsCriticalSection.Unlock()
-
-	if !sr.shouldSendFinalInfo() {
-		return true
-	}
-
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
@@ -631,7 +638,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
-	threshold := sr.Threshold(sr.Current())
+	threshold := sr.Threshold(SrSignature)
 	numValidSigShares := sr.ComputeSize(SrSignature)
 
 	if check.IfNil(sr.Header) {
@@ -778,16 +785,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
-	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
-	if err != nil {
-		return false
-	}
-
-	sr.mutEquivalentProofsCriticalSection.Lock()
-	defer sr.mutEquivalentProofsCriticalSection.Unlock()
-	hasFinalInfo := sr.worker.HasEquivalentMessage(headerHash)
-
-	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.RoundHandler().Index() || hasFinalInfo
+	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.RoundHandler().Index()
 	if shouldNotCommitBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
 			"round", sr.RoundHandler().Index(),
@@ -808,7 +806,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(header, sr.Body)
+	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
@@ -1136,6 +1134,203 @@ func (sr *subroundEndRound) getSender() ([]byte, error) {
 	}
 
 	return []byte(sr.SelfPubKey()), nil
+}
+
+func (sr *subroundEndRound) waitForSignalSync() bool {
+	// TODO[cleanup cns finality]: remove this
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return true
+	}
+
+	if sr.checkReceivedSignatures() {
+		return true
+	}
+
+	go sr.waitAllSignatures()
+
+	timerBetweenStatusChecks := time.NewTimer(timeBetweenSignaturesChecks)
+
+	remainingSRTime := sr.remainingTime()
+	timeout := time.NewTimer(remainingSRTime)
+	for {
+		select {
+		case <-timerBetweenStatusChecks.C:
+			if sr.IsSubroundFinished(sr.Current()) {
+				log.Trace("subround already finished", "subround", sr.Name())
+				return false
+			}
+
+			if sr.checkReceivedSignatures() {
+				return true
+			}
+			timerBetweenStatusChecks.Reset(timeBetweenSignaturesChecks)
+		case <-timeout.C:
+			log.Debug("timeout while waiting for signatures or final info", "subround", sr.Name())
+			return false
+		}
+	}
+}
+
+func (sr *subroundEndRound) waitAllSignatures() {
+	remainingTime := sr.remainingTime()
+	time.Sleep(remainingTime)
+
+	if sr.IsSubroundFinished(sr.Current()) {
+		return
+	}
+
+	sr.WaitingAllSignaturesTimeOut = true
+
+	select {
+	case sr.ConsensusChannel() <- true:
+	default:
+	}
+}
+
+func (sr *subroundEndRound) remainingTime() time.Duration {
+	startTime := sr.RoundHandler().TimeStamp()
+	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
+	remainingTime := sr.RoundHandler().RemainingTime(startTime, maxTime)
+
+	return remainingTime
+}
+
+// receivedSignature method is called when a signature is received through the signature channel.
+// If the signature is valid, then the jobDone map corresponding to the node which sent it,
+// is set on true for the subround Signature
+func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
+	// TODO[cleanup cns finality]: remove this check
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return true
+	}
+
+	node := string(cnsDta.PubKey)
+	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
+
+	if !sr.IsConsensusDataSet() {
+		return false
+	}
+
+	if !sr.IsNodeInConsensusGroup(node) {
+		sr.PeerHonestyHandler().ChangeScore(
+			node,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ValidatorPeerHonestyDecreaseFactor,
+		)
+
+		return false
+	}
+
+	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+		return false
+	}
+
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
+		return false
+	}
+
+	index, err := sr.ConsensusGroupIndex(node)
+	if err != nil {
+		log.Debug("receivedSignature.ConsensusGroupIndex",
+			"node", pkForLogs,
+			"error", err.Error())
+		return false
+	}
+
+	err = sr.SigningHandler().StoreSignatureShare(uint16(index), cnsDta.SignatureShare)
+	if err != nil {
+		log.Debug("receivedSignature.StoreSignatureShare",
+			"node", pkForLogs,
+			"index", index,
+			"error", err.Error())
+		return false
+	}
+
+	err = sr.SetJobDone(node, SrSignature, true)
+	if err != nil {
+		log.Debug("receivedSignature.SetJobDone",
+			"node", pkForLogs,
+			"subround", sr.Name(),
+			"error", err.Error())
+		return false
+	}
+
+	sr.PeerHonestyHandler().ChangeScore(
+		node,
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.ValidatorPeerHonestyIncreaseFactor,
+	)
+
+	return true
+}
+
+func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	threshold := sr.Threshold(SrSignature)
+	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
+		threshold = sr.FallbackThreshold(SrSignature)
+		log.Warn("subroundEndRound.checkReceivedSignatures: fallback validation has been applied",
+			"minimum number of signatures required", threshold,
+			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
+		)
+	}
+
+	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
+	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
+
+	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
+
+	selfJobDone := true
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		selfJobDone = sr.IsSelfJobDone(SrSignature)
+	}
+	multiKeyJobDone := true
+	if sr.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = sr.IsMultiKeyJobDone(SrSignature)
+	}
+
+	hasProof := sr.worker.HasEquivalentMessage(sr.Data)
+	shouldStopWaitingSignatures := selfJobDone && multiKeyJobDone && isSignatureCollectionDone
+	if shouldStopWaitingSignatures || hasProof {
+		log.Debug("step 2: signatures collection done or proof already received",
+			"subround", sr.Name(),
+			"signatures received", numSigs,
+			"total signatures", len(sr.ConsensusGroup()),
+			"has proof", hasProof)
+
+		return true
+	}
+
+	return false
+}
+
+func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
+	n := 0
+
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		node := sr.ConsensusGroup()[i]
+
+		isSignJobDone, err := sr.JobDone(node, SrSignature)
+		if err != nil {
+			log.Debug("getNumOfSignaturesCollected.JobDone",
+				"node", node,
+				"subround", sr.Name(),
+				"error", err.Error())
+			continue
+		}
+
+		if isSignJobDone {
+			n++
+		}
+	}
+
+	return n
+}
+
+// areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current
+// jobDone group, are more than the necessary given threshold
+func (sr *subroundEndRound) areSignaturesCollected(threshold int) (bool, int) {
+	n := sr.getNumOfSignaturesCollected()
+	return n >= threshold, n
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
