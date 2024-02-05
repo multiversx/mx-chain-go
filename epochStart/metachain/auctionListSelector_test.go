@@ -38,8 +38,10 @@ func createAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeC
 
 	softAuctionCfg := createSoftAuctionConfig()
 	auctionDisplayer, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
-		TableDisplayHandler: NewTableDisplayer(),
-		AuctionConfig:       softAuctionCfg,
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            softAuctionCfg,
 	})
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             shardCoordinator,
@@ -62,8 +64,10 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 
 	softAuctionCfg := createSoftAuctionConfig()
 	auctionDisplayer, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
-		TableDisplayHandler: NewTableDisplayer(),
-		AuctionConfig:       softAuctionCfg,
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            softAuctionCfg,
 	})
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,

@@ -908,8 +908,11 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		MaxNumberOfIterations: 100000,
 	}
 	ald, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
-		TableDisplayHandler: NewTableDisplayer(),
-		AuctionConfig:       auctionCfg,
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            auctionCfg,
+		Denomination:             0,
 	})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             shardCoordinator,
@@ -1924,8 +1927,11 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		MaxNumberOfIterations: 100000,
 	}
 	ald, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
-		TableDisplayHandler: NewTableDisplayer(),
-		AuctionConfig:       auctionCfg,
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            auctionCfg,
+		Denomination:             0,
 	})
 
 	argsAuctionListSelector := AuctionListSelectorArgs{

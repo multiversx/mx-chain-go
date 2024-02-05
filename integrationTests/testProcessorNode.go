@@ -2342,8 +2342,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			MaxNumberOfIterations: 100000,
 		}
 		ald, _ := metachain.NewAuctionListDisplayer(metachain.ArgsAuctionListDisplayer{
-			TableDisplayHandler: metachain.NewTableDisplayer(),
-			AuctionConfig:       auctionCfg,
+			TableDisplayHandler:      metachain.NewTableDisplayer(),
+			ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+			AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+			AuctionConfig:            auctionCfg,
 		})
 
 		argsAuctionListSelector := metachain.AuctionListSelectorArgs{

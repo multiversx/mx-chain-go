@@ -5,14 +5,17 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
 func createDisplayerArgs() ArgsAuctionListDisplayer {
 	return ArgsAuctionListDisplayer{
-		TableDisplayHandler: NewTableDisplayer(),
-		AuctionConfig:       createSoftAuctionConfig(),
-		Denomination:        0,
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            createSoftAuctionConfig(),
+		Denomination:             0,
 	}
 }
 

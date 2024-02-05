@@ -888,9 +888,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsAuctionListDisplayer := metachainEpochStart.ArgsAuctionListDisplayer{
-		TableDisplayHandler: metachainEpochStart.NewTableDisplayer(),
-		AuctionConfig:       pcf.systemSCConfig.SoftAuctionConfig,
-		Denomination:        pcf.economicsConfig.GlobalSettings.Denomination,
+		TableDisplayHandler:      metachainEpochStart.NewTableDisplayer(),
+		ValidatorPubKeyConverter: pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:   pcf.coreData.AddressPubKeyConverter(),
+		AuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
+		Denomination:             pcf.economicsConfig.GlobalSettings.Denomination,
 	}
 	auctionListDisplayer, err := metachainEpochStart.NewAuctionListDisplayer(argsAuctionListDisplayer)
 	if err != nil {
