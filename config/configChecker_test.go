@@ -276,6 +276,32 @@ func TestSanityCheckNodesConfig(t *testing.T) {
 		}
 		err = SanityCheckNodesConfig(nodesSetup, cfg)
 		require.Nil(t, err)
+
+		cfg.MaxNodesChangeEnableEpoch = []MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            48,
+				NodesToShufflePerShard: 4,
+			},
+			{
+				EpochEnable:            1,
+				MaxNumNodes:            56,
+				NodesToShufflePerShard: 2,
+			},
+			{
+				EpochEnable:            6,
+				MaxNumNodes:            48,
+				NodesToShufflePerShard: 2,
+			},
+		}
+		nodesSetup = &nodesSetupMock.NodesSetupMock{
+			NumberOfShardsField:        numShards,
+			HysteresisField:            0.2,
+			MinNumberOfMetaNodesField:  10,
+			MinNumberOfShardNodesField: 10,
+		}
+		err = SanityCheckNodesConfig(nodesSetup, cfg)
+		require.Nil(t, err)
 	})
 
 	t.Run("zero nodes to shuffle per shard, should not return error", func(t *testing.T) {
