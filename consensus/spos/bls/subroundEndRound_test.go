@@ -1249,7 +1249,6 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, expectedErr
@@ -1271,7 +1270,6 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
@@ -1342,7 +1340,6 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
@@ -1351,7 +1348,9 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		for _, participant := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(participant, bls.SrSignature, true)
+		}
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.Equal(t, expectedErr, err)
@@ -1363,7 +1362,6 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SetAggregatedSigCalled: func(_ []byte) error {
 				return expectedErr
@@ -1371,7 +1369,9 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		}
 		container.SetSigningHandler(signingHandler)
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		for _, participant := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(participant, bls.SrSignature, true)
+		}
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.Equal(t, expectedErr, err)
@@ -1383,7 +1383,9 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		for _, participant := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(participant, bls.SrSignature, true)
+		}
 
 		bitmap, sig, err := sr.ComputeAggSigOnValidNodes()
 		require.NotNil(t, bitmap)
@@ -1441,16 +1443,14 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			},
 		)
 
-		srEndRound.SetThreshold(bls.SrEndRound, 2)
+		srEndRound.SetThreshold(bls.SrSignature, 2)
 
-		_ = srEndRound.SetJobDone(srEndRound.ConsensusGroup()[0], bls.SrSignature, true)
-		_ = srEndRound.SetJobDone(srEndRound.ConsensusGroup()[1], bls.SrSignature, true)
-		_ = srEndRound.SetJobDone(srEndRound.ConsensusGroup()[2], bls.SrSignature, true)
-
-		srEndRound.Header = &block.Header{}
+		for _, participant := range srEndRound.ConsensusGroup() {
+			_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
+		}
 
 		r := srEndRound.DoEndRoundJobByLeader()
-		require.True(t, r)
+		require.False(t, r)
 		require.True(t, wasHasEquivalentProofCalled)
 	})
 	t.Run("not enough valid signature shares", func(t *testing.T) {
@@ -1468,7 +1468,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
-					return errors.New("expected error")
+					return expectedErr
 				}
 
 				verifySigShareNumCalls++
@@ -1477,7 +1477,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
 				if verifyFirstCall {
 					verifyFirstCall = false
-					return errors.New("expected error")
+					return expectedErr
 				}
 
 				return nil
@@ -1515,7 +1515,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
-					return errors.New("expected error")
+					return expectedErr
 				}
 
 				verifySigShareNumCalls++
@@ -1524,7 +1524,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
 				if verifyFirstCall {
 					verifyFirstCall = false
-					return errors.New("expected error")
+					return expectedErr
 				}
 
 				return nil
@@ -1535,9 +1535,9 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		sr.SetThreshold(bls.SrEndRound, 2)
 
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[2], bls.SrSignature, true)
+		for _, participant := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(participant, bls.SrSignature, true)
+		}
 
 		sr.Header = &block.Header{}
 
@@ -1545,13 +1545,13 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		require.True(t, r)
 
 		assert.False(t, verifyFirstCall)
-		assert.Equal(t, 3, verifySigShareNumCalls)
+		assert.Equal(t, 9, verifySigShareNumCalls)
 	})
 	t.Run("should work with equivalent messages flag active", func(t *testing.T) {
 		t.Parallel()
 
 		providedPrevSig := []byte("prev sig")
-		providedPrevBitmap := []byte("prev bitmap")
+		providedPrevBitmap := []byte{1, 1, 1, 1, 1, 1, 1, 1, 1}
 		wasSetCurrentHeaderProofCalled := false
 		container := mock.InitConsensusCore()
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
@@ -1588,9 +1588,6 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
 		)
-		sr.Header = &block.HeaderV2{
-			Header: createDefaultHeader(),
-		}
 
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
@@ -1602,9 +1599,9 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		srEndRound.SetThreshold(bls.SrEndRound, 2)
 
-		_ = srEndRound.SetJobDone(srEndRound.ConsensusGroup()[0], bls.SrSignature, true)
-		_ = srEndRound.SetJobDone(srEndRound.ConsensusGroup()[1], bls.SrSignature, true)
-		_ = srEndRound.SetJobDone(srEndRound.ConsensusGroup()[2], bls.SrSignature, true)
+		for _, participant := range srEndRound.ConsensusGroup() {
+			_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
+		}
 
 		srEndRound.Header = &block.HeaderV2{
 			Header:                   createDefaultHeader(),
