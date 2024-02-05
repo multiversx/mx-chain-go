@@ -913,6 +913,8 @@ const (
 	ESDTFlag                                           core.EnableEpochFlag = "ESDTFlag"
 	ESDTFlagInSpecificEpochOnly                        core.EnableEpochFlag = "ESDTFlagInSpecificEpochOnly"
 	GovernanceFlag                                     core.EnableEpochFlag = "GovernanceFlag"
+	GovernanceDisableProposeFlag                       core.EnableEpochFlag = "GovernanceDisableProposeFlag"
+	GovernanceFixesFlag                                core.EnableEpochFlag = "GovernanceFixesFlag"
 	GovernanceFlagInSpecificEpochOnly                  core.EnableEpochFlag = "GovernanceFlagInSpecificEpochOnly"
 	DelegationManagerFlag                              core.EnableEpochFlag = "DelegationManagerFlag"
 	DelegationSmartContractFlag                        core.EnableEpochFlag = "DelegationSmartContractFlag"

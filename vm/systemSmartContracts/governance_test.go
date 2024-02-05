@@ -270,6 +270,19 @@ func TestGovernanceContract_ExecuteInit(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestGovernanceContract_ExecuteSendESDT(t *testing.T) {
+	t.Parallel()
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+
+	callerAddr := []byte("addr1")
+	callInput := createVMInput(big.NewInt(0), "vote", callerAddr, vm.GovernanceSCAddress, nil)
+	callInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: []byte("tokenName"), ESDTTokenType: 0, ESDTTokenNonce: 0}}
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "cannot transfer ESDT to system SCs"))
+}
+
 func TestGovernanceContract_ExecuteInitV2InvalidCaller(t *testing.T) {
 	t.Parallel()
 
@@ -827,6 +840,104 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	require.Equal(t, eei.GetReturnMessage(), "double vote is not allowed")
 }
 
+func TestGovernanceContract_VoteTwiceV2(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return 12
+	}
+
+	callerAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := []byte("aaaaaaaaa")
+	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+		Yes:            big.NewInt(0),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
+	}
+
+	voteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+	}
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
+	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	voteArgs[1] = []byte("no")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.GetReturnMessage(), "double vote is not allowed")
+}
+
+func TestGovernanceContract_VoteAfterGovernanceFixesActivationWithOngoingListV1(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, _ := createGovernanceBlockChainHookStubContextHandler()
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return 12
+	}
+
+	delegatedAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := []byte("aaaaaaaaa")
+	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+		Yes:            big.NewInt(0),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
+	}
+
+	voteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+	}
+	delegateVoteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+		delegatedAddress,
+		big.NewInt(30).Bytes(),
+	}
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), delegateVoteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
+	callInput := createVMInput(big.NewInt(0), "delegateVote", vm.ESDTSCAddress, vm.GovernanceSCAddress, delegateVoteArgs)
+	addStakeAndDelegationForAddress(gsc, callInput.CallerAddr)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	callInput = createVMInput(big.NewInt(0), "vote", delegatedAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	delegateVoteArgs[0] = []byte("2")
+	generalProposal.CommitHash = []byte("bbbbbbbbb")
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), delegateVoteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+	callInput = createVMInput(big.NewInt(0), "delegateVote", vm.ESDTSCAddress, vm.GovernanceSCAddress, delegateVoteArgs)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
 func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
 	t.Parallel()
 
@@ -934,6 +1045,83 @@ func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	addStakeAndDelegationForAddress(gsc, vm.FirstDelegationSCAddress)
+	callInput.CallerAddr = vm.FirstDelegationSCAddress
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+}
+
+func TestGovernanceContract_ProposalDuringDisableFlag(t *testing.T) {
+	t.Parallel()
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag)
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	callInputArgs := [][]byte{
+		proposalIdentifier,
+		[]byte("50"),
+		[]byte("55"),
+	}
+	callInput := createVMInput(big.NewInt(500), "proposal", vm.GovernanceSCAddress, []byte("addr1"), callInputArgs)
+	retCode := gsc.Execute(callInput)
+
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "proposing is disabled"))
+	require.Equal(t, vmcommon.UserError, retCode)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+}
+
+func TestGovernanceContract_DelegateVoteMultiple(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceFixesFlag)
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return 12
+	}
+
+	voter := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := []byte("aaaaaaaaa")
+	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+		Yes:            big.NewInt(0),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
+	}
+
+	voteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+		voter,
+		big.NewInt(12).Bytes(),
+	}
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
+	addStakeAndDelegationForAddress(gsc, vm.ESDTSCAddress)
+	addStakeAndDelegationForAddress(gsc, vm.FirstDelegationSCAddress)
+	callInput := createVMInput(big.NewInt(0), "delegateVote", vm.ESDTSCAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "double vote is not allowed"))
+
+	callInput.CallerAddr = vm.FirstDelegationSCAddress
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
 }
 
 func TestGovernanceContract_CloseProposal(t *testing.T) {
@@ -1446,68 +1634,6 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
-}
-
-func TestGovernanceContract_ViewUserHistory(t *testing.T) {
-	t.Parallel()
-
-	callerAddress := []byte("address")
-	args := createMockGovernanceArgs()
-	returnMessage := ""
-	finishedMessages := make([][]byte, 0)
-	mockEEI := &mock.SystemEIStub{
-		GetStorageFromAddressCalled: func(_ []byte, _ []byte) []byte {
-			return []byte("invalid data")
-		},
-		AddReturnMessageCalled: func(msg string) {
-			returnMessage = msg
-		},
-		FinishCalled: func(value []byte) {
-			finishedMessages = append(finishedMessages, value)
-		},
-	}
-	args.Eei = mockEEI
-
-	gsc, _ := NewGovernanceContract(args)
-	callInputArgs := [][]byte{
-		callerAddress,
-	}
-	callInput := createVMInput(zero, "viewUserVoteHistory", callerAddress, vm.GovernanceSCAddress, callInputArgs)
-	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, returnMessage, vm.ErrInvalidCaller.Error())
-
-	callInput.CallerAddr = callInput.RecipientAddr
-	callInput.Arguments = [][]byte{callerAddress}
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
-	expectedMessaged := [][]byte{
-		{0}, // 0 delegated values
-		{0}, // 0 direct values
-	}
-	assert.Equal(t, expectedMessaged, finishedMessages)
-
-	mockEEI.GetStorageCalled = func(key []byte) []byte {
-		proposalBytes, _ := args.Marshalizer.Marshal(&OngoingVotedList{
-			Delegated: []uint64{1, 2},
-			Direct:    []uint64{3, 4, 5},
-		})
-		return proposalBytes
-	}
-
-	finishedMessages = make([][]byte, 0)
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.Ok, retCode)
-	expectedMessaged = [][]byte{
-		{2}, // 2 delegated values
-		{1},
-		{2},
-		{3}, // 3 direct values
-		{3},
-		{4},
-		{5},
-	}
-	assert.Equal(t, expectedMessaged, finishedMessages)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {
