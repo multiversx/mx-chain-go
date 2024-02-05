@@ -101,8 +101,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return true
 	}
 
-	// TODO[cleanup cns finality]: remove this
-	if (isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup) && !isFlagActive {
+	if isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(isSelfSingleKeyLeader, isFlagActive) {
 			return false
 		}
