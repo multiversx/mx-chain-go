@@ -19,6 +19,7 @@ import (
 
 const governanceConfigKey = "governanceConfig"
 const accumulatedFeeKey = "accumulatedFee"
+const lastEndedNonceKey = "lastEndedNonce"
 const noncePrefix = "n_"
 const proposalPrefix = "p_"
 const yesString = "yes"
@@ -151,6 +152,8 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.changeConfig(args)
 	case "closeProposal":
 		return g.closeProposal(args)
+	case "clearEndedProposals":
+		return g.clearEndedProposals(args)
 	case "viewVotingPower":
 		return g.viewVotingPower(args)
 	case "viewConfig":
@@ -664,7 +667,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
 		return vmcommon.UserError
 	}
-	if !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("only the issuer can close the proposal")
 		return vmcommon.UserError
 	}
@@ -700,7 +703,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.addToAccumulatedFees(baseConfig.LostProposalFee)
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
+	err = g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -708,11 +711,25 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
+		Address:    generalProposal.IssuerAddress,
 		Topics:     [][]byte{generalProposal.CommitHash, boolToSlice(generalProposal.Passed)},
 	}
 	g.eei.AddLogEntry(logEntry)
 
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return vmcommon.Ok
+	}
+
+	err = g.processLastEndedNonce(generalProposal.Nonce)
+	if err != nil {
+		g.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	// TODO: implement
 	return vmcommon.Ok
 }
 
@@ -1264,6 +1281,39 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		ProposalFee:      proposalFee,
 		LostProposalFee:  lostProposalFee,
 	}, nil
+}
+
+func (g *governanceContract) processLastEndedNonce(lastNonce uint64) error {
+	lastEndedNonce, err := g.getLastEndedNonce()
+	if err != nil {
+		return err
+	}
+	lastEndedNonceBig := big.NewInt(int64(lastEndedNonce))
+
+	for lastEndedNonceBig.Cmp(big.NewInt(int64(lastNonce))) < 0 {
+		proposal, err := g.getProposalFromNonce(lastEndedNonceBig)
+		if err != nil {
+			return err
+		}
+
+		if !proposal.Closed {
+			break
+		}
+		lastEndedNonceBig.Add(lastEndedNonceBig, big.NewInt(1))
+	}
+
+	g.eei.SetStorage([]byte(lastEndedNonceKey), lastEndedNonceBig.Bytes())
+
+	return nil
+}
+
+func (g *governanceContract) getLastEndedNonce() (uint64, error) {
+	marshaledData := g.eei.GetStorage([]byte(lastEndedNonceKey))
+	if len(marshaledData) == 0 {
+		return 0, vm.ErrElementNotFound
+	}
+
+	return big.NewInt(0).SetBytes(marshaledData).Uint64(), nil
 }
 
 func convertDecimalToPercentage(arg []byte) (float32, error) {
