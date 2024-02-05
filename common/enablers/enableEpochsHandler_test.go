@@ -37,6 +37,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DoubleKeyProtectionEnableEpoch:                           19,
 		ESDTEnableEpoch:                                          20,
 		GovernanceEnableEpoch:                                    21,
+		GovernanceDisableProposeEnableEpoch:                      22,
+		GovernanceFixesEnableEpoch:                               23,
 		DelegationManagerEnableEpoch:                             22,
 		DelegationSmartContractEnableEpoch:                       23,
 		CorrectLastUnjailedEnableEpoch:                           24,
@@ -213,6 +215,8 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.False(t, handler.IsFlagEnabled(common.ESDTFlagInSpecificEpochOnly)) // ==
 	require.True(t, handler.IsFlagEnabled(common.GovernanceFlag))
 	require.False(t, handler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly)) // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceDisableProposeFlag))       // ==
+	require.True(t, handler.IsFlagEnabled(common.GovernanceFixesFlag))                // ==
 	require.True(t, handler.IsFlagEnabled(common.DelegationManagerFlag))
 	require.True(t, handler.IsFlagEnabled(common.DelegationSmartContractFlag))
 	require.False(t, handler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly)) // ==

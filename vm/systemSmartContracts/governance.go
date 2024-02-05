@@ -158,8 +158,6 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.viewVotingPower(args)
 	case "viewConfig":
 		return g.viewConfig(args)
-	case "viewUserVoteHistory":
-		return g.viewUserVoteHistory(args)
 	case "viewDelegatedVoteInfo":
 		return g.viewDelegatedVoteInfo(args)
 	case "viewProposal":
@@ -536,7 +534,8 @@ func (g *governanceContract) addUserVote(
 	scAddress []byte,
 ) error {
 	nonce := big.NewInt(0).SetBytes(nonceAsBytes)
-	err := g.updateUserVoteList(address, nonce.Uint64(), direct, scAddress)
+	//TODO: remove extra struct & methods for V2 if no V1 proposal exists
+	err := g.updateUserVoteListV2(address, nonce.Uint64(), direct, scAddress)
 	if err != nil {
 		return err
 	}
@@ -555,29 +554,52 @@ func (g *governanceContract) addUserVote(
 	return g.saveGeneralProposal(proposal.CommitHash, proposal)
 }
 
-func (g *governanceContract) updateUserVoteList(address []byte, nonce uint64, direct bool, scAddress []byte) error {
-	userVoteList, err := g.getUserVotes(address)
+func (g *governanceContract) updateUserVoteListV1(address []byte, nonce uint64, direct bool) error {
+	userVoteList, err := g.getUserVotesV1(address)
 	if err != nil {
 		return err
 	}
 
-	err = g.updateUserVotes(userVoteList, nonce, direct, scAddress)
+	err = g.updateUserVotesV1(userVoteList, nonce, direct)
 	if err != nil {
 		return err
 	}
 
-	return g.saveUserVotes(address, userVoteList)
+	return g.saveUserVotesV1(address, userVoteList)
 }
 
-func (g *governanceContract) updateUserVotes(userVoteList *OngoingVotedListV2, nonce uint64, direct bool, scAddress []byte) error {
+func (g *governanceContract) updateUserVoteListV2(address []byte, nonce uint64, direct bool, scAddress []byte) error {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return g.updateUserVoteListV1(address, nonce, direct)
+	}
+	userVoteList, err := g.getUserVotesV2(address)
+	if err != nil {
+		return err
+	}
+
+	err = g.updateUserVotesV2(userVoteList, nonce, direct, scAddress)
+	if err != nil {
+		return err
+	}
+
+	return g.saveUserVotesV2(address, userVoteList)
+}
+
+func (g *governanceContract) updateUserVotesV1(userVoteList *OngoingVotedList, nonce uint64, direct bool) error {
 	var err error
 	if direct {
 		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
 		return err
 	}
 
-	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
-		userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
+	userVoteList.Delegated, err = addNewNonce(userVoteList.Delegated, nonce)
+	return err
+}
+
+func (g *governanceContract) updateUserVotesV2(userVoteList *OngoingVotedListV2, nonce uint64, direct bool, scAddress []byte) error {
+	var err error
+	if direct {
+		userVoteList.Direct, err = addNewNonce(userVoteList.Direct, nonce)
 		return err
 	}
 
@@ -787,41 +809,6 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
-}
-
-func (g *governanceContract) viewUserVoteHistory(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	err := g.checkViewFuncArguments(args, 1)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	userVotes, err := g.getUserVotes(args.Arguments[0])
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
-	g.finishWithIntValue(len(userVotes.Delegated)) // first we send the number of delegated nonces and afterward the nonces
-	for _, val := range userVotes.Delegated {
-		g.finishWithIntValue(int(val))
-	}
-
-	g.finishWithIntValue(len(userVotes.Direct)) // then we send the number of direct nonces and afterward the nonces
-	for _, val := range userVotes.Direct {
-		g.finishWithIntValue(int(val))
-	}
-
-	return vmcommon.Ok
-}
-
-func (g *governanceContract) finishWithIntValue(value int) {
-	if value == 0 {
-		g.eei.Finish([]byte{0})
-		return
-	}
-
-	g.eei.Finish(big.NewInt(int64(value)).Bytes())
 }
 
 func (g *governanceContract) viewProposal(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1043,11 +1030,7 @@ func (g *governanceContract) getTotalStake(validatorAddress []byte) (*big.Int, e
 	return validatorData.TotalStakeValue, nil
 }
 
-func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVotedListV2) error {
-	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
-		return g.saveUserVotesV1(address, votedList)
-	}
-
+func (g *governanceContract) saveUserVotesV1(address []byte, votedList *OngoingVotedList) error {
 	marshaledData, err := g.marshalizer.Marshal(votedList)
 	if err != nil {
 		return err
@@ -1057,13 +1040,8 @@ func (g *governanceContract) saveUserVotes(address []byte, votedList *OngoingVot
 	return nil
 }
 
-func (g *governanceContract) saveUserVotesV1(address []byte, votedList *OngoingVotedListV2) error {
-	votedListV1 := &OngoingVotedList{
-		Direct:    votedList.Direct,
-		Delegated: votedList.Delegated,
-	}
-
-	marshaledData, err := g.marshalizer.Marshal(votedListV1)
+func (g *governanceContract) saveUserVotesV2(address []byte, votedList *OngoingVotedListV2) error {
+	marshaledData, err := g.marshalizer.Marshal(votedList)
 	if err != nil {
 		return err
 	}
@@ -1072,11 +1050,10 @@ func (g *governanceContract) saveUserVotesV1(address []byte, votedList *OngoingV
 	return nil
 }
 
-func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedListV2, error) {
-	onGoingList := &OngoingVotedListV2{
-		Direct:               make([]uint64, 0),
-		Delegated:            make([]uint64, 0),
-		DelegatedWithAddress: make([]*DelegatedWithAddress, 0),
+func (g *governanceContract) getUserVotesV1(address []byte) (*OngoingVotedList, error) {
+	onGoingList := &OngoingVotedList{
+		Direct:    make([]uint64, 0),
+		Delegated: make([]uint64, 0),
 	}
 	marshaledData := g.eei.GetStorage(address)
 	if len(marshaledData) == 0 {
@@ -1089,6 +1066,25 @@ func (g *governanceContract) getUserVotes(address []byte) (*OngoingVotedListV2, 
 	}
 
 	return onGoingList, nil
+}
+
+// getUserVotesV2 returns the ongoing voted list for a user
+// if the user has v1 ongoing list, it will be converted to v2, dropping Delegate field
+func (g *governanceContract) getUserVotesV2(address []byte) (*OngoingVotedListV2, error) {
+	onGoingListV2 := &OngoingVotedListV2{
+		Direct:               make([]uint64, 0),
+		DelegatedWithAddress: make([]*DelegatedWithAddress, 0),
+	}
+	marshaledData := g.eei.GetStorage(address)
+	if len(marshaledData) == 0 {
+		return onGoingListV2, nil
+	}
+
+	err := g.marshalizer.Unmarshal(onGoingListV2, marshaledData)
+	if err != nil {
+		return nil, err
+	}
+	return onGoingListV2, nil
 }
 
 func (g *governanceContract) getDelegatedContractInfo(scAddress []byte, reference []byte) (*DelegatedSCVoteInfo, error) {
