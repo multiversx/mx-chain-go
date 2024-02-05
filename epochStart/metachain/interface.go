@@ -1,13 +1,11 @@
 package metachain
 
 import (
-	"math/big"
-
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+// AuctionListDisplayHandler should be able to display auction list data during selection process
 type AuctionListDisplayHandler interface {
-	DisplayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int)
 	DisplayOwnersData(ownersData map[string]*OwnerAuctionData)
 	DisplayOwnersSelectedNodes(ownersData map[string]*OwnerAuctionData)
 	DisplayAuctionList(

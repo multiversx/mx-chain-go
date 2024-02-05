@@ -21,6 +21,7 @@ type auctionListDisplayer struct {
 	softAuctionConfig *auctionConfig
 }
 
+// NewAuctionListDisplayer creates an auction list data displayer, useful for debugging purposes during selection process
 func NewAuctionListDisplayer(auctionConfig config.SoftAuctionConfig, denomination int) (*auctionListDisplayer, error) {
 	softAuctionConfig, err := getAuctionConfig(auctionConfig, denomination)
 	if err != nil {
@@ -32,67 +33,7 @@ func NewAuctionListDisplayer(auctionConfig config.SoftAuctionConfig, denominatio
 	}, nil
 }
 
-func (ald *auctionListDisplayer) DisplayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
-
-	if topUp.Cmp(ald.softAuctionConfig.minTopUp) > 0 {
-		topUp = big.NewInt(0).Sub(topUp, ald.softAuctionConfig.step)
-	}
-
-	iteratedValues := big.NewInt(0).Sub(topUp, startTopUp)
-	iterations := big.NewInt(0).Div(iteratedValues, ald.softAuctionConfig.step).Int64()
-	iterations++
-
-	log.Debug("auctionListSelector: found min required",
-		"topUp", getPrettyValue(topUp, ald.softAuctionConfig.denominator),
-		"after num of iterations", iterations,
-	)
-}
-
-func getShortKey(pubKey []byte) string {
-	pubKeyHex := hex.EncodeToString(pubKey)
-	displayablePubKey := pubKeyHex
-
-	pubKeyLen := len(displayablePubKey)
-	if pubKeyLen > maxPubKeyDisplayableLen {
-		displayablePubKey = pubKeyHex[:maxPubKeyDisplayableLen/2] + "..." + pubKeyHex[pubKeyLen-maxPubKeyDisplayableLen/2:]
-	}
-
-	return displayablePubKey
-}
-
-func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
-	pubKeys := ""
-
-	for idx, validator := range list {
-		pubKeys += getShortKey(validator.GetPublicKey())
-		addDelimiter := idx != len(list)-1
-		if addDelimiter {
-			pubKeys += ", "
-		}
-	}
-
-	return pubKeys
-}
-
-func getPrettyValue(val *big.Int, denominator *big.Int) string {
-	first := big.NewInt(0).Div(val, denominator).String()
-	decimals := big.NewInt(0).Mod(val, denominator).String()
-
-	zeroesCt := (len(denominator.String()) - len(decimals)) - 1
-	zeroesCt = core.MaxInt(zeroesCt, 0)
-	zeroes := strings.Repeat("0", zeroesCt)
-
-	second := zeroes + decimals
-	if len(second) > maxNumOfDecimalsToDisplay {
-		second = second[:maxNumOfDecimalsToDisplay]
-	}
-
-	return first + "." + second
-}
-
+// DisplayOwnersData will display initial owners data for auction selection
 func (ald *auctionListDisplayer) DisplayOwnersData(ownersData map[string]*OwnerAuctionData) {
 	if log.GetLevel() > logger.LogDebug {
 		return
@@ -125,6 +66,49 @@ func (ald *auctionListDisplayer) DisplayOwnersData(ownersData map[string]*OwnerA
 	displayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
+func getPrettyValue(val *big.Int, denominator *big.Int) string {
+	first := big.NewInt(0).Div(val, denominator).String()
+	decimals := big.NewInt(0).Mod(val, denominator).String()
+
+	zeroesCt := (len(denominator.String()) - len(decimals)) - 1
+	zeroesCt = core.MaxInt(zeroesCt, 0)
+	zeroes := strings.Repeat("0", zeroesCt)
+
+	second := zeroes + decimals
+	if len(second) > maxNumOfDecimalsToDisplay {
+		second = second[:maxNumOfDecimalsToDisplay]
+	}
+
+	return first + "." + second
+}
+
+func getShortDisplayableBlsKeys(list []state.ValidatorInfoHandler) string {
+	pubKeys := ""
+
+	for idx, validator := range list {
+		pubKeys += getShortKey(validator.GetPublicKey())
+		addDelimiter := idx != len(list)-1
+		if addDelimiter {
+			pubKeys += ", "
+		}
+	}
+
+	return pubKeys
+}
+
+func getShortKey(pubKey []byte) string {
+	pubKeyHex := hex.EncodeToString(pubKey)
+	displayablePubKey := pubKeyHex
+
+	pubKeyLen := len(displayablePubKey)
+	if pubKeyLen > maxPubKeyDisplayableLen {
+		displayablePubKey = pubKeyHex[:maxPubKeyDisplayableLen/2] + "..." + pubKeyHex[pubKeyLen-maxPubKeyDisplayableLen/2:]
+	}
+
+	return displayablePubKey
+}
+
+// DisplayOwnersSelectedNodes will display owners' selected nodes
 func (ald *auctionListDisplayer) DisplayOwnersSelectedNodes(ownersData map[string]*OwnerAuctionData) {
 	if log.GetLevel() > logger.LogDebug {
 		return
@@ -161,6 +145,7 @@ func (ald *auctionListDisplayer) DisplayOwnersSelectedNodes(ownersData map[strin
 	displayTable(tableHeader, lines, "Selected nodes config from auction list")
 }
 
+// DisplayAuctionList will display the final selected auction nodes
 func (ald *auctionListDisplayer) DisplayAuctionList(
 	auctionList []state.ValidatorInfoHandler,
 	ownersData map[string]*OwnerAuctionData,
