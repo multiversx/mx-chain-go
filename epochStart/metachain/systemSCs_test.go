@@ -907,7 +907,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		MaxTopUp:              "32000000",
 		MaxNumberOfIterations: 100000,
 	}
-	ald, _ := NewAuctionListDisplayer(auctionCfg, 0)
+	ald, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
+		TableDisplayHandler: NewTableDisplayer(),
+		AuctionConfig:       auctionCfg,
+	})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
@@ -1920,7 +1923,10 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		MaxTopUp:              "32000000",
 		MaxNumberOfIterations: 100000,
 	}
-	ald, _ := NewAuctionListDisplayer(auctionCfg, 0)
+	ald, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
+		TableDisplayHandler: NewTableDisplayer(),
+		AuctionConfig:       auctionCfg,
+	})
 
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             args.ShardCoordinator,

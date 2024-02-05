@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+// OwnerAuctionData holds necessary auction data for an owner
 type OwnerAuctionData struct {
 	numStakedNodes           int64
 	numActiveNodes           int64

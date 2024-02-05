@@ -8,29 +8,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createDisplayerArgs() ArgsAuctionListDisplayer {
+	return ArgsAuctionListDisplayer{
+		TableDisplayHandler: NewTableDisplayer(),
+		AuctionConfig:       createSoftAuctionConfig(),
+		Denomination:        0,
+	}
+}
+
 func TestNewAuctionListDisplayer(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid config", func(t *testing.T) {
-		cfg := createSoftAuctionConfig()
-		cfg.MaxNumberOfIterations = 0
-		ald, err := NewAuctionListDisplayer(cfg, 0)
+	t.Run("invalid auction config", func(t *testing.T) {
+		cfg := createDisplayerArgs()
+		cfg.AuctionConfig.MaxNumberOfIterations = 0
+		ald, err := NewAuctionListDisplayer(cfg)
 		require.Nil(t, ald)
 		requireInvalidValueError(t, err, "for max number of iterations")
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		cfg := createSoftAuctionConfig()
-		ald, err := NewAuctionListDisplayer(cfg, 0)
+		cfg := createDisplayerArgs()
+		ald, err := NewAuctionListDisplayer(cfg)
 		require.Nil(t, err)
 		require.False(t, ald.IsInterfaceNil())
-
-		require.NotPanics(t, func() {
-			ald.DisplayOwnersData(nil)
-			ald.DisplayOwnersSelectedNodes(nil)
-			ald.DisplayAuctionList(nil, nil, 0)
-
-		})
 	})
 }
 

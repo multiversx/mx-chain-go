@@ -2,12 +2,12 @@ package metachain
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
@@ -19,11 +19,24 @@ const maxNumOfDecimalsToDisplay = 5
 
 type auctionListDisplayer struct {
 	softAuctionConfig *auctionConfig
+	tableDisplayer    tableDisplayer
+}
+
+// ArgsAuctionListDisplayer is a struct placeholder for arguments needed to create an auction list displayer
+type ArgsAuctionListDisplayer struct {
+	TableDisplayHandler TableDisplayHandler
+	AuctionConfig       config.SoftAuctionConfig
+	Denomination        int
 }
 
 // NewAuctionListDisplayer creates an auction list data displayer, useful for debugging purposes during selection process
-func NewAuctionListDisplayer(auctionConfig config.SoftAuctionConfig, denomination int) (*auctionListDisplayer, error) {
-	softAuctionConfig, err := getAuctionConfig(auctionConfig, denomination)
+func NewAuctionListDisplayer(args ArgsAuctionListDisplayer) (*auctionListDisplayer, error) {
+	softAuctionConfig, err := getAuctionConfig(args.AuctionConfig, args.Denomination)
+	if err != nil {
+		return nil, err
+	}
+
+	err = checkDisplayerNilArgs(args)
 	if err != nil {
 		return nil, err
 	}
@@ -31,6 +44,14 @@ func NewAuctionListDisplayer(auctionConfig config.SoftAuctionConfig, denominatio
 	return &auctionListDisplayer{
 		softAuctionConfig: softAuctionConfig,
 	}, nil
+}
+
+func checkDisplayerNilArgs(args ArgsAuctionListDisplayer) error {
+	if check.IfNil(args.TableDisplayHandler) {
+		return errNilTableDisplayHandler
+	}
+
+	return nil
 }
 
 // DisplayOwnersData will display initial owners data for auction selection
@@ -63,7 +84,7 @@ func (ald *auctionListDisplayer) DisplayOwnersData(ownersData map[string]*OwnerA
 		lines = append(lines, display.NewLineData(false, line))
 	}
 
-	displayTable(tableHeader, lines, "Initial nodes config in auction list")
+	ald.tableDisplayer.DisplayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
 func getPrettyValue(val *big.Int, denominator *big.Int) string {
@@ -142,7 +163,7 @@ func (ald *auctionListDisplayer) DisplayOwnersSelectedNodes(ownersData map[strin
 		lines = append(lines, display.NewLineData(false, line))
 	}
 
-	displayTable(tableHeader, lines, "Selected nodes config from auction list")
+	ald.tableDisplayer.DisplayTable(tableHeader, lines, "Selected nodes config from auction list")
 }
 
 // DisplayAuctionList will display the final selected auction nodes
@@ -177,7 +198,7 @@ func (ald *auctionListDisplayer) DisplayAuctionList(
 		lines = append(lines, line)
 	}
 
-	displayTable(tableHeader, lines, "Final selected nodes from auction list")
+	ald.tableDisplayer.DisplayTable(tableHeader, lines, "Final selected nodes from auction list")
 }
 
 func getBlsKeyOwnerMap(ownersData map[string]*OwnerAuctionData) map[string]string {
@@ -189,17 +210,6 @@ func getBlsKeyOwnerMap(ownersData map[string]*OwnerAuctionData) map[string]strin
 	}
 
 	return ret
-}
-
-func displayTable(tableHeader []string, lines []*display.LineData, message string) {
-	table, err := display.CreateTableString(tableHeader, lines)
-	if err != nil {
-		log.Error("could not create table", "error", err)
-		return
-	}
-
-	msg := fmt.Sprintf("%s\n%s", message, table)
-	log.Debug(msg)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

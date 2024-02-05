@@ -37,7 +37,10 @@ func createAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeC
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
 	softAuctionCfg := createSoftAuctionConfig()
-	auctionDisplayer, _ := NewAuctionListDisplayer(softAuctionCfg, 0)
+	auctionDisplayer, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
+		TableDisplayHandler: NewTableDisplayer(),
+		AuctionConfig:       softAuctionCfg,
+	})
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
@@ -58,7 +61,10 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
 
 	softAuctionCfg := createSoftAuctionConfig()
-	auctionDisplayer, _ := NewAuctionListDisplayer(softAuctionCfg, 0)
+	auctionDisplayer, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
+		TableDisplayHandler: NewTableDisplayer(),
+		AuctionConfig:       softAuctionCfg,
+	})
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,
 		StakingDataProvider:          argsSystemSC.StakingDataProvider,

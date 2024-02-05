@@ -2341,7 +2341,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			MaxTopUp:              "32000000",
 			MaxNumberOfIterations: 100000,
 		}
-		ald, _ := metachain.NewAuctionListDisplayer(auctionCfg, 0)
+		ald, _ := metachain.NewAuctionListDisplayer(metachain.ArgsAuctionListDisplayer{
+			TableDisplayHandler: metachain.NewTableDisplayer(),
+			AuctionConfig:       auctionCfg,
+		})
 
 		argsAuctionListSelector := metachain.AuctionListSelectorArgs{
 			ShardCoordinator:             tpn.ShardCoordinator,
