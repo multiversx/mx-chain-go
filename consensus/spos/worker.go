@@ -59,7 +59,7 @@ type Worker struct {
 	networkShardingCollector consensus.NetworkShardingCollector
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
-	receivedMessagesCalls map[consensus.MessageType]func(ctx context.Context, msg *consensus.Message) bool
+	receivedMessagesCalls map[consensus.MessageType][]func(ctx context.Context, msg *consensus.Message) bool
 
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
@@ -174,7 +174,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
 	wrk.executeMessageChannel = make(chan *consensus.Message)
-	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(context.Context, *consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType][]func(context.Context, *consensus.Message) bool)
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
@@ -326,14 +326,14 @@ func (wrk *Worker) initReceivedMessages() {
 // AddReceivedMessageCall adds a new handler function for a received message type
 func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
+	wrk.receivedMessagesCalls[messageType] = append(wrk.receivedMessagesCalls[messageType], receivedMessageCall)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
 // RemoveAllReceivedMessagesCalls removes all the functions handlers
 func (wrk *Worker) RemoveAllReceivedMessagesCalls() {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(context.Context, *consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType][]func(context.Context, *consensus.Message) bool)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
@@ -670,11 +670,13 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
 
-		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
-			if callReceivedMessage(ctx, rcvDta) {
-				select {
-				case wrk.consensusStateChangedChannel <- true:
-				default:
+		if receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]; exist {
+			for _, callReceivedMessage := range receivedMessageCallbacks {
+				if callReceivedMessage(ctx, rcvDta) {
+					select {
+					case wrk.consensusStateChangedChannel <- true:
+					default:
+					}
 				}
 			}
 		}

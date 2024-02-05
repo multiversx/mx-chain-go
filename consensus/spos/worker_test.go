@@ -494,7 +494,7 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody][0](context.Background(), nil))
 }
 
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
@@ -508,7 +508,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody][0](context.Background(), nil))
 
 	wrk.RemoveAllReceivedMessagesCalls()
 	receivedMessageCalls = wrk.ReceivedMessagesCalls()
