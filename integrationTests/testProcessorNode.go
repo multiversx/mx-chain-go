@@ -2335,16 +2335,20 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.EpochNotifier,
 			nil,
 		)
+		auctionCfg := config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
+		}
+		ald, _ := metachain.NewAuctionListDisplayer(auctionCfg, 0)
+
 		argsAuctionListSelector := metachain.AuctionListSelectorArgs{
 			ShardCoordinator:             tpn.ShardCoordinator,
 			StakingDataProvider:          stakingDataProvider,
 			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-			SoftAuctionConfig: config.SoftAuctionConfig{
-				TopUpStep:             "10",
-				MinTopUp:              "1",
-				MaxTopUp:              "32000000",
-				MaxNumberOfIterations: 100000,
-			},
+			AuctionListDisplayHandler:    ald,
+			SoftAuctionConfig:            auctionCfg,
 		}
 		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
 

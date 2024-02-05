@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-type ownerAuctionData struct {
+type OwnerAuctionData struct {
 	numStakedNodes           int64
 	numActiveNodes           int64
 	numAuctionNodes          int64
@@ -35,10 +35,11 @@ type auctionConfig struct {
 }
 
 type auctionListSelector struct {
-	shardCoordinator    sharding.Coordinator
-	stakingDataProvider epochStart.StakingDataProvider
-	nodesConfigProvider epochStart.MaxNodesChangeConfigProvider
-	softAuctionConfig   *auctionConfig
+	shardCoordinator     sharding.Coordinator
+	stakingDataProvider  epochStart.StakingDataProvider
+	nodesConfigProvider  epochStart.MaxNodesChangeConfigProvider
+	auctionListDisplayer AuctionListDisplayHandler
+	softAuctionConfig    *auctionConfig
 }
 
 // AuctionListSelectorArgs is a struct placeholder for all arguments required to create an auctionListSelector
@@ -46,6 +47,7 @@ type AuctionListSelectorArgs struct {
 	ShardCoordinator             sharding.Coordinator
 	StakingDataProvider          epochStart.StakingDataProvider
 	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
+	AuctionListDisplayHandler    AuctionListDisplayHandler
 	SoftAuctionConfig            config.SoftAuctionConfig
 	Denomination                 int
 }
@@ -71,10 +73,11 @@ func NewAuctionListSelector(args AuctionListSelectorArgs) (*auctionListSelector,
 	)
 
 	return &auctionListSelector{
-		shardCoordinator:    args.ShardCoordinator,
-		stakingDataProvider: args.StakingDataProvider,
-		nodesConfigProvider: args.MaxNodesChangeConfigProvider,
-		softAuctionConfig:   softAuctionConfig,
+		shardCoordinator:     args.ShardCoordinator,
+		stakingDataProvider:  args.StakingDataProvider,
+		nodesConfigProvider:  args.MaxNodesChangeConfigProvider,
+		auctionListDisplayer: args.AuctionListDisplayHandler,
+		softAuctionConfig:    softAuctionConfig,
 	}, nil
 }
 
@@ -168,6 +171,9 @@ func checkNilArgs(args AuctionListSelectorArgs) error {
 	if check.IfNil(args.MaxNodesChangeConfigProvider) {
 		return epochStart.ErrNilMaxNodesChangeConfigProvider
 	}
+	if check.IfNil(args.AuctionListDisplayHandler) {
+		return errNilAuctionListDisplayHandler
+	}
 
 	return nil
 }
@@ -222,7 +228,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
 	)
 
-	als.displayOwnersData(ownersData)
+	als.auctionListDisplayer.DisplayOwnersData(ownersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 
 	sw := core.NewStopWatch()
@@ -235,15 +241,15 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
-func (als *auctionListSelector) getAuctionData() (map[string]*ownerAuctionData, uint32) {
-	ownersData := make(map[string]*ownerAuctionData)
+func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, uint32) {
+	ownersData := make(map[string]*OwnerAuctionData)
 	numOfNodesInAuction := uint32(0)
 
 	for owner, ownerData := range als.stakingDataProvider.GetOwnersData() {
 		if ownerData.Qualified && len(ownerData.AuctionList) > 0 {
 			numAuctionNodes := len(ownerData.AuctionList)
 
-			ownersData[owner] = &ownerAuctionData{
+			ownersData[owner] = &OwnerAuctionData{
 				numActiveNodes:           ownerData.NumActiveNodes,
 				numAuctionNodes:          int64(numAuctionNodes),
 				numQualifiedAuctionNodes: int64(numAuctionNodes),
@@ -274,7 +280,7 @@ func safeSub(a, b uint32) (uint32, error) {
 }
 
 func (als *auctionListSelector) sortAuctionList(
-	ownersData map[string]*ownerAuctionData,
+	ownersData map[string]*OwnerAuctionData,
 	numOfAvailableNodeSlots uint32,
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	randomness []byte,
@@ -285,9 +291,9 @@ func (als *auctionListSelector) sortAuctionList(
 }
 
 func (als *auctionListSelector) calcSoftAuctionNodesConfig(
-	data map[string]*ownerAuctionData,
+	data map[string]*OwnerAuctionData,
 	numAvailableSlots uint32,
-) map[string]*ownerAuctionData {
+) map[string]*OwnerAuctionData {
 	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
 	log.Debug("auctionListSelector: calc min and max possible top up",
@@ -312,11 +318,11 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumberOfIterations
 	}
 
-	als.displayMinRequiredTopUp(topUp, minTopUp)
+	als.auctionListDisplayer.DisplayMinRequiredTopUp(topUp, minTopUp)
 	return previousConfig
 }
 
-func (als *auctionListSelector) getMinMaxPossibleTopUp(ownersData map[string]*ownerAuctionData) (*big.Int, *big.Int) {
+func (als *auctionListSelector) getMinMaxPossibleTopUp(ownersData map[string]*OwnerAuctionData) (*big.Int, *big.Int) {
 	min := big.NewInt(0).SetBytes(als.softAuctionConfig.maxTopUp.Bytes())
 	max := big.NewInt(0).SetBytes(als.softAuctionConfig.minTopUp.Bytes())
 
@@ -339,10 +345,10 @@ func (als *auctionListSelector) getMinMaxPossibleTopUp(ownersData map[string]*ow
 	return min, max
 }
 
-func copyOwnersData(ownersData map[string]*ownerAuctionData) map[string]*ownerAuctionData {
-	ret := make(map[string]*ownerAuctionData)
+func copyOwnersData(ownersData map[string]*OwnerAuctionData) map[string]*OwnerAuctionData {
+	ret := make(map[string]*OwnerAuctionData)
 	for owner, data := range ownersData {
-		ret[owner] = &ownerAuctionData{
+		ret[owner] = &OwnerAuctionData{
 			numActiveNodes:           data.numActiveNodes,
 			numAuctionNodes:          data.numAuctionNodes,
 			numQualifiedAuctionNodes: data.numQualifiedAuctionNodes,
@@ -358,7 +364,7 @@ func copyOwnersData(ownersData map[string]*ownerAuctionData) map[string]*ownerAu
 	return ret
 }
 
-func calcNodesConfig(ownersData map[string]*ownerAuctionData, topUp *big.Int) int64 {
+func calcNodesConfig(ownersData map[string]*OwnerAuctionData, topUp *big.Int) int64 {
 	numNodesQualifyingForTopUp := int64(0)
 
 	for ownerPubKey, owner := range ownersData {

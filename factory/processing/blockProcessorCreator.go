@@ -887,10 +887,19 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	auctionListDisplayer, err := metachainEpochStart.NewAuctionListDisplayer(
+		pcf.systemSCConfig.SoftAuctionConfig,
+		pcf.economicsConfig.GlobalSettings.Denomination,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		AuctionListDisplayHandler:    auctionListDisplayer,
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 	}
@@ -905,6 +914,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
+		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
 	}
 	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
 	if err != nil {

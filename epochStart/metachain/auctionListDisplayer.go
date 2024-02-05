@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -16,21 +17,36 @@ import (
 const maxPubKeyDisplayableLen = 20
 const maxNumOfDecimalsToDisplay = 5
 
-func (als *auctionListSelector) displayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int) {
+type auctionListDisplayer struct {
+	softAuctionConfig *auctionConfig
+}
+
+func NewAuctionListDisplayer(auctionConfig config.SoftAuctionConfig, denomination int) (*auctionListDisplayer, error) {
+	softAuctionConfig, err := getAuctionConfig(auctionConfig, denomination)
+	if err != nil {
+		return nil, err
+	}
+
+	return &auctionListDisplayer{
+		softAuctionConfig: softAuctionConfig,
+	}, nil
+}
+
+func (ald *auctionListDisplayer) DisplayMinRequiredTopUp(topUp *big.Int, startTopUp *big.Int) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
 
-	if topUp.Cmp(als.softAuctionConfig.minTopUp) > 0 {
-		topUp = big.NewInt(0).Sub(topUp, als.softAuctionConfig.step)
+	if topUp.Cmp(ald.softAuctionConfig.minTopUp) > 0 {
+		topUp = big.NewInt(0).Sub(topUp, ald.softAuctionConfig.step)
 	}
 
 	iteratedValues := big.NewInt(0).Sub(topUp, startTopUp)
-	iterations := big.NewInt(0).Div(iteratedValues, als.softAuctionConfig.step).Int64()
+	iterations := big.NewInt(0).Div(iteratedValues, ald.softAuctionConfig.step).Int64()
 	iterations++
 
 	log.Debug("auctionListSelector: found min required",
-		"topUp", getPrettyValue(topUp, als.softAuctionConfig.denominator),
+		"topUp", getPrettyValue(topUp, ald.softAuctionConfig.denominator),
 		"after num of iterations", iterations,
 	)
 }
@@ -77,7 +93,7 @@ func getPrettyValue(val *big.Int, denominator *big.Int) string {
 	return first + "." + second
 }
 
-func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerAuctionData) {
+func (ald *auctionListDisplayer) DisplayOwnersData(ownersData map[string]*OwnerAuctionData) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
@@ -99,8 +115,8 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerAu
 			strconv.Itoa(int(owner.numStakedNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
 			strconv.Itoa(int(owner.numAuctionNodes)),
-			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denominator),
-			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denominator),
+			getPrettyValue(owner.totalTopUp, ald.softAuctionConfig.denominator),
+			getPrettyValue(owner.topUpPerNode, ald.softAuctionConfig.denominator),
 			getShortDisplayableBlsKeys(owner.auctionList),
 		}
 		lines = append(lines, display.NewLineData(false, line))
@@ -109,7 +125,7 @@ func (als *auctionListSelector) displayOwnersData(ownersData map[string]*ownerAu
 	displayTable(tableHeader, lines, "Initial nodes config in auction list")
 }
 
-func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string]*ownerAuctionData) {
+func (ald *auctionListDisplayer) DisplayOwnersSelectedNodes(ownersData map[string]*OwnerAuctionData) {
 	if log.GetLevel() > logger.LogDebug {
 		return
 	}
@@ -131,12 +147,12 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string
 		line := []string{
 			hex.EncodeToString([]byte(ownerPubKey)),
 			strconv.Itoa(int(owner.numStakedNodes)),
-			getPrettyValue(owner.topUpPerNode, als.softAuctionConfig.denominator),
-			getPrettyValue(owner.totalTopUp, als.softAuctionConfig.denominator),
+			getPrettyValue(owner.topUpPerNode, ald.softAuctionConfig.denominator),
+			getPrettyValue(owner.totalTopUp, ald.softAuctionConfig.denominator),
 			strconv.Itoa(int(owner.numAuctionNodes)),
 			strconv.Itoa(int(owner.numQualifiedAuctionNodes)),
 			strconv.Itoa(int(owner.numActiveNodes)),
-			getPrettyValue(owner.qualifiedTopUpPerNode, als.softAuctionConfig.denominator),
+			getPrettyValue(owner.qualifiedTopUpPerNode, ald.softAuctionConfig.denominator),
 			getShortDisplayableBlsKeys(owner.auctionList[:owner.numQualifiedAuctionNodes]),
 		}
 		lines = append(lines, display.NewLineData(false, line))
@@ -145,9 +161,9 @@ func (als *auctionListSelector) displayOwnersSelectedNodes(ownersData map[string
 	displayTable(tableHeader, lines, "Selected nodes config from auction list")
 }
 
-func (als *auctionListSelector) displayAuctionList(
+func (ald *auctionListDisplayer) DisplayAuctionList(
 	auctionList []state.ValidatorInfoHandler,
-	ownersData map[string]*ownerAuctionData,
+	ownersData map[string]*OwnerAuctionData,
 	numOfSelectedNodes uint32,
 ) {
 	if log.GetLevel() > logger.LogDebug {
@@ -171,7 +187,7 @@ func (als *auctionListSelector) displayAuctionList(
 		line := display.NewLineData(horizontalLine, []string{
 			hex.EncodeToString([]byte(owner)),
 			hex.EncodeToString(pubKey),
-			getPrettyValue(qualifiedTopUp, als.softAuctionConfig.denominator),
+			getPrettyValue(qualifiedTopUp, ald.softAuctionConfig.denominator),
 		})
 		lines = append(lines, line)
 	}
@@ -179,7 +195,7 @@ func (als *auctionListSelector) displayAuctionList(
 	displayTable(tableHeader, lines, "Final selected nodes from auction list")
 }
 
-func getBlsKeyOwnerMap(ownersData map[string]*ownerAuctionData) map[string]string {
+func getBlsKeyOwnerMap(ownersData map[string]*OwnerAuctionData) map[string]string {
 	ret := make(map[string]string)
 	for ownerPubKey, owner := range ownersData {
 		for _, blsKey := range owner.auctionList {
@@ -199,4 +215,9 @@ func displayTable(tableHeader []string, lines []*display.LineData, message strin
 
 	msg := fmt.Sprintf("%s\n%s", message, table)
 	log.Debug(msg)
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (ald *auctionListDisplayer) IsInterfaceNil() bool {
+	return ald == nil
 }

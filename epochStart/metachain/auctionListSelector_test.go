@@ -34,13 +34,16 @@ func createAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesChangeC
 
 	argsStakingDataProvider := createStakingDataProviderArgs()
 	stakingSCProvider, _ := NewStakingDataProvider(argsStakingDataProvider)
-
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
+
+	softAuctionCfg := createSoftAuctionConfig()
+	auctionDisplayer, _ := NewAuctionListDisplayer(softAuctionCfg, 0)
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		SoftAuctionConfig:            createSoftAuctionConfig(),
+		AuctionListDisplayHandler:    auctionDisplayer,
+		SoftAuctionConfig:            softAuctionCfg,
 	}
 }
 
@@ -53,11 +56,15 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 		EpochField: stakingV4Step2EnableEpoch,
 	})
 	argsSystemSC.MaxNodesChangeConfigProvider = nodesConfigProvider
+
+	softAuctionCfg := createSoftAuctionConfig()
+	auctionDisplayer, _ := NewAuctionListDisplayer(softAuctionCfg, 0)
 	return AuctionListSelectorArgs{
 		ShardCoordinator:             argsSystemSC.ShardCoordinator,
 		StakingDataProvider:          argsSystemSC.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		SoftAuctionConfig:            createSoftAuctionConfig(),
+		AuctionListDisplayHandler:    auctionDisplayer,
+		SoftAuctionConfig:            softAuctionCfg,
 	}, argsSystemSC
 }
 
@@ -430,7 +437,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerAuctionData{
+		ownersData := map[string]*OwnerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -478,7 +485,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 		owner1 := "owner1"
 		owner2 := "owner2"
 		owner3 := "owner3"
-		ownersData := map[string]*ownerAuctionData{
+		ownersData := map[string]*OwnerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -540,7 +547,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerAuctionData{
+		ownersData := map[string]*OwnerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -584,7 +591,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerAuctionData{
+		ownersData := map[string]*OwnerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -629,7 +636,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerAuctionData{
+		ownersData := map[string]*OwnerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -695,7 +702,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfigEdgeCases(t *testing.T) {
 		owner1TopUp, _ := big.NewInt(0).SetString("32000000000000000000000000", 10) // 31 mil eGLD
 		owner1 := "owner1"
 		owner2 := "owner2"
-		ownersData := map[string]*ownerAuctionData{
+		ownersData := map[string]*OwnerAuctionData{
 			owner1: {
 				numActiveNodes:           0,
 				numAuctionNodes:          1,
@@ -760,7 +767,7 @@ func TestAuctionListSelector_calcSoftAuctionNodesConfig(t *testing.T) {
 	owner2 := "owner2"
 	owner3 := "owner3"
 	owner4 := "owner4"
-	ownersData := map[string]*ownerAuctionData{
+	ownersData := map[string]*OwnerAuctionData{
 		owner1: {
 			numActiveNodes:           2,
 			numAuctionNodes:          2,
