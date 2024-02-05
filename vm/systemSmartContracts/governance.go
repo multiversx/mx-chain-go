@@ -1078,14 +1078,6 @@ func (g *governanceContract) getUserVotesV2(address []byte) (*OngoingVotedListV2
 	}
 
 	err := g.marshalizer.Unmarshal(onGoingListV2, marshaledData)
-	if err == nil {
-		return onGoingListV2, nil
-	}
-	onGoingList := &OngoingVotedList{
-		Direct:    make([]uint64, 0),
-		Delegated: make([]uint64, 0),
-	}
-	err = g.marshalizer.Unmarshal(onGoingList, marshaledData)
 	if err != nil {
 		return nil, err
 	}
