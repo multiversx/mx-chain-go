@@ -270,6 +270,19 @@ func TestGovernanceContract_ExecuteInit(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestGovernanceContract_ExecuteSendESDT(t *testing.T) {
+	t.Parallel()
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+
+	callerAddr := []byte("addr1")
+	callInput := createVMInput(big.NewInt(0), "vote", callerAddr, vm.GovernanceSCAddress, nil)
+	callInput.ESDTTransfers = []*vmcommon.ESDTTransfer{{ESDTValue: big.NewInt(10), ESDTTokenName: []byte("tokenName"), ESDTTokenType: 0, ESDTTokenNonce: 0}}
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "cannot transfer ESDT to system SCs"))
+}
+
 func TestGovernanceContract_ExecuteInitV2InvalidCaller(t *testing.T) {
 	t.Parallel()
 
@@ -791,6 +804,47 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	t.Parallel()
 
 	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	blockchainHook.CurrentEpochCalled = func() uint32 {
+		return 12
+	}
+
+	callerAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := []byte("aaaaaaaaa")
+	generalProposal := &GeneralProposal{
+		ProposalCost:   gsc.baseProposalCost,
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+		Yes:            big.NewInt(0),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
+		QuorumStake:    big.NewInt(0),
+	}
+
+	voteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+	}
+
+	gsc.eei.SetStorage(append([]byte(noncePrefix), voteArgs[0]...), proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
+	callInput := createVMInput(big.NewInt(0), "vote", callerAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.Ok, retCode)
+
+	voteArgs[1] = []byte("no")
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.GetReturnMessage(), "double vote is not allowed")
+}
+
+func TestGovernanceContract_VoteTwiceV2(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFlag, common.GovernanceDisableProposeFlag, common.GovernanceFixesFlag)
 	blockchainHook.CurrentEpochCalled = func() uint32 {
 		return 12
 	}
