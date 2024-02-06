@@ -29,7 +29,7 @@ type SCQueryElementArgs struct {
 
 // CreateScQueryElement -
 func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, error) {
-	return createScQueryElement(&scQueryElementArgs{
+	return createScQueryElement(scQueryElementArgs{
 		generalConfig:         args.GeneralConfig,
 		epochConfig:           args.EpochConfig,
 		coreComponents:        args.CoreComponents,

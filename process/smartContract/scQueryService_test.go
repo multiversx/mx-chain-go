@@ -427,9 +427,9 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		}
 		wasRecreateTrieCalled := false
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
 				wasRecreateTrieCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
+				assert.Equal(t, providedRootHash, options.GetRootHash())
 				return nil
 			},
 		}
@@ -452,9 +452,10 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			BlockHash: providedHash,
 		}
 
-		_, _, _ = target.ExecuteQuery(&query)
+		_, _, err := target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 		assert.True(t, wasRecreateTrieCalled)
+		assert.Nil(t, err)
 	})
 	t.Run("block nonce should work", func(t *testing.T) {
 		t.Parallel()
@@ -521,9 +522,9 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		}
 		wasRecreateTrieCalled := false
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
 				wasRecreateTrieCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
+				assert.Equal(t, providedRootHash, options.GetRootHash())
 				return nil
 			},
 		}

@@ -172,8 +172,6 @@ func (accountsDB *accountsDBApi) RecreateTrie(rootHash []byte) error {
 
 // RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
 func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHolder) error {
-	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
-
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
@@ -183,7 +181,7 @@ func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHo
 		return err
 	}
 
-	accountsDB.blockInfo = newBlockInfo
+	accountsDB.blockInfo = holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
 
 	return nil
 }
