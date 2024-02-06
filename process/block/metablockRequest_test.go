@@ -267,9 +267,7 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 		// for requesting attestation header
 		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
 			attestationNonce := td[shardID].attestationHeaderData.header.GetNonce()
-			if nonce != attestationNonce {
-				require.Fail(t, fmt.Sprintf("nonce should have been %d", attestationNonce))
-			}
+			require.Equal(t, nonce, attestationNonce, fmt.Sprintf("nonce should have been %d", attestationNonce))
 			numCalls.Add(1)
 		}
 
@@ -442,11 +440,11 @@ func TestMetaProcessor_receivedShardHeader(t *testing.T) {
 	})
 }
 
-type ReceivedAllHeadersSignaler interface {
+type receivedAllHeadersSignaler interface {
 	ChannelReceiveAllHeaders() chan bool
 }
 
-func startWaitingForAllHeadersReceivedSignal(t *testing.T, mp ReceivedAllHeadersSignaler) *sync.WaitGroup {
+func startWaitingForAllHeadersReceivedSignal(t *testing.T, mp receivedAllHeadersSignaler) *sync.WaitGroup {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func(w *sync.WaitGroup) {
@@ -471,7 +469,7 @@ func createPoolsHolderForHeaderRequests() dataRetriever.HeadersPool {
 	mutHeadersInPool := sync.RWMutex{}
 	errNotFound := errors.New("header not found")
 
-	return &pool.HeadersCacherStub{
+	return &pool.HeadersPoolStub{
 		AddCalled: func(headerHash []byte, header data.HeaderHandler) {
 			mutHeadersInPool.Lock()
 			headersInPool[string(headerHash)] = header

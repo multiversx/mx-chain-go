@@ -6,8 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-// HeadersCacherStub -
-type HeadersCacherStub struct {
+// HeadersPoolStub -
+type HeadersPoolStub struct {
 	AddCalled                           func(headerHash []byte, header data.HeaderHandler)
 	RemoveHeaderByHashCalled            func(headerHash []byte)
 	RemoveHeaderByNonceAndShardIdCalled func(hdrNonce uint64, shardId uint32)
@@ -22,83 +22,83 @@ type HeadersCacherStub struct {
 }
 
 // AddHeader -
-func (hcs *HeadersCacherStub) AddHeader(headerHash []byte, header data.HeaderHandler) {
-	if hcs.AddCalled != nil {
-		hcs.AddCalled(headerHash, header)
+func (hps *HeadersPoolStub) AddHeader(headerHash []byte, header data.HeaderHandler) {
+	if hps.AddCalled != nil {
+		hps.AddCalled(headerHash, header)
 	}
 }
 
 // RemoveHeaderByHash -
-func (hcs *HeadersCacherStub) RemoveHeaderByHash(headerHash []byte) {
-	if hcs.RemoveHeaderByHashCalled != nil {
-		hcs.RemoveHeaderByHashCalled(headerHash)
+func (hps *HeadersPoolStub) RemoveHeaderByHash(headerHash []byte) {
+	if hps.RemoveHeaderByHashCalled != nil {
+		hps.RemoveHeaderByHashCalled(headerHash)
 	}
 }
 
 // RemoveHeaderByNonceAndShardId -
-func (hcs *HeadersCacherStub) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) {
-	if hcs.RemoveHeaderByNonceAndShardIdCalled != nil {
-		hcs.RemoveHeaderByNonceAndShardIdCalled(hdrNonce, shardId)
+func (hps *HeadersPoolStub) RemoveHeaderByNonceAndShardId(hdrNonce uint64, shardId uint32) {
+	if hps.RemoveHeaderByNonceAndShardIdCalled != nil {
+		hps.RemoveHeaderByNonceAndShardIdCalled(hdrNonce, shardId)
 	}
 }
 
 // GetHeadersByNonceAndShardId -
-func (hcs *HeadersCacherStub) GetHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-	if hcs.GetHeaderByNonceAndShardIdCalled != nil {
-		return hcs.GetHeaderByNonceAndShardIdCalled(hdrNonce, shardId)
+func (hps *HeadersPoolStub) GetHeadersByNonceAndShardId(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+	if hps.GetHeaderByNonceAndShardIdCalled != nil {
+		return hps.GetHeaderByNonceAndShardIdCalled(hdrNonce, shardId)
 	}
 	return nil, nil, errors.New("err")
 }
 
 // GetHeaderByHash -
-func (hcs *HeadersCacherStub) GetHeaderByHash(hash []byte) (data.HeaderHandler, error) {
-	if hcs.GetHeaderByHashCalled != nil {
-		return hcs.GetHeaderByHashCalled(hash)
+func (hps *HeadersPoolStub) GetHeaderByHash(hash []byte) (data.HeaderHandler, error) {
+	if hps.GetHeaderByHashCalled != nil {
+		return hps.GetHeaderByHashCalled(hash)
 	}
 	return nil, nil
 }
 
 // Clear -
-func (hcs *HeadersCacherStub) Clear() {
-	if hcs.ClearCalled != nil {
-		hcs.ClearCalled()
+func (hps *HeadersPoolStub) Clear() {
+	if hps.ClearCalled != nil {
+		hps.ClearCalled()
 	}
 }
 
 // RegisterHandler -
-func (hcs *HeadersCacherStub) RegisterHandler(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
-	if hcs.RegisterHandlerCalled != nil {
-		hcs.RegisterHandlerCalled(handler)
+func (hps *HeadersPoolStub) RegisterHandler(handler func(header data.HeaderHandler, shardHeaderHash []byte)) {
+	if hps.RegisterHandlerCalled != nil {
+		hps.RegisterHandlerCalled(handler)
 	}
 }
 
 // Nonces -
-func (hcs *HeadersCacherStub) Nonces(shardId uint32) []uint64 {
-	if hcs.NoncesCalled != nil {
-		return hcs.NoncesCalled(shardId)
+func (hps *HeadersPoolStub) Nonces(shardId uint32) []uint64 {
+	if hps.NoncesCalled != nil {
+		return hps.NoncesCalled(shardId)
 	}
 	return nil
 }
 
 // Len -
-func (hcs *HeadersCacherStub) Len() int {
+func (hps *HeadersPoolStub) Len() int {
 	return 0
 }
 
 // MaxSize -
-func (hcs *HeadersCacherStub) MaxSize() int {
+func (hps *HeadersPoolStub) MaxSize() int {
 	return 100
 }
 
 // IsInterfaceNil -
-func (hcs *HeadersCacherStub) IsInterfaceNil() bool {
-	return hcs == nil
+func (hps *HeadersPoolStub) IsInterfaceNil() bool {
+	return hps == nil
 }
 
 // GetNumHeaders -
-func (hcs *HeadersCacherStub) GetNumHeaders(shardId uint32) int {
-	if hcs.GetNumHeadersCalled != nil {
-		return hcs.GetNumHeadersCalled(shardId)
+func (hps *HeadersPoolStub) GetNumHeaders(shardId uint32) int {
+	if hps.GetNumHeadersCalled != nil {
+		return hps.GetNumHeadersCalled(shardId)
 	}
 
 	return 0

@@ -41,9 +41,7 @@ func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
 		}
 		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
 			attestationNonce := metaChainData.headerData[1].header.GetNonce()
-			if nonce != attestationNonce {
-				require.Fail(t, fmt.Sprintf("nonce should have been %d", attestationNonce))
-			}
+			require.Equal(t, attestationNonce, nonce, fmt.Sprintf("nonce should have been %d", attestationNonce))
 			numCalls.Add(1)
 		}
 		sp, _ := blproc.NewShardProcessor(arguments)
@@ -521,7 +519,7 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 		MiniBlockHeaders: []block.MiniBlockHeader{},
 	}
 
-	shar1Block1 := &block.Header{
+	shard1Block1 := &block.Header{
 		ShardID:         1,
 		PrevHash:        shard1Block0Hash,
 		MetaBlockHashes: [][]byte{prevMetaBlockHash},
@@ -560,7 +558,7 @@ func createShardProcessorTestData() map[uint32]*shardBlockTestData {
 			headerData: []*headerData{
 				{
 					hash:   shard1Block1Hash,
-					header: shar1Block1,
+					header: shard1Block1,
 				},
 				{
 					hash:   shard1Block2Hash,
