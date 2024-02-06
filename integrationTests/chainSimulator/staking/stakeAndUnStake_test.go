@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/helpers"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -171,6 +172,10 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       100,
 		MetaChainMinNodes:      100,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cm)
@@ -179,7 +184,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	require.Nil(t, err)
 
 	// Step 1 --- add a new validator key in the chain simulator
-	numOfNodes := 10
+	numOfNodes := 20
 	validatorSecretKeysBytes, blsKeys := helpers.GenerateBlsPrivateKeys(t, numOfNodes)
 	err = cm.AddValidatorKeys(validatorSecretKeysBytes)
 	require.Nil(t, err)
@@ -193,21 +198,19 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	err = cm.SetStateMultiple([]*dtos.AddressState{
 		{
 			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
-			Balance: "100000000000000000000000",
+			Balance: "1000000000000000000000000",
 		},
 	})
 	require.Nil(t, err)
 
-	// Step 3 --- generate and send a stake transaction with the BLS key of the validator key that was added at step 1
+	// Step 3 --- generate and send a stake transaction with the BLS keys of the validators key that were added at step 1
 	validatorData := ""
 	for _, blsKey := range blsKeys {
 		validatorData += fmt.Sprintf("@%s@010101", blsKey)
 	}
 
-	log.Warn("BLS KEYS", "keys", validatorData)
-
 	numOfNodesHex := hex.EncodeToString(big.NewInt(int64(numOfNodes)).Bytes())
-	stakeValue, _ := big.NewInt(0).SetString("25000000000000000000000", 10)
+	stakeValue, _ := big.NewInt(0).SetString("51000000000000000000000", 10)
 	tx := &transaction.Transaction{
 		Nonce:     0,
 		Value:     stakeValue,
@@ -221,10 +224,14 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		Version:   1,
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
-
 	txFromNetwork := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.NotNil(t, txFromNetwork)
+
+	err = cm.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	_, err = cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+	require.Nil(t, err)
 
 	err = cm.GenerateBlocks(100)
 	require.Nil(t, err)
