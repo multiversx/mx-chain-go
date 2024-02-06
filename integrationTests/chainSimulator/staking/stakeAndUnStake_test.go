@@ -100,7 +100,8 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	_ = helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeTx := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.NotNil(t, stakeTx)
 
 	shardIDValidatorOwner := cm.GetNodeHandler(0).GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
 	accountValidatorOwner, _, err := cm.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
@@ -230,9 +231,33 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	err = cm.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	_, err = cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+	results, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
+	require.Equal(t, newValidatorOwner, results[0].Owner)
+	require.Equal(t, 20, len(results[0].AuctionList))
+	totalQualified := 0
+	for _, res := range results {
+		for _, node := range res.AuctionList {
+			if node.Qualified {
+				totalQualified++
+			}
+		}
+	}
+	require.Equal(t, 8, totalQualified)
 
 	err = cm.GenerateBlocks(100)
 	require.Nil(t, err)
+
+	results, err = cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+	require.Nil(t, err)
+
+	totalQualified = 0
+	for _, res := range results {
+		for _, node := range res.AuctionList {
+			if node.Qualified {
+				totalQualified++
+			}
+		}
+	}
+	require.Equal(t, 0, totalQualified)
 }
