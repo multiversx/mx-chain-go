@@ -1452,6 +1452,25 @@ func (txs *transactions) computeSortedTxs(
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+	log.Debug("computeSortedTxs.GetSortedTransactions done", "num txs", len(sortedTxs))
+
+	if len(sortedTxs) == 0 {
+		return make([]*txcache.WrappedTransaction, 0), make([]*txcache.WrappedTransaction, 0), nil
+	}
+
+	shouldProcess := false
+
+	for _, tx := range sortedTxs {
+		if string(tx.Tx.GetData()) == "pleaseProcess" {
+			shouldProcess = true
+			break
+		}
+	}
+
+	if !shouldProcess {
+		log.Info("computeSortedTxs: should not process yet")
+		return make([]*txcache.WrappedTransaction, 0), make([]*txcache.WrappedTransaction, 0), nil
+	}
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)

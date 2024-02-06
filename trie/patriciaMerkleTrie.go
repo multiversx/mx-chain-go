@@ -118,10 +118,10 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	log.Trace("update trie",
-		"key", hex.EncodeToString(key),
-		"val", hex.EncodeToString(value),
-	)
+	// log.Trace("update trie",
+	// 	"key", hex.EncodeToString(key),
+	// 	"val", hex.EncodeToString(value),
+	// )
 
 	return tr.update(key, value, core.NotSpecified)
 }

@@ -3,6 +3,11 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"os"
+	"runtime"
+	"runtime/debug"
+	"runtime/pprof"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -29,13 +34,22 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
+	f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(sortedTxs)))
+	if err != nil {
+		log.Error("could not create CPU profile", "error", err)
+	}
+
+	debug.SetGCPercent(-1)
+
+	pprof.StartCPUProfile(f)
+
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for index := range sortedTxs {
-		if !haveTime() {
-			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
-			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
-			break
-		}
+		// if !haveTime() {
+		// 	log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
+		// 	remainingTxs = append(remainingTxs, sortedTxs[index:]...)
+		// 	break
+		// }
 
 		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingTx(
 			isShardStuck,
@@ -91,7 +105,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
 	txs.displayProcessingResults(miniBlocks, len(sortedTxs), mbInfo)
 
-	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished")
+	pprof.StopCPUProfile()
+	runtime.GC()
+
+	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(sortedTxs))
 
 	return miniBlocks, remainingTxs, mbInfo.mapSCTxs, nil
 }
