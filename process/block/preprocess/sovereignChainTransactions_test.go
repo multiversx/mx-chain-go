@@ -453,6 +453,33 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		require.False(t, value)
 	})
 
+	t.Run("isTransactionEligibleForExecution should return false when transaction has a lower nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   5,
+					Balance: big.NewInt(10),
+				}
+				return senderAccount, nil, nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   4,
+		}
+		err, value := sctp.isTransactionEligibleForExecution(tx, nil)
+
+		require.ErrorIs(t, err, process.ErrLowerNonceInTransaction)
+		require.False(t, value)
+	})
+
 	t.Run("isTransactionEligibleForExecution should return false when account has insufficient balance for fees", func(t *testing.T) {
 		t.Parallel()
 
