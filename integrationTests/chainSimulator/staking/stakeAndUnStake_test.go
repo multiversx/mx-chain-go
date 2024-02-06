@@ -26,12 +26,20 @@ const (
 
 var log = logger.GetOrCreate("integrationTests/chainSimulator")
 
+// TODO scenarios
+// Make a staking provider with max num of nodes
+// DO a merge transaction
+
 // Test scenario
 // 1. Add a new validator private key in the multi key handler
 // 2. Do a stake transaction for the validator key
 // 3. Do an unstake transaction (to make a place for the new validator)
 // 4. Check if the new validator has generated rewards
 func TestChainSimulator_AddValidatorKey(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -142,6 +150,10 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 }
 
 func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
