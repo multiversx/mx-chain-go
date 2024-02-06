@@ -21,6 +21,10 @@ const (
 )
 
 func TestNewChainSimulator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
@@ -45,6 +49,10 @@ func TestNewChainSimulator(t *testing.T) {
 }
 
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
@@ -123,6 +131,10 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 }
 
 func TestChainSimulator_SetState(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
