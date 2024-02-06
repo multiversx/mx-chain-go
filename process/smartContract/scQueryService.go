@@ -205,6 +205,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		if err != nil {
 			return nil, nil, err
 		}
+		service.blockChainHook.SetCurrentHeader(blockHeader)
 	}
 
 	shouldCheckRootHashChanges := query.SameScState
@@ -213,8 +214,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	if shouldCheckRootHashChanges {
 		rootHashBeforeExecution = service.apiBlockChain.GetCurrentBlockRootHash()
 	}
-
-	service.blockChainHook.SetCurrentHeader(service.mainBlockChain.GetCurrentBlockHeader())
 
 	service.wasmVMChangeLocker.RLock()
 	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)

@@ -41,7 +41,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		BlockChainHook: &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
+					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
 						return nil
 					},
 				}
@@ -897,16 +897,6 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.BlockChainHook = &testscommon.BlockChainHookStub{
-		GetAccountsAdapterCalled: func() state.AccountsAdapter {
-			return &stateMocks.AccountsStub{
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-			}
-		},
-	}
-
 	rootHashCalledCounter := 0
 	args.APIBlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockRootHashCalled: func() []byte {
@@ -928,7 +918,7 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 		FuncName:    "function",
 	})
 	require.Nil(t, res)
-	require.True(t, errors.Is(err, process.ErrStateChangedWhileExecutingVmQuery))
+	require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
 }
 
 func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
