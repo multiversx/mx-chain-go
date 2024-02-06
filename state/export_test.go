@@ -111,3 +111,9 @@ func (sm *snapshotsManager) WaitForStorageEpochChange(args storageEpochChangeWai
 func NewNilSnapshotsManager() *snapshotsManager {
 	return nil
 }
+
+// AccountHandlerWithDataTrieMigrationStatus -
+type AccountHandlerWithDataTrieMigrationStatus interface {
+	vmcommon.AccountHandler
+	IsDataTrieMigrated() (bool, error)
+}

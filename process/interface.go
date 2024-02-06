@@ -1340,3 +1340,11 @@ type Debugger interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// SentSignaturesTracker defines a component able to handle sent signature from self
+type SentSignaturesTracker interface {
+	StartRound()
+	SignatureSent(pkBytes []byte)
+	ResetCountersForManagedBlockSigner(signerPk []byte)
+	IsInterfaceNil() bool
+}
