@@ -48,6 +48,7 @@ type ArgsChainSimulatorConfigs struct {
 	MinNodesPerShard      uint32
 	MetaChainMinNodes     uint32
 	RoundsPerEpoch        core.OptionalUint64
+	AlterConfigsFunction  func(cfg *config.Configs)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -63,6 +64,10 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs, err := testscommon.CreateTestConfigs(args.TempDir, args.OriginalConfigsPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if args.AlterConfigsFunction != nil {
+		args.AlterConfigsFunction(configs)
 	}
 
 	configs.GeneralConfig.GeneralSettings.ChainID = ChainID
@@ -95,16 +100,11 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
-	if err != nil {
-		return nil, err
-	}
-
 	configs.GeneralConfig.SmartContractsStorage.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
 
-	maxNumNodes := uint64(args.MinNodesPerShard*args.NumOfShards+args.MetaChainMinNodes) + uint64(args.NumOfShards+1)
+	maxNumNodes := uint64(args.MinNodesPerShard*args.NumOfShards+args.MetaChainMinNodes) + 2*uint64(args.NumOfShards+1)
 	configs.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
 	numMaxNumNodesEnableEpochs := len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
 	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {
@@ -124,6 +124,11 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+	}
+
+	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
+	if err != nil {
+		return nil, err
 	}
 
 	return &ArgsConfigsSimulator{

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -32,6 +33,7 @@ type ArgsChainSimulator struct {
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
 	ApiInterface           components.APIConfigurator
+	AlterConfigsFunction   func(cfg *config.Configs)
 }
 
 type simulator struct {
@@ -76,6 +78,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		MinNodesPerShard:      args.MinNodesPerShard,
 		MetaChainMinNodes:     args.MetaChainMinNodes,
 		RoundsPerEpoch:        args.RoundsPerEpoch,
+		AlterConfigsFunction:  args.AlterConfigsFunction,
 	})
 	if err != nil {
 		return err
