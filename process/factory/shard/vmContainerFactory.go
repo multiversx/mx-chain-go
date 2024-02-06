@@ -18,12 +18,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	wasmVMHost15 "github.com/multiversx/mx-chain-vm-go/vmhost/hostCore"
-	wasmvm12 "github.com/multiversx/mx-chain-vm-v1_2-go/vmhost"
-	wasmVMHost12 "github.com/multiversx/mx-chain-vm-v1_2-go/vmhost/hostCore"
-	wasmvm13 "github.com/multiversx/mx-chain-vm-v1_3-go/vmhost"
-	wasmVMHost13 "github.com/multiversx/mx-chain-vm-v1_3-go/vmhost/hostCore"
-	wasmvm14 "github.com/multiversx/mx-chain-vm-v1_4-go/vmhost"
-	wasmVMHost14 "github.com/multiversx/mx-chain-vm-v1_4-go/vmhost/hostCore"
 )
 
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
@@ -282,59 +276,9 @@ func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.WasmVMVer
 func (vmf *vmContainerFactory) createInProcessWasmVMByVersion(version config.WasmVMVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Debug("createInProcessWasmVMByVersion", "version", version)
 	switch version.Version {
-	case "v1.2":
-		return vmf.createInProcessWasmVMV12()
-	case "v1.3":
-		return vmf.createInProcessWasmVMV13()
-	case "v1.4":
-		return vmf.createInProcessWasmVMV14()
 	default:
 		return vmf.createInProcessWasmVMV15()
 	}
-}
-
-func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("VM 1.2 created")
-	hostParameters := &wasmvm12.VMHostParameters{
-		VMType:                   factory.WasmVirtualMachine,
-		BlockGasLimit:            vmf.blockGasLimit,
-		GasSchedule:              vmf.gasSchedule.LatestGasSchedule(),
-		ProtocolBuiltinFunctions: vmf.builtinFunctions.Keys(),
-		ProtectedKeyPrefix:       []byte(core.ProtectedKeyPrefix),
-		EnableEpochsHandler:      vmf.enableEpochsHandler,
-	}
-	return wasmVMHost12.NewVMHost(vmf.blockChainHook, hostParameters)
-}
-
-func (vmf *vmContainerFactory) createInProcessWasmVMV13() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("VM 1.3 created")
-	hostParameters := &wasmvm13.VMHostParameters{
-		VMType:               factory.WasmVirtualMachine,
-		BlockGasLimit:        vmf.blockGasLimit,
-		GasSchedule:          vmf.gasSchedule.LatestGasSchedule(),
-		BuiltInFuncContainer: vmf.builtinFunctions,
-		ProtectedKeyPrefix:   []byte(core.ProtectedKeyPrefix),
-		EnableEpochsHandler:  vmf.enableEpochsHandler,
-	}
-	return wasmVMHost13.NewVMHost(vmf.blockChainHook, hostParameters)
-}
-
-func (vmf *vmContainerFactory) createInProcessWasmVMV14() (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Info("VM 1.4 created")
-	hostParameters := &wasmvm14.VMHostParameters{
-		VMType:                              factory.WasmVirtualMachine,
-		BlockGasLimit:                       vmf.blockGasLimit,
-		GasSchedule:                         vmf.gasSchedule.LatestGasSchedule(),
-		BuiltInFuncContainer:                vmf.builtinFunctions,
-		ProtectedKeyPrefix:                  []byte(core.ProtectedKeyPrefix),
-		ESDTTransferParser:                  vmf.esdtTransferParser,
-		WasmerSIGSEGVPassthrough:            vmf.config.WasmerSIGSEGVPassthrough,
-		TimeOutForSCExecutionInMilliseconds: vmf.config.TimeOutForSCExecutionInMilliseconds,
-		EpochNotifier:                       vmf.epochNotifier,
-		EnableEpochsHandler:                 vmf.enableEpochsHandler,
-		Hasher:                              vmf.hasher,
-	}
-	return wasmVMHost14.NewVMHost(vmf.blockChainHook, hostParameters)
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMV15() (vmcommon.VMExecutionHandler, error) {

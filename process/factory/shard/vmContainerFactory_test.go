@@ -18,7 +18,7 @@ import (
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	ipcNodePart1p2 "github.com/multiversx/mx-chain-vm-v1_2-go/ipc/nodepart"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -236,12 +236,7 @@ func makeHeaderHandlerStub(epoch uint32) data.HeaderHandler {
 }
 
 func isOutOfProcess(t testing.TB, container process.VirtualMachinesContainer) bool {
-	vm, err := container.Get(factory.WasmVirtualMachine)
-	require.Nil(t, err)
-	require.NotNil(t, vm)
-
-	_, ok := vm.(*ipcNodePart1p2.VMDriver)
-	return ok
+	return false
 }
 
 func getWasmVMVersion(t testing.TB, container process.VirtualMachinesContainer) string {
