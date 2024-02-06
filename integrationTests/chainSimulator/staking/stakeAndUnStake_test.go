@@ -130,7 +130,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	_ = helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
 
 	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
-	err = cm.GenerateBlocks(50)
+	err = cm.GenerateBlocks(100)
 	require.Nil(t, err)
 
 	accountValidatorOwner, _, err = cm.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
@@ -169,8 +169,8 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		MinNodesPerShard:       100,
+		MetaChainMinNodes:      100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cm)
@@ -226,6 +226,6 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	txFromNetwork := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.NotNil(t, txFromNetwork)
 
-	err = cm.GenerateBlocks(20)
+	err = cm.GenerateBlocks(100)
 	require.Nil(t, err)
 }
