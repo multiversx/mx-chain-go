@@ -386,7 +386,7 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher
@@ -558,7 +558,7 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], exportConfig)
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
-		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestTxSignMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher

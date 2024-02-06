@@ -63,7 +63,8 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
 
