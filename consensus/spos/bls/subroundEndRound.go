@@ -696,7 +696,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 		return false
 	}
 
-	if !sr.EnableEpochsHandler().IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 		if err != nil {
 			log.Debug("createAndBroadcastHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
