@@ -58,7 +58,7 @@ message OngoingVotedListV2 {
 }
 
 message DelegatedWithAddress {
-    uint64 Nonce = 1;
+    uint64 Nonce = 1 [(gogoproto.jsontag) = "Nonce"];
     bytes  DelegatedAddress  = 2 [(gogoproto.jsontag) = "DelegatedAddress"];
 }
 

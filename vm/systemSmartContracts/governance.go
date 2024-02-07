@@ -19,6 +19,7 @@ import (
 
 const governanceConfigKey = "governanceConfig"
 const accumulatedFeeKey = "accumulatedFee"
+const lastEndedNonceKey = "lastEndedNonce"
 const noncePrefix = "n_"
 const proposalPrefix = "p_"
 const yesString = "yes"
@@ -151,6 +152,8 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.changeConfig(args)
 	case "closeProposal":
 		return g.closeProposal(args)
+	case "clearEndedProposals":
+		return g.clearEndedProposals(args)
 	case "viewVotingPower":
 		return g.viewVotingPower(args)
 	case "viewConfig":
@@ -579,7 +582,13 @@ func (g *governanceContract) updateUserVoteListV2(address []byte, nonce uint64, 
 		return err
 	}
 
-	return g.saveUserVotesV2(address, userVoteList)
+	err = g.saveUserVotesV2(address, userVoteList)
+	if err != nil {
+		return err
+	}
+
+	lastEndedNonce := g.getLastEndedNonce()
+	return g.clearUserVotes(address, lastEndedNonce)
 }
 
 func (g *governanceContract) updateUserVotesV1(userVoteList *OngoingVotedList, nonce uint64, direct bool) error {
@@ -664,7 +673,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.eei.AddReturnMessage("proposal is already closed, do nothing")
 		return vmcommon.UserError
 	}
-	if !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !bytes.Equal(generalProposal.IssuerAddress, args.CallerAddr) {
 		g.eei.AddReturnMessage("only the issuer can close the proposal")
 		return vmcommon.UserError
 	}
@@ -700,7 +709,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.addToAccumulatedFees(baseConfig.LostProposalFee)
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
+	err = g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
 	if err != nil {
 		g.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -708,12 +717,67 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
-		Address:    args.CallerAddr,
+		Address:    generalProposal.IssuerAddress,
 		Topics:     [][]byte{generalProposal.CommitHash, boolToSlice(generalProposal.Passed)},
 	}
 	g.eei.AddLogEntry(logEntry)
 
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return vmcommon.Ok
+	}
+
+	g.processLastEndedNonce()
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	numAddresses := uint64(len(args.Arguments))
+	if numAddresses == 0 {
+		return vmcommon.Ok
+	}
+
+	err := g.eei.UseGas(numAddresses * g.gasCost.MetaChainSystemSCsCost.ClearProposal)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
+
+	lastEndedNonce := g.getLastEndedNonce()
+	for i := uint64(0); i < numAddresses; i++ {
+		voter := args.Arguments[i]
+		if len(voter) != len(args.CallerAddr) {
+			g.eei.AddReturnMessage("invalid delegator address")
+			return vmcommon.UserError
+		}
+		err = g.clearUserVotes(voter, lastEndedNonce)
+	}
+	return vmcommon.Ok
+}
+
+func (g *governanceContract) clearUserVotes(address []byte, lastEndedNonce uint64) error {
+	userVoteList, err := g.getUserVotesV2(address)
+	if err != nil {
+		return err
+	}
+
+	clearedUserVoteList := &OngoingVotedListV2{
+		Direct:               make([]uint64, 0),
+		DelegatedWithAddress: make([]*DelegatedWithAddress, 0),
+	}
+
+	for _, delegatedWithAddress := range userVoteList.DelegatedWithAddress {
+		if delegatedWithAddress.Nonce > lastEndedNonce {
+			clearedUserVoteList.DelegatedWithAddress = append(clearedUserVoteList.DelegatedWithAddress, delegatedWithAddress)
+		}
+	}
+
+	for i, direct := range userVoteList.Direct {
+		if direct > lastEndedNonce {
+			clearedUserVoteList.Direct = append(clearedUserVoteList.Direct, userVoteList.Direct[i])
+		}
+	}
+
+	return g.saveUserVotesV2(address, clearedUserVoteList)
 }
 
 func (g *governanceContract) getAccumulatedFees() *big.Int {
@@ -1264,6 +1328,37 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 		ProposalFee:      proposalFee,
 		LostProposalFee:  lostProposalFee,
 	}, nil
+}
+
+func (g *governanceContract) processLastEndedNonce() {
+	lastEndedNonce := g.getLastEndedNonce()
+	lastEndedNonceBig := big.NewInt(int64(lastEndedNonce))
+	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
+
+	var activeProposalFound bool
+	for !activeProposalFound {
+		lastEndedNonceBig = lastEndedNonceBig.Add(lastEndedNonceBig, big.NewInt(1))
+		proposal, err := g.getProposalFromNonce(lastEndedNonceBig)
+		if err != nil || proposal.EndVoteEpoch >= uint64(currentEpoch) {
+			activeProposalFound = true
+			break
+		}
+	}
+
+	if activeProposalFound {
+		lastEndedNonceBig = lastEndedNonceBig.Sub(lastEndedNonceBig, big.NewInt(1))
+	}
+
+	g.eei.SetStorage([]byte(lastEndedNonceKey), lastEndedNonceBig.Bytes())
+}
+
+func (g *governanceContract) getLastEndedNonce() uint64 {
+	marshaledData := g.eei.GetStorage([]byte(lastEndedNonceKey))
+	if len(marshaledData) == 0 {
+		return 0
+	}
+
+	return big.NewInt(0).SetBytes(marshaledData).Uint64()
 }
 
 func convertDecimalToPercentage(arg []byte) (float32, error) {
