@@ -10,8 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/helpers"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -69,8 +70,11 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 
 	// Step 1 --- add a new validator key in the chain simulator
-	privateKeyBase64 := "NjRhYjk3NmJjYWVjZTBjNWQ4YmJhNGU1NjZkY2VmYWFiYjcxNDI1Y2JiZDcwYzc1ODA2MGUxNTE5MGM2ZjE1Zg=="
-	helpers.AddValidatorKeysInMultiKey(t, cm, []string{privateKeyBase64})
+	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+
+	err = cm.AddValidatorKeys(privateKey)
+	require.Nil(t, err)
 
 	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	newValidatorOwnerBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
@@ -86,8 +90,6 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	blsKey := "9b7de1b2d2c90b7bea8f6855075c77d6c63b5dada29abb9b87c52cfae9d4112fcac13279e1a07d94672a5e62a83e3716555513014324d5c6bb4261b465f1b8549a7a338bc3ae8edc1e940958f9c2e296bd3c118a4466dec99dda0ceee3eb6a8c"
-
 	// Step 3 --- generate and send a stake transaction with the BLS key of the validator key that was added at step 1
 	stakeValue, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
 	tx := &transaction.Transaction{
@@ -95,14 +97,15 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		Value:     stakeValue,
 		SndAddr:   newValidatorOwnerBytes,
 		RcvAddr:   rcvAddrBytes,
-		Data:      []byte(fmt.Sprintf("stake@01@%s@010101", blsKey)),
+		Data:      []byte(fmt.Sprintf("stake@01@%s@010101", blsKeys[0])),
 		GasLimit:  50_000_000,
 		GasPrice:  1000000000,
 		Signature: []byte("dummy"),
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	stakeTx := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeTx, err := cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	shardIDValidatorOwner := cm.GetNodeHandler(0).GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
@@ -131,7 +134,8 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	_ = helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	_, err = cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
 
 	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
 	err = cm.GenerateBlocks(50)
@@ -139,17 +143,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 
 	validatorStatistics, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
-
-	countRatingIncreased := 0
-	for _, validatorInfo := range validatorStatistics {
-		validatorSignedAtLeastOneBlock := validatorInfo.NumValidatorSuccess > 0 || validatorInfo.NumLeaderSuccess > 0
-		if !validatorSignedAtLeastOneBlock {
-			continue
-		}
-		countRatingIncreased++
-		require.Greater(t, validatorInfo.TempRating, validatorInfo.Rating)
-	}
-	require.Greater(t, countRatingIncreased, 0)
+	checkValidatorsRating(t, validatorStatistics)
 
 	accountValidatorOwner, _, err = cm.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -202,7 +196,8 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 
 	// Step 1 --- add a new validator key in the chain simulator
 	numOfNodes := 20
-	validatorSecretKeysBytes, blsKeys := helpers.GenerateBlsPrivateKeys(t, numOfNodes)
+	validatorSecretKeysBytes, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(numOfNodes)
+	require.Nil(t, err)
 	err = cm.AddValidatorKeys(validatorSecretKeysBytes)
 	require.Nil(t, err)
 
@@ -241,7 +236,8 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		Version:   1,
 	}
 
-	txFromNetwork := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	txFromNetwork, err := cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
 	require.NotNil(t, txFromNetwork)
 
 	err = cm.GenerateBlocks(1)
@@ -251,29 +247,37 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, newValidatorOwner, results[0].Owner)
 	require.Equal(t, 20, len(results[0].AuctionList))
-	totalQualified := 0
-	for _, res := range results {
-		for _, node := range res.AuctionList {
-			if node.Qualified {
-				totalQualified++
-			}
-		}
-	}
-	require.Equal(t, 8, totalQualified)
+	checkTotalQualified(t, results, 8)
 
 	err = cm.GenerateBlocks(100)
 	require.Nil(t, err)
 
 	results, err = cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
+	checkTotalQualified(t, results, 0)
+}
 
-	totalQualified = 0
-	for _, res := range results {
+func checkTotalQualified(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, expected int) {
+	totalQualified := 0
+	for _, res := range auctionList {
 		for _, node := range res.AuctionList {
 			if node.Qualified {
 				totalQualified++
 			}
 		}
 	}
-	require.Equal(t, 0, totalQualified)
+	require.Equal(t, expected, totalQualified)
+}
+
+func checkValidatorsRating(t *testing.T, validatorStatistics map[string]*validator.ValidatorStatistics) {
+	countRatingIncreased := 0
+	for _, validatorInfo := range validatorStatistics {
+		validatorSignedAtLeastOneBlock := validatorInfo.NumValidatorSuccess > 0 || validatorInfo.NumLeaderSuccess > 0
+		if !validatorSignedAtLeastOneBlock {
+			continue
+		}
+		countRatingIncreased++
+		require.Greater(t, validatorInfo.TempRating, validatorInfo.Rating)
+	}
+	require.Greater(t, countRatingIncreased, 0)
 }

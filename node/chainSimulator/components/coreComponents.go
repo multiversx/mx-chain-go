@@ -202,7 +202,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	}
 	instance.apiEconomicsData = instance.economicsData
 
-	// TODO fix this min nodes pe shard to be configurable
+	// TODO fix this min nodes per shard to be configurable
 	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
 		ShardConsensusSize:       1,
