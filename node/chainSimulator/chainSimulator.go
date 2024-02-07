@@ -2,6 +2,8 @@ package chainSimulator
 
 import (
 	"bytes"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,7 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -21,17 +27,20 @@ var log = logger.GetOrCreate("chainSimulator")
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck bool
-	TempDir                string
-	PathToInitialConfig    string
-	NumOfShards            uint32
-	MinNodesPerShard       uint32
-	MetaChainMinNodes      uint32
-	GenesisTimestamp       int64
-	InitialRound           int64
-	RoundDurationInMillis  uint64
-	RoundsPerEpoch         core.OptionalUint64
-	ApiInterface           components.APIConfigurator
+	BypassTxSignatureCheck   bool
+	TempDir                  string
+	PathToInitialConfig      string
+	NumOfShards              uint32
+	MinNodesPerShard         uint32
+	MetaChainMinNodes        uint32
+	NumNodesWaitingListShard uint32
+	NumNodesWaitingListMeta  uint32
+	GenesisTimestamp         int64
+	InitialRound             int64
+	RoundDurationInMillis    uint64
+	RoundsPerEpoch           core.OptionalUint64
+	ApiInterface             components.APIConfigurator
+	AlterConfigsFunction     func(cfg *config.Configs)
 }
 
 type simulator struct {
@@ -68,14 +77,17 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 
 func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:           args.NumOfShards,
-		OriginalConfigsPath:   args.PathToInitialConfig,
-		GenesisTimeStamp:      computeStartTimeBaseOnInitialRound(args),
-		RoundDurationInMillis: args.RoundDurationInMillis,
-		TempDir:               args.TempDir,
-		MinNodesPerShard:      args.MinNodesPerShard,
-		MetaChainMinNodes:     args.MetaChainMinNodes,
-		RoundsPerEpoch:        args.RoundsPerEpoch,
+		NumOfShards:              args.NumOfShards,
+		OriginalConfigsPath:      args.PathToInitialConfig,
+		GenesisTimeStamp:         computeStartTimeBaseOnInitialRound(args),
+		RoundDurationInMillis:    args.RoundDurationInMillis,
+		TempDir:                  args.TempDir,
+		MinNodesPerShard:         args.MinNodesPerShard,
+		MetaChainMinNodes:        args.MetaChainMinNodes,
+		RoundsPerEpoch:           args.RoundsPerEpoch,
+		AlterConfigsFunction:     args.AlterConfigsFunction,
+		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
@@ -135,6 +147,7 @@ func (s *simulator) createTestNode(
 		InitialRound:           args.InitialRound,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
+		RoundDurationInMillis:  args.RoundDurationInMillis,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
@@ -294,6 +307,48 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	return nil
 }
 
+// SendTxAndGenerateBlockTilTxIsExecuted will the provided transaction and generate block
+func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
+	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.SndAddr)
+	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(txToSend)
+	if err != nil {
+		return nil, err
+	}
+
+	node := s.GetNodeHandler(shardID)
+	txHash, err := core.CalculateHash(node.GetCoreComponents().InternalMarshalizer(), node.GetCoreComponents().Hasher(), txToSend)
+	if err != nil {
+		return nil, err
+	}
+
+	txHashHex := hex.EncodeToString(txHash)
+
+	log.Info("############## send transaction ##############", "txHash", txHash)
+
+	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{txToSend})
+	if err != nil {
+		return nil, err
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	destinationShardID := node.GetShardCoordinator().ComputeId(txToSend.RcvAddr)
+	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
+		err = s.GenerateBlocks(1)
+		if err != nil {
+			return nil, err
+		}
+
+		tx, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHashHex, true)
+		if errGet == nil && tx.Status != transaction.TxStatusPending {
+			log.Info("############## transaction was executed ##############", "txHash", txHash)
+			return tx, nil
+		}
+	}
+
+	return nil, errors.New("something went wrong transaction is still in pending")
+}
+
 func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	for shard, node := range s.nodes {
 		err := node.SetStateForAddress(core.SystemAccountAddress, state)
@@ -328,4 +383,31 @@ func (s *simulator) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *simulator) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// GenerateBlsPrivateKeys will generate bls keys
+func GenerateBlsPrivateKeys(numOfKeys int) ([][]byte, []string, error) {
+	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
+	secretKeysBytes := make([][]byte, 0, numOfKeys)
+	blsKeysHex := make([]string, 0, numOfKeys)
+	for idx := 0; idx < numOfKeys; idx++ {
+		secretKey, publicKey := blockSigningGenerator.GeneratePair()
+
+		secretKeyBytes, err := secretKey.ToByteArray()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		secretKeysBytes = append(secretKeysBytes, secretKeyBytes)
+
+		publicKeyBytes, err := publicKey.ToByteArray()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		blsKeysHex = append(blsKeysHex, hex.EncodeToString(publicKeyBytes))
+	}
+
+	return secretKeysBytes, blsKeysHex, nil
 }

@@ -45,6 +45,7 @@ type ArgsTestOnlyProcessingNode struct {
 	BypassTxSignatureCheck bool
 	MinNodesPerShard       uint32
 	MinNodesMeta           uint32
+	RoundDurationInMillis  uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -96,6 +97,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		InitialRound:        args.InitialRound,
 		MinNodesPerShard:    args.MinNodesPerShard,
 		MinNodesMeta:        args.MinNodesMeta,
+		RoundDurationInMs:   args.RoundDurationInMillis,
+		RatingConfig:        *args.Configs.RatingsConfig,
 	})
 	if err != nil {
 		return nil, err
