@@ -168,6 +168,52 @@ func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	return nil
 }
 
+// GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
+func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	maxNumberOfRounds := 10000
+	for idx := 0; idx < maxNumberOfRounds; idx++ {
+		time.Sleep(time.Millisecond * 2)
+		s.incrementRoundOnAllValidators()
+		err := s.allNodesCreateBlocks()
+		if err != nil {
+			return err
+		}
+
+		epochReachedOnAllNodes, err := s.isTargetEpochReached(targetEpoch)
+		if err != nil {
+			return err
+		}
+
+		if epochReachedOnAllNodes {
+			return nil
+		}
+	}
+	return fmt.Errorf("exceeded rounds to generate blocks")
+}
+
+func (s *simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
+	metachainNode := s.nodes[core.MetachainShardId]
+	metachainEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
+
+	for shardID, n := range s.nodes {
+		if shardID != core.MetachainShardId {
+			if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < int32(metachainEpoch-1) {
+				return false, fmt.Errorf("shard %d is with at least 2 epochs behind metachain shard node epoch %d, metachain node epoch %d",
+					shardID, n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch(), metachainEpoch)
+			}
+		}
+
+		if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < targetEpoch {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
 func (s *simulator) incrementRoundOnAllValidators() {
 	for _, node := range s.handlers {
 		node.IncrementRound()

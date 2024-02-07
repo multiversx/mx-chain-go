@@ -319,6 +319,7 @@ type TransactionLogProcessorDatabase interface {
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*validator.ValidatorStatistics
 	GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error)
+	ForceUpdate() error
 	IsInterfaceNil() bool
 	Close() error
 }

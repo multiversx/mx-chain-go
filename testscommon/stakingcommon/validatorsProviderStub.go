@@ -9,6 +9,7 @@ import (
 type ValidatorsProviderStub struct {
 	GetLatestValidatorsCalled func() map[string]*validator.ValidatorStatistics
 	GetAuctionListCalled      func() ([]*common.AuctionListValidatorAPIResponse, error)
+	ForceUpdateCalled         func() error
 }
 
 // GetLatestValidators -
@@ -27,6 +28,15 @@ func (vp *ValidatorsProviderStub) GetAuctionList() ([]*common.AuctionListValidat
 	}
 
 	return nil, nil
+}
+
+// ForceUpdate -
+func (vp *ValidatorsProviderStub) ForceUpdate() error {
+	if vp.ForceUpdateCalled != nil {
+		return vp.ForceUpdateCalled()
+	}
+
+	return nil
 }
 
 // Close -
