@@ -40,15 +40,17 @@ const (
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
-	NumOfShards           uint32
-	OriginalConfigsPath   string
-	GenesisTimeStamp      int64
-	RoundDurationInMillis uint64
-	TempDir               string
-	MinNodesPerShard      uint32
-	MetaChainMinNodes     uint32
-	RoundsPerEpoch        core.OptionalUint64
-	AlterConfigsFunction  func(cfg *config.Configs)
+	NumOfShards              uint32
+	OriginalConfigsPath      string
+	GenesisTimeStamp         int64
+	RoundDurationInMillis    uint64
+	TempDir                  string
+	MinNodesPerShard         uint32
+	MetaChainMinNodes        uint32
+	NumNodesWaitingListShard uint32
+	NumNodesWaitingListMeta  uint32
+	RoundsPerEpoch           core.OptionalUint64
+	AlterConfigsFunction     func(cfg *config.Configs)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -104,7 +106,10 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
 
-	maxNumNodes := uint64(args.MinNodesPerShard*args.NumOfShards+args.MetaChainMinNodes) + 2*uint64(args.NumOfShards+1)
+	maxNumNodes := uint64((args.MinNodesPerShard+args.NumNodesWaitingListShard)*args.NumOfShards) +
+		uint64(args.MetaChainMinNodes+args.NumNodesWaitingListMeta) +
+		2*uint64(args.NumOfShards+1+args.NumNodesWaitingListShard+args.NumNodesWaitingListMeta)
+
 	configs.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
 	numMaxNumNodesEnableEpochs := len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
 	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {
@@ -158,7 +163,7 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 
 	addresses := make([]data.InitialAccount, 0)
 	stakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
-	numOfNodes := args.MinNodesPerShard*args.NumOfShards + args.MetaChainMinNodes
+	numOfNodes := (args.NumNodesWaitingListShard+args.MinNodesPerShard)*args.NumOfShards + args.NumNodesWaitingListMeta + args.MetaChainMinNodes
 	stakedValue = stakedValue.Mul(stakedValue, big.NewInt(int64(numOfNodes))) // 2500 EGLD * number of nodes
 	addresses = append(addresses, data.InitialAccount{
 		Address:      initialAddressWithStake.Address,
@@ -225,6 +230,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
+	// TODO fix this to can be configurable
 	nodes.ConsensusGroupSize = 1
 	nodes.MetaChainConsensusGroupSize = 1
 
@@ -235,7 +241,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	privateKeys := make([]crypto.PrivateKey, 0)
 	publicKeys := make([]crypto.PublicKey, 0)
 	// generate meta keys
-	for idx := uint32(0); idx < args.MetaChainMinNodes; idx++ {
+	for idx := uint32(0); idx < args.NumNodesWaitingListMeta+args.MetaChainMinNodes; idx++ {
 		sk, pk := blockSigningGenerator.GeneratePair()
 		privateKeys = append(privateKeys, sk)
 		publicKeys = append(publicKeys, pk)
@@ -253,7 +259,7 @@ func generateValidatorsKeyAndUpdateFiles(
 
 	// generate shard keys
 	for idx1 := uint32(0); idx1 < args.NumOfShards; idx1++ {
-		for idx2 := uint32(0); idx2 < args.MinNodesPerShard; idx2++ {
+		for idx2 := uint32(0); idx2 < args.NumNodesWaitingListShard+args.MinNodesPerShard; idx2++ {
 			sk, pk := blockSigningGenerator.GeneratePair()
 			privateKeys = append(privateKeys, sk)
 			publicKeys = append(publicKeys, pk)
