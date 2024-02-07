@@ -61,7 +61,7 @@ func (mewl *memoryEvictionWaitingList) Put(rootHash []byte, hashes common.Modifi
 	mewl.opMutex.Lock()
 	defer mewl.opMutex.Unlock()
 
-	log.Trace("trie eviction waiting list", "size", len(mewl.cache))
+	log.Trace("trie eviction waiting list", "cache size", len(mewl.cache), "reversed cache size", len(mewl.reversedCache))
 
 	mewl.putInReversedCache(rootHash, hashes)
 	mewl.putInCache(rootHash, hashes)
@@ -158,7 +158,7 @@ func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHa
 
 	rhData, ok := mewl.cache[string(rootHash)]
 	if !ok {
-		return make(common.ModifiedHashes, 0), nil
+		return make(common.ModifiedHashes), nil
 	}
 
 	if rhData.numReferences <= 1 {
@@ -170,7 +170,7 @@ func (mewl *memoryEvictionWaitingList) Evict(rootHash []byte) (common.ModifiedHa
 
 	rhData.numReferences--
 
-	return make(common.ModifiedHashes, 0), nil
+	return make(common.ModifiedHashes), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

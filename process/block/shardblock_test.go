@@ -2790,15 +2790,17 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash3Requested := int32(0)
 
 	requestHandler := &testscommon.RequestHandlerStub{
-		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
-			if bytes.Equal(miniBlockHash1, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash1Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash2, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash2Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash3, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash3Requested, 1)
+		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+			for _, mbHash := range miniblocksHashes {
+				if bytes.Equal(miniBlockHash1, mbHash) {
+					atomic.AddInt32(&miniBlockHash1Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash2, mbHash) {
+					atomic.AddInt32(&miniBlockHash2Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash3, mbHash) {
+					atomic.AddInt32(&miniBlockHash3Requested, 1)
+				}
 			}
 		},
 	}
@@ -4519,7 +4521,6 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
-	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
@@ -5067,9 +5068,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
-	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsScheduledMiniBlocksFlagEnabledField: true,
-	}
+	coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {

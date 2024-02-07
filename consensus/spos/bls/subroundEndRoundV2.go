@@ -33,3 +33,8 @@ func (sr *subroundEndRoundV2) getMessageToVerifySig() []byte {
 
 	return headerHash
 }
+
+// IsInterfaceNil checks if the underlying interface is nil
+func (sr *subroundEndRoundV2) IsInterfaceNil() bool {
+	return sr == nil
+}

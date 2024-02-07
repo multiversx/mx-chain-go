@@ -36,8 +36,17 @@ copyConfig() {
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/nodesSetup.json ./node/config
   cp ./filegen/"$CONFIGGENERATOROUTPUTDIR"/*.pem ./node/config #there might be more .pem files there
   if [[ $MULTI_KEY_NODES -eq 1 ]]; then
-    mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      mv ./node/config/"$VALIDATOR_KEY_PEM_FILE" ./node/config/"$MULTI_KEY_PEM_FILE"
+      if [[ $EXTRA_KEYS -eq 1 ]]; then
+        cat $NODEDIR/config/testKeys/"${EXTRA_KEY_PEM_FILE}" >> ./node/config/"$MULTI_KEY_PEM_FILE"
+      fi
   fi
+
+  if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/private_key.pem ./node/config
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/certificate.crt ./node/config
+  fi
+
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -112,7 +121,6 @@ copySovereignNodeConfig() {
   cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./txgen/config/nodeConfig/config
   cp $SOVEREIGNNODEDIR/config/economics.toml ./node/config
   cp $SOVEREIGNNODEDIR/config/economics.toml ./txgen/config
-  cp $SOVEREIGNNODEDIR/config/notifierConfig.toml ./node/config
   cp $SOVEREIGNNODEDIR/config/sovereignConfig.toml ./node/config
 
   echo "Configuration files copied from the Sovereign Node to the working directories of the executables."

@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -17,6 +20,7 @@ var log = logger.GetOrCreate("headerSubscriber")
 // ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
 type ArgsIncomingHeaderProcessor struct {
 	HeadersPool                     HeadersPool
+	OutGoingOperationsPool          block.OutGoingOperationsPool
 	TxPool                          TransactionPool
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
@@ -24,8 +28,11 @@ type ArgsIncomingHeaderProcessor struct {
 }
 
 type incomingHeaderProcessor struct {
-	scrProc                         *scrProcessor
-	extendedHeaderProc              *extendedHeaderProcessor
+	eventsProc         *incomingEventsProcessor
+	extendedHeaderProc *extendedHeaderProcessor
+
+	txPool                          TransactionPool
+	outGoingPool                    block.OutGoingOperationsPool
 	mainChainNotarizationStartRound uint64
 }
 
@@ -45,9 +52,11 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	if check.IfNil(args.Hasher) {
 		return nil, core.ErrNilHasher
 	}
+	if check.IfNil(args.OutGoingOperationsPool) {
+		return nil, errors.ErrNilOutGoingOperationsPool
+	}
 
-	scrProc := &scrProcessor{
-		txPool:     args.TxPool,
+	eventsProc := &incomingEventsProcessor{
 		marshaller: args.Marshaller,
 		hasher:     args.Hasher,
 	}
@@ -61,8 +70,10 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	log.Debug("NewIncomingHeaderProcessor", "starting round to notarize main chain headers", args.MainChainNotarizationStartRound)
 
 	return &incomingHeaderProcessor{
-		scrProc:                         scrProc,
+		eventsProc:                      eventsProc,
 		extendedHeaderProc:              extendedHearProc,
+		txPool:                          args.TxPool,
+		outGoingPool:                    args.OutGoingOperationsPool,
 		mainChainNotarizationStartRound: args.MainChainNotarizationStartRound,
 	}, nil
 }
@@ -83,12 +94,12 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return nil
 	}
 
-	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	res, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
 
-	extendedHeader, err := createExtendedHeader(header, incomingSCRs)
+	extendedHeader, err := createExtendedHeader(header, res.scrs)
 	if err != nil {
 		return err
 	}
@@ -98,18 +109,43 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	ihp.scrProc.addSCRsToPool(incomingSCRs)
+	ihp.addConfirmedBridgeOpsToPool(res.confirmedBridgeOps)
+	ihp.addSCRsToPool(res.scrs)
 	return nil
+}
+
+func (ihp *incomingHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
+	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
+
+	for _, scrData := range scrs {
+		ihp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
+	}
+}
+
+func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) {
+	for _, op := range ops {
+		// This is not a critical error. This might just happen when a leader tries to re-send unconfirmed confirmation
+		// that have been already executed, but the confirmation from notifier comes too late, and we receive a double
+		// confirmation.
+		err := ihp.outGoingPool.ConfirmOperation(op.hashOfHashes, op.hash)
+		if err != nil {
+			log.Debug("incomingHeaderProcessor.AddHeader.addConfirmedBridgeOpsToPool",
+				"error", err,
+				"hashOfHashes", hex.EncodeToString(op.hashOfHashes),
+				"hash", hex.EncodeToString(op.hash),
+			)
+		}
+	}
 }
 
 // CreateExtendedHeader will create an extended shard header with incoming scrs and mbs from the events of the received header
 func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
-	incomingSCRs, err := ihp.scrProc.createIncomingSCRs(header.GetIncomingEventHandlers())
+	res, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return nil, err
 	}
 
-	return createExtendedHeader(header, incomingSCRs)
+	return createExtendedHeader(header, res.scrs)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

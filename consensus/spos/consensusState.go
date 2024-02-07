@@ -433,7 +433,8 @@ func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
 	return true
 }
 
-// UpdatePublicKeyLiveness will update the public key's liveness in the network
-func (cns *ConsensusState) UpdatePublicKeyLiveness(pkBytes []byte, pid core.PeerID) {
-	cns.keysHandler.UpdatePublicKeyLiveness(pkBytes, pid)
+// ResetRoundsWithoutReceivedMessages will reset the rounds received without a message for a specified public key by
+// providing also the peer ID from the received message
+func (cns *ConsensusState) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
+	cns.keysHandler.ResetRoundsWithoutReceivedMessages(pkBytes, pid)
 }

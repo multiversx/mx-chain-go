@@ -28,4 +28,5 @@ type FactoryArgs struct {
 	ManualEpochStartNotifier dataRetriever.ManualEpochStartNotifier
 	ChanGracefullyClose      chan endProcess.ArgEndProcess
 	EnableEpochsHandler      common.EnableEpochsHandler
+	StateStatsHandler        common.StateStatisticsHandler
 }

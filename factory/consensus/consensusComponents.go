@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -54,6 +55,8 @@ type ConsensusComponentsFactoryArgs struct {
 	ShouldDisableWatchdog bool
 	ConsensusModel        consensus.ConsensusModel
 	ChainRunType          common.ChainRunType
+	ExtraSignersHolder    bls.ExtraSignersHolder
+	SubRoundEndV2Creator  bls.SubRoundEndV2Creator
 }
 
 type consensusComponentsFactory struct {
@@ -73,6 +76,9 @@ type consensusComponentsFactory struct {
 	shouldDisableWatchdog bool
 	consensusModel        consensus.ConsensusModel
 	chainRunType          common.ChainRunType
+
+	extraSignersHolder   bls.ExtraSignersHolder
+	subRoundEndV2Creator bls.SubRoundEndV2Creator
 }
 
 type consensusComponents struct {
@@ -114,6 +120,8 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
 		consensusModel:        args.ConsensusModel,
 		chainRunType:          args.ChainRunType,
+		extraSignersHolder:    args.ExtraSignersHolder,
+		subRoundEndV2Creator:  args.SubRoundEndV2Creator,
 	}, nil
 }
 
@@ -285,6 +293,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	sentSignaturesHandler, err := spos.NewSentSignaturesTracker(ccf.cryptoComponents.KeysHandler())
+	if err != nil {
+		return nil, err
+	}
+
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
@@ -292,10 +305,13 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.config.Consensus.Type,
 		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
+		sentSignaturesHandler,
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
 		ccf.consensusModel,
 		ccf.coreComponents.EnableEpochsHandler(),
+		ccf.extraSignersHolder,
+		ccf.subRoundEndV2Creator,
 	)
 	if err != nil {
 		return nil, err
@@ -804,6 +820,12 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.StatusCoreComponents) {
 		return errors.ErrNilStatusCoreComponents
+	}
+	if check.IfNil(args.ExtraSignersHolder) {
+		return errors.ErrNilExtraSignersHolder
+	}
+	if check.IfNil(args.SubRoundEndV2Creator) {
+		return errors.ErrNilSubRoundEndV2Creator
 	}
 
 	return nil

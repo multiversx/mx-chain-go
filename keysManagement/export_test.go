@@ -6,12 +6,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-// GetRoundsWithoutReceivedMessages -
-func (pInfo *peerInfo) GetRoundsWithoutReceivedMessages() int {
+// GetRoundsOfInactivity -
+func (pInfo *peerInfo) GetRoundsOfInactivity() int {
 	pInfo.mutChangeableData.RLock()
 	defer pInfo.mutChangeableData.RUnlock()
 
-	return pInfo.roundsWithoutReceivedMessages
+	return pInfo.handler.RoundsOfInactivity()
 }
 
 // Pid -

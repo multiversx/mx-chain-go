@@ -1,6 +1,7 @@
 package keysManagement
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -12,36 +13,34 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/redundancy/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-const minRoundsWithoutReceivedMessages = -1
 
 var log = logger.GetOrCreate("keysManagement")
 
 type managedPeersHolder struct {
-	mut                              sync.RWMutex
-	defaultPeerInfoCurrentIndex      int
-	providedIdentities               map[string]*peerInfo
-	data                             map[string]*peerInfo
-	pids                             map[core.PeerID]struct{}
-	keyGenerator                     crypto.KeyGenerator
-	p2pKeyGenerator                  crypto.KeyGenerator
-	isMainMachine                    bool
-	maxRoundsWithoutReceivedMessages int
-	defaultName                      string
-	defaultIdentity                  string
-	p2pKeyConverter                  p2p.P2PKeyConverter
+	mut                         sync.RWMutex
+	defaultPeerInfoCurrentIndex int
+	providedIdentities          map[string]*peerInfo
+	data                        map[string]*peerInfo
+	pids                        map[core.PeerID]struct{}
+	keyGenerator                crypto.KeyGenerator
+	p2pKeyGenerator             crypto.KeyGenerator
+	isMainMachine               bool
+	maxRoundsOfInactivity       int
+	defaultName                 string
+	defaultIdentity             string
+	p2pKeyConverter             p2p.P2PKeyConverter
 }
 
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
 type ArgsManagedPeersHolder struct {
-	KeyGenerator                     crypto.KeyGenerator
-	P2PKeyGenerator                  crypto.KeyGenerator
-	IsMainMachine                    bool
-	MaxRoundsWithoutReceivedMessages int
-	PrefsConfig                      config.Preferences
-	P2PKeyConverter                  p2p.P2PKeyConverter
+	KeyGenerator          crypto.KeyGenerator
+	P2PKeyGenerator       crypto.KeyGenerator
+	MaxRoundsOfInactivity int
+	PrefsConfig           config.Preferences
+	P2PKeyConverter       p2p.P2PKeyConverter
 }
 
 // NewManagedPeersHolder creates a new instance of a managed peers holder
@@ -52,16 +51,16 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 	}
 
 	holder := &managedPeersHolder{
-		defaultPeerInfoCurrentIndex:      0,
-		pids:                             make(map[core.PeerID]struct{}),
-		keyGenerator:                     args.KeyGenerator,
-		p2pKeyGenerator:                  args.P2PKeyGenerator,
-		isMainMachine:                    args.IsMainMachine,
-		maxRoundsWithoutReceivedMessages: args.MaxRoundsWithoutReceivedMessages,
-		defaultName:                      args.PrefsConfig.Preferences.NodeDisplayName,
-		defaultIdentity:                  args.PrefsConfig.Preferences.Identity,
-		p2pKeyConverter:                  args.P2PKeyConverter,
-		data:                             make(map[string]*peerInfo),
+		defaultPeerInfoCurrentIndex: 0,
+		pids:                        make(map[core.PeerID]struct{}),
+		keyGenerator:                args.KeyGenerator,
+		p2pKeyGenerator:             args.P2PKeyGenerator,
+		isMainMachine:               common.IsMainNode(args.MaxRoundsOfInactivity),
+		maxRoundsOfInactivity:       args.MaxRoundsOfInactivity,
+		defaultName:                 args.PrefsConfig.Preferences.NodeDisplayName,
+		defaultIdentity:             args.PrefsConfig.Preferences.Identity,
+		p2pKeyConverter:             args.P2PKeyConverter,
+		data:                        make(map[string]*peerInfo),
 	}
 
 	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
@@ -79,9 +78,9 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	if check.IfNil(args.P2PKeyGenerator) {
 		return fmt.Errorf("%w for args.P2PKeyGenerator", ErrNilKeyGenerator)
 	}
-	if args.MaxRoundsWithoutReceivedMessages < minRoundsWithoutReceivedMessages {
-		return fmt.Errorf("%w for MaxRoundsWithoutReceivedMessages, minimum %d, got %d",
-			ErrInvalidValue, minRoundsWithoutReceivedMessages, args.MaxRoundsWithoutReceivedMessages)
+	err := common.CheckMaxRoundsOfInactivity(args.MaxRoundsOfInactivity)
+	if err != nil {
+		return err
 	}
 	if check.IfNil(args.P2PKeyConverter) {
 		return fmt.Errorf("%w for args.P2PKeyConverter", ErrNilP2PKeyConverter)
@@ -171,6 +170,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 		holder.defaultPeerInfoCurrentIndex++
 	}
 
+	pInfo.handler = common.NewRedundancyHandler()
 	pInfo.pid = pid
 	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
 	pInfo.privateKey = privateKey
@@ -260,13 +260,16 @@ func (holder *managedPeersHolder) IncrementRoundsWithoutReceivedMessages(pkBytes
 }
 
 // ResetRoundsWithoutReceivedMessages resets the number of rounds without received messages on a provided public key
-func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte) {
+func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
 	if holder.isMainMachine {
 		return
 	}
 
 	pInfo := holder.getPeerInfo(pkBytes)
 	if pInfo == nil {
+		return
+	}
+	if bytes.Equal(pInfo.pid.Bytes(), pid.Bytes()) {
 		return
 	}
 
@@ -280,8 +283,7 @@ func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypt
 
 	allManagedKeys := make(map[string]crypto.PrivateKey)
 	for pk, pInfo := range holder.data {
-		isSlaveAndMainFailed := !holder.isMainMachine && !pInfo.isNodeActiveOnMainMachine(holder.maxRoundsWithoutReceivedMessages)
-		shouldAddToMap := holder.isMainMachine || isSlaveAndMainFailed
+		shouldAddToMap := pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
 		if !shouldAddToMap {
 			continue
 		}
@@ -299,11 +301,7 @@ func (holder *managedPeersHolder) IsKeyManagedByCurrentNode(pkBytes []byte) bool
 		return false
 	}
 
-	if holder.isMainMachine {
-		return true
-	}
-
-	return !pInfo.isNodeActiveOnMainMachine(holder.maxRoundsWithoutReceivedMessages)
+	return pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
 }
 
 // IsKeyRegistered returns true if the key is registered (not necessarily managed by the current node)
@@ -363,9 +361,12 @@ func (holder *managedPeersHolder) SetNextPeerAuthenticationTime(pkBytes []byte, 
 	pInfo.setNextPeerAuthenticationTime(nextTime)
 }
 
-// IsMultiKeyMode returns true if the node has at least one managed key
+// IsMultiKeyMode returns true if the node has at least one managed key, regardless it was set as a main machine or a backup machine
 func (holder *managedPeersHolder) IsMultiKeyMode() bool {
-	return len(holder.GetManagedKeysByCurrentNode()) > 0
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
+	return len(holder.data) > 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

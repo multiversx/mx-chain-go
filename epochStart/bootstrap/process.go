@@ -120,6 +120,7 @@ type epochStartBootstrap struct {
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          common.NodeOperation
+	stateStatsHandler          common.StateStatisticsHandler
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -190,6 +191,7 @@ type ArgsEpochStartBootstrap struct {
 	ScheduledSCRsStorer              storage.Storer
 	TrieSyncStatisticsProvider       common.SizeSyncStatisticsHandler
 	NodeProcessingMode               common.NodeProcessingMode
+	StateStatsHandler                common.StateStatisticsHandler
 	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
@@ -241,8 +243,9 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		shardCoordinator:                 args.GenesisShardCoordinator,
 		trieSyncStatisticsProvider:       args.TrieSyncStatisticsProvider,
 		nodeProcessingMode:               args.NodeProcessingMode,
-		chainRunType:                     args.ChainRunType,
 		nodeOperationMode:                common.NormalOperation,
+		stateStatsHandler:                args.StateStatsHandler,
+		chainRunType:                     args.ChainRunType,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
@@ -524,6 +527,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		e.generalConfig,
 		e.coreComponentsHolder,
 		e.storageService,
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -806,6 +810,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -818,6 +823,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -974,6 +980,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.coreComponentsHolder.NodeTypeProvider(),
 		e.nodeProcessingMode,
 		e.cryptoComponentsHolder.ManagedPeersHolder(),
+		e.stateStatsHandler,
 		e.chainRunType,
 	)
 	if err != nil {
@@ -987,6 +994,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.generalConfig,
 		e.coreComponentsHolder,
 		storageHandlerComponent.storageService,
+		e.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -1070,7 +1078,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		HeadersSyncer:        e.headersSyncer,
 		MiniBlocksSyncer:     e.miniBlocksSyncer,
 		TxSyncer:             e.txSyncerForScheduled,
-		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().ScheduledMiniBlocksEnableEpoch(),
+		ScheduledEnableEpoch: e.coreComponentsHolder.EnableEpochsHandler().GetActivationEpoch(common.ScheduledMiniBlocksFlag),
 	}
 
 	e.dataSyncerWithScheduled, err = e.dataSyncerFactory.Create(argsScheduledDataSyncer)
@@ -1139,14 +1147,15 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createStorageService(
+func (e *epochStartBootstrap) createStorageServiceForImportDB(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier epochStart.EpochStartNotifier,
-	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,
 ) (dataRetriever.StorageService, error) {
+	startEpoch := uint32(0)
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
 			Config:                        e.generalConfig,
@@ -1156,11 +1165,12 @@ func (e *epochStartBootstrap) createStorageService(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
 			CurrentEpoch:                  startEpoch,
-			StorageType:                   storageFactory.BootstrapStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
+			StateStatsHandler:             e.stateStatsHandler,
 			ChainRunType:                  e.chainRunType,
 		})
 	if err != nil {

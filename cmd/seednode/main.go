@@ -98,6 +98,13 @@ VERSION:
 	}
 
 	p2pConfigurationFile = "./config/p2p.toml"
+
+	// p2pPrometheusMetrics defines a flag for p2p prometheus metrics
+	// If enabled, it will open a new route, /debug/metrics/prometheus, where p2p prometheus metrics will be available
+	p2pPrometheusMetrics = cli.BoolFlag{
+		Name:  "p2p-prometheus-metrics",
+		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
+	}
 )
 
 var log = logger.GetOrCreate("main")
@@ -114,6 +121,7 @@ func main() {
 		logSaveFile,
 		configurationFile,
 		p2pKeyPemFile,
+		p2pPrometheusMetrics,
 	}
 	app.Version = "v0.0.1"
 	app.Authors = []cli.Author{
@@ -350,14 +358,15 @@ func checkExpectedPeerCount(p2pConfig p2pConfig.P2PConfig) error {
 func startRestServices(ctx *cli.Context, marshalizer marshal.Marshalizer) {
 	restApiInterface := ctx.GlobalString(restApiInterfaceFlag.Name)
 	if restApiInterface != facade.DefaultRestPortOff {
-		go startGinServer(restApiInterface, marshalizer)
+		p2pPrometheusMetricsEnabled := ctx.GlobalBool(p2pPrometheusMetrics.Name)
+		go startGinServer(restApiInterface, marshalizer, p2pPrometheusMetricsEnabled)
 	} else {
 		log.Info("rest api is disabled")
 	}
 }
 
-func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer) {
-	err := api.Start(restApiInterface, marshalizer)
+func startGinServer(restApiInterface string, marshalizer marshal.Marshalizer, p2pPrometheusMetricsEnabled bool) {
+	err := api.Start(restApiInterface, marshalizer, p2pPrometheusMetricsEnabled)
 	if err != nil {
 		log.LogIfError(err)
 	}

@@ -86,7 +86,7 @@ type transactionCoordinator struct {
 	mutRequestedTxs sync.RWMutex
 	requestedTxs    map[block.Type]int
 
-	onRequestMiniBlock           func(shardId uint32, mbHash []byte)
+	onRequestMiniBlocks          func(shardId uint32, mbHashes [][]byte)
 	gasHandler                   process.GasHandler
 	feeHandler                   process.TransactionFeeHandler
 	blockSizeComputation         preprocess.BlockSizeComputationHandler
@@ -129,7 +129,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 	}
 
 	tc.miniBlockPool = args.MiniBlockPool
-	tc.onRequestMiniBlock = args.RequestHandler.RequestMiniBlock
+	tc.onRequestMiniBlocks = args.RequestHandler.RequestMiniBlocks
 	tc.requestedTxs = make(map[block.Type]int)
 	tc.txPreProcessors = make(map[block.Type]process.PreProcessor)
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
@@ -613,6 +613,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
 
+	tc.requestMissingMiniBlocksAndTransactions(finalCrossMiniBlockInfos)
+
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
@@ -652,7 +654,6 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
-			go tc.onRequestMiniBlock(miniBlockInfo.SenderShardID, miniBlockInfo.Hash)
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
 				"scheduled mode", scheduledMode,
@@ -758,6 +759,48 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, allMBsProcessed, nil
 }
 
+func (tc *transactionCoordinator) requestMissingMiniBlocksAndTransactions(mbsInfo []*data.MiniBlockInfo) {
+	mapMissingMiniBlocksPerShard := make(map[uint32][][]byte)
+
+	tc.requestedItemsHandler.Sweep()
+
+	for _, mbInfo := range mbsInfo {
+		object, isMiniBlockFound := tc.miniBlockPool.Peek(mbInfo.Hash)
+		if !isMiniBlockFound {
+			log.Debug("transactionCoordinator.requestMissingMiniBlocksAndTransactions: mini block not found and was requested",
+				"sender shard", mbInfo.SenderShardID,
+				"hash", mbInfo.Hash,
+				"round", mbInfo.Round,
+			)
+			mapMissingMiniBlocksPerShard[mbInfo.SenderShardID] = append(mapMissingMiniBlocksPerShard[mbInfo.SenderShardID], mbInfo.Hash)
+			_ = tc.requestedItemsHandler.Add(string(mbInfo.Hash))
+			continue
+		}
+
+		miniBlock, isMiniBlock := object.(*block.MiniBlock)
+		if !isMiniBlock {
+			log.Warn("transactionCoordinator.requestMissingMiniBlocksAndTransactions", "mb hash", mbInfo.Hash, "error", process.ErrWrongTypeAssertion)
+			continue
+		}
+
+		preproc := tc.getPreProcessor(miniBlock.Type)
+		if check.IfNil(preproc) {
+			log.Warn("transactionCoordinator.requestMissingMiniBlocksAndTransactions: getPreProcessor", "mb type", miniBlock.Type, "error", process.ErrNilPreProcessor)
+			continue
+		}
+
+		numTxsRequested := preproc.RequestTransactionsForMiniBlock(miniBlock)
+		if numTxsRequested > 0 {
+			log.Debug("transactionCoordinator.requestMissingMiniBlocksAndTransactions: RequestTransactionsForMiniBlock", "mb hash", mbInfo.Hash,
+				"num txs requested", numTxsRequested)
+		}
+	}
+
+	for senderShardID, mbsHashes := range mapMissingMiniBlocksPerShard {
+		go tc.onRequestMiniBlocks(senderShardID, mbsHashes)
+	}
+}
+
 func initMiniBlockDestMeExecutionInfo() *createMiniBlockDestMeExecutionInfo {
 	return &createMiniBlockDestMeExecutionInfo{
 		processedTxHashes:             make([][]byte, 0),
@@ -826,7 +869,7 @@ func (tc *transactionCoordinator) getFinalCrossMiniBlockInfos(
 	header data.HeaderHandler,
 ) []*data.MiniBlockInfo {
 
-	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return crossMiniBlockInfos
 	}
 
@@ -1087,26 +1130,27 @@ func (tc *transactionCoordinator) GetAllCurrentLogs() []*data.LogData {
 	return tc.transactionsLogProcessor.GetAllCurrentLogs()
 }
 
-// RequestMiniBlocks request miniblocks if missing
-func (tc *transactionCoordinator) RequestMiniBlocks(header data.HeaderHandler) {
+// RequestMiniBlocksAndTransactions requests mini blocks and transactions if missing
+func (tc *transactionCoordinator) RequestMiniBlocksAndTransactions(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
 
-	tc.requestedItemsHandler.Sweep()
-
 	finalCrossMiniBlockHashes := tc.getFinalCrossMiniBlockHashes(header)
-	for key, senderShardId := range finalCrossMiniBlockHashes {
-		obj, _ := tc.miniBlockPool.Peek([]byte(key))
-		if obj == nil {
-			go tc.onRequestMiniBlock(senderShardId, []byte(key))
-			_ = tc.requestedItemsHandler.Add(key)
-		}
+	mbsInfo := make([]*data.MiniBlockInfo, 0, len(finalCrossMiniBlockHashes))
+	for mbHash, senderShardID := range finalCrossMiniBlockHashes {
+		mbsInfo = append(mbsInfo, &data.MiniBlockInfo{
+			Hash:          []byte(mbHash),
+			SenderShardID: senderShardID,
+			Round:         header.GetRound(),
+		})
 	}
+
+	tc.requestMissingMiniBlocksAndTransactions(mbsInfo)
 }
 
 func (tc *transactionCoordinator) getFinalCrossMiniBlockHashes(headerHandler data.HeaderHandler) map[string]uint32 {
-	if !tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if !tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return headerHandler.GetMiniBlockHeadersWithDst(tc.shardCoordinator.SelfId())
 	}
 	return process.GetFinalCrossMiniBlockHashes(headerHandler, tc.shardCoordinator.SelfId())
@@ -1173,7 +1217,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
-		tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled(),
+		tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag),
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
 	)
@@ -1206,7 +1250,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
-			if tc.enableEpochsHandler.IsMiniBlockPartialExecutionFlagEnabled() {
+			if tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 				processedMbInfo.FullyProcessed = false
 			}
@@ -1499,7 +1543,7 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
-	if header.GetEpoch() < tc.enableEpochsHandler.BlockGasAndFeesReCheckEnableEpoch() {
+	if header.GetEpoch() < tc.enableEpochsHandler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag) {
 		return nil
 	}
 
@@ -1550,7 +1594,7 @@ func (tc *transactionCoordinator) verifyGasLimit(
 		if miniBlock.Type == block.SmartContractResultBlock {
 			continue
 		}
-		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+		if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyGasLimit: do not verify gas limit for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1617,7 +1661,7 @@ func (tc *transactionCoordinator) verifyFees(
 	totalMaxAccumulatedFees := big.NewInt(0)
 	totalMaxDeveloperFees := big.NewInt(0)
 
-	if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+	if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		scheduledGasAndFees := tc.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
 		totalMaxAccumulatedFees.Add(totalMaxAccumulatedFees, scheduledGasAndFees.AccumulatedFees)
 		totalMaxDeveloperFees.Add(totalMaxDeveloperFees, scheduledGasAndFees.DeveloperFees)
@@ -1632,7 +1676,7 @@ func (tc *transactionCoordinator) verifyFees(
 		if miniBlock.Type == block.PeerBlock {
 			continue
 		}
-		if tc.enableEpochsHandler.IsScheduledMiniBlocksFlagEnabled() {
+		if tc.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 			if miniBlockHeader.GetProcessingType() == int32(block.Processed) {
 				log.Debug("transactionCoordinator.verifyFees: do not verify fees for mini block executed as scheduled in previous block", "mb hash", miniBlockHeader.GetHash())
@@ -1767,6 +1811,14 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.ScheduledMiniBlocksFlag,
+		common.MiniBlockPartialExecutionFlag,
+		common.BlockGasAndFeesReCheckFlag,
+	})
+	if err != nil {
+		return err
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler

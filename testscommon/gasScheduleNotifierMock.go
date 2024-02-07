@@ -25,7 +25,7 @@ func (g *GasScheduleNotifierMock) RegisterNotifyHandler(handler core.GasSchedule
 		return
 	}
 
-	handler.GasScheduleChange(g.GasSchedule)
+	handler.GasScheduleChange(g.LatestGasSchedule())
 }
 
 // LatestGasSchedule -

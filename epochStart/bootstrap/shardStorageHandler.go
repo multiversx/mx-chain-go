@@ -42,6 +42,7 @@ func NewShardStorageHandler(
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	nodeProcessingMode common.NodeProcessingMode,
 	managedPeersHolder common.ManagedPeersHolder,
+	stateStatsHandler common.StateStatisticsHandler,
 	chainRunType common.ChainRunType,
 ) (*shardStorageHandler, error) {
 	epochStartNotifier := &disabled.EpochStartNotifier{}
@@ -59,6 +60,7 @@ func NewShardStorageHandler(
 			NodeProcessingMode:            nodeProcessingMode,
 			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:            managedPeersHolder,
+			StateStatsHandler:             stateStatsHandler,
 			ChainRunType:                  chainRunType,
 		},
 	)

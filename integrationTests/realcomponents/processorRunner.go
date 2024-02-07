@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/stretchr/testify/require"
 )
@@ -132,7 +133,6 @@ func (pr *ProcessorRunner) createCryptoComponents(tb testing.TB) {
 		ActivateBLSPubKeyMessageVerification: false,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		NoKeyProvided:                        true,
 		P2pKeyPemFileName:                    "",
 	}
 
@@ -454,6 +454,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

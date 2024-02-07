@@ -172,6 +172,8 @@ type ProcessComponentsFactoryArgs struct {
 	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	OutGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 type processComponentsFactory struct {
@@ -216,6 +218,8 @@ type processComponentsFactory struct {
 	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
+	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	outGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -261,6 +265,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
+		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
+		outGoingOperationsPool:                args.OutGoingOperationsPool,
 	}, nil
 }
 
@@ -290,13 +296,14 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeaderSig := &headerCheck.ArgsHeaderSigVerifier{
-		Marshalizer:             pcf.coreData.InternalMarshalizer(),
-		Hasher:                  pcf.coreData.Hasher(),
-		NodesCoordinator:        pcf.nodesCoordinator,
-		MultiSigContainer:       pcf.crypto.MultiSignerContainer(),
-		SingleSigVerifier:       pcf.crypto.BlockSigner(),
-		KeyGen:                  pcf.crypto.BlockSignKeyGen(),
-		FallbackHeaderValidator: fallbackHeaderValidator,
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		NodesCoordinator:             pcf.nodesCoordinator,
+		MultiSigContainer:            pcf.crypto.MultiSignerContainer(),
+		SingleSigVerifier:            pcf.crypto.BlockSigner(),
+		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
+		FallbackHeaderValidator:      fallbackHeaderValidator,
+		ExtraHeaderSigVerifierHolder: pcf.extraHeaderSigVerifierHolder,
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -656,10 +663,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
 	}
 
+	maxRoundsOfInactivity := int(pcf.prefConfigs.Preferences.RedundancyLevel) * pcf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		RedundancyLevel:    pcf.prefConfigs.Preferences.RedundancyLevel,
-		Messenger:          pcf.network.NetworkMessenger(),
-		ObserverPrivateKey: observerBLSPrivateKey,
+		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		Messenger:             pcf.network.NetworkMessenger(),
+		ObserverPrivateKey:    observerBLSPrivateKey,
 	}
 	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
 	if err != nil {
@@ -1623,11 +1631,12 @@ func (pcf *processComponentsFactory) newStorageRequesters() (dataRetriever.Reque
 			EpochStartNotifier:            manualEpochStartNotifier,
 			NodeTypeProvider:              pcf.coreData.NodeTypeProvider(),
 			CurrentEpoch:                  pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			StorageType:                   storageFactory.ProcessStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: false,
 			NodeProcessingMode:            common.GetNodeProcessingMode(&pcf.importDBConfig),
 			RepopulateTokensSupplies:      pcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:            pcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:             pcf.statusCoreComponents.StateStatsHandler(),
 			ChainRunType:                  pcf.chainRunType,
 		},
 	)
@@ -1682,6 +1691,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForMeta(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1711,6 +1721,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		ManualEpochStartNotifier: manualEpochStartNotifier,
 		ChanGracefullyClose:      pcf.coreData.ChanStopNodeProcess(),
 		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
 	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -2109,6 +2120,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.TxPreProcessorCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
+	}
+	if check.IfNil(args.ExtraHeaderSigVerifierHolder) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
 
 	return nil
