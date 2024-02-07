@@ -127,7 +127,12 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	return creator.nodeHandler.GetBroadcastMessenger().BroadcastBlockDataLeader(header, miniBlocks, transactions, blsKey.PubKey())
+	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastMiniBlocks(miniBlocks, blsKey.PubKey())
+	if err != nil {
+		return err
+	}
+
+	return creator.nodeHandler.GetBroadcastMessenger().BroadcastTransactions(transactions, blsKey.PubKey())
 }
 
 func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prevHash, prevRandSeed []byte, epoch uint32) {
