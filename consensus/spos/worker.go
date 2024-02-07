@@ -813,11 +813,15 @@ func (wrk *Worker) checkFinalInfoFromSelf(cnsDta *consensus.Message) bool {
 }
 
 func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
-	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch()) {
+	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
 		return false
 	}
 
-	return wrk.consensusService.IsMessageWithFinalInfo(msgType)
+	if check.IfNil(wrk.consensusState.Header) {
+		return false
+	}
+
+	return wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch())
 }
 
 func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message) error {
