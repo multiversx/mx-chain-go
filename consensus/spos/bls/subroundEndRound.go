@@ -1294,7 +1294,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 
 	shouldStopWaitingSignatures := selfJobDone && multiKeyJobDone && isSignatureCollectionDone
 	if shouldStopWaitingSignatures {
-		log.Debug("step 2: signatures collection done or proof already received",
+		log.Debug("step 2: signatures collection done",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
 			"total signatures", len(sr.ConsensusGroup()))
