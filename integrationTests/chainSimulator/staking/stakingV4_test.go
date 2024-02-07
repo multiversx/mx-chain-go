@@ -10,11 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/helpers"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -134,6 +136,7 @@ func TestChainSimulator_Initial_Setup(t *testing.T) {
 	}
 	_ = helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, unstakeTx, maxNumOfBlockToGenerateWhenExecutingTx)
 
+	fmt.Println("test print")
 	// Step 6 --- generate 100 blocks to pass 4 epochs and the validator to generate rewards
 	err = cm.GenerateBlocks(80)
 	require.Nil(t, err)
@@ -152,4 +155,215 @@ func TestChainSimulator_Initial_Setup(t *testing.T) {
 
 	// Step 7 --- check the balance of the validator owner has been increased
 	require.True(t, diff.Cmp(big.NewInt(0)) > 0)
+}
+
+func TestChainSimulator_AddANewValidatorsAfterStakingV4(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	_ = logger.SetLogLevel("*:NONE")
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       15,
+		MetaChainMinNodes:      15,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cm)
+
+	//Wait for staking v4 to activate
+	err = cm.GenerateBlocks(150)
+	require.Nil(t, err)
+
+	// Step 1 --- add 20 validator keys in the chain simulator
+	numOfNodes := 20
+	validatorSecretKeysBytes, blsKeys := helpers.GenerateBlsPrivateKeys(t, numOfNodes)
+	err = cm.AddValidatorKeys(validatorSecretKeysBytes)
+	require.Nil(t, err)
+
+	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
+	newValidatorOwnerBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
+	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
+	rcvAddrBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
+
+	// Step 2 --- set an initial balance for the address that will initialize all the transactions - 1 000 000
+	err = cm.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
+			Balance: "1000000000000000000000000",
+		},
+	})
+	require.Nil(t, err)
+
+	// Step 3 --- generate and send a stake transaction with the BLS keys of the validators key that were added at step 1
+	validatorData := ""
+	for _, blsKey := range blsKeys {
+		validatorData += fmt.Sprintf("@%s@010101", blsKey)
+	}
+
+	numOfNodesHex := hex.EncodeToString(big.NewInt(int64(numOfNodes)).Bytes())
+	stakeValue, _ := big.NewInt(0).SetString("51000000000000000000000", 10)
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     stakeValue,
+		SndAddr:   newValidatorOwnerBytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("stake@%s%s", numOfNodesHex, validatorData)),
+		GasLimit:  500_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txFromNetwork := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.NotNil(t, txFromNetwork)
+
+	err = cm.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	auctionListR, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+
+	topup := auctionListR[0].TopUpPerNode
+	auctionList := auctionListR[0].AuctionList
+
+	fmt.Println("topuppernode", topup)
+	fmt.Println("qualifiedtopup", auctionListR[0].QualifiedTopUp)
+	// print the size of the auction list slice
+	fmt.Println("auctionList", len(auctionList))
+	// print how many of them are qualified
+	qualified := 0
+	for _, node := range auctionList {
+		if node.Qualified {
+			qualified++
+		}
+	}
+	fmt.Println("qualified", qualified)
+
+	require.Nil(t, err)
+
+	err = cm.GenerateBlocks(100)
+	require.Nil(t, err)
+}
+
+func TestChainSimulator_DelegationManagerScen9(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+	_ = logger.SetLogLevel("*:NONE")
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       15,
+		MetaChainMinNodes:      15,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cm)
+
+	//Wait for staking v4 to activate
+	err = cm.GenerateBlocks(150)
+	require.Nil(t, err)
+
+	// Step 1 --- add 20 validator keys in the chain simulator
+	numOfNodes := 20
+	validatorSecretKeysBytes, blsKeys := helpers.GenerateBlsPrivateKeys(t, numOfNodes)
+	err = cm.AddValidatorKeys(validatorSecretKeysBytes)
+	require.Nil(t, err)
+
+	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
+	newValidatorOwnerBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
+	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
+	rcvAddrBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
+
+	// Step 2 --- set an initial balance for the address that will initialize all the transactions - 1 000 000
+	err = cm.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
+			Balance: "1000000000000000000000000",
+		},
+	})
+	require.Nil(t, err)
+
+	// Step 3 --- generate and send a stake transaction with the BLS keys of the validators key that were added at step 1
+	validatorData := ""
+	for _, blsKey := range blsKeys {
+		validatorData += fmt.Sprintf("@%s@010101", blsKey)
+	}
+
+	numOfNodesHex := hex.EncodeToString(big.NewInt(int64(numOfNodes)).Bytes())
+	stakeValue, _ := big.NewInt(0).SetString("51000000000000000000000", 10)
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     stakeValue,
+		SndAddr:   newValidatorOwnerBytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("stake@%s%s", numOfNodesHex, validatorData)),
+		GasLimit:  500_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txFromNetwork := helpers.SendTxAndGenerateBlockTilTxIsExecuted(t, cm, tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.NotNil(t, txFromNetwork)
+
+	err = cm.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	auctionListR, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+
+	topup := auctionListR[0].TopUpPerNode
+	auctionList := auctionListR[0].AuctionList
+
+	//test print
+	fmt.Println("topuppernode", topup)
+	fmt.Println("qualifiedtopup", auctionListR[0].QualifiedTopUp)
+	// print the size of the auction list slice
+	fmt.Println("auctionList", len(auctionList))
+	// print how many of them are qualified
+	qualified := 0
+	for _, node := range auctionList {
+		if node.Qualified {
+			qualified++
+		}
+	}
+	fmt.Println("qualified", qualified)
+
+	require.Nil(t, err)
+
+	err = cm.GenerateBlocks(100)
+	require.Nil(t, err)
 }
