@@ -1094,7 +1094,7 @@ func (v *validatorSC) activateNewBLSKeys(
 	args *vmcommon.ContractCallInput,
 ) {
 	numRegisteredBlsKeys := len(registrationData.BlsPubKeys)
-	numNodesTooHigh := v.activateStakingFor(
+	allNodesActivated := v.activateStakingFor(
 		blsKeys,
 		newKeys,
 		registrationData,
@@ -1103,7 +1103,7 @@ func (v *validatorSC) activateNewBLSKeys(
 		args.CallerAddr,
 	)
 
-	if numNodesTooHigh && len(blsKeys) > 0 {
+	if !allNodesActivated && len(blsKeys) > 0 {
 		nodeLimit := int64(v.computeNodeLimit())
 		entry := &vmcommon.LogEntry{
 			Identifier: []byte(args.Function),
@@ -1129,18 +1129,18 @@ func (v *validatorSC) activateStakingFor(
 ) bool {
 	numActivatedKey := uint64(registrationData.NumRegistered)
 
-	numRegisteredKeys := len(registrationData.BlsPubKeys)
-	if v.isNumberOfNodesTooHigh(numRegisteredKeys) {
-		return true
+	numAllBLSKeys := len(registrationData.BlsPubKeys)
+	if v.isNumberOfNodesTooHigh(numAllBLSKeys) {
+		return false
 	}
 
 	maxNumNodesToActivate := len(blsKeys)
 	if v.enableEpochsHandler.IsFlagEnabled(common.StakeLimitsFlag) {
-		maxNumNodesToActivate = v.computeNodeLimit() - numRegisteredKeys + len(newKeys)
+		maxNumNodesToActivate = v.computeNodeLimit() - numAllBLSKeys + len(newKeys)
 	}
 	nodesActivated := 0
 	if nodesActivated >= maxNumNodesToActivate && len(blsKeys) >= maxNumNodesToActivate {
-		return true
+		return false
 	}
 
 	for i := uint64(0); i < uint64(len(blsKeys)); i++ {
@@ -1172,7 +1172,7 @@ func (v *validatorSC) activateStakingFor(
 	registrationData.NumRegistered = uint32(numActivatedKey)
 	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numActivatedKey))
 
-	return nodesActivated >= maxNumNodesToActivate && len(blsKeys) > maxNumNodesToActivate
+	return nodesActivated < maxNumNodesToActivate || len(blsKeys) <= maxNumNodesToActivate
 }
 
 func (v *validatorSC) stakeOneNode(
