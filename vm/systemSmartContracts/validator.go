@@ -649,6 +649,10 @@ func (v *validatorSC) registerBLSKeys(
 	}
 
 	for _, blsKey := range newKeys {
+		if v.isNumberOfNodesTooHigh(registrationData) {
+			break
+		}
+
 		vmOutput, errExec := v.executeOnStakingSC([]byte("register@" +
 			hex.EncodeToString(blsKey) + "@" +
 			hex.EncodeToString(registrationData.RewardAddress) + "@" +
@@ -1077,7 +1081,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 			registrationData.RewardAddress,
 			args.CallerAddr,
 		)
-	} else {
+	} else if len(newKeys) > 0 {
 		numRegisteredBlsKeys := int64(len(registrationData.BlsPubKeys))
 		nodeLimit := int64(v.computeNodeLimit())
 		entry := &vmcommon.LogEntry{
