@@ -258,13 +258,21 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return false
 	}
 
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+	if !isSelfInConsensusGroup {
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+
+		return true
+	}
+
 	// TODO[cleanup cns finality]: simply return false and remove the rest of the method. This will be handled by subroundEndRound
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return false
 	}
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
 
 	threshold := sr.Threshold(sr.Current())
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
