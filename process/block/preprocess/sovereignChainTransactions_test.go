@@ -406,9 +406,10 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		tp, _ := NewTransactionPreprocessor(args)
 		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
 
-		err, value := sctp.isTransactionEligibleForExecution(nil, errors.New("error"))
+		expectedError := errors.New("error")
+		err, value := sctp.isTransactionEligibleForExecution(nil, expectedError)
 
-		require.Equal(t, "error", err.Error())
+		require.Equal(t, expectedError, err)
 		require.False(t, value)
 	})
 
@@ -512,7 +513,7 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		require.False(t, value)
 	})
 
-	t.Run("isTransactionEligibleForExecution should return false when account has insufficient funds", func(t *testing.T) {
+	t.Run("isTransactionEligibleForExecution should return true if account has sufficient funds for fee but not sufficient for transfer.", func(t *testing.T) {
 		t.Parallel()
 
 		args := createDefaultTransactionsProcessorArgs()

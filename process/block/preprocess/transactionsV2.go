@@ -385,7 +385,7 @@ func (txs *transactions) verifyTransaction(
 
 	executionErr, canExecute := txs.isTransactionEligibleForExecutionFunc(tx, err)
 	if !canExecute {
-		isTxTargetedForDeletion := errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrHigherNonceInTransaction) || errors.Is(executionErr, process.ErrInsufficientFee) || errors.Is(executionErr, process.ErrTransactionNotExecutable)
+		isTxTargetedForDeletion := errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrInsufficientFee) || errors.Is(executionErr, process.ErrTransactionNotExecutable)
 		log.Trace("bad tx", "error", executionErr, "hash", txHash)
 
 		if isTxTargetedForDeletion {
