@@ -2,6 +2,7 @@ package staking
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -1307,4 +1308,109 @@ func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIs
 		prevNodesConfig = currNodesConfig
 		epoch++
 	}
+}
+
+func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:3],
+			0:                     pubKeys[3:6],
+			1:                     pubKeys[6:9],
+			2:                     pubKeys[9:12],
+		},
+		TotalStake: big.NewInt(12 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        3,
+		ShardConsensusGroupSize:       3,
+		MinNumberOfEligibleShardNodes: 3,
+		MinNumberOfEligibleMetaNodes:  3,
+		NumOfShards:                   3,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            16,
+				NodesToShufflePerShard: 4,
+			},
+			{
+				EpochEnable:            1,
+				MaxNumNodes:            16,
+				NodesToShufflePerShard: 2,
+			},
+			{
+				EpochEnable:            stakingV4Step3EnableEpoch,
+				MaxNumNodes:            8,
+				NodesToShufflePerShard: 2,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 0)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 3)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 0)
+	require.Len(t, currNodesConfig.eligible[0], 3)
+	require.Len(t, currNodesConfig.waiting[0], 0)
+	require.Len(t, currNodesConfig.eligible[1], 3)
+	require.Len(t, currNodesConfig.waiting[1], 0)
+	require.Len(t, currNodesConfig.eligible[2], 3)
+	require.Len(t, currNodesConfig.waiting[2], 0)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+
+	// NewOwner0 stakes 1 node with top up = 0 before staking v4; should be sent to staking queue
+	newOwner0 := "newOwner0"
+	newNodes0 := map[string]*NodesRegisterData{
+		newOwner0: {
+			BLSKeys:    [][]byte{generateAddress(101)},
+			TotalStake: big.NewInt(nodePrice),
+		},
+	}
+
+	// 1.2 Check staked node before staking v4 is sent to staking queue
+	node.ProcessStake(t, newNodes0)
+	currNodesConfig = node.NodesConfig
+	requireSliceContainsNumOfElements(t, currNodesConfig.new, newNodes0[newOwner0].BLSKeys, 1)
+
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner1: {owner1Stats.EligibleBlsKeys[core.MetachainShardId][0]},
+	})
+	currNodesConfig = node.NodesConfig
+	// 2. Check config after staking v4 init when a new node is staked
+	node.Process(t, 20)
+
+	newOwner1 := "newOwner1"
+	newNodes1 := map[string]*NodesRegisterData{
+		newOwner1: {
+			BLSKeys:    generateAddresses(303, 6),
+			TotalStake: big.NewInt(nodePrice * 6),
+		},
+	}
+
+	// 1.2 Check staked node before staking v4 is sent to staking queue
+	node.ProcessStake(t, newNodes1)
+	currNodesConfig = node.NodesConfig
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, newNodes1[newOwner1].BLSKeys, 6)
+
+	fmt.Println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+
+	node.Process(t, 10)
+	node.ProcessUnStake(t, map[string][][]byte{
+		newOwner1: newNodes1[newOwner1].BLSKeys[0:4],
+	})
+	node.Process(t, 4)
+	//currNodesConfig = node.NodesConfig
 }
