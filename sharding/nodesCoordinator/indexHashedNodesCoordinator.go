@@ -834,17 +834,19 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		"pk", currentValidator.PubKey(),
 		"shardId", shardId)
 
-	eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
-	return
-
-	if !ihnc.flagStakingV4Started.IsSet() || len(previousList) == 0 || previousList != string(common.AuctionList) {
+	if !ihnc.flagStakingV4Started.IsSet() || len(previousList) == 0 {
 		log.Debug("leaving node before staking v4 or with not previous list set node found in",
 			"list", "eligible", "shardId", shardId, "previous list", previousList)
 		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
 		return
 	}
 
-	return
+	if previousList == string(common.EligibleList) {
+		log.Debug("leaving node found in", "list", "eligible", "shardId", shardId)
+		currentValidator.index = validatorInfo.PreviousIndex
+		eligibleMap[shardId] = append(eligibleMap[shardId], currentValidator)
+		return
+	}
 
 	if previousList == string(common.WaitingList) {
 		log.Debug("leaving node found in", "list", "waiting", "shardId", shardId)
@@ -853,7 +855,7 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		return
 	}
 
-	log.Debug("leaving node not found in eligible or waiting",
+	log.Error("leaving node not found in eligible or waiting",
 		"previous list", previousList,
 		"current index", validatorInfo.Index,
 		"previous index", validatorInfo.PreviousIndex,
