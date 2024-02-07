@@ -466,11 +466,9 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 		assert.Equal(t, entry.Topics[0], []byte(numberOfNodesTooHigh))
 	}
 
-	stakeCalledInStakingSC := false
 	eei.ExecuteOnDestContextCalled = func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
 		if strings.Contains(string(input), "stake") {
-			stakeCalledInStakingSC = true
-			assert.False(t, stakeCalledInStakingSC)
+			assert.Fail(t, "should not stake nodes")
 		}
 		return &vmcommon.VMOutput{}, nil
 	}
