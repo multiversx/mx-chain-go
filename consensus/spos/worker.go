@@ -779,6 +779,10 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 		"size", len(p2pMessage.Data()),
 	)
 
+	if check.IfNil(wrk.consensusState.Header) {
+		return ErrNilHeader
+	}
+
 	if !wrk.shouldVerifyEquivalentMessages(msgType) {
 		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	}
@@ -815,7 +819,7 @@ func (wrk *Worker) checkFinalInfoFromSelf(cnsDta *consensus.Message) bool {
 }
 
 func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
-	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch()) {
 		return false
 	}
 
@@ -841,18 +845,7 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 		return ErrEquivalentMessageAlreadyReceived
 	}
 
-	err := wrk.verifyEquivalentMessageSignature(cnsMsg)
-	if err != nil {
-		return err
-	}
-
-	equivalentMsgInfo.Validated = true
-	equivalentMsgInfo.Proof = data.HeaderProof{
-		AggregatedSignature: cnsMsg.AggregateSignature,
-		PubKeysBitmap:       cnsMsg.PubKeysBitmap,
-	}
-
-	return nil
+	return wrk.verifyEquivalentMessageSignature(cnsMsg)
 }
 
 func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) error {

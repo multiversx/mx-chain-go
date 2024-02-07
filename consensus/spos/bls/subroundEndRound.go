@@ -22,12 +22,11 @@ const timeBetweenSignaturesChecks = time.Millisecond * 5
 
 type subroundEndRound struct {
 	*spos.Subround
-	processingThresholdPercentage      int
-	appStatusHandler                   core.AppStatusHandler
-	mutProcessingEndRound              sync.Mutex
-	sentSignatureTracker               spos.SentSignaturesTracker
-	worker                             spos.WorkerHandler
-	mutEquivalentProofsCriticalSection sync.RWMutex
+	processingThresholdPercentage int
+	appStatusHandler              core.AppStatusHandler
+	mutProcessingEndRound         sync.Mutex
+	sentSignatureTracker          spos.SentSignaturesTracker
+	worker                        spos.WorkerHandler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -86,8 +85,8 @@ func checkNewSubroundEndRoundParams(
 
 // receivedBlockHeaderFinalInfo method is called when a block header final info is received
 func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsDta *consensus.Message) bool {
-	sr.mutEquivalentProofsCriticalSection.Lock()
-	defer sr.mutEquivalentProofsCriticalSection.Unlock()
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
 
 	node := string(cnsDta.PubKey)
 
@@ -316,20 +315,18 @@ func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 	isFlagEnabledForHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
-	isLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
-	isLeaderBeforeActivation := isLeader && !isFlagEnabledForHeader
-	if sr.ConsensusGroup() == nil || isLeaderBeforeActivation {
+	// if flag is enabled, no need to commit this header, as it will be committed once the proof is available
+	if isFlagEnabledForHeader {
 		return
 	}
 
-	receivedHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
-	if err != nil {
+	isLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	if sr.ConsensusGroup() == nil || isLeader {
 		return
 	}
-	isHeaderAlreadyReceived := bytes.Equal(receivedHeaderHash, sr.Data)
-	if isFlagEnabledForHeader && isHeaderAlreadyReceived {
-		return
-	}
+
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
 
 	sr.AddReceivedHeader(headerHandler)
 
@@ -353,10 +350,16 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 			}
 		}
 
+		sr.mutProcessingEndRound.Lock()
+		defer sr.mutProcessingEndRound.Unlock()
+
 		return sr.doEndRoundJobByParticipant(nil)
 	}
 
 	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsMultiKeyInConsensusGroup() {
+		sr.mutProcessingEndRound.Lock()
+		defer sr.mutProcessingEndRound.Unlock()
+
 		return sr.doEndRoundJobByParticipant(nil)
 	}
 
@@ -365,10 +368,6 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 
 // TODO[cleanup cns finality]: rename this method, as this will be done by each participant
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	if check.IfNil(sr.Header) {
-		return false
-	}
-
 	sender, err := sr.getSender()
 	if err != nil {
 		return false
@@ -378,14 +377,15 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	sr.mutEquivalentProofsCriticalSection.Lock()
-	defer sr.mutEquivalentProofsCriticalSection.Unlock()
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
 
 	if !sr.shouldSendFinalInfo() {
 		return false
 	}
 
-	if !sr.sendFinalInfo(sender) {
+	proof, ok := sr.sendFinalInfo(sender)
+	if !ok {
 		return false
 	}
 
@@ -411,6 +411,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		sr.worker.SetValidEquivalentProof(sr.GetData(), proof)
+		sr.Blockchain().SetCurrentHeaderProof(proof)
+	}
+
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	sr.worker.DisplayStatistics()
@@ -430,19 +435,19 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
+func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool) {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.checkSignaturesValidity", "error", err.Error())
-		return false
+		return data.HeaderProof{}, false
 	}
 
 	// Aggregate sig and add it to the block
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return false
+		return data.HeaderProof{}, false
 	}
 
 	// TODO[cleanup cns finality]: remove this code block
@@ -450,42 +455,33 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
 		err = sr.Header.SetPubKeysBitmap(bitmap)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetPubKeysBitmap", "error", err.Error())
-			return false
+			return data.HeaderProof{}, false
 		}
 
 		err = sr.Header.SetSignature(sig)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetSignature", "error", err.Error())
-			return false
+			return data.HeaderProof{}, false
 		}
 
 		// Header is complete so the leader can sign it
 		leaderSignature, err := sr.signBlockHeader(sender)
 		if err != nil {
 			log.Error(err.Error())
-			return false
+			return data.HeaderProof{}, false
 		}
 
 		err = sr.Header.SetLeaderSignature(leaderSignature)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetLeaderSignature", "error", err.Error())
-			return false
+			return data.HeaderProof{}, false
 		}
-	} else {
-		proof := data.HeaderProof{
-			AggregatedSignature: sig,
-			PubKeysBitmap:       bitmap,
-		}
-
-		sr.worker.SetValidEquivalentProof(sr.GetData(), proof)
-
-		sr.Blockchain().SetCurrentHeaderProof(proof)
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return false
+		return data.HeaderProof{}, false
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -493,7 +489,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
 		log.Debug("sendFinalInfo: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return false
+		return data.HeaderProof{}, false
 	}
 
 	// broadcast header and final info section
@@ -502,7 +498,14 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) bool {
 		leaderSigToBroadcast = nil
 	}
 
-	return sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender)
+	if !sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender) {
+		return data.HeaderProof{}, false
+	}
+
+	return data.HeaderProof{
+		AggregatedSignature: sig,
+		PubKeysBitmap:       bitmap,
+	}, true
 }
 
 func (sr *subroundEndRound) shouldSendFinalInfo() bool {
@@ -513,7 +516,7 @@ func (sr *subroundEndRound) shouldSendFinalInfo() bool {
 
 	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
 	if sr.worker.HasEquivalentMessage(sr.GetData()) {
-		log.Debug("shouldSendFinalInfo: equivalent message already sent")
+		log.Debug("shouldSendFinalInfo: equivalent message already processed")
 		return false
 	}
 
@@ -693,7 +696,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 		return false
 	}
 
-	if !sr.EnableEpochsHandler().IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 		if err != nil {
 			log.Debug("createAndBroadcastHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
@@ -758,9 +761,6 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
-	sr.mutProcessingEndRound.Lock()
-	defer sr.mutProcessingEndRound.Unlock()
-
 	if sr.RoundCanceled {
 		return false
 	}
@@ -1142,6 +1142,10 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 		return true
 	}
 
+	if sr.IsSubroundFinished(sr.Current()) {
+		return true
+	}
+
 	if sr.checkReceivedSignatures() {
 		return true
 	}
@@ -1288,14 +1292,12 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 		multiKeyJobDone = sr.IsMultiKeyJobDone(SrSignature)
 	}
 
-	hasProof := sr.worker.HasEquivalentMessage(sr.Data)
 	shouldStopWaitingSignatures := selfJobDone && multiKeyJobDone && isSignatureCollectionDone
-	if shouldStopWaitingSignatures || hasProof {
+	if shouldStopWaitingSignatures {
 		log.Debug("step 2: signatures collection done or proof already received",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
-			"total signatures", len(sr.ConsensusGroup()),
-			"has proof", hasProof)
+			"total signatures", len(sr.ConsensusGroup()))
 
 		return true
 	}

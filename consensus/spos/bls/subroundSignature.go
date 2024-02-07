@@ -83,9 +83,6 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 	// if single key leader, the signature has been sent on subroundBlock, thus the current round can be marked as finished
 	if isSelfSingleKeyLeader && isFlagActive {
-		log.Debug("step 2: subround has been finished for leader",
-			"subround", sr.Name())
-
 		leader, err := sr.GetLeader()
 		if err != nil {
 			return false
@@ -98,6 +95,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 
 		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+
+		log.Debug("step 2: subround has been finished for leader",
+			"subround", sr.Name())
+
 		return true
 	}
 
@@ -112,9 +113,10 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	}
 
 	if isFlagActive {
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
-		sr.SetStatus(sr.Current(), spos.SsFinished)
 	}
 
 	return true
@@ -256,13 +258,21 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return false
 	}
 
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+	if !isSelfInConsensusGroup {
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+
+		return true
+	}
+
 	// TODO[cleanup cns finality]: simply return false and remove the rest of the method. This will be handled by subroundEndRound
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return false
 	}
 
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
 
 	threshold := sr.Threshold(sr.Current())
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
@@ -369,7 +379,7 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 }
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
-	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 
 	numMultiKeysSignaturesSent := 0
@@ -393,13 +403,12 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		isKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
+		isCurrentManagedKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
 		// TODO[cleanup cns finality]: update the check
 		// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
-		if isFlagActive {
-			isMultiKeyLeader = isKeyLeader
-		}
-		if !isMultiKeyLeader {
+		shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||
+			(!isCurrentManagedKeyLeader && isFlagActive)
+		if shouldBroadcastSignatureShare {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 			if !ok {
 				return false
@@ -410,7 +419,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		// with the equivalent messages feature on, the leader signature is sent on subroundBlock, thus we should update its status here as well
 		sr.sentSignatureTracker.SignatureSent(pkBytes)
 
-		shouldWaitForAllSigsAsync := isKeyLeader && !isFlagActive
+		shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
 		ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 		if !ok {
 			return false
