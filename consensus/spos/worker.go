@@ -457,7 +457,6 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, errorsErd.ErrSignatureMismatch) ||
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) ||
-		errors.Is(err, crypto.ErrAggSigNotValid) ||
 		errors.Is(err, ErrEquivalentMessageAlreadyReceived) {
 		return false
 	}
