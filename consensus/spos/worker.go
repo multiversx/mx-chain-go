@@ -773,10 +773,6 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 		"size", len(p2pMessage.Data()),
 	)
 
-	if check.IfNil(wrk.consensusState.Header) {
-		return ErrNilHeader
-	}
-
 	if !wrk.shouldVerifyEquivalentMessages(msgType) {
 		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	}
