@@ -49,16 +49,18 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	}
 
 	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
-		GenesisTimestamp:       startTime,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              3,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  1,
+		NumNodesWaitingListShard: 1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cm)
@@ -134,6 +136,20 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
 	err = cm.GenerateBlocks(50)
 	require.Nil(t, err)
+
+	validatorStatistics, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
+	require.Nil(t, err)
+
+	countRatingIncreased := 0
+	for _, validatorInfo := range validatorStatistics {
+		validatorSignedAtLeastOneBlock := validatorInfo.NumValidatorSuccess > 0 || validatorInfo.NumLeaderSuccess > 0
+		if !validatorSignedAtLeastOneBlock {
+			continue
+		}
+		countRatingIncreased++
+		require.Greater(t, validatorInfo.TempRating, validatorInfo.Rating)
+	}
+	require.Greater(t, countRatingIncreased, 0)
 
 	accountValidatorOwner, _, err = cm.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)

@@ -22,18 +22,20 @@ var log = logger.GetOrCreate("chainSimulator")
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck bool
-	TempDir                string
-	PathToInitialConfig    string
-	NumOfShards            uint32
-	MinNodesPerShard       uint32
-	MetaChainMinNodes      uint32
-	GenesisTimestamp       int64
-	InitialRound           int64
-	RoundDurationInMillis  uint64
-	RoundsPerEpoch         core.OptionalUint64
-	ApiInterface           components.APIConfigurator
-	AlterConfigsFunction   func(cfg *config.Configs)
+	BypassTxSignatureCheck   bool
+	TempDir                  string
+	PathToInitialConfig      string
+	NumOfShards              uint32
+	MinNodesPerShard         uint32
+	MetaChainMinNodes        uint32
+	NumNodesWaitingListShard uint32
+	NumNodesWaitingListMeta  uint32
+	GenesisTimestamp         int64
+	InitialRound             int64
+	RoundDurationInMillis    uint64
+	RoundsPerEpoch           core.OptionalUint64
+	ApiInterface             components.APIConfigurator
+	AlterConfigsFunction     func(cfg *config.Configs)
 }
 
 type simulator struct {
@@ -70,15 +72,17 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 
 func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:           args.NumOfShards,
-		OriginalConfigsPath:   args.PathToInitialConfig,
-		GenesisTimeStamp:      computeStartTimeBaseOnInitialRound(args),
-		RoundDurationInMillis: args.RoundDurationInMillis,
-		TempDir:               args.TempDir,
-		MinNodesPerShard:      args.MinNodesPerShard,
-		MetaChainMinNodes:     args.MetaChainMinNodes,
-		RoundsPerEpoch:        args.RoundsPerEpoch,
-		AlterConfigsFunction:  args.AlterConfigsFunction,
+		NumOfShards:              args.NumOfShards,
+		OriginalConfigsPath:      args.PathToInitialConfig,
+		GenesisTimeStamp:         computeStartTimeBaseOnInitialRound(args),
+		RoundDurationInMillis:    args.RoundDurationInMillis,
+		TempDir:                  args.TempDir,
+		MinNodesPerShard:         args.MinNodesPerShard,
+		MetaChainMinNodes:        args.MetaChainMinNodes,
+		RoundsPerEpoch:           args.RoundsPerEpoch,
+		AlterConfigsFunction:     args.AlterConfigsFunction,
+		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
@@ -138,6 +142,7 @@ func (s *simulator) createTestNode(
 		InitialRound:           args.InitialRound,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
+		RoundDurationInMillis:  args.RoundDurationInMillis,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)

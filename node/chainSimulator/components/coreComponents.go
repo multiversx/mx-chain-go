@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -81,6 +82,7 @@ type ArgsCoreComponentsHolder struct {
 	EnableEpochsConfig  config.EnableEpochs
 	RoundsConfig        config.RoundConfig
 	EconomicsConfig     config.EconomicsConfig
+	RatingConfig        config.RatingsConfig
 	ChanStopNodeProcess chan endProcess.ArgEndProcess
 	InitialRound        int64
 	NodesSetupPath      string
@@ -88,8 +90,9 @@ type ArgsCoreComponentsHolder struct {
 	NumShards           uint32
 	WorkingDir          string
 
-	MinNodesPerShard uint32
-	MinNodesMeta     uint32
+	MinNodesPerShard  uint32
+	MinNodesMeta      uint32
+	RoundDurationInMs uint64
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -199,9 +202,23 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 	}
 	instance.apiEconomicsData = instance.economicsData
 
-	// TODO check if we need this
-	instance.ratingsData = &testscommon.RatingsInfoMock{}
-	instance.rater = &testscommon.RaterMock{}
+	// TODO fix this min nodes pe shard to be configurable
+	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
+		Config:                   args.RatingConfig,
+		ShardConsensusSize:       1,
+		MetaConsensusSize:        1,
+		ShardMinNodes:            args.MinNodesPerShard,
+		MetaMinNodes:             args.MinNodesMeta,
+		RoundDurationMiliseconds: args.RoundDurationInMs,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.nodesShuffler, err = nodesCoordinator.NewHashValidatorsShuffler(&nodesCoordinator.NodesShufflerArgs{
 		NodesShard:           args.MinNodesPerShard,
