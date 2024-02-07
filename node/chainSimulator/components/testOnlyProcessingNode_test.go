@@ -33,6 +33,9 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		ChanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 		APIInterface:           api.NewNoApiInterface(),
 		ShardIDStr:             "0",
+		RoundDurationInMillis:  6000,
+		MinNodesMeta:           1,
+		MinNodesPerShard:       1,
 	}
 }
 
