@@ -2,7 +2,6 @@ package bls
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,7 +21,6 @@ type subroundBlock struct {
 
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
-	mutCriticalSection            sync.RWMutex
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -478,9 +476,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 
 	node := string(cnsDta.PubKey)
 
-	sr.mutCriticalSection.Lock()
 	if sr.IsConsensusDataSet() {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
@@ -491,23 +487,18 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
 
-		sr.mutCriticalSection.Unlock()
-
 		return false
 	}
 
 	if sr.IsBlockBodyAlreadyReceived() {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
@@ -516,8 +507,6 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
 	sr.Header = header
-
-	sr.mutCriticalSection.Unlock()
 
 	isInvalidData := check.IfNil(sr.Body) || sr.isInvalidHeaderOrData()
 	if isInvalidData {
@@ -648,20 +637,15 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 		return false
 	}
 
-	sr.mutCriticalSection.Lock()
 	if sr.IsBlockBodyAlreadyReceived() {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
 	sr.Body = sr.BlockProcessor().DecodeBlockBody(cnsDta.Body)
-
-	sr.mutCriticalSection.Unlock()
 
 	if check.IfNil(sr.Body) {
 		return false
@@ -686,9 +670,7 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
-	sr.mutCriticalSection.Lock()
 	if sr.IsConsensusDataSet() {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
@@ -698,18 +680,15 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
-		sr.mutCriticalSection.Unlock()
 
 		return false
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		sr.mutCriticalSection.Unlock()
 		return false
 	}
 
@@ -717,8 +696,6 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 
 	sr.Data = cnsDta.BlockHeaderHash
 	sr.Header = header
-
-	sr.mutCriticalSection.Unlock()
 
 	if sr.isInvalidHeaderOrData() {
 		return false
