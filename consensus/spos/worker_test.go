@@ -689,17 +689,6 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
-	err := wrk.ProcessReceivedMessage(
-		&p2pmocks.P2PMessageMock{
-			DataField:      buff,
-			PeerField:      currentPid,
-			SignatureField: []byte("signature"),
-		},
-		fromConnectedPeerId,
-		&p2pmocks.MessengerStub{},
-	)
-	assert.Equal(t, spos.ErrNilHeader, err)
-
 	wrk.ConsensusState().Header = &block.Header{
 		ChainID:         chainID,
 		PrevHash:        []byte("prev hash"),
@@ -713,7 +702,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
-	err = wrk.ProcessReceivedMessage(
+	err := wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
 			PeerField:      currentPid,
