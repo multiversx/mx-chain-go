@@ -244,6 +244,18 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		enableEpochsConfig,
 	)
 
+	if equivalentMessagesEnableEpoch != integrationTests.UnreachableEpoch {
+		for shardID := range nodes {
+			for _, n := range nodes[shardID] {
+				// this is just for the test only, as equivalent messages are enabled from epoch 0
+				n.ChainHandler.SetCurrentHeaderProof(data.HeaderProof{
+					AggregatedSignature: []byte("initial sig"),
+					PubKeysBitmap:       []byte("initial bitmap"),
+				})
+			}
+		}
+	}
+
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {

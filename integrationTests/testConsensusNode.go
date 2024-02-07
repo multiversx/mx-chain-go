@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -191,7 +192,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
-	tcn.initBlockProcessor()
+	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
@@ -437,7 +438,7 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 	tcn.ChainHandler.SetGenesisHeaderHash(hasher.Compute(string(hdrMarshalized)))
 }
 
-func (tcn *TestConsensusNode) initBlockProcessor() {
+func (tcn *TestConsensusNode) initBlockProcessor(shardId uint32) {
 	tcn.BlockProcessor = &mock.BlockProcessorMock{
 		Marshalizer: TestMarshalizer,
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
@@ -461,6 +462,18 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 			return mrsData, mrsTxs, nil
 		},
 		CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
+			if shardId == common.MetachainShardId {
+				return &dataBlock.MetaBlock{
+					Round:                  round,
+					Nonce:                  nonce,
+					SoftwareVersion:        []byte("version"),
+					ValidatorStatsRootHash: []byte("validator stats root hash"),
+					AccumulatedFeesInEpoch: big.NewInt(0),
+					DeveloperFees:          big.NewInt(0),
+					DevFeesInEpoch:         big.NewInt(0),
+				}, nil
+			}
+
 			return &dataBlock.HeaderV2{
 				Header: &dataBlock.Header{
 					Round:           round,
@@ -472,7 +485,11 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 			}, nil
 		},
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
-			header := &dataBlock.HeaderV2{}
+			var header data.HeaderHandler
+			header = &dataBlock.HeaderV2{}
+			if shardId == common.MetachainShardId {
+				header = &dataBlock.MetaBlock{}
+			}
 
 			_ = TestMarshalizer.Unmarshal(header, dta)
 			return header
