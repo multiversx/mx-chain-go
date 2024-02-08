@@ -38,8 +38,9 @@ func (creator *blocksCreator) IncrementRound() {
 func (creator *blocksCreator) CreateNewBlock() error {
 	bp := creator.nodeHandler.GetProcessComponents().BlockProcessor()
 
-	nonce, round, prevHash, prevRandSeed, epoch := creator.getPreviousHeaderData()
-	newHeader, err := bp.CreateNewHeader(round+1, nonce+1)
+	nonce, _, prevHash, prevRandSeed, epoch := creator.getPreviousHeaderData()
+	round := creator.nodeHandler.GetCoreComponents().RoundHandler().Index()
+	newHeader, err := bp.CreateNewHeader(uint64(round), nonce+1)
 	if err != nil {
 		return err
 	}
