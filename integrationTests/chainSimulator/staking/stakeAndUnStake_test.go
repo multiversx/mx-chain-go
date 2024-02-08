@@ -49,11 +49,12 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		Value:    20,
 	}
 
+	numOfShards := uint32(3)
 	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:   false,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
+		NumOfShards:              numOfShards,
 		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
@@ -62,6 +63,10 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		MetaChainMinNodes:        3,
 		NumNodesWaitingListMeta:  1,
 		NumNodesWaitingListShard: 1,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
+			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cm)
@@ -172,11 +177,12 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		HasValue: true,
 		Value:    20,
 	}
+	numOfShards := uint32(3)
 	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            numOfShards,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
@@ -186,6 +192,8 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
+			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
+			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -243,7 +251,10 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	err = cm.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	results, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+	metachainNode := cm.GetNodeHandler(core.MetachainShardId)
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	results, err := metachainNode.GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
 	require.Equal(t, newValidatorOwner, results[0].Owner)
 	require.Equal(t, 20, len(results[0].AuctionList))
