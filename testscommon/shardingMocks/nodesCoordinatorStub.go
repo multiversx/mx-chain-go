@@ -15,6 +15,7 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func(_ uint32) (map[uint32][][]byte, error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
+	GetAllAuctionPublicKeysCalled            func(epoch uint32) ([][]byte, error)
 	ConsensusGroupSizeCalled                 func(shardID uint32) int
 	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
@@ -73,6 +74,15 @@ func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(epoch uint32
 func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllWaitingValidatorsPublicKeysCalled(epoch)
+	}
+
+	return nil, nil
+}
+
+// GetAllAuctionPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllAuctionPublicKeys(epoch uint32) ([][]byte, error) {
+	if ncm.GetAllAuctionPublicKeysCalled != nil {
+		return ncm.GetAllAuctionPublicKeysCalled(epoch)
 	}
 
 	return nil, nil

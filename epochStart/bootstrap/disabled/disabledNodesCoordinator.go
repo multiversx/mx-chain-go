@@ -49,6 +49,11 @@ func (n *nodesCoordinator) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint
 	return nil, nil
 }
 
+// GetAllAuctionPublicKeys -
+func (n *nodesCoordinator) GetAllAuctionPublicKeys(_ uint32) ([][]byte, error) {
+	return nil, nil
+}
+
 // GetAllShuffledOutValidatorsPublicKeys -
 func (n *nodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil

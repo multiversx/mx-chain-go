@@ -128,6 +128,12 @@ func (ptp *PeerTypeProvider) createNewCache(
 	}
 	computePeerTypeAndShardId(newCache, nodesMapWaiting, common.WaitingList)
 
+	auctionList, err := ptp.nodesCoordinator.GetAllAuctionPublicKeys(epoch)
+	if err != nil {
+		log.Debug("peerTypeProvider - GetAllAuctionPublicKeys failed", "epoch", epoch)
+	}
+	addAuctionList(newCache, auctionList)
+
 	return newCache
 }
 
@@ -142,6 +148,15 @@ func computePeerTypeAndShardId(
 				pType:  currentPeerType,
 				pShard: shardID,
 			}
+		}
+	}
+}
+
+func addAuctionList(newCache map[string]*peerListAndShard, auctionList [][]byte) {
+	for _, blsKey := range auctionList {
+		newCache[string(blsKey)] = &peerListAndShard{
+			pType:  common.AuctionList,
+			pShard: core.AllShardId,
 		}
 	}
 }

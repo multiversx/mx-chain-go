@@ -930,7 +930,7 @@ func (pcf *processComponentsFactory) indexAndReturnGenesisAccounts() (map[string
 		return map[string]*alteredAccount.AlteredAccount{}, err
 	}
 
-	genesisAccounts := make(map[string]*alteredAccount.AlteredAccount, 0)
+	genesisAccounts := make(map[string]*alteredAccount.AlteredAccount)
 	for leaf := range leavesChannels.LeavesChan {
 		userAccount, errUnmarshal := pcf.unmarshalUserAccount(leaf.Value())
 		if errUnmarshal != nil {

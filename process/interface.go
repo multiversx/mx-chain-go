@@ -1117,6 +1117,7 @@ type NodesCoordinator interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllAuctionPublicKeys(epoch uint32) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 

@@ -1180,6 +1180,171 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	require.Nil(t, err)
 }
 
+func TestIndexHashedGroupSelector_GetAllLeavingValidatorsPublicKeys(t *testing.T) {
+	t.Parallel()
+
+	shardZeroId := uint32(0)
+	shardOneId := uint32(1)
+	expectedValidatorsPubKeys := map[uint32][][]byte{
+		shardZeroId:           {[]byte("pk0_shard0"), []byte("pk1_shard0"), []byte("pk2_shard0")},
+		shardOneId:            {[]byte("pk0_shard1"), []byte("pk1_shard1"), []byte("pk2_shard1")},
+		core.MetachainShardId: {[]byte("pk0_meta"), []byte("pk1_meta"), []byte("pk2_meta")},
+	}
+
+	listMeta := []Validator{
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[core.MetachainShardId][2], 1, defaultSelectionChances),
+	}
+	listShard0 := []Validator{
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardZeroId][2], 1, defaultSelectionChances),
+	}
+	listShard1 := []Validator{
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][0], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][1], 1, defaultSelectionChances),
+		newValidatorMock(expectedValidatorsPubKeys[shardOneId][2], 1, defaultSelectionChances),
+	}
+
+	leavingMap := make(map[uint32][]Validator)
+	leavingMap[core.MetachainShardId] = listMeta
+	leavingMap[shardZeroId] = listShard0
+	leavingMap[shardOneId] = listShard1
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := genericMocks.NewStorerMock()
+
+	eligibleMap := make(map[uint32][]Validator)
+	eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
+	eligibleMap[shardZeroId] = []Validator{&validator{}}
+
+	waitingMap := make(map[uint32][]Validator)
+	waitingMap[core.MetachainShardId] = []Validator{&validator{}}
+	waitingMap[shardZeroId] = []Validator{&validator{}}
+
+	arguments := ArgNodesCoordinator{
+		ShardConsensusGroupSize:         1,
+		MetaConsensusGroupSize:          1,
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		ShardIDAsObserver:               shardZeroId,
+		NbShards:                        2,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("key"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
+	}
+
+	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+	epoch := uint32(37)
+	ihnc.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID:    shardOneId,
+			leavingMap: leavingMap,
+		},
+	}
+
+	allLeavingValidatorsPublicKeys, err := ihnc.GetAllLeavingValidatorsPublicKeys(epoch)
+	require.Equal(t, expectedValidatorsPubKeys, allLeavingValidatorsPublicKeys)
+	require.Nil(t, err)
+}
+
+func TestIndexHashedGroupSelector_GetAllAuctionPublicKeys(t *testing.T) {
+	t.Parallel()
+
+	shardZeroId := uint32(0)
+
+	listAuction := []Validator{
+		newValidatorMock([]byte("pk1"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk2"), 1, defaultSelectionChances),
+		newValidatorMock([]byte("pk3"), 1, defaultSelectionChances),
+	}
+
+	expectedList := [][]byte{listAuction[0].PubKey(), listAuction[1].PubKey(), listAuction[2].PubKey()}
+
+	shufflerArgs := &NodesShufflerArgs{
+		NodesShard:           10,
+		NodesMeta:            10,
+		Hysteresis:           hysteresis,
+		Adaptivity:           adaptivity,
+		ShuffleBetweenShards: shuffleBetweenShards,
+		MaxNodesEnableConfig: nil,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+	}
+	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
+	require.Nil(t, err)
+
+	epochStartSubscriber := &mock.EpochStartNotifierStub{}
+	bootStorer := genericMocks.NewStorerMock()
+
+	eligibleMap := make(map[uint32][]Validator)
+	eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
+	eligibleMap[shardZeroId] = []Validator{&validator{}}
+
+	waitingMap := make(map[uint32][]Validator)
+	waitingMap[core.MetachainShardId] = []Validator{&validator{}}
+	waitingMap[shardZeroId] = []Validator{&validator{}}
+
+	arguments := ArgNodesCoordinator{
+		ShardConsensusGroupSize:         1,
+		MetaConsensusGroupSize:          1,
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		ShardIDAsObserver:               shardZeroId,
+		NbShards:                        2,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("key"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
+	}
+
+	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+	epoch := uint32(37)
+	ihnc.nodesConfig = map[uint32]*epochNodesConfig{
+		epoch: {
+			shardID:     shardZeroId,
+			auctionList: listAuction,
+		},
+	}
+
+	allAuctionPublicKeys, err := ihnc.GetAllAuctionPublicKeys(epoch)
+	require.Equal(t, expectedList, allAuctionPublicKeys)
+	require.Nil(t, err)
+}
+
 func createBlockBodyFromNodesCoordinator(ihnc *indexHashedNodesCoordinator, epoch uint32, validatorInfoCacher epochStart.ValidatorInfoCacher) *block.Body {
 	body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0)}
 

@@ -522,6 +522,27 @@ func (ihnc *indexHashedNodesCoordinator) GetAllLeavingValidatorsPublicKeys(epoch
 	return validatorsPubKeys, nil
 }
 
+// GetAllAuctionPublicKeys will return all auction public keys
+func (ihnc *indexHashedNodesCoordinator) GetAllAuctionPublicKeys(epoch uint32) ([][]byte, error) {
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	validatorsPubKeys := make([][]byte, 0)
+	for _, pk := range nodesConfig.auctionList {
+		validatorsPubKeys = append(validatorsPubKeys, pk.PubKey())
+	}
+
+	return validatorsPubKeys, nil
+}
+
 // GetAllShuffledOutValidatorsPublicKeys will return all shuffled out validator public keys from all shards
 func (ihnc *indexHashedNodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)

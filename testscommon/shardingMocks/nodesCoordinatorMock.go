@@ -28,6 +28,7 @@ type NodesCoordinatorMock struct {
 	GetValidatorsIndexesCalled                  func(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetAllShuffledOutValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetNumTotalEligibleCalled                   func() uint64
+	GetAllAuctionPublicKeysCalled               func(epoch uint32) ([][]byte, error)
 }
 
 // NewNodesCoordinatorMock -
@@ -99,6 +100,15 @@ func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllWaitingValidatorsPublicKeysCalled()
 	}
+	return nil, nil
+}
+
+// GetAllAuctionPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllAuctionPublicKeys(epoch uint32) ([][]byte, error) {
+	if ncm.GetAllAuctionPublicKeysCalled != nil {
+		return ncm.GetAllAuctionPublicKeysCalled(epoch)
+	}
+
 	return nil, nil
 }
 

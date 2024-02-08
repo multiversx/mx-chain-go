@@ -1,10 +1,13 @@
 package peer
 
 import (
+	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -91,6 +94,90 @@ func TestPeerTypeProvider_UpdateCache(t *testing.T) {
 	assert.NotNil(t, ptp.cache[pk])
 	assert.Equal(t, common.EligibleList, ptp.cache[pk].pType)
 	assert.Equal(t, initialShardId, ptp.cache[pk].pShard)
+}
+
+func TestPeerTypeProvider_UpdateCacheWithAllTypesOfValidators(t *testing.T) {
+	pk1 := "pk1"
+	pk2 := "pk2"
+	pk3 := "pk3"
+
+	arg := createDefaultArgPeerTypeProvider()
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
+			return map[uint32][][]byte{
+				1: {[]byte(pk1)},
+			}, nil
+		},
+		GetAllWaitingValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			return map[uint32][][]byte{
+				2: {[]byte(pk2)},
+			}, nil
+		},
+		GetAllAuctionPublicKeysCalled: func(epoch uint32) ([][]byte, error) {
+			return [][]byte{[]byte(pk3)}, nil
+		},
+	}
+
+	ptp := PeerTypeProvider{
+		nodesCoordinator: arg.NodesCoordinator,
+		cache:            nil,
+		mutCache:         sync.RWMutex{},
+	}
+
+	ptp.updateCache(0)
+
+	assert.NotNil(t, ptp.cache)
+
+	expectedCache := map[string]*peerListAndShard{
+		pk1: {
+			pType:  common.EligibleList,
+			pShard: 1,
+		},
+		pk2: {
+			pType:  common.WaitingList,
+			pShard: 2,
+		},
+		pk3: {
+			pType:  common.AuctionList,
+			pShard: core.AllShardId,
+		},
+	}
+
+	assert.Equal(t, expectedCache, ptp.cache)
+}
+
+func TestPeerTypeProvider_UpdateCacheAllGetFunctionsErrorShouldNotPanic(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r != nil {
+			assert.Fail(t, fmt.Sprintf("should have not panicked %v", r))
+		}
+	}()
+
+	expectedErr := errors.New("expected error")
+	arg := createDefaultArgPeerTypeProvider()
+	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+		GetAllEligibleValidatorsPublicKeysCalled: func(epoch uint32) (map[uint32][][]byte, error) {
+			return nil, expectedErr
+		},
+		GetAllWaitingValidatorsPublicKeysCalled: func() (map[uint32][][]byte, error) {
+			return nil, expectedErr
+		},
+		GetAllAuctionPublicKeysCalled: func(epoch uint32) ([][]byte, error) {
+			return nil, expectedErr
+		},
+	}
+
+	ptp := PeerTypeProvider{
+		nodesCoordinator: arg.NodesCoordinator,
+		cache:            nil,
+		mutCache:         sync.RWMutex{},
+	}
+
+	ptp.updateCache(0)
+
+	assert.NotNil(t, ptp.cache)
+	assert.Empty(t, ptp.cache)
 }
 
 func TestNewPeerTypeProvider_createCache(t *testing.T) {
