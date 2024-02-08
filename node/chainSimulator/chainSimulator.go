@@ -2,18 +2,28 @@ package chainSimulator
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -21,17 +31,20 @@ var log = logger.GetOrCreate("chainSimulator")
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck bool
-	TempDir                string
-	PathToInitialConfig    string
-	NumOfShards            uint32
-	MinNodesPerShard       uint32
-	MetaChainMinNodes      uint32
-	GenesisTimestamp       int64
-	InitialRound           int64
-	RoundDurationInMillis  uint64
-	RoundsPerEpoch         core.OptionalUint64
-	ApiInterface           components.APIConfigurator
+	BypassTxSignatureCheck   bool
+	TempDir                  string
+	PathToInitialConfig      string
+	NumOfShards              uint32
+	MinNodesPerShard         uint32
+	MetaChainMinNodes        uint32
+	NumNodesWaitingListShard uint32
+	NumNodesWaitingListMeta  uint32
+	GenesisTimestamp         int64
+	InitialRound             int64
+	RoundDurationInMillis    uint64
+	RoundsPerEpoch           core.OptionalUint64
+	ApiInterface             components.APIConfigurator
+	AlterConfigsFunction     func(cfg *config.Configs)
 }
 
 type simulator struct {
@@ -68,14 +81,17 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 
 func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:           args.NumOfShards,
-		OriginalConfigsPath:   args.PathToInitialConfig,
-		GenesisTimeStamp:      computeStartTimeBaseOnInitialRound(args),
-		RoundDurationInMillis: args.RoundDurationInMillis,
-		TempDir:               args.TempDir,
-		MinNodesPerShard:      args.MinNodesPerShard,
-		MetaChainMinNodes:     args.MetaChainMinNodes,
-		RoundsPerEpoch:        args.RoundsPerEpoch,
+		NumOfShards:              args.NumOfShards,
+		OriginalConfigsPath:      args.PathToInitialConfig,
+		GenesisTimeStamp:         computeStartTimeBaseOnInitialRound(args),
+		RoundDurationInMillis:    args.RoundDurationInMillis,
+		TempDir:                  args.TempDir,
+		MinNodesPerShard:         args.MinNodesPerShard,
+		MetaChainMinNodes:        args.MetaChainMinNodes,
+		RoundsPerEpoch:           args.RoundsPerEpoch,
+		AlterConfigsFunction:     args.AlterConfigsFunction,
+		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
@@ -135,6 +151,7 @@ func (s *simulator) createTestNode(
 		InitialRound:           args.InitialRound,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
+		RoundDurationInMillis:  args.RoundDurationInMillis,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
@@ -155,6 +172,52 @@ func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	return nil
 }
 
+// GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
+func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	maxNumberOfRounds := 10000
+	for idx := 0; idx < maxNumberOfRounds; idx++ {
+		time.Sleep(time.Millisecond * 2)
+		s.incrementRoundOnAllValidators()
+		err := s.allNodesCreateBlocks()
+		if err != nil {
+			return err
+		}
+
+		epochReachedOnAllNodes, err := s.isTargetEpochReached(targetEpoch)
+		if err != nil {
+			return err
+		}
+
+		if epochReachedOnAllNodes {
+			return nil
+		}
+	}
+	return fmt.Errorf("exceeded rounds to generate blocks")
+}
+
+func (s *simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
+	metachainNode := s.nodes[core.MetachainShardId]
+	metachainEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
+
+	for shardID, n := range s.nodes {
+		if shardID != core.MetachainShardId {
+			if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < int32(metachainEpoch-1) {
+				return false, fmt.Errorf("shard %d is with at least 2 epochs behind metachain shard node epoch %d, metachain node epoch %d",
+					shardID, n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch(), metachainEpoch)
+			}
+		}
+
+		if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < targetEpoch {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
 func (s *simulator) incrementRoundOnAllValidators() {
 	for _, node := range s.handlers {
 		node.IncrementRound()
@@ -163,6 +226,9 @@ func (s *simulator) incrementRoundOnAllValidators() {
 
 func (s *simulator) allNodesCreateBlocks() error {
 	for _, node := range s.handlers {
+		// TODO MX-15150 remove this when we remove all goroutines
+		time.Sleep(2 * time.Millisecond)
+
 		err := node.CreateNewBlock()
 		if err != nil {
 			return err
@@ -211,6 +277,50 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 	}
 
 	return nil
+}
+
+// GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
+// if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
+func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (string, error) {
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	nodeHandler := s.GetNodeHandler(targetShardID)
+	var buff []byte
+	if check.IfNil(nodeHandler) {
+		buff = generateAddress(addressConverter.Len())
+	} else {
+		buff = generateAddressInShard(nodeHandler.GetShardCoordinator(), addressConverter.Len())
+	}
+
+	address, err := addressConverter.Encode(buff)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: address,
+			Balance: value.String(),
+		},
+	})
+
+	return address, err
+}
+
+func generateAddressInShard(shardCoordinator mxChainSharding.Coordinator, len int) []byte {
+	for {
+		buff := generateAddress(len)
+		shardID := shardCoordinator.ComputeId(buff)
+		if shardID == shardCoordinator.SelfId() {
+			return buff
+		}
+	}
+}
+
+func generateAddress(len int) []byte {
+	buff := make([]byte, len)
+	_, _ = rand.Read(buff)
+
+	return buff
 }
 
 func (s *simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {
@@ -294,6 +404,48 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	return nil
 }
 
+// SendTxAndGenerateBlockTilTxIsExecuted will the provided transaction and generate block
+func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
+	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.SndAddr)
+	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(txToSend)
+	if err != nil {
+		return nil, err
+	}
+
+	node := s.GetNodeHandler(shardID)
+	txHash, err := core.CalculateHash(node.GetCoreComponents().InternalMarshalizer(), node.GetCoreComponents().Hasher(), txToSend)
+	if err != nil {
+		return nil, err
+	}
+
+	txHashHex := hex.EncodeToString(txHash)
+
+	log.Info("############## send transaction ##############", "txHash", txHash)
+
+	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{txToSend})
+	if err != nil {
+		return nil, err
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	destinationShardID := node.GetShardCoordinator().ComputeId(txToSend.RcvAddr)
+	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
+		err = s.GenerateBlocks(1)
+		if err != nil {
+			return nil, err
+		}
+
+		tx, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHashHex, true)
+		if errGet == nil && tx.Status != transaction.TxStatusPending {
+			log.Info("############## transaction was executed ##############", "txHash", txHash)
+			return tx, nil
+		}
+	}
+
+	return nil, errors.New("something went wrong transaction is still in pending")
+}
+
 func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	for shard, node := range s.nodes {
 		err := node.SetStateForAddress(core.SystemAccountAddress, state)
@@ -328,4 +480,31 @@ func (s *simulator) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *simulator) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// GenerateBlsPrivateKeys will generate bls keys
+func GenerateBlsPrivateKeys(numOfKeys int) ([][]byte, []string, error) {
+	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
+	secretKeysBytes := make([][]byte, 0, numOfKeys)
+	blsKeysHex := make([]string, 0, numOfKeys)
+	for idx := 0; idx < numOfKeys; idx++ {
+		secretKey, publicKey := blockSigningGenerator.GeneratePair()
+
+		secretKeyBytes, err := secretKey.ToByteArray()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		secretKeysBytes = append(secretKeysBytes, secretKeyBytes)
+
+		publicKeyBytes, err := publicKey.ToByteArray()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		blsKeysHex = append(blsKeysHex, hex.EncodeToString(publicKeyBytes))
+	}
+
+	return secretKeysBytes, blsKeysHex, nil
 }
