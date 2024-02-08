@@ -61,10 +61,10 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         3,
 		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  1,
-		NumNodesWaitingListShard: 1,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
+			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8
 			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
 		},
 	})
@@ -143,7 +143,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 
 	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
-	err = cm.GenerateBlocks(50)
+	err = cm.GenerateBlocksUntilEpochIsReached(8)
 	require.Nil(t, err)
 
 	validatorStatistics, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
