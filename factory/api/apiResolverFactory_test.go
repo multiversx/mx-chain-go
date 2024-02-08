@@ -291,7 +291,6 @@ func TestCreateApiResolver(t *testing.T) {
 		require.Nil(t, err)
 		require.False(t, check.IfNil(apiResolver))
 	})
-
 	t.Run("DelegatedListFactoryHandler nil should error", func(t *testing.T) {
 		t.Parallel()
 

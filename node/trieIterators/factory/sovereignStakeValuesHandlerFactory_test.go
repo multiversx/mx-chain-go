@@ -12,8 +12,8 @@ import (
 func TestNewSovereignTotalStakedValueProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	sovereignDelegatedListHandlerFactory := trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory()
-	require.False(t, sovereignDelegatedListHandlerFactory.IsInterfaceNil())
+	sovereignTotalStakedValueHandlerFactory := trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory()
+	require.False(t, sovereignTotalStakedValueHandlerFactory.IsInterfaceNil())
 }
 
 func TestSovereignTotalStakedValueProcessorFactory_CreateSovereignTotalStakedValueProcessorHandler(t *testing.T) {
@@ -21,7 +21,7 @@ func TestSovereignTotalStakedValueProcessorFactory_CreateSovereignTotalStakedVal
 
 	args := createMockArgs(core.SovereignChainShardId)
 
-	sovereignDelegatedListHandler, err := trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
+	sovereignTotalStakedValueHandlerFactory, err := trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	require.Nil(t, err)
-	require.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", sovereignDelegatedListHandler))
+	require.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", sovereignTotalStakedValueHandlerFactory))
 }

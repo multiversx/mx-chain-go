@@ -1344,6 +1344,14 @@ func testNodeGetESDTsWithRole(t *testing.T, nodeFactory node.NodeFactory, shardI
 	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
 	require.NoError(t, err)
 	require.Len(t, tokenResult, 0)
+
+	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, "invalid role", api.AccountQueryOptions{}, context.Background())
+	require.Equal(t, node.ErrInvalidESDTRole, err)
+	require.Nil(t, tokenResult)
+
+	tokenResult, _, err = n.GetESDTsWithRole("aaaaa", core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+	require.Equal(t, "invalid bech32 string length 5", err.Error())
+	require.Nil(t, tokenResult)
 }
 
 func TestNode_GetESDTsWithRole_ShouldWork(t *testing.T) {
@@ -1437,6 +1445,10 @@ func testNodeGetESDTsRoles(t *testing.T, nodeFactory node.NodeFactory, shardId u
 	require.Equal(t, map[string][]string{
 		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
 	}, tokenResult)
+
+	tokenResult, _, err = n.GetESDTsRoles("aaaaa", api.AccountQueryOptions{}, context.Background())
+	require.Equal(t, "invalid bech32 string length 5", err.Error())
+	require.Nil(t, tokenResult)
 }
 
 func TestNode_GetESDTsRoles_ShouldWork(t *testing.T) {
@@ -1524,6 +1536,10 @@ func testNodeGetNFTTokenIDsRegisteredByAddress(t *testing.T, nodeFactory node.No
 	require.NoError(t, err)
 	require.Equal(t, 1, len(tokenResult))
 	require.Equal(t, string(esdtToken), tokenResult[0])
+
+	tokenResult, _, err = n.GetNFTTokenIDsRegisteredByAddress("aaaaa", api.AccountQueryOptions{}, context.Background())
+	require.Equal(t, "invalid bech32 string length 5", err.Error())
+	require.Nil(t, tokenResult)
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
