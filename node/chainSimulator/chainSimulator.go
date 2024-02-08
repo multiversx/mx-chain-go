@@ -2,13 +2,16 @@ package chainSimulator
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -20,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -168,6 +172,52 @@ func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	return nil
 }
 
+// GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
+func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	maxNumberOfRounds := 10000
+	for idx := 0; idx < maxNumberOfRounds; idx++ {
+		time.Sleep(time.Millisecond * 2)
+		s.incrementRoundOnAllValidators()
+		err := s.allNodesCreateBlocks()
+		if err != nil {
+			return err
+		}
+
+		epochReachedOnAllNodes, err := s.isTargetEpochReached(targetEpoch)
+		if err != nil {
+			return err
+		}
+
+		if epochReachedOnAllNodes {
+			return nil
+		}
+	}
+	return fmt.Errorf("exceeded rounds to generate blocks")
+}
+
+func (s *simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
+	metachainNode := s.nodes[core.MetachainShardId]
+	metachainEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
+
+	for shardID, n := range s.nodes {
+		if shardID != core.MetachainShardId {
+			if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < int32(metachainEpoch-1) {
+				return false, fmt.Errorf("shard %d is with at least 2 epochs behind metachain shard node epoch %d, metachain node epoch %d",
+					shardID, n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch(), metachainEpoch)
+			}
+		}
+
+		if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < targetEpoch {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
 func (s *simulator) incrementRoundOnAllValidators() {
 	for _, node := range s.handlers {
 		node.IncrementRound()
@@ -227,6 +277,50 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 	}
 
 	return nil
+}
+
+// GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
+// if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
+func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (string, error) {
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	nodeHandler := s.GetNodeHandler(targetShardID)
+	var buff []byte
+	if check.IfNil(nodeHandler) {
+		buff = generateAddress(addressConverter.Len())
+	} else {
+		buff = generateAddressInShard(nodeHandler.GetShardCoordinator(), addressConverter.Len())
+	}
+
+	address, err := addressConverter.Encode(buff)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: address,
+			Balance: value.String(),
+		},
+	})
+
+	return address, err
+}
+
+func generateAddressInShard(shardCoordinator mxChainSharding.Coordinator, len int) []byte {
+	for {
+		buff := generateAddress(len)
+		shardID := shardCoordinator.ComputeId(buff)
+		if shardID == shardCoordinator.SelfId() {
+			return buff
+		}
+	}
+}
+
+func generateAddress(len int) []byte {
+	buff := make([]byte, len)
+	_, _ = rand.Read(buff)
+
+	return buff
 }
 
 func (s *simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {
