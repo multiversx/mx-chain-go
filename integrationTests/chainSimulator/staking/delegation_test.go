@@ -418,6 +418,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorCreateNewDelegationContract(t, cs, 1)
 	})
 
@@ -454,6 +456,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorCreateNewDelegationContract(t, cs, 2)
 	})
@@ -492,6 +496,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorCreateNewDelegationContract(t, cs, 3)
 	})
 
@@ -528,6 +534,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorCreateNewDelegationContract(t, cs, 4)
 	})
@@ -602,8 +610,8 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Equal(t, blsKeys[0], hex.EncodeToString(notStakedKeys[0]))
 	require.Equal(t, 0, len(unStakedKeys))
 
-	expectedTopUp := new(big.Int).Set(stakeValue)
-	expectedTotalStaked := new(big.Int).Set(stakeValue)
+	expectedTopUp := big.NewInt(0).Set(stakeValue)
+	expectedTotalStaked := big.NewInt(0).Set(stakeValue)
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getTotalActiveStake", nil)
 	require.Nil(t, err)
 	require.Equal(t, expectedTotalStaked, big.NewInt(0).SetBytes(output.ReturnData[0]))
@@ -636,7 +644,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.NotNil(t, delegate2Tx)
 
 	expectedTopUp = expectedTopUp.Add(expectedTopUp, stakeValue)
-	expectedTotalStaked = expectedTopUp.Add(expectedTotalStaked, stakeValue)
+	expectedTotalStaked = expectedTotalStaked.Add(expectedTotalStaked, stakeValue)
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getTotalActiveStake", nil)
 	require.Nil(t, err)
 	require.Equal(t, expectedTotalStaked, big.NewInt(0).SetBytes(output.ReturnData[0]))
@@ -677,7 +685,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.NotNil(t, undelegate1Tx)
 
 	expectedTopUp = expectedTopUp.Sub(expectedTopUp, stakeValue)
-	expectedTotalStaked = expectedTopUp.Sub(expectedTotalStaked, stakeValue)
+	expectedTotalStaked = expectedTotalStaked.Sub(expectedTotalStaked, stakeValue)
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getTotalActiveStake", nil)
 	require.Nil(t, err)
 	require.Equal(t, expectedTotalStaked, big.NewInt(0).SetBytes(output.ReturnData[0]))
@@ -685,7 +693,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getUserActiveStake", [][]byte{delegator1Bytes})
 	require.Nil(t, err)
-	require.Equal(t, "0", big.NewInt(0).SetBytes(output.ReturnData[0]))
+	require.Equal(t, zeroValue, big.NewInt(0).SetBytes(output.ReturnData[0]))
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
 	require.Nil(t, err)
