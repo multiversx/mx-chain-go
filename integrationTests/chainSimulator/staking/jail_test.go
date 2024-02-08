@@ -17,15 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Test scenario
-// 1. generate a new validator key
-// 2. do a stake transaction
-// 3. check validator is in waiting list and wait till validator is jailed
-// 4. do an unJail transaction
-// 5. staking v4 not enabled        --- node status should be new
-// 6. activate staking v4 -- step 1 --- node should go in auction list
-// 7. 						 step 2	--- node should go in auction list
-// 8. 						 step 3	---	node should go in auction list
+// Test description
+// All test cases will do a stake transaction and wait till the new node is jailed
+// testcase1 -- unJail transaction will be sent when staking v3.5 is still action --> node status should be `new` after unjail
+// testcase2 -- unJail transaction will be sent when staking v4 step1 is action --> node status should be `auction` after unjail
+// testcase3 -- unJail transaction will be sent when staking v4 step2 is action --> node status should be `auction` after unjail
+// testcase4 -- unJail transaction will be sent when staking v4 step3 is action --> node status should be `auction` after unjail
 func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -134,7 +131,6 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.NotNil(t, unJailTx)
 	require.Equal(t, transaction.TxStatusSuccess, unJailTx.Status)
 
-	// wait node to be jailed
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
