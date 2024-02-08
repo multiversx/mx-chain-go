@@ -87,7 +87,7 @@ func remove(slice [][]byte, elem []byte) [][]byte {
 	return ret
 }
 
-func getSimilarValues(slice1, slice2 [][]byte) [][]byte {
+func getIntersection(slice1, slice2 [][]byte) [][]byte {
 	ret := make([][]byte, 0)
 	for _, value := range slice2 {
 		if searchInSlice(slice1, value) {
@@ -1402,7 +1402,8 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	})
 
 	// Fast-forward few epochs such that the whole staking v4 is activated.
-	// We should have 12 initial nodes + 1 extra waiting node that was forced to remain eligible(because of legacy bug)
+	// We should have 12 initial nodes + 1 extra waiting node that was forced to remain eligible(because of legacy code
+	// where all leaving nodes were considered to be eligible)
 	node.Process(t, 49)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
@@ -1410,30 +1411,32 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 
 	// Stake 10 extra nodes and check that they are sent to auction
 	newOwner1 := "newOwner1"
-	newNodes1 := map[string]*NodesRegisterData{
+	newOwner1BlsKeys := generateAddresses(303, 10)
+	node.ProcessStake(t, map[string]*NodesRegisterData{
 		newOwner1: {
-			BLSKeys:    generateAddresses(303, 10),
+			BLSKeys:    newOwner1BlsKeys,
 			TotalStake: big.NewInt(nodePrice * 10),
 		},
-	}
-	node.ProcessStake(t, newNodes1)
+	})
 	currNodesConfig = node.NodesConfig
-	requireSameSliceDifferentOrder(t, currNodesConfig.auction, newNodes1[newOwner1].BLSKeys)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, newOwner1BlsKeys)
 
 	// After 2 epochs, unStake all previously staked keys. Some of them have been already sent to eligible/waiting, but most
-	// of them are still in auction. UnStaked node's from auction status should be: leaving now, but their previous values were auction.
-	// We should not force/consider his auction nodes as being eligible in the next epoch
+	// of them are still in auction. UnStaked node's from auction status should be: leaving now, but their previous list was auction.
+	// We should not force his auction nodes as being eligible in the next epoch. We should only force his existing active
+	// nodes to remain in the system.
 	node.Process(t, 10)
 	currNodesConfig = node.NodesConfig
-	newOwner1AuctionNodes := getSimilarValues(currNodesConfig.auction, newNodes1[newOwner1].BLSKeys)
-	newOwner1EligibleNodes := getSimilarValues(getAllPubKeys(currNodesConfig.eligible), newNodes1[newOwner1].BLSKeys)
-	newOwner1WaitingNodes := getSimilarValues(getAllPubKeys(currNodesConfig.waiting), newNodes1[newOwner1].BLSKeys)
+	newOwner1AuctionNodes := getIntersection(currNodesConfig.auction, newOwner1BlsKeys)
+	newOwner1EligibleNodes := getIntersection(getAllPubKeys(currNodesConfig.eligible), newOwner1BlsKeys)
+	newOwner1WaitingNodes := getIntersection(getAllPubKeys(currNodesConfig.waiting), newOwner1BlsKeys)
 	newOwner1ActiveNodes := append(newOwner1EligibleNodes, newOwner1WaitingNodes...)
+	require.Equal(t, len(newOwner1AuctionNodes)+len(newOwner1ActiveNodes), len(newOwner1BlsKeys)) // sanity check
 
 	txCoordMock, _ := node.TxCoordinator.(*testscommon.TransactionCoordinatorMock)
 	txCoordMock.ClearStoredMbs()
 	node.ProcessUnStake(t, map[string][][]byte{
-		newOwner1: newNodes1[newOwner1].BLSKeys,
+		newOwner1: newOwner1BlsKeys,
 	})
 
 	node.Process(t, 5)
@@ -1444,6 +1447,40 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	requireMapDoesNotContain(t, currNodesConfig.waiting, newOwner1AuctionNodes)
 
 	allCurrentActiveNodes := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
-	owner1NodesThatAreStillRemaining := getSimilarValues(allCurrentActiveNodes, newOwner1ActiveNodes)
-	require.NotZero(t, len(owner1NodesThatAreStillRemaining))
+	owner1NodesThatAreStillForcedToRemain := getIntersection(allCurrentActiveNodes, newOwner1ActiveNodes)
+	require.NotZero(t, len(owner1NodesThatAreStillForcedToRemain))
+
+	// Fast-forward some epochs, no error should occur, and we should have our initial config of:
+	// - 12 eligible nodes
+	// - 1 waiting list
+	// - some forced nodes to remain from newOwner1
+	node.Process(t, 10)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 1)
+	allCurrentActiveNodes = append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
+	owner1NodesThatAreStillForcedToRemain = getIntersection(allCurrentActiveNodes, newOwner1ActiveNodes)
+	require.NotZero(t, len(owner1NodesThatAreStillForcedToRemain))
+
+	// Stake 10 extra nodes such that the forced eligible nodes from previous newOwner1 can leave the system
+	// and are replaced by new nodes
+	newOwner2 := "newOwner2"
+	newOwner2BlsKeys := generateAddresses(403, 10)
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		newOwner2: {
+			BLSKeys:    newOwner2BlsKeys,
+			TotalStake: big.NewInt(nodePrice * 10),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	requireSliceContains(t, currNodesConfig.auction, newOwner2BlsKeys)
+
+	// Fas-forward multiple epochs and check that newOwner1's forced nodes from previous epochs left
+	node.Process(t, 20)
+	currNodesConfig = node.NodesConfig
+	allCurrentNodesInSystem := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
+	allCurrentNodesInSystem = append(allCurrentNodesInSystem, getAllPubKeys(currNodesConfig.leaving)...)
+	allCurrentNodesInSystem = append(allCurrentNodesInSystem, currNodesConfig.auction...)
+	owner1LeftNodes := getIntersection(owner1NodesThatAreStillForcedToRemain, allCurrentNodesInSystem)
+	require.Zero(t, len(owner1LeftNodes))
 }

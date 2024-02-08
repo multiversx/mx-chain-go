@@ -161,7 +161,7 @@ func (tmp *TestMetaProcessor) doUnStake(
 			CallerAddr:  owner,
 			Arguments:   blsKeys,
 			CallValue:   big.NewInt(0),
-			GasProvided: 10,
+			GasProvided: 100,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "unStake",

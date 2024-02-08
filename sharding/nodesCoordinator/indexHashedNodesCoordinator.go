@@ -754,7 +754,7 @@ func (ihnc *indexHashedNodesCoordinator) computeNodesConfigFromList(
 		case string(common.EligibleList):
 			eligibleMap[validatorInfo.ShardId] = append(eligibleMap[validatorInfo.ShardId], currentValidator)
 		case string(common.LeavingList):
-			log.Info("leaving node validatorInfo",
+			log.Debug("leaving node validatorInfo",
 				"pk", validatorInfo.PublicKey,
 				"previous list", validatorInfo.PreviousList,
 				"current index", validatorInfo.Index,
@@ -855,7 +855,7 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		return
 	}
 
-	log.Error("leaving node not found in eligible or waiting",
+	log.Debug("leaving node not found in eligible or waiting",
 		"previous list", previousList,
 		"current index", validatorInfo.Index,
 		"previous index", validatorInfo.PreviousIndex,
