@@ -163,6 +163,10 @@ func (pa *peerAccount) GetTotalValidatorSuccessRate() state.SignRate {
 	return &pa.TotalValidatorSuccessRate
 }
 
+func (pa *peerAccount) SetPreviousList(list string) {
+	pa.PreviousList = list
+}
+
 // IsInterfaceNil return if there is no value under the interface
 func (pa *peerAccount) IsInterfaceNil() bool {
 	return pa == nil

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -80,6 +81,19 @@ func remove(slice [][]byte, elem []byte) [][]byte {
 		if bytes.Equal(elem, e) {
 			ret[i] = ret[len(slice)-1]
 			return ret[:len(slice)-1]
+		}
+	}
+
+	return ret
+}
+
+func getSimilarValues(slice1, slice2 [][]byte) [][]byte {
+	ret := make([][]byte, 0)
+	for _, value := range slice2 {
+		if searchInSlice(slice1, value) {
+			copiedVal := make([]byte, len(value))
+			copy(copiedVal, value)
+			ret = append(ret, copiedVal)
 		}
 	}
 
@@ -747,7 +761,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	node.Process(t, 3)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 4)
-	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 3)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
 	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 3)
 	// All unStaked nodes in previous epoch are now leaving
 	requireMapContains(t, currNodesConfig.leaving, unStakedNodesInStakingV4Step1Epoch)
@@ -1342,12 +1356,12 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 			},
 			{
 				EpochEnable:            1,
-				MaxNumNodes:            16,
+				MaxNumNodes:            18,
 				NodesToShufflePerShard: 2,
 			},
 			{
 				EpochEnable:            stakingV4Step3EnableEpoch,
-				MaxNumNodes:            8,
+				MaxNumNodes:            12,
 				NodesToShufflePerShard: 2,
 			},
 		},
@@ -1372,23 +1386,23 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 
 	// NewOwner0 stakes 1 node with top up = 0 before staking v4; should be sent to new nodes, since there are enough slots
 	newOwner0 := "newOwner0"
-	newNodes0 := map[string]*NodesRegisterData{
+	newOwner0BlsKeys := [][]byte{generateAddress(101)}
+	node.ProcessStake(t, map[string]*NodesRegisterData{
 		newOwner0: {
-			BLSKeys:    [][]byte{generateAddress(101)},
+			BLSKeys:    newOwner0BlsKeys,
 			TotalStake: big.NewInt(nodePrice),
 		},
-	}
-	// Check staked node before staking v4 is sent to new
-	node.ProcessStake(t, newNodes0)
+	})
 	currNodesConfig = node.NodesConfig
-	requireSliceContainsNumOfElements(t, currNodesConfig.new, newNodes0[newOwner0].BLSKeys, 1)
+	requireSliceContainsNumOfElements(t, currNodesConfig.new, newOwner0BlsKeys, 1)
 
 	// UnStake one of the initial nodes
 	node.ProcessUnStake(t, map[string][][]byte{
 		owner1: {owner1Stats.EligibleBlsKeys[core.MetachainShardId][0]},
 	})
 
-	// We should have 12 initial nodes + 1 extra waiting node that was forced to remain eligible
+	// Fast-forward few epochs such that the whole staking v4 is activated.
+	// We should have 12 initial nodes + 1 extra waiting node that was forced to remain eligible(because of legacy bug)
 	node.Process(t, 49)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
@@ -1406,37 +1420,30 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	requireSameSliceDifferentOrder(t, currNodesConfig.auction, newNodes1[newOwner1].BLSKeys)
 
-	// After 2 epochs, unStake all previously staked keys. Some of them have been already sent to eligible, but most
-	// of them are still in auction. Their status should be: leaving now, but their previous values were auction.
+	// After 2 epochs, unStake all previously staked keys. Some of them have been already sent to eligible/waiting, but most
+	// of them are still in auction. UnStaked node's from auction status should be: leaving now, but their previous values were auction.
 	// We should not force/consider his auction nodes as being eligible in the next epoch
 	node.Process(t, 10)
 	currNodesConfig = node.NodesConfig
 	newOwner1AuctionNodes := getSimilarValues(currNodesConfig.auction, newNodes1[newOwner1].BLSKeys)
 	newOwner1EligibleNodes := getSimilarValues(getAllPubKeys(currNodesConfig.eligible), newNodes1[newOwner1].BLSKeys)
 	newOwner1WaitingNodes := getSimilarValues(getAllPubKeys(currNodesConfig.waiting), newNodes1[newOwner1].BLSKeys)
+	newOwner1ActiveNodes := append(newOwner1EligibleNodes, newOwner1WaitingNodes...)
+
+	txCoordMock, _ := node.TxCoordinator.(*testscommon.TransactionCoordinatorMock)
+	txCoordMock.ClearStoredMbs()
 	node.ProcessUnStake(t, map[string][][]byte{
 		newOwner1: newNodes1[newOwner1].BLSKeys,
 	})
 
 	node.Process(t, 5)
 	currNodesConfig = node.NodesConfig
-	requireMapContains(t, currNodesConfig.leaving, newOwner1AuctionNodes)
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	requireMapContains(t, currNodesConfig.leaving, newOwner1AuctionNodes)
+	requireMapDoesNotContain(t, currNodesConfig.eligible, newOwner1AuctionNodes)
+	requireMapDoesNotContain(t, currNodesConfig.waiting, newOwner1AuctionNodes)
 
-	//requireMapContains(t, currNodesConfig.eligible, newOwner1EligibleNodes)
-
-	_ = newOwner1EligibleNodes
-	_ = newOwner1WaitingNodes
-
-}
-
-func getSimilarValues(slice1, slice2 [][]byte) [][]byte {
-	ret := make([][]byte, 0)
-	for _, value := range slice2 {
-		if searchInSlice(slice1, value) {
-			ret = append(ret, value)
-		}
-	}
-
-	return ret
+	allCurrentActiveNodes := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
+	owner1NodesThatAreStillRemaining := getSimilarValues(allCurrentActiveNodes, newOwner1ActiveNodes)
+	require.NotZero(t, len(owner1NodesThatAreStillRemaining))
 }

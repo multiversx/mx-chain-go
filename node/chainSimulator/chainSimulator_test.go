@@ -283,7 +283,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	sendTxAndGenerateBlockTilTxIsExecuted(t, chainSimulator, tx)
 
 	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
-	err = chainSimulator.GenerateBlocks(50)
+	err = chainSimulator.GenerateBlocks(1000)
 	require.Nil(t, err)
 
 	accountValidatorOwner, _, err = chainSimulator.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})

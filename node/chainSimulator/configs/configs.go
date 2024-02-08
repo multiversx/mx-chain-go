@@ -104,7 +104,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
 
-	maxNumNodes := uint64(args.MinNodesPerShard*args.NumOfShards+args.MetaChainMinNodes) + uint64(args.NumOfShards+1)
+	maxNumNodes := 2*uint64(args.MinNodesPerShard*args.NumOfShards+args.MetaChainMinNodes) + uint64(args.NumOfShards+1)
 	configs.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
 	numMaxNumNodesEnableEpochs := len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
 	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {

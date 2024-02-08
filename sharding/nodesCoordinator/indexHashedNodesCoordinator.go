@@ -826,7 +826,7 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 	shardId := validatorInfo.ShardId
 	previousList := validatorInfo.PreviousList
 
-	log.Error("leaving node not found in eligible or waiting",
+	log.Debug("checking leaving node",
 		"current list", validatorInfo.List,
 		"previous list", previousList,
 		"current index", validatorInfo.Index,
@@ -861,6 +861,8 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		"previous index", validatorInfo.PreviousIndex,
 		"pk", currentValidator.PubKey(),
 		"shardId", shardId)
+
+	return
 }
 
 func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {
