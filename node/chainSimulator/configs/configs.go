@@ -68,10 +68,6 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	if args.AlterConfigsFunction != nil {
-		args.AlterConfigsFunction(configs)
-	}
-
 	configs.GeneralConfig.GeneralSettings.ChainID = ChainID
 
 	// empty genesis smart contracts file
@@ -109,16 +105,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	maxNumNodes := uint64((args.MinNodesPerShard+args.NumNodesWaitingListShard)*args.NumOfShards) +
 		uint64(args.MetaChainMinNodes+args.NumNodesWaitingListMeta)
 
-	configs.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
-	numMaxNumNodesEnableEpochs := len(configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
-	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {
-		configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[idx].MaxNumNodes = uint32(maxNumNodes)
-	}
-
-	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].EpochEnable = configs.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch
-	prevEntry := configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-2]
-	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].NodesToShufflePerShard = prevEntry.NodesToShufflePerShard
-	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].MaxNumNodes = prevEntry.MaxNumNodes - (args.NumOfShards+1)*prevEntry.NodesToShufflePerShard
+	SetMaxNumberOfNodesInConfigs(configs, maxNumNodes, args.NumOfShards)
 
 	// set compatible trie configs
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
@@ -135,12 +122,30 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
+	if args.AlterConfigsFunction != nil {
+		args.AlterConfigsFunction(configs)
+	}
+
 	return &ArgsConfigsSimulator{
 		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
 		GasScheduleFilename:   gasScheduleName,
 		InitialWallets:        initialWallets,
 	}, nil
+}
+
+// SetMaxNumberOfNodesInConfigs will correctly set the max number of nodes in configs
+func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, maxNumNodes uint64, numOfShards uint32) {
+	cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
+	numMaxNumNodesEnableEpochs := len(cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
+	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {
+		cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[idx].MaxNumNodes = uint32(maxNumNodes)
+	}
+
+	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].EpochEnable = cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch
+	prevEntry := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-2]
+	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].NodesToShufflePerShard = prevEntry.NodesToShufflePerShard
+	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].MaxNumNodes = prevEntry.MaxNumNodes - (numOfShards+1)*prevEntry.NodesToShufflePerShard
 }
 
 func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {

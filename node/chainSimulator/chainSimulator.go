@@ -2,13 +2,16 @@ package chainSimulator
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -20,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -273,6 +277,50 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 	}
 
 	return nil
+}
+
+// GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
+// if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
+func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (string, error) {
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	nodeHandler := s.GetNodeHandler(targetShardID)
+	var buff []byte
+	if check.IfNil(nodeHandler) {
+		buff = generateAddress(addressConverter.Len())
+	} else {
+		buff = generateAddressInShard(nodeHandler.GetShardCoordinator(), addressConverter.Len())
+	}
+
+	address, err := addressConverter.Encode(buff)
+	if err != nil {
+		return "", err
+	}
+
+	err = s.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: address,
+			Balance: value.String(),
+		},
+	})
+
+	return address, err
+}
+
+func generateAddressInShard(shardCoordinator mxChainSharding.Coordinator, len int) []byte {
+	for {
+		buff := generateAddress(len)
+		shardID := shardCoordinator.ComputeId(buff)
+		if shardID == shardCoordinator.SelfId() {
+			return buff
+		}
+	}
+}
+
+func generateAddress(len int) []byte {
+	buff := make([]byte, len)
+	_, _ = rand.Read(buff)
+
+	return buff
 }
 
 func (s *simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {

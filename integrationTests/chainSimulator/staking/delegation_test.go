@@ -1,7 +1,6 @@
 package staking
 
 import (
-	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -17,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -25,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const walletAddressBytesLen = 32
 const mockBLSSignature = "010101"
 const gasLimitForStakeOperation = 50_000_000
 const gasLimitForConvertOperation = 510_000_000
@@ -215,31 +212,20 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	log.Info("Step 2. Set the initial state for the owner and the 2 delegators")
-	validatorOwner := generateWalletAddressBytes()
-	validatorOwnerBech32 := metachainNode.GetCoreComponents().AddressPubKeyConverter().SilentEncode(validatorOwner, log)
 	mintValue := big.NewInt(3010)
 	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
-	delegator1 := generateWalletAddressBytes()
-	delegator1Bech32 := metachainNode.GetCoreComponents().AddressPubKeyConverter().SilentEncode(delegator1, log)
-	delegator2 := generateWalletAddressBytes()
-	delegator2Bech32 := metachainNode.GetCoreComponents().AddressPubKeyConverter().SilentEncode(delegator2, log)
-
-	err = cs.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: validatorOwnerBech32,
-			Balance: mintValue.String(),
-		},
-		{
-			Address: delegator1Bech32,
-			Balance: mintValue.String(),
-		},
-		{
-			Address: delegator2Bech32,
-			Balance: mintValue.String(),
-		},
-	})
+	validatorOwnerBech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
+	validatorOwner, err := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
+
+	delegator1Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+	delegator1, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(delegator1Bech32)
+
+	delegator2Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+	delegator2, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(delegator2Bech32)
 
 	log.Info("working with the following addresses",
 		"newValidatorOwner", validatorOwnerBech32, "delegator1", delegator1Bech32, "delegator2", delegator2Bech32)
@@ -311,13 +297,6 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	testBLSKeyIsInQueueOrAuction(t, metachainNode, blsKeys[0], expectedTopUp)
 	assert.Equal(t, expectedTopUp, getBLSTopUpValue(t, metachainNode, delegationAddress))
 
-}
-
-func generateWalletAddressBytes() []byte {
-	buff := make([]byte, walletAddressBytesLen)
-	_, _ = rand.Read(buff)
-
-	return buff
 }
 
 func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey string, topUpInAuctionList *big.Int) {
