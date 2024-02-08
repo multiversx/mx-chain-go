@@ -861,8 +861,6 @@ func (ihnc *indexHashedNodesCoordinator) addValidatorToPreviousMap(
 		"previous index", validatorInfo.PreviousIndex,
 		"pk", currentValidator.PubKey(),
 		"shardId", shardId)
-
-	return
 }
 
 func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message string) {

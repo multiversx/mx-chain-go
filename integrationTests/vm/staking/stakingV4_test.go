@@ -1473,7 +1473,7 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	currNodesConfig = node.NodesConfig
 	requireSliceContains(t, currNodesConfig.auction, newOwner2BlsKeys)
 
-	// Fas-forward multiple epochs and check that newOwner1's forced nodes from previous epochs left
+	// Fast-forward multiple epochs and check that newOwner1's forced nodes from previous epochs left
 	node.Process(t, 20)
 	currNodesConfig = node.NodesConfig
 	allCurrentNodesInSystem := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
