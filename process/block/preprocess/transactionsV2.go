@@ -385,21 +385,21 @@ func (txs *transactions) verifyTransaction(
 
 	executionErr, canExecute := txs.isTransactionEligibleForExecutionFunc(tx, err)
 	if !canExecute {
-		isTxTargetedForDeletion := errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrHigherNonceInTransaction) || errors.Is(executionErr, process.ErrInsufficientFee) || errors.Is(executionErr, process.ErrTransactionNotExecutable)
-		log.Trace("bad tx", "error", executionErr, "hash", txHash)
+		isTxTargetedForDeletion := errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrInsufficientFee) || errors.Is(executionErr, process.ErrTransactionNotExecutable)
 
 		if isTxTargetedForDeletion {
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 			txs.txPool.RemoveData(txHash, strCache)
-
-			mbInfo.schedulingInfo.numScheduledBadTxs++
-
-			txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
-
-			mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
-			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
-			mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 		}
+
+		mbInfo.schedulingInfo.numScheduledBadTxs++
+		log.Trace("bad tx", "error", executionErr, "hash", txHash)
+
+		txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
+
+		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
+		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
+		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
 		return executionErr
 	}
