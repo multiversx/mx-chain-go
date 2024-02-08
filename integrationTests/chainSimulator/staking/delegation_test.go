@@ -49,6 +49,7 @@ var minimumStakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(2500))
 //  Also check that delegate and undelegate works properly and the top-up remain the same if every delegator undelegates.
 //  Test that the top-up from normal stake will be transferred after creating the contract and will be used in auction list computing
 
+// Internal test scenario #10
 func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
