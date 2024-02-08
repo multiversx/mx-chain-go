@@ -901,16 +901,25 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, core.MetachainShardId)
 
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(en, nil)
+	auctionCfg := config.SoftAuctionConfig{
+		TopUpStep:             "10",
+		MinTopUp:              "1",
+		MaxTopUp:              "32000000",
+		MaxNumberOfIterations: 100000,
+	}
+	ald, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            auctionCfg,
+		Denomination:             0,
+	})
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             shardCoordinator,
 		StakingDataProvider:          stakingSCProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep:             "10",
-			MinTopUp:              "1",
-			MaxTopUp:              "32000000",
-			MaxNumberOfIterations: 100000,
-		},
+		AuctionListDisplayHandler:    ald,
+		SoftAuctionConfig:            auctionCfg,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 
@@ -1910,16 +1919,27 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
 	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 8}})
+
+	auctionCfg := config.SoftAuctionConfig{
+		TopUpStep:             "10",
+		MinTopUp:              "1",
+		MaxTopUp:              "32000000",
+		MaxNumberOfIterations: 100000,
+	}
+	ald, _ := NewAuctionListDisplayer(ArgsAuctionListDisplayer{
+		TableDisplayHandler:      NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            auctionCfg,
+		Denomination:             0,
+	})
+
 	argsAuctionListSelector := AuctionListSelectorArgs{
 		ShardCoordinator:             args.ShardCoordinator,
 		StakingDataProvider:          args.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
-		SoftAuctionConfig: config.SoftAuctionConfig{
-			TopUpStep:             "10",
-			MinTopUp:              "1",
-			MaxTopUp:              "32000000",
-			MaxNumberOfIterations: 100000,
-		},
+		SoftAuctionConfig:            auctionCfg,
+		AuctionListDisplayHandler:    ald,
 	}
 	als, _ := NewAuctionListSelector(argsAuctionListSelector)
 	args.AuctionListSelector = als
