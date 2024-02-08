@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -34,6 +35,7 @@ const txVersion = 1
 const mockTxSignature = "sig"
 const queuedStatus = "queued"
 const stakedStatus = "staked"
+const auctionStatus = "auction"
 const okReturnCode = "ok"
 const maxCap = "00"       // no cap
 const serviceFee = "0ea1" // 37.45%
@@ -47,14 +49,6 @@ var minimumStakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(2500))
 //  Also check that delegate and undelegate works properly and the top-up remain the same if every delegator undelegates.
 //  Test that the top-up from normal stake will be transferred after creating the contract and will be used in auction list computing
 
-// Test scenario
-// 1. Add a new validator private key in the multi key handler
-// 2. Set the initial state for the owner and the 2 delegators
-// 3. Do a stake transaction for the validator key and test that the new key is on queue / auction list and topup is 500
-// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue / auction list and topup is 500
-// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
-// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
-
 func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -63,9 +57,16 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    30,
 	}
 
+	// Test scenario done in staking 3.5 phase (staking v4 is not active)
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on queue and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:   false,
@@ -93,6 +94,14 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 1)
 	})
+
+	// Test scenario done in staking v4 phase step 1
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on auction list and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on auction list and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:   false,
@@ -119,6 +128,76 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		require.NotNil(t, cs)
 
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 2)
+	})
+
+	// Test scenario done in staking v4 phase step 2
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on auction list and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on auction list and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 3)
+	})
+
+	// Test scenario done in staking v4 phase step 3
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on auction list and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on auction list and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 4)
 	})
 }
 
@@ -174,19 +253,10 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
-	err = cs.GenerateBlocks(5)
+	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
-	require.Nil(t, err)
-	statistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
-	require.Nil(t, err)
-
-	_, found := statistics[blsKeys[0]]
-	require.False(t, found)
-
-	decodedBLSKey, _ := hex.DecodeString(blsKeys[0])
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, decodedBLSKey, addedStakedValue)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, blsKeys[0], addedStakedValue)
 	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorOwner))
 
 	log.Info("Step 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue / auction list and the correct topup")
@@ -202,13 +272,8 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
-	statistics, err = metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
-	require.Nil(t, err)
 
-	_, found = statistics[blsKeys[0]]
-	require.False(t, found)
-
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, decodedBLSKey, addedStakedValue)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, blsKeys[0], addedStakedValue)
 	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, delegationAddress))
 
 	log.Info("Step 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700")
@@ -224,7 +289,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.NotNil(t, delegate2Tx)
 
 	expectedTopUp := big.NewInt(0).Mul(oneEGLD, big.NewInt(700))
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, decodedBLSKey, expectedTopUp)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, blsKeys[0], expectedTopUp)
 	assert.Equal(t, expectedTopUp, getBLSTopUpValue(t, metachainNode, delegationAddress))
 
 	log.Info("6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500")
@@ -242,7 +307,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.NotNil(t, unDelegate2Tx)
 
 	expectedTopUp = big.NewInt(0).Mul(oneEGLD, big.NewInt(500))
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, decodedBLSKey, expectedTopUp)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, blsKeys[0], expectedTopUp)
 	assert.Equal(t, expectedTopUp, getBLSTopUpValue(t, metachainNode, delegationAddress))
 
 }
@@ -254,27 +319,55 @@ func generateWalletAddressBytes() []byte {
 	return buff
 }
 
-func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte, topUpInAuctionList *big.Int) {
+func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey string, topUpInAuctionList *big.Int) {
+	decodedBLSKey, _ := hex.DecodeString(blsKey)
+	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	statistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
+	require.Nil(t, err)
+
 	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
 	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
-		testBLSKeyIsInAuction(t, metachainNode, blsKey, topUpInAuctionList)
+		testBLSKeyIsInAuction(t, metachainNode, decodedBLSKey, blsKey, topUpInAuctionList, statistics)
 		return
 	}
 
-	require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, blsKey))
+	// in staking ph 2/3.5 we do not find the bls key on the validator statistics
+	_, found := statistics[blsKey]
+	require.False(t, found)
+	require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey))
 }
 
-func testBLSKeyIsInAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte, topUpInAuctionList *big.Int) {
-	require.Equal(t, stakedStatus, getBLSKeyStatus(t, metachainNode, blsKey))
+func testBLSKeyIsInAuction(
+	t *testing.T,
+	metachainNode chainSimulatorProcess.NodeHandler,
+	blsKeyBytes []byte,
+	blsKey string,
+	topUpInAuctionList *big.Int,
+	validatorStatistics map[string]*validator.ValidatorStatistics,
+) {
+	require.Equal(t, stakedStatus, getBLSKeyStatus(t, metachainNode, blsKeyBytes))
 
 	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 
-	require.Equal(t, 1, len(auctionList))
+	actionListSize := 1
+	currentEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
+	if metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag) <= currentEpoch {
+		// starting from phase 2, we have the shuffled out nodes from the previous epoch in the action list
+		actionListSize = 2
+	}
+
+	require.Equal(t, actionListSize, len(auctionList))
 	require.Equal(t, 1, len(auctionList[0].AuctionList))
-	require.Equal(t, topUpInAuctionList, auctionList[0].TopUpPerNode)
+	require.Equal(t, topUpInAuctionList.String(), auctionList[0].TopUpPerNode)
+
+	// in staking ph 4 we should find the key in the validators statics
+	validatorInfo, found := validatorStatistics[blsKey]
+	require.True(t, found)
+	require.Equal(t, auctionStatus, validatorInfo.ValidatorStatus)
 }
 
 func getBLSKeyStatus(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) string {
