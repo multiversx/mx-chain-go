@@ -31,7 +31,6 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	// testcase 1
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		testChainSimulatorJailAndUnJail(t, 4, "new")
 	})
@@ -90,6 +89,9 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
+	defer func() {
+		_ = cs.Close()
+	}()
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	err = cs.GenerateBlocks(30)
