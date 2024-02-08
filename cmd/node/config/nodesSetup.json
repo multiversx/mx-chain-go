@@ -1,48 +1,395 @@
 {
   "startTime": 0,
-  "roundDuration": 4000,
-  "consensusGroupSize": 3,
-  "minNodesPerShard": 3,
-  "metaChainConsensusGroupSize": 3,
-  "metaChainMinNodes": 3,
-  "hysteresis": 0,
+  "roundDuration": 6000,
+  "consensusGroupSize": 7,
+  "minNodesPerShard": 10,
+  "metaChainConsensusGroupSize": 10,
+  "metaChainMinNodes": 10,
+  "hysteresis": 0.2,
   "adaptivity": false,
   "initialNodes": [
     {
-      "pubkey": "cbc8c9a6a8d9c874e89eb9366139368ae728bd3eda43f173756537877ba6bca87e01a97b815c9f691df73faa16f66b15603056540aa7252d73fecf05d24cd36b44332a88386788fbdb59d04502e8ecb0132d8ebd3d875be4c83e8b87c55eb901",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - legacy delegation",
+      "pubkey": "309198fd7b6bccb1b6279ea2e5c5f2a33b9f6fe5f23180778d8721710344989b07d10dd1bd19307b3cd06eab9d1358062511610ccdad681ae1165016256cc1fdc0fed5041a5c29d7773b2994022bf2dc9efb937b3bb7cc9d72670448fad7d091",
+      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "ef9522d654bc08ebf2725468f41a693aa7f3cf1cb93922cff1c8c81fba78274016010916f4a7e5b0855c430a724a2d0b3acd1fe8e61e37273a17d58faa8c0d3ef6b883a33ec648950469a1e9757b978d9ae662a019068a401cff56eea059fd08",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - legacy delegation",
+      "pubkey": "cd8cc9d70a8f78df0922470f1ebee727f57a70fb0571c0b512475c8c7d3ce1d9b70dd28e6582c038b18d05f8fbd6ac0a167a38614c40353b32ef47896d13c45bde57e86d87dd6e6f73420db93aeb79a1fd8f4e297f70478685a38ed73e49598f",
+      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "e91ab494cedd4da346f47aaa1a3e792bea24fb9f6cc40d3546bc4ca36749b8bfb0164e40dbad2195a76ee0fd7fb7da075ecbf1b35a2ac20638d53ea5520644f8c16952225c48304bb202867e2d71d396bff5a5971f345bcfe32c7b6b0ca34c84",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - legacy delegation",
+      "pubkey": "e441b8a7d35545f7a02f0d57d144c89810d67ecb9abb5804d1bcfd8b270dc30978c56fbf9618e9a6621ca4e6c545c90807f7fe5edfd34ccab83db7bc0bd68536bb65403503d213c9763ec2137d80081579bb1b327f22c677bdb19891f4aae980",
+      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "8f8bf2e6ad1566cd06ba968b319d264b8ce4f8700032a88556c2ecc3992017654d69d9661ad67b12c8e49289a2925a0c3ab3c161a22c16e772a4fe8a84b273b7ac7c00d9da8fa90a9bb710961faa6e0e2e092f383f2fc365f1cda35d803f0901",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - legacy delegation",
+      "pubkey": "72d8341713a271d510c7dfd02455ef86e9af4c66e06ac28fbb4c4e8df1e944e685bae2bee2af4101c19922b64e44e40b5d4905755594a719c1d50dc210515495d0de9b3a1d4ed42fd45a973353fe2c2548c45bb2157d8bf68e0937cc20fe1011",
+      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "aa930dc117738baead60088e9fd53ebc3157ad219f6a11ad4ee662eedb406baad013160ec1083fa68bf25b4ce7503e00e0e6dfbb4e405107a350d88feda2d01ae5b7b27a068d6accc980e498b36fc9ab1df4f3bcffec9f1611e20dea05b55a92",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "796d2f56ee9fa8f4ff9fc7735bbb4d644be8dd044f7f965362aed3d562e00b11f730b2fe21eb9c9fd100b68a5d3dbf07bae63d25739f1304ab638330f0e8c207a76de648e2523ad1693f4ffe9def8a1d5aca2c6c1c14e1fcc20089db069d1a0e",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "70cf21360c0d276bb49af3a76e1bc193f05f688c0f8029a895742dbc4713fe2c36b8a90dd9455b308c3fbf5e3a3ea115ec1a6c353af028d104402a0f1813d6178740b62911470d75eab62ae630d7f1181c68fc1e966967749dc98eab35c03f0c",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "4cc0bfcdf4515927e3ae7890197bfd7c2e3c6f80ff7570fc6313d095e0d4e518ecc81db7087fefb8af166723a32ded1324f4ee00a6a97d206a024fd95ab60f7fe18c896c829ac43782c56d922415fb4ddbc0384936e3f860feb0666da43bcd19",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "ea4a05326f44746beff6302f4a0452ad789113186ede483a577294d3bdf638a0742a57d453edbc61db32e04e101b7c021a1480a8d4989856a83b375d66fe61df64effc0cb68a18bebbc99b7e12ebc3084c17599b83bba33c435b8953974d2484",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "3449c9d672472ea52e83be4a8d6ce55785044233d848ac0a9a4b7fc22bf5b1bf5776f95f4b459f4e4cd3ba1d20b46a197c5a55ec00fa8d795d35f2232a6fae360129d186e3a0c219d42d8357de2823c8566da7841c2739b30d1581c4a38ec80e",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "86b5dcfb9372b0865f0531782827bed66cb7313ab0924c052d3701c59d3c686748e757bb9e20ad1924d3531dc1eb1206f89d00791e79ea994e0a8b5d4ef92335f0d83f09cc358b718b103dd44d772e2286123ceffb6bd8236b8be7e4eb3e1308",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "1bdef34453a83d19748b02d964c43409a66535678b6234c42d289ed2b7571bf60d35ba7a43cd951d4fc9fc2e8ff618038a2edc9cb0181dcac0b62a0859aafd8d9993aa3069c14fec11cb66a653311a37861d225847bf535bcb920b4f0ea98b8b",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
     },
     {
-      "pubkey": "227a5a5ec0c58171b7f4ee9ecc304ea7b176fb626741a25c967add76d6cd361d6995929f9b60a96237381091cefb1b061225e5bb930b40494a5ac9d7524fd67dfe478e5ccd80f17b093cff5722025761fb0217c39dbd5ae45e01eb5a3113be93",
-      "address": "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "3bd60bd8c5ace7d1999cd4bfd93dcb7bdc397d8d84efa5fd89439b7b727b0331bd00e3feae85df79e7d2b5eba1ea07003972fde3a7eb8d4ba25583a848be812e89b75fe8f3531d810ba2aaef629748ace6ac5ae73d8a2e6a65bb379f5be3b906",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "2b9a1e5e291471f9eb0cf1a52db991f2dbb85446d132f47381b7912b041be00cccab748c25bdd6165cd6a517b6e99b0133bda4dc091dcdf6d17bc460ac0e8c6fe4b2460a980dd8dea8c857647bc5826a2b77fc8ba92c02deb2ba3daafb4d5407",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "e464c43c4f3442ec520d4a6464d7fa96397ab711adf38b5a96f208303337f6a97ffdbd22e34a10deef6aa21ff078360d2bf7fae627a1ec55a9f120b35224b8e461b0f4de7d3ce800e6b910f37c4d03cce7039ce3a4a3a79ac0511c36435ccf85",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group1 - wallet1 with 8 BLS keys",
+      "pubkey": "dab5c34e66e096d1f328fd9b045136724c8ccbf7b5a4bcf1e8c9edc9510712c0a7feff7818563aa799b37f1cdcfb330cc49d8482c7154988d33f63fe2526b27945326112c832fdf72a1b35f10da34c6e08b4079d9c56195c1ab64c84eab93b95",
+      "address": "erd19ptzdk7zvs3csjjf8u04j5kxzn5jck409sefdyx6x9afkjg4wunsfw7rj7",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group1 - wallet2 with 6 BLS keys",
+      "pubkey": "a5624bec34e06d5026a334654be9e0118c8a02720a6bd868a51d5eb687819442cded09d1fef2e9d9db8bb2d5be01f1148b4819aee9e6a48b9c530285dbc4d800f4dd10d7f9a75d4b36de8fb52aec672cec91e0256f7e9848b10219748d9e708b",
+      "address": "erd1qz9gp38g4238r3077wq4tpc0jxaq0f87c0t2n2hr3x6fef85t3lshq2ejk",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet2 with 6 BLS keys",
+      "pubkey": "eedbc5a3141b92148205d178d150905e68ca745ba54617025f84b33c91233afda2c2109084821e14f9a50d3f220fbc000ce6ad432f2a1865da9c6547016ecc7e07242ef490c0bdda29ec677f3e833f54eb2cf27e95b10b8edbdfa7de4e1bc000",
+      "address": "erd1qz9gp38g4238r3077wq4tpc0jxaq0f87c0t2n2hr3x6fef85t3lshq2ejk",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet2 with 6 BLS keys",
+      "pubkey": "48c77bbf5d619fb13d76883736c664493b323c00f89131c9d70b3e4ac875103bd8248e790e47a82c9fdcd46fe33b52093a4b3b248ce20e6f958acd22dfb17335fcaf752bab5e29934f0a7e0af54fb2f51a9e6b1be30abdd701f7c9fbd0ad5d8e",
+      "address": "erd1qz9gp38g4238r3077wq4tpc0jxaq0f87c0t2n2hr3x6fef85t3lshq2ejk",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet2 with 6 BLS keys",
+      "pubkey": "dd59e326a160d3b49ca25f2ab93b4f7ba766b124de66b68507b9e7a9cf69df7c4fca695592eb31e7e63061daef52d30cc1d362fc612d22631398cad4af46969e35407b293808133fc130b8f930ba41c6b88bc9ed9b884892113593d3ffc55297",
+      "address": "erd1qz9gp38g4238r3077wq4tpc0jxaq0f87c0t2n2hr3x6fef85t3lshq2ejk",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet2 with 6 BLS keys",
+      "pubkey": "6b1a8bf3e5e7bacaaf99e3c89891a8a4ec7e9022986043f8206db9171ede3bd8cdcbbd7e8e1234180de5d651110ef706a8d964cb35048bc961611b55c8d9bd1b942b93c7e1b88157e7f79f2c08dbabe1af4612afe6044ab1be316976111b7019",
+      "address": "erd1qz9gp38g4238r3077wq4tpc0jxaq0f87c0t2n2hr3x6fef85t3lshq2ejk",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet2 with 6 BLS keys",
+      "pubkey": "d8f8ef204ac892dd1a04648fc449ffdd11418dbd5c8fe623e5efda0bcae47cb41eb99c981585d80be1d668d8b7466619b6ead4d83976cc4f6879627a455603a74ab2adbfb5fed0f1a2b954363d97cbd3ac7feb284c83ac64422fad518e589c8e",
+      "address": "erd1qz9gp38g4238r3077wq4tpc0jxaq0f87c0t2n2hr3x6fef85t3lshq2ejk",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet3 with 4 BLS keys",
+      "pubkey": "f547e115b1ada7cf9b8aeef45ee0d9ec4b206315ef44be706d994a0571688cd96291d1ab6c3761df29d00a2ba290a3185e4796bc49891906f86e16da01af3fd52320944b96b60e679ac8e686d4819e97e15e5fe46503c556b4acdd8079624005",
+      "address": "erd1tp2af4jvdh7p79myu5h6srtchh42p5e3pchqre3ejyyn9mqhwa3shpgj35",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet3 with 4 BLS keys",
+      "pubkey": "0e5cc5f218a8fa9bae1f6b452430c0de205e6b251d0f1d606d1ce28203fb556768e6c4545ce8e90d640ef2cc1062f40ccf2ede124b926cbf3b2b0050b0e19f67e7e36ac1a7049178a77cbd65ee30cd0a40d9f98846ce439cc120717501f03180",
+      "address": "erd1tp2af4jvdh7p79myu5h6srtchh42p5e3pchqre3ejyyn9mqhwa3shpgj35",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet3 with 4 BLS keys",
+      "pubkey": "760dc22525dce5be65a3a55ee07f7f012e0a89f435daec56eb475b0b5ca2d84b157894b8df64dfb570ecc633d5e1611639d43976e29f11c232236a9548b0145ee4e43fe495252c8c1f006b8df51d3835dee64a826f43167096b347b6919aa292",
+      "address": "erd1tp2af4jvdh7p79myu5h6srtchh42p5e3pchqre3ejyyn9mqhwa3shpgj35",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet3 with 4 BLS keys",
+      "pubkey": "39316473217f7c435a543efa078254198dd079e3c6505e7cc1564b033de8a161dc2e9c392b1e584440510113b5942816102d7be5f4af9461af21a454fc1938a962b256c1c1d1f939198029ed0bf22c62893038d5687787cb46436c0ef4f12417",
+      "address": "erd1tp2af4jvdh7p79myu5h6srtchh42p5e3pchqre3ejyyn9mqhwa3shpgj35",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet4 with 4 BLS keys",
+      "pubkey": "6a3b9f6b5fd38e79433daa9bf03543314f8a2a3d9f1fec8ebe2bc1ee97f135d83845dcecd201207c1b31d7624ddb330ae67fbfab4137cd734d96bc0975ae8bcfeecc4441b384d39d6900cdb7436450c23b4cc7674ec50055ea4a90861c503a91",
+      "address": "erd1e2ftj4hj43lkduwps9xdmtgjnmugkh9mndph4n2cxfmf6ufvn4ks0zut84",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet4 with 4 BLS keys",
+      "pubkey": "ee8c987b9af9bba2912763fb7fcd6d6575db60806c5041fa91816ecc339ccfd60bf3cf49fb7017158f0b8e6050276907620bc040816207f14a952bb86752816231ae7f31ff701862cfe0abca367fc4cd63bafd4ad6e4df67612e4ec71462650c",
+      "address": "erd1e2ftj4hj43lkduwps9xdmtgjnmugkh9mndph4n2cxfmf6ufvn4ks0zut84",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet4 with 4 BLS keys",
+      "pubkey": "cfe96f6b010d08f211c83f4ae3eb451d1d5205a50bdcd451706044dc21f523d25f214ab89dd5aab7ae03111197d6e6156e70ab348c9b0fab0a7839ea57fef6cd2324882b4387014dba201e6f87d5ca395e14d900e4563494f4f11a69ef6cdf14",
+      "address": "erd1e2ftj4hj43lkduwps9xdmtgjnmugkh9mndph4n2cxfmf6ufvn4ks0zut84",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group2 - wallet4 with 4 BLS keys",
+      "pubkey": "05e9e43732ecff55e553b35b5ee1416065818db162a6fbf096186a1230d88bd057cebb72c5afaec16a803c4c4f69770752fe29be73a4069d0d01666ede963271192d4f324f2b3dcaec8b2c871c23cf185579a039dd5ab093c7cd9bca53e09c85",
+      "address": "erd1e2ftj4hj43lkduwps9xdmtgjnmugkh9mndph4n2cxfmf6ufvn4ks0zut84",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet5 with 3 BLS keys",
+      "pubkey": "82cfc47999d1499cb880d46e8280b8c4fe576dff20a8ca6f6ac551887c637f935153f9ce2f21921a532477535d42ac05f730760c78415756add2eab6d57d94916f3ad51590b23404739d152f89b6d052df48cace1793897cd4eba722247a6195",
+      "address": "erd1dzjes5c6a8ru45clgla3q0k3ezm06svefjz7vzs8pjfnrqa8tcasl4j8hs",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet5 with 3 BLS keys",
+      "pubkey": "7675098e73574db9c59bdce61e4b80251c6536201715dca40b2b69c09ce097690f3a9095d22b006531e3b13b30894803bd7ede3e6d80c9064c431f8671db085ab1052354cb26a7a2436340b273b6c95c84ab94bb9531b99c5f883602b5284017",
+      "address": "erd1dzjes5c6a8ru45clgla3q0k3ezm06svefjz7vzs8pjfnrqa8tcasl4j8hs",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet5 with 3 BLS keys",
+      "pubkey": "c50f398a853c670ed625a12eddae175df5a90e034a54484a832566fc91f9b83d5daf1bc821cc347ba7e45f3acd4e1d00d0d7f52235824fd1326a7f370b58fc7dd98edfff4a41739a2015c6ed3a3c0bf3c986efeee187be70f1133fc4379dad95",
+      "address": "erd1dzjes5c6a8ru45clgla3q0k3ezm06svefjz7vzs8pjfnrqa8tcasl4j8hs",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet6 with 3 BLS keys",
+      "pubkey": "4bd3f30f608b22b32100c6360def228ec95aa24e3048010bb64606392f602e180a0b2a12f7f92ef1d7f73ce1271ae30693bec692b15802c7ba079939640570fdc7f4d411c084ed0fe612ee223227ca3d02dc9732cf686ba8885007de53f8ec89",
+      "address": "erd14gg3v6j4505ucx7t2wtl98tgupmyp748aq92jefmp5ha6e3pccgq9clwe9",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet6 with 3 BLS keys",
+      "pubkey": "71e8458f92997a00c1cd0e638b9ec42ab136828fc13f0ec643b60af451270cc81d50f4c4578a7c93a700ee21e065281593e7995d2454356cbfdeadb9ffe7bf33ba8f7a31a1d2e76bba5a5f88a613ef37e35595838d0b7f4bd12da7d6fe743499",
+      "address": "erd14gg3v6j4505ucx7t2wtl98tgupmyp748aq92jefmp5ha6e3pccgq9clwe9",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet6 with 3 BLS keys",
+      "pubkey": "d9c30948bffad18776b786f6367142b76605ac6e33a8d38c68c31c7afb099f1a83efb752a87afaf9d04a4a8fb656e40bfe2a4aa6e0c16b82d22bd6c232c2ce5e6672ac6232d2da6945bc033b04cbaaeb4b9af4b29585094e034ab8dcfb8b9c19",
+      "address": "erd14gg3v6j4505ucx7t2wtl98tgupmyp748aq92jefmp5ha6e3pccgq9clwe9",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet7 with 2 BLS keys",
+      "pubkey": "55fc7ab2e8c0a07bef2e1a9b35764cee1d604cb5634b7226a7310ce56a1f02e99d248fc5b416c4253ac7b88353b1a60f31e1104534e36cb00f46bdcb20a0d24f453e2c8d3cc48dc3c6086edbe16149aae14eb3a4d24ee2b217a4759bc0c0ea88",
+      "address": "erd1xdfc44mk4ut5cv6l3mq0py6h88cty9ykacskm8xv3tvrp893kmxqppcefg",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet7 with 2 BLS keys",
+      "pubkey": "a8e662e63ad0e87f2dc66cbed41d398b73a2da2aaced6cc466ed378b62daee28b3db8e8327a06278a094b05840965c17448ffc8a1c96e532a7960d1a15d2cabd16edadc476bfb4af3a825aff801f615d127b70b4745b88e01627a99ba52d5317",
+      "address": "erd1xdfc44mk4ut5cv6l3mq0py6h88cty9ykacskm8xv3tvrp893kmxqppcefg",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet8 with 2 BLS keys",
+      "pubkey": "f5e5eb9dd18aeb5d4829ab08795a9e4c8632a4fd248feed68382add1f2474d3cec042d51b897871bfee1f1c1fbeabf13d1c39d4f9b412948d27737f2b82e85474b7049a700ee8735373564791f0d20692dd1f8b494de7bab0a8415f01532ed90",
+      "address": "erd1997jfwzrum4rrk59ar5supcyge9rpa73xgv2p45h3unt880v399svt8c9g",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet8 with 2 BLS keys",
+      "pubkey": "e66d7ac5e51a382164aeaae9924dda3272296a145d3c6178b962e3b7eb83e75515e665c327e86f3ef597ca840f8c5c0ace19ac9a8fbcdc573f9237d112fb1c467d646737863ccd1fe61f4c4341f9805f8e1fe98348b50c3c3f93f62de3975980",
+      "address": "erd1997jfwzrum4rrk59ar5supcyge9rpa73xgv2p45h3unt880v399svt8c9g",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet9",
+      "pubkey": "2a1c49643e564cdf28bba96dfd6cd8ad38a5958b2b3c9a8293ffb54e9df0a0188a67de2fb947b8ae3dd06b7411aaae0e8bedef795ad3b35ac9f1402dcd0631d9d530b01b3880362fbd3ed9a8488ecabfb1b46cac225c5d48c39be3e28503f90f",
+      "address": "erd1e9cg9ys8fh77n9eaxpg47sxaes4fe9g2nvy6a65qpxykcx8grg9sv45lss",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet10",
+      "pubkey": "5c9784523f360a802d4687c9c76bcef41a738d034aa8503a055c33898504b09670c1f637ca632e5290b3acf79a2191072f68c4192a9cbeb34f50c4a941e34247a64f642a6a074bec683bdfb83587cfdc0390ebd74505cb836cf04f3268e32f99",
+      "address": "erd1xdrltsygywhmtxzsmrgjlsxsxrf4y2ayv0z50y666dgsp66trxwqzajk96",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet11",
+      "pubkey": "db7f7726c3e68abb28d070f529f2c222755d863aa9d7c0200fde10c93ccb8edcee8d45c9eb925bd5a0fa33c54d19270b7058f6e72256dad84214375f189310a73153cd84feef4b493ab61437b0cbcc2c592e6c093653a533631c8e0ab036c207",
+      "address": "erd1lytewufjflpwl6gtf0faazjr59nd2fhfwlk7ew72hkpgdkmunl8qfrpywg",
+      "initialRating": 5000001
+    },
+    {
+      "info": "multikey - group3 - wallet12",
+      "pubkey": "a27b6f47c53263e5c8d69779a169d50605cdd7ddb4b5384f2d46e08ace6f787a60f6cf26256b62fafba9c91a87ff070bc99254fcb5a73239fc14f2108de62189005b51b21e2922b37c6cc657017832e3a59dfcc7a54ac5dcb997136da4e2748b",
+      "address": "erd1s8tqztm4u4gw23489lps97qxe8vck8eln3a424y9c6yujsc96nas0l968d",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 1 - wallet13",
+      "pubkey": "d3e0427c22ff9cc80ef4156f976644cfa25c54e5a69ed199132053f8cbbfddd4eb15a2f732a3c9b392169c8b1d060e0b5ab0d88b4dd7b4010fa051a17ef81bdbace5e68025965b00bf48e14a9ec8d8e2a8bcc9e62f97ddac3268f6b805f7b80e",
+      "address": "erd1p7p0f3n8dxtj08hsp9hccqg932pd4f94rq3adg6g55etx8g4z8tsmg5e0g",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 2 - wallet14",
+      "pubkey": "b0b6349b3f693e08c433970d10efb2fe943eac4057a945146bee5fd163687f4e1800d541aa0f11bf9e4cb6552f512e126068e68eb471d18fcc477ddfe0b9b3334f34e30d8b7b2c08f914f4ae54454f75fb28922ba9fd28785bcadc627031fa8a",
+      "address": "erd1uyeel03ea837dphrx2ak77hdvlhjdcqdwgyg6k99gqn602ymsn7qptmedj",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 3 - wallet15",
+      "pubkey": "67c301358a41bef74df2ae6aa9914e3a5e7a4b528bbd19596cca4b2fd97a62ab2c0a88b02adf1c5973a82c7544cdc40539ae62a9ac05351cfc59c300bbf4492f4266c550987355c39cff8e84ff74e012c7fd372c240eeb916ef87eead82ffd98",
+      "address": "erd1ftyzkdhl7rl782mrzrdc2jck3egydp0ydzhcjm9gc8s2jym5egrqadl4h6",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 4 - wallet16 with 3 BLS keys",
+      "pubkey": "ab0a22ba2be6560af8520208393381760f9d4f69fca4f152b0a3fe7b124dd7f932fd8c1fbb372792c235baafac36030ceaf6ebf215de4e8d8d239f347f2fed10a75a07cbf9dc56efbbfca2e319152a363df122c300cdeb2faa02a61ebefd8a0e",
+      "address": "erd1rsl2sj5g87ltfq0hvrmgm35mlg4lzfs29p4gzxh0lh4vj2e8ykuqh69lha",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 5 - wallet16 with 3 BLS keys",
+      "pubkey": "caa87d67e195b52355d2c8f7f74c829395b134bd4a911f158e04b2d7e66a5ba195265743f10cf190105512fb3df9d708a8056c07a6165874d8749742502c0eada7d15b6c55f22c2cce2cf5001288f6b2d89319e6ff888344c01adcd362be8998",
+      "address": "erd1rsl2sj5g87ltfq0hvrmgm35mlg4lzfs29p4gzxh0lh4vj2e8ykuqh69lha",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 6 - wallet16 with 3 BLS keys",
+      "pubkey": "598be7548d6bb605bd19d83037bf58a7797a4e48b33011a60a5633cf6fe8d59906130777c46f50a50d3d0f958effb5147befd5d67cbec7c5daddeaade4dca5d8a54fe0394fde7b6455e4fc4db91f33f907d450b45fc2d4a9990f96d893093d91",
+      "address": "erd1rsl2sj5g87ltfq0hvrmgm35mlg4lzfs29p4gzxh0lh4vj2e8ykuqh69lha",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 7 - wallet17 with 2 BLS keys",
+      "pubkey": "69b277b127d025638dbb54d36baa8321540f6210fc5edaac77f94798c039a383aead3ae7c93cdfb8b4caab93a952d101ee2322c129b6ce2726359a65aa326bd35e54c974118503944fcaf80be80b5c3fc9cf86d574d0096140f16fbc55fc4984",
+      "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 8 - wallet17 with 2 BLS keys",
+      "pubkey": "a006ad94b28c414c6ec0a5effb84594f39ede4f82b60aa077e2065b89407c78dd6479ebceed7bd42ed2779c34b718f11651427e550948cb8be2e6cea03a128ac3c52e599ada6f34912b119f94de472af0397a68769f1b3f647e87090918e030b",
+      "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 9 - wallet18",
+      "pubkey": "91874fdfa8dfb85faf4f404b21c95fbb5d154db5a6abe46bd7860de9e5ddb78b61b5c6ddcf86e5ec8a237e130ed0fc0e418fb97d6fce5f6642ba33f99eff694ec7fb2921b423899a9a5888914bd625636a9b1ea186566561cd35b79aaca20e88",
+      "address": "erd148lq42zdzz34y0yr8avldsy7gw0rmuvj4lmstzug77v08z3q0ncszfk8w9",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 10 - wallet19",
+      "pubkey": "cc3e0c1021f8c4c092499547b064cffef19d07f0bf250e5265cea1e49b282a7f6efb4b415ad37db2ef6efa253475f511e74efc2f76c087c9798f72187986bb752f61d0ac220045f8e2d945343f3bbb8ef34a6025fb855dd7d953a81477ad2309",
+      "address": "erd1k2v4h3805gnxf78c22g7lfe4pgq2lmr4ezmkk2rqkej6yjd7g5ssu88fme",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 11 - wallet20",
+      "pubkey": "c2885340a6ba4341d68f80ce419deadf374bc52e2749c278b5bce5f795e9a90a04ef4f07a0b47777feb1982749b57a174b4927338df9da99a417a2df3152a9ebaf3465bfc092058324edf6892313f24be4612eb5663bb59d67a831dda135aa8b",
+      "address": "erd1nzjyj2ykpway04pczl42fgrlza2f0eaf97fxgnuuw39vyee36xlqccc3qz",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 12 - wallet21",
+      "pubkey": "cf8a2f97b7822acb16016a6debaaedea39959c9ac60b80e50f24734a0e0f6128ed1d216f5aed71866ca34bb30b6e8300e7995237744e766f6016ca28d4ebb2274326cb7af1a3c12d795cc127a4bf9aa9497d89ef0450c40f675afd1afa761012",
+      "address": "erd1yp0nvml5c45us3qzreqxkjxaakxn744t3gdva9s8xndcakzawutstepmm5",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 13 - wallet22",
+      "pubkey": "95a81b70474d59c1292bc5742db1a7b9bf03cb516ede6fb5cb3489ee812de8cccfc648f3ff3cda26106396a38c1c1f183b722392397a752d949c5123888b7a8ec012fe518f6efc25015a620b1559e4609286b52921e06b79fd563a9b3b4c4e16",
+      "address": "erd1qyg80tr4rd65ur3hedm9h4yv3fcwmm6vnyrypnm972nd80889hxqdfgwrc",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 14 - wallet23",
+      "pubkey": "5909def579148f456e8490659b859f80f8ccd62b5adda411e1acdc615c2ec795a88632cf2ec210a56ba91973fd3f07160f559f82f7afaafee008679fefb1b0cd2f26f4324197e6239c000accd1c427138568a8a9e276690c154d3df71a1f970c",
+      "address": "erd14x6d48q59zjh5p909fyw7e46czftgdawyf734cnmgk5e63ghrvvsqp254t",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 15 - wallet24",
+      "pubkey": "58d6cfe7e8c3ec675da17e492c4ba97759fa15fc0f41bbe29d1d49d5f5ca7db142450ada15e1e4bf4657614e26cceb04ed5c0ca17207b0e24c4baf5f91afc092d43a02aaeae76218420817c85292f8de7d3a2b4f3c8615c2bb6a6d1c74267788",
+      "address": "erd1wyxylus33e476h5kta7e0caeqvgvcgrxh0az33e7szya6g7mh2ws0n27sa",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 16 - wallet25",
+      "pubkey": "eb79770be0ae70e1d6932832eab94117b0c1a2442b3fdb380b1ad5a809b6221a4905e02a628886c925d152c4e5006413fe69d1f11cf543f4802d4ce4e5eac2b18b78a79215c737e2e098b40802044bc6e946b712299286c34f6d33d8b681790d",
+      "address": "erd1v3ylw7t6vzjzs06xjf6ccmf576ud38g2ws45tjkjg48s38jefpzqlwms9w",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 17 - wallet26",
+      "pubkey": "bc03265a52610464f2f0431a69647be3106924f5bf67cf87cd889bf86d81739b3f0f37bad11ab93c5209dc4496f4130d69a9649596b97884b7e91e0b4d7c59169dd0729ac3e3bcd308efac56bc29d3cc249d8759580ab117943aa40df3baac05",
+      "address": "erd1twel4azu6uptw878y063p93mjr84y5m4kpsww2aeqj4pg5jeplgst04rhg",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 18 - wallet27",
+      "pubkey": "aa4be8f36c2880ee4d2ca79dbd7a53537e3965f255dfb5c75324fe29fcb6ce56148fbaea334268e413f0df95f580c40fb3484165b2852236e3a1aa68151ac3327d981cfae52d99f9a564bd3139cdd768661854dae78880d9320191cdb2989815",
+      "address": "erd1q2se75ucl9as9j7e48v00jrnj6hvtk5vqxa4a3ag5729vctsdkasm20cyc",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 19 - wallet28",
+      "pubkey": "3e86fea8365791b3becfc9aa2bc239f6be58725e61e46e7935c56479ad285e0781da1f277980d2e1d0ecff3982f2d90f321aa03f3d934adf260628d0ed0dc81a98dfaf1e6278e042d6c78dc65f2fa79d3b457754a321b8a0d7bf9998feeea817",
+      "address": "erd18cc6cm35xhv7kzwsm79l4ma6jpz3ee5l0yjxuc66kh6rcgtawtuq6lzp9f",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 20 - wallet29",
+      "pubkey": "aa92cf6e0ac62df09e7adca139c41a162ad668e7a797770b6d195cd9b175d0fca9eac3f4bf859967139f2ba109741a144e3dc5e6ccaeb6cd21f1d202b10f08832274cd9cdf6b10dbc2c60acdd1c70ae9beae2139e2b69eccbcde32a7f3991393",
+      "address": "erd1psux99h4jljyt3nkw8pruv3spw5r0unqe4wk8837mm9my88gl28qj6mml5",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 21 - wallet30",
+      "pubkey": "f2b7819d1c2e2e1d007edcf896034085645f3c81e7c7fe21aa7ad4f35f8b863ee1db13448d15a3d0d15018f741a991010a9374710b628e41ef078be8a10249f2a3000598432c28186af1c04a219ac914434dca9c27e61485d701505112093f8a",
+      "address": "erd1vgm89ngmv2ghzsyq8xjtt45crekkxnhsq30yxzlq86uc3ra3r57qa3mw2p",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 22 - wallet31",
+      "pubkey": "292742eee9d12dade21b4cd8bcd44c210c26d927ef6dbd9cad59008643a971a86ea6dfce247515d4266789b3fe8e35167278e781e52b4cd7b9781554ba67ecc08680eb19628e7741c94d8456090a08aceab1c8d2ed39bf59e8e282381aa32a0a",
+      "address": "erd1k767vmmn8vg8xvuny32ppwr4dxrlgmpykn0u7nm92evlag3wkukqdgsf5u",
+      "initialRating": 5000001
+    },
+    { "info": "single key 23 - wallet32",
+      "pubkey": "11f784d2970d65769ce267710b3d08b28b78c3f79283758918c8ef15717ccbe90c23348cafe0e98a5d101b8dafbe7d081c6821dee8bf40ba150664ccc2dbbdd6358c92404e677d82910ce61f1d7584fbbbc9ebf71b7f35a118556e2a5c220501",
+      "address": "erd1hwe8lskmzsdpuy3f6hldamvn0zrhzldec8m4tt8hupq58d7gyrequy8wsp",
+      "initialRating": 5000001
+    },
+    {
+      "info": "single key 24",
+      "pubkey": "0382c11222db8a15e42e3ff64893df46c7720b439fb2a546462815ac0a8fa3bed99fceae5da9b68524e36f61cc074d09ceafec274c54f182c56a77583f9421f19c777265c43da1d5747304b36f0367cf3e8e5f63f41dad1a4362d9e1997a9e16",
+      "address": "erd125eyrjk99zadr04gm9z2p4nckmnegexs5nyk7ek85rut2665t75sql3w88",
+      "initialRating": 5000001
     }
   ]
 }
