@@ -90,6 +90,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 1)
 	})
 
@@ -124,6 +126,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 2)
 	})
@@ -160,6 +164,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 3)
 	})
 
@@ -194,6 +200,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 4)
 	})
