@@ -5123,7 +5123,7 @@ func TestDelegationSystemSC_ExecuteAddNodesStakeNodesWithNodesLimit(t *testing.T
 	output = d.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, output)
 	require.True(t, strings.Contains(eei.returnMessage, numberOfNodesTooHigh))
-	require.True(t, strings.Contains(eei.returnMessage, "num registered bls keys: 4"))
+	require.True(t, strings.Contains(eei.returnMessage, "num registered bls keys: 3"))
 	require.True(t, strings.Contains(eei.returnMessage, "node limit: 3"))
 
 	dStatus, _ = d.getDelegationStatus()
