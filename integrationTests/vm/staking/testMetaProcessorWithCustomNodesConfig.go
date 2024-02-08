@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -212,6 +213,11 @@ func (tmp *TestMetaProcessor) ProcessUnJail(t *testing.T, blsKeys [][]byte) {
 	}
 
 	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) ClearStoredMbs() {
+	txCoordMock, _ := tmp.TxCoordinator.(*testscommon.TransactionCoordinatorMock)
+	txCoordMock.ClearStoredMbs()
 }
 
 func (tmp *TestMetaProcessor) doUnJail(

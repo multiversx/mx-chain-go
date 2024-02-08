@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -1394,7 +1393,7 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 		},
 	})
 	currNodesConfig = node.NodesConfig
-	requireSliceContainsNumOfElements(t, currNodesConfig.new, newOwner0BlsKeys, 1)
+	requireSameSliceDifferentOrder(t, currNodesConfig.new, newOwner0BlsKeys)
 
 	// UnStake one of the initial nodes
 	node.ProcessUnStake(t, map[string][][]byte{
@@ -1402,8 +1401,8 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	})
 
 	// Fast-forward few epochs such that the whole staking v4 is activated.
-	// We should have 12 initial nodes + 1 extra waiting node that was forced to remain eligible(because of legacy code
-	// where all leaving nodes were considered to be eligible)
+	// We should have same 12 initial nodes + 1 extra node (because of legacy code where all leaving nodes were
+	// considered to be eligible and the unStaked node was forced to remain eligible)
 	node.Process(t, 49)
 	currNodesConfig = node.NodesConfig
 	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
@@ -1422,7 +1421,7 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	requireSameSliceDifferentOrder(t, currNodesConfig.auction, newOwner1BlsKeys)
 
 	// After 2 epochs, unStake all previously staked keys. Some of them have been already sent to eligible/waiting, but most
-	// of them are still in auction. UnStaked node's from auction status should be: leaving now, but their previous list was auction.
+	// of them are still in auction. UnStaked nodes' status from auction should be: leaving now, but their previous list was auction.
 	// We should not force his auction nodes as being eligible in the next epoch. We should only force his existing active
 	// nodes to remain in the system.
 	node.Process(t, 10)
@@ -1433,8 +1432,7 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	newOwner1ActiveNodes := append(newOwner1EligibleNodes, newOwner1WaitingNodes...)
 	require.Equal(t, len(newOwner1AuctionNodes)+len(newOwner1ActiveNodes), len(newOwner1BlsKeys)) // sanity check
 
-	txCoordMock, _ := node.TxCoordinator.(*testscommon.TransactionCoordinatorMock)
-	txCoordMock.ClearStoredMbs()
+	node.ClearStoredMbs()
 	node.ProcessUnStake(t, map[string][][]byte{
 		newOwner1: newOwner1BlsKeys,
 	})
