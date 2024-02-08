@@ -36,6 +36,6 @@ func TestSovereignNodeFactory_CreateNewNodeFail(t *testing.T) {
 	}
 
 	sn, err := sovereignNodeFactory.CreateNewNode(options...)
-	require.Equal(t, "error applying option: nil status core components", err.Error())
+	require.Contains(t, err.Error(), node.ErrNilStatusCoreComponents.Error())
 	require.Nil(t, sn)
 }

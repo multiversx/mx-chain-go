@@ -22,10 +22,10 @@ fi
 echo -e "${GREEN}Generating the configuration files...${NC}"
 ./config.sh
 
-echo -e "${GREEN}Starting the sovereign chain (in a screen)...${NC}"
-screen -L -Logfile sovereignStartLog.txt -d -m -S sovereignStartScreen ./sovereignStart.sh debug
+echo -e "${GREEN}Starting the sovereign chain...${NC}"
+./sovereignStart.sh debug
 
 echo -e "${GREEN}Sleeping few minutes so the sovereign chain will begin...${NC}"
-sleep 120
+sleep 60
 
 echo -e "${GREEN}Finished the sovereign chain deployment. Don't forget to stop it with ./stop.sh at the end.${NC}"
