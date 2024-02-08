@@ -458,7 +458,7 @@ func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 }
 
 // Close will stop and close the simulator
-func (s *simulator) Close() error {
+func (s *simulator) Close() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -470,11 +470,9 @@ func (s *simulator) Close() error {
 		}
 	}
 
-	if len(errorStrings) == 0 {
-		return nil
+	if len(errorStrings) != 0 {
+		log.Error("error closing chain simulator", "error", components.AggregateErrors(errorStrings, components.ErrClose))
 	}
-
-	return components.AggregateErrors(errorStrings, components.ErrClose)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
