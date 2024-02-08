@@ -64,7 +64,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		NumNodesWaitingListMeta:  0,
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8
+			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
 			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
 		},
 	})
@@ -142,7 +142,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	_, err = cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 
-	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
+	// Step 6 --- generate 8 epochs to get rewards
 	err = cm.GenerateBlocksUntilEpochIsReached(8)
 	require.Nil(t, err)
 
