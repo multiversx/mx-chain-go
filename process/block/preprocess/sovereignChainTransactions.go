@@ -161,16 +161,16 @@ func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.Mini
 	return !sct.isMiniBlockCorrect(miniBlock.Type)
 }
 
-func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) bool {
+func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) (error, bool) {
 	if isCriticalError(err) {
 		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err)
-		return false
+		return err, false
 	}
 
 	senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
 	if check.IfNil(senderAccount) {
 		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
-		return false
+		return errGetAccounts, false
 	}
 
 	accntInfo, found := sct.accntsTracker.getAccountInfo(tx.GetSndAddr())
@@ -185,7 +185,14 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrHigherNonceInTransaction,
 			"account nonce", accntInfo.nonce,
 			"tx nonce", tx.GetNonce())
-		return false
+		return process.ErrHigherNonceInTransaction, false
+	}
+
+	if accntInfo.nonce > tx.GetNonce() {
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrLowerNonceInTransaction,
+			"account nonce", accntInfo.nonce,
+			"tx nonce", tx.GetNonce())
+		return process.ErrLowerNonceInTransaction, false
 	}
 
 	txFee := sct.economicsFee.ComputeTxFee(tx)
@@ -193,7 +200,7 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFee,
 			"account balance", accntInfo.balance.String(),
 			"fee needed", txFee.String())
-		return false
+		return process.ErrInsufficientFee, false
 	}
 
 	cost := big.NewInt(0).Add(txFee, tx.GetValue())
@@ -201,16 +208,20 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 		log.Trace("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrInsufficientFunds,
 			"account balance", accntInfo.balance.String(),
 			"cost", cost.String())
-		return false
+
+		cost = txFee // revert cost for accntsTracker, to have it for next transactions if any
+		// do not return error here because you want this tx to be added in the miniblock and executed as INVALID
 	}
 
 	accntInfo.nonce++
 	accntInfo.balance.Sub(accntInfo.balance, cost)
 	sct.accntsTracker.setAccountInfo(tx.GetSndAddr(), accntInfo)
 
-	return true
+	return nil, true
 }
 
 func isCriticalError(err error) bool {
-	return err != nil && !errors.Is(err, process.ErrHigherNonceInTransaction)
+	return err != nil &&
+		!errors.Is(err, process.ErrHigherNonceInTransaction) && // this error should be validated by accntsTracker, is skipped here
+		!errors.Is(err, process.ErrInsufficientFunds) // is skipped because you want to put it in the miniblock to be executed as INVALID
 }
