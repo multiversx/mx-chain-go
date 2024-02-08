@@ -281,7 +281,7 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 
 // GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
 // if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
-func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (string, error) {
+func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
 	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
 	nodeHandler := s.GetNodeHandler(targetShardID)
 	var buff []byte
@@ -293,7 +293,7 @@ func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *bi
 
 	address, err := addressConverter.Encode(buff)
 	if err != nil {
-		return "", err
+		return dtos.WalletAddress{}, err
 	}
 
 	err = s.SetStateMultiple([]*dtos.AddressState{
@@ -303,7 +303,10 @@ func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *bi
 		},
 	})
 
-	return address, err
+	return dtos.WalletAddress{
+		Bech32: address,
+		Bytes:  buff,
+	}, err
 }
 
 func generateAddressInShard(shardCoordinator mxChainSharding.Coordinator, len int) []byte {
