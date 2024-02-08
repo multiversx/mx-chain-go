@@ -93,9 +93,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
-	defer func() {
-		_ = cs.Close()
-	}()
+	defer cs.Close()
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	err = cs.GenerateBlocks(30)
