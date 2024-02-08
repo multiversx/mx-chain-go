@@ -217,7 +217,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 
 	validatorOwnerBech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	validatorOwner, err := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
+	validatorOwner, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
 
 	delegator1Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
