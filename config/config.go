@@ -108,6 +108,11 @@ type SoftwareVersionConfig struct {
 	PollingIntervalInMinutes int
 }
 
+// GatewayMetricsConfig will hold the configuration for gateway endpoint configuration
+type GatewayMetricsConfig struct {
+	URL string
+}
+
 // HeartbeatV2Config will hold the configuration for heartbeat v2
 type HeartbeatV2Config struct {
 	PeerAuthenticationTimeBetweenSendsInSec          int64
@@ -188,15 +193,16 @@ type Config struct {
 	PublicKeyPIDSignature CacheConfig
 	PeerHonesty           CacheConfig
 
-	Antiflood           AntifloodConfig
-	WebServerAntiflood  WebServerAntifloodConfig
-	ResourceStats       ResourceStatsConfig
-	HeartbeatV2         HeartbeatV2Config
-	ValidatorStatistics ValidatorStatisticsConfig
-	GeneralSettings     GeneralSettingsConfig
-	Consensus           ConsensusConfig
-	StoragePruning      StoragePruningConfig
-	LogsAndEvents       LogsAndEventsConfig
+	Antiflood            AntifloodConfig
+	WebServerAntiflood   WebServerAntifloodConfig
+	ResourceStats        ResourceStatsConfig
+	HeartbeatV2          HeartbeatV2Config
+	ValidatorStatistics  ValidatorStatisticsConfig
+	GeneralSettings      GeneralSettingsConfig
+	Consensus            ConsensusConfig
+	StoragePruning       StoragePruningConfig
+	LogsAndEvents        LogsAndEventsConfig
+	HardwareRequirements HardwareRequirementsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -209,6 +215,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	GatewayMetricsConfig  GatewayMetricsConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
 	Logs                  LogsConfig
@@ -281,6 +288,11 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
+}
+
+// HardwareRequirementsConfig will hold the hardware requirements config
+type HardwareRequirementsConfig struct {
+	CPUFlags []string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade

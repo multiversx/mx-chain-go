@@ -15,6 +15,7 @@ type KeysHandlerStub struct {
 	GetAssociatedPidCalled                       func(pkBytes []byte) core.PeerID
 	IsOriginalPublicKeyOfTheNodeCalled           func(pkBytes []byte) bool
 	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte, pid core.PeerID)
+	GetRedundancyStepInReasonCalled              func() string
 }
 
 // GetHandledPrivateKey -
@@ -74,6 +75,15 @@ func (stub *KeysHandlerStub) ResetRoundsWithoutReceivedMessages(pkBytes []byte, 
 	if stub.ResetRoundsWithoutReceivedMessagesCalled != nil {
 		stub.ResetRoundsWithoutReceivedMessagesCalled(pkBytes, pid)
 	}
+}
+
+// GetRedundancyStepInReason -
+func (stub *KeysHandlerStub) GetRedundancyStepInReason() string {
+	if stub.GetRedundancyStepInReasonCalled != nil {
+		return stub.GetRedundancyStepInReasonCalled()
+	}
+
+	return ""
 }
 
 // IsInterfaceNil -

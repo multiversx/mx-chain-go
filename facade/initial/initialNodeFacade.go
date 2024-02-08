@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -20,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 )
 
 var errNodeStarting = errors.New("node is starting")
@@ -152,7 +152,7 @@ func (inf *initialNodeFacade) ValidateTransactionForSimulation(_ *transaction.Tr
 }
 
 // ValidatorStatisticsApi returns nil and error
-func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
+func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return nil, errNodeStarting
 }
 
