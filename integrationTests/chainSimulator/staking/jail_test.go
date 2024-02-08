@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
-	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -31,6 +31,25 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	// testcase 1
+	t.Run("staking ph 4 is not active", func(t *testing.T) {
+		testChainSimulatorJailAndUnJail(t, 4, "new")
+	})
+
+	t.Run("staking ph 4 step 1 active", func(t *testing.T) {
+		testChainSimulatorJailAndUnJail(t, 5, "auction")
+	})
+
+	t.Run("staking ph 4 step 2 active", func(t *testing.T) {
+		testChainSimulatorJailAndUnJail(t, 6, "auction")
+	})
+
+	t.Run("staking ph 4 step 3 active", func(t *testing.T) {
+		testChainSimulatorJailAndUnJail(t, 7, "auction")
+	})
+}
+
+func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatusAfterUnJail string) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -72,27 +91,8 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, cs)
 
-	// testcase 1
-	t.Run("staking ph 4 is not active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, cs, 4, "new")
-	})
-
-	t.Run("staking ph 4 step 1 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, cs, 5, "auction")
-	})
-
-	t.Run("staking ph 4 step 2 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, cs, 6, "auction")
-	})
-
-	t.Run("staking ph 4 step 3 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, cs, 7, "auction")
-	})
-}
-
-func testChainSimulatorJailAndUnJail(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32, nodeStatusAfterUnJail string) {
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err := cs.GenerateBlocks(30)
+	err = cs.GenerateBlocks(30)
 	require.Nil(t, err)
 
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
@@ -130,6 +130,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, cs chainSimulatorIntegrationT
 	unJailTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnJail, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unJailTx)
+	require.Equal(t, transaction.TxStatusSuccess, unJailTx.Status)
 
 	// wait node to be jailed
 	err = cs.GenerateBlocks(1)
