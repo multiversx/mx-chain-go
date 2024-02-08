@@ -105,11 +105,11 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.Nil(t, err)
 
 	mintValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(3000))
-	_, walletKey, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(walletKey, 0, vm.ValidatorSCAddress, minimumStakeValue, txDataField, gasLimitForStakeOperation)
+	txStake := generateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, minimumStakeValue, txDataField, gasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -125,7 +125,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	// do an unjail transaction
 	unJailValue, _ := big.NewInt(0).SetString("2500000000000000000", 10)
 	txUnJailDataField := fmt.Sprintf("unJail@%s", blsKeys[0])
-	txUnJail := generateTransaction(walletKey, 1, vm.ValidatorSCAddress, unJailValue, txUnJailDataField, gasLimitForStakeOperation)
+	txUnJail := generateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, unJailValue, txUnJailDataField, gasLimitForStakeOperation)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
