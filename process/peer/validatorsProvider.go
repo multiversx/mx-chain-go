@@ -317,6 +317,12 @@ func shouldCombine(triePeerType common.PeerType, currentPeerType common.PeerType
 	return isLeaving && isEligibleOrWaiting
 }
 
+// ForceUpdate will trigger the update process of all caches
+func (vp *validatorsProvider) ForceUpdate() error {
+	vp.updateCache()
+	return vp.updateAuctionListCache()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (vp *validatorsProvider) IsInterfaceNil() bool {
 	return vp == nil
