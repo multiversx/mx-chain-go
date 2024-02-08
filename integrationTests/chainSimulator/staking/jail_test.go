@@ -10,11 +10,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	stakingV4JailUnJailStep1EnableEpoch = 5
+	stakingV4JailUnJailStep2EnableEpoch = 6
+	stakingV4JailUnJailStep3EnableEpoch = 7
+
+	epochWhenNodeIsJailed = 4
 )
 
 // Test description
@@ -56,22 +65,20 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  1,
-		NumNodesWaitingListShard: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            numOfShards,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       3,
+		MetaChainMinNodes:      3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 5
-			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 6
-			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 7
+			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4JailUnJailStep1EnableEpoch
+			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4JailUnJailStep2EnableEpoch
+			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = stakingV4JailUnJailStep3EnableEpoch
 
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 7
 
@@ -98,10 +105,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.Nil(t, err)
 
 	mintValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(3000))
-	walletKeyBech, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
-	require.Nil(t, err)
-
-	walletKey, err := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(walletKeyBech)
+	_, walletKey, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
@@ -111,7 +115,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.NotNil(t, stakeTx)
 
 	// wait node to be jailed
-	err = cs.GenerateBlocksUntilEpochIsReached(4)
+	err = cs.GenerateBlocksUntilEpochIsReached(epochWhenNodeIsJailed)
 	require.Nil(t, err)
 
 	decodedBLSKey, _ := hex.DecodeString(blsKeys[0])
@@ -137,9 +141,23 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey)
 	require.Equal(t, "staked", status)
 
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	checkValidatorStatus(t, cs, blsKeys[0], nodeStatusAfterUnJail)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
-	validatorsStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
+
+	checkValidatorStatus(t, cs, blsKeys[0], "waiting")
+
+	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 2)
 	require.Nil(t, err)
-	require.Equal(t, nodeStatusAfterUnJail, validatorsStatistics[blsKeys[0]].ValidatorStatus)
+
+	checkValidatorStatus(t, cs, blsKeys[0], "eligible")
+}
+
+func checkValidatorStatus(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, blsKey string, expectedStatus string) {
+	err := cs.GetNodeHandler(core.MetachainShardId).GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	validatorsStatistics, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
+	require.Nil(t, err)
+	require.Equal(t, expectedStatus, validatorsStatistics[blsKey].ValidatorStatus)
 }

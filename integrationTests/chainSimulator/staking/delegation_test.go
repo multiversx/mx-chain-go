@@ -215,17 +215,14 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	mintValue := big.NewInt(3010)
 	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
-	validatorOwnerBech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	validatorOwnerBech32, validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	validatorOwner, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
 
-	delegator1Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	delegator1Bech32, delegator1, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	delegator1, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(delegator1Bech32)
 
-	delegator2Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	delegator2Bech32, delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	delegator2, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(delegator2Bech32)
 
 	log.Info("working with the following addresses",
 		"newValidatorOwner", validatorOwnerBech32, "delegator1", delegator1Bech32, "delegator2", delegator2Bech32)
