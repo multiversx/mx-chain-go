@@ -102,6 +102,7 @@ type EnableEpochs struct {
 	MultiClaimOnDelegationEnableEpoch                        uint32
 	ChangeUsernameEnableEpoch                                uint32
 	AutoBalanceDataTriesEnableEpoch                          uint32
+	MigrateDataTrieEnableEpoch                               uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch             uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch             uint32
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch          uint32
