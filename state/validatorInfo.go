@@ -26,8 +26,8 @@ func (vi *ValidatorInfo) SetPreviousList(list string) {
 
 func (vi *ValidatorInfo) SetListAndIndex(list string, index uint32, updatePreviousValues bool) {
 	if updatePreviousValues {
-		vi.PreviousList = vi.List
 		vi.PreviousIndex = vi.Index
+		vi.PreviousList = vi.List
 	}
 
 	vi.List = list
