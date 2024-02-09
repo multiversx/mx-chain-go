@@ -53,6 +53,9 @@ type failingSteps struct {
 
 	addressPublicKeyConverterStepCounter int
 	addressPublicKeyConverterFailingStep int
+
+	economicsDataStepCounter int
+	economicsDataFailingStep int
 }
 
 func (fs *failingSteps) reset() {
@@ -67,6 +70,9 @@ func (fs *failingSteps) reset() {
 
 	fs.addressPublicKeyConverterStepCounter = 0
 	fs.addressPublicKeyConverterFailingStep = unreachableStep
+
+	fs.economicsDataStepCounter = 0
+	fs.economicsDataFailingStep = unreachableStep
 }
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
@@ -113,7 +119,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		BlockChainHookCreator: &factory.BlockChainHookHandlerFactoryMock{},
+		RunTypeComponents:              componentsMock.GetRunTypeComponents(),
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
@@ -160,6 +166,15 @@ func createFailingMockArgs(t *testing.T, failingSteps *failingSteps) *api.ApiRes
 		return pubKeyConv
 	}
 
+	economicsData := args.CoreComponents.EconomicsData()
+	coreCompStub.EconomicsDataCalled = func() process.EconomicsDataHandler {
+		failingSteps.economicsDataStepCounter++
+		if failingSteps.economicsDataStepCounter > failingSteps.economicsDataFailingStep {
+			return nil
+		}
+		return economicsData
+	}
+
 	args.CoreComponents = coreCompStub
 	return args
 }
@@ -188,6 +203,14 @@ func TestCreateApiResolver(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
 		require.True(t, check.IfNil(apiResolver))
 	})
+	t.Run("NewESDTTransferParser fails causing createScQueryElement error", func(t *testing.T) {
+		failingStepsInstance.reset()
+		failingStepsInstance.marshallerFailingStep = 5
+		apiResolver, err := api.CreateApiResolver(failingArgs)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
+		require.True(t, check.IfNil(apiResolver))
+	})
 	t.Run("DecodeAddresses fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
 		failingStepsInstance.addressPublicKeyConverterFailingStep = 3
@@ -198,7 +221,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createBuiltinFuncs fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 3
+		failingStepsInstance.marshallerFailingStep = 8
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -206,7 +229,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewESDTTransferParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 5
+		failingStepsInstance.marshallerFailingStep = 9
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		println(err.Error())
@@ -215,29 +238,21 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewTxTypeHandler fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.enableEpochsHandlerFailingStep = 4
+		failingStepsInstance.enableEpochsHandlerFailingStep = 6
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "enable epochs handler"))
 		require.True(t, check.IfNil(apiResolver))
 	})
-	t.Run("NewTransactionCostEstimator fails should error", func(t *testing.T) {
+	t.Run("NewFeeComputer fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.enableEpochsHandlerFailingStep = 5
+		failingStepsInstance.economicsDataFailingStep = 3
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "enable epochs handler"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "economics data"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("createLogsFacade fails should error", func(t *testing.T) {
-		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 9
-		apiResolver, err := api.CreateApiResolver(failingArgs)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
-		require.True(t, check.IfNil(apiResolver))
-	})
-	t.Run("NewOperationDataFieldParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
 		failingStepsInstance.marshallerFailingStep = 10
 		apiResolver, err := api.CreateApiResolver(failingArgs)
@@ -245,7 +260,7 @@ func TestCreateApiResolver(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.True(t, check.IfNil(apiResolver))
 	})
-	t.Run("NewAPITransactionProcessor fails should error", func(t *testing.T) {
+	t.Run("NewOperationDataFieldParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
 		failingStepsInstance.marshallerFailingStep = 11
 		apiResolver, err := api.CreateApiResolver(failingArgs)
@@ -253,9 +268,17 @@ func TestCreateApiResolver(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.True(t, check.IfNil(apiResolver))
 	})
+	t.Run("NewAPITransactionProcessor fails should error", func(t *testing.T) {
+		failingStepsInstance.reset()
+		failingStepsInstance.marshallerFailingStep = 12
+		apiResolver, err := api.CreateApiResolver(failingArgs)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
+		require.True(t, check.IfNil(apiResolver))
+	})
 	t.Run("createAPIBlockProcessor fails because createAPIBlockProcessorArgs fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.uint64ByteSliceConvFailingStep = 2
+		failingStepsInstance.uint64ByteSliceConvFailingStep = 3
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "uint64"))
@@ -263,7 +286,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createAPIInternalBlockProcessor fails because createAPIBlockProcessorArgs fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.uint64ByteSliceConvFailingStep = 4
+		failingStepsInstance.uint64ByteSliceConvFailingStep = 5
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "uint64"))
@@ -271,7 +294,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createAPIBlockProcessorArgs fails because createLogsFacade fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 12
+		failingStepsInstance.marshallerFailingStep = 13
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -321,6 +344,7 @@ func TestCreateApiResolver(t *testing.T) {
 }
 
 func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
+	runTypeComponents := componentsMock.GetRunTypeComponents()
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
@@ -445,12 +469,13 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 				MaxServiceFee: 100,
 			},
 		},
-		Bootstrapper:          testsMocks.NewTestBootstrapperMock(),
-		AllowVMQueriesChan:    make(chan struct{}, 1),
-		WorkingDir:            "",
-		Index:                 0,
-		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
-		BlockChainHookCreator: &factory.BlockChainHookHandlerFactoryMock{},
+		Bootstrapper:            testsMocks.NewTestBootstrapperMock(),
+		AllowVMQueriesChan:      make(chan struct{}, 1),
+		WorkingDir:              "",
+		Index:                   0,
+		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
+		VmContainerMetaFactory:  runTypeComponents.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory: runTypeComponents.VmContainerShardFactoryCreator(),
 	}
 }
 
@@ -502,7 +527,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "lru"))
 		require.Nil(t, scQueryService)
 	})
-	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
+	t.Run("metachain - createNewAccountsAdapterApi fails", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(0)
@@ -520,7 +545,7 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
 		require.Nil(t, scQueryService)
 	})
-	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {
+	t.Run("shard - createNewAccountsAdapterApi fails", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(0)
@@ -541,7 +566,9 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(0)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		sovereignRunTypeComponents := componentsMock.GetSovereignRunTypeComponents()
+		args.VmContainerMetaFactory = sovereignRunTypeComponents.VmContainerMetaFactoryCreator()
+		args.VmContainerShardFactory = sovereignRunTypeComponents.VmContainerShardFactoryCreator()
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
 		require.Nil(t, err)
@@ -563,7 +590,6 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(0)
-		args.ChainRunType = common.ChainRunTypeRegular
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
 		require.Nil(t, err)
@@ -584,7 +610,6 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(common.MetachainShardId)
-		args.ChainRunType = common.MetachainShardName
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
 		require.Nil(t, err)

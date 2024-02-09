@@ -145,30 +145,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
-	//vmFactory, err := pcf.createVMFactoryShard(
-	//	pcf.state.AccountsAdapter(),
-	//	missingTrieNodesNotifier,
-	//	builtInFuncFactory.BuiltInFunctionContainer(),
-	//	esdtTransferParser,
-	//	wasmVMChangeLocker,
-	//	pcf.config.SmartContractsStorage,
-	//	builtInFuncFactory.NFTStorageHandler(),
-	//	builtInFuncFactory.ESDTGlobalSettingsHandler(),
-	//)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//vmContainer, err := vmFactory.Create()
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//err = pcf.addSystemVMToContainerIfNeeded(vmContainer, builtInFuncFactory)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	counter, err := counters.NewUsageCounter(esdtTransferParser)
 	if err != nil {
 		return nil, err
@@ -549,22 +525,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	argsParser := smartContract.NewArgumentParser()
-
-	//vmFactory, err := pcf.createVMFactoryMeta(
-	//	pcf.state.AccountsAdapter(),
-	//	builtInFuncFactory.BuiltInFunctionContainer(),
-	//	pcf.config.SmartContractsStorage,
-	//	builtInFuncFactory.NFTStorageHandler(),
-	//	builtInFuncFactory.ESDTGlobalSettingsHandler(),
-	//)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//vmContainer, err := vmFactory.Create()
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 pcf.state.AccountsAdapter(),
