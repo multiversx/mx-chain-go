@@ -409,30 +409,14 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 
 // SendTxAndGenerateBlockTilTxIsExecuted will the provided transaction and generate block
 func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
-	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.SndAddr)
-	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(txToSend)
-	if err != nil {
-		return nil, err
-	}
-
-	node := s.GetNodeHandler(shardID)
-	txHash, err := core.CalculateHash(node.GetCoreComponents().InternalMarshalizer(), node.GetCoreComponents().Hasher(), txToSend)
-	if err != nil {
-		return nil, err
-	}
-
-	txHashHex := hex.EncodeToString(txHash)
-
-	log.Info("############## send transaction ##############", "txHash", txHash)
-
-	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{txToSend})
+	txHashHex, err := s.sendTx(txToSend)
 	if err != nil {
 		return nil, err
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
-	destinationShardID := node.GetShardCoordinator().ComputeId(txToSend.RcvAddr)
+	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
 	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
 		err = s.GenerateBlocks(1)
 		if err != nil {
@@ -441,7 +425,7 @@ func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 
 		tx, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHashHex, true)
 		if errGet == nil && tx.Status != transaction.TxStatusPending {
-			log.Info("############## transaction was executed ##############", "txHash", txHash)
+			log.Info("############## transaction was executed ##############", "txHash", txHashHex)
 			return tx, nil
 		}
 	}

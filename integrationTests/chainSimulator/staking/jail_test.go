@@ -158,6 +158,10 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 // UnJail the first node --> should go in queue
 // Activate staking v4 step 1 --> node should be moved from queue to auction list
 func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
