@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -72,7 +73,7 @@ type nodeFacade struct {
 // NewNodeFacade creates a new Facade with a NodeWrapper
 func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if check.IfNil(arg.Node) {
-		return nil, ErrNilNode
+		return nil, errors.ErrNilNode
 	}
 	if check.IfNil(arg.ApiResolver) {
 		return nil, ErrNilApiResolver

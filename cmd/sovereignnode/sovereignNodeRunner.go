@@ -63,6 +63,7 @@ import (
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -548,7 +549,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		n.AddClosableComponent(outGoingBridgeOpHandler)
 		return nil
 	}
-	currentNode, err := node.CreateNode(
+	nodeHandler, err := node.CreateNode(
 		configs.GeneralConfig,
 		managedStatusCoreComponents,
 		managedBootstrapComponents,
@@ -563,6 +564,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
+		node.NewSovereignNodeFactory(),
 		extraOptionNotifierReceiver,
 		extraOptionOutGoingBridgeSender,
 	)
@@ -574,7 +576,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	allowExternalVMQueriesChan := make(chan struct{})
 
 	log.Debug("updating the API service after creating the node facade")
-	ef, err := snr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
+	ef, err := snr.createApiFacade(nodeHandler, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
 	if err != nil {
 		return true, err
 	}
@@ -602,7 +604,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		healthService,
 		ef,
 		webServerHandler,
-		currentNode,
+		nodeHandler,
 		goRoutinesNumberStart,
 	)
 	if err != nil {
@@ -699,7 +701,7 @@ func getBaseAccountSyncerArgs(
 }
 
 func (snr *sovereignNodeRunner) createApiFacade(
-	currentNode *node.Node,
+	nodeHandler node.NodeHandler,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
 	gasScheduleNotifier common.GasScheduleNotifierAPI,
 	allowVMQueriesChan chan struct{},
@@ -709,19 +711,22 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs.Configs,
-		CoreComponents:       currentNode.GetCoreComponents(),
-		DataComponents:       currentNode.GetDataComponents(),
-		StateComponents:      currentNode.GetStateComponents(),
-		BootstrapComponents:  currentNode.GetBootstrapComponents(),
-		CryptoComponents:     currentNode.GetCryptoComponents(),
-		ProcessComponents:    currentNode.GetProcessComponents(),
-		StatusCoreComponents: currentNode.GetStatusCoreComponents(),
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         currentNode.GetConsensusComponents().Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     currentNode.GetStatusComponents(),
-		ChainRunType:         common.ChainRunTypeSovereign,
+		Configs:                        configs.Configs,
+		CoreComponents:                 nodeHandler.GetCoreComponents(),
+		DataComponents:                 nodeHandler.GetDataComponents(),
+		StateComponents:                nodeHandler.GetStateComponents(),
+		BootstrapComponents:            nodeHandler.GetBootstrapComponents(),
+		CryptoComponents:               nodeHandler.GetCryptoComponents(),
+		ProcessComponents:              nodeHandler.GetProcessComponents(),
+		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
+		GasScheduleNotifier:            gasScheduleNotifier,
+		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		AllowVMQueriesChan:             allowVMQueriesChan,
+		StatusComponents:               nodeHandler.GetStatusComponents(),
+		ChainRunType:                   common.ChainRunTypeSovereign,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory(),
+		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -734,7 +739,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	flagsConfig := configs.FlagsConfig
 
 	argNodeFacade := facade.ArgNodeFacade{
-		Node:                   currentNode,
+		Node:                   nodeHandler,
 		ApiResolver:            apiResolver,
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
@@ -743,9 +748,9 @@ func (snr *sovereignNodeRunner) createApiFacade(
 			PprofEnabled:     flagsConfig.EnablePprof,
 		},
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
-		AccountsState:   currentNode.GetStateComponents().AccountsAdapter(),
-		PeerState:       currentNode.GetStateComponents().PeerAccounts(),
-		Blockchain:      currentNode.GetDataComponents().Blockchain(),
+		AccountsState:   nodeHandler.GetStateComponents().AccountsAdapter(),
+		PeerState:       nodeHandler.GetStateComponents().PeerAccounts(),
+		Blockchain:      nodeHandler.GetDataComponents().Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -753,7 +758,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		return nil, fmt.Errorf("%w while creating NodeFacade", err)
 	}
 
-	ef.SetSyncer(currentNode.GetCoreComponents().SyncTimer())
+	ef.SetSyncer(nodeHandler.GetCoreComponents().SyncTimer())
 
 	err = upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
@@ -1015,7 +1020,7 @@ func waitForSignal(
 	healthService closing.Closer,
 	ef closing.Closer,
 	httpServer shared.UpgradeableHttpServerHandler,
-	currentNode *node.Node,
+	nodeHandler node.NodeHandler,
 	goRoutinesNumberStart int,
 ) error {
 	var sig endProcess.ArgEndProcess
@@ -1039,7 +1044,7 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, ef, httpServer, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, ef, httpServer, nodeHandler, chanCloseComponents)
 	}()
 
 	select {
@@ -1640,7 +1645,7 @@ func closeAllComponents(
 	healthService io.Closer,
 	facade mainFactory.Closer,
 	httpServer shared.UpgradeableHttpServerHandler,
-	node *node.Node,
+	node node.NodeHandler,
 	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing health service...")
