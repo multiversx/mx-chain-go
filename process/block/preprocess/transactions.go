@@ -70,7 +70,7 @@ type transactions struct {
 
 	scheduledTXContinueFunc               func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
 	shouldSkipMiniBlockFunc               func(miniBlock *block.MiniBlock) bool
-	isTransactionEligibleForExecutionFunc func(tx *transaction.Transaction, err error) bool
+	isTransactionEligibleForExecutionFunc func(tx *transaction.Transaction, err error) (error, bool)
 }
 
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor

@@ -211,6 +211,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetAllIssuedESDTs(tokenType, ctx)
+}
+
+func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
 		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
@@ -444,6 +448,14 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetTokensIDsWithFilter(f, options, ctx)
+}
+
+func (n *Node) baseGetTokensIDsWithFilter(
+	f filter,
+	options api.AccountQueryOptions,
+	ctx context.Context,
+) ([]string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err

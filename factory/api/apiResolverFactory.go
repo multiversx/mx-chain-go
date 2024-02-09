@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -26,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -55,20 +57,24 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs               *config.Configs
-	CoreComponents        factory.CoreComponentsHolder
-	DataComponents        factory.DataComponentsHolder
-	StateComponents       factory.StateComponentsHolder
-	BootstrapComponents   factory.BootstrapComponentsHolder
-	CryptoComponents      factory.CryptoComponentsHolder
-	ProcessComponents     factory.ProcessComponentsHolder
-	StatusCoreComponents  factory.StatusCoreComponentsHolder
-	StatusComponents      factory.StatusComponentsHolder
-	GasScheduleNotifier   common.GasScheduleNotifierAPI
-	Bootstrapper          process.Bootstrapper
+	Configs                        *config.Configs
+	CoreComponents                 factory.CoreComponentsHolder
+	DataComponents                 factory.DataComponentsHolder
+	StateComponents                factory.StateComponentsHolder
+	BootstrapComponents            factory.BootstrapComponentsHolder
+	CryptoComponents               factory.CryptoComponentsHolder
+	ProcessComponents              factory.ProcessComponentsHolder
+	StatusCoreComponents           factory.StatusCoreComponentsHolder
+	StatusComponents               factory.StatusComponentsHolder
+	GasScheduleNotifier            common.GasScheduleNotifierAPI
+	Bootstrapper                   process.Bootstrapper
 	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
-	AllowVMQueriesChan    chan struct{}
-	ProcessingMode        common.NodeProcessingMode
+	AllowVMQueriesChan             chan struct{}
+	ProcessingMode                 common.NodeProcessingMode
+	ChainRunType                   common.ChainRunType
+	DelegatedListFactoryHandler    trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryHandler trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	TotalStakedValueFactoryHandler trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 }
 
 type scQueryServiceArgs struct {
@@ -114,6 +120,17 @@ type scQueryElementArgs struct {
 // TODO: refactor to further decrease node's codebase
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
+
+	if check.IfNilReflect(args.DelegatedListFactoryHandler) {
+		return nil, factory.ErrNilDelegatedListFactory
+	}
+	if check.IfNilReflect(args.DirectStakedListFactoryHandler) {
+		return nil, factory.ErrNilDirectStakedListFactory
+	}
+	if check.IfNilReflect(args.TotalStakedValueFactoryHandler) {
+		return nil, factory.ErrNilTotalStakedValueFactory
+	}
+
 	argsSCQuery := &scQueryServiceArgs{
 		generalConfig:         args.Configs.GeneralConfig,
 		epochConfig:           args.Configs.EpochConfig,
@@ -196,17 +213,17 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 		QueryService:       scQueryService,
 	}
-	totalStakedValueHandler, err := trieIteratorsFactory.CreateTotalStakedValueHandler(argsProcessors)
+	totalStakedValueHandler, err := args.TotalStakedValueFactoryHandler.CreateTotalStakedValueProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	directStakedListHandler, err := trieIteratorsFactory.CreateDirectStakedListHandler(argsProcessors)
+	directStakedListHandler, err := args.DirectStakedListFactoryHandler.CreateDirectStakedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	delegatedListHandler, err := trieIteratorsFactory.CreateDelegatedListHandler(argsProcessors)
+	delegatedListHandler, err := args.DelegatedListFactoryHandler.CreateDelegatedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
@@ -334,6 +351,15 @@ func createScQueryService(
 func createScQueryElement(
 	args *scQueryElementArgs,
 ) (process.SCQueryService, error) {
+	argsNewSCQueryService, err := createArgsSCQueryService(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return smartContract.NewSCQueryService(*argsNewSCQueryService)
+}
+
+func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewSCQueryService, error) {
 	var err error
 
 	pkConverter := args.coreComponents.AddressPubKeyConverter()
@@ -394,22 +420,47 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
-	var apiBlockchain data.ChainHandler
 	var vmFactory process.VirtualMachinesContainerFactory
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
-		apiBlockchain, vmFactory, err = createMetaVmContainerFactory(args, argsHook)
+
+		argsHook.BlockChain, err = blockchain.NewMetaChain(disabled.NewAppStatusHandler())
+		if err != nil {
+			return nil, err
+		}
+
+		argsHook.Accounts, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
+		if err != nil {
+			return nil, err
+		}
+
+		vmFactory, err = createMetaVmContainerFactory(args, argsHook)
 	} else {
-		apiBlockchain, vmFactory, err = createShardVmContainerFactory(args, argsHook)
+		argsHook.BlockChain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
+		if err != nil {
+			return nil, err
+		}
+
+		argsHook.Accounts, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
+		if err != nil {
+			return nil, err
+		}
+
+		vmFactory, err = createShardVmContainerFactory(args, argsHook)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
+
+	vmContainer, err := vmFactory.Create()
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
-
-	vmContainer, err := vmFactory.Create()
+	err = addSystemVMToContainerIfNeeded(args, vmContainer, argsHook)
 	if err != nil {
 		return nil, err
 	}
@@ -424,12 +475,12 @@ func createScQueryElement(
 		return nil, err
 	}
 
-	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+	return &smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmContainer,
 		EconomicsFee:             args.coreComponents.EconomicsData(),
 		BlockChainHook:           vmFactory.BlockChainHookImpl(),
 		MainBlockChain:           args.dataComponents.Blockchain(),
-		APIBlockChain:            apiBlockchain,
+		APIBlockChain:            argsHook.BlockChain,
 		WasmVMChangeLocker:       args.coreComponents.WasmVMChangeLocker(),
 		Bootstrapper:             args.bootstrapper,
 		AllowExternalQueriesChan: args.allowVMQueriesChan,
@@ -440,28 +491,47 @@ func createScQueryElement(
 		Marshaller:               args.coreComponents.InternalMarshalizer(),
 		Hasher:                   args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter: args.coreComponents.Uint64ByteSliceConverter(),
-	}
-
-	return smartContract.NewSCQueryService(argsNewSCQueryService)
+	}, nil
 }
 
-func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (data.ChainHandler, process.VirtualMachinesContainerFactory, error) {
+func addSystemVMToContainerIfNeeded(args *scQueryElementArgs, vmContainer process.VirtualMachinesContainer, argsHook hooks.ArgBlockChainHook) error {
+	if args.chainRunType != common.ChainRunTypeSovereign {
+		return nil
+	}
+
+	metaStorage := args.generalConfig.SmartContractsStorage
+	metaStorage.DB.FilePath = metaStorage.DB.FilePath + "_meta"
+
 	apiBlockchain, err := blockchain.NewMetaChain(disabled.NewAppStatusHandler())
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-
-	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	argsHook.BlockChain = apiBlockchain
-	argsHook.Accounts = accountsAdapterApi
 
+	vmFactoryMeta, err := createMetaVmContainerFactory(
+		args, argsHook,
+	)
+	if err != nil {
+		return err
+	}
+
+	vmContainerMeta, err := vmFactoryMeta.Create()
+	if err != nil {
+		return err
+	}
+
+	vmMeta, err := vmContainerMeta.Get(processFactory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	return vmContainer.Add(processFactory.SystemVirtualMachine, vmMeta)
+}
+
+func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (process.VirtualMachinesContainerFactory, error) {
 	blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
 	if errBlockChainHook != nil {
-		return nil, nil, errBlockChainHook
+		return nil, errBlockChainHook
 	}
 
 	argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
@@ -480,37 +550,20 @@ func createMetaVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBl
 		ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 	}
-	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
-	if err != nil {
-		return nil, nil, err
-	}
 
-	return apiBlockchain, vmFactory, nil
+	return metachain.NewVMContainerFactory(argsNewVmFactory)
 }
 
-func createShardVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (data.ChainHandler, process.VirtualMachinesContainerFactory, error) {
-	apiBlockchain, err := blockchain.NewBlockChain(disabled.NewAppStatusHandler())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	argsHook.BlockChain = apiBlockchain
-	argsHook.Accounts = accountsAdapterApi
-
+func createShardVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (process.VirtualMachinesContainerFactory, error) {
 	queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 	esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
 	if errParser != nil {
-		return nil, nil, errParser
+		return nil, errParser
 	}
 
 	blockChainHookImpl, errBlockChainHook := hooks.NewBlockChainHookImpl(argsHook)
 	if errBlockChainHook != nil {
-		return nil, nil, errBlockChainHook
+		return nil, errBlockChainHook
 	}
 
 	argsNewVMFactory := shard.ArgVMContainerFactory{
@@ -530,12 +583,7 @@ func createShardVmContainerFactory(args *scQueryElementArgs, argsHook hooks.ArgB
 	log.Debug("apiResolver: enable epoch for ahead of time gas usage", "epoch", args.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("apiResolver: enable epoch for repair callback", "epoch", args.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
-	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return apiBlockchain, vmFactory, nil
+	return shard.NewVMContainerFactory(argsNewVMFactory)
 }
 
 func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, error) {
