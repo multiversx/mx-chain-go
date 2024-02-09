@@ -1331,22 +1331,46 @@ func testNodeGetESDTsWithRole(t *testing.T, nodeFactory node.NodeFactory, shardI
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, 1, len(tokenResult))
-	require.Equal(t, string(esdtToken), tokenResult[0])
+	t.Run("get ESDTs with role NFT add quantity should work", func(t *testing.T) {
+		t.Parallel()
 
-	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, 1, len(tokenResult))
-	require.Equal(t, string(esdtToken), tokenResult[0])
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(tokenResult))
+		require.Equal(t, string(esdtToken), tokenResult[0])
+	})
+	t.Run("get ESDTs with role local mint should work", func(t *testing.T) {
+		t.Parallel()
 
-	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Len(t, tokenResult, 0)
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(tokenResult))
+		require.Equal(t, string(esdtToken), tokenResult[0])
+	})
+	t.Run("get ESDTs with role NFT create should work", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Len(t, tokenResult, 0)
+	})
+	t.Run("invalid role should error", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, "invalid role", api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, node.ErrInvalidESDTRole, err)
+		require.Nil(t, tokenResult)
+	})
+	t.Run("invalid address should error", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsWithRole("aaaaa", core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, "invalid bech32 string length 5", err.Error())
+		require.Nil(t, tokenResult)
+	})
 }
 
-func TestNode_GetESDTsWithRole_ShouldWork(t *testing.T) {
+func TestNode_GetESDTsWithRole(t *testing.T) {
 	t.Parallel()
 
 	testNodeGetESDTsWithRole(t, node.NewNodeFactory(), core.MetachainShardId)
@@ -1432,14 +1456,25 @@ func testNodeGetESDTsRoles(t *testing.T, nodeFactory node.NodeFactory, shardId u
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetESDTsRoles(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, map[string][]string{
-		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
-	}, tokenResult)
+	t.Run("get ESDTs roles should work", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsRoles(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, map[string][]string{
+			string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
+		}, tokenResult)
+	})
+	t.Run("invalid address should fail", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsRoles("aaaaa", api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, "invalid bech32 string length 5", err.Error())
+		require.Nil(t, tokenResult)
+	})
 }
 
-func TestNode_GetESDTsRoles_ShouldWork(t *testing.T) {
+func TestNode_GetESDTsRoles(t *testing.T) {
 	t.Parallel()
 
 	testNodeGetESDTsWithRole(t, node.NewNodeFactory(), core.MetachainShardId)
@@ -1520,13 +1555,24 @@ func testNodeGetNFTTokenIDsRegisteredByAddress(t *testing.T, nodeFactory node.No
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, 1, len(tokenResult))
-	require.Equal(t, string(esdtToken), tokenResult[0])
+	t.Run("get NFT token IDs registered by address should work", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(tokenResult))
+		require.Equal(t, string(esdtToken), tokenResult[0])
+	})
+	t.Run("invalid address should fail", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress("aaaaa", api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, "invalid bech32 string length 5", err.Error())
+		require.Nil(t, tokenResult)
+	})
 }
 
-func TestNode_GetNFTTokenIDsRegisteredByAddress_ShouldWork(t *testing.T) {
+func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	t.Parallel()
 
 	testNodeGetNFTTokenIDsRegisteredByAddress(t, node.NewNodeFactory(), core.MetachainShardId)

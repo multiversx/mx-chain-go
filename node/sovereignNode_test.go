@@ -33,7 +33,7 @@ func TestNewSovereignNode(t *testing.T) {
 	})
 }
 
-func TestSovereignNode_GetAllESDTTokens_ShouldWork(t *testing.T) {
+func TestSovereignNode_GetAllESDTTokens(t *testing.T) {
 	t.Parallel()
 
 	testNodeGetAllIssuedESDTs(t, node.NewSovereignNodeFactory(), core.SovereignChainShardId)

@@ -75,7 +75,7 @@ if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
     popd
 fi
 
-if [[ $PRIVATE_REPOS -eq 1 ]]; then
+if [[ $USE_TXGEN -eq 1 ]]; then
   git clone git@github.com:multiversx/mx-chain-txgen-go.git
   cd mx-chain-txgen-go
   git checkout master
