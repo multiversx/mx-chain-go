@@ -304,7 +304,6 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 
 	expectedTopUp = big.NewInt(0).Mul(oneEGLD, big.NewInt(500))
 	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], expectedTopUp, 1)
-
 }
 
 func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, address []byte, blsKey string, expectedTopUp *big.Int, actionListSize int) {
@@ -372,7 +371,6 @@ func testBLSKeyIsInAuction(
 // 5. Perform delegation operations
 // 6. Perform undelegation operations
 // 7. Validate the results at each step
-
 func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -673,7 +671,11 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Equal(t, 0, len(notStakedKeys))
 	require.Equal(t, 0, len(unStakedKeys))
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddressBytes, blsKeys[0], expectedTopUp, 0)
+	// Make block finalized
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddressBytes, blsKeys[0], expectedTopUp, 1)
 
 	// Step 5: Perform unDelegate from 1 user
 	// The nodes should remain in the staked state
@@ -689,7 +691,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getTotalActiveStake", nil)
 	require.Nil(t, err)
 	require.Equal(t, expectedTotalStaked, big.NewInt(0).SetBytes(output.ReturnData[0]))
-	require.Equal(t, expectedTopUp, getBLSTopUpValue(t, metachainNode, delegationContractAddressBytes))
+	require.Equal(t, expectedTopUp.String(), getBLSTopUpValue(t, metachainNode, delegationContractAddressBytes).String())
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getUserActiveStake", [][]byte{delegator1Bytes})
 	require.Nil(t, err)
@@ -714,12 +716,12 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getTotalActiveStake", nil)
 	require.Nil(t, err)
-	require.Equal(t, "1250000000000000000000", big.NewInt(0).SetBytes(output.ReturnData[0]))
+	require.Equal(t, "1250000000000000000000", big.NewInt(0).SetBytes(output.ReturnData[0]).String())
 	require.Equal(t, zeroValue, getBLSTopUpValue(t, metachainNode, delegationContractAddressBytes))
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getUserActiveStake", [][]byte{delegator2Bytes})
 	require.Nil(t, err)
-	require.Equal(t, "0", big.NewInt(0).SetBytes(output.ReturnData[0]))
+	require.Equal(t, "0", big.NewInt(0).SetBytes(output.ReturnData[0]).String())
 
 	// still staked until epoch change
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
@@ -829,6 +831,10 @@ func getBLSTopUpValue(t *testing.T, metachainNode chainSimulatorProcess.NodeHand
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
 	require.Equal(t, okReturnCode, result.ReturnCode)
+
+	if len(result.ReturnData[0]) == 0 {
+		return big.NewInt(0)
+	}
 
 	return big.NewInt(0).SetBytes(result.ReturnData[0])
 }
