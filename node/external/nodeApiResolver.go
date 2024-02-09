@@ -339,10 +339,16 @@ func (nar *nodeApiResolver) GetManagedKeysCount() int {
 	return nar.managedPeersMonitor.GetManagedKeysCount()
 }
 
-// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+// GetManagedKeys returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (nar *nodeApiResolver) GetManagedKeys() []string {
 	managedKeys := nar.managedPeersMonitor.GetManagedKeys()
 	return nar.parseKeys(managedKeys)
+}
+
+// GetLoadedKeys returns all keys that were loaded and will be managed by this node
+func (nar *nodeApiResolver) GetLoadedKeys() []string {
+	loadedKeys := nar.managedPeersMonitor.GetLoadedKeys()
+	return nar.parseKeys(loadedKeys)
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode

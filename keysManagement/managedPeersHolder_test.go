@@ -751,6 +751,24 @@ func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 	})
 }
 
+func TestManagedPeersHolder_GetLoadedKeysByCurrentNode(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsManagedPeersHolder()
+	holder, _ := keysManagement.NewManagedPeersHolder(args)
+	_ = holder.AddManagedPeer(skBytes1)
+	_ = holder.AddManagedPeer(skBytes0)
+
+	for i := 0; i < 10; i++ {
+		holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
+	}
+
+	result := holder.GetLoadedKeysByCurrentNode()
+	assert.Equal(t, 2, len(result))
+	assert.Equal(t, pkBytes0, result[0])
+	assert.Equal(t, pkBytes1, result[1])
+}
+
 func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 	t.Parallel()
 
