@@ -46,14 +46,15 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool             dataRetriever.PoolsHolder
-	Storage              dataRetriever.StorageService
-	RequestHandler       epochStart.RequestHandler
-	EpochStartNotifier   epochStart.Notifier
-	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
-	RoundHandler         process.RoundHandler
-	AppStatusHandler     core.AppStatusHandler
-	EnableEpochsHandler  common.EnableEpochsHandler
+	DataPool                      dataRetriever.PoolsHolder
+	Storage                       dataRetriever.StorageService
+	RequestHandler                epochStart.RequestHandler
+	EpochStartNotifier            epochStart.Notifier
+	PeerMiniBlocksSyncer          process.ValidatorInfoSyncer
+	RoundHandler                  process.RoundHandler
+	AppStatusHandler              core.AppStatusHandler
+	EnableEpochsHandler           common.EnableEpochsHandler
+	ExtraDelayForRequestBlockInfo time.Duration
 
 	Epoch    uint32
 	Validity uint64
@@ -112,6 +113,8 @@ type trigger struct {
 	mutMissingMiniBlocks     sync.RWMutex
 	mutMissingValidatorsInfo sync.RWMutex
 	cancelFunc               func()
+
+	extraDelayForRequestBlockInfo time.Duration
 }
 
 type metaInfo struct {
@@ -260,6 +263,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
+		extraDelayForRequestBlockInfo: args.ExtraDelayForRequestBlockInfo,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -586,7 +590,7 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		wait := common.ExtraDelayForRequestBlockInfo
+		wait := t.extraDelayForRequestBlockInfo
 		roundDifferences := t.roundHandler.Index() - int64(headerHandler.GetRound())
 		if roundDifferences > 1 {
 			wait = 0
