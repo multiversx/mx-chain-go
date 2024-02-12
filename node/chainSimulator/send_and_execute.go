@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
-const delayPropagateTxsThroughNetwork = time.Duration(50) * time.Millisecond
+const delaySendTxs = time.Millisecond
 
 func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.SndAddr)
@@ -46,7 +46,7 @@ func (s *simulator) SendTxsAndGenerateBlockTilTxIsExecuted(txsToSend []*transact
 		hashTxIndex[txHashHex] = idx
 	}
 
-	time.Sleep(delayPropagateTxsThroughNetwork)
+	time.Sleep(delaySendTxs)
 
 	txsFromAPI := make([]*transaction.ApiTransactionResult, 3)
 	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {

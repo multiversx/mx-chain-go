@@ -413,7 +413,7 @@ func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 		return nil, err
 	}
 
-	time.Sleep(delayPropagateTxsThroughNetwork)
+	time.Sleep(delaySendTxs)
 
 	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
 	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
