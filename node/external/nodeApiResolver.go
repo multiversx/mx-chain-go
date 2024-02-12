@@ -40,6 +40,7 @@ type ArgNodeApiResolver struct {
 	AccountsParser           genesis.AccountsParser
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
 	ManagedPeersMonitor      common.ManagedPeersMonitor
+	PublicKey                string
 }
 
 // nodeApiResolver can resolve API requests
@@ -58,6 +59,7 @@ type nodeApiResolver struct {
 	accountsParser           genesis.AccountsParser
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
 	managedPeersMonitor      common.ManagedPeersMonitor
+	publicKey                string
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -120,6 +122,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		accountsParser:           arg.AccountsParser,
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
 		managedPeersMonitor:      arg.ManagedPeersMonitor,
+		publicKey:                arg.PublicKey,
 	}, nil
 }
 
@@ -345,10 +348,15 @@ func (nar *nodeApiResolver) GetManagedKeys() []string {
 	return nar.parseKeys(managedKeys)
 }
 
-// GetLoadedKeys returns all keys that were loaded and will be managed by this node
+// GetLoadedKeys returns all keys that were loaded by this node
 func (nar *nodeApiResolver) GetLoadedKeys() []string {
 	loadedKeys := nar.managedPeersMonitor.GetLoadedKeys()
-	return nar.parseKeys(loadedKeys)
+	if len(loadedKeys) > 0 {
+		return nar.parseKeys(loadedKeys)
+	}
+
+	// node is in single key mode, returning the main public key
+	return []string{nar.publicKey}
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode

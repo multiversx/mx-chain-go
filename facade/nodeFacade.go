@@ -36,8 +36,7 @@ import (
 const DefaultRestInterface = "localhost:8080"
 
 // DefaultRestPortOff is the default value that should be passed if it is desired
-//
-//	to start the node without a REST endpoint available
+// to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
 var log = logger.GetOrCreate("facade")
@@ -597,7 +596,7 @@ func (nf *nodeFacade) GetManagedKeys() []string {
 	return nf.apiResolver.GetManagedKeys()
 }
 
-// GetLoadedKeys returns all keys that were loaded and will be managed by this node
+// GetLoadedKeys returns all keys that were loaded by this node
 func (nf *nodeFacade) GetLoadedKeys() []string {
 	return nf.apiResolver.GetLoadedKeys()
 }
