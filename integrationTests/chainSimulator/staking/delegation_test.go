@@ -1034,8 +1034,6 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.NotNil(t, convertTx)
 
 	delegationAddress := convertTx.Logs.Events[0].Topics[1]
-	delegationAddressBech32 := metachainNode.GetCoreComponents().AddressPubKeyConverter().SilentEncode(delegationAddress, log)
-	log.Info("generated delegation address", "address", delegationAddressBech32)
 
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
@@ -1062,24 +1060,22 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorB))
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	// require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey0))
 	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	// require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey1))
 	require.Equal(t, validatorB, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
-	log.Info("Step 4. User B : whitelistForMerge@addressA")
-	txDataField = fmt.Sprintf("whitelistForMerge@%s", hex.EncodeToString(validatorA))
-	whitelistForMerge := generateTransaction(validatorB, 1, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
+	log.Info("Step 4. User B : whitelistForMerge@addressB")
+	txDataField = fmt.Sprintf("whitelistForMerge@%s", validatorB)
+	whitelistForMerge := generateTransaction(validatorA, 2, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
 	whitelistForMergeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(whitelistForMerge, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, whitelistForMergeTx)
 
 	log.Info("Step 5. User A : mergeValidatorToDelegationWithWhitelist")
-	txDataField = fmt.Sprintf("mergeValidatorToDelegationWithWhitelist@%s", hex.EncodeToString(validatorB))
+	txDataField = fmt.Sprintf("mergeValidatorToDelegationWithWhitelist@%s", hex.EncodeToString(delegationAddress))
 
-	txConvert = generateTransaction(validatorA, 2, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForMergeOperation)
+	txConvert = generateTransaction(validatorB, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForMergeOperation)
 	convertTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txConvert, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, convertTx)
@@ -1087,13 +1083,17 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+
 	decodedBLSKey0, _ = hex.DecodeString(blsKeys[0])
-	// require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey0))
 	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ = hex.DecodeString(blsKeys[1])
-	// require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey1))
-	require.Equal(t, validatorB, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+
+	expectedTopUpValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(200))
+	assert.Equal(t, expectedTopUpValue, getBLSTopUpValue(t, metachainNode, delegationAddress))
 }
 
 func getBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
