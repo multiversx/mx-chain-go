@@ -196,6 +196,41 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return nil
 	}
 
+	forcedToStayUnselectedNodes := []string{
+		"393dffaea5e356963b38d85e3468bf6ba30d4ebf26c7f1f7bc5cd0448741b64605ecbc07ca145d1adfefb828677b58052ce14ab173bc33ee874e427be84d25a5e807805eb10bb7aede3e4716339a8fc5086cbacfea87232dbe6643a963bd5d8d",
+		"204ee6c9a68a6a0d5a4af5426d5a34b1ff0a5c62d0f93ee09aabbc54ad7f864b1f7c69d6d832d98425ce8626884cb611248e1004c02bb95acb821231195f388c8cc2dd7cb79c4f35d77bfb814dc5e5e297013252622320374eb744beb26a4794",
+	}
+
+	for _, ownerData2 := range ownersData {
+		for _, auctionNode := range ownerData2.auctionList {
+			validatorPubKey := als.auctionListDisplayer.(*auctionListDisplayer).validatorPubKeyConverter.SilentEncode(auctionNode.GetPublicKey(), log)
+			if contains(forcedToStayUnselectedNodes, validatorPubKey) {
+				newNode := auctionNode.ShallowClone()
+				newNode.SetPreviousList(auctionNode.GetList())
+				newNode.SetList(string(common.AuctionList))
+				err := validatorsInfoMap.Replace(auctionNode, newNode)
+				if err != nil {
+					return err
+				}
+
+				log.Debug("hard-codded", "pubkey", validatorPubKey, "set to list", common.AuctionList)
+
+			} else {
+				newNode := auctionNode.ShallowClone()
+				newNode.SetPreviousList(auctionNode.GetList())
+				newNode.SetList(string(common.SelectedFromAuctionList))
+				err := validatorsInfoMap.Replace(auctionNode, newNode)
+				if err != nil {
+					return err
+				}
+
+				log.Debug("hard-codded", "pubkey", validatorPubKey, "set to list", common.SelectedFromAuctionList)
+			}
+		}
+	}
+
+	return nil
+
 	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
 	currNumOfValidators := als.stakingDataProvider.GetNumOfValidatorsInCurrentEpoch()
 	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
@@ -240,6 +275,16 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	}()
 
 	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
+}
+
+func contains(slice []string, elem string) bool {
+	for _, s := range slice {
+		if s == elem {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, uint32) {
