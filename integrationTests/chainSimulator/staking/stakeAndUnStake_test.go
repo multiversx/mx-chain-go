@@ -264,7 +264,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	results, err := metachainNode.GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
 	require.Equal(t, newValidatorOwner, results[0].Owner)
-	require.Equal(t, 20, len(results[0].AuctionList))
+	require.Equal(t, 20, len(results[0].Nodes))
 	checkTotalQualified(t, results, 8)
 
 	err = cs.GenerateBlocks(100)
@@ -278,7 +278,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 func checkTotalQualified(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, expected int) {
 	totalQualified := 0
 	for _, res := range auctionList {
-		for _, node := range res.AuctionList {
+		for _, node := range res.Nodes {
 			if node.Qualified {
 				totalQualified++
 			}
