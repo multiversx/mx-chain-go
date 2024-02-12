@@ -163,6 +163,7 @@ func (s *simulator) incrementRoundOnAllValidators() {
 
 func (s *simulator) allNodesCreateBlocks() error {
 	for _, node := range s.handlers {
+		time.Sleep(2 * time.Millisecond)
 		err := node.CreateNewBlock()
 		if err != nil {
 			return err
