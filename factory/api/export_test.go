@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/vm"
 )
@@ -48,5 +49,27 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 		index:                 args.Index,
 		guardedAccountHandler: args.GuardedAccountHandler,
 		blockChainHookCreator: args.BlockChainHookCreator,
+	})
+}
+
+// CreateArgsSCQueryService -
+func CreateArgsSCQueryService(args SCQueryElementArgs) (*smartContract.ArgsNewSCQueryService, error) {
+	return createArgsSCQueryService(&scQueryElementArgs{
+		generalConfig:         args.GeneralConfig,
+		epochConfig:           args.EpochConfig,
+		coreComponents:        args.CoreComponents,
+		stateComponents:       args.StateComponents,
+		dataComponents:        args.DataComponents,
+		processComponents:     args.ProcessComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
+		gasScheduleNotifier:   args.GasScheduleNotifier,
+		messageSigVerifier:    args.MessageSigVerifier,
+		systemSCConfig:        args.SystemSCConfig,
+		bootstrapper:          args.Bootstrapper,
+		allowVMQueriesChan:    args.AllowVMQueriesChan,
+		workingDir:            args.WorkingDir,
+		index:                 args.Index,
+		guardedAccountHandler: args.GuardedAccountHandler,
+		chainRunType:          args.ChainRunType,
 	})
 }
