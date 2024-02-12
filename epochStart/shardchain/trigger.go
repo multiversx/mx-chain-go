@@ -224,10 +224,14 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
-	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
+	if args.ExtraDelayForRequestBlockInfo != common.ExtraDelayForRequestBlockInfo {
+		log.Warn("different delay for request block info: the epoch change trigger might not behave normally",
+			"value from config", args.ExtraDelayForRequestBlockInfo.String(), "expected", common.ExtraDelayForRequestBlockInfo.String())
+	}
 
+	triggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 	t := &trigger{
-		triggerStateKey:               []byte(trigggerStateKey),
+		triggerStateKey:               []byte(triggerStateKey),
 		epoch:                         args.Epoch,
 		metaEpoch:                     args.Epoch,
 		currentRoundIndex:             0,
