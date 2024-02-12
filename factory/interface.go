@@ -587,6 +587,9 @@ type RunTypeComponentsHolder interface {
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	ConsensusModel() consensus.ConsensusModel
+	Create() error
 	Close() error
+	CheckSubcomponents() error
+	String() string
 	IsInterfaceNil() bool
 }
