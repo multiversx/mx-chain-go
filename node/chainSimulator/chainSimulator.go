@@ -179,7 +179,6 @@ func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 
 	maxNumberOfRounds := 10000
 	for idx := 0; idx < maxNumberOfRounds; idx++ {
-		time.Sleep(time.Millisecond * 2)
 		s.incrementRoundOnAllValidators()
 		err := s.allNodesCreateBlocks()
 		if err != nil {
@@ -414,7 +413,7 @@ func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 		return nil, err
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(delayPropagateTxsThroughNetwork)
 
 	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
 	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {

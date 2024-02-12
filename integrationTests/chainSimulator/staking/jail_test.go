@@ -20,8 +20,6 @@ import (
 
 const (
 	stakingV4JailUnJailStep1EnableEpoch = 5
-	stakingV4JailUnJailStep2EnableEpoch = 6
-	stakingV4JailUnJailStep3EnableEpoch = 7
 
 	epochWhenNodeIsJailed = 4
 )
@@ -76,19 +74,10 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4JailUnJailStep1EnableEpoch
-			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4JailUnJailStep2EnableEpoch
-			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = stakingV4JailUnJailStep3EnableEpoch
-
-			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 7
-
+			configs.SetStakingV4ActivationEpoch(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
 			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
-
-			cfg.RatingsConfig.ShardChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-			cfg.RatingsConfig.ShardChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
-			cfg.RatingsConfig.MetaChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-			cfg.RatingsConfig.MetaChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
+			configs.SetQuickJailRatingConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -157,6 +146,8 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 // Add a second node to take the place of the jailed node
 // UnJail the first node --> should go in queue
 // Activate staking v4 step 1 --> node should be moved from queue to auction list
+
+// Internal test scenario #2
 func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -183,16 +174,8 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4JailUnJailStep1EnableEpoch
-			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4JailUnJailStep2EnableEpoch
-			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = stakingV4JailUnJailStep3EnableEpoch
-
-			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = stakingV4JailUnJailStep3EnableEpoch
-
-			cfg.RatingsConfig.ShardChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-			cfg.RatingsConfig.ShardChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
-			cfg.RatingsConfig.MetaChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-			cfg.RatingsConfig.MetaChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
+			configs.SetStakingV4ActivationEpoch(cfg, stakingV4JailUnJailStep1EnableEpoch)
+			configs.SetQuickJailRatingConfig(cfg)
 
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
@@ -226,8 +209,8 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(epochWhenNodeIsJailed)
 	require.Nil(t, err)
 
-	decodedBLSKey1, _ := hex.DecodeString(blsKeys[0])
-	status := getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
+	status := getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "jailed", status)
 
 	// add one more node
@@ -237,8 +220,8 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
-	decodedBLSKey2, _ := hex.DecodeString(blsKeys[1])
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey2)
+	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
+	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
 	require.Equal(t, "staked", status)
 
 	// unJail the first node
@@ -251,13 +234,13 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.NotNil(t, unJailTx)
 	require.Equal(t, transaction.TxStatusSuccess, unJailTx.Status)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "queued", status)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(stakingV4JailUnJailStep1EnableEpoch)
 	require.Nil(t, err)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "staked", status)
 
 	checkValidatorStatus(t, cs, blsKeys[0], "auction")

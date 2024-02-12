@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
@@ -22,6 +23,8 @@ import (
 // testcase2 -- staking v4 step1 --> tx1 fail, tx2 - node in auction, tx3 - node in auction with topUp 1
 // testcase3 -- staking v4 step2 --> tx1 fail, tx2 - node in auction, tx3 - node in auction with topUp 1
 // testcase4 -- staking v3.step3 --> tx1 fail, tx2 - node in auction, tx3 - node in auction with topUp 1
+
+// // Internal test scenario #3
 func TestChainSimulator_SimpleStake(t *testing.T) {
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		testChainSimulatorSimpleStake(t, 1, "queued")
@@ -67,12 +70,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 		NumNodesWaitingListMeta:  3,
 		NumNodesWaitingListShard: 3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
-			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
-			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
-
-			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
-
+			configs.SetStakingV4ActivationEpochs(cfg, 2)
 		},
 	})
 	require.Nil(t, err)
