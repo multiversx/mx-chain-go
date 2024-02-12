@@ -68,7 +68,6 @@ type ApiResolverArgs struct {
 	StatusComponents               factory.StatusComponentsHolder
 	GasScheduleNotifier            common.GasScheduleNotifierAPI
 	Bootstrapper                   process.Bootstrapper
-	BlockChainHookCreator hooks.BlockChainHookHandlerCreator
 	AllowVMQueriesChan             chan struct{}
 	ProcessingMode                 common.NodeProcessingMode
 	ChainRunType                   common.ChainRunType
@@ -94,7 +93,6 @@ type scQueryServiceArgs struct {
 	workingDir            string
 	processingMode        common.NodeProcessingMode
 	chainRunType          common.ChainRunType
-	blockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
 type scQueryElementArgs struct {
@@ -115,7 +113,6 @@ type scQueryElementArgs struct {
 	index                 int
 	processingMode        common.NodeProcessingMode
 	chainRunType          common.ChainRunType
-	blockChainHookCreator hooks.BlockChainHookHandlerCreator
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -150,7 +147,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		workingDir:            apiWorkingDir,
 		processingMode:        args.ProcessingMode,
 		chainRunType:          args.ChainRunType,
-		blockChainHookCreator: args.BlockChainHookCreator,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -327,7 +323,6 @@ func createScQueryService(
 		index:                 0,
 		processingMode:        args.processingMode,
 		chainRunType:          args.chainRunType,
-		blockChainHookCreator: args.blockChainHookCreator,
 	}
 
 	var err error

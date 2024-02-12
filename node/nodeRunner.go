@@ -741,7 +741,6 @@ func (nr *nodeRunner) createApiFacade(
 		StatusComponents:               nodeHandler.GetStatusComponents(),
 		ProcessingMode:                 common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ChainRunType:                   common.ChainRunTypeRegular,
-		BlockChainHookCreator: nodeHandler.runTypeComponents.BlockChainHookHandlerCreator(),
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
@@ -1296,7 +1295,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
-		RunTypeComponents:      runTypeComponents,
+		RunTypeComponents:                     runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1425,7 +1424,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:                 cryptoComponents,
 		NetworkComponents:                networkComponents,
 		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:    runTypeComponents,
+		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
