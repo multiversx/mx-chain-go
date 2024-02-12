@@ -588,6 +588,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	output, err := executeQuery(cs, core.MetachainShardId, vm.DelegationManagerSCAddress, "getAllContractAddresses", nil)
 	require.Nil(t, err)
 	returnAddress, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(output.ReturnData[0])
+	require.Nil(t, err)
 	require.Equal(t, delegationContractAddress, returnAddress)
 	delegationContractAddressBytes := output.ReturnData[0]
 
