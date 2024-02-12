@@ -1231,6 +1231,16 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			RewardAddress:   rewardAddress,
 			AccumulatedFees: big.NewInt(0),
 		}
+
+		existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
+		// This fix might not be backwards incompatible
+		if !check.IfNil(existingValidator) && s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+			err = validatorsInfoMap.Delete(existingValidator)
+			if err != nil {
+				return err
+			}
+		}
+
 		err = validatorsInfoMap.Add(validatorInfo)
 		if err != nil {
 			return err
