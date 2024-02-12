@@ -163,6 +163,7 @@ func (pa *peerAccount) GetTotalValidatorSuccessRate() state.SignRate {
 	return &pa.TotalValidatorSuccessRate
 }
 
+// SetPreviousList sets validator's previous list
 func (pa *peerAccount) SetPreviousList(list string) {
 	pa.PreviousList = list
 }
