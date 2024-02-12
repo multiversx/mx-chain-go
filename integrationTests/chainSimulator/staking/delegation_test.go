@@ -355,8 +355,8 @@ func testBLSKeyIsInAuction(
 
 	require.Equal(t, actionListSize, len(auctionList))
 	if actionListSize != 0 {
-		require.Equal(t, 1, len(auctionList[0].AuctionList))
-		require.Equal(t, topUpInAuctionList.String(), auctionList[0].TopUpPerNode)
+	  require.Equal(t, 1, len(auctionList[0].Nodes))
+	  require.Equal(t, topUpInAuctionList.String(), auctionList[0].TopUpPerNode)
 	}
 
 	// in staking ph 4 we should find the key in the validators statics
