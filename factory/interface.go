@@ -590,6 +590,9 @@ type RunTypeComponentsHolder interface {
 	ConsensusModel() consensus.ConsensusModel
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerMetaCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerShardCreator
+	Create() error
 	Close() error
+	CheckSubcomponents() error
+	String() string
 	IsInterfaceNil() bool
 }
