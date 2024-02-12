@@ -158,19 +158,6 @@ func SetQuickJailRatingConfig(cfg *config.Configs) {
 	cfg.RatingsConfig.MetaChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
 }
 
-// SetStakingV4ActivationEpoch will set the action epoch for staking v4
-// step1 will be provided epoch
-// step2 will be provided epoch + 1
-// step3 will be provided epoch + 2
-// MaxNodesChangeEnableEpoch[2] will be provided epoch + 2
-func SetStakingV4ActivationEpoch(cfg *config.Configs, epoch uint32) {
-	cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = epoch
-	cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = epoch + 1
-	cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = epoch + 2
-
-	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = epoch + 2
-}
-
 // SetStakingV4ActivationEpochs configures activation epochs for Staking V4.
 // It takes an initial epoch and sets three consecutive steps for enabling Staking V4 features:
 //   - Step 1 activation epoch
