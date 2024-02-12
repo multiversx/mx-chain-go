@@ -260,7 +260,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwner, blsKeys[0], addedStakedValue, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwner.Bytes, blsKeys[0], addedStakedValue, 1)
 
 	log.Info("Step 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue / auction list and the correct topup")
 	txDataField = fmt.Sprintf("makeNewContractFromValidatorData@%s@%s", maxCap, serviceFee)
