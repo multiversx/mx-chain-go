@@ -451,7 +451,7 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 	args.StakingSCConfig.NodeLimitPercentage = 0.005
 	stakingValidatorSc, _ := NewValidatorSmartContract(args)
 
-	validatorData := createAValidatorData(25000000, 3, 12500000)
+	validatorData := createAValidatorData(75000000, 5, 12500000)
 	validatorDataBytes, _ := json.Marshal(&validatorData)
 
 	eei.GetStorageCalled = func(key []byte) []byte {
@@ -466,6 +466,13 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 		assert.Equal(t, entry.Topics[0], []byte(numberOfNodesTooHigh))
 	}
 
+	eei.ExecuteOnDestContextCalled = func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
+		if strings.Contains(string(input), "stake") {
+			assert.Fail(t, "should not stake nodes")
+		}
+		return &vmcommon.VMOutput{}, nil
+	}
+
 	key1 := []byte("Key1")
 	key2 := []byte("Key2")
 	key3 := []byte("Key3")
@@ -476,6 +483,58 @@ func TestStakingValidatorSC_ExecuteStakeTooManyNodes(t *testing.T) {
 	errCode := stakingValidatorSc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, errCode)
 	assert.True(t, called)
+}
+
+func TestStakingValidatorSC_ExecuteStakeTooManyNodesAddOnly2(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateVmContractCallInput()
+
+	eei := &mock.SystemEIStub{}
+
+	args := createMockArgumentsForValidatorSC()
+	args.Eei = eei
+
+	args.NodesCoordinator = &mock.NodesCoordinatorStub{GetNumTotalEligibleCalled: func() uint64 {
+		return 1000
+	}}
+	args.StakingSCConfig.NodeLimitPercentage = 0.005
+	stakingValidatorSc, _ := NewValidatorSmartContract(args)
+
+	validatorData := createAValidatorData(75000000, 3, 12500000)
+	validatorDataBytes, _ := json.Marshal(&validatorData)
+
+	eei.GetStorageCalled = func(key []byte) []byte {
+		if bytes.Equal(key, arguments.CallerAddr) {
+			return validatorDataBytes
+		}
+		return nil
+	}
+	called := false
+	eei.AddLogEntryCalled = func(entry *vmcommon.LogEntry) {
+		called = true
+		assert.Equal(t, entry.Topics[0], []byte(numberOfNodesTooHigh))
+	}
+
+	stakeCalledInStakingSC := 0
+	eei.ExecuteOnDestContextCalled = func(destination, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error) {
+		if strings.Contains(string(input), "stake") {
+			stakeCalledInStakingSC++
+		}
+		return &vmcommon.VMOutput{}, nil
+	}
+
+	key1 := []byte("Key1")
+	key2 := []byte("Key2")
+	key3 := []byte("Key3")
+	arguments.Function = "stake"
+	arguments.CallValue = big.NewInt(0).Mul(big.NewInt(3), big.NewInt(10000000))
+	arguments.Arguments = [][]byte{big.NewInt(3).Bytes(), key1, []byte("msg1"), key2, []byte("msg2"), key3, []byte("msg3")}
+
+	errCode := stakingValidatorSc.Execute(arguments)
+	assert.Equal(t, vmcommon.Ok, errCode)
+	assert.True(t, called)
+	assert.Equal(t, 2, stakeCalledInStakingSC)
 }
 
 func TestStakingValidatorSC_ExecuteStakeAddedNewPubKeysShouldWork(t *testing.T) {

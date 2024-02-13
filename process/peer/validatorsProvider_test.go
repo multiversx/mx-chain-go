@@ -953,7 +953,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "4000",
 				TopUpPerNode:   "2000",
 				QualifiedTopUp: "4000",
-				AuctionList: []*common.AuctionNode{
+				Nodes: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v5.PublicKey, log),
 						Qualified: true,
@@ -970,7 +970,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "7500",
 				TopUpPerNode:   "2500",
 				QualifiedTopUp: "2500",
-				AuctionList: []*common.AuctionNode{
+				Nodes: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v1.PublicKey, log),
 						Qualified: true,
@@ -987,7 +987,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "3000",
 				TopUpPerNode:   "1000",
 				QualifiedTopUp: "1500",
-				AuctionList: []*common.AuctionNode{
+				Nodes: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v3.PublicKey, log),
 						Qualified: true,
@@ -1004,7 +1004,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
-				AuctionList: []*common.AuctionNode{
+				Nodes: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v12.PublicKey, log),
 						Qualified: true,
@@ -1017,7 +1017,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
-				AuctionList: []*common.AuctionNode{
+				Nodes: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v11.PublicKey, log),
 						Qualified: false,
@@ -1030,7 +1030,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 				TotalTopUp:     "0",
 				TopUpPerNode:   "0",
 				QualifiedTopUp: "0",
-				AuctionList: []*common.AuctionNode{
+				Nodes: []*common.AuctionNode{
 					{
 						BlsKey:    args.ValidatorPubKeyConverter.SilentEncode(v7.PublicKey, log),
 						Qualified: false,

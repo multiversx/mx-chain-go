@@ -817,21 +817,22 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          pcf.coreData.InternalMarshalizer(),
-			Hasher:               pcf.coreData.Hasher(),
-			HeaderValidator:      headerValidator,
-			Uint64Converter:      pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:             pcf.data.Datapool(),
-			Storage:              pcf.data.StorageService(),
-			RequestHandler:       requestHandler,
-			Epoch:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartNotifier:   pcf.coreData.EpochStartNotifierWithConfirm(),
-			Validity:             process.MetaBlockValidity,
-			Finality:             process.BlockFinality,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         pcf.coreData.RoundHandler(),
-			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
-			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+			Marshalizer:                   pcf.coreData.InternalMarshalizer(),
+			Hasher:                        pcf.coreData.Hasher(),
+			HeaderValidator:               headerValidator,
+			Uint64Converter:               pcf.coreData.Uint64ByteSliceConverter(),
+			DataPool:                      pcf.data.Datapool(),
+			Storage:                       pcf.data.StorageService(),
+			RequestHandler:                requestHandler,
+			Epoch:                         pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartNotifier:            pcf.coreData.EpochStartNotifierWithConfirm(),
+			Validity:                      process.MetaBlockValidity,
+			Finality:                      process.BlockFinality,
+			PeerMiniBlocksSyncer:          peerMiniBlockSyncer,
+			RoundHandler:                  pcf.coreData.RoundHandler(),
+			AppStatusHandler:              pcf.statusCoreComponents.AppStatusHandler(),
+			EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+			ExtraDelayForRequestBlockInfo: time.Duration(pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}

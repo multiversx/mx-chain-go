@@ -251,6 +251,10 @@ func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.Transac
 	tcm.AddTransactionsCalled(txHandlers, blockType)
 }
 
+func (tcm *TransactionCoordinatorMock) ClearStoredMbs() {
+	tcm.miniBlocks = make([]*block.MiniBlock, 0)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (tcm *TransactionCoordinatorMock) IsInterfaceNil() bool {
 	return tcm == nil

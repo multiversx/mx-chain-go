@@ -43,8 +43,6 @@ func TestNewAuctionListDisplayer(t *testing.T) {
 }
 
 func TestAuctionListDisplayer_DisplayOwnersData(t *testing.T) {
-	t.Parallel()
-
 	_ = logger.SetLogLevel("*:DEBUG")
 	defer func() {
 		_ = logger.SetLogLevel("*:INFO")
@@ -109,8 +107,6 @@ func TestAuctionListDisplayer_DisplayOwnersData(t *testing.T) {
 }
 
 func TestAuctionListDisplayer_DisplayOwnersSelectedNodes(t *testing.T) {
-	t.Parallel()
-
 	_ = logger.SetLogLevel("*:DEBUG")
 	defer func() {
 		_ = logger.SetLogLevel("*:INFO")
@@ -177,8 +173,6 @@ func TestAuctionListDisplayer_DisplayOwnersSelectedNodes(t *testing.T) {
 }
 
 func TestAuctionListDisplayer_DisplayAuctionList(t *testing.T) {
-	t.Parallel()
-
 	_ = logger.SetLogLevel("*:DEBUG")
 	defer func() {
 		_ = logger.SetLogLevel("*:INFO")

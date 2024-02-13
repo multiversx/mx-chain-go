@@ -44,8 +44,7 @@ func TestNewChainSimulator(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	err = chainSimulator.Close()
-	assert.Nil(t, err)
+	chainSimulator.Close()
 }
 
 func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
@@ -71,13 +70,12 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
+	defer chainSimulator.Close()
+
 	time.Sleep(time.Second)
 
 	err = chainSimulator.GenerateBlocks(30)
 	require.Nil(t, err)
-
-	err = chainSimulator.Close()
-	assert.Nil(t, err)
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
@@ -106,6 +104,8 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
+	defer chainSimulator.Close()
+
 	facade, err := NewChainSimulatorFacade(chainSimulator)
 	require.Nil(t, err)
 
@@ -125,9 +125,6 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		fmt.Sprintf("initial balance %s, balance after rewards %s", initialAccount.GetBalance().String(), accountAfterRewards.GetBalance().String()))
 
 	fmt.Println(chainSimulator.GetRestAPIInterfaces())
-
-	err = chainSimulator.Close()
-	assert.Nil(t, err)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {
@@ -155,6 +152,8 @@ func TestChainSimulator_SetState(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
 
 	keyValueMap := map[string]string{
 		"01": "01",
@@ -199,6 +198,8 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
 
 	balance := "431271308732096033771131"
 	contractAddress := "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"

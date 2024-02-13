@@ -380,9 +380,10 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 
 		args := createMockSCQueryElementArgs()
 		args.GuardedAccountHandler = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.Equal(t, process.ErrNilGuardedAccountHandler, err)
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("DecodeAddresses fails", func(t *testing.T) {
 		t.Parallel()
@@ -391,10 +392,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args.CoreComponents = &mock.CoreComponentsMock{
 			AddrPubKeyConv: nil,
 		}
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("createBuiltinFuncs fails", func(t *testing.T) {
 		t.Parallel()
@@ -402,10 +404,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args := createMockSCQueryElementArgs()
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.IntMarsh = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("NewCache fails", func(t *testing.T) {
 		t.Parallel()
@@ -415,10 +418,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 			Type:        "LRU",
 			SizeInBytes: 1,
 		}
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "lru"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
@@ -433,10 +437,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		}
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.Hash = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
@@ -444,10 +449,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args := createMockSCQueryElementArgs()
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.Hash = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 
 }

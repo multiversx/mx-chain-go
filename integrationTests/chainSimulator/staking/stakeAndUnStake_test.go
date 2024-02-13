@@ -50,7 +50,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	}
 
 	numOfShards := uint32(3)
-	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:   false,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
@@ -61,33 +61,35 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         3,
 		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  1,
-		NumNodesWaitingListShard: 1,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
 			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
 		},
 	})
 	require.Nil(t, err)
-	require.NotNil(t, cm)
+	require.NotNil(t, cs)
 
-	err = cm.GenerateBlocks(30)
+	defer cs.Close()
+
+	err = cs.GenerateBlocks(30)
 	require.Nil(t, err)
 
 	// Step 1 --- add a new validator key in the chain simulator
 	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
 	require.Nil(t, err)
 
-	err = cm.AddValidatorKeys(privateKey)
+	err = cs.AddValidatorKeys(privateKey)
 	require.Nil(t, err)
 
 	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
-	newValidatorOwnerBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
+	newValidatorOwnerBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
 	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
-	rcvAddrBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
+	rcvAddrBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
 
 	// Step 2 --- set an initial balance for the address that will initialize all the transactions
-	err = cm.SetStateMultiple([]*dtos.AddressState{
+	err = cs.SetStateMultiple([]*dtos.AddressState{
 		{
 			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
 			Balance: "10000000000000000000000",
@@ -109,23 +111,23 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	stakeTx, err := cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
-	shardIDValidatorOwner := cm.GetNodeHandler(0).GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
-	accountValidatorOwner, _, err := cm.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
+	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(newValidatorOwnerBytes)
+	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeActiveValidator := accountValidatorOwner.Balance
 
 	// Step 5 --- create an unStake transaction with the bls key of an initial validator and execute the transaction to make place for the validator that was added at step 3
-	firstValidatorKey, err := cm.GetValidatorPrivateKeys()[0].GeneratePublic().ToByteArray()
+	firstValidatorKey, err := cs.GetValidatorPrivateKeys()[0].GeneratePublic().ToByteArray()
 	require.Nil(t, err)
 
-	initialAddressWithValidators := cm.GetInitialWalletKeys().InitialWalletWithStake.Address
-	senderBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(initialAddressWithValidators)
-	shardID := cm.GetNodeHandler(0).GetShardCoordinator().ComputeId(senderBytes)
-	initialAccount, _, err := cm.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(initialAddressWithValidators, coreAPI.AccountQueryOptions{})
+	initialAddressWithValidators := cs.GetInitialWalletKeys().InitialWalletWithStake.Address
+	senderBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(initialAddressWithValidators)
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(senderBytes)
+	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(initialAddressWithValidators, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	tx = &transaction.Transaction{
 		Nonce:     initialAccount.Nonce,
@@ -139,18 +141,21 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	_, err = cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 
-	// Step 6 --- generate 50 blocks to pass 2 epochs and the validator to generate rewards
-	err = cm.GenerateBlocks(50)
+	// Step 6 --- generate 8 epochs to get rewards
+	err = cs.GenerateBlocksUntilEpochIsReached(8)
 	require.Nil(t, err)
 
-	validatorStatistics, err := cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	validatorStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
 	checkValidatorsRating(t, validatorStatistics)
 
-	accountValidatorOwner, _, err = cm.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
+	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(newValidatorOwner, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceAfterActiveValidator := accountValidatorOwner.Balance
 
@@ -178,7 +183,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		Value:    20,
 	}
 	numOfShards := uint32(3)
-	cm, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
@@ -197,25 +202,27 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		},
 	})
 	require.Nil(t, err)
-	require.NotNil(t, cm)
+	require.NotNil(t, cs)
 
-	err = cm.GenerateBlocks(150)
+	defer cs.Close()
+
+	err = cs.GenerateBlocks(150)
 	require.Nil(t, err)
 
 	// Step 1 --- add a new validator key in the chain simulator
 	numOfNodes := 20
 	validatorSecretKeysBytes, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(numOfNodes)
 	require.Nil(t, err)
-	err = cm.AddValidatorKeys(validatorSecretKeysBytes)
+	err = cs.AddValidatorKeys(validatorSecretKeysBytes)
 	require.Nil(t, err)
 
 	newValidatorOwner := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
-	newValidatorOwnerBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
+	newValidatorOwnerBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(newValidatorOwner)
 	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
-	rcvAddrBytes, _ := cm.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
+	rcvAddrBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
 
 	// Step 2 --- set an initial balance for the address that will initialize all the transactions
-	err = cm.SetStateMultiple([]*dtos.AddressState{
+	err = cs.SetStateMultiple([]*dtos.AddressState{
 		{
 			Address: "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl",
 			Balance: "1000000000000000000000000",
@@ -244,26 +251,26 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		Version:   1,
 	}
 
-	txFromNetwork, err := cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	txFromNetwork, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txFromNetwork)
 
-	err = cm.GenerateBlocks(1)
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	metachainNode := cm.GetNodeHandler(core.MetachainShardId)
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 	results, err := metachainNode.GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
 	require.Equal(t, newValidatorOwner, results[0].Owner)
-	require.Equal(t, 20, len(results[0].AuctionList))
+	require.Equal(t, 20, len(results[0].Nodes))
 	checkTotalQualified(t, results, 8)
 
-	err = cm.GenerateBlocks(100)
+	err = cs.GenerateBlocks(100)
 	require.Nil(t, err)
 
-	results, err = cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
+	results, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
 	checkTotalQualified(t, results, 0)
 }
@@ -271,7 +278,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 func checkTotalQualified(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, expected int) {
 	totalQualified := 0
 	for _, res := range auctionList {
-		for _, node := range res.AuctionList {
+		for _, node := range res.Nodes {
 			if node.Qualified {
 				totalQualified++
 			}

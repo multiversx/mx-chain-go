@@ -104,6 +104,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 1)
 	})
 
@@ -138,6 +140,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 2)
 	})
@@ -174,6 +178,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 3)
 	})
 
@@ -209,6 +215,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 4)
 	})
 }
@@ -229,27 +237,24 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	mintValue := big.NewInt(3010)
 	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
-	validatorOwnerBech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	validatorOwner, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
 
-	delegator1Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	delegator1, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	delegator1, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(delegator1Bech32)
 
-	delegator2Bech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	delegator2, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(delegator2Bech32)
 
 	log.Info("working with the following addresses",
-		"newValidatorOwner", validatorOwnerBech32, "delegator1", delegator1Bech32, "delegator2", delegator2Bech32)
+		"newValidatorOwner", validatorOwner.Bech32, "delegator1", delegator1.Bech32, "delegator2", delegator2.Bech32)
 
 	log.Info("Step 3. Do a stake transaction for the validator key and test that the new key is on queue / auction list and the correct topup")
 	stakeValue := big.NewInt(0).Set(minimumStakeValue)
 	addedStakedValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(500))
 	stakeValue.Add(stakeValue, addedStakedValue)
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
+	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -257,11 +262,11 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwner, blsKeys[0], addedStakedValue, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwner.Bytes, blsKeys[0], addedStakedValue, 1)
 
 	log.Info("Step 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue / auction list and the correct topup")
 	txDataField = fmt.Sprintf("makeNewContractFromValidatorData@%s@%s", maxCap, serviceFee)
-	txConvert := generateTransaction(validatorOwner, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForConvertOperation)
+	txConvert := generateTransaction(validatorOwner.Bytes, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForConvertOperation)
 	convertTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txConvert, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, convertTx)
@@ -277,12 +282,12 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 
 	log.Info("Step 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700")
 	delegateValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
-	txDelegate1 := generateTransaction(delegator1, 0, delegationAddress, delegateValue, "delegate", gasLimitForDelegate)
+	txDelegate1 := generateTransaction(delegator1.Bytes, 0, delegationAddress, delegateValue, "delegate", gasLimitForDelegate)
 	delegate1Tx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txDelegate1, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, delegate1Tx)
 
-	txDelegate2 := generateTransaction(delegator2, 0, delegationAddress, delegateValue, "delegate", gasLimitForDelegate)
+	txDelegate2 := generateTransaction(delegator2.Bytes, 0, delegationAddress, delegateValue, "delegate", gasLimitForDelegate)
 	delegate2Tx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txDelegate2, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, delegate2Tx)
@@ -293,13 +298,13 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	log.Info("6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500")
 	unDelegateValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
 	txDataField = fmt.Sprintf("unDelegate@%s", hex.EncodeToString(unDelegateValue.Bytes()))
-	txUnDelegate1 := generateTransaction(delegator1, 1, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
+	txUnDelegate1 := generateTransaction(delegator1.Bytes, 1, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
 	unDelegate1Tx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnDelegate1, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unDelegate1Tx)
 
 	txDataField = fmt.Sprintf("unDelegate@%s", hex.EncodeToString(unDelegateValue.Bytes()))
-	txUnDelegate2 := generateTransaction(delegator2, 1, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
+	txUnDelegate2 := generateTransaction(delegator2.Bytes, 1, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
 	unDelegate2Tx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnDelegate2, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unDelegate2Tx)
@@ -352,7 +357,7 @@ func testBLSKeyIsInAuction(
 
 	require.Equal(t, actionListSize, len(auctionList))
 	if actionListSize != 0 {
-		require.Equal(t, 1, len(auctionList[0].AuctionList))
+		require.Equal(t, 1, len(auctionList[0].Nodes))
 		require.Equal(t, topUpInAuctionList.String(), auctionList[0].TopUpPerNode)
 	}
 
@@ -585,6 +590,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	output, err := executeQuery(cs, core.MetachainShardId, vm.DelegationManagerSCAddress, "getAllContractAddresses", nil)
 	require.Nil(t, err)
 	returnAddress, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(output.ReturnData[0])
+	require.Nil(t, err)
 	require.Equal(t, delegationContractAddress, returnAddress)
 	delegationContractAddressBytes := output.ReturnData[0]
 
@@ -656,7 +662,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 
 	// Step 4: Perform stakeNodes
 
-	txStakeNodes := generateTransaction(validatorOwnerBytes, 2, delegationContractAddressBytes, zeroValue, fmt.Sprintf("stakeNodes@%s", blsKeys[0]), gasLimitForDelegate)
+	txStakeNodes := generateTransaction(validatorOwnerBytes, 2, delegationContractAddressBytes, zeroValue, fmt.Sprintf("stakeNodes@%s", blsKeys[0]), gasLimitForStakeOperation)
 	stakeNodesTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStakeNodes, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeNodesTx)
@@ -787,21 +793,14 @@ func getSignatures(msg []byte, blsKeys [][]byte) [][]byte {
 func getNodesFromContract(returnData [][]byte) ([][]byte, [][]byte, [][]byte) {
 	var stakedKeys, notStakedKeys, unStakedKeys [][]byte
 
-	// Placeholder for the current list being populated
-	var currentList *[][]byte
-
-	for _, data := range returnData {
-		switch string(data) {
+	for i := 0; i < len(returnData); i += 2 {
+		switch string(returnData[i]) {
 		case "staked":
-			currentList = &stakedKeys
+			stakedKeys = append(stakedKeys, returnData[i+1])
 		case "notStaked":
-			currentList = &notStakedKeys
+			notStakedKeys = append(notStakedKeys, returnData[i+1])
 		case "unStaked":
-			currentList = &unStakedKeys
-		default:
-			if currentList != nil {
-				*currentList = append(*currentList, data)
-			}
+			unStakedKeys = append(unStakedKeys, returnData[i+1])
 		}
 	}
 	return stakedKeys, notStakedKeys, unStakedKeys
