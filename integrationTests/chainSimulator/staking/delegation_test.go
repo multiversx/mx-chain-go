@@ -260,7 +260,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwner.Bytes, blsKeys[0], addedStakedValue, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwner.Bytes, blsKeys[0], addedStakedValue)
 
 	log.Info("Step 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue / auction list and the correct topup")
 	txDataField = fmt.Sprintf("makeNewContractFromValidatorData@%s@%s", maxCap, serviceFee)
@@ -276,7 +276,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], addedStakedValue, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], addedStakedValue)
 
 	log.Info("Step 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700")
 	delegateValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
@@ -291,7 +291,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.NotNil(t, delegate2Tx)
 
 	expectedTopUp := big.NewInt(0).Mul(oneEGLD, big.NewInt(700))
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], expectedTopUp, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], expectedTopUp)
 
 	log.Info("6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500")
 	unDelegateValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
@@ -308,10 +308,10 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.NotNil(t, unDelegate2Tx)
 
 	expectedTopUp = big.NewInt(0).Mul(oneEGLD, big.NewInt(500))
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], expectedTopUp, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddress, blsKeys[0], expectedTopUp)
 }
 
-func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, address []byte, blsKey string, expectedTopUp *big.Int, actionListSize int) {
+func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, address []byte, blsKey string, expectedTopUp *big.Int) {
 	decodedBLSKey, _ := hex.DecodeString(blsKey)
 	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
@@ -321,7 +321,7 @@ func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProc
 
 	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
 	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
-		testBLSKeyIsInAuction(t, metachainNode, decodedBLSKey, blsKey, expectedTopUp, actionListSize, statistics)
+		testBLSKeyIsInAuction(t, metachainNode, address, decodedBLSKey, blsKey, expectedTopUp, statistics)
 		return
 	}
 
@@ -334,10 +334,10 @@ func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProc
 func testBLSKeyIsInAuction(
 	t *testing.T,
 	metachainNode chainSimulatorProcess.NodeHandler,
+	address []byte,
 	blsKeyBytes []byte,
 	blsKey string,
 	topUpInAuctionList *big.Int,
-	actionListSize int,
 	validatorStatistics map[string]*validator.ValidatorStatistics,
 ) {
 	require.Equal(t, stakedStatus, getBLSKeyStatus(t, metachainNode, blsKeyBytes))
@@ -347,17 +347,30 @@ func testBLSKeyIsInAuction(
 	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 
+	expectedNodesInWaitingList := 1
+	expectedActionListOwnersSize := 1
 	currentEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
-	if metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag) <= currentEpoch {
+	if currentEpoch == metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag) {
 		// starting from phase 2, we have the shuffled out nodes from the previous epoch in the action list
-		actionListSize += 1
+		expectedActionListOwnersSize += 1
+		expectedNodesInWaitingList += 8
+	}
+	if currentEpoch == metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step3Flag) {
+		// starting from phase 2, we have the shuffled out nodes from the previous epoch in the action list
+		expectedActionListOwnersSize += 1
+		expectedNodesInWaitingList += 4
 	}
 
-	require.Equal(t, actionListSize, len(auctionList))
-	if actionListSize != 0 {
-		require.Equal(t, 1, len(auctionList[0].Nodes))
-		require.Equal(t, topUpInAuctionList.String(), auctionList[0].TopUpPerNode)
+	require.Equal(t, expectedActionListOwnersSize, len(auctionList))
+	nodesInWaitingList := 0
+	addressBech32 := metachainNode.GetCoreComponents().AddressPubKeyConverter().SilentEncode(address, log)
+	for i := 0; i < len(auctionList); i++ {
+		nodesInWaitingList += len(auctionList[i].Nodes)
+		if auctionList[i].Owner == addressBech32 {
+			require.Equal(t, topUpInAuctionList.String(), auctionList[i].TopUpPerNode)
+		}
 	}
+	require.Equal(t, expectedNodesInWaitingList, nodesInWaitingList)
 
 	// in staking ph 4 we should find the key in the validators statics
 	validatorInfo, found := validatorStatistics[blsKey]
@@ -682,7 +695,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddressBytes, blsKeys[0], expectedTopUp, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddressBytes, blsKeys[0], expectedTopUp)
 
 	// Step 5: Perform unDelegate from 1 user
 	// The nodes should remain in the staked state
@@ -713,7 +726,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Equal(t, 0, len(unStakedKeys))
 
 	// Step 6: Perform unDelegate from last user
-	// The nodes should remain in the unStaked state
+	// The nodes should change to unStaked state
 	// The total active stake should be reduced by the amount undelegated
 
 	txUndelegate2 := generateTransaction(delegator2Bytes, 1, delegationContractAddressBytes, zeroValue, fmt.Sprintf("unDelegate@%s", hex.EncodeToString(stakeValue.Bytes())), gasLimitForUndelegateOperation)
@@ -1045,10 +1058,10 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Equal(t, 0, len(notStakedKeys))
 	require.Equal(t, 0, len(unStakedKeys))
 
-	err = cs.GenerateBlocks(50) // allow the metachain to finalize the block that contains the staking of the node
+	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddress, blsKeys[0], expectedTopUp, 1)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddress, blsKeys[0], expectedTopUp)
 
 	tx2delegatorB := generateTransaction(delegatorBBytes, 1, delegationContractAddress, delegateValue, "delegate", gasLimitForDelegate)
 	delegatorBTx2, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx2delegatorB, maxNumOfBlockToGenerateWhenExecutingTx)
