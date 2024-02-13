@@ -198,6 +198,8 @@ func TestQueries_Metachain(t *testing.T) {
 	network.Start()
 
 	alice := network.AddUser(big.NewInt(10000000000000))
+
+	// Issue fungible token
 	issueCost := big.NewInt(1000)
 	tokenNameHex := hex.EncodeToString([]byte("Test"))
 	tokenTickerHex := hex.EncodeToString([]byte("TEST"))
@@ -218,6 +220,7 @@ func TestQueries_Metachain(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 
+	// Query token on older block (should fail)
 	vmOutput, _, err := network.MetachainNode.SCQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress:  vm.ESDTSCAddress,
 		FuncName:   "getTokenProperties",
@@ -229,6 +232,7 @@ func TestQueries_Metachain(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, vmOutput.ReturnCode)
 	require.Equal(t, "no ticker with given name", vmOutput.ReturnMessage)
 
+	// Query token on newer block (should succeed)
 	vmOutput, _, err = network.MetachainNode.SCQueryService.ExecuteQuery(&process.SCQuery{
 		ScAddress:  vm.ESDTSCAddress,
 		FuncName:   "getTokenProperties",
