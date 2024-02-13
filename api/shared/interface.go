@@ -132,5 +132,6 @@ type FacadeHandler interface {
 	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
+	SendBlockTransactions([]*api.Block) (uint64, error)
 	IsInterfaceNil() bool
 }

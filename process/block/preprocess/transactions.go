@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -11,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -50,6 +52,7 @@ type transactions struct {
 	onRequestTransaction         func(shardID uint32, txHashes [][]byte)
 	txsForCurrBlock              txsForBlock
 	txPool                       dataRetriever.ShardedDataCacherNotifier
+	blockTxs                     storage.Cacher
 	storage                      dataRetriever.StorageService
 	txProcessor                  process.TransactionProcessor
 	orderedTxs                   map[string][]data.TransactionHandler
@@ -66,6 +69,7 @@ type transactions struct {
 // ArgsTransactionPreProcessor holds the arguments to create a txs pre processor
 type ArgsTransactionPreProcessor struct {
 	TxDataPool                   dataRetriever.ShardedDataCacherNotifier
+	BlockTxs                     storage.Cacher
 	Store                        dataRetriever.StorageService
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
@@ -148,6 +152,9 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
+	if check.IfNil(args.BlockTxs) {
+		return nil, process.ErrNilBlockTxs
+	}
 
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
@@ -176,6 +183,7 @@ func NewTransactionPreprocessor(
 		blockType:                    args.BlockType,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
+		blockTxs:                     args.BlockTxs,
 	}
 
 	txs.chRcvAllTxs = make(chan bool)
@@ -619,6 +627,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
+	log.Debug("processTxsFromMe", "randomness", hex.EncodeToString(randomness))
 	txs.sortTransactionsBySenderAndNonce(txsFromMe, randomness)
 
 	isShardStuckFalse := func(uint32) bool {
@@ -682,10 +691,16 @@ func (txs *transactions) processTxsFromMe(
 	if !bytes.Equal(receivedBodyHash, calculatedBodyHash) {
 		for _, mb := range receivedMiniBlocks {
 			log.Debug("received miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+			for _, txHash := range mb.TxHashes {
+				log.Debug("received tx", "txHash", hex.EncodeToString(txHash))
+			}
 		}
 
 		for _, mb := range calculatedMiniBlocks {
 			log.Debug("calculated miniblock", "type", mb.Type, "sender", mb.SenderShardID, "receiver", mb.ReceiverShardID, "numTxs", len(mb.TxHashes))
+			for _, txHash := range mb.TxHashes {
+				log.Debug("calculated tx", "txHash", hex.EncodeToString(txHash))
+			}
 		}
 
 		log.Debug("block body missmatch",
@@ -1450,12 +1465,44 @@ func (txs *transactions) computeSortedTxs(
 	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-	log.Debug("computeSortedTxs.GetSortedTransactions")
+	log.Debug("computeSortedTxs.GetSortedTransactions", "randomness", hex.EncodeToString(randomness), "txs", len(txShardPool.Keys()))
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+
+	newRandomness := randomness
+	if !check.IfNil(txs.blockTxs) {
+		log.Debug("computeSortedTxs", "len", txs.blockTxs.Len())
+
+		keys := txs.blockTxs.Keys()
+
+		sort.Slice(keys, func(i, j int) bool {
+			return hex.EncodeToString(keys[i]) < hex.EncodeToString(keys[j])
+		})
+
+		if len(keys) > 0 {
+			currentKey := keys[0]
+			log.Debug("computeSortedTxs", "key", string(currentKey))
+
+			b, ok := txs.blockTxs.Get(currentKey)
+			if !ok {
+				log.Error("computeSortedTxs - error", "key", string(currentKey))
+			} else {
+				var apiBlock *api.Block
+
+				apiBlock, ok := b.(*api.Block)
+				if ok {
+					newRandomness = []byte(apiBlock.PrevRandSeed)
+					log.Debug("computeSortedTxs", "newRandomness", newRandomness)
+				}
+			}
+			txs.blockTxs.Remove(currentKey)
+		}
+	}
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
-	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
+	txs.sortTransactionsBySenderAndNonce(selectedTxs, newRandomness)
+
+	log.Debug("computeSortedTxs", "selectedTxs", len(selectedTxs), "remainingTxs", len(remainingTxs), "randomness", newRandomness)
 
 	return selectedTxs, remainingTxs, nil
 }

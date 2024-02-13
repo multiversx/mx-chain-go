@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/middleware"
@@ -33,6 +34,8 @@ const (
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
 	getTransactionsPool              = "/pool"
+	sendBlockTxsPath                 = "/send-block-txs"
+	sendBlockTxsEndpoint             = "/transaction/send-block-txs"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -57,6 +60,7 @@ type transactionFacadeHandler interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
+	SendBlockTransactions([]*api.Block) (uint64, error)
 	IsInterfaceNil() bool
 }
 
@@ -123,6 +127,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendMultipleTransactionsEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    sendBlockTxsPath,
+			Method:  http.MethodPost,
+			Handler: tg.sendBlockTxs,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendBlockTxsEndpoint, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -458,6 +473,51 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 			Data: gin.H{
 				"txsSent":   numOfSentTxs,
 				"txsHashes": txsHashes,
+			},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// sendBlockTxs will receive a number of blocksWithTxs and will propagate them for processing
+func (tg *transactionGroup) sendBlockTxs(c *gin.Context) {
+	log.Info("sendBlockTxs was called")
+	var apiBlocks []*api.Block
+	err := c.ShouldBindJSON(&apiBlocks)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	start := time.Now()
+	numOfSentBlocks, err := tg.getFacade().SendBlockTransactions(apiBlocks)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: SendBulkTransactions")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data: gin.H{
+				"txsSent": numOfSentBlocks,
+				//"txsHashes": txsHashes,
 			},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,

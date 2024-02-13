@@ -76,7 +76,7 @@ func (inf *initialNodeFacade) SetSyncer(_ ntp.SyncTimer) {
 }
 
 // RestAPIServerDebugMode returns false
-//TODO: remove in the future
+// TODO: remove in the future
 func (inf *initialNodeFacade) RestAPIServerDebugMode() bool {
 	return false
 }
@@ -424,6 +424,11 @@ func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
 // GetWaitingManagedKeys returns nil and error
 func (inf *initialNodeFacade) GetWaitingManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
+}
+
+// SendBlockTransactions returns 0 and error
+func (inf *initialNodeFacade) SendBlockTransactions([]*api.Block) (uint64, error) {
+	return uint64(0), errNodeStarting
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

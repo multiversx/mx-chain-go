@@ -71,6 +71,9 @@ type NodeHandler interface {
 	// SendBulkTransactions will send a bulk of transactions on the 'send transactions pipe' channel
 	SendBulkTransactions(txs []*transaction.Transaction) (uint64, error)
 
+	// SendBlockTransactions will send a the block transactions
+	SendBlockTransactions(apiBlocks []*api.Block) (uint64, error)
+
 	// GetAccount returns an accountResponse containing information
 	//  about the account correlated with provided address
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)

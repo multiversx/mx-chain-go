@@ -179,6 +179,7 @@ func (ppcm *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
 	args := preprocess.ArgsTransactionPreProcessor{
 		TxDataPool:                   ppcm.dataPool.Transactions(),
+		BlockTxs:                     ppcm.dataPool.BlockTxs(),
 		Store:                        ppcm.store,
 		Hasher:                       ppcm.hasher,
 		Marshalizer:                  ppcm.marshalizer,

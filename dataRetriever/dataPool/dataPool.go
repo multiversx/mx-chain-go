@@ -17,6 +17,7 @@ type dataPool struct {
 	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
 	headers                dataRetriever.HeadersPool
 	miniBlocks             storage.Cacher
+	blockTxs               storage.Cacher
 	peerChangesBlocks      storage.Cacher
 	trieNodes              storage.Cacher
 	trieNodesChunks        storage.Cacher
@@ -35,6 +36,7 @@ type DataPoolArgs struct {
 	RewardTransactions        dataRetriever.ShardedDataCacherNotifier
 	Headers                   dataRetriever.HeadersPool
 	MiniBlocks                storage.Cacher
+	BlockTxs                  storage.Cacher
 	PeerChangesBlocks         storage.Cacher
 	TrieNodes                 storage.Cacher
 	TrieNodesChunks           storage.Cacher
@@ -90,6 +92,9 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.ValidatorsInfo) {
 		return nil, dataRetriever.ErrNilValidatorInfoPool
 	}
+	if check.IfNil(args.BlockTxs) {
+		return nil, dataRetriever.ErrNilBlockTxsPool
+	}
 
 	return &dataPool{
 		transactions:           args.Transactions,
@@ -106,6 +111,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		peerAuthentications:    args.PeerAuthentications,
 		heartbeats:             args.Heartbeats,
 		validatorsInfo:         args.ValidatorsInfo,
+		blockTxs:               args.BlockTxs,
 	}, nil
 }
 
@@ -142,6 +148,11 @@ func (dp *dataPool) Headers() dataRetriever.HeadersPool {
 // MiniBlocks returns the holder for miniblocks
 func (dp *dataPool) MiniBlocks() storage.Cacher {
 	return dp.miniBlocks
+}
+
+// BlockTxs returns the holder for blockTxs
+func (dp *dataPool) BlockTxs() storage.Cacher {
+	return dp.blockTxs
 }
 
 // PeerChangesBlocks returns the holder for peer changes block bodies

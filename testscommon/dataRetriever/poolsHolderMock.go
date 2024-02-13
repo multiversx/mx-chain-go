@@ -216,3 +216,8 @@ func (holder *PoolsHolderMock) Close() error {
 func (holder *PoolsHolderMock) IsInterfaceNil() bool {
 	return holder == nil
 }
+
+// BlockTxs -
+func (holder *PoolsHolderMock) BlockTxs() storage.Cacher {
+	return nil
+}

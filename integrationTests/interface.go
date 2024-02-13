@@ -90,6 +90,7 @@ type Facade interface {
 	ValidateTransaction(tx *transaction.Transaction) error
 	ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
+	SendBlockTransactions([]*api.Block) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
