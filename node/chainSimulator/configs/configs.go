@@ -218,6 +218,7 @@ func generateValidatorsKeyAndUpdateFiles(
 
 	nodes.ConsensusGroupSize = 1
 	nodes.MetaChainConsensusGroupSize = 1
+	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard
 	nodes.MetaChainMinNodes = args.MetaChainMinNodes
