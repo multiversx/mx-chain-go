@@ -30,9 +30,16 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 		return "", err
 	}
 
-	log.Info("############## send transaction ##############", "txHash", txHashHex)
-
-	return txHashHex, nil
+	for {
+		txs, _ := node.GetFacadeHandler().GetTransactionsPool("")
+		for _, tx := range txs.RegularTransactions {
+			if tx.TxFields["hash"] == txHashHex {
+				log.Info("############## send transaction ##############", "txHash", txHashHex)
+				return txHashHex, nil
+			}
+		}
+		time.Sleep(delaySendTxs)
+	}
 }
 
 func (s *simulator) SendTxsAndGenerateBlockTilTxIsExecuted(txsToSend []*transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
