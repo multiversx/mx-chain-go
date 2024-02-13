@@ -255,6 +255,9 @@ func (vs *validatorStatistics) saveUpdatesForList(
 			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index), isStakingV4Started)
 		} else if isNodeLeaving {
 			peerAcc.SetListAndIndex(shardID, string(common.LeavingList), uint32(index), isStakingV4Started)
+			if isStakingV4Started {
+				peerAcc.SetPreviousList(string(peerType))
+			}
 		} else {
 			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index), isStakingV4Started)
 		}

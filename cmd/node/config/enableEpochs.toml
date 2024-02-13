@@ -252,7 +252,7 @@
     AutoBalanceDataTriesEnableEpoch = 1
 
     # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
-    MigrateDataTrieEnableEpoch = 2
+    MigrateDataTrieEnableEpoch = 1
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 1
@@ -309,13 +309,13 @@
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 48, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
+        { EpochEnable = 0, MaxNumNodes = 48, NodesToShufflePerShard = 4 },  # 4 shuffled out keys / shard will not be reached normally
+        { EpochEnable = 1, MaxNumNodes = 64, NodesToShufflePerShard = 2 },
         # Staking v4 configuration, where:
         # - Enable epoch = StakingV4Step3EnableEpoch
         # - NodesToShufflePerShard = same as previous entry in MaxNodesChangeEnableEpoch
         # - MaxNumNodes = (MaxNumNodesFromPreviousEpochEnable - (numOfShards+1)*NodesToShufflePerShard)
-        { EpochEnable = 6, MaxNumNodes = 48, NodesToShufflePerShard = 2 },
+        { EpochEnable = 6, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
     ]
 
 [GasSchedule]
