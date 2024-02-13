@@ -674,7 +674,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 
 	// Step 4: Perform stakeNodes
 
-	txStakeNodes := generateTransaction(validatorOwnerBytes, 2, delegationContractAddressBytes, zeroValue, fmt.Sprintf("stakeNodes@%s", blsKeys[0]), gasLimitForDelegate)
+	txStakeNodes := generateTransaction(validatorOwnerBytes, 2, delegationContractAddressBytes, zeroValue, fmt.Sprintf("stakeNodes@%s", blsKeys[0]), gasLimitForStakeOperation)
 	stakeNodesTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStakeNodes, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeNodesTx)
@@ -1157,21 +1157,14 @@ func getSignatures(msg []byte, blsKeys [][]byte) [][]byte {
 func getNodesFromContract(returnData [][]byte) ([][]byte, [][]byte, [][]byte) {
 	var stakedKeys, notStakedKeys, unStakedKeys [][]byte
 
-	// Placeholder for the current list being populated
-	var currentList *[][]byte
-
-	for _, data := range returnData {
-		switch string(data) {
+	for i := 0; i < len(returnData); i += 2 {
+		switch string(returnData[i]) {
 		case "staked":
-			currentList = &stakedKeys
+			stakedKeys = append(stakedKeys, returnData[i+1])
 		case "notStaked":
-			currentList = &notStakedKeys
+			notStakedKeys = append(notStakedKeys, returnData[i+1])
 		case "unStaked":
-			currentList = &unStakedKeys
-		default:
-			if currentList != nil {
-				*currentList = append(*currentList, data)
-			}
+			unStakedKeys = append(unStakedKeys, returnData[i+1])
 		}
 	}
 	return stakedKeys, notStakedKeys, unStakedKeys
