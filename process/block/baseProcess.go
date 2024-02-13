@@ -121,6 +121,7 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
+	extraDelayRequestBlockInfo    time.Duration
 }
 
 type bootStorerDataArgs struct {
@@ -1685,7 +1686,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := common.ExtraDelayForRequestBlockInfo
+	waitTime := bp.extraDelayRequestBlockInfo
 	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
