@@ -89,5 +89,5 @@ type AuctionListValidatorAPIResponse struct {
 	TotalTopUp     string         `json:"totalTopUp"`
 	TopUpPerNode   string         `json:"topUpPerNode"`
 	QualifiedTopUp string         `json:"qualifiedTopUp"`
-	AuctionList    []*AuctionNode `json:"auctionList"`
+	Nodes          []*AuctionNode `json:"nodes"`
 }

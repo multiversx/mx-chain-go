@@ -113,6 +113,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
+	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
+
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 	}
@@ -146,6 +148,28 @@ func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, maxNumNodes uint64, numOf
 	prevEntry := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-2]
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].NodesToShufflePerShard = prevEntry.NodesToShufflePerShard
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].MaxNumNodes = prevEntry.MaxNumNodes - (numOfShards+1)*prevEntry.NodesToShufflePerShard
+}
+
+// SetQuickJailRatingConfig will set the rating config in a way that leads to rapid jailing of a node
+func SetQuickJailRatingConfig(cfg *config.Configs) {
+	cfg.RatingsConfig.ShardChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
+	cfg.RatingsConfig.ShardChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
+	cfg.RatingsConfig.MetaChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
+	cfg.RatingsConfig.MetaChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
+}
+
+// SetStakingV4ActivationEpochs configures activation epochs for Staking V4.
+// It takes an initial epoch and sets three consecutive steps for enabling Staking V4 features:
+//   - Step 1 activation epoch
+//   - Step 2 activation epoch
+//   - Step 3 activation epoch
+func SetStakingV4ActivationEpochs(cfg *config.Configs, initialEpoch uint32) {
+	cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = initialEpoch
+	cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = initialEpoch + 1
+	cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = initialEpoch + 2
+
+	// Set the MaxNodesChange enable epoch for index 2
+	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = initialEpoch + 2
 }
 
 func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
@@ -237,6 +261,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	// TODO fix this to can be configurable
 	nodes.ConsensusGroupSize = 1
 	nodes.MetaChainConsensusGroupSize = 1
+	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard
 	nodes.MetaChainMinNodes = args.MetaChainMinNodes
