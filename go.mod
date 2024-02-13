@@ -19,13 +19,13 @@ require (
 	github.com/multiversx/mx-chain-crypto-go v1.2.9
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.18
 	github.com/multiversx/mx-chain-logger-go v1.0.13
-	github.com/multiversx/mx-chain-scenario-go v1.3.0
+	github.com/multiversx/mx-chain-scenario-go v1.4.1
 	github.com/multiversx/mx-chain-storage-go v1.0.14
 	github.com/multiversx/mx-chain-vm-common-go v1.5.11
 	github.com/multiversx/mx-chain-vm-go v1.5.26
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.94
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.95
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
