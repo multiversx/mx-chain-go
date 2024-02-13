@@ -1001,20 +1001,18 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	mintValue := big.NewInt(3000)
 	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
-	validatorOwnerBech32, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	validatorA, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	validatorA, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
 
-	validatorOwnerBech32, err = cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	validatorB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
-	validatorB, _ := metachainNode.GetCoreComponents().AddressPubKeyConverter().Decode(validatorOwnerBech32)
 
 	log.Info("Step 1. User A: - stake 1 node to have 100 egld more")
 	stakeValue := big.NewInt(0).Set(minimumStakeValue)
 	addedStakedValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
 	stakeValue.Add(stakeValue, addedStakedValue)
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorA, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
+	txStake := generateTransaction(validatorA.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -1022,12 +1020,12 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorA, blsKeys[0], addedStakedValue, 1)
-	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorA))
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorA.Bytes, blsKeys[0], addedStakedValue, 1)
+	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorA.Bytes))
 
 	log.Info("Step 2. Execute MakeNewContractFromValidatorData for User A")
 	txDataField = fmt.Sprintf("makeNewContractFromValidatorData@%s@%s", maxCap, serviceFee)
-	txConvert := generateTransaction(validatorA, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForConvertOperation)
+	txConvert := generateTransaction(validatorA.Bytes, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForConvertOperation)
 	convertTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txConvert, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, convertTx)
@@ -1047,7 +1045,7 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	addedStakedValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
 	stakeValue.Add(stakeValue, addedStakedValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
-	txStake = generateTransaction(validatorB, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
+	txStake = generateTransaction(validatorB.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
 	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -1055,35 +1053,35 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorB, blsKeys[1], addedStakedValue, 2)
-	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorB))
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorB.Bytes, blsKeys[1], addedStakedValue, 2)
+	assert.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorB.Bytes))
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
 	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	require.Equal(t, validatorB, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+	require.Equal(t, validatorB.Bytes, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
 	log.Info("Step 4. User B : whitelistForMerge@addressB")
-	txDataField = fmt.Sprintf("whitelistForMerge@%s", validatorB)
-	whitelistForMerge := generateTransaction(validatorA, 2, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
+	txDataField = fmt.Sprintf("whitelistForMerge@%s", validatorB.Bytes)
+	whitelistForMerge := generateTransaction(validatorA.Bytes, 2, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
 	whitelistForMergeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(whitelistForMerge, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, whitelistForMergeTx)
 
+	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
+	assert.Nil(t, err)
+
 	log.Info("Step 5. User A : mergeValidatorToDelegationWithWhitelist")
 	txDataField = fmt.Sprintf("mergeValidatorToDelegationWithWhitelist@%s", hex.EncodeToString(delegationAddress))
 
-	txConvert = generateTransaction(validatorB, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForMergeOperation)
+	txConvert = generateTransaction(validatorB.Bytes, 1, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForMergeOperation)
 	convertTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txConvert, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, convertTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	assert.Nil(t, err)
-
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
-	require.Nil(t, err)
 
 	decodedBLSKey0, _ = hex.DecodeString(blsKeys[0])
 	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
