@@ -608,9 +608,9 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		return nil, nil, err
 	}
 
-	accluntsDB, err := state.NewAccountsDBApi(accounts, provider)
+	accountsDB, err := state.NewAccountsDBApi(accounts, provider)
 
-	return accluntsDB, trieStorageManager, nil
+	return accountsDB, trieStorageManager, err
 }
 
 func newStoragePruningManager(args *scQueryElementArgs) (state.StoragePruningManager, error) {
