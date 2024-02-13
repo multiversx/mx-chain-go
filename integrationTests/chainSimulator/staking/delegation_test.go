@@ -36,7 +36,7 @@ const gasLimitForConvertOperation = 510_000_000
 const gasLimitForDelegationContractCreationOperation = 500_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
-const gasLimitForMergeOperation = 500_000_000
+const gasLimitForMergeOperation = 600_000_000
 const gasLimitForDelegate = 12_000_000
 const minGasPrice = 1000000000
 const txVersion = 1
@@ -859,8 +859,7 @@ func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 //  mergeValidatorToDelegationWithWhitelist contracts still works properly
 
 //  Test that their topups will merge too and will be used by auction list computing.
-
-// Internal test scenario #12
+//
 func TestChainSimulator_MergeDelegation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -871,6 +870,13 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 		HasValue: true,
 		Value:    30,
 	}
+
+	// Test steps:
+	//  1. User A: - stake 1 node to have 100 egld more ( or just pick a genesis validator on internal testnets and top it up with 100 egld)
+	//  2. User A : MakeNewContractFromValidatorData
+	//  3. User B: - stake 1 node with more than 2500 egld (or pick a genesis validator and stake 100 more egld to have a top-up)
+	//  4. User B : whiteListForMerge@addressA
+	//  5. User A : mergeValidatorToDelegationWithWhitelist
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -1062,7 +1068,7 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Equal(t, validatorB.Bytes, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
 	log.Info("Step 4. User B : whitelistForMerge@addressB")
-	txDataField = fmt.Sprintf("whitelistForMerge@%s", validatorB.Bytes)
+	txDataField = fmt.Sprintf("whitelistForMerge@%s", hex.EncodeToString(validatorB.Bytes))
 	whitelistForMerge := generateTransaction(validatorA.Bytes, 2, delegationAddress, zeroValue, txDataField, gasLimitForDelegate)
 	whitelistForMergeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(whitelistForMerge, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
