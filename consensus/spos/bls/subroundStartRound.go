@@ -138,10 +138,10 @@ func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
 }
 
 func (sr *subroundStartRound) initCurrentRound() bool {
-	nodeState := sr.BootStrapper().GetNodeState()
-	if nodeState != common.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
-		return false
-	}
+	//nodeState := sr.BootStrapper().GetNodeState()
+	//if nodeState != common.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
+	//	return false
+	//}
 
 	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "")
 

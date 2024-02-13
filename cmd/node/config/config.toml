@@ -624,8 +624,8 @@
     MinShuffledOutRestartThreshold = 0.05
     MaxShuffledOutRestartThreshold = 0.25
 
-    MinNumConnectedPeersToStart       = 2
-    MinNumOfPeersToConsiderBlockValid = 2
+    MinNumConnectedPeersToStart       = 1
+    MinNumOfPeersToConsiderBlockValid = 1
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

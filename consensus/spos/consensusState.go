@@ -159,8 +159,6 @@ func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 		return false
 	}
 
-	log.Info("IsNodeLeaderInCurrentRound", "leader", leader, "node", node)
-
 	return leader == node
 }
 

@@ -1055,7 +1055,6 @@ func (pcf *processComponentsFactory) unmarshalUserAccount(userAccountsBytes []by
 }
 
 func (pcf *processComponentsFactory) setGenesisHeader(genesisBlocks map[uint32]data.HeaderHandler) error {
-	time.Sleep(1 * time.Second)
 	genesisBlock, ok := genesisBlocks[pcf.bootstrapComponents.ShardCoordinator().SelfId()]
 	if !ok {
 		return errors.New("genesis block does not exist")
@@ -1067,7 +1066,6 @@ func (pcf *processComponentsFactory) setGenesisHeader(genesisBlocks map[uint32]d
 func (pcf *processComponentsFactory) prepareGenesisBlock(
 	genesisBlocks map[uint32]data.HeaderHandler,
 ) error {
-	time.Sleep(1 * time.Second)
 	genesisBlock, ok := genesisBlocks[pcf.bootstrapComponents.ShardCoordinator().SelfId()]
 	if !ok {
 		return errors.New("genesis block does not exist")
