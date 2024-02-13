@@ -19,9 +19,9 @@ import (
 )
 
 const (
-	stakingV4JailUnJailStep1EnableEpoch = 5
+	epochWhenNodeIsJailed = 6
 
-	epochWhenNodeIsJailed = 4
+	stakingV4JailUnJailStep1EnableEpoch = epochWhenNodeIsJailed + 1
 )
 
 // Test description
@@ -36,19 +36,19 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 	}
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 4, "new")
+		testChainSimulatorJailAndUnJail(t, epochWhenNodeIsJailed, "new")
 	})
 
 	t.Run("staking ph 4 step 1 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 5, "auction")
+		testChainSimulatorJailAndUnJail(t, stakingV4JailUnJailStep1EnableEpoch, "auction")
 	})
 
 	t.Run("staking ph 4 step 2 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 6, "auction")
+		testChainSimulatorJailAndUnJail(t, stakingV4JailUnJailStep1EnableEpoch+1, "auction")
 	})
 
 	t.Run("staking ph 4 step 3 active", func(t *testing.T) {
-		testChainSimulatorJailAndUnJail(t, 7, "auction")
+		testChainSimulatorJailAndUnJail(t, stakingV4JailUnJailStep1EnableEpoch+2, "auction")
 	})
 }
 
@@ -176,7 +176,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			configs.SetQuickJailRatingConfig(cfg)
-
+			cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
 		},
@@ -186,7 +186,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	defer cs.Close()
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = cs.GenerateBlocks(30)
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
