@@ -377,7 +377,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	require.NotNil(t, unBondTx)
 
 	// do claim
-	txClaim := generateTransaction(walletAddress.Bytes, 3, vm.ValidatorSCAddress, zeroValue, fmt.Sprintf("unBondTokens"), gasLimitForStakeOperation)
+	txClaim := generateTransaction(walletAddress.Bytes, 3, vm.ValidatorSCAddress, zeroValue, "unBondTokens", gasLimitForStakeOperation)
 	claimTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txClaim, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, claimTx)
