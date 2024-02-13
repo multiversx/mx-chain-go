@@ -314,7 +314,7 @@ func testBLSKeyIsInQueueOrAuction(t *testing.T, metachainNode chainSimulatorProc
 	require.Nil(t, err)
 	statistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
-	require.True(t, expectedTopUp.Cmp(getBLSTopUpValue(t, metachainNode, address)) == 0)
+	require.Equal(t, expectedTopUp.String(), getBLSTopUpValue(t, metachainNode, address).String())
 
 	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
 	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
@@ -701,7 +701,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getTotalActiveStake", nil)
 	require.Nil(t, err)
 	require.Equal(t, expectedTotalStaked, big.NewInt(0).SetBytes(output.ReturnData[0]))
-	require.True(t, expectedTopUp.Cmp(getBLSTopUpValue(t, metachainNode, delegationContractAddressBytes)) == 0)
+	require.Equal(t, expectedTopUp.String(), getBLSTopUpValue(t, metachainNode, delegationContractAddressBytes).String())
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getUserActiveStake", [][]byte{delegator1.Bytes})
 	require.Nil(t, err)
@@ -1029,9 +1029,7 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Nil(t, err)
 	require.NotNil(t, stakeNodesTx)
 
-	expectedTopUp = expectedTopUp.Sub(expectedTopUp, minimumCreateDelegationStakeValue)
-	expectedTopUp = expectedTopUp.Sub(expectedTopUp, minimumCreateDelegationStakeValue)
-	require.True(t, expectedTopUp.Cmp(getBLSTopUpValue(t, metachainNode, delegationContractAddress)) == 0)
+	require.Equal(t, zeroValue.String(), getBLSTopUpValue(t, metachainNode, delegationContractAddress).String())
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddress, "getAllNodeStates", nil)
 	require.Nil(t, err)
@@ -1044,7 +1042,7 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddress, blsKeys[0], expectedTopUp)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationContractAddress, blsKeys[0], zeroValue)
 
 	tx2delegatorB := generateTransaction(delegatorB.Bytes, 1, delegationContractAddress, delegateValue, "delegate", gasLimitForDelegate)
 	delegatorBTx2, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx2delegatorB, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -1057,7 +1055,7 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddress, "getTotalActiveStake", nil)
 	require.Nil(t, err)
 	require.Equal(t, expectedTotalStaked, big.NewInt(0).SetBytes(output.ReturnData[0]))
-	require.True(t, expectedTopUp.Cmp(getBLSTopUpValue(t, metachainNode, delegationContractAddress)) == 0)
+	require.Equal(t, zeroValue.String(), getBLSTopUpValue(t, metachainNode, delegationContractAddress).String())
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddress, "getUserActiveStake", [][]byte{delegatorB.Bytes})
 	require.Nil(t, err)
@@ -1070,7 +1068,7 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Nil(t, err)
 	require.NotNil(t, delegatorBTx3)
 
-	expectedTopUp = expectedTopUp.Add(expectedTopUp, delegateValue)
+	expectedTopUp = big.NewInt(0).Set(delegateValue)
 	expectedTotalStaked = expectedTotalStaked.Add(expectedTotalStaked, delegateValue)
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddress, "getTotalActiveStake", nil)
 	require.Nil(t, err)
