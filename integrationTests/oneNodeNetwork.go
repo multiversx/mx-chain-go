@@ -11,10 +11,13 @@ import (
 
 // OneNodeNetwork is a one-node network, useful for some integration tests
 type OneNodeNetwork struct {
-	Round uint64
-	Nonce uint64
+	Round          uint64
+	RoundMetachain uint64
+	Nonce          uint64
+	NonceMetachain uint64
 
-	Node *TestProcessorNode
+	Node          *TestProcessorNode
+	NodeMetachain *TestProcessorNode
 }
 
 // NewOneNodeNetwork creates a OneNodeNetwork
@@ -24,10 +27,11 @@ func NewOneNodeNetwork() *OneNodeNetwork {
 	nodes := CreateNodes(
 		1,
 		1,
-		0,
+		1,
 	)
 
 	n.Node = nodes[0]
+	n.NodeMetachain = nodes[1]
 	return n
 }
 
@@ -60,6 +64,7 @@ func (n *OneNodeNetwork) GoToRoundOne() {
 // Continue advances processing with a number of rounds
 func (n *OneNodeNetwork) Continue(t *testing.T, numRounds int) {
 	n.Nonce, n.Round = WaitOperationToBeDone(t, []*TestProcessorNode{n.Node}, numRounds, n.Nonce, n.Round, []int{0})
+	n.NonceMetachain, n.RoundMetachain = WaitOperationToBeDone(t, []*TestProcessorNode{n.NodeMetachain}, numRounds, n.NonceMetachain, n.RoundMetachain, []int{0})
 }
 
 // AddTxToPool adds a transaction to the pool (skips signature checks and interceptors)
