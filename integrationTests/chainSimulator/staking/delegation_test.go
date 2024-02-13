@@ -37,7 +37,6 @@ const gasLimitForDelegationContractCreationOperation = 500_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
 const gasLimitForMergeOperation = 500_000_000
-const gasLimitForGetNumNodes = 100_000_000
 const gasLimitForDelegate = 12_000_000
 const minGasPrice = 1000000000
 const txVersion = 1
