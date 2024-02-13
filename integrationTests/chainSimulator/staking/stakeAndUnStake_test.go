@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -273,6 +274,122 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	results, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
 	checkTotalQualified(t, results, 0)
+}
+
+// Internal test scenario #4 #5 #6
+// do stake
+// do unStake
+// do unBondNodes
+// do unBondTokens
+func TestChainSimulatorStakeUnStakeUnBond(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	t.Run("staking ph 4 is not active", func(t *testing.T) {
+		testStakeUnStakeUnBond(t, 1)
+	})
+
+	t.Run("staking ph 4 step 1 active", func(t *testing.T) {
+		testStakeUnStakeUnBond(t, 4)
+	})
+
+	t.Run("staking ph 4 step 2 active", func(t *testing.T) {
+		testStakeUnStakeUnBond(t, 5)
+	})
+
+	t.Run("staking ph 4 step 3 active", func(t *testing.T) {
+		testStakeUnStakeUnBond(t, 6)
+	})
+}
+
+func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            numOfShards,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       3,
+		MetaChainMinNodes:      3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod = 1
+			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
+			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 10
+			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
+	require.Nil(t, err)
+
+	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+	err = cs.AddValidatorKeys(privateKeys)
+	require.Nil(t, err)
+
+	mintValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
+	walletAddressShardID := uint32(0)
+	walletAddress, err := cs.GenerateAndMintWalletAddress(walletAddressShardID, mintValue)
+	require.Nil(t, err)
+
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
+	txStake := generateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, minimumStakeValue, txDataField, gasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, stakeTx)
+
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+	bls0, _ := hex.DecodeString(blsKeys[0])
+	blsKeyStatus := getBLSKeyStatus(t, metachainNode, bls0)
+	require.Equal(t, "staked", blsKeyStatus)
+
+	// do unStake
+	txUnStake := generateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, zeroValue, fmt.Sprintf("unStake@%s", blsKeys[0]), gasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, unStakeTx)
+
+	blsKeyStatus = getBLSKeyStatus(t, metachainNode, bls0)
+	require.Equal(t, "unStaked", blsKeyStatus)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
+	require.Nil(t, err)
+
+	// do unBond
+	txUnBond := generateTransaction(walletAddress.Bytes, 2, vm.ValidatorSCAddress, zeroValue, fmt.Sprintf("unBondNodes@%s", blsKeys[0]), gasLimitForStakeOperation)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, unBondTx)
+
+	// do claim
+	txClaim := generateTransaction(walletAddress.Bytes, 3, vm.ValidatorSCAddress, zeroValue, fmt.Sprintf("unBondTokens"), gasLimitForStakeOperation)
+	claimTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txClaim, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, claimTx)
+
+	err = cs.GenerateBlocks(5)
+	require.Nil(t, err)
+
+	// check tokens are in the wallet balance
+	walletAccount, _, err := cs.GetNodeHandler(walletAddressShardID).GetFacadeHandler().GetAccount(walletAddress.Bech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	walletBalanceBig, _ := big.NewInt(0).SetString(walletAccount.Balance, 10)
+	require.True(t, walletBalanceBig.Cmp(minimumStakeValue) > 0)
 }
 
 func checkTotalQualified(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, expected int) {
