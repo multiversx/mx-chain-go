@@ -103,8 +103,8 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	shardId uint32,
 	epoch uint32,
 ) (validatorsGroup []nodesCoordinator.Validator, err error) {
-	if ncm.ComputeValidatorsGroupCalled != nil {
-		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId, epoch)
+	if ncm.ComputeConsensusGroupCalled != nil {
+		return ncm.ComputeConsensusGroupCalled(randomness, round, shardId, epoch)
 	}
 
 	var list []nodesCoordinator.Validator
