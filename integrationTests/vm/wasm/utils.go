@@ -561,12 +561,7 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
-	err = context.GetCompositeTestError()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return context.GetCompositeTestError()
 }
 
 // UpgradeSC -
@@ -618,12 +613,7 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	err = context.GetCompositeTestError()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return context.GetCompositeTestError()
 }
 
 // GetSCCode -
@@ -697,15 +687,10 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		return err
 	}
 
-	err = context.GetCompositeTestError()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return context.GetCompositeTestError()
 }
 
-// acquireOutcome --
+// acquireOutcome -
 func (context *TestContext) acquireOutcome() error {
 	transactions := context.SCRForwarder.GetIntermediateTransactions()
 	context.LastSCResults = make([]*smartContractResult.SmartContractResult, len(transactions))

@@ -20,17 +20,17 @@ func TestTransfers_DuplicatedTransferValueEvents(t *testing.T) {
 	err = context.ExecuteSCWithValue(&context.Owner, "receive", big.NewInt(1))
 	require.Nil(t, err)
 	require.Len(t, context.LastLogs, 1)
-	require.Len(t, context.LastLogs[0].GetLogEvents(), 4)
+	require.Len(t, context.LastLogs[0].GetLogEvents(), 3)
 
 	events := context.LastLogs[0].GetLogEvents()
 
-	// There are duplicated events, to be fixed here:
-	// https://github.com/multiversx/mx-chain-go/pull/5936
+	// Duplicated "transferValueOnly" events are fixed in #5936.
 	require.Equal(t, "transferValueOnly", string(events[0].GetIdentifier()))
-	require.Equal(t, "AsyncCall", string(events[0].GetData()))
+	require.Equal(t, "BackTransfer", string(events[0].GetData()))
 	require.Equal(t, []byte{0x01}, events[0].GetTopics()[0])
 
-	require.Equal(t, "transferValueOnly", string(events[1].GetIdentifier()))
-	require.Equal(t, "BackTransfer", string(events[1].GetData()))
-	require.Equal(t, []byte{0x01}, events[1].GetTopics()[0])
+	require.Equal(t, "writeLog", string(events[1].GetIdentifier()))
+	require.Len(t, events[1].GetTopics(), 2)
+	require.Contains(t, string(events[1].GetTopics()[1]), "too much gas provided for processing")
+	require.Equal(t, "completedTxEvent", string(events[2].GetIdentifier()))
 }
