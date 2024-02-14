@@ -60,7 +60,7 @@ func (monitor *managedPeersMonitor) GetManagedKeysCount() int {
 	return len(monitor.managedPeersHolder.GetManagedKeysByCurrentNode())
 }
 
-// GetManagedKeys returns all keys managed by the current node
+// GetManagedKeys returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (monitor *managedPeersMonitor) GetManagedKeys() [][]byte {
 	managedKeysMap := monitor.managedPeersHolder.GetManagedKeysByCurrentNode()
 	managedKeys := make([][]byte, 0, len(managedKeysMap))
@@ -73,6 +73,11 @@ func (monitor *managedPeersMonitor) GetManagedKeys() [][]byte {
 	})
 
 	return managedKeys
+}
+
+// GetLoadedKeys returns all keys that were loaded and will be managed by this node
+func (monitor *managedPeersMonitor) GetLoadedKeys() [][]byte {
+	return monitor.managedPeersHolder.GetLoadedKeysByCurrentNode()
 }
 
 // GetEligibleManagedKeys returns eligible keys that are managed by the current node in the current epoch
