@@ -142,6 +142,7 @@ type ApiResolver interface {
 	GetGasConfigs() map[string]map[string]uint64
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
+	GetLoadedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
 	Close() error
