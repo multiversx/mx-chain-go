@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -448,5 +449,24 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
 		require.Nil(t, scQueryService)
 	})
+}
 
+func TestCreateApiResolver_createBlockchainForScQuery(t *testing.T) {
+	t.Parallel()
+
+	t.Run("for metachain", func(t *testing.T) {
+		t.Parallel()
+
+		apiBlockchain, err := api.CreateBlockchainForScQuery(core.MetachainShardId)
+		require.NoError(t, err)
+		require.Equal(t, "*blockchain.metaChain", fmt.Sprintf("%T", apiBlockchain))
+	})
+
+	t.Run("for shard", func(t *testing.T) {
+		t.Parallel()
+
+		apiBlockchain, err := api.CreateBlockchainForScQuery(0)
+		require.NoError(t, err)
+		require.Equal(t, "*blockchain.blockChain", fmt.Sprintf("%T", apiBlockchain))
+	})
 }

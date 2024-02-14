@@ -343,6 +343,8 @@ func createScQueryElement(
 ) (process.SCQueryService, error) {
 	var err error
 
+	selfShardID := args.processComponents.ShardCoordinator().SelfId()
+
 	pkConverter := args.coreComponents.AddressPubKeyConverter()
 	automaticCrawlerAddressesStrings := args.generalConfig.BuiltInFunctions.AutomaticCrawlerAddresses
 	convertedAddresses, errDecode := factory.DecodeAddresses(pkConverter, automaticCrawlerAddressesStrings)
@@ -356,7 +358,7 @@ func createScQueryElement(
 		return nil, errDecode
 	}
 
-	apiBlockchain, err := blockchain.NewBlockChain(disabled.NewAppStatusHandler())
+	apiBlockchain, err := createBlockchainForScQuery(selfShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +417,7 @@ func createScQueryElement(
 
 	var vmFactory process.VirtualMachinesContainerFactory
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
-	if args.processComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+	if selfShardID == core.MetachainShardId {
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
 		vmFactory, err = createMetaVmContainerFactory(args, argsHook)
 	} else {
@@ -461,6 +463,15 @@ func createScQueryElement(
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)
+}
+
+func createBlockchainForScQuery(selfShardID uint32) (data.ChainHandler, error) {
+	isMetachain := selfShardID == core.MetachainShardId
+	if isMetachain {
+		return blockchain.NewMetaChain(disabled.NewAppStatusHandler())
+	}
+
+	return blockchain.NewBlockChain(disabled.NewAppStatusHandler())
 }
 
 func createMetaVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBlockChainHook) (process.VirtualMachinesContainerFactory, error) {
