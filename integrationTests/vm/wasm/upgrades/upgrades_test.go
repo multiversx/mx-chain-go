@@ -182,38 +182,41 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", wasm.GetSCCode("../testdata/hello-v2/output/answer.wasm"))
 
 	// Deploy the smart contract. Alice is the owner
-	network.SendTransaction(
+	_, err := network.SendTransaction(
 		alice.Address,
 		make([]byte, 32),
 		big.NewInt(0),
 		deployTxData,
 		1000,
 	)
+	require.Nil(t, err)
 
 	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(alice.Address, 0, factory.WasmVirtualMachine)
 	network.Continue(t, 1)
 	require.Equal(t, []byte{24}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner
-	network.SendTransaction(
+	_, err = network.SendTransaction(
 		bob.Address,
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
 		1000,
 	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
 	require.Equal(t, []byte{24}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 
 	// Now upgrade as Alice, should work
-	network.SendTransaction(
+	_, err = network.SendTransaction(
 		alice.Address,
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
 		1000,
 	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
 	require.Equal(t, []byte{42}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
@@ -236,50 +239,54 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", wasm.GetSCCode("../testdata/counter/output/counter.wasm"))
 
 	// Deploy the smart contract. Alice is the owner
-	network.SendTransaction(
+	_, err := network.SendTransaction(
 		alice.Address,
 		make([]byte, 32),
 		big.NewInt(0),
 		deployTxData,
 		1000,
 	)
+	require.Nil(t, err)
 
 	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(alice.Address, 0, factory.WasmVirtualMachine)
 	network.Continue(t, 1)
 	require.Equal(t, []byte{1}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Increment the counter (could be either Bob or Alice)
-	network.SendTransaction(
+	_, err = network.SendTransaction(
 		alice.Address,
 		scAddress,
 		big.NewInt(0),
 		"increment",
 		1000,
 	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
 	require.Equal(t, []byte{2}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner (counter.init() not executed, state not reset)
-	network.SendTransaction(
+	_, err = network.SendTransaction(
 		bob.Address,
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
 		1000,
 	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
 	require.Equal(t, []byte{2}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Now upgrade as Alice, should work (state is reset by counter.init())
-	network.SendTransaction(
+	_, err = network.SendTransaction(
 		alice.Address,
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
 		1000,
 	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
 	require.Equal(t, []byte{1}, query(t, network.ShardNode, scAddress, "get"))

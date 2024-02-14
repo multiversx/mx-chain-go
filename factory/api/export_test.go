@@ -49,6 +49,7 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 	})
 }
 
+// CreateBlockchainForScQuery -
 func CreateBlockchainForScQuery(selfShardID uint32) (data.ChainHandler, error) {
 	return createBlockchainForScQuery(selfShardID)
 }
