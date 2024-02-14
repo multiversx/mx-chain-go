@@ -88,12 +88,13 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs            int64
-	RoundsPerEpoch                    int64
-	MinShuffledOutRestartThreshold    float64
-	MaxShuffledOutRestartThreshold    float64
-	MinNumConnectedPeersToStart       int
-	MinNumOfPeersToConsiderBlockValid int
+	MinRoundsBetweenEpochs                      int64
+	RoundsPerEpoch                              int64
+	MinShuffledOutRestartThreshold              float64
+	MaxShuffledOutRestartThreshold              float64
+	MinNumConnectedPeersToStart                 int
+	MinNumOfPeersToConsiderBlockValid           int
+	ExtraDelayForRequestBlockInfoInMilliseconds int
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle

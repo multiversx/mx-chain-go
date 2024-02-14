@@ -116,6 +116,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
+	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
+
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 	}
@@ -216,6 +218,7 @@ func generateValidatorsKeyAndUpdateFiles(
 
 	nodes.ConsensusGroupSize = 1
 	nodes.MetaChainConsensusGroupSize = 1
+	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard
 	nodes.MetaChainMinNodes = args.MetaChainMinNodes
