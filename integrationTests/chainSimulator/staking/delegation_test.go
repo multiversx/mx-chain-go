@@ -348,7 +348,7 @@ func testBLSKeyIsInAuction(
 	expectedAuctionListOwnersSize := 1
 	currentEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
 	if currentEpoch == metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag) {
-		// starting from phase 2, we have the shuffled out nodes from the previous epoch in the action list
+		// starting from step 2, we have the shuffled out nodes from the previous epoch in the action list
 		expectedAuctionListOwnersSize += 1
 		expectedNodesInAuctionList += 8
 	}
