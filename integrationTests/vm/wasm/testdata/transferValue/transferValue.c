@@ -3,11 +3,11 @@ typedef unsigned int i32;
 typedef unsigned long long i64;
 
 void getSCAddress(byte *address);
-void getCaller(byte *callerAddress);
 int transferValue(byte *destination, byte *value, byte *data, int length);
+void getCaller(byte *callerAddress);
 int getCallValue(byte *result);
-void finish(byte *data, int length);
 i32 createAsyncCall(byte *destination, byte *value, byte *data, int dataLength, byte *success, int successLength, byte *error, int errorLength, long long gas, long long extraGasForCallback);
+void finish(byte *data, int length);
 
 byte zero32_a[32] = {0};
 byte zero32_b[32] = {0};
@@ -47,12 +47,12 @@ void receive()
 
 void echoValue()
 {
-    byte *selfAddress = zero32_a;
+    byte *caller = zero32_a;
     byte *callValue = zero32_b;
 
-    getSCAddress(selfAddress);
+    getCaller(caller);
     getCallValue(callValue);
 
-    transferValue(selfAddress, callValue, 0, 0);
+    transferValue(caller, callValue, 0, 0);
     finish(strThankYouButNo, sizeof(strThankYouButNo) - 1);
 }
