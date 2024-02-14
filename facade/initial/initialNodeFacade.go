@@ -76,7 +76,7 @@ func (inf *initialNodeFacade) SetSyncer(_ ntp.SyncTimer) {
 }
 
 // RestAPIServerDebugMode returns false
-//TODO: remove in the future
+// TODO: remove in the future
 func (inf *initialNodeFacade) RestAPIServerDebugMode() bool {
 	return false
 }
@@ -413,6 +413,11 @@ func (inf *initialNodeFacade) GetManagedKeysCount() int {
 
 // GetManagedKeys returns nil
 func (inf *initialNodeFacade) GetManagedKeys() []string {
+	return nil
+}
+
+// GetLoadedKeys returns nil
+func (inf *initialNodeFacade) GetLoadedKeys() []string {
 	return nil
 }
 
