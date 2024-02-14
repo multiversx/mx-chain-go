@@ -519,6 +519,7 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
+    NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
         IntervalInSeconds = 1
         ReservedPercent   = 20.0
