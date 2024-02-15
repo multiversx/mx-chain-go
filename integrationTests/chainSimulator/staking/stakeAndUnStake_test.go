@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -27,6 +29,502 @@ const (
 )
 
 var log = logger.GetOrCreate("integrationTests/chainSimulator")
+
+type ValidatorExpectations struct {
+	ExpectedTopUp    *big.Int
+	NumExpectedNodes int64
+	Address          string
+}
+
+// Internal test scenario #22
+func TestChainSimulator_MultipleStakeUnstakeIsCalculatedProperly(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+
+	// Test scenario done in staking v4 phase step 3
+	// Check that if you do multiple stake and unstake actions, it will be calculated live and the values stand
+	// until the end of the epoch
+	// Attributes on API are changing after every transaction that impacts the API
+	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t, cs, 4)
+	})
+}
+
+// Internal test scenario #10
+func TestChainSimulator_UnstakeFundsHappyFlow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+
+	// Test scenario done in staking 3.5 phase (staking v4 is not active)
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on queue and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 is not active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorUnstakeFundsHappyFlow(t, cs, 1)
+	})
+
+	// Test scenario done in staking v4 phase step 1
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on auction list and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on auction list and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorUnstakeFundsHappyFlow(t, cs, 2)
+	})
+
+	// Test scenario done in staking v4 phase step 2
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on auction list and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on auction list and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorUnstakeFundsHappyFlow(t, cs, 3)
+	})
+
+	// Test scenario done in staking v4 phase step 3
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on auction list and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on auction list and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		testChainSimulatorUnstakeFundsHappyFlow(t, cs, 4)
+	})
+}
+
+func testChainSimulatorUnstakeFundsHappyFlow(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
+	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
+	require.Nil(t, err)
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+
+	//create a validator
+	validatorBytes := generateWalletAddressBytes()
+	validator, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(validatorBytes)
+	validatorShardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorBytes)
+
+	validatorContractAddress := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
+	validatorContractAddressBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(validatorContractAddress)
+
+	// Set the initial state for the owner
+	initialFunds := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000)) // 10000 EGLD
+
+	addresses := []*dtos.AddressState{
+		{Address: validator, Balance: initialFunds.String()},
+	}
+
+	err = cs.SetStateMultiple(addresses)
+	require.Nil(t, err)
+
+	// Step 1 --- add a new validator key in the chain simulator
+	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
+	require.Nil(t, err)
+
+	err = cs.AddValidatorKeys(privateKey)
+	require.Nil(t, err)
+
+	// Stake one node per validator owner
+	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(5200)) // 2600*2 EGLD
+	validatorOwnerAStatus, _, err := cs.GetNodeHandler(validatorShardID).GetFacadeHandler().GetAccount(validator, coreAPI.AccountQueryOptions{})
+	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:2], validatorBytes, validatorContractAddressBytes, 2, stakeValue)
+
+	// Finalize block
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+
+	// Verify user active stake
+	output, err := executeQuery(cs, core.MetachainShardId, validatorContractAddressBytes, "getTotalStaked", [][]byte{validatorBytes})
+	require.Nil(t, err)
+	//check that total staked is 5200
+	require.Equal(t, "5200000000000000000000", string(output.ReturnData[0]))
+
+	// Unstake 50 EGLD
+	unstakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(50))
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorShardID).GetFacadeHandler().GetAccount(validator, coreAPI.AccountQueryOptions{})
+	unstakeTokens(t, cs, validatorOwnerAStatus.Nonce, unstakeValue, validatorBytes, validatorContractAddressBytes)
+
+	// check balance of the user is smaller than before sending the tx
+	validatorOwnerAStatusAfter, _, err := cs.GetNodeHandler(validatorShardID).GetFacadeHandler().GetAccount(validator, coreAPI.AccountQueryOptions{})
+	// validatorOwnerStatus has to be greater than validatorOwnerStatusAfter
+	require.True(t, validatorOwnerAStatus.Balance > validatorOwnerAStatusAfter.Balance)
+
+	// Finalize block
+	err = cs.GenerateBlocks(3)
+	require.Nil(t, err)
+
+	// Verify user active stake
+	output, err = executeQuery(cs, core.MetachainShardId, validatorContractAddressBytes, "getTotalStaked", [][]byte{validatorBytes})
+	require.Nil(t, err)
+	//check that total staked is 5199
+	require.Equal(t, "5150000000000000000000", string(output.ReturnData[0]))
+
+	// Verify user active stake
+	output, err = executeQuery(cs, core.MetachainShardId, validatorContractAddressBytes, "getUnStakedTokensList", [][]byte{validatorBytes})
+	require.Nil(t, err)
+}
+
+func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
+	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
+	require.Nil(t, err)
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+
+	//create 2 validator owners and 2 delegators
+	validatorOwnerABytes := generateWalletAddressBytes()
+	validatorOwnerA, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(validatorOwnerABytes)
+	validatorOwnerAShardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwnerABytes)
+	validatorOwnerBBytes := generateWalletAddressBytes()
+	validatorOwnerB, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(validatorOwnerBBytes)
+	validatorOwnerBShardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwnerBBytes)
+
+	validatorContractAddress := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
+	validatorContractAddressBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(validatorContractAddress)
+
+	// Set the initial state for the owner and the 2 delegators
+	initialFunds := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000)) // 10000 EGLD for each
+
+	addresses := []*dtos.AddressState{
+		{Address: validatorOwnerA, Balance: initialFunds.String()},
+		{Address: validatorOwnerB, Balance: initialFunds.String()},
+	}
+	err = cs.SetStateMultiple(addresses)
+	require.Nil(t, err)
+
+	// Step 1 --- add a new validator key in the chain simulator
+	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
+	require.Nil(t, err)
+
+	err = cs.AddValidatorKeys(privateKey)
+	require.Nil(t, err)
+
+	// Stake one node per validator owner
+	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(3000)) // 3000 EGLD
+	validatorOwnerAStatus, _, err := cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:1], validatorOwnerABytes, validatorContractAddressBytes, 1, stakeValue)
+	validatorOwnerBStatus, _, err := cs.GetNodeHandler(validatorOwnerBShardID).GetFacadeHandler().GetAccount(validatorOwnerB, coreAPI.AccountQueryOptions{})
+	stakeNodes(t, cs, validatorOwnerBStatus.Nonce, blsKeys[1:], validatorOwnerBBytes, validatorContractAddressBytes, 1, stakeValue)
+
+	// Finalize block
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	//get auction list
+	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	// 1st check - both validators should have 500 EGLD topUp
+	validatorOwnersExpectations := map[string]ValidatorExpectations{
+		validatorOwnerA: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+		validatorOwnerB: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+	}
+	checkAuctionList(t, auctionList, validatorOwnersExpectations)
+
+	//2nd check after unstaking 100 EGLD from A and nothing from B ------------------------------------
+	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	unstakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100)) // 100 EGLD
+	unstakeTokens(t, cs, validatorOwnerAStatus.Nonce, unstakeValue, validatorOwnerABytes, validatorContractAddressBytes)
+
+	// Finalize block
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	// check position of validator A in auction list is below validator B
+	//get auction list
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	validatorOwnersExpectations = map[string]ValidatorExpectations{
+		validatorOwnerA: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(400)),
+			NumExpectedNodes: 1,
+		},
+		validatorOwnerB: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+	}
+
+	checkAuctionList(t, auctionList, validatorOwnersExpectations)
+
+	//check if delegation contract: A is above B in auction list
+	validatorAIndex, validatorBIndex := checkValidatorPositions(auctionList, blsKeys[0], blsKeys[1])
+	require.True(t, validatorAIndex > validatorBIndex)
+
+	//3rd check after staking 50 EGLD from A and nothing from B ------------------------------------
+	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	stakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(50)) // 50 EGLD
+	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:1], validatorOwnerABytes, validatorContractAddressBytes, 1, stakeValue)
+
+	// Finalize block
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	// check position of validator A in auction list is below validator B
+	//get auction list
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	validatorOwnersExpectations = map[string]ValidatorExpectations{
+		validatorOwnerA: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(450)),
+			NumExpectedNodes: 1,
+		},
+		validatorOwnerB: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+	}
+	checkAuctionList(t, auctionList, validatorOwnersExpectations)
+
+	//check if delegation contract: A is above B in auction list
+	validatorAIndex, validatorBIndex = checkValidatorPositions(auctionList, blsKeys[0], blsKeys[1])
+
+	require.True(t, validatorAIndex > validatorBIndex)
+
+	// 4th step - stake 1000 EGLD to A and check if A is now on upper position
+	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	stakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(1000)) // 1000 EGLD
+	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:1], validatorOwnerABytes, validatorContractAddressBytes, 1, stakeValue)
+
+	// Finalize block
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	// check position of validator A in auction list is below validator B
+	//get auction list
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	validatorOwnersExpectations = map[string]ValidatorExpectations{
+		validatorOwnerA: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(1450)),
+			NumExpectedNodes: 1,
+		},
+		validatorOwnerB: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+	}
+	checkAuctionList(t, auctionList, validatorOwnersExpectations)
+
+	//check if delegation contract: A is above B in auction list
+	validatorAIndex, validatorBIndex = checkValidatorPositions(auctionList, blsKeys[0], blsKeys[1])
+
+	require.True(t, validatorAIndex < validatorBIndex)
+
+	//5th check after unstaking 950 EGLD from A and nothing from B ------------------------------------
+	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	unstakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(950)) // 950 EGLD
+	unstakeTokens(t, cs, validatorOwnerAStatus.Nonce, unstakeValue, validatorOwnerABytes, validatorContractAddressBytes)
+
+	// Finalize block
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	//get auction list
+	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	validatorOwnersExpectations = map[string]ValidatorExpectations{
+		validatorOwnerA: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+		validatorOwnerB: {
+			ExpectedTopUp:    big.NewInt(0).Mul(oneEGLD, big.NewInt(500)),
+			NumExpectedNodes: 1,
+		},
+	}
+
+	//checks also that both validators have same amount of top-up
+	checkAuctionList(t, auctionList, validatorOwnersExpectations)
+}
+
+func checkValidatorPositions(auctionList []*common.AuctionListValidatorAPIResponse, blsKeyA, blsKeyB string) (int, int) {
+	validatorAPosition, validatorBPosition := -1, -1
+	for i, position := range auctionList {
+		if strings.EqualFold(position.AuctionList[0].BlsKey, blsKeyA) {
+			validatorAPosition = i
+		}
+		if strings.EqualFold(position.AuctionList[0].BlsKey, blsKeyB) {
+			validatorBPosition = i
+		}
+
+		// Once both validators are found, no need to continue the loop
+		if validatorAPosition != -1 && validatorBPosition != -1 {
+			break
+		}
+	}
+	// Return the positions in auction list
+	return validatorAPosition, validatorBPosition
+}
+
+func checkAuctionList(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, validatorOwnersExpectations map[string]ValidatorExpectations) {
+	for _, validator := range auctionList {
+		expectations, ok := validatorOwnersExpectations[validator.Owner]
+		if !ok {
+			// Skip if validators are not among the specified validatorOwners
+			continue
+		}
+
+		// Verify the aggregate data for each validator
+		require.Equal(t, expectations.NumExpectedNodes, int64(len(validator.AuctionList)), "The number of nodes does not match the expectations for validator: "+validator.Owner)
+
+		require.Equal(t, expectations.ExpectedTopUp.String(), validator.TotalTopUp)
+	}
+}
 
 // TODO scenarios
 // Make a staking provider with max num of nodes
@@ -266,6 +764,49 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	results, err = cm.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
 	checkTotalQualified(t, results, 0)
+}
+
+func stakeNodes(t *testing.T, cm chainSimulatorIntegrationTests.ChainSimulator, nonce uint64, blsKeys []string, newValidatorOwnerBytes, rcvAddrBytes []byte, numOfNodes int, stakeValue *big.Int) {
+	validatorData := ""
+	for _, blsKey := range blsKeys {
+		validatorData += fmt.Sprintf("@%s@010101", blsKey)
+	}
+
+	numOfNodesHex := hex.EncodeToString(big.NewInt(int64(numOfNodes)).Bytes())
+	tx := &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     stakeValue,
+		SndAddr:   newValidatorOwnerBytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("stake@%s%s", numOfNodesHex, validatorData)),
+		GasLimit:  500_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txFromNetwork, err := cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txFromNetwork)
+}
+
+func unstakeTokens(t *testing.T, cm chainSimulatorIntegrationTests.ChainSimulator, nonce uint64, unstakeValue *big.Int, senderBytes []byte, rcvAddrBytes []byte) {
+	tx := &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     big.NewInt(0), // Unstake transactions typically does not carry a value
+		SndAddr:   senderBytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unstakeValue.Bytes()))),
+		GasLimit:  50_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	_, err := cm.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
 }
 
 func checkTotalQualified(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, expected int) {

@@ -427,13 +427,13 @@ func testChainSimulatorTopUpIsConsideredWhenUsersDelegateUndelegate(t *testing.T
 
 	// perform stake nodes after delegation
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
-	stakeNodesAndVerify(t, cs, delegationContractAddressBytesA, validatorOwnerABytes, validatorOwnerAStatus.Nonce, addedNodeBlsKeyA, contractATopup, metachainNode)
+	delegationStakeNodesAndVerify(t, cs, delegationContractAddressBytesA, validatorOwnerABytes, validatorOwnerAStatus.Nonce, addedNodeBlsKeyA, contractATopup, metachainNode)
 	validatorOwnerBStatus, _, err = cs.GetNodeHandler(validatorOwnerBShardID).GetFacadeHandler().GetAccount(validatorOwnerB, coreAPI.AccountQueryOptions{})
-	stakeNodesAndVerify(t, cs, delegationContractAddressBytesB, validatorOwnerBBytes, validatorOwnerBStatus.Nonce, addedNodeBlsKeyB, contractBTopup, metachainNode)
+	delegationStakeNodesAndVerify(t, cs, delegationContractAddressBytesB, validatorOwnerBBytes, validatorOwnerBStatus.Nonce, addedNodeBlsKeyB, contractBTopup, metachainNode)
 
 	require.Nil(t, err)
 
-	// check if delegation contract: A is above B in auction list
+	// check if delegation contract: A is above B in auction list at epoch change.
 	// first check if staking v4 is active
 	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
 	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
@@ -641,7 +641,7 @@ func addValidatorNodeAndVerify(t *testing.T, cs chainSimulatorIntegrationTests.C
 }
 
 // Stake nodes to the delegation contract and verify the status
-func stakeNodesAndVerify(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, delegationContractAddressBytes, validatorOwnerBytes []byte, nonce uint64, blsKeys []string, expectedTopUp *big.Int, metachainNode chainSimulatorProcess.NodeHandler) {
+func delegationStakeNodesAndVerify(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, delegationContractAddressBytes, validatorOwnerBytes []byte, nonce uint64, blsKeys []string, expectedTopUp *big.Int, metachainNode chainSimulatorProcess.NodeHandler) {
 	// Stake nodes
 	txStakeNodesData := fmt.Sprintf("stakeNodes@%s", blsKeys[0])
 	txStakeNodes := generateTransaction(validatorOwnerBytes, nonce, delegationContractAddressBytes, big.NewInt(0), txStakeNodesData, gasLimitForDelegate)
