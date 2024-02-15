@@ -205,8 +205,8 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 			},
 		}
 
-		err = nodeLocal.SetKeyValueForAddress(addressBytes, nil)
-		require.Equal(t, expectedErr, err)
+		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, nil)
+		require.Equal(t, expectedErr, errLocal)
 	})
 	t.Run("account un-castable to UserAccountHandler should error", func(t *testing.T) {
 		t.Parallel()
@@ -223,15 +223,14 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 			},
 		}
 
-		err = nodeLocal.SetKeyValueForAddress(addressBytes, nil)
-		require.Error(t, err)
-		require.Equal(t, "cannot cast AccountHandler to UserAccountHandler", err.Error())
+		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, nil)
+		require.Error(t, errLocal)
+		require.Equal(t, "cannot cast AccountHandler to UserAccountHandler", errLocal.Error())
 	})
 	t.Run("SaveKeyValue failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		argsLocal := createMockArgsTestOnlyProcessingNode(t)
-		nodeLocal, errLocal := NewTestOnlyProcessingNode(argsLocal)
+		nodeLocal, errLocal := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 		require.NoError(t, errLocal)
 
 		nodeLocal.StateComponentsHolder = &factory.StateComponentsMock{
@@ -246,8 +245,8 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 			},
 		}
 
-		err = nodeLocal.SetKeyValueForAddress(addressBytes, goodKeyValueMap)
-		require.Equal(t, expectedErr, err)
+		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, goodKeyValueMap)
+		require.Equal(t, expectedErr, errLocal)
 	})
 	t.Run("SaveAccount failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -264,8 +263,8 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 			},
 		}
 
-		err = nodeLocal.SetKeyValueForAddress(addressBytes, goodKeyValueMap)
-		require.Equal(t, expectedErr, err)
+		errLocal = nodeLocal.SetKeyValueForAddress(addressBytes, goodKeyValueMap)
+		require.Equal(t, expectedErr, errLocal)
 	})
 }
 
@@ -433,8 +432,8 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 			},
 		}
 
-		err = nodeLocal.SetStateForAddress(addressBytes, addressState)
-		require.Equal(t, expectedErr, err)
+		errLocal = nodeLocal.SetStateForAddress(addressBytes, addressState)
+		require.Equal(t, expectedErr, errLocal)
 	})
 }
 
