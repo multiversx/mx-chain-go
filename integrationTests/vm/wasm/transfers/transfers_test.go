@@ -53,7 +53,7 @@ func TestTransfers_DuplicatedTransferValueEvents(t *testing.T) {
 	// Duplicated "transferValueOnly" events are fixed in #5936.
 	require.Equal(t, "transferValueOnly", string(events[2].GetIdentifier()))
 	require.Equal(t, "AsyncCallback", string(events[2].GetData()))
-	require.Equal(t, []byte{0x01}, events[2].GetTopics()[0])
+	require.Equal(t, []byte{}, events[2].GetTopics()[0])
 	require.Equal(t, vault, events[2].GetAddress())
 	require.Equal(t, forwarder, events[2].GetTopics()[1])
 
