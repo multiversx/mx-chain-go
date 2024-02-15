@@ -18,10 +18,10 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -588,7 +588,7 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	stakeValue = big.NewInt(0).Set(minimumStakeValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
@@ -598,7 +598,7 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
 	scQuery := &process.SCQuery{
@@ -626,7 +626,7 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	log.Info("Step 3. Check the stake amount for the owner of the staked nodes")
 	scQuery = &process.SCQuery{
@@ -645,9 +645,10 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 }
 
-// Test description
-//  unstake funds with deactivation of node if below 2500 -> the rest of funds are distributed as topup at epoch change
+// Test description:
+// Unstake funds with deactivation of node if below 2500 -> the rest of funds are distributed as topup at epoch change
 //
+// Internal test scenario #26
 func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -790,7 +791,6 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
-	log.Info("Preconditions. Have an account with 2 staked nodes")
 	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
 	require.Nil(t, err)
 
@@ -812,7 +812,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
-	assert.Nil(t, err)
+	require.Nil(t, err)
+
+	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
 
 	stakeValue = big.NewInt(0).Set(minimumStakeValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
@@ -822,7 +824,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
-	assert.Nil(t, err)
+	require.Nil(t, err)
+
+	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
 	scQuery := &process.SCQuery{
@@ -851,7 +855,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	require.NotNil(t, unStakeTx)
 
 	err = cs.GenerateBlocks(2)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
 	scQuery = &process.SCQuery{
@@ -883,4 +887,42 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	expectedUnStaked := big.NewInt(10)
 	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
+
+	log.Info("Step 4. Wait for change of epoch and check the outcome")
+	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
+	require.Nil(t, err)
+
+	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
+	require.NotEqual(t, stakedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey0))
+	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
+	require.NotEqual(t, stakedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey1))
+}
+
+func testBLSKeyStaked(t *testing.T,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
+	metachainNode chainSimulatorProcess.NodeHandler,
+	blsKey string, targetEpoch int32,
+) {
+	decodedBLSKey, _ := hex.DecodeString(blsKey)
+	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+
+	validatorStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
+	require.Nil(t, err)
+
+	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
+	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
+		require.Equal(t, stakedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey))
+
+		validatorInfo, found := validatorStatistics[blsKey]
+		require.True(t, found)
+		require.Equal(t, auctionStatus, validatorInfo.ValidatorStatus)
+
+		return
+	}
+
+	// in staking ph 2/3.5 we do not find the bls key on the validator statistics
+	_, found := validatorStatistics[blsKey]
+	require.False(t, found)
+	require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey))
 }
