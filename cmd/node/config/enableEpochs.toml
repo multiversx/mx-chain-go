@@ -293,6 +293,9 @@
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 4
 
+    # CryptoAPIV2EnableEpoch represents the epoch when the new crypto apis are enabled on the vm
+    CryptoAPIV2EnableEpoch = 4
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
