@@ -407,3 +407,23 @@ func TestApiTransactionEvaluator_ComputeTransactionGasLimit(t *testing.T) {
 	require.Nil(t, err)
 	require.True(t, called)
 }
+
+func TestApiTransactionEvaluator_GetCurrentHeader(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	args.BlockChain = &testscommon.ChainHandlerMock{}
+	_ = args.BlockChain.SetGenesisHeader(&block.Header{Nonce: 0})
+
+	tce, err := NewAPITransactionEvaluator(args)
+	require.Nil(t, err)
+
+	currentHeader := tce.getCurrentBlockHeader()
+	require.Equal(t, uint64(0), currentHeader.GetNonce())
+
+	expectedNonce := uint64(100)
+	_ = args.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: expectedNonce}, []byte("root"))
+
+	currentHeader = tce.getCurrentBlockHeader()
+	require.Equal(t, expectedNonce, currentHeader.GetNonce())
+}

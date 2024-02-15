@@ -98,7 +98,7 @@ func (ate *apiTransactionEvaluator) SimulateTransactionExecution(tx *transaction
 		ate.mutExecution.Unlock()
 	}()
 
-	currentHeader := ate.blockChain.GetCurrentBlockHeader()
+	currentHeader := ate.getCurrentBlockHeader()
 
 	return ate.txSimulator.ProcessTx(tx, currentHeader)
 }
@@ -149,8 +149,7 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 	}
 
 	costResponse := &transaction.CostResponse{}
-	currentHeader := ate.blockChain.GetCurrentBlockHeader()
-
+	currentHeader := ate.getCurrentBlockHeader()
 	res, err := ate.txSimulator.ProcessTx(tx, currentHeader)
 	if err != nil {
 		costResponse.ReturnMessage = err.Error()
@@ -236,6 +235,15 @@ func (ate *apiTransactionEvaluator) addMissingFieldsIfNeeded(tx *transaction.Tra
 	}
 
 	return nil
+}
+
+func (ate *apiTransactionEvaluator) getCurrentBlockHeader() data.HeaderHandler {
+	currentHeader := ate.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return ate.blockChain.GetGenesisHeader()
+	}
+
+	return currentHeader
 }
 
 func (ate *apiTransactionEvaluator) getTxGasLimit(tx *transaction.Transaction) (uint64, error) {
