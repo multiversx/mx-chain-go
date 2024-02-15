@@ -1,4 +1,6 @@
 init
 upgrade
-receive
-echoValue
+fund
+forwardAskMoney
+askMoney
+myCallback

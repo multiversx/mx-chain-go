@@ -167,7 +167,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 	context.initFeeHandlers()
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
-	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.WasmVirtualMachine)
+
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              context.VMContainer,
 		EconomicsFee:             context.EconomicsFee,
@@ -549,6 +549,8 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 	if err != nil {
 		return err
 	}
+
+	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.WasmVirtualMachine)
 
 	owner.Nonce++
 	_, err = context.Accounts.Commit()
