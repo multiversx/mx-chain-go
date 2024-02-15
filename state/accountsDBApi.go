@@ -171,8 +171,19 @@ func (accountsDB *accountsDBApi) RecreateTrie(rootHash []byte) error {
 }
 
 // RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
-	return ErrOperationNotPermitted
+func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHolder) error {
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
+
+	err := accountsDB.innerAccountsAdapter.RecreateTrieFromEpoch(options)
+	if err != nil {
+		accountsDB.blockInfo = nil
+		return err
+	}
+
+	accountsDB.blockInfo = holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
+
+	return nil
 }
 
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
