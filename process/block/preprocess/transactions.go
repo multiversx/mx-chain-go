@@ -1166,7 +1166,7 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
-		txs.blockSizeComputation.IsMaxBlockSizeReached,
+		isMaxBlockSizeReachedFalse,
 		sortedTxs,
 		mapSCTxs,
 	)

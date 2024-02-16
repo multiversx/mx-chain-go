@@ -39,9 +39,7 @@
 
 [FeeSettings]
     GasLimitSettings = [
-        {EnableEpoch = 0, MaxGasLimitPerBlock = "1500000000", MaxGasLimitPerMiniBlock = "1500000000", MaxGasLimitPerMetaBlock = "15000000000", MaxGasLimitPerMetaMiniBlock = "15000000000", MaxGasLimitPerTx = "1500000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000"},
-        {EnableEpoch = 1, MaxGasLimitPerBlock = "1500000000", MaxGasLimitPerMiniBlock = "250000000", MaxGasLimitPerMetaBlock = "15000000000", MaxGasLimitPerMetaMiniBlock = "250000000", MaxGasLimitPerTx = "600000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000"},
-        {EnableEpoch = 2, MaxGasLimitPerBlock = "1500000000", MaxGasLimitPerMiniBlock = "250000000", MaxGasLimitPerMetaBlock = "15000000000", MaxGasLimitPerMetaMiniBlock = "250000000", MaxGasLimitPerTx = "600000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000"},
+        {EnableEpoch = 0, MaxGasLimitPerBlock = "90000000000", MaxGasLimitPerMiniBlock = "90000000000", MaxGasLimitPerMetaBlock = "150000000000", MaxGasLimitPerMetaMiniBlock = "150000000000", MaxGasLimitPerTx = "1500000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000"}
     ]
     MinGasPrice             = "1000000000" #will yield min tx fee of 0.00005 eGLD
     GasPriceModifier        = 0.01

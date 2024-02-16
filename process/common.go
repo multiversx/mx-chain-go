@@ -2,7 +2,6 @@ package process
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -19,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -768,35 +766,35 @@ func DisplayProcessTxDetails(
 	txHash []byte,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
-	if !check.IfNil(accountHandler) {
-		account, ok := accountHandler.(state.UserAccountHandler)
-		if ok {
-			log.Trace(message,
-				"nonce", account.GetNonce(),
-				"balance", account.GetBalance(),
-			)
-		}
-	}
-
-	if check.IfNil(addressPubkeyConverter) {
-		return
-	}
-	if check.IfNil(txHandler) {
-		return
-	}
-
-	receiverAddress, _ := addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
-	senderAddress, _ := addressPubkeyConverter.Encode(txHandler.GetSndAddr())
-
-	log.Trace("executing transaction",
-		"txHash", txHash,
-		"nonce", txHandler.GetNonce(),
-		"value", txHandler.GetValue(),
-		"gas limit", txHandler.GetGasLimit(),
-		"gas price", txHandler.GetGasPrice(),
-		"data", hex.EncodeToString(txHandler.GetData()),
-		"sender", senderAddress,
-		"receiver", receiverAddress)
+	//if !check.IfNil(accountHandler) {
+	//	account, ok := accountHandler.(state.UserAccountHandler)
+	//	if ok {
+	//		log.Trace(message,
+	//			"nonce", account.GetNonce(),
+	//			"balance", account.GetBalance(),
+	//		)
+	//	}
+	//}
+	//
+	//if check.IfNil(addressPubkeyConverter) {
+	//	return
+	//}
+	//if check.IfNil(txHandler) {
+	//	return
+	//}
+	//
+	//receiverAddress, _ := addressPubkeyConverter.Encode(txHandler.GetRcvAddr())
+	//senderAddress, _ := addressPubkeyConverter.Encode(txHandler.GetSndAddr())
+	//
+	//log.Trace("executing transaction",
+	//	"txHash", txHash,
+	//	"nonce", txHandler.GetNonce(),
+	//	"value", txHandler.GetValue(),
+	//	"gas limit", txHandler.GetGasLimit(),
+	//	"gas price", txHandler.GetGasPrice(),
+	//	"data", hex.EncodeToString(txHandler.GetData()),
+	//	"sender", senderAddress,
+	//	"receiver", receiverAddress)
 }
 
 // IsAllowedToSaveUnderKey returns if saving key-value in data tries under given key is allowed

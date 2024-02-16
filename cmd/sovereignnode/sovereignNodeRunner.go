@@ -79,6 +79,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -1842,22 +1843,23 @@ func createSovereignWsReceiver(
 	if err != nil {
 		return nil, err
 	}
+	//
+	//argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
+	//	WebSocketConfig: notifierCfg.WebSocketConfig{
+	//		Url:                config.WebSocketConfig.Url,
+	//		MarshallerType:     config.WebSocketConfig.MarshallerType,
+	//		Mode:               config.WebSocketConfig.Mode,
+	//		RetryDuration:      config.WebSocketConfig.RetryDuration,
+	//		WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
+	//		BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
+	//		AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
+	//		Version:            config.WebSocketConfig.Version,
+	//	},
+	//	SovereignNotifier: sovereignNotifier,
+	//}
 
-	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
-		WebSocketConfig: notifierCfg.WebSocketConfig{
-			Url:                config.WebSocketConfig.Url,
-			MarshallerType:     config.WebSocketConfig.MarshallerType,
-			Mode:               config.WebSocketConfig.Mode,
-			RetryDuration:      config.WebSocketConfig.RetryDuration,
-			WithAcknowledge:    config.WebSocketConfig.WithAcknowledge,
-			BlockingAckOnError: config.WebSocketConfig.BlockingAckOnError,
-			AcknowledgeTimeout: config.WebSocketConfig.AcknowledgeTimeout,
-			Version:            config.WebSocketConfig.Version,
-		},
-		SovereignNotifier: sovereignNotifier,
-	}
-
-	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
+	//return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
+	return &outport.SenderHostStub{}, nil
 }
 
 func getNotifierSubscribedEvents(events []config.SubscribedEvent) []notifierCfg.SubscribedEvent {
