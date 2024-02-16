@@ -46,19 +46,13 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
-	t.Parallel()
-
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
 		assert.NotNil(t, node)
 	})
 	t.Run("try commit a block", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
@@ -86,8 +80,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		assert.Nil(t, err)
 	})
 	t.Run("CreateCoreComponents failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.Configs.GeneralConfig.Marshalizer.Type = "invalid type"
 		node, err := NewTestOnlyProcessingNode(args)
@@ -95,8 +87,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.Nil(t, node)
 	})
 	t.Run("CreateCryptoComponents failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.Configs.GeneralConfig.PublicKeyPIDSignature.Type = "invalid type"
 		node, err := NewTestOnlyProcessingNode(args)
@@ -104,8 +94,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.Nil(t, node)
 	})
 	t.Run("CreateNetworkComponents failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.SyncedBroadcastNetwork = nil
 		node, err := NewTestOnlyProcessingNode(args)
@@ -113,8 +101,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.Nil(t, node)
 	})
 	t.Run("CreateBootstrapComponents failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.Configs.FlagsConfig.WorkingDir = ""
 		node, err := NewTestOnlyProcessingNode(args)
@@ -122,8 +108,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.Nil(t, node)
 	})
 	t.Run("CreateStateComponents failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.ShardIDStr = common.MetachainShardName // coverage only
 		args.Configs.GeneralConfig.StateTriesConfig.MaxStateTrieLevelInMemory = 0
@@ -132,8 +116,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.Nil(t, node)
 	})
 	t.Run("CreateProcessComponents failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.Configs.FlagsConfig.Version = ""
 		node, err := NewTestOnlyProcessingNode(args)
@@ -141,8 +123,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.Nil(t, node)
 	})
 	t.Run("createFacade failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockArgsTestOnlyProcessingNode(t)
 		args.Configs.EpochConfig.GasSchedule.GasScheduleByEpochs = nil
 		node, err := NewTestOnlyProcessingNode(args)
@@ -152,11 +132,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
 	goodKeyValueMap := map[string]string{
 		"01": "02",
 	}
@@ -194,8 +169,6 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "cannot decode value"))
 	})
 	t.Run("LoadAccount failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(argsLocal)
 		require.NoError(t, errLocal)
@@ -212,8 +185,6 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		require.Equal(t, expectedErr, errLocal)
 	})
 	t.Run("account un-castable to UserAccountHandler should error", func(t *testing.T) {
-		t.Parallel()
-
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(argsLocal)
 		require.NoError(t, errLocal)
@@ -231,8 +202,6 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		require.Equal(t, "cannot cast AccountHandler to UserAccountHandler", errLocal.Error())
 	})
 	t.Run("SaveKeyValue failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 		require.NoError(t, errLocal)
 
@@ -252,8 +221,6 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		require.Equal(t, expectedErr, errLocal)
 	})
 	t.Run("SaveAccount failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(argsLocal)
 		require.NoError(t, errLocal)
@@ -272,11 +239,6 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
-	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
-	}
-
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
 
@@ -306,8 +268,6 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		require.Equal(t, addressState.Nonce, account.GetNonce())
 	})
 	t.Run("LoadAccount failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 		require.NoError(t, errLocal)
 
@@ -330,8 +290,6 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		require.Equal(t, "cannot convert string balance to *big.Int", err.Error())
 	})
 	t.Run("AddToBalance failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 		require.NoError(t, errLocal)
 
@@ -351,8 +309,6 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		require.Equal(t, expectedErr, errLocal)
 	})
 	t.Run("SaveKeyValue failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(argsLocal)
 		require.NoError(t, errLocal)
@@ -424,8 +380,6 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		require.Error(t, err)
 	})
 	t.Run("SaveAccount failure should error", func(t *testing.T) {
-		t.Parallel()
-
 		argsLocal := createMockArgsTestOnlyProcessingNode(t)
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(argsLocal)
 		require.NoError(t, errLocal)
@@ -444,8 +398,6 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
 	var node *testOnlyProcessingNode
 	require.True(t, node.IsInterfaceNil())
 
@@ -454,8 +406,6 @@ func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Close(t *testing.T) {
-	t.Parallel()
-
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
 
@@ -463,8 +413,6 @@ func TestTestOnlyProcessingNode_Close(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Getters(t *testing.T) {
-	t.Parallel()
-
 	node := &testOnlyProcessingNode{}
 	require.Nil(t, node.GetProcessComponents())
 	require.Nil(t, node.GetChainHandler())
