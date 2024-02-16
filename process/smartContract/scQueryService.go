@@ -199,10 +199,13 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		}
 
 		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-		err = accountsAdapter.RecreateTrie(blockRootHash)
+
+		holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
+		err = accountsAdapter.RecreateTrieFromEpoch(holder)
 		if err != nil {
 			return nil, nil, err
 		}
+		service.blockChainHook.SetCurrentHeader(blockHeader)
 	}
 
 	shouldCheckRootHashChanges := query.SameScState
@@ -211,8 +214,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	if shouldCheckRootHashChanges {
 		rootHashBeforeExecution = service.apiBlockChain.GetCurrentBlockRootHash()
 	}
-
-	service.blockChainHook.SetCurrentHeader(service.mainBlockChain.GetCurrentBlockHeader())
 
 	service.wasmVMChangeLocker.RLock()
 	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
@@ -260,7 +261,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 
 // TODO: extract duplicated code with nodeBlocks.go
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
-
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {

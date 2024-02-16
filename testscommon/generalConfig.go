@@ -363,7 +363,8 @@ func GetGeneralConfig() config.Config {
 			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs: 2,
+			NumConcurrentResolverJobs:           2,
+			NumConcurrentResolvingTrieNodesJobs: 1,
 			TxAccumulator: config.TxAccumulatorConfig{
 				MaxAllowedTimeInMilliseconds:   10,
 				MaxDeviationTimeInMilliseconds: 1,
