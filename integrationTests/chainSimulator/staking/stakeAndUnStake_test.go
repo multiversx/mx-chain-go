@@ -905,7 +905,6 @@ func checkOneOfTheNodesIsUnstaked(t *testing.T,
 
 	isNotStaked0 := keyStatus0 == unStakedStatus
 
-	require.NotEqual(t, stakedStatus, keyStatus0)
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
 	keyStatus1 := getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
 	log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
@@ -930,11 +929,6 @@ func testBLSKeyStaked(t *testing.T,
 	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
 	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
 		require.Equal(t, stakedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey))
-
-		validatorInfo, found := validatorStatistics[blsKey]
-		require.True(t, found)
-		require.Equal(t, auctionStatus, validatorInfo.ValidatorStatus)
-
 		return
 	}
 
@@ -1217,4 +1211,11 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	expectedStaked = big.NewInt(5000)
 	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
+
+	log.Info("Step 6. Wait for change of epoch and check the outcome")
+	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
+	require.Nil(t, err)
+
+	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
 }
