@@ -43,6 +43,7 @@ const txVersion = 1
 const mockTxSignature = "sig"
 const queuedStatus = "queued"
 const stakedStatus = "staked"
+const unStakedStatus = "unStaked"
 const auctionStatus = "auction"
 const okReturnCode = "ok"
 const maxCap = "00"       // no cap
