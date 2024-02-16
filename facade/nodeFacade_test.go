@@ -2331,6 +2331,52 @@ func TestNodeFacade_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 	require.Equal(t, providedResponse, response)
 }
 
+func TestNodeFacade_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedCount := 100
+	providedManagedKeys := []string{"pk1", "pk2"}
+	providedLoadedKeys := []string{"pk3", "pk4"}
+	providedEligibleKeys := []string{"pk5", "pk6"}
+	providedWaitingKeys := []string{"pk7", "pk8"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCountCalled: func() int {
+			return providedCount
+		},
+		GetManagedKeysCalled: func() []string {
+			return providedManagedKeys
+		},
+		GetLoadedKeysCalled: func() []string {
+			return providedLoadedKeys
+		},
+		GetEligibleManagedKeysCalled: func() ([]string, error) {
+			return providedEligibleKeys, nil
+		},
+		GetWaitingManagedKeysCalled: func() ([]string, error) {
+			return providedWaitingKeys, nil
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	count := nf.GetManagedKeysCount()
+	require.Equal(t, providedCount, count)
+
+	keys := nf.GetManagedKeys()
+	require.Equal(t, providedManagedKeys, keys)
+
+	keys = nf.GetLoadedKeys()
+	require.Equal(t, providedLoadedKeys, keys)
+
+	keys, err := nf.GetEligibleManagedKeys()
+	require.Equal(t, providedEligibleKeys, keys)
+	require.Nil(t, err)
+
+	keys, err = nf.GetWaitingManagedKeys()
+	require.Equal(t, providedWaitingKeys, keys)
+	require.Nil(t, err)
+}
+
 func TestNodeFacade_Close(t *testing.T) {
 	t.Parallel()
 

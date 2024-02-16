@@ -41,7 +41,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		BlockChainHook: &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
+					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
 						return nil
 					},
 				}
@@ -427,9 +427,9 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		}
 		wasRecreateTrieCalled := false
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
 				wasRecreateTrieCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
+				assert.Equal(t, providedRootHash, options.GetRootHash())
 				return nil
 			},
 		}
@@ -452,9 +452,10 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			BlockHash: providedHash,
 		}
 
-		_, _, _ = target.ExecuteQuery(&query)
+		_, _, err := target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 		assert.True(t, wasRecreateTrieCalled)
+		assert.Nil(t, err)
 	})
 	t.Run("block nonce should work", func(t *testing.T) {
 		t.Parallel()
@@ -521,9 +522,9 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		}
 		wasRecreateTrieCalled := false
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
 				wasRecreateTrieCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
+				assert.Equal(t, providedRootHash, options.GetRootHash())
 				return nil
 			},
 		}
@@ -896,16 +897,6 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForSCQuery()
-	args.BlockChainHook = &testscommon.BlockChainHookStub{
-		GetAccountsAdapterCalled: func() state.AccountsAdapter {
-			return &stateMocks.AccountsStub{
-				RecreateTrieCalled: func(rootHash []byte) error {
-					return nil
-				},
-			}
-		},
-	}
-
 	rootHashCalledCounter := 0
 	args.APIBlockChain = &testscommon.ChainHandlerStub{
 		GetCurrentBlockRootHashCalled: func() []byte {
@@ -927,7 +918,7 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 		FuncName:    "function",
 	})
 	require.Nil(t, res)
-	require.True(t, errors.Is(err, process.ErrStateChangedWhileExecutingVmQuery))
+	require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
 }
 
 func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
