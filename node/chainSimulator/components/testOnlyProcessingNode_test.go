@@ -132,6 +132,11 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
+	// TODO reinstate test after Wasm VM pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+	}
+
 	goodKeyValueMap := map[string]string{
 		"01": "02",
 	}
@@ -239,6 +244,11 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
+	// TODO reinstate test after Wasm VM pointer fix
+	if testing.Short() {
+		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+	}
+
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
 
