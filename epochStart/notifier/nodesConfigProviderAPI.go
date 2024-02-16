@@ -1,6 +1,8 @@
 package notifier
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -44,7 +46,7 @@ func getStakingV4Step3MaxNodesConfig(
 		}
 	}
 
-	return config.MaxNodesChangeConfig{}, errNoMaxNodesConfigChangeForStakingV4
+	return config.MaxNodesChangeConfig{}, fmt.Errorf("%w when creating api nodes config provider", errNoMaxNodesConfigChangeForStakingV4)
 }
 
 // GetCurrentNodesConfig retrieves the current configuration of nodes. However, when invoked during epoch stakingV4 step 2
@@ -56,7 +58,7 @@ func (ncp *nodesConfigProviderAPI) GetCurrentNodesConfig() config.MaxNodesChange
 	ncp.mutex.RLock()
 	defer ncp.mutex.RUnlock()
 
-	if ncp.currentNodesConfig.EpochEnable == ncp.stakingV4Step2Epoch {
+	if ncp.currentEpoch == ncp.stakingV4Step2Epoch {
 		return ncp.stakingV4Step3MaxNodesConfig
 	}
 
