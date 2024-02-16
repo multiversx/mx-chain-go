@@ -16,7 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	testTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -195,7 +196,6 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.SaveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RemoveAccount(nil))
 	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RevertToSnapshot(0))
-	assert.Equal(t, state.ErrOperationNotPermitted, accountsApi.RecreateTrieFromEpoch(nil))
 
 	buff, err := accountsApi.CommitInEpoch(0, 0)
 	assert.Nil(t, buff)
@@ -224,6 +224,42 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	err := accountsApi.RecreateTrie(nil)
 	assert.NoError(t, err)
 	assert.True(t, wasCalled)
+}
+
+func TestAccountsDBApi_RecreateTrieFromEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
+		wasCalled := false
+		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				wasCalled = true
+				return trie.ErrNilRootHashHolder
+			},
+		}, createBlockInfoProviderStub(dummyRootHash))
+
+		err := accountsApi.RecreateTrieFromEpoch(nil)
+		assert.Equal(t, trie.ErrNilRootHashHolder, err)
+		assert.True(t, wasCalled)
+	})
+	t.Run("should work", func(t *testing.T) {
+		wasCalled := false
+		rootHash := []byte("root hash")
+		epoch := core.OptionalUint32{Value: 37, HasValue: true}
+		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				wasCalled = true
+				assert.Equal(t, rootHash, options.GetRootHash())
+				assert.Equal(t, epoch, options.GetEpoch())
+				return nil
+			},
+		}, createBlockInfoProviderStub(dummyRootHash))
+
+		holder := holders.NewRootHashHolder(rootHash, epoch)
+		err := accountsApi.RecreateTrieFromEpoch(holder)
+		assert.NoError(t, err)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestAccountsDBApi_EmptyMethodsShouldNotPanic(t *testing.T) {
@@ -272,7 +308,7 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 		},
 		GetTrieCalled: func(i []byte) (common.Trie, error) {
 			getTrieCalled = true
-			return &trie.TrieStub{}, nil
+			return &testTrie.TrieStub{}, nil
 		},
 	}
 

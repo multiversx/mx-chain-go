@@ -426,6 +426,11 @@ func (inf *initialNodeFacade) GetManagedKeys() []string {
 	return nil
 }
 
+// GetLoadedKeys returns nil
+func (inf *initialNodeFacade) GetLoadedKeys() []string {
+	return nil
+}
+
 // GetEligibleManagedKeys returns nil and error
 func (inf *initialNodeFacade) GetEligibleManagedKeys() ([]string, error) {
 	return nil, errNodeStarting
