@@ -157,8 +157,6 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
 
-	t.Parallel()
-
 	goodKeyValueMap := map[string]string{
 		"01": "02",
 	}
@@ -278,8 +276,6 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 	if testing.Short() {
 		t.Skip("cannot run with -race -short; requires Wasm VM fix")
 	}
-
-	t.Parallel()
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
