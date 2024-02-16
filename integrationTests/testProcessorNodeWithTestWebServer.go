@@ -179,6 +179,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Hasher:                    TestHasher,
 		VMOutputCacher:            &testscommon.CacherMock{},
 		DataFieldParser:           dataFieldParser,
+		BlockChainHook:            tpn.BlockchainHook,
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
@@ -194,6 +195,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Accounts:            wrappedAccounts,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		BlockChain:          tpn.BlockChain,
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)
