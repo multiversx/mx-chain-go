@@ -353,12 +353,12 @@ func createScQueryElement(
 
 	apiBlockchain, err := createBlockchainForScQuery(selfShardID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	accountsAdapterApi, err := createNewAccountsAdapterApi(args, apiBlockchain)
+	accountsAdapterApi, storageManager, err := createNewAccountsAdapterApi(args, apiBlockchain)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	builtInFuncFactory, err := createBuiltinFuncs(
