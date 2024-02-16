@@ -12,6 +12,7 @@ import (
 
 type nodesConfigProvider struct {
 	mutex              sync.RWMutex
+	currentEpoch       uint32
 	currentNodesConfig config.MaxNodesChangeConfig
 	allNodesConfigs    []config.MaxNodesChangeConfig
 }
@@ -71,6 +72,8 @@ func (ncp *nodesConfigProvider) EpochConfirmed(epoch uint32, _ uint64) {
 			ncp.currentNodesConfig = maxNodesConfig
 		}
 	}
+
+	ncp.currentEpoch = epoch
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
