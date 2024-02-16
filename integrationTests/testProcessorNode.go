@@ -3493,7 +3493,7 @@ func getDefaultNodesSetup(maxShards, numNodes uint32, address []byte, pksBytes m
 
 func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) nodesCoordinator.NodesCoordinator {
 	return &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
 		},
