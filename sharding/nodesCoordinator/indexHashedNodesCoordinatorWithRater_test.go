@@ -786,8 +786,8 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 	}
 
 	//a := []int{1, 2, 3, 4, 5, 6, 7, 8}
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
 	m2 := runtime.MemStats{}
 
 	runtime.ReadMemStats(&m2)

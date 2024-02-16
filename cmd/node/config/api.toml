@@ -43,6 +43,9 @@
         # /node/managed-keys will return the keys managed by the node
         { Name = "/managed-keys", Open = true },
 
+        # /node/loaded-keys will return the keys loaded by the node
+        { Name = "/loaded-keys", Open = true },
+
         # /node/managed-keys/count will return the number of keys managed by the node
         { Name = "/managed-keys/count", Open = true },
 
