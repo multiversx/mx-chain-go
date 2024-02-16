@@ -2548,6 +2548,63 @@ func TestEsdt_GetSpecialRolesShouldWork(t *testing.T) {
 	assert.Equal(t, []byte("erd1e7n8rzxdtl2n2fl6mrsg4l7stp2elxhfy6l9p7eeafspjhhrjq7qk05usw:ESDTRoleNFTAddQuantity,ESDTRoleNFTCreate,ESDTRoleNFTBurn"), eei.output[1])
 }
 
+func TestEsdt_GetSpecialRolesWithEmptyAddressShouldWork(t *testing.T) {
+	t.Parallel()
+
+	tokenName := []byte("esdtToken")
+	args := createMockArgumentsForESDT()
+	eei := createDefaultEei()
+	args.Eei = eei
+
+	addr := ""
+	addrBytes, _ := testscommon.RealWorldBech32PubkeyConverter.Decode(addr)
+
+	specialRoles := []*ESDTRoles{
+		{
+			Address: addrBytes,
+			Roles: [][]byte{
+				[]byte(core.ESDTRoleLocalMint),
+				[]byte(core.ESDTRoleLocalBurn),
+			},
+		},
+		{
+			Address: addrBytes,
+			Roles: [][]byte{
+				[]byte(core.ESDTRoleNFTAddQuantity),
+				[]byte(core.ESDTRoleNFTCreate),
+				[]byte(core.ESDTRoleNFTBurn),
+			},
+		},
+		{
+			Address: addrBytes,
+			Roles: [][]byte{
+				[]byte(vmcommon.ESDTRoleBurnForAll),
+			},
+		},
+	}
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		SpecialRoles: specialRoles,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+	args.Eei = eei
+
+	args.AddressPubKeyConverter = testscommon.RealWorldBech32PubkeyConverter
+
+	e, _ := NewESDTSmartContract(args)
+
+	eei.output = make([][]byte, 0)
+	vmInput := getDefaultVmInputForFunc("getSpecialRoles", [][]byte{[]byte("esdtToken")})
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	assert.Equal(t, 3, len(eei.output))
+	assert.Equal(t, []byte(":ESDTRoleLocalMint,ESDTRoleLocalBurn"), eei.output[0])
+	assert.Equal(t, []byte(":ESDTRoleNFTAddQuantity,ESDTRoleNFTCreate,ESDTRoleNFTBurn"), eei.output[1])
+	assert.Equal(t, []byte(":ESDTRoleBurnForAll"), eei.output[2])
+}
+
 func TestEsdt_UnsetSpecialRoleWithRemoveEntryFromSpecialRoles(t *testing.T) {
 	t.Parallel()
 
