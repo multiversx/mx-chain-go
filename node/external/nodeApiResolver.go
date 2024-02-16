@@ -40,6 +40,7 @@ type ArgNodeApiResolver struct {
 	AccountsParser           genesis.AccountsParser
 	GasScheduleNotifier      common.GasScheduleNotifierAPI
 	ManagedPeersMonitor      common.ManagedPeersMonitor
+	PublicKey                string
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 }
 
@@ -59,6 +60,7 @@ type nodeApiResolver struct {
 	accountsParser           genesis.AccountsParser
 	gasScheduleNotifier      common.GasScheduleNotifierAPI
 	managedPeersMonitor      common.ManagedPeersMonitor
+	publicKey                string
 	nodesCoordinator         nodesCoordinator.NodesCoordinator
 }
 
@@ -125,6 +127,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		accountsParser:           arg.AccountsParser,
 		gasScheduleNotifier:      arg.GasScheduleNotifier,
 		managedPeersMonitor:      arg.ManagedPeersMonitor,
+		publicKey:                arg.PublicKey,
 		nodesCoordinator:         arg.NodesCoordinator,
 	}, nil
 }
@@ -345,10 +348,21 @@ func (nar *nodeApiResolver) GetManagedKeysCount() int {
 	return nar.managedPeersMonitor.GetManagedKeysCount()
 }
 
-// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+// GetManagedKeys returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (nar *nodeApiResolver) GetManagedKeys() []string {
 	managedKeys := nar.managedPeersMonitor.GetManagedKeys()
 	return nar.parseKeys(managedKeys)
+}
+
+// GetLoadedKeys returns all keys that were loaded by this node
+func (nar *nodeApiResolver) GetLoadedKeys() []string {
+	loadedKeys := nar.managedPeersMonitor.GetLoadedKeys()
+	if len(loadedKeys) > 0 {
+		return nar.parseKeys(loadedKeys)
+	}
+
+	// node is in single key mode, returning the main public key
+	return []string{nar.publicKey}
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode
