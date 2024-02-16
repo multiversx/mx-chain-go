@@ -829,6 +829,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	epochNotifierInstance process.EpochNotifier,
 	guardianChecker process.GuardianChecker,
 	roundNotifierInstance process.RoundNotifier,
+	chainHandler data.ChainHandler,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
@@ -991,6 +992,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:            integrationtests.TestMarshalizer,
 		Hasher:                 integrationtests.TestHasher,
 		DataFieldParser:        dataFieldParser,
+		BlockChainHook:         blockChainHook,
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
@@ -1017,6 +1019,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Accounts:            simulationAccountsDB,
 		ShardCoordinator:    shardCoordinator,
 		EnableEpochsHandler: argsNewSCProcessor.EnableEpochsHandler,
+		BlockChain:          chainHandler,
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	if err != nil {
@@ -1139,6 +1142,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1290,6 +1294,7 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1385,6 +1390,7 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1466,6 +1472,7 @@ func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1896,6 +1903,7 @@ func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err

@@ -77,6 +77,15 @@ func TestNewTransactionSimulator(t *testing.T) {
 			exError: ErrNilHasher,
 		},
 		{
+			name: "NilBlockChainHook",
+			argsFunc: func() ArgsTxSimulator {
+				args := getTxSimulatorArgs()
+				args.BlockChainHook = nil
+				return args
+			},
+			exError: process.ErrNilBlockChainHook,
+		},
+		{
 			name: "NilMarshalizer",
 			argsFunc: func() ArgsTxSimulator {
 				args := getTxSimulatorArgs()
@@ -125,7 +134,7 @@ func TestTransactionSimulator_ProcessTxProcessingErrShouldSignal(t *testing.T) {
 	}
 	ts, _ := NewTransactionSimulator(args)
 
-	results, err := ts.ProcessTx(&transaction.Transaction{Nonce: 37})
+	results, err := ts.ProcessTx(&transaction.Transaction{Nonce: 37}, &block.Header{})
 	require.NoError(t, err)
 	require.Equal(t, expErr.Error(), results.FailReason)
 }
@@ -207,7 +216,7 @@ func TestTransactionSimulator_ProcessTxShouldIncludeScrsAndReceipts(t *testing.T
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 	args.VMOutputCacher.Put(txHash, &vmcommon.VMOutput{}, 0)
 
-	results, err := ts.ProcessTx(tx)
+	results, err := ts.ProcessTx(tx, &block.Header{})
 	require.NoError(t, err)
 	require.Equal(
 		t,
@@ -236,6 +245,7 @@ func getTxSimulatorArgs() ArgsTxSimulator {
 		Marshalizer:               &mock.MarshalizerMock{},
 		Hasher:                    &hashingMocks.HasherMock{},
 		DataFieldParser:           dataFieldParser,
+		BlockChainHook:            &testscommon.BlockChainHookStub{},
 	}
 }
 
@@ -261,7 +271,7 @@ func TestTransactionSimulator_ProcessTxConcurrentCalls(t *testing.T) {
 	for i := 0; i < numCalls; i++ {
 		go func(idx int) {
 			time.Sleep(time.Millisecond * 10)
-			_, _ = txSimulator.ProcessTx(tx)
+			_, _ = txSimulator.ProcessTx(tx, &block.Header{})
 			wg.Done()
 		}(i)
 	}

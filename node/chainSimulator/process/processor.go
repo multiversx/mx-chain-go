@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -20,6 +21,10 @@ type blocksCreator struct {
 
 // NewBlocksCreator will create a new instance of blocksCreator
 func NewBlocksCreator(nodeHandler NodeHandler) (*blocksCreator, error) {
+	if check.IfNil(nodeHandler) {
+		return nil, ErrNilNodeHandler
+	}
+
 	return &blocksCreator{
 		nodeHandler: nodeHandler,
 	}, nil
@@ -71,7 +76,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	headerCreationTime := creator.nodeHandler.GetProcessComponents().RoundHandler().TimeStamp()
+	headerCreationTime := creator.nodeHandler.GetCoreComponents().RoundHandler().TimeStamp()
 	err = newHeader.SetTimeStamp(uint64(headerCreationTime.Unix()))
 	if err != nil {
 		return err
