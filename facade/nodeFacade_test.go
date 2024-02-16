@@ -1317,6 +1317,22 @@ func TestNodeFacade_GetEligibleManagedKeys(t *testing.T) {
 	assert.Equal(t, expectedResult, result)
 }
 
+func TestNodeFacade_GetLoadedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedLoadedKeys := []string{"pk1", "pk2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetLoadedKeysCalled: func() []string {
+			return providedLoadedKeys
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	keys := nf.GetLoadedKeys()
+	require.Equal(t, providedLoadedKeys, keys)
+}
+
 func TestNodeFacade_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
 	t.Parallel()
 
@@ -2329,52 +2345,6 @@ func TestNodeFacade_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 	response, err := nf.GetInternalStartOfEpochMetaBlock(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, providedResponse, response)
-}
-
-func TestNodeFacade_GetManagedKeys(t *testing.T) {
-	t.Parallel()
-
-	providedCount := 100
-	providedManagedKeys := []string{"pk1", "pk2"}
-	providedLoadedKeys := []string{"pk3", "pk4"}
-	providedEligibleKeys := []string{"pk5", "pk6"}
-	providedWaitingKeys := []string{"pk7", "pk8"}
-	arg := createMockArguments()
-	arg.ApiResolver = &mock.ApiResolverStub{
-		GetManagedKeysCountCalled: func() int {
-			return providedCount
-		},
-		GetManagedKeysCalled: func() []string {
-			return providedManagedKeys
-		},
-		GetLoadedKeysCalled: func() []string {
-			return providedLoadedKeys
-		},
-		GetEligibleManagedKeysCalled: func() ([]string, error) {
-			return providedEligibleKeys, nil
-		},
-		GetWaitingManagedKeysCalled: func() ([]string, error) {
-			return providedWaitingKeys, nil
-		},
-	}
-	nf, _ := NewNodeFacade(arg)
-
-	count := nf.GetManagedKeysCount()
-	require.Equal(t, providedCount, count)
-
-	keys := nf.GetManagedKeys()
-	require.Equal(t, providedManagedKeys, keys)
-
-	keys = nf.GetLoadedKeys()
-	require.Equal(t, providedLoadedKeys, keys)
-
-	keys, err := nf.GetEligibleManagedKeys()
-	require.Equal(t, providedEligibleKeys, keys)
-	require.Nil(t, err)
-
-	keys, err = nf.GetWaitingManagedKeys()
-	require.Equal(t, providedWaitingKeys, keys)
-	require.Nil(t, err)
 }
 
 func TestNodeFacade_Close(t *testing.T) {

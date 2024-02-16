@@ -347,6 +347,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			AppStatusHandlerCalled: func() core.AppStatusHandler {
 				return &statusHandler.AppStatusHandlerStub{}
 			},
+			StateStatsHandlerField: &testscommon.StateStatisticsHandlerStub{},
 		},
 		DataComponents: &mock.DataComponentsMock{
 			Storage:  genericMocks.NewChainStorerMock(0),
