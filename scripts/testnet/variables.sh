@@ -117,7 +117,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then

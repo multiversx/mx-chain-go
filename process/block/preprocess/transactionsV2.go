@@ -38,7 +38,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	if err != nil {
 		log.Error("could not create CPU profile", "error", err)
 	}
-
+	var index int
 	if len(sortedTxs) > 0 {
 		debug.SetGCPercent(-1)
 		pprof.StartCPUProfile(f)
@@ -47,13 +47,14 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			pprof.StopCPUProfile()
 			runtime.GC()
 
-			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(sortedTxs))
+			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(sortedTxs), "last index", index)
 		}()
 	}
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
-	for index := range sortedTxs {
+
+	for index = range sortedTxs {
 		if !haveTime() {
-			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
+			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
 			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
@@ -63,6 +64,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
+			log.Debug("should not continue createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
 			continue
 		}
 
@@ -80,7 +82,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", mbInfo.processingInfo.numTxsAdded,
-				"total txs", len(sortedTxs))
+				"total txs", len(sortedTxs),
+				"last index", index)
 			break
 		}
 
