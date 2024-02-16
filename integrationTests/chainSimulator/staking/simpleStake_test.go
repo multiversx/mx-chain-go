@@ -199,8 +199,8 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(stakingV4Step1Epoch))
 	require.Nil(t, err)
-	require.Nil(t, err)
 	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
 
 	// In step 1, only the previously staked node should be in auction list
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
