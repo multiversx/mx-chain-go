@@ -39,7 +39,6 @@ type SCQueryService struct {
 	blockChainHook           process.BlockChainHookWithAccountsAdapter
 	mainBlockChain           data.ChainHandler
 	apiBlockChain            data.ChainHandler
-	numQueries               int
 	gasForQuery              uint64
 	wasmVMChangeLocker       common.Locker
 	bootstrapper             process.Bootstrapper
@@ -179,8 +178,7 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, common.BlockInfo, error) {
-	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
-	service.numQueries++
+	log.Trace("executeScCall", "address", query.ScAddress, "function", query.FuncName, "blockNonce", query.BlockNonce.Value, "blockHash", query.BlockHash)
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
@@ -193,6 +191,8 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 
 	if len(blockRootHash) > 0 {
+		log.Trace("preparing execution for block and root hash", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+
 		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
 		if err != nil {
 			return nil, nil, err
@@ -227,15 +227,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if service.hasRetriableExecutionError(vmOutput) {
-		log.Error("Retriable execution error detected. Will retry (once) executeScCall()", "returnCode", vmOutput.ReturnCode, "returnMessage", vmOutput.ReturnMessage)
-
-		vmOutput, err = vm.RunSmartContractCall(vmInput)
-		if err != nil {
-			return nil, nil, err
-		}
 	}
 
 	if query.SameScState {
@@ -415,10 +406,6 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 	}
 
 	return vmContractCallInput
-}
-
-func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
-	return vmOutput.ReturnMessage == "allocation error"
 }
 
 // ComputeScCallGasLimit will estimate how many gas a transaction will consume
