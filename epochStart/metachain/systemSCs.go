@@ -127,7 +127,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err
