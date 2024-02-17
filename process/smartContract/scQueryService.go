@@ -22,11 +22,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
+
+var logQueryService = logger.GetOrCreate("process/smartcontract.queryService")
 
 // MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
 const MaxGasLimitPerQuery = 300_000_000_000
@@ -178,7 +181,7 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, common.BlockInfo, error) {
-	log.Trace("executeScCall", "address", query.ScAddress, "function", query.FuncName, "blockNonce", query.BlockNonce.Value, "blockHash", query.BlockHash)
+	logQueryService.Trace("executeScCall", "address", query.ScAddress, "function", query.FuncName, "blockNonce", query.BlockNonce.Value, "blockHash", query.BlockHash)
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
@@ -191,7 +194,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 
 	if len(blockRootHash) > 0 {
-		log.Trace("preparing execution for block and root hash", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+		logQueryService.Trace("preparing execution for block and root hash", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
 
 		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
 		if err != nil {
