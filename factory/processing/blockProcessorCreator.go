@@ -35,7 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2/scrProcFactory"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -266,7 +266,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
-	scProcessorProxy, err := processorV2.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor)
+	scProcessorProxy, err := scrProcFactory.CreateSCRProcessor(pcf.chainRunType, argsNewScProcessor, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
