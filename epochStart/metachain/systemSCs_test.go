@@ -963,8 +963,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 	t.Run("flag not active - activation epoch is in the future", func(t *testing.T) {
 		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-			DelegationManagerEnableEpoch: 39,
-			StakingV2EnableEpoch:         1000,
+			DelegationSmartContractEnableEpoch: 39,
+			StakingV2EnableEpoch:               1000,
 		}, testscommon.CreateMemUnit())
 		s, _ := NewSystemSCProcessor(args)
 		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
@@ -980,8 +980,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 	})
 	t.Run("flag active in that specific epoch", func(t *testing.T) {
 		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-			DelegationManagerEnableEpoch: 37,
-			StakingV2EnableEpoch:         1000,
+			DelegationSmartContractEnableEpoch: 37,
+			StakingV2EnableEpoch:               1000,
 		}, testscommon.CreateMemUnit())
 		s, _ := NewSystemSCProcessor(args)
 		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
@@ -1000,8 +1000,8 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 	})
 	t.Run("flag not active - activation epoch is in the past", func(t *testing.T) {
 		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-			DelegationManagerEnableEpoch: 35,
-			StakingV2EnableEpoch:         1000,
+			DelegationSmartContractEnableEpoch: 35,
+			StakingV2EnableEpoch:               1000,
 		}, testscommon.CreateMemUnit())
 		s, _ := NewSystemSCProcessor(args)
 		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
