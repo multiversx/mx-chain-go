@@ -220,7 +220,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createBroadcastMessanger()
+	err = instance.createBroadcastMessenger()
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
-func (node *testOnlyProcessingNode) createBroadcastMessanger() error {
+func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		node.CoreComponentsHolder.InternalMarshalizer(),
 		node.CoreComponentsHolder.Hasher(),

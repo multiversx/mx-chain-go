@@ -199,6 +199,13 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 		},
 		EnableEpochs: config.EnableEpochs{
 			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{{EnableEpoch: 0, Type: "no-KOSK"}},
+			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+				{
+					EpochEnable:            0,
+					MaxNumNodes:            100,
+					NodesToShufflePerShard: 2,
+				},
+			},
 		},
 	}
 
@@ -572,6 +579,17 @@ func GetProcessArgs(
 			Version: "v1.0.0",
 		},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+					{
+						EpochEnable:            0,
+						MaxNumNodes:            100,
+						NodesToShufflePerShard: 2,
+					},
+				},
+			},
+		},
 	}
 }
 
