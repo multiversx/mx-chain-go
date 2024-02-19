@@ -1,5 +1,9 @@
 firstSovereignContractAddress() {
-    echo $(python3 next_contract.py $WALLET_ADDRESS 0)
+    echo $(python3 $SCRIPT_PATH/pyScripts/next_contract.py $WALLET_ADDRESS 0)
+}
+
+getShardOfAddress() {
+  echo $(python3 $SCRIPT_PATH/pyScripts/address_shard.py $WALLET_ADDRESS)
 }
 
 displayContracts() {
@@ -11,9 +15,9 @@ displayContracts() {
 setGenesisContract() {
     ESDT_SAFE_PATH="${ROOT}/${ESDT_SAFE_WASM}"
 
-    python3 genesis_contract.py $ESDT_SAFE_ADDRESS_SOVEREIGN $WALLET_ADDRESS
+    python3 $SCRIPT_PATH/pyScripts/genesis_contract.py $ESDT_SAFE_ADDRESS_SOVEREIGN $WALLET_ADDRESS
 }
 
 updateSovereignConfig() {
-    python3 update_toml.py $ESDT_SAFE_ADDRESS $ESDT_SAFE_ADDRESS_SOVEREIGN
+    python3 $SCRIPT_PATH/pyScripts/update_toml.py $ESDT_SAFE_ADDRESS $ESDT_SAFE_ADDRESS_SOVEREIGN
 }

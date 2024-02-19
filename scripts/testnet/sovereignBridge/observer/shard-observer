@@ -1,0 +1,9 @@
+FROM multiversx/chain-testnet:T1.7.4.0
+
+#Enable "Database Lookup Extensions"
+WORKDIR /go/mx-chain-go/cmd/node/
+RUN sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' ./config/config.toml
+RUN sed -i '/HostDriverConfig\]/!b;n;n;c\    Enabled = true' ./config/external.toml
+
+EXPOSE 8080
+ENTRYPOINT ["/go/mx-chain-go/cmd/node/node", "--log-save", "--log-level=*:DEBUG,core/dblookupext:WARN", "--log-logger-name", "--rest-api-interface=0.0.0.0:8080"]
