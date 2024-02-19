@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
@@ -33,22 +34,27 @@ import (
 // from storage
 type ArgsStorageEpochStartBootstrap struct {
 	ArgsEpochStartBootstrap
-	ImportDbConfig                config.ImportDbConfig
-	ChanGracefullyClose           chan endProcess.ArgEndProcess
-	TimeToWaitForRequestedData    time.Duration
-	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
-	ResolverRequestFactory        requestHandlers.RequestHandlerCreator
+	ImportDbConfig                   config.ImportDbConfig
+	ChanGracefullyClose              chan endProcess.ArgEndProcess
+	TimeToWaitForRequestedData       time.Duration
+	ChainRunType                     common.ChainRunType
+	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
+	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	EpochStartBootstrapperCreator    EpochStartBootstrapperCreator
+	ResolverRequestFactory           requestHandlers.RequestHandlerCreator
 }
 
 type storageEpochStartBootstrap struct {
 	*epochStartBootstrap
-	container                  dataRetriever.RequestersContainer
-	store                      dataRetriever.StorageService
-	importDbConfig             config.ImportDbConfig
-	chanGracefullyClose        chan endProcess.ArgEndProcess
-	chainID                    string
-	timeToWaitForRequestedData time.Duration
-	resolverRequestFactory     requestHandlers.RequestHandlerCreator
+	container                        dataRetriever.RequestersContainer
+	store                            dataRetriever.StorageService
+	importDbConfig                   config.ImportDbConfig
+	chanGracefullyClose              chan endProcess.ArgEndProcess
+	chainID                          string
+	timeToWaitForRequestedData       time.Duration
+	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
+	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	resolverRequestFactory           requestHandlers.RequestHandlerCreator
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -76,12 +82,14 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	}
 
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap:        esbConverted,
-		importDbConfig:             args.ImportDbConfig,
-		chanGracefullyClose:        args.ChanGracefullyClose,
-		chainID:                    args.CoreComponentsHolder.ChainID(),
-		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
-		resolverRequestFactory:     args.ResolverRequestFactory,
+		epochStartBootstrap:              esbConverted,
+		importDbConfig:                   args.ImportDbConfig,
+		chanGracefullyClose:              args.ChanGracefullyClose,
+		chainID:                          args.CoreComponentsHolder.ChainID(),
+		timeToWaitForRequestedData:       args.TimeToWaitForRequestedData,
+		resolverRequestFactory:           args.ResolverRequestFactory,
+		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
+		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
 
 	return sesb, nil
@@ -115,7 +123,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	}()
 
 	var err error
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	sesb.shardCoordinator, err = sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -170,6 +178,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
+		sesb.stateStatsHandler,
 	)
 	if err != nil {
 		return err
@@ -246,13 +255,14 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
+	shardCoordinator, err := sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
 	if err != nil {
 		return err
 	}
 
+	initialEpoch := uint32(1)
 	mesn := notifier.NewManualEpochStartNotifier()
-	mesn.NewEpoch(sesb.importDbConfig.ImportDBStartInEpoch + 1)
+	mesn.NewEpoch(initialEpoch)
 	sesb.store, err = sesb.createStoreForStorageResolvers(shardCoordinator, mesn)
 	if err != nil {
 		return err
@@ -273,6 +283,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		ManualEpochStartNotifier: mesn,
 		ChanGracefullyClose:      sesb.chanGracefullyClose,
 		EnableEpochsHandler:      sesb.coreComponentsHolder.EnableEpochsHandler(),
+		StateStatsHandler:        sesb.stateStatsHandler,
 	}
 
 	var requestersContainerFactory dataRetriever.RequestersContainerFactory
@@ -302,11 +313,10 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 		return nil, err
 	}
 
-	return sesb.createStorageService(
+	return sesb.createStorageServiceForImportDB(
 		shardCoordinator,
 		pathManager,
 		mesn,
-		sesb.importDbConfig.ImportDBStartInEpoch,
 		sesb.importDbConfig.ImportDbSaveTrieEpochRootHash,
 		sesb.importDbConfig.ImportDBTargetShardID,
 	)
@@ -342,7 +352,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	sesb.saveSelfShardId()
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
+	sesb.shardCoordinator, err = sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	}
@@ -423,19 +433,20 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:            sesb.dataPool,
-		Marshalizer:         sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:      sesb.requestHandler,
-		ChanceComputer:      sesb.rater,
-		GenesisNodesConfig:  sesb.genesisNodesConfig,
-		NodeShuffler:        sesb.nodeShuffler,
-		Hasher:              sesb.coreComponentsHolder.Hasher(),
-		PubKey:              pubKey,
-		ShardIdAsObserver:   shardId,
-		ChanNodeStop:        sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:    sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:       sesb.prefsConfig.FullArchive,
-		EnableEpochsHandler: sesb.coreComponentsHolder.EnableEpochsHandler(),
+		DataPool:                         sesb.dataPool,
+		Marshalizer:                      sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                   sesb.requestHandler,
+		ChanceComputer:                   sesb.rater,
+		GenesisNodesConfig:               sesb.genesisNodesConfig,
+		NodeShuffler:                     sesb.nodeShuffler,
+		Hasher:                           sesb.coreComponentsHolder.Hasher(),
+		PubKey:                           pubKey,
+		ShardIdAsObserver:                shardId,
+		ChanNodeStop:                     sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                 sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                    sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler:              sesb.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorWithRaterFactory: sesb.nodesCoordinatorWithRaterFactory,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

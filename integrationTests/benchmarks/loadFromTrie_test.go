@@ -1,10 +1,7 @@
 package benchmarks
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/rand"
-	"strings"
 	"testing"
 	"time"
 
@@ -12,20 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	"github.com/stretchr/testify/require"
-)
-
-var charsPool = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E"}
-
-const (
-	keyLength = 32
 )
 
 func TestTrieLoadTime(t *testing.T) {
@@ -133,33 +125,13 @@ func insertKeysIntoTrie(t *testing.T, tr common.Trie, numTrieLevels int, numChil
 }
 
 func insertInTrie(tr common.Trie, numTrieLevels int, numChildrenPerBranch int) []byte {
-	var key []byte
-	hexKeyLength := keyLength * 2
-	if numTrieLevels == 1 {
-		hexKey := generateRandHexString(hexKeyLength)
-		key, _ = hex.DecodeString(hexKey)
+	keys := integrationTests.GenerateTrieKeysForMaxLevel(numTrieLevels, numChildrenPerBranch)
+	for _, key := range keys {
 		_ = tr.Update(key, key)
-		return key
 	}
 
-	for i := 0; i < numTrieLevels-1; i++ {
-		for j := 0; j < numChildrenPerBranch-1; j++ {
-			hexKey := generateRandHexString(hexKeyLength-numTrieLevels) + strings.Repeat(charsPool[j], numTrieLevels-i) + strings.Repeat("F", i)
-			key, _ = hex.DecodeString(hexKey)
-			_ = tr.Update(key, key)
-		}
-	}
-
-	return key
-}
-
-func generateRandHexString(size int) string {
-	buff := make([]string, size)
-	for i := 0; i < size; i++ {
-		buff[i] = charsPool[rand.Intn(len(charsPool))]
-	}
-
-	return strings.Join(buff, "")
+	lastKeyIndex := len(keys) - 1
+	return keys[lastKeyIndex]
 }
 
 func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer, hasher hashing.Hasher) common.StorageManager {
@@ -167,7 +139,7 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 	args.MainStorer = store
 	args.Marshalizer = marshaller
 	args.Hasher = hasher
-	args.CheckpointHashesHolder = disabled.NewDisabledCheckpointHashesHolder()
+	args.StatsCollector = disabledStatistics.NewStateStatistics()
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 

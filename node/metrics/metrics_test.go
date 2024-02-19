@@ -137,6 +137,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			BuiltInFunctionOnMetaEnableEpoch:            34,
 			WaitingListFixEnableEpoch:                   35,
 			SetGuardianEnableEpoch:                      36,
+			ScToScLogEventEnableEpoch:                   37,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -145,6 +146,10 @@ func TestInitConfigMetrics(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	lastSnapshotTrieNodesConfig := config.GatewayMetricsConfig{
+		URL: "http://localhost:8080",
 	}
 
 	expectedValues := map[string]interface{}{
@@ -191,6 +196,8 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_max_nodes_change_enable_epoch0_max_num_nodes":              uint32(1),
 		"erd_max_nodes_change_enable_epoch0_nodes_to_shuffle_per_shard": uint32(2),
 		"erd_set_guardian_feature_enable_epoch":                         uint32(36),
+		"erd_set_sc_to_sc_log_event_enable_epoch":                       uint32(37),
+		common.MetricGatewayMetricsEndpoint:                             "http://localhost:8080",
 	}
 
 	economicsConfig := config.EconomicsConfig{
@@ -219,10 +226,10 @@ func TestInitConfigMetrics(t *testing.T) {
 		},
 	}
 
-	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig)
+	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig)
 	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))
@@ -241,7 +248,7 @@ func TestInitConfigMetrics(t *testing.T) {
 	expectedValues["erd_adaptivity"] = "false"
 	expectedValues["erd_hysteresis"] = "0.000000"
 
-	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, expectedValues["erd_adaptivity"], keys["erd_adaptivity"])

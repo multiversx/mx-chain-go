@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO reinstate test after Wasm VM pointer fix
 
@@ -9,6 +8,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"math"
 	"math/big"
 	"testing"
@@ -17,14 +18,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	mxErrors "github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -32,7 +31,9 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -189,7 +190,12 @@ func createMockArgument(
 				},
 			},
 		},
-		RunTypeComponents: runType,
+		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		ChainRunType:            common.ChainRunTypeRegular,
+		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
+		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
+		RunTypeComponents:       runType,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -238,7 +244,7 @@ func createMockArgument(
 			return entireSupply
 		},
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
-			return math.MaxUint64
+			return math.MaxInt64
 		},
 	}
 	arg.Economics = ted
@@ -432,7 +438,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = nil
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilRunTypeComponents)
+		require.ErrorIs(t, err, errorsMx.ErrNilRunTypeComponents)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil BlockchainHookHandlerCreator should error", func(t *testing.T) {
@@ -444,7 +450,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilBlockChainHookHandlerCreator)
+		require.ErrorIs(t, err, errorsMx.ErrNilBlockChainHookHandlerCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil SCResultsPreProcessorCreator should error", func(t *testing.T) {
@@ -456,7 +462,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilSCResultsPreProcessorCreator)
+		require.ErrorIs(t, err, errorsMx.ErrNilSCResultsPreProcessorCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TransactionCoordinatorCreator should error", func(t *testing.T) {
@@ -468,7 +474,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		arg.RunTypeComponents = rtComponents
 
 		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, mxErrors.ErrNilTransactionCoordinatorCreator)
+		require.ErrorIs(t, err, errorsMx.ErrNilTransactionCoordinatorCreator)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {
@@ -491,6 +497,16 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.ErrorIs(t, err, genesis.ErrNilEpochConfig)
 		require.Nil(t, gbc)
 	})
+	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.ShardCoordinatorFactory = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+		require.Nil(t, gbc)
+	})
 	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -499,6 +515,16 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.ErrorIs(t, err, genesis.ErrInvalidInitialNodePrice)
+		require.Nil(t, gbc)
+	})
+	t.Run("nil HistoryRepository should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.HistoryRepository = nil
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, process.ErrNilHistoryRepository))
 		require.Nil(t, gbc)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -559,7 +585,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = hardForkGbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)

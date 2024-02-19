@@ -1,6 +1,7 @@
 package preprocess_test
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -72,6 +73,7 @@ func getDefaultSmartContractResultPreProcessorCreatorArgs() preprocess.SmartCont
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &common.TxExecutionOrderHandlerStub{},
 	}
 	return args
 }

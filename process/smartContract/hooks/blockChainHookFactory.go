@@ -12,7 +12,7 @@ func NewBlockChainHookFactory() (BlockChainHookHandlerCreator, error) {
 }
 
 // CreateBlockChainHookHandler creates a blockchain hook based on the chain run type normal
-func (bhf *blockChainHookFactory) CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookHandler, error) {
+func (bhf *blockChainHookFactory) CreateBlockChainHookHandler(args ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
 	return NewBlockChainHookImpl(args)
 }
 

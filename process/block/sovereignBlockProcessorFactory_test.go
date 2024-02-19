@@ -38,10 +38,11 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	metaArgument := createMockMetaArguments(createMockComponentHolders())
 	metaArgument.ArgBaseProcessor.BlockTracker = &testscommon.ExtendedShardHeaderTrackerStub{}
 	metaArgument.ArgBaseProcessor.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+	metaArgument.ArgBaseProcessor.Config = testscommon.GetGeneralConfig()
 
 	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor)
-	require.NotNil(t, sbp)
 	require.Nil(t, err)
+	require.NotNil(t, sbp)
 	require.Implements(t, new(process.BlockProcessor), sbp)
 }
 

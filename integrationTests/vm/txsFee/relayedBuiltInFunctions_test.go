@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 // TODO remove build condition above to allow -race -short, after Wasm VM fix
 
@@ -163,22 +162,19 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
 			config.EnableEpochs{
 				RelayedNonceFixEnableEpoch: 1000,
-			},
-			2)
+			})
 	})
 	t.Run("nonce fix is enabled, should still increase the sender's nonce", func(t *testing.T) {
 		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
 			config.EnableEpochs{
 				RelayedNonceFixEnableEpoch: 0,
-			},
-			2)
+			})
 	})
 }
 
 func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(
 	t *testing.T,
 	enableEpochs config.EnableEpochs,
-	expectedOwnerNonce uint64,
 ) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
 	require.Nil(t, err)

@@ -39,6 +39,7 @@ func NewMetaStorageHandler(
 			RepopulateTokensSupplies:        false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:              args.ManagedPeersHolder,
 			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
+			StateStatsHandler:               args.StateStatsHandler,
 		},
 	)
 	if err != nil {

@@ -180,6 +180,7 @@ func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.Sto
 			NodeProcessingMode:              dcf.nodeProcessingMode,
 			RepopulateTokensSupplies:        dcf.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:              dcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:               dcf.statusCore.StateStatsHandler(),
 			AdditionalStorageServiceCreator: dcf.additionalStorageServiceCreator,
 		})
 	if err != nil {

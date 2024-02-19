@@ -18,17 +18,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade/mock"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -50,8 +51,9 @@ func createMockArguments() ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 		},
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: "127.0.0.1:8080",
-			PprofEnabled:     false,
+			RestApiInterface:            "127.0.0.1:8080",
+			PprofEnabled:                false,
+			P2PPrometheusMetricsEnabled: false,
 		},
 		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
 			"node": {
@@ -84,7 +86,7 @@ func TestNewNodeFacade(t *testing.T) {
 		nf, err := NewNodeFacade(arg)
 
 		require.Nil(t, nf)
-		require.Equal(t, ErrNilNode, err)
+		require.Equal(t, errorsMx.ErrNilNode, err)
 	})
 	t.Run("nil ApiResolver should error", func(t *testing.T) {
 		t.Parallel()
@@ -513,15 +515,15 @@ func TestNodeFacade_GetDataValue(t *testing.T) {
 	wasCalled := false
 	arg := createMockArguments()
 	arg.ApiResolver = &mock.ApiResolverStub{
-		ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, error) {
+		ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 			wasCalled = true
-			return &vmcommon.VMOutput{}, nil
+			return &vmcommon.VMOutput{}, nil, nil
 		},
 	}
 	nf, err := NewNodeFacade(arg)
 	require.NoError(t, err)
 
-	_, _ = nf.ExecuteSCQuery(nil)
+	_, _, _ = nf.ExecuteSCQuery(nil)
 	require.True(t, wasCalled)
 }
 
@@ -549,10 +551,10 @@ func TestNodeFacade_RestInterface(t *testing.T) {
 func TestNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
-	mapToRet := make(map[string]*accounts.ValidatorApiResponse)
-	mapToRet["test"] = &accounts.ValidatorApiResponse{NumLeaderFailure: 5}
+	mapToRet := make(map[string]*validator.ValidatorStatistics)
+	mapToRet["test"] = &validator.ValidatorStatistics{NumLeaderFailure: 5}
 	node := &mock.NodeStub{
-		ValidatorStatisticsApiCalled: func() (map[string]*accounts.ValidatorApiResponse, error) {
+		ValidatorStatisticsApiCalled: func() (map[string]*validator.ValidatorStatistics, error) {
 			return mapToRet, nil
 		},
 	}
@@ -618,6 +620,16 @@ func TestNodeFacade_PprofEnabled(t *testing.T) {
 	nf, _ := NewNodeFacade(arg)
 
 	require.True(t, nf.PprofEnabled())
+}
+
+func TestNodeFacade_P2PPrometheusMetricsEnabled(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.FacadeConfig.P2PPrometheusMetricsEnabled = true
+	nf, _ := NewNodeFacade(arg)
+
+	require.True(t, nf.P2PPrometheusMetricsEnabled())
 }
 
 func TestNodeFacade_RestAPIServerDebugMode(t *testing.T) {
@@ -1232,6 +1244,101 @@ func TestNodeFacade_IsDataTrieMigrated(t *testing.T) {
 	})
 }
 
+func TestNodeFacade_GetManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := 10
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCountCalled: func() int {
+			return expectedResult
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result := nf.GetManagedKeysCount()
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCalled: func() []string {
+			return expectedResult
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result := nf.GetManagedKeys()
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetWaitingManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetWaitingManagedKeysCalled: func() ([]string, error) {
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result, err := nf.GetWaitingManagedKeys()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetEligibleManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetEligibleManagedKeysCalled: func() ([]string, error) {
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result, err := nf.GetEligibleManagedKeys()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
+	t.Parallel()
+
+	providedPubKey := "public key"
+	expectedResult := uint32(10)
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey string) (uint32, error) {
+			assert.Equal(t, providedPubKey, publicKey)
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	epochsLeft, err := nf.GetWaitingEpochsLeftForPublicKey(providedPubKey)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, epochsLeft)
+}
+
 func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 	t.Parallel()
 
@@ -1240,14 +1347,14 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.ApiResolver = &mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
-				return nil, expectedErr
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+				return nil, nil, expectedErr
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
 
-		_, err := nf.ExecuteSCQuery(&process.SCQuery{})
+		_, _, err := nf.ExecuteSCQuery(&process.SCQuery{})
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1269,15 +1376,15 @@ func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
 			},
 		}
 		arg.ApiResolver = &mock.ApiResolverStub{
-			ExecuteSCQueryHandler: func(_ *process.SCQuery) (*vmcommon.VMOutput, error) {
+			ExecuteSCQueryHandler: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
 				executeScQueryHandlerWasCalled = true
-				return expectedVmOutput, nil
+				return expectedVmOutput, nil, nil
 			},
 		}
 
 		nf, _ := NewNodeFacade(arg)
 
-		apiVmOutput, err := nf.ExecuteSCQuery(&process.SCQuery{})
+		apiVmOutput, _, err := nf.ExecuteSCQuery(&process.SCQuery{})
 		require.NoError(t, err)
 		require.True(t, executeScQueryHandlerWasCalled)
 		require.Equal(t, expectedVmOutput.ReturnData, apiVmOutput.ReturnData)
@@ -1470,7 +1577,31 @@ func TestNodeFacade_GetInternalMiniBlockByHashShouldWork(t *testing.T) {
 	require.Equal(t, ret, blk)
 }
 
-func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
+func TestFacade_convertVmOutputToApiResponseNilLogData(t *testing.T) {
+	testConvertVmOutput(t, nil, nil, nil)
+}
+
+func TestFacade_convertVmOutputToApiResponseEmptyLogData(t *testing.T) {
+	logData := [][]byte{}
+	expectedAdditionalLogData := [][]byte{}
+	testConvertVmOutput(t, logData, nil, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseSingleLogData(t *testing.T) {
+	logData := [][]byte{[]byte("log_data")}
+	expectedLogData := []byte("log_data")
+	expectedAdditionalLogData := [][]byte{[]byte("log_data")}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func TestFacade_convertVmOutputToApiResponseMultiLogData(t *testing.T) {
+	logData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
+	expectedLogData := []byte("log_data1")
+	expectedAdditionalLogData := [][]byte{[]byte("log_data1"), []byte("log_data2"), []byte("log_data3")}
+	testConvertVmOutput(t, logData, expectedLogData, expectedAdditionalLogData)
+}
+
+func testConvertVmOutput(t *testing.T, logData [][]byte, expectedLogData []byte, expectedAdditionalLogData [][]byte) {
 	arg := createMockArguments()
 	nf, _ := NewNodeFacade(arg)
 
@@ -1482,7 +1613,7 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 	retData := [][]byte{[]byte("ret_data_0")}
 	outAcc, outAccStorageKey, outAccOffset := []byte("addr0"), []byte("out_acc_storage_key"), []byte("offset")
 	outAccTransferSndrAddr := []byte("addr1")
-	logId, logAddr, logTopics, logData := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}, []byte("log_data")
+	logId, logAddr, logTopics := []byte("log_id"), []byte("log_addr"), [][]byte{[]byte("log_topic")}
 	vmInput := vmcommon.VMOutput{
 		ReturnData: retData,
 		OutputAccounts: map[string]*vmcommon.OutputAccount{
@@ -1528,10 +1659,11 @@ func TestFacade_convertVmOutputToApiResponse(t *testing.T) {
 
 	expectedLogs := []*vm.LogEntryApi{
 		{
-			Identifier: logId,
-			Address:    convertAddressFunc(logAddr),
-			Topics:     logTopics,
-			Data:       logData,
+			Identifier:     logId,
+			Address:        convertAddressFunc(logAddr),
+			Topics:         logTopics,
+			Data:           expectedLogData,
+			AdditionalData: expectedAdditionalLogData,
 		},
 	}
 

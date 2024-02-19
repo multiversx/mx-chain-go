@@ -30,7 +30,7 @@ type vmContainerFactory struct {
 	chanceComputer         nodesCoordinator.ChanceComputer
 	validatorAccountsDB    state.AccountsAdapter
 	userAccountsDB         state.AccountsAdapter
-	blockChainHook         process.BlockChainHookHandler
+	blockChainHook         process.BlockChainHookWithAccountsAdapter
 	cryptoHook             vmcommon.CryptoHook
 	systemContracts        vm.SystemSCContainer
 	economics              process.EconomicsDataHandler
@@ -60,7 +60,7 @@ type ArgsNewVMContainerFactory struct {
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	ShardCoordinator    sharding.Coordinator
 	PubkeyConv          core.PubkeyConverter
-	BlockChainHook      process.BlockChainHookHandler
+	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	EnableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -182,6 +182,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		UserAccountsDB:      vmf.userAccountsDB,
 		ChanceComputer:      vmf.chanceComputer,
 		EnableEpochsHandler: vmf.enableEpochsHandler,
+		ShardCoordinator:    vmf.shardCoordinator,
 	}
 	systemEI, err := systemSmartContracts.NewVMContext(vmContextArgs)
 	if err != nil {
@@ -263,7 +264,7 @@ func (vmf *vmContainerFactory) createSystemVMForGenesis() (vmcommon.VMExecutionH
 }
 
 // BlockChainHookImpl returns the created blockChainHookImpl
-func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookHandler {
+func (vmf *vmContainerFactory) BlockChainHookImpl() process.BlockChainHookWithAccountsAdapter {
 	return vmf.blockChainHook
 }
 

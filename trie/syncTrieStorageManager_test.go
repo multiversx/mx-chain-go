@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +22,7 @@ func TestNewSyncTrieStorageManagerInvalidStorerType(t *testing.T) {
 	t.Parallel()
 
 	args := GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = createMemUnit()
+	args.MainStorer = testscommon.NewMemDbMock()
 	trieStorage, _ := NewTrieStorageManager(args)
 
 	stsm, err := NewSyncTrieStorageManager(trieStorage)

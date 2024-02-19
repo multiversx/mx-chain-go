@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/errors"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -69,6 +70,8 @@ type ArgsExporter struct {
 	TrieSyncerVersion                int
 	CheckNodesOnDisk                 bool
 	NodeOperationMode                common.NodeOperation
+
+	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 type exportHandlerFactory struct {
@@ -108,6 +111,8 @@ type exportHandlerFactory struct {
 	trieSyncerVersion                int
 	checkNodesOnDisk                 bool
 	nodeOperationMode                common.NodeOperation
+
+	shardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -231,6 +236,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, update.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
 
 	e := &exportHandlerFactory{
 		coreComponents:                   args.CoreComponents,
@@ -266,6 +274,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		checkNodesOnDisk:                 args.CheckNodesOnDisk,
 		statusCoreComponents:             args.StatusCoreComponents,
 		nodeOperationMode:                args.NodeOperationMode,
+		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
 
 	return e, nil
@@ -323,6 +332,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		ShardCoordinator:     e.shardCoordinator,
 		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
+		StateStatsCollector:  e.statusCoreComponents.StateStatsHandler(),
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -373,13 +383,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsRequesters := ArgsRequestersContainerFactory{
-		ShardCoordinator:       e.shardCoordinator,
-		MainMessenger:          e.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:   e.networkComponents.FullArchiveNetworkMessenger(),
-		Marshaller:             e.coreComponents.InternalMarshalizer(),
-		ExistingRequesters:     e.existingRequesters,
-		OutputAntifloodHandler: e.networkComponents.OutputAntiFloodHandler(),
-		PeersRatingHandler:     e.networkComponents.PeersRatingHandler(),
+		ShardCoordinator:        e.shardCoordinator,
+		MainMessenger:           e.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:    e.networkComponents.FullArchiveNetworkMessenger(),
+		Marshaller:              e.coreComponents.InternalMarshalizer(),
+		ExistingRequesters:      e.existingRequesters,
+		OutputAntifloodHandler:  e.networkComponents.OutputAntiFloodHandler(),
+		PeersRatingHandler:      e.networkComponents.PeersRatingHandler(),
+		ShardCoordinatorFactory: e.shardCoordinatorFactory,
 	}
 	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
 	if err != nil {
@@ -587,6 +598,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
 		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
 		NodeOperationMode:                e.nodeOperationMode,
+		ShardCoordinatorFactory:          e.shardCoordinatorFactory,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {
@@ -606,9 +618,17 @@ func (e *exportHandlerFactory) createInterceptors() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
+
+	dbConfigHandler := storageFactory.NewDBConfigHandler(storageConfig.DB)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return nil, err

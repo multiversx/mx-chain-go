@@ -1,6 +1,7 @@
 package processProxy
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -72,7 +73,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		},
 		GasSchedule: testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCDeployFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SCDeployFlag
+			},
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		WasmVMChangeLocker:  &sync.RWMutex{},
@@ -94,6 +97,16 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 		assert.True(t, check.IfNil(proxy))
 		assert.NotNil(t, err)
 		assert.Equal(t, "argument parser is nil", err.Error())
+	})
+	t.Run("invalid enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockSmartContractProcessorArguments()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+		proxy, err := NewSmartContractProcessorProxy(args)
+		assert.True(t, check.IfNil(proxy))
+		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	})
 	t.Run("nil epoch notifier should error", func(t *testing.T) {
 		t.Parallel()
@@ -119,9 +132,7 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSmartContractProcessorArguments()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCProcessorV2FlagEnabledField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCProcessorV2Flag)
 
 		proxy, err := NewSmartContractProcessorProxy(args)
 		assert.False(t, check.IfNil(proxy))

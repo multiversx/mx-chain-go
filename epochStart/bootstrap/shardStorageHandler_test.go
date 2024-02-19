@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"os"
 	"sort"
 	"strings"
@@ -1079,6 +1080,7 @@ func createDefaultShardStorageArgs() StorageHandlerArgs {
 		NodeProcessingMode:              common.Normal,
 		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
 		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
+		StateStatsHandler:               disabled.NewStateStatistics(),
 	}
 }
 

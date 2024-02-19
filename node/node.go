@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -37,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -54,7 +54,7 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-// over the None struct.
+// //	over the None struct.
 type Option func(*Node) error
 
 type filter interface {
@@ -211,6 +211,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetAllIssuedESDTs(tokenType, ctx)
+}
+
+func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
 		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
@@ -444,6 +448,14 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetTokensIDsWithFilter(f, options, ctx)
+}
+
+func (n *Node) baseGetTokensIDsWithFilter(
+	f filter,
+	options api.AccountQueryOptions,
+	ctx context.Context,
+) ([]string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
@@ -707,7 +719,15 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 		return err
 	}
 
-	return txValidator.CheckTxValidity(intTx)
+	err = txValidator.CheckTxValidity(intTx)
+	if errors.Is(err, process.ErrAccountNotFound) {
+		return fmt.Errorf("%w for address %s",
+			process.ErrInsufficientFunds,
+			n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.SndAddr, log),
+		)
+	}
+
+	return err
 }
 
 // ValidateTransactionForSimulation will validate a transaction for use in transaction simulation process
@@ -997,7 +1017,7 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 }
 
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
-func (n *Node) ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error) {
+func (n *Node) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 

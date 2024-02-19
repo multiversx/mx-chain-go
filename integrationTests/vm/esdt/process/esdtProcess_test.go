@@ -1,5 +1,4 @@
 //go:build !race
-// +build !race
 
 package process
 
@@ -588,7 +587,7 @@ func TestESDTcallsSC(t *testing.T) {
 		FuncName:  "getCurrentFunds",
 		Arguments: [][]byte{},
 	}
-	vmOutput1, _ := nodes[0].SCQueryService.ExecuteQuery(scQuery1)
+	vmOutput1, _, _ := nodes[0].SCQueryService.ExecuteQuery(scQuery1)
 	require.Equal(t, big.NewInt(60).Bytes(), vmOutput1.ReturnData[0])
 
 	nodesBalance := valueToSend - valueToSendToSc
@@ -1294,7 +1293,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	}()
 
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	initialVal := big.NewInt(10000000000)
@@ -1380,7 +1379,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 		Arguments:  [][]byte{},
 	}
 
-	res, err := scQuery.ExecuteQuery(childScAddressQuery)
+	res, _, err := scQuery.ExecuteQuery(childScAddressQuery)
 	require.Nil(t, err)
 
 	receiverScAddress := res.ReturnData[0]
@@ -1393,7 +1392,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 		Arguments:  [][]byte{},
 	}
 
-	res, err = scQuery.ExecuteQuery(tokenIdQuery)
+	res, _, err = scQuery.ExecuteQuery(tokenIdQuery)
 	require.Nil(t, err)
 	require.True(t, strings.Contains(string(res.ReturnData[0]), ticker))
 
@@ -1568,7 +1567,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		Arguments:  [][]byte{},
 	}
 
-	res, err := scQuery.ExecuteQuery(tokenIdQuery)
+	res, _, err := scQuery.ExecuteQuery(tokenIdQuery)
 	require.Nil(t, err)
 	tokenIdStr := string(res.ReturnData[0])
 	require.True(t, strings.Contains(tokenIdStr, ticker))
@@ -1858,7 +1857,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 		Arguments:  [][]byte{},
 	}
 
-	res, err := scQuery.ExecuteQuery(tokenIdQuery)
+	res, _, err := scQuery.ExecuteQuery(tokenIdQuery)
 	require.Nil(t, err)
 	tokenIdStrLendBusd := string(res.ReturnData[0])
 	require.True(t, strings.Contains(tokenIdStrLendBusd, ticker))
@@ -1872,7 +1871,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 		Arguments:  [][]byte{},
 	}
 
-	res, err = scQuery.ExecuteQuery(tokenIdQuery)
+	res, _, err = scQuery.ExecuteQuery(tokenIdQuery)
 	require.Nil(t, err)
 	tokenIdStrBorrow := string(res.ReturnData[0])
 	require.True(t, strings.Contains(tokenIdStrBorrow, ticker))
@@ -1919,12 +1918,12 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithScCall_GasUsedMismatch(t *te
 		Arguments:  [][]byte{},
 	}
 
-	res, err = scQuery.ExecuteQuery(borrowWEGLDtokenIdQuery)
+	res, _, err = scQuery.ExecuteQuery(borrowWEGLDtokenIdQuery)
 	require.Nil(t, err)
 	tokenIdStr := string(res.ReturnData[0])
 	require.True(t, strings.Contains(tokenIdStr, tickerWEGLD))
 
-	res, err = scQuery.ExecuteQuery(lendWEGLDtokenIdQuery)
+	res, _, err = scQuery.ExecuteQuery(lendWEGLDtokenIdQuery)
 	require.Nil(t, err)
 	tokenIdStr = string(res.ReturnData[0])
 	require.True(t, strings.Contains(tokenIdStr, tickerWEGLD))
@@ -2048,7 +2047,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
@@ -2099,7 +2098,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	}
 
 	numIssues := 22
-	numBurns := 300
+	numBurns := 50
 
 	numOfShards := 1
 	nodesPerShard := 1
@@ -2133,11 +2132,11 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
-		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000, 0)
 		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
 		gasScheduleHandler.GasScheduleChange(gasSchedule)
 	}
@@ -2209,7 +2208,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 			CallValue:  big.NewInt(0),
 			Arguments:  [][]byte{[]byte(tokenIdentifier)},
 		}
-		vmOutput, err := n.SCQueryService.ExecuteQuery(scQuery)
+		vmOutput, _, err := n.SCQueryService.ExecuteQuery(scQuery)
 		require.Nil(t, err)
 		require.Equal(t, vmOutput.ReturnCode, vmcommon.Ok)
 

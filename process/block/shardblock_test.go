@@ -28,6 +28,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
@@ -35,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -470,13 +472,16 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 			RemoveGasRefundedCalled: func(hashes [][]byte) {},
 			RemoveGasProvidedCalled: func(hashes [][]byte) {},
 		},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                 common.ChainRunTypeRegular,
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -694,13 +699,16 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 			RemoveGasRefundedCalled: func(hashes [][]byte) {},
 			RemoveGasProvidedCalled: func(hashes [][]byte) {},
 		},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                 common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2585,27 +2593,30 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	}
 
 	args := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:                       mock.NewMultiShardsCoordinatorMock(3),
-		Store:                                  initStore(),
-		Marshaller:                             marshalizer,
-		Hasher:                                 &hashingMocks.HasherMock{},
-		DataPool:                               tdp,
-		PubkeyConverter:                        createMockPubkeyConverter(),
-		Accounts:                               initAccountsMock(),
-		RequestHandler:                         &testscommon.RequestHandlerStub{},
-		TxProcessor:                            &testscommon.TxProcessorMock{},
-		ScProcessor:                            &testscommon.SCProcessorMock{},
-		ScResultProcessor:                      &testscommon.SmartContractResultsProcessorMock{},
-		RewardsTxProcessor:                     &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                           &economicsmocks.EconomicsHandlerStub{},
-		GasHandler:                             &testscommon.GasHandlerStub{},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Store:                        initStore(),
+		Marshaller:                   marshalizer,
+		Hasher:                       &hashingMocks.HasherMock{},
+		DataPool:                     tdp,
+		PubkeyConverter:              createMockPubkeyConverter(),
+		Accounts:                     initAccountsMock(),
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                 common.ChainRunTypeRegular,
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2695,27 +2706,30 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 	}
 
 	args := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:                       mock.NewMultiShardsCoordinatorMock(3),
-		Store:                                  initStore(),
-		Marshaller:                             &mock.MarshalizerMock{},
-		Hasher:                                 &hashingMocks.HasherMock{},
-		DataPool:                               tdp,
-		PubkeyConverter:                        createMockPubkeyConverter(),
-		Accounts:                               initAccountsMock(),
-		RequestHandler:                         &testscommon.RequestHandlerStub{},
-		TxProcessor:                            &testscommon.TxProcessorMock{},
-		ScProcessor:                            &testscommon.SCProcessorMock{},
-		ScResultProcessor:                      &testscommon.SmartContractResultsProcessorMock{},
-		RewardsTxProcessor:                     &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                           &economicsmocks.EconomicsHandlerStub{},
-		GasHandler:                             &testscommon.GasHandlerStub{},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Store:                        initStore(),
+		Marshaller:                   &mock.MarshalizerMock{},
+		Hasher:                       &hashingMocks.HasherMock{},
+		DataPool:                     tdp,
+		PubkeyConverter:              createMockPubkeyConverter(),
+		Accounts:                     initAccountsMock(),
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                 common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2781,15 +2795,17 @@ func TestShardProcessor_ReceivedMetaBlockShouldRequestMissingMiniBlocks(t *testi
 	miniBlockHash3Requested := int32(0)
 
 	requestHandler := &testscommon.RequestHandlerStub{
-		RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
-			if bytes.Equal(miniBlockHash1, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash1Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash2, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash2Requested, 1)
-			}
-			if bytes.Equal(miniBlockHash3, miniblockHash) {
-				atomic.AddInt32(&miniBlockHash3Requested, 1)
+		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+			for _, mbHash := range miniblocksHashes {
+				if bytes.Equal(miniBlockHash1, mbHash) {
+					atomic.AddInt32(&miniBlockHash1Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash2, mbHash) {
+					atomic.AddInt32(&miniBlockHash2Requested, 1)
+				}
+				if bytes.Equal(miniBlockHash3, mbHash) {
+					atomic.AddInt32(&miniBlockHash3Requested, 1)
+				}
 			}
 		},
 	}
@@ -3104,13 +3120,16 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				return 0
 			},
 		},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                 common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -3273,27 +3292,30 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	}
 
 	args := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:                       mock.NewMultiShardsCoordinatorMock(3),
-		Store:                                  store,
-		Marshaller:                             marshalizerMock,
-		Hasher:                                 hasherMock,
-		DataPool:                               datapool,
-		PubkeyConverter:                        createMockPubkeyConverter(),
-		Accounts:                               initAccountsMock(),
-		RequestHandler:                         &testscommon.RequestHandlerStub{},
-		TxProcessor:                            &testscommon.TxProcessorMock{},
-		ScProcessor:                            &testscommon.SCProcessorMock{},
-		ScResultProcessor:                      &testscommon.SmartContractResultsProcessorMock{},
-		RewardsTxProcessor:                     &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                           &economicsmocks.EconomicsHandlerStub{},
-		GasHandler:                             &testscommon.GasHandlerStub{},
-		BlockTracker:                           &mock.BlockTrackerMock{},
-		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:                     &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Store:                        store,
+		Marshaller:                   marshalizerMock,
+		Hasher:                       hasherMock,
+		DataPool:                     datapool,
+		PubkeyConverter:              createMockPubkeyConverter(),
+		Accounts:                     initAccountsMock(),
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ChainRunType:                 common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &factory.SmartContractResultPreProcessorFactoryMock{},
 	}
 	factory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -4506,7 +4528,6 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
-	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
@@ -5054,9 +5075,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
-	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsScheduledMiniBlocksFlagEnabledField: true,
-	}
+	coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {

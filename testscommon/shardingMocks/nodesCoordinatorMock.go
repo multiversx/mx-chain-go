@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -275,6 +276,21 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 	}
 
 	return weights, nil
+}
+
+// GetWaitingEpochsLeftForPublicKey always returns 0
+func (ncm *NodesCoordinatorMock) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
+	return 0, nil
+}
+
+// EpochStartPrepare -
+func (ncm *NodesCoordinatorMock) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+
+}
+
+// NodesCoordinatorToRegistry -
+func (ncm *NodesCoordinatorMock) NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry {
+	return nil
 }
 
 // IsInterfaceNil -

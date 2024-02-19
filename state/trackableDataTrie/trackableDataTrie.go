@@ -49,6 +49,12 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.AutoBalanceDataTriesFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &trackableDataTrie{
 		tr:                  nil,
@@ -125,6 +131,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	}
 
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
+	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
 		dataEntry := dirtyData{
 			value:      leafData.Value,
@@ -234,12 +241,20 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 			return nil, err
 		}
 
-		err = tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
+		newKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
 		if err != nil {
 			return nil, err
 		}
 
 		index++
+
+		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
+		if isFirstMigration && len(newKey) != 0 {
+			oldValues = append(oldValues, core.TrieData{
+				Key:   newKey,
+				Value: nil,
+			})
+		}
 	}
 
 	tdt.dirtyData = make(map[string]dirtyData)
@@ -248,7 +263,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
-	if tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
 		valWithMetadata, depth, err := tdt.tr.Get(hashedKey)
 		if err != nil {
@@ -321,31 +336,32 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 }
 
 func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) error {
-	if !tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		return nil
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
+		log.Trace("delete old entry if migrated", "key", key)
 		return tdt.tr.Delete(key)
 	}
 
 	return nil
 }
 
-func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) error {
+func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
 	if len(dataEntry.value) == 0 {
-		return tdt.deleteFromTrie(oldVal, key, dtr)
+		return nil, tdt.deleteFromTrie(oldVal, key, dtr)
 	}
 
 	version := dataEntry.newVersion
 	newKey := tdt.getKeyForVersion(key, version)
 	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return dtr.UpdateWithVersion(newKey, value, version)
+	return newKey, dtr.UpdateWithVersion(newKey, value, version)
 }
 
 func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) error {

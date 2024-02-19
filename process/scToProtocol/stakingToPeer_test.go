@@ -35,18 +35,15 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:  testscommon.NewPubkeyConverterMock(32),
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerStub{},
-		PeerState:   &stateMock.AccountsStub{},
-		BaseState:   &stateMock.AccountsStub{},
-		ArgParser:   &mock.ArgumentParserMock{},
-		CurrTxs:     &mock.TxForCurrentBlockStub{},
-		RatingsData: &mock.RatingsInfoMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledField:                 true,
-			IsValidatorToDelegationFlagEnabledField: true,
-		},
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerStub{},
+		PeerState:           &stateMock.AccountsStub{},
+		BaseState:           &stateMock.AccountsStub{},
+		ArgParser:           &mock.ArgumentParserMock{},
+		CurrTxs:             &mock.TxForCurrentBlockStub{},
+		RatingsData:         &mock.RatingsInfoMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag),
 	}
 }
 
@@ -64,7 +61,7 @@ func createBlockBody() *block.Body {
 }
 
 func createStakingScAccount() state.UserAccountHandler {
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})
 	return userAcc
@@ -156,6 +153,17 @@ func TestNewStakingToPeerNilEnableEpochsHandlerShouldErr(t *testing.T) {
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewStakingToPeerInvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	stp, err := NewStakingToPeer(arguments)
+	assert.Nil(t, stp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewStakingToPeer_ShouldWork(t *testing.T) {

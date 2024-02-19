@@ -183,9 +183,9 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 	shardLines = append(shardLines, headerLines...)
 	shardLines = append(shardLines, lines...)
 
-	shardHeaderHashesGetter, ok := header.(extendedShardHeaderHashesGetter)
-	if ok {
-		shardLines = txc.displayExtendedShardHeaderHashesIncluded(shardLines, shardHeaderHashesGetter.GetExtendedShardHeaderHashes())
+	sovereignChainHeaderHandler, castOk := header.(sovereignChainHeader)
+	if castOk {
+		shardLines = txc.displaySovereignChainHeader(shardLines, sovereignChainHeaderHandler)
 	}
 
 	var varBlockBodyType int32 = math.MaxInt32
@@ -205,6 +205,50 @@ func (txc *transactionCounter) createDisplayableShardHeaderAndBlockBody(
 
 	shardLines = append(shardLines, display.NewLineData(false, []string{"Unknown", "", ""}))
 	return tableHeader, shardLines
+}
+
+func (txc *transactionCounter) displaySovereignChainHeader(
+	lines []*display.LineData,
+	header sovereignChainHeader,
+) []*display.LineData {
+	lines = txc.displayExtendedShardHeaderHashesIncluded(lines, header.GetExtendedShardHeaderHashes())
+	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingMiniBlockHeaderHandler())
+
+	return lines
+}
+
+func (txc *transactionCounter) displayOutGoingTxData(
+	lines []*display.LineData,
+	outGoingTxData data.OutGoingMiniBlockHeaderHandler,
+) []*display.LineData {
+	if check.IfNil(outGoingTxData) {
+		return lines
+	}
+
+	lines = append(lines, display.NewLineData(false, []string{
+		"OutGoing mini block header",
+		"Hash",
+		logger.DisplayByteSlice(outGoingTxData.GetHash())}),
+	)
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"OutGoingTxDataHash",
+		logger.DisplayByteSlice(outGoingTxData.GetOutGoingOperationsHash())}),
+	)
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"AggregatedSignatureOutGoingOperations",
+		logger.DisplayByteSlice(outGoingTxData.GetAggregatedSignatureOutGoingOperations())}),
+	)
+	lines = append(lines, display.NewLineData(false, []string{
+		"",
+		"LeaderSignatureOutGoingOperations",
+		logger.DisplayByteSlice(outGoingTxData.GetLeaderSignatureOutGoingOperations())}),
+	)
+
+	lines[len(lines)-1].HorizontalRuleAfter = true
+
+	return lines
 }
 
 func (txc *transactionCounter) displayExtendedShardHeaderHashesIncluded(

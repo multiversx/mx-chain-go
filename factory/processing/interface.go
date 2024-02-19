@@ -1,6 +1,7 @@
 package processing
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -9,6 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
 )
+
+// GenesisMetaBlockChecker should handle genesis meta block checks after creation
+type GenesisMetaBlockChecker interface {
+	SetValidatorRootHashOnGenesisMetaBlock(genesisMetaBlock data.HeaderHandler, validatorStatsRootHash []byte) error
+	IsInterfaceNil() bool
+}
 
 // TransactionCoordinatorCreator defines the transaction coordinator factory creator
 type TransactionCoordinatorCreator interface {

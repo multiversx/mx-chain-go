@@ -196,6 +196,7 @@ type ShardIdHashMap interface {
 type HeadersPool interface {
 	Clear()
 	AddHeader(headerHash []byte, header data.HeaderHandler)
+	AddHeaderInShard(headerHash []byte, header data.HeaderHandler, shardID uint32)
 	RemoveHeaderByHash(headerHash []byte)
 	RemoveHeaderByNonceAndShardId(headerNonce uint64, shardId uint32)
 	GetHeadersByNonceAndShardId(headerNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)

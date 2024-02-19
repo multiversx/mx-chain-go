@@ -140,7 +140,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	)
 
 	for _, node := range nodes {
-		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	idxProposers := make([]int, numOfShards+1)
@@ -276,7 +276,7 @@ func checkUserNamesAreSetCorrectly(
 				continue
 			}
 
-			vmOutput, _ := node.SCQueryService.ExecuteQuery(scQuery)
+			vmOutput, _, _ := node.SCQueryService.ExecuteQuery(scQuery)
 
 			require.NotNil(t, vmOutput)
 			require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)

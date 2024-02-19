@@ -101,7 +101,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 
 func createTestApiConfig() config.ApiRoutesConfig {
 	routes := map[string][]string{
-		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo", "/bootstrapstatus", "/connected-peers-ratings", "/managed-keys/count", "/managed-keys", "/managed-keys/eligible", "/managed-keys/waiting"},
+		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo", "/bootstrapstatus", "/connected-peers-ratings", "/managed-keys/count", "/managed-keys", "/managed-keys/eligible", "/managed-keys/waiting", "/waiting-epochs-left/:key"},
 		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/code-hash", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
 		"hardfork":    {"/trigger"},
 		"network":     {"/status", "/total-staked", "/economics", "/config"},
@@ -209,13 +209,13 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		QueryService:       tpn.SCQueryService,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
-	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := factory.NewTotalStakedListProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	log.LogIfError(err)
 
-	directStakedListHandler, err := factory.CreateDirectStakedListHandler(args)
+	directStakedListHandler, err := factory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	log.LogIfError(err)
 
-	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
+	delegatedListHandler, err := factory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	log.LogIfError(err)
 
 	logsFacade := &testscommon.LogsFacadeStub{}
@@ -273,11 +273,12 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		APITransactionHandler:    apiTransactionHandler,
 		APIBlockHandler:          blockAPIHandler,
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
-		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 		ManagedPeersMonitor:      &testscommon.ManagedPeersMonitorStub{},
+		NodesCoordinator:         tpn.NodesCoordinator,
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

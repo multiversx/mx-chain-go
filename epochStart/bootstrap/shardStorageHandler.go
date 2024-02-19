@@ -41,6 +41,8 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 			RepopulateTokensSupplies:        false, // tokens supplies cannot be repopulated at this time
 			ManagedPeersHolder:              args.ManagedPeersHolder,
 			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
+			StateStatsHandler:               args.StateStatsHandler,
+			ChainRunType:                    args.ChainRunType,
 		},
 	)
 	if err != nil {

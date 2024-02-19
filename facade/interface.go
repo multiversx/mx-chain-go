@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
@@ -16,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -85,7 +85,7 @@ type NodeHandler interface {
 	IsInterfaceNil() bool
 
 	// ValidatorStatisticsApi return the statistics for all the validators
-	ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error)
+	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
 	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
 	IsSelfTrigger() bool
 
@@ -112,7 +112,7 @@ type TransactionSimulatorProcessor interface {
 
 // ApiResolver defines a structure capable of resolving REST API requests
 type ApiResolver interface {
-	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, error)
+	ExecuteSCQuery(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	StatusMetrics() external.StatusMetricsHandler
@@ -144,6 +144,7 @@ type ApiResolver interface {
 	GetManagedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
+	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	Close() error
 	IsInterfaceNil() bool
 }
