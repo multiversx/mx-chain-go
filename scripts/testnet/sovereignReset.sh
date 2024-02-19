@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+export MULTIVERSXTESTNETSCRIPTSDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+$MULTIVERSXTESTNETSCRIPTSDIR/stop.sh
+$MULTIVERSXTESTNETSCRIPTSDIR/clean.sh
+$MULTIVERSXTESTNETSCRIPTSDIR/config.sh
+$MULTIVERSXTESTNETSCRIPTSDIR/sovereignStart.sh $1
