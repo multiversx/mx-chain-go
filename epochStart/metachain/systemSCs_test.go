@@ -99,6 +99,11 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 	return unit, dir
 }
 
+type enableEpochHandlerWithEpochConfirm interface {
+	common.EnableEpochsHandler
+	core.EpochSubscriberHandler
+}
+
 func TestNewSystemSCProcessor(t *testing.T) {
 	t.Parallel()
 
@@ -956,21 +961,119 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-		StakingV2EnableEpoch: 1000,
-	}, testscommon.CreateMemUnit())
-	s, _ := NewSystemSCProcessor(args)
+	t.Run("flag not active - activation epoch is in the future", func(t *testing.T) {
+		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+			DelegationManagerEnableEpoch: 39,
+			StakingV2EnableEpoch:         1000,
+		}, testscommon.CreateMemUnit())
+		s, _ := NewSystemSCProcessor(args)
+		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
+		handler.EpochConfirmed(37, 0)
 
-	validatorsInfo := state.NewShardValidatorsInfoMap()
-	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-	assert.Nil(t, err)
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		assert.Nil(t, err)
 
-	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
-	assert.Nil(t, err)
+		acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
+		assert.NotNil(t, err)
+		assert.True(t, check.IfNil(acc))
+	})
+	t.Run("flag active in that specific epoch", func(t *testing.T) {
+		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+			DelegationManagerEnableEpoch: 37,
+			StakingV2EnableEpoch:         1000,
+		}, testscommon.CreateMemUnit())
+		s, _ := NewSystemSCProcessor(args)
+		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
+		handler.EpochConfirmed(37, 0)
 
-	userAcc, _ := acc.(state.UserAccountHandler)
-	assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
-	assert.NotNil(t, userAcc.GetCodeMetadata())
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		assert.Nil(t, err)
+
+		acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
+		assert.Nil(t, err)
+
+		userAcc, _ := acc.(state.UserAccountHandler)
+		assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
+		assert.NotNil(t, userAcc.GetCodeMetadata())
+	})
+	t.Run("flag not active - activation epoch is in the past", func(t *testing.T) {
+		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+			DelegationManagerEnableEpoch: 35,
+			StakingV2EnableEpoch:         1000,
+		}, testscommon.CreateMemUnit())
+		s, _ := NewSystemSCProcessor(args)
+		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
+		handler.EpochConfirmed(37, 0)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		assert.Nil(t, err)
+
+		acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
+		assert.NotNil(t, err)
+		assert.True(t, check.IfNil(acc))
+	})
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T) {
+	t.Parallel()
+
+	t.Run("flag not active - activation epoch is in the future", func(t *testing.T) {
+		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+			GovernanceEnableEpoch: 39,
+			StakingV2EnableEpoch:  1000,
+		}, testscommon.CreateMemUnit())
+		s, _ := NewSystemSCProcessor(args)
+		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
+		handler.EpochConfirmed(37, 0)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		assert.Nil(t, err)
+
+		acc, err := s.userAccountsDB.GetExistingAccount(vm.GovernanceSCAddress)
+		assert.NotNil(t, err)
+		assert.True(t, check.IfNil(acc))
+	})
+	t.Run("flag active in that specific epoch", func(t *testing.T) {
+		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+			GovernanceEnableEpoch: 37,
+			StakingV2EnableEpoch:  1000,
+		}, testscommon.CreateMemUnit())
+		s, _ := NewSystemSCProcessor(args)
+		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
+		handler.EpochConfirmed(37, 0)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		assert.Nil(t, err)
+
+		acc, err := s.userAccountsDB.GetExistingAccount(vm.GovernanceSCAddress)
+		assert.Nil(t, err)
+
+		userAcc, _ := acc.(state.UserAccountHandler)
+		assert.Empty(t, userAcc.GetOwnerAddress())
+		assert.Empty(t, userAcc.GetCodeMetadata())
+	})
+	t.Run("flag not active - activation epoch is in the past", func(t *testing.T) {
+		args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
+			GovernanceEnableEpoch: 35,
+			StakingV2EnableEpoch:  1000,
+		}, testscommon.CreateMemUnit())
+		s, _ := NewSystemSCProcessor(args)
+		handler := s.enableEpochsHandler.(enableEpochHandlerWithEpochConfirm)
+		handler.EpochConfirmed(37, 0) // epoch 37
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		assert.Nil(t, err)
+
+		acc, err := s.userAccountsDB.GetExistingAccount(vm.GovernanceSCAddress)
+		assert.NotNil(t, err)
+		assert.True(t, check.IfNil(acc))
+	})
 }
 
 func TestSystemSCProcessor_ProcessDelegationRewardsNothingToExecute(t *testing.T) {
