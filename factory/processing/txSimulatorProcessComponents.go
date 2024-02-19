@@ -369,6 +369,9 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	}
 
 	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	if err != nil {
+		return args, nil, nil, err
+	}
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
