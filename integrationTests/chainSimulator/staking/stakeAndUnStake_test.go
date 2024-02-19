@@ -268,12 +268,14 @@ func testChainSimulatorUnstakeFundsHappyFlow(t *testing.T, cs chainSimulatorInte
 	// Stake one node per validator owner
 	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(5200)) // 2600*2 EGLD
 	validatorOwnerAStatus, _, err := cs.GetNodeHandler(validatorShardID).GetFacadeHandler().GetAccount(validator, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:2], validatorBytes, validatorContractAddressBytes, 2, stakeValue)
 
 	// Finalize block
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
 
 	// Verify user active stake
 	output, err := executeQuery(cs, core.MetachainShardId, validatorContractAddressBytes, "getTotalStaked", [][]byte{validatorBytes})
@@ -284,16 +286,19 @@ func testChainSimulatorUnstakeFundsHappyFlow(t *testing.T, cs chainSimulatorInte
 	// Unstake 50 EGLD
 	unstakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(50))
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorShardID).GetFacadeHandler().GetAccount(validator, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	unstakeTokens(t, cs, validatorOwnerAStatus.Nonce, unstakeValue, validatorBytes, validatorContractAddressBytes)
 
 	// check balance of the user is smaller than before sending the tx
 	validatorOwnerAStatusAfter, _, err := cs.GetNodeHandler(validatorShardID).GetFacadeHandler().GetAccount(validator, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	// validatorOwnerStatus has to be greater than validatorOwnerStatusAfter
 	require.True(t, validatorOwnerAStatus.Balance > validatorOwnerAStatusAfter.Balance)
 
 	// Finalize block
-	err = cs.GenerateBlocks(3)
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Verify user active stake
@@ -343,8 +348,10 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 	// Stake one node per validator owner
 	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(3000)) // 3000 EGLD
 	validatorOwnerAStatus, _, err := cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:1], validatorOwnerABytes, validatorContractAddressBytes, 1, stakeValue)
 	validatorOwnerBStatus, _, err := cs.GetNodeHandler(validatorOwnerBShardID).GetFacadeHandler().GetAccount(validatorOwnerB, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	stakeNodes(t, cs, validatorOwnerBStatus.Nonce, blsKeys[1:], validatorOwnerBBytes, validatorContractAddressBytes, 1, stakeValue)
 
 	// Finalize block
@@ -370,6 +377,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 
 	//2nd check after unstaking 100 EGLD from A and nothing from B ------------------------------------
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	unstakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100)) // 100 EGLD
 	unstakeTokens(t, cs, validatorOwnerAStatus.Nonce, unstakeValue, validatorOwnerABytes, validatorContractAddressBytes)
 
@@ -380,6 +388,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 	// check position of validator A in auction list is below validator B
 	//get auction list
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
 	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 
@@ -402,6 +411,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 
 	//3rd check after staking 50 EGLD from A and nothing from B ------------------------------------
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	stakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(50)) // 50 EGLD
 	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:1], validatorOwnerABytes, validatorContractAddressBytes, 1, stakeValue)
 
@@ -412,6 +422,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 	// check position of validator A in auction list is below validator B
 	//get auction list
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
 	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 
@@ -434,6 +445,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 
 	// 4th step - stake 1000 EGLD to A and check if A is now on upper position
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	stakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(1000)) // 1000 EGLD
 	stakeNodes(t, cs, validatorOwnerAStatus.Nonce, blsKeys[:1], validatorOwnerABytes, validatorContractAddressBytes, 1, stakeValue)
 
@@ -444,6 +456,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 	// check position of validator A in auction list is below validator B
 	//get auction list
 	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
 	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 
@@ -466,6 +479,7 @@ func testChainSimulatorMultipleStakeUnstakeIsCalculatedProperly(t *testing.T, cs
 
 	//5th check after unstaking 950 EGLD from A and nothing from B ------------------------------------
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	unstakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(950)) // 950 EGLD
 	unstakeTokens(t, cs, validatorOwnerAStatus.Nonce, unstakeValue, validatorOwnerABytes, validatorContractAddressBytes)
 
