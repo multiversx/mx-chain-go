@@ -24,7 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	stateErrors "github.com/multiversx/mx-chain-go/state"
+	stateAcc "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
@@ -83,7 +83,7 @@ func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
 	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
 }
 
-func getAccount(t *testing.T, accountsDb state2.AccountsAdapter, address string) vmcommon.AccountHandler {
+func getAccount(t *testing.T, accountsDb stateAcc.AccountsAdapter, address string) vmcommon.AccountHandler {
 	addressBytes, err := hex.DecodeString(address)
 	require.Nil(t, err)
 
@@ -383,7 +383,7 @@ func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 
 	acc, err := arg.Accounts.GetExistingAccount(core.SystemAccountAddress)
 	require.Nil(t, acc)
-	require.Equal(t, err, stateErrors.ErrAccNotFound)
+	require.Equal(t, err, stateAcc.ErrAccNotFound)
 
 	_, err = sgbc.CreateGenesisBlocks()
 	require.Nil(t, err)
