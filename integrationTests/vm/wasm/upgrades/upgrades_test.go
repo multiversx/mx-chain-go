@@ -10,9 +10,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -172,61 +170,56 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	network := integrationTests.NewOneNodeNetwork()
+	network := integrationTests.NewMiniNetwork()
 	defer network.Stop()
 
-	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	bob := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	network.Mint(alice, big.NewInt(10000000000000))
-	network.Mint(bob, big.NewInt(10000000000000))
+	alice := network.AddUser(big.NewInt(10000000000000))
+	bob := network.AddUser(big.NewInt(10000000000000))
 
-	network.GoToRoundOne()
+	network.Start()
 
 	deployTxData := fmt.Sprintf("%s@%s@0100", wasm.GetSCCode("../testdata/hello-v1/output/answer.wasm"), hex.EncodeToString(factory.WasmVirtualMachine))
 	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", wasm.GetSCCode("../testdata/hello-v2/output/answer.wasm"))
 
 	// Deploy the smart contract. Alice is the owner
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  vm.CreateEmptyAddress(),
-		SndAddr:  alice,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte(deployTxData),
-	})
+	_, err := network.SendTransaction(
+		alice.Address,
+		make([]byte, 32),
+		big.NewInt(0),
+		deployTxData,
+		1000,
+	)
+	require.Nil(t, err)
 
-	scAddress, _ := network.Node.BlockchainHook.NewAddress(alice, 0, factory.WasmVirtualMachine)
+	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(alice.Address, 0, factory.WasmVirtualMachine)
 	network.Continue(t, 1)
-	require.Equal(t, []byte{24}, query(t, network.Node, scAddress, "getUltimateAnswer"))
+	require.Equal(t, []byte{24}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  bob,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte(upgradeTxData),
-	})
+	_, err = network.SendTransaction(
+		bob.Address,
+		scAddress,
+		big.NewInt(0),
+		upgradeTxData,
+		1000,
+	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
-	require.Equal(t, []byte{24}, query(t, network.Node, scAddress, "getUltimateAnswer"))
+	require.Equal(t, []byte{24}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 
 	// Now upgrade as Alice, should work
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    1,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  alice,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte(upgradeTxData),
-	})
+	_, err = network.SendTransaction(
+		alice.Address,
+		scAddress,
+		big.NewInt(0),
+		upgradeTxData,
+		1000,
+	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
-	require.Equal(t, []byte{42}, query(t, network.Node, scAddress, "getUltimateAnswer"))
+	require.Equal(t, []byte{42}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 }
 
 func TestUpgrades_CounterTrialAndError(t *testing.T) {
@@ -234,75 +227,69 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	network := integrationTests.NewOneNodeNetwork()
+	network := integrationTests.NewMiniNetwork()
 	defer network.Stop()
 
-	alice := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	bob := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
-	network.Mint(alice, big.NewInt(10000000000000))
-	network.Mint(bob, big.NewInt(10000000000000))
+	alice := network.AddUser(big.NewInt(10000000000000))
+	bob := network.AddUser(big.NewInt(10000000000000))
 
-	network.GoToRoundOne()
+	network.Start()
 
 	deployTxData := fmt.Sprintf("%s@%s@0100", wasm.GetSCCode("../testdata/counter/output/counter.wasm"), hex.EncodeToString(factory.WasmVirtualMachine))
 	upgradeTxData := fmt.Sprintf("upgradeContract@%s@0100", wasm.GetSCCode("../testdata/counter/output/counter.wasm"))
 
 	// Deploy the smart contract. Alice is the owner
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  vm.CreateEmptyAddress(),
-		SndAddr:  alice,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte(deployTxData),
-	})
+	_, err := network.SendTransaction(
+		alice.Address,
+		make([]byte, 32),
+		big.NewInt(0),
+		deployTxData,
+		1000,
+	)
+	require.Nil(t, err)
 
-	scAddress, _ := network.Node.BlockchainHook.NewAddress(alice, 0, factory.WasmVirtualMachine)
+	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(alice.Address, 0, factory.WasmVirtualMachine)
 	network.Continue(t, 1)
-	require.Equal(t, []byte{1}, query(t, network.Node, scAddress, "get"))
+	require.Equal(t, []byte{1}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Increment the counter (could be either Bob or Alice)
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    1,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  alice,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte("increment"),
-	})
+	_, err = network.SendTransaction(
+		alice.Address,
+		scAddress,
+		big.NewInt(0),
+		"increment",
+		1000,
+	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
-	require.Equal(t, []byte{2}, query(t, network.Node, scAddress, "get"))
+	require.Equal(t, []byte{2}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner (counter.init() not executed, state not reset)
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  bob,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte(upgradeTxData),
-	})
+	_, err = network.SendTransaction(
+		bob.Address,
+		scAddress,
+		big.NewInt(0),
+		upgradeTxData,
+		1000,
+	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
-	require.Equal(t, []byte{2}, query(t, network.Node, scAddress, "get"))
+	require.Equal(t, []byte{2}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Now upgrade as Alice, should work (state is reset by counter.init())
-	network.AddTxToPool(&transaction.Transaction{
-		Nonce:    2,
-		Value:    big.NewInt(0),
-		RcvAddr:  scAddress,
-		SndAddr:  alice,
-		GasPrice: network.GetMinGasPrice(),
-		GasLimit: network.MaxGasLimitPerBlock(),
-		Data:     []byte(upgradeTxData),
-	})
+	_, err = network.SendTransaction(
+		alice.Address,
+		scAddress,
+		big.NewInt(0),
+		upgradeTxData,
+		1000,
+	)
+	require.Nil(t, err)
 
 	network.Continue(t, 1)
-	require.Equal(t, []byte{1}, query(t, network.Node, scAddress, "get"))
+	require.Equal(t, []byte{1}, query(t, network.ShardNode, scAddress, "get"))
 }
 
 func query(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, function string) []byte {

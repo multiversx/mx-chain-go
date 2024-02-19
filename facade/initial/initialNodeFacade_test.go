@@ -333,10 +333,13 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, txPoolGaps)
 	assert.Equal(t, errNodeStarting, err)
 
-	cnt := inf.GetManagedKeysCount()
-	assert.Zero(t, cnt)
+	count := inf.GetManagedKeysCount()
+	assert.Zero(t, count)
 
 	keys := inf.GetManagedKeys()
+	assert.Nil(t, keys)
+
+	keys = inf.GetLoadedKeys()
 	assert.Nil(t, keys)
 
 	keys, err = inf.GetEligibleManagedKeys()

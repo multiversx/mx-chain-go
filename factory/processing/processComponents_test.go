@@ -80,8 +80,18 @@ var (
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
 
 	args := processComp.ProcessComponentsFactoryArgs{
-		Config:         testscommon.GetGeneralConfig(),
-		EpochConfig:    config.EpochConfig{},
+		Config: testscommon.GetGeneralConfig(),
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+					{
+						EpochEnable:            0,
+						MaxNumNodes:            100,
+						NodesToShufflePerShard: 2,
+					},
+				},
+			},
+		},
 		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
