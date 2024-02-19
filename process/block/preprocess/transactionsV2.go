@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,24 +23,20 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
-	sortedTxs []*txcache.WrappedTransaction,
+	allSortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, []*txcache.WrappedTransaction, map[string]struct{}, error) {
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
-
-	mbInfo := txs.initCreateAndProcessMiniBlocks()
-
-	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
 	defer func() {
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
-	f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(sortedTxs)))
+	f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(allSortedTxs)))
 	if err != nil {
 		log.Error("could not create CPU profile", "error", err)
 	}
 	var index int
-	if len(sortedTxs) > 0 {
+	if len(allSortedTxs) > 0 {
 		debug.SetGCPercent(-1)
 		pprof.StartCPUProfile(f)
 
@@ -47,77 +44,151 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			pprof.StopCPUProfile()
 			runtime.GC()
 
-			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(sortedTxs), "last index", index)
+			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(allSortedTxs), "last index", index)
 		}()
 	}
-	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 
-	for index = range sortedTxs {
-		if !haveTime() {
-			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
-			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
-			break
-		}
+	independentTxs := detectIndepentedTxs(allSortedTxs)
 
-		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingTx(
-			isShardStuck,
-			sortedTxs[index],
-			mbInfo)
-		if !shouldContinue {
-			log.Debug("should not continue createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
-			continue
-		}
+	mutIndependent := sync.Mutex{}
+	allRemainingTxs := make([]*txcache.WrappedTransaction, 0)
+	mbInfos := make([]*createAndProcessMiniBlocksInfo, 0)
 
-		txHash := sortedTxs[index].TxHash
-		senderShardID := sortedTxs[index].SenderShardID
-		receiverShardID := sortedTxs[index].ReceiverShardID
+	wg := sync.WaitGroup{}
+	for _, st := range independentTxs {
+		wg.Add(1)
+		go func(sortedTxs []*txcache.WrappedTransaction) {
+			remainingTxs := make([]*txcache.WrappedTransaction, 0)
+			mbInfo := txs.initCreateAndProcessMiniBlocks()
 
-		isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-		txMbInfo := txs.getTxAndMbInfo(
-			tx,
-			isMiniBlockEmpty,
-			receiverShardID,
-			mbInfo)
+			log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
+			for index = range sortedTxs {
+				if !haveTime() {
+					log.Debug("time is out in createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
+					remainingTxs = append(remainingTxs, sortedTxs[index:]...)
+					break
+				}
 
-		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
-			log.Debug("max txs accepted in one block is reached",
-				"num txs added", mbInfo.processingInfo.numTxsAdded,
-				"total txs", len(sortedTxs),
-				"last index", index)
-			break
-		}
+				tx, miniBlock, shouldContinue := txs.shouldContinueProcessingTx(
+					isShardStuck,
+					sortedTxs[index],
+					mbInfo)
+				if !shouldContinue {
+					log.Debug("should not continue createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
+					continue
+				}
 
-		shouldAddToRemaining, err := txs.processTransaction(
-			tx,
-			txHash,
-			senderShardID,
-			receiverShardID,
-			mbInfo)
-		if err != nil {
-			if core.IsGetNodeFromDBError(err) {
-				return nil, nil, nil, err
+				txHash := sortedTxs[index].TxHash
+				senderShardID := sortedTxs[index].SenderShardID
+				receiverShardID := sortedTxs[index].ReceiverShardID
+
+				isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
+				txMbInfo := txs.getTxAndMbInfo(
+					tx,
+					isMiniBlockEmpty,
+					receiverShardID,
+					mbInfo)
+
+				if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
+					log.Debug("max txs accepted in one block is reached",
+						"num txs added", mbInfo.processingInfo.numTxsAdded,
+						"total txs", len(sortedTxs),
+						"last index", index)
+					break
+				}
+
+				shouldAddToRemaining, err := txs.processTransaction(
+					tx,
+					txHash,
+					senderShardID,
+					receiverShardID,
+					mbInfo)
+				if err != nil {
+					if core.IsGetNodeFromDBError(err) {
+						return
+					}
+					if shouldAddToRemaining {
+						remainingTxs = append(remainingTxs, sortedTxs[index])
+					}
+					continue
+				}
+
+				txs.applyExecutedTransaction(
+					tx,
+					txHash,
+					miniBlock,
+					receiverShardID,
+					txMbInfo,
+					mbInfo)
 			}
-			if shouldAddToRemaining {
-				remainingTxs = append(remainingTxs, sortedTxs[index])
-			}
-			continue
-		}
+			mutIndependent.Lock()
+			allRemainingTxs = append(allRemainingTxs, remainingTxs...)
+			mbInfos = append(mbInfos, mbInfo)
+			mutIndependent.Unlock()
+			wg.Done()
+		}(st)
+	}
 
-		txs.applyExecutedTransaction(
-			tx,
-			txHash,
-			miniBlock,
-			receiverShardID,
-			txMbInfo,
-			mbInfo)
+	wg.Wait()
+
+	mbInfo := txs.initCreateAndProcessMiniBlocks()
+
+	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
+	for _, mbi := range mbInfos {
+		mbInfo.processingInfo.numTxsAdded += mbi.processingInfo.numTxsAdded
+		mbInfo.processingInfo.numBadTxs += mbi.processingInfo.numBadTxs
+		mbInfo.processingInfo.numTxsFailed += mbi.processingInfo.numTxsFailed
+		mbInfo.processingInfo.numTxsSkipped += mbi.processingInfo.numTxsSkipped
+		mbInfo.processingInfo.numTxsWithInitialBalanceConsumed += mbi.processingInfo.numTxsWithInitialBalanceConsumed
+		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs += mbi.processingInfo.numCrossShardScCallsOrSpecialTxs
+		mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas += mbi.processingInfo.numCrossShardTxsWithTooMuchGas
+		mbInfo.processingInfo.totalTimeUsedForComputeGasProvided += mbi.processingInfo.totalTimeUsedForComputeGasProvided
+		mbInfo.processingInfo.totalTimeUsedForProcess += mbi.processingInfo.totalTimeUsedForProcess
+		for shardID, gas := range mbi.mapGasConsumedByMiniBlockInReceiverShard {
+			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[shardID] += gas
+		}
+		for k, v := range mbi.mapSCTxs {
+			mbInfo.mapSCTxs[k] = v
+		}
+		for receiverShardId, mb := range mbi.mapMiniBlocks {
+			if mbInfo.mapMiniBlocks[receiverShardId] == nil {
+				mbInfo.mapMiniBlocks[receiverShardId] = mb
+			} else {
+				mbInfo.mapMiniBlocks[receiverShardId].TxHashes = append(mbInfo.mapMiniBlocks[receiverShardId].TxHashes, mb.TxHashes...)
+			}
+		}
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
-	txs.displayProcessingResults(miniBlocks, len(sortedTxs), mbInfo)
+	txs.displayProcessingResults(miniBlocks, len(allSortedTxs), mbInfo)
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished")
 
-	return miniBlocks, remainingTxs, mbInfo.mapSCTxs, nil
+	return miniBlocks, allRemainingTxs, mbInfo.mapSCTxs, nil
+}
+
+func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.WrappedTransaction {
+	independentTxs := make([][]*txcache.WrappedTransaction, 0)
+	if len(txs) == 0 {
+		return independentTxs
+	}
+
+	currentSender := txs[0].Tx.GetSndAddr()
+	currentTxs := make([]*txcache.WrappedTransaction, 0)
+	for _, tx := range txs {
+		if bytes.Equal(currentSender, tx.Tx.GetSndAddr()) {
+			currentTxs = append(currentTxs, tx)
+		} else {
+			independentTxs = append(independentTxs, currentTxs)
+			currentSender = tx.Tx.GetSndAddr()
+			currentTxs = []*txcache.WrappedTransaction{tx}
+		}
+	}
+	if len(currentTxs) > 0 {
+		independentTxs = append(independentTxs, currentTxs)
+	}
+
+	return independentTxs
 }
 
 func (txs *transactions) initGasConsumed() map[uint32]uint64 {
