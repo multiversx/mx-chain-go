@@ -3,53 +3,39 @@ package vm
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	"github.com/multiversx/mx-chain-go/state/syncer"
 )
 
 type sovereignVmContainerShardFactory struct {
 	blockChainHookHandlerCreator hooks.BlockChainHookHandlerCreator
+	vmContainerMetaFactory       VmContainerCreator
+	vmContainerShardFactory      VmContainerCreator
 }
 
 // NewSovereignVmContainerShardFactory creates a new sovereign vm container shard factory
-func NewSovereignVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator) (*sovereignVmContainerShardFactory, error) {
+func NewSovereignVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator, vcm VmContainerCreator, vcs VmContainerCreator) (*sovereignVmContainerShardFactory, error) {
+	if bhhc == nil {
+		return nil, process.ErrNilBlockChainHook
+	}
+
+	if vcm == nil {
+		return nil, ErrNilVmContainerMetaCreator
+	}
+
+	if vcs == nil {
+		return nil, ErrNilVmContainerShardCreator
+	}
+
 	return &sovereignVmContainerShardFactory{
 		blockChainHookHandlerCreator: bhhc,
+		vmContainerMetaFactory:       vcm,
+		vmContainerShardFactory:      vcs,
 	}, nil
 }
 
-// CreateVmContainerFactoryShard will create a new instance of sovereign vm container and factory for shard
-func (svcsf *sovereignVmContainerShardFactory) CreateVmContainerFactoryShard(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
-	blockChainHookImpl, err := svcsf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	argsNewVmFactory := shard.ArgVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
-		BuiltInFunctions:    args.BuiltInFunctions,
-		Config:              args.Config,
-		BlockGasLimit:       args.BlockGasLimit,
-		GasSchedule:         args.GasSchedule,
-		EpochNotifier:       args.EpochNotifier,
-		EnableEpochsHandler: args.EnableEpochsHandler,
-		WasmVMChangeLocker:  args.WasmVMChangeLocker,
-		ESDTTransferParser:  args.ESDTTransferParser,
-		Hasher:              args.Hasher,
-	}
-	vmFactory, err := shard.NewVMContainerFactory(argsNewVmFactory)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vmContainer, err := vmFactory.Create()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sovereignFactory, err := NewSovereignVmContainerMetaFactory(svcsf.blockChainHookHandlerCreator)
+// CreateVmContainerFactory will create a new instance of sovereign vm container and factory for shard
+func (svcsf *sovereignVmContainerShardFactory) CreateVmContainerFactory(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
+	vmContainer, vmFactory, err := svcsf.vmContainerShardFactory.CreateVmContainerFactory(argsHook, args)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -57,10 +43,8 @@ func (svcsf *sovereignVmContainerShardFactory) CreateVmContainerFactoryShard(arg
 	metaStorage := argsHook.ConfigSCStorage
 	metaStorage.DB.FilePath = metaStorage.DB.FilePath + "_meta"
 	argsHook.ConfigSCStorage = metaStorage
-	argsHook.Counter = counters.NewDisabledCounter()
-	argsHook.MissingTrieNodesNotifier = syncer.NewMissingTrieNodesNotifier()
 
-	vmContainerMeta, _, err := sovereignFactory.CreateVmContainerFactoryMeta(argsHook, args)
+	vmContainerMeta, _, err := svcsf.vmContainerMetaFactory.CreateVmContainerFactory(argsHook, args)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/process"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -121,10 +122,22 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) metacha
 func TestNewVmContainerMetaCreatorFactory(t *testing.T) {
 	t.Parallel()
 
-	bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-	vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(bhhc)
-	require.Nil(t, err)
-	require.False(t, vmContainerMetaFactory.IsInterfaceNil())
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(bhhc)
+		require.Nil(t, err)
+		require.False(t, vmContainerMetaFactory.IsInterfaceNil())
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(nil)
+		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
+		require.True(t, vmContainerMetaFactory.IsInterfaceNil())
+	})
 }
 
 func TestVmContainerMetaFactory_CreateVmContainerFactoryMeta(t *testing.T) {
@@ -154,7 +167,7 @@ func TestVmContainerMetaFactory_CreateVmContainerFactoryMeta(t *testing.T) {
 		EnableEpochsHandler: argsMeta.EnableEpochsHandler,
 	}
 
-	vmContainer, vmFactory, err := vmContainerMetaFactory.CreateVmContainerFactoryMeta(argsBlockchain, args)
+	vmContainer, vmFactory, err := vmContainerMetaFactory.CreateVmContainerFactory(argsBlockchain, args)
 	require.Nil(t, err)
 	require.Equal(t, "*containers.virtualMachinesContainer", fmt.Sprintf("%T", vmContainer))
 	require.Equal(t, "*metachain.vmContainerFactory", fmt.Sprintf("%T", vmFactory))

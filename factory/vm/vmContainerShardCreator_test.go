@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/process"
 	"sync"
 	"testing"
 
@@ -23,10 +24,8 @@ import (
 func makeVMConfig() config.VirtualMachineConfig {
 	return config.VirtualMachineConfig{
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
-			{StartEpoch: 0, Version: "v1.2"},
-			{StartEpoch: 10, Version: "v1.2"},
-			{StartEpoch: 12, Version: "v1.3"},
-			{StartEpoch: 14, Version: "v1.4"},
+			{StartEpoch: 0, Version: "v1.4"},
+			{StartEpoch: 10, Version: "v1.5"},
 		},
 	}
 }
@@ -50,10 +49,22 @@ func createMockVMAccountsArguments() shard.ArgVMContainerFactory {
 func TestNewVmContainerShardCreatorFactory(t *testing.T) {
 	t.Parallel()
 
-	bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-	vmContainerShardFactory, err := vm.NewVmContainerShardFactory(bhhc)
-	require.Nil(t, err)
-	require.False(t, vmContainerShardFactory.IsInterfaceNil())
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
+		vmContainerShardFactory, err := vm.NewVmContainerShardFactory(bhhc)
+		require.Nil(t, err)
+		require.False(t, vmContainerShardFactory.IsInterfaceNil())
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		vmContainerShardFactory, err := vm.NewVmContainerShardFactory(nil)
+		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
+		require.True(t, vmContainerShardFactory.IsInterfaceNil())
+	})
 }
 
 func TestNewVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) {
@@ -78,7 +89,7 @@ func TestNewVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) 
 		Hasher:              argsShard.Hasher,
 	}
 
-	vmContainer, vmFactory, err := vmContainerShardFactory.CreateVmContainerFactoryShard(argsBlockchain, args)
+	vmContainer, vmFactory, err := vmContainerShardFactory.CreateVmContainerFactory(argsBlockchain, args)
 	require.Nil(t, err)
 	require.Equal(t, "*containers.virtualMachinesContainer", fmt.Sprintf("%T", vmContainer))
 	require.Equal(t, "*shard.vmContainerFactory", fmt.Sprintf("%T", vmFactory))

@@ -2,7 +2,6 @@ package runType
 
 import (
 	"fmt"
-	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -11,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -326,7 +326,7 @@ func (mrc *managedRunTypeComponents) ConsensusModel() consensus.ConsensusModel {
 }
 
 // VmContainerMetaFactoryCreator returns the vm container meta factory creator
-func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.VmContainerMetaCreator {
+func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -338,7 +338,7 @@ func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.V
 }
 
 // VmContainerShardFactoryCreator returns the vm container shard factory creator
-func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.VmContainerShardCreator {
+func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 

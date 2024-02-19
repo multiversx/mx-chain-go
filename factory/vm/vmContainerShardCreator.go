@@ -12,13 +12,17 @@ type vmContainerShardFactory struct {
 
 // NewVmContainerShardFactory creates a new vm container shard factory
 func NewVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator) (*vmContainerShardFactory, error) {
+	if bhhc == nil {
+		return nil, process.ErrNilBlockChainHook
+	}
+
 	return &vmContainerShardFactory{
 		blockChainHookHandlerCreator: bhhc,
 	}, nil
 }
 
-// CreateVmContainerFactoryShard will create a new vm container and factoy for shard
-func (vcsf *vmContainerShardFactory) CreateVmContainerFactoryShard(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
+// CreateVmContainerFactory will create a new vm container and factoy for shard
+func (vcsf *vmContainerShardFactory) CreateVmContainerFactory(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	blockChainHookImpl, err := vcsf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, nil, err

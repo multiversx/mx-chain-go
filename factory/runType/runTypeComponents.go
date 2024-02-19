@@ -43,8 +43,8 @@ type runTypeComponents struct {
 	scProcessorCreator                  scrCommon.SCProcessorCreator
 	scResultPreProcessorCreator         preprocess.SmartContractResultPreProcessorCreator
 	consensusModel                      consensus.ConsensusModel
-	vmContainerMetaFactory              factoryVm.VmContainerMetaCreator
-	vmContainerShardFactory             factoryVm.VmContainerShardCreator
+	vmContainerMetaFactory              factoryVm.VmContainerCreator
+	vmContainerShardFactory             factoryVm.VmContainerCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory

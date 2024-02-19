@@ -90,8 +90,8 @@ type scQueryServiceArgs struct {
 	allowVMQueriesChan      chan struct{}
 	workingDir              string
 	processingMode          common.NodeProcessingMode
-	vmContainerMetaFactory  factoryVm.VmContainerMetaCreator
-	vmContainerShardFactory factoryVm.VmContainerShardCreator
+	vmContainerMetaFactory  factoryVm.VmContainerCreator
+	vmContainerShardFactory factoryVm.VmContainerCreator
 }
 
 type scQueryElementArgs struct {
@@ -111,8 +111,8 @@ type scQueryElementArgs struct {
 	workingDir              string
 	index                   int
 	processingMode          common.NodeProcessingMode
-	vmContainerMetaFactory  factoryVm.VmContainerMetaCreator
-	vmContainerShardFactory factoryVm.VmContainerShardCreator
+	vmContainerMetaFactory  factoryVm.VmContainerCreator
+	vmContainerShardFactory factoryVm.VmContainerCreator
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -453,7 +453,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 		}
 
-		vmContainer, vmFactory, err = args.vmContainerMetaFactory.CreateVmContainerFactoryMeta(argsHook, argsNewVmContainerFactory)
+		vmContainer, vmFactory, err = args.vmContainerMetaFactory.CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	} else {
 		argsHook.BlockChain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
 		if err != nil {
@@ -493,7 +493,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		}
 
-		vmContainer, vmFactory, err = args.vmContainerShardFactory.CreateVmContainerFactoryShard(argsHook, argsNewVmContainerFactory)
+		vmContainer, vmFactory, err = args.vmContainerShardFactory.CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	}
 
 	if err != nil {

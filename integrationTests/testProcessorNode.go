@@ -497,10 +497,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	blockTracker, _ := track.NewShardBlockTrackerFactory()
-
-	blockProcessor, _ := block.NewShardBlockProcessorFactory()
-
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
 		MainMessenger:              messenger,
@@ -533,8 +529,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		PeersRatingMonitor:         peersRatingMonitor,
 		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
 		RequestHandlerCreator:      requestHandlers.NewResolverRequestHandlerFactory(),
-		BlockTrackerCreator:        blockTracker,
-		BlockProcessorCreator:      blockProcessor,
 	}
 
 	tpn.NodeKeys = args.NodeKeys

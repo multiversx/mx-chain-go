@@ -27,8 +27,8 @@ type SCQueryElementArgs struct {
 	WorkingDir              string
 	Index                   int
 	GuardedAccountHandler   process.GuardedAccountHandler
-	VmContainerMetaFactory  factoryVm.VmContainerMetaCreator
-	VmContainerShardFactory factoryVm.VmContainerShardCreator
+	VmContainerMetaFactory  factoryVm.VmContainerCreator
+	VmContainerShardFactory factoryVm.VmContainerCreator
 }
 
 // CreateScQueryElement -

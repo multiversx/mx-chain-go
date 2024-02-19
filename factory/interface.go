@@ -588,8 +588,8 @@ type RunTypeComponentsHolder interface {
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	ConsensusModel() consensus.ConsensusModel
-	VmContainerMetaFactoryCreator() factoryVm.VmContainerMetaCreator
-	VmContainerShardFactoryCreator() factoryVm.VmContainerShardCreator
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
+	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error

@@ -12,13 +12,17 @@ type vmContainerMetaFactory struct {
 
 // NewVmContainerMetaFactory creates a new vm container meta factory
 func NewVmContainerMetaFactory(bhhc hooks.BlockChainHookHandlerCreator) (*vmContainerMetaFactory, error) {
+	if bhhc == nil {
+		return nil, process.ErrNilBlockChainHook
+	}
+
 	return &vmContainerMetaFactory{
 		blockChainHookHandlerCreator: bhhc,
 	}, nil
 }
 
-// CreateVmContainerFactoryMeta will create a new vm container and factory for metachain
-func (vcmf *vmContainerMetaFactory) CreateVmContainerFactoryMeta(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
+// CreateVmContainerFactory will create a new vm container and factory for metachain
+func (vcmf *vmContainerMetaFactory) CreateVmContainerFactory(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	blockChainHookImpl, err := vcmf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, nil, err

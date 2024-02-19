@@ -7,17 +7,17 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 )
 
-type VmContainerMetaFactoryMock struct {
+type VMContainerMetaFactoryMock struct {
 	CreateVmContainerFactoryMetaCalled func(argsHook hooks.ArgBlockChainHook, args factoryVm.ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error)
 }
 
-func (v *VmContainerMetaFactoryMock) CreateVmContainerFactoryMeta(argsHook hooks.ArgBlockChainHook, args factoryVm.ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
+func (v *VMContainerMetaFactoryMock) CreateVmContainerFactory(argsHook hooks.ArgBlockChainHook, args factoryVm.ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	if v.CreateVmContainerFactoryMetaCalled != nil {
-		return v.CreateVmContainerFactoryMeta(argsHook, args)
+		return v.CreateVmContainerFactoryMetaCalled(argsHook, args)
 	}
 	return &mock.VMContainerMock{}, &mock.VmMachinesContainerFactoryMock{}, nil
 }
 
-func (v *VmContainerMetaFactoryMock) IsInterfaceNil() bool {
+func (v *VMContainerMetaFactoryMock) IsInterfaceNil() bool {
 	return v == nil
 }

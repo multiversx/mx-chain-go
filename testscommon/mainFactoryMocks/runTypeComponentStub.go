@@ -36,8 +36,8 @@ type RunTypeComponentsStub struct {
 	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory                  scrCommon.SCProcessorCreator
 	ConsensusModelType                  consensus.ConsensusModel
-	VmContainerMetaFactory              factoryVm.VmContainerMetaCreator
-	VmContainerShardFactory             factoryVm.VmContainerShardCreator
+	VmContainerMetaFactory              factoryVm.VmContainerCreator
+	VmContainerShardFactory             factoryVm.VmContainerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -59,8 +59,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryMock{},
 		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
 		ConsensusModelType:                  consensus.ConsensusModelV1,
-		VmContainerMetaFactory:              &testFactory.VmContainerMetaFactoryMock{},
-		VmContainerShardFactory:             &testFactory.VmContainerShardFactoryMock{},
+		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
+		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 	}
 }
 
@@ -165,12 +165,12 @@ func (r *RunTypeComponentsStub) ConsensusModel() consensus.ConsensusModel {
 }
 
 // VmContainerMetaFactoryCreator -
-func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerMetaCreator {
+func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerMetaFactory
 }
 
 // VmContainerShardFactoryCreator -
-func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerShardCreator {
+func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerShardFactory
 }
 
