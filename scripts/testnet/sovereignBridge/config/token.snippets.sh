@@ -1,5 +1,7 @@
 issueToken() {
-    TOKENS_TO_MINT=$(echo "scale=0; $CHAIN_SPECIFIC_TOKENS_TO_MINT*10^$NR_DECIMALS_CHAIN_SPECIFIC/1" | bc)
+    manualUpdateConfigFile #update config file
+
+    TOKENS_TO_MINT=$(echo "scale=0; $INITIAL_SUPPLY*10^$NR_DECIMALS/1" | bc)
 
     mxpy --verbose contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
@@ -9,14 +11,19 @@ issueToken() {
         --value=${ESDT_ISSUE_COST} \
         --function="issue" \
         --arguments \
-            str:${CHAIN_SPECIFIC_TOKEN_DISPLAY_NAME} \
-            str:${CHAIN_SPECIFIC_TOKEN_TICKER} \
+            str:${TOKEN_DISPLAY_NAME} \
+            str:${TOKEN_TICKER} \
             ${TOKENS_TO_MINT} \
-            ${NR_DECIMALS_CHAIN_SPECIFIC} \
+            ${NR_DECIMALS} \
             str:canAddSpecialRoles str:true \
+        --outfile="${SCRIPT_PATH}/issue-token.interaction.json" \
         --recall-nonce \
         --wait-result \
         --send || return
+
+    HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
+    TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
+    update-config DEPOSIT_TOKEN_IDENTIFIER $TOKEN_IDENTIFIER
 }
 
 depositTokenInSC() {
