@@ -406,9 +406,11 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		tp, _ := NewTransactionPreprocessor(args)
 		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
 
-		value := sctp.isTransactionEligibleForExecution(nil, errors.New("error"))
+		expectedError := errors.New("error")
+		err, value := sctp.isTransactionEligibleForExecution(nil, expectedError)
 
-		assert.False(t, value)
+		require.Equal(t, expectedError, err)
+		require.False(t, value)
 	})
 
 	t.Run("isTransactionEligibleForExecution should return false when sender account is nil", func(t *testing.T) {
@@ -419,9 +421,10 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 		tp, _ := NewTransactionPreprocessor(args)
 		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
 
-		value := sctp.isTransactionEligibleForExecution(nil, nil)
+		err, value := sctp.isTransactionEligibleForExecution(nil, nil)
 
-		assert.False(t, value)
+		require.Nil(t, err)
+		require.False(t, value)
 	})
 
 	t.Run("isTransactionEligibleForExecution should return false when transaction has a higher nonce", func(t *testing.T) {
@@ -445,9 +448,37 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 			SndAddr: []byte("X"),
 			Nonce:   1,
 		}
-		value := sctp.isTransactionEligibleForExecution(tx, nil)
+		err, value := sctp.isTransactionEligibleForExecution(tx, nil)
 
-		assert.False(t, value)
+		require.ErrorIs(t, err, process.ErrHigherNonceInTransaction)
+		require.False(t, value)
+	})
+
+	t.Run("isTransactionEligibleForExecution should return false when transaction has a lower nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			GetSenderAndReceiverAccountsCalled: func(tx *transaction.Transaction) (state2.UserAccountHandler, state2.UserAccountHandler, error) {
+				senderAccount := &state.UserAccountStub{
+					Nonce:   5,
+					Balance: big.NewInt(10),
+				}
+				return senderAccount, nil, nil
+			},
+		}
+
+		tp, _ := NewTransactionPreprocessor(args)
+		sctp, _ := NewSovereignChainTransactionPreprocessor(tp)
+
+		tx := &transaction.Transaction{
+			SndAddr: []byte("X"),
+			Nonce:   4,
+		}
+		err, value := sctp.isTransactionEligibleForExecution(tx, nil)
+
+		require.ErrorIs(t, err, process.ErrLowerNonceInTransaction)
+		require.False(t, value)
 	})
 
 	t.Run("isTransactionEligibleForExecution should return false when account has insufficient balance for fees", func(t *testing.T) {
@@ -476,12 +507,13 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 			SndAddr: []byte("X"),
 			Nonce:   1,
 		}
-		value := sctp.isTransactionEligibleForExecution(tx, nil)
+		err, value := sctp.isTransactionEligibleForExecution(tx, nil)
 
-		assert.False(t, value)
+		require.ErrorIs(t, err, process.ErrInsufficientFee)
+		require.False(t, value)
 	})
 
-	t.Run("isTransactionEligibleForExecution should return false when account has insufficient funds", func(t *testing.T) {
+	t.Run("isTransactionEligibleForExecution should return true if account has sufficient funds for fee but not sufficient for transfer.", func(t *testing.T) {
 		t.Parallel()
 
 		args := createDefaultTransactionsProcessorArgs()
@@ -508,9 +540,10 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 			Nonce:   1,
 			Value:   big.NewInt(2),
 		}
-		value := sctp.isTransactionEligibleForExecution(tx, nil)
+		err, value := sctp.isTransactionEligibleForExecution(tx, nil)
 
-		assert.False(t, value)
+		require.Nil(t, err)
+		require.True(t, value)
 	})
 
 	t.Run("isTransactionEligibleForExecution should return true", func(t *testing.T) {
@@ -540,8 +573,9 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 			Nonce:   1,
 			Value:   big.NewInt(2),
 		}
-		value := sctp.isTransactionEligibleForExecution(tx, nil)
+		err, value := sctp.isTransactionEligibleForExecution(tx, nil)
 
+		require.Nil(t, err)
 		assert.True(t, value)
 
 		accntInfo, found := sctp.accntsTracker.getAccountInfo(tx.GetSndAddr())
@@ -558,8 +592,9 @@ func TestTxsPreprocessor_IsTransactionEligibleForExecutionShouldWork(t *testing.
 			Nonce:   2,
 			Value:   big.NewInt(5),
 		}
-		value = sctp.isTransactionEligibleForExecution(tx2, nil)
+		err, value = sctp.isTransactionEligibleForExecution(tx2, nil)
 
+		require.Nil(t, err)
 		assert.True(t, value)
 
 		accntInfo, found = sctp.accntsTracker.getAccountInfo(tx2.GetSndAddr())

@@ -56,6 +56,7 @@ import (
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -488,13 +489,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedProcessComponents,
 		managedStatusCoreComponents,
 	)
-
 	if err != nil {
 		return true, err
 	}
 
 	log.Debug("creating node structure")
-	currentNode, err := CreateNode(
+	nodeHandler, err := CreateNode(
 		configs.GeneralConfig,
 		managedStatusCoreComponents,
 		managedBootstrapComponents,
@@ -509,6 +509,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
+		NewNodeFactory(),
 	)
 	if err != nil {
 		return true, err
@@ -528,7 +529,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	allowExternalVMQueriesChan := make(chan struct{})
 
 	log.Debug("updating the API service after creating the node facade")
-	facadeInstance, err := nr.createApiFacade(currentNode, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
+	facadeInstance, err := nr.createApiFacade(nodeHandler, webServerHandler, gasScheduleNotifier, allowExternalVMQueriesChan)
 	if err != nil {
 		return true, err
 	}
@@ -556,7 +557,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		healthService,
 		facadeInstance,
 		webServerHandler,
-		currentNode,
+		nodeHandler,
 		goRoutinesNumberStart,
 	)
 
@@ -707,7 +708,7 @@ func getBaseAccountSyncerArgs(
 }
 
 func (nr *nodeRunner) createApiFacade(
-	currentNode *Node,
+	nodeHandler NodeHandler,
 	upgradableHttpServer shared.UpgradeableHttpServerHandler,
 	gasScheduleNotifier common.GasScheduleNotifierAPI,
 	allowVMQueriesChan chan struct{},
@@ -717,20 +718,23 @@ func (nr *nodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:              configs,
-		CoreComponents:       currentNode.coreComponents,
-		DataComponents:       currentNode.dataComponents,
-		StateComponents:      currentNode.stateComponents,
-		BootstrapComponents:  currentNode.bootstrapComponents,
-		CryptoComponents:     currentNode.cryptoComponents,
-		ProcessComponents:    currentNode.processComponents,
-		StatusCoreComponents: currentNode.statusCoreComponents,
-		GasScheduleNotifier:  gasScheduleNotifier,
-		Bootstrapper:         currentNode.consensusComponents.Bootstrapper(),
-		AllowVMQueriesChan:   allowVMQueriesChan,
-		StatusComponents:     currentNode.statusComponents,
-		ProcessingMode:       common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:         common.ChainRunTypeRegular,
+		Configs:                        configs,
+		CoreComponents:                 nodeHandler.GetCoreComponents(),
+		DataComponents:                 nodeHandler.GetDataComponents(),
+		StateComponents:                nodeHandler.GetStateComponents(),
+		BootstrapComponents:            nodeHandler.GetBootstrapComponents(),
+		CryptoComponents:               nodeHandler.GetCryptoComponents(),
+		ProcessComponents:              nodeHandler.GetProcessComponents(),
+		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
+		GasScheduleNotifier:            gasScheduleNotifier,
+		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		AllowVMQueriesChan:             allowVMQueriesChan,
+		StatusComponents:               nodeHandler.GetStatusComponents(),
+		ProcessingMode:                 common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		ChainRunType:                   common.ChainRunTypeRegular,
+		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
+		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -743,7 +747,7 @@ func (nr *nodeRunner) createApiFacade(
 	flagsConfig := configs.FlagsConfig
 
 	argNodeFacade := facade.ArgNodeFacade{
-		Node:                   currentNode,
+		Node:                   nodeHandler,
 		ApiResolver:            apiResolver,
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
@@ -753,9 +757,9 @@ func (nr *nodeRunner) createApiFacade(
 			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
 		},
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
-		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
-		PeerState:       currentNode.stateComponents.PeerAccounts(),
-		Blockchain:      currentNode.dataComponents.Blockchain(),
+		AccountsState:   nodeHandler.GetStateComponents().AccountsAdapter(),
+		PeerState:       nodeHandler.GetStateComponents().PeerAccounts(),
+		Blockchain:      nodeHandler.GetDataComponents().Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -763,7 +767,7 @@ func (nr *nodeRunner) createApiFacade(
 		return nil, fmt.Errorf("%w while creating NodeFacade", err)
 	}
 
-	ef.SetSyncer(currentNode.coreComponents.SyncTimer())
+	ef.SetSyncer(nodeHandler.GetCoreComponents().SyncTimer())
 
 	err = upgradableHttpServer.UpdateFacade(ef)
 	if err != nil {
@@ -976,7 +980,7 @@ func waitForSignal(
 	healthService closing.Closer,
 	facade closing.Closer,
 	httpServer shared.UpgradeableHttpServerHandler,
-	currentNode *Node,
+	nodeHandler NodeHandler,
 	goRoutinesNumberStart int,
 ) nextOperationForNode {
 	var sig endProcess.ArgEndProcess
@@ -1000,7 +1004,7 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, facade, httpServer, nodeHandler, chanCloseComponents)
 	}()
 
 	select {
@@ -1584,7 +1588,7 @@ func closeAllComponents(
 	healthService io.Closer,
 	facade mainFactory.Closer,
 	httpServer shared.UpgradeableHttpServerHandler,
-	node *Node,
+	node NodeHandler,
 	chanCloseComponents chan struct{},
 ) {
 	log.Debug("closing health service...")
