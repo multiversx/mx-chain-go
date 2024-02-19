@@ -31,3 +31,7 @@ deployObserver() {
 
     docker run -d -p 8083:8080 -p 22111 multiversx/sov-observer --destination-shard-as-observer $SHARD
 }
+
+stopObserver() {
+    docker stop multiversx/sov-observer
+}
