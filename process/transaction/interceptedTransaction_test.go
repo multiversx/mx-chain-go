@@ -1705,7 +1705,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		innerTx2 := &dataTransaction.Transaction{
 			Nonce:     2,
 			Value:     big.NewInt(3),
-			Data:      []byte("data inner tx 2"),
+			Data:      []byte(""),
 			GasLimit:  3,
 			GasPrice:  4,
 			RcvAddr:   recvAddress,
