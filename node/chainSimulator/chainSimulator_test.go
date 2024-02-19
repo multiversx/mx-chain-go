@@ -109,7 +109,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	facade, err := NewChainSimulatorFacade(chainSimulator)
 	require.Nil(t, err)
 
-	genesisAddressWithStake := chainSimulator.initialWalletKeys.InitialWalletWithStake.Address
+	genesisAddressWithStake := chainSimulator.initialWalletKeys.StakeWallets[0].Address.Bech32
 	initialAccount, err := facade.GetExistingAccountFromBech32AddressString(genesisAddressWithStake)
 	require.Nil(t, err)
 
