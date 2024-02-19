@@ -1,6 +1,8 @@
 package components
 
 import (
+	"io"
+
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -27,7 +29,7 @@ type stateComponentsHolder struct {
 	triesContainer           common.TriesHolder
 	triesStorageManager      map[string]common.StorageManager
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier
-	closeFunc                func() error
+	stateComponentsCloser    io.Closer
 }
 
 // CreateStateComponents will create the state components holder
@@ -68,7 +70,7 @@ func CreateStateComponents(args ArgsStateComponents) (factory.StateComponentsHan
 		triesContainer:           stateComp.TriesContainer(),
 		triesStorageManager:      stateComp.TrieStorageManagers(),
 		missingTrieNodesNotifier: stateComp.MissingTrieNodesNotifier(),
-		closeFunc:                stateComp.Close,
+		stateComponentsCloser:    stateComp,
 	}, nil
 }
 
@@ -109,7 +111,7 @@ func (s *stateComponentsHolder) MissingTrieNodesNotifier() common.MissingTrieNod
 
 // Close will close the state components
 func (s *stateComponentsHolder) Close() error {
-	return s.closeFunc()
+	return s.stateComponentsCloser.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

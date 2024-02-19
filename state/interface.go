@@ -60,6 +60,7 @@ type PeerAccountHandler interface {
 	GetConsecutiveProposerMisses() uint32
 	SetConsecutiveProposerMisses(uint322 uint32)
 	ResetAtNewEpoch()
+	SetPreviousList(list string)
 	vmcommon.AccountHandler
 }
 

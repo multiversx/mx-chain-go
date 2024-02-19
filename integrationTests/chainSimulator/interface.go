@@ -16,5 +16,5 @@ type ChainSimulator interface {
 	GetNodeHandler(shardID uint32) process.NodeHandler
 	SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error)
 	SetStateMultiple(stateSlice []*dtos.AddressState) error
-	GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (string, error)
+	GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error)
 }

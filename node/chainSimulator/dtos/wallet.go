@@ -11,3 +11,9 @@ type InitialWalletKeys struct {
 	InitialWalletWithStake *WalletKey            `json:"initialWalletWithStake"`
 	ShardWallets           map[uint32]*WalletKey `json:"shardWallets"`
 }
+
+// WalletAddress holds the address in multiple formats
+type WalletAddress struct {
+	Bech32 string
+	Bytes  []byte
+}
