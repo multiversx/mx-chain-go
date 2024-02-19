@@ -1,3 +1,5 @@
+IMAGE_NAME="multiversx/sov-observer"
+
 prepareObserver() {
     manualUpdateConfigFile #update config file
 
@@ -23,15 +25,24 @@ prepareObserver() {
     LINE="FROM $DOCKER_IMAGE"
     sed -i "1s,.*,${LINE}," "$SCRIPT_PATH/observer/shard-observer" # replace first line with the docker image
 
-    docker image build . -t multiversx/sov-observer -f $SCRIPT_PATH/observer/shard-observer
+    docker image build . -t $IMAGE_NAME -f $SCRIPT_PATH/observer/shard-observer
 }
 
 deployObserver() {
     SHARD=$(getShardOfAddress)
 
-    docker run -d -p 8083:8080 -p 22111 multiversx/sov-observer --destination-shard-as-observer $SHARD
+    docker run -d -p 8083:8080 -p 22111 $IMAGE_NAME --destination-shard-as-observer $SHARD
 }
 
 stopObserver() {
-    docker stop multiversx/sov-observer
+    CONTAINER_IDS=$(docker ps -q --filter "ancestor=${IMAGE_NAME}")
+
+    if [ -z "$CONTAINER_IDS" ]; then
+        echo "No containers running based on image ${IMAGE_NAME}"
+        exit 1
+    fi
+
+    for CONTAINER_ID in $CONTAINER_IDS; do
+        docker stop $CONTAINER_ID
+    done
 }

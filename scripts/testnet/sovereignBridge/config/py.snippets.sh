@@ -15,7 +15,7 @@ displayContracts() {
 setGenesisContract() {
     ESDT_SAFE_PATH="${ROOT}/${ESDT_SAFE_WASM}"
 
-    python3 $SCRIPT_PATH/pyScripts/genesis_contract.py $ESDT_SAFE_ADDRESS_SOVEREIGN $WALLET_ADDRESS
+    python3 $SCRIPT_PATH/pyScripts/genesis_contract.py $ESDT_SAFE_PATH $WALLET_ADDRESS
 }
 
 updateSovereignConfig() {
