@@ -129,7 +129,11 @@ func TestNewSmartContractProcessorProxy(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSmartContractProcessorArguments()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCProcessorV2Flag)
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SCProcessorV2Flag
+			},
+		}
 
 		proxy, err := NewSmartContractProcessorProxy(args, &epochNotifierMock.EpochNotifierStub{})
 		assert.False(t, check.IfNil(proxy))
