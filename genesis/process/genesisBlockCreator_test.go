@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"math"
 	"math/big"
 	"testing"
@@ -72,6 +73,7 @@ func createMockArgument(
 	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
 	runType.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
 	runType.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
+	runType.SCProcessorFactory, _ = processorV2.NewSCProcessFactory()
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
