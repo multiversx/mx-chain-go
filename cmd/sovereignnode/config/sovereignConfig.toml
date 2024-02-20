@@ -65,3 +65,7 @@
         AcknowledgeTimeout = 60
         # Payload version to process
         Version = 1
+
+[GenesisConfig]
+    # NativeESDT specifies the sovereign shard's native esdt currency
+    NativeESDT = "WEGLD-bd4d79"
