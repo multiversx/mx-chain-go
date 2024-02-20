@@ -2,14 +2,16 @@ package accountsCache
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
-// TODO add mutex
 type accountsCache struct {
 	modifiedAccounts map[string]struct{}
 	previousCache    map[string][]byte
 	currentCache     map[string][]byte
+	mutex            sync.RWMutex
 }
 
 func NewAccountsCache() *accountsCache {
@@ -22,11 +24,16 @@ func NewAccountsCache() *accountsCache {
 
 func (ac *accountsCache) SaveAccount(address []byte, accountBytes []byte) {
 	// TODO log size of the cache
+	ac.mutex.Lock()
 	ac.modifiedAccounts[string(address)] = struct{}{}
 	ac.currentCache[string(address)] = accountBytes
+	ac.mutex.Unlock()
 }
 
 func (ac *accountsCache) GetAccount(address []byte) []byte {
+	ac.mutex.RLock()
+	defer ac.mutex.RUnlock()
+
 	account, found := ac.currentCache[string(address)]
 	if found {
 		return account
@@ -41,6 +48,9 @@ func (ac *accountsCache) GetAccount(address []byte) []byte {
 }
 
 func (ac *accountsCache) UpdateTrieWithLatestChanges(trie common.Trie) error {
+	ac.mutex.Lock()
+	defer ac.mutex.Unlock()
+
 	for address := range ac.modifiedAccounts {
 		account, found := ac.currentCache[address]
 		if !found {
@@ -61,6 +71,9 @@ func (ac *accountsCache) UpdateTrieWithLatestChanges(trie common.Trie) error {
 }
 
 func (ac *accountsCache) RevertLatestChanges() {
+	ac.mutex.Lock()
+	defer ac.mutex.Unlock()
+
 	ac.currentCache = ac.previousCache
 	ac.previousCache = make(map[string][]byte)
 	ac.modifiedAccounts = make(map[string]struct{})
