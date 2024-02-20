@@ -19,6 +19,14 @@ type shardForkDetector struct {
 	doJobOnBHProcessedFunc func(header data.HeaderHandler, headerHash []byte, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte)
 }
 
+// ForkDetectorFactoryArgs are the arguments needed to create a new fork detector
+type ForkDetectorFactoryArgs struct {
+	RoundHandler    consensus.RoundHandler
+	HeaderBlackList process.TimeCacher
+	BlockTracker    process.BlockTracker
+	GenesisTime     int64
+}
+
 // NewShardForkDetector method creates a new shardForkDetector object
 func NewShardForkDetector(
 	roundHandler consensus.RoundHandler,

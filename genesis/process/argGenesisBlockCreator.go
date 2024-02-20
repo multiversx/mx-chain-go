@@ -16,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
@@ -39,6 +42,14 @@ type dataComponentsHandler interface {
 	Datapool() dataRetriever.PoolsHolder
 	SetBlockchain(chain data.ChainHandler) error
 	Clone() interface{}
+	IsInterfaceNil() bool
+}
+
+type runTypeComponentsHandler interface {
+	BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator
+	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
 	IsInterfaceNil() bool
 }
 
@@ -68,7 +79,7 @@ type ArgsGenesisBlockCreator struct {
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
-	ChainRunType            common.ChainRunType
+	RunTypeComponents       runTypeComponentsHandler
 	Config                  config.Config
 
 	GenesisNodePrice *big.Int

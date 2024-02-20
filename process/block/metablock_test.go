@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"math/big"
 	"reflect"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -29,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -49,6 +50,11 @@ func createMockComponentHolders() (
 	mdp := initDataPool([]byte("tx_hash"))
 
 	coreComponents := &mock.CoreComponentsMock{
+		AddrPubKeyConv: &testscommon.PubkeyConverterStub{
+			DecodeCalled: func(humanReadable string) ([]byte, error) {
+				return []byte(humanReadable), nil
+			},
+		},
 		IntMarsh:                  &mock.MarshalizerMock{},
 		Hash:                      &mock.HasherStub{},
 		UInt64ByteSliceConv:       &mock.Uint64ByteSliceConverterMock{},
@@ -115,7 +121,7 @@ func createMockMetaArguments(
 		},
 	}
 
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
@@ -150,6 +156,8 @@ func createMockMetaArguments(
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -3670,7 +3678,7 @@ func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
 
 	savedMetrics := make(map[string]interface{})
 	arguments := createMockMetaArguments(createMockComponentHolders())
-	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+	arguments.StatusCoreComponents = &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{
 			SetUInt64ValueHandler: func(key string, value uint64) {
 				savedMetrics[key] = value
