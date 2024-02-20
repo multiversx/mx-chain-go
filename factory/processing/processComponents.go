@@ -970,6 +970,8 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
 		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
+		// TODO: We should only pass the whole config instead of passing sub-configs as above
+		Config: pcf.config,
 	}
 
 	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)

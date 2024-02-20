@@ -278,3 +278,12 @@ type LastSnapshotMarker interface {
 	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
 	IsInterfaceNil() bool
 }
+
+// AccountsCache is used to cache accounts
+type AccountsCache interface {
+	SaveAccount(address []byte, accountBytes []byte)
+	GetAccount(address []byte) []byte
+	UpdateTrieWithLatestChanges(trie common.Trie) error
+	RevertLatestChanges()
+	IsInterfaceNil() bool
+}

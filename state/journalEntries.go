@@ -135,13 +135,13 @@ func (jea *journalEntryAccount) IsInterfaceNil() bool {
 
 // JournalEntryAccountCreation represents a journal entry for account creation
 type journalEntryAccountCreation struct {
-	address []byte
-	updater Updater
+	address       []byte
+	accountsCache AccountsCache
 }
 
 // NewJournalEntryAccountCreation creates a new instance of JournalEntryAccountCreation
-func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEntryAccountCreation, error) {
-	if check.IfNil(updater) {
+func NewJournalEntryAccountCreation(address []byte, accountsCache AccountsCache) (*journalEntryAccountCreation, error) {
+	if check.IfNil(accountsCache) {
 		return nil, ErrNilUpdater
 	}
 	if len(address) == 0 {
@@ -149,14 +149,15 @@ func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEn
 	}
 
 	return &journalEntryAccountCreation{
-		address: address,
-		updater: updater,
+		address:       address,
+		accountsCache: accountsCache,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jea *journalEntryAccountCreation) Revert() (vmcommon.AccountHandler, error) {
-	return nil, jea.updater.Update(jea.address, nil)
+	jea.accountsCache.SaveAccount(jea.address, nil)
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
