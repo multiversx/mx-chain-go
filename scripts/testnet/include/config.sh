@@ -3,6 +3,7 @@ generateConfig() {
 
   TMP_SHARD_OBSERVERCOUNT=$SHARD_OBSERVERCOUNT
   TMP_META_OBSERVERCOUNT=$META_OBSERVERCOUNT
+  # set num of observers to 0, they will start with generated keys
   if [[ $MULTI_KEY_NODES -eq 1 ]]; then
     TMP_SHARD_OBSERVERCOUNT=0
     TMP_META_OBSERVERCOUNT=0
