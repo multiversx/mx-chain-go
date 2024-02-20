@@ -1276,6 +1276,11 @@ func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
 	}
 
 	if in.vmInput.CallValue.Cmp(zero) > 0 {
+		newVMInput.ESDTTransfers = append(newVMInput.ESDTTransfers,
+			&vmcommon.ESDTTransfer{
+				ESDTValue:     big.NewInt(0).Set(in.vmInput.CallValue),
+				ESDTTokenName: []byte("eGLD"),
+			})
 		newVMInput.CallValue.Set(in.vmInput.CallValue)
 	}
 

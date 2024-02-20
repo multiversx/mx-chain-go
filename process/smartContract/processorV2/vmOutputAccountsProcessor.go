@@ -44,7 +44,7 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 	indexedSCResults := make([]internalIndexedScr, 0, len(outputAccounts))
 
 	sumOfAllDiff := big.NewInt(0)
-	sumOfAllDiff.Sub(sumOfAllDiff, oap.tx.GetValue())
+	sumOfAllDiff.Sub(sumOfAllDiff, oap.vmInput.CallValue)
 
 	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {
