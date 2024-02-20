@@ -327,7 +327,12 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 }
 
 func (inTx *InterceptedTransaction) verifyUserTx(userTx *transaction.Transaction) error {
-	err := inTx.verifySig(userTx)
+	// recursive relayed transactions are not allowed
+	err := inTx.checkRecursiveRelayed(userTx.Data, userTx.InnerTransaction)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
+	err = inTx.verifySig(userTx)
 	if err != nil {
 		return fmt.Errorf("inner transaction: %w", err)
 	}
@@ -337,8 +342,7 @@ func (inTx *InterceptedTransaction) verifyUserTx(userTx *transaction.Transaction
 		return fmt.Errorf("inner transaction: %w", err)
 	}
 
-	// recursive relayed transactions are not allowed
-	return inTx.checkRecursiveRelayed(userTx.Data, userTx.InnerTransaction)
+	return nil
 }
 
 func (inTx *InterceptedTransaction) processFields(txBuff []byte) error {
