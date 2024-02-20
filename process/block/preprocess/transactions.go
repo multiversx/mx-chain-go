@@ -745,12 +745,14 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsValidator(
 
 	txs.sortTransactionsBySenderAndNonce(scheduledTxsFromMe, randomness)
 
+	independentTxs := detectIndepentedTxs(scheduledTxsFromMe)
+
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
 		haveAdditionalTime,
 		isShardStuck,
 		isMaxBlockSizeReached,
-		scheduledTxsFromMe,
+		independentTxs,
 		mapSCTxs,
 	)
 	if err != nil {
@@ -1137,7 +1139,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
-		sortedTxsForScheduled,
+		[][]*txcache.WrappedTransaction{sortedTxsForScheduled},
 		mapSCTxs,
 	)
 	if err != nil {
@@ -1153,7 +1155,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 func (txs *transactions) createScheduledMiniBlocksFromMeAsProposer(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
-	sortedTxs []*txcache.WrappedTransaction,
+	independentTxs [][]*txcache.WrappedTransaction,
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 
@@ -1167,12 +1169,13 @@ func (txs *transactions) createScheduledMiniBlocksFromMeAsProposer(
 		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
 		isMaxBlockSizeReachedFalse,
-		sortedTxs,
+		independentTxs,
 		mapSCTxs,
 	)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to createScheduledMiniBlocks",
 		"time [s]", elapsedTime,
+		"independentTxs", len(independentTxs),
 	)
 	if err != nil {
 		return nil, err

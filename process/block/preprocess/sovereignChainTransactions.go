@@ -84,10 +84,12 @@ func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func(
 
 	selectedTxs, _, _ := sct.addTxsWithinBandwidth(nil, sortedTxs, 0, gasBandwidth)
 
+	independentTxs := detectIndepentedTxs(selectedTxs)
+
 	scheduledMiniBlocks, err := sct.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTimeFalse,
-		selectedTxs,
+		independentTxs,
 		make(map[string]struct{}),
 	)
 	if err != nil {

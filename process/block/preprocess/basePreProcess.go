@@ -234,10 +234,13 @@ func (bpp *basePreProcess) saveTxsToStorage(
 	store dataRetriever.StorageService,
 	dataUnit dataRetriever.UnitType,
 ) {
+	start := time.Now()
 	for i := 0; i < len(txHashes); i++ {
 		txHash := txHashes[i]
 		bpp.saveTransactionToStorage(txHash, forBlock, store, dataUnit)
 	}
+	end := time.Now()
+	log.Info("basePreProcess.saveTxsToStorage: duration", "duration", end.Sub(start), "txHashesNr", len(txHashes))
 }
 
 func (bpp *basePreProcess) saveTransactionToStorage(
