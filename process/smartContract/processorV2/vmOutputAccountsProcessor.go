@@ -126,7 +126,8 @@ func (oap *VMOutputAccountsProcessor) processOutputTransfersStep(outAcc *vmcommo
 func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount,
-	sumOfAllDiff *big.Int) (bool, error) {
+	sumOfAllDiff *big.Int,
+) (bool, error) {
 	if !check.IfNil(acc) {
 		return false, nil
 	}
@@ -141,7 +142,8 @@ func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 
 func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 	acc state.UserAccountHandler,
-	outAcc *vmcommon.OutputAccount) error {
+	outAcc *vmcommon.OutputAccount,
+) error {
 	for _, storeUpdate := range outAcc.StorageUpdates {
 		if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 			log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
@@ -256,7 +258,8 @@ func (oap *VMOutputAccountsProcessor) updateAccountNonceIfThereIsAChange(
 func (oap *VMOutputAccountsProcessor) updateAccountBalanceStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount,
-	sumOfAllDiff *big.Int) (*big.Int, error) {
+	sumOfAllDiff *big.Int,
+) (*big.Int, error) {
 	// if no change then continue to next account
 	if outAcc.BalanceDelta == nil || outAcc.BalanceDelta.Cmp(zero) == 0 {
 		err := oap.sc.accounts.SaveAccount(acc)

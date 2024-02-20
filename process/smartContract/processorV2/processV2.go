@@ -1275,6 +1275,10 @@ func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
 		newVMInput.ESDTTransfers = in.parsedTransfer.ESDTTransfers
 	}
 
+	if in.vmInput.CallValue.Cmp(zero) > 0 {
+		newVMInput.CallValue.Set(in.vmInput.CallValue)
+	}
+
 	newDestSC, err := sc.getAccountFromAddress(in.vmInput.RecipientAddr)
 	if err != nil {
 		in.failureContext.setMessages(err.Error(), []byte(""))
