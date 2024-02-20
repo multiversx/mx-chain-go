@@ -710,7 +710,7 @@ const MetachainShardName = "metachain"
 const TemporaryPath = "temp"
 
 // TimeToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
-const TimeToWaitForP2PBootstrap = 20 * time.Second
+const TimeToWaitForP2PBootstrap = 2 * time.Second
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10

@@ -385,7 +385,7 @@
     Capacity = 900000
     SizePerSender = 500000
     SizeInBytes = 819430400 #400MB
-    SizeInBytesPerSender = 32288000
+    SizeInBytesPerSender = 92288000
     Type = "TxCache"
     Shards = 16
 

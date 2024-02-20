@@ -134,7 +134,7 @@ func NewInterceptedTransaction(
 		return nil, err
 	}
 
-	log.Info("new intercepted tx", "tx hash", inTx.hash, "nonce", inTx.tx.Nonce)
+	//log.Info("new intercepted tx", "tx hash", inTx.hash, "nonce", inTx.tx.Nonce)
 
 	return inTx, nil
 }

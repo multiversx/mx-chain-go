@@ -169,11 +169,11 @@ func (jea *journalEntryAccountCreation) IsInterfaceNil() bool {
 // so it can be reverted in case of rollback
 type journalEntryDataTrieUpdates struct {
 	trieUpdates []core.TrieData
-	account     baseAccountHandler
+	account     BaseAccountHandler
 }
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
-func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
+func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account BaseAccountHandler) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
 		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieUpdates", ErrNilAccountHandler)
 	}

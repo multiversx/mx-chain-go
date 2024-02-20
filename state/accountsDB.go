@@ -236,31 +236,31 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
-	//// this is a critical section, do not remove the mutex
-	//adb.mutOp.Lock()
-	//defer adb.mutOp.Unlock()
+	// this is a critical section, do not remove the mutex
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
 
-	//oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//var entry JournalEntry
-	//if check.IfNil(oldAccount) {
-	//	entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.accountsCache)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	adb.journalize(entry)
-	//} else {
-	//	entry, err = NewJournalEntryAccount(oldAccount)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	adb.journalize(entry)
-	//}
+	oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
+	if err != nil {
+		return err
+	}
 
-	err := adb.saveCodeAndDataTrie(account)
+	var entry JournalEntry
+	if check.IfNil(oldAccount) {
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.accountsCache)
+		if err != nil {
+			return err
+		}
+		adb.journalize(entry)
+	} else {
+		entry, err = NewJournalEntryAccount(oldAccount)
+		if err != nil {
+			return err
+		}
+		adb.journalize(entry)
+	}
+
+	err = adb.saveCodeAndDataTrie(oldAccount, account)
 	if err != nil {
 		return err
 	}
@@ -268,8 +268,10 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	return adb.saveAccount(account)
 }
 
-func (adb *AccountsDB) saveCodeAndDataTrie(newAcc vmcommon.AccountHandler) error {
-	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
+func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
+	baseNewAcc, newAccOk := newAcc.(BaseAccountHandler)
+	baseOldAccount, _ := oldAcc.(BaseAccountHandler)
+
 	if !newAccOk {
 		return nil
 	}
@@ -279,23 +281,13 @@ func (adb *AccountsDB) saveCodeAndDataTrie(newAcc vmcommon.AccountHandler) error
 		return err
 	}
 
-	return adb.saveCode(baseNewAcc)
+	return adb.saveCode(baseNewAcc, baseOldAccount)
 }
 
-func (adb *AccountsDB) saveCode(newAcc baseAccountHandler) error {
+func (adb *AccountsDB) saveCode(newAcc, oldAcc BaseAccountHandler) error {
 	// TODO when state splitting is implemented, check how the code should be copied in different shards
 
 	if !newAcc.HasNewCode() {
-		return nil
-	}
-
-	oldAccount, err := adb.getAccount(newAcc.AddressBytes(), adb.mainTrie)
-	if err != nil {
-		return err
-	}
-
-	oldAcc, ok := oldAccount.(baseAccountHandler)
-	if !ok {
 		return nil
 	}
 
@@ -428,7 +420,7 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 
 // loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
 // Errors if something went wrong
-func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHandler, mainTrie common.Trie) error {
+func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler BaseAccountHandler, mainTrie common.Trie) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -454,7 +446,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
-func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
+func (adb *AccountsDB) saveDataTrie(accountHandler BaseAccountHandler) error {
 	oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
 	if err != nil {
 		return err
@@ -544,7 +536,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 }
 
 func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error {
-	baseAcc, ok := acnt.(baseAccountHandler)
+	baseAcc, ok := acnt.(BaseAccountHandler)
 	if !ok {
 		return nil
 	}
@@ -562,7 +554,7 @@ func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error
 	return nil
 }
 
-func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
+func (adb *AccountsDB) removeDataTrie(baseAcc BaseAccountHandler) error {
 	rootHash := baseAcc.GetRootHash()
 	if len(rootHash) == 0 {
 		return nil
@@ -589,7 +581,7 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
+func (adb *AccountsDB) removeCode(baseAcc BaseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
 	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
 	if err != nil {
@@ -624,8 +616,8 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return adb.accountFactory.CreateAccount(address)
 	}
 
-	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok && len(baseAcc.GetRootHash()) != 0 {
+	baseAcc, ok := acnt.(BaseAccountHandler)
+	if ok {
 		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
@@ -691,8 +683,8 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		return nil, ErrAccNotFound
 	}
 
-	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok && len(baseAcc.GetRootHash()) != 0 {
+	baseAcc, ok := acnt.(BaseAccountHandler)
+	if ok {
 		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
@@ -718,7 +710,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return nil, err
 	}
 
-	baseAcc, ok := acnt.(baseAccountHandler)
+	baseAcc, ok := acnt.(BaseAccountHandler)
 	if !ok {
 		return acnt, nil
 	}
@@ -732,7 +724,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 }
 
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
-func (adb *AccountsDB) loadCode(accountHandler baseAccountHandler) error {
+func (adb *AccountsDB) loadCode(accountHandler BaseAccountHandler) error {
 	if len(accountHandler.GetCodeHash()) == 0 {
 		return nil
 	}

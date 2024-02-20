@@ -2,6 +2,8 @@ package state
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
@@ -19,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TODO: merge this with data components
@@ -176,7 +179,14 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      snapshotsManager,
 	}
-	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
+	oldAccountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
+
+	caDB := &CacheableAccountsDB{
+		oldAccountsAdapter,
+		make(map[string]vmcommon.AccountHandler),
+		sync.Mutex{},
+	}
+
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
@@ -217,7 +227,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, fmt.Errorf("accountsRepository: %w", err)
 	}
 
-	return accountsAdapter, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
+	return caDB, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
@@ -324,4 +334,75 @@ func (pc *stateComponents) Close() error {
 		return fmt.Errorf("state components close failed: %s", errString)
 	}
 	return nil
+}
+
+type CacheableAccountsDB struct {
+	state.AccountsAdapter
+	Cache    map[string]vmcommon.AccountHandler
+	mutCache sync.Mutex
+}
+
+func (cadb *CacheableAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+	cadb.mutCache.Lock()
+	defer cadb.mutCache.Unlock()
+	account, ok := cadb.Cache[string(address)]
+	if ok {
+		return account, nil
+	}
+
+	account, err := cadb.AccountsAdapter.GetExistingAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	cadb.Cache[string(address)] = account
+	return account, nil
+}
+
+func (cadb *CacheableAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
+	cadb.mutCache.Lock()
+	defer cadb.mutCache.Unlock()
+	account, ok := cadb.Cache[string(address)]
+	if ok {
+		return account, nil
+	}
+
+	account, err := cadb.AccountsAdapter.LoadAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	cadb.Cache[string(address)] = account
+	return account, nil
+}
+
+func (cadb *CacheableAccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
+	cadb.mutCache.Lock()
+	defer cadb.mutCache.Unlock()
+	userAccount, ok := account.(state.BaseAccountHandler)
+	if ok {
+		hasCode := len(userAccount.GetCode()) > 0
+		if hasCode {
+			err := cadb.AccountsAdapter.SaveAccount(account)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	cadb.Cache[string(account.AddressBytes())] = account
+	return nil
+}
+
+func (cadb *CacheableAccountsDB) Commit() ([]byte, error) {
+	cadb.mutCache.Lock()
+	defer cadb.mutCache.Unlock()
+	for _, account := range cadb.Cache {
+		err := cadb.AccountsAdapter.SaveAccount(account)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cadb.Cache = make(map[string]vmcommon.AccountHandler)
+	return cadb.AccountsAdapter.Commit()
 }
